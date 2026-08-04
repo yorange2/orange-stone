@@ -29,6 +29,7 @@ pub const SOULFIRE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const FLAME_IMP: CardDef = CardDef {
@@ -55,6 +56,7 @@ pub const FLAME_IMP: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const MORTAL_COIL: CardDef = CardDef {
@@ -78,6 +80,7 @@ pub const MORTAL_COIL: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const VOIDWALKER: CardDef = CardDef {
@@ -101,6 +104,7 @@ pub const VOIDWALKER: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const HELLFIRE: CardDef = CardDef {
@@ -124,6 +128,7 @@ pub const HELLFIRE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const DRAIN_LIFE: CardDef = CardDef {
@@ -147,6 +152,7 @@ pub const DRAIN_LIFE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const DOOMGUARD: CardDef = CardDef {
@@ -170,6 +176,7 @@ pub const DOOMGUARD: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 
@@ -194,6 +201,7 @@ pub const SHADOW_BOLT: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const TWISTING_NETHER: CardDef = CardDef {
@@ -217,6 +225,7 @@ pub const TWISTING_NETHER: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const LORD_JARAXXUS: CardDef = CardDef {
@@ -242,6 +251,7 @@ pub const LORD_JARAXXUS: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 pub const BLOOD_FURY: CardDef = CardDef {
     id: "WARLOCK_010t",
@@ -264,6 +274,7 @@ pub const BLOOD_FURY: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 // 术士补全
@@ -291,6 +302,7 @@ pub const DREAD_INFERNAL: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 pub const PIT_LORD: CardDef = CardDef {
     id: "WARLOCK_012",
@@ -316,6 +328,7 @@ pub const PIT_LORD: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 
@@ -341,4 +354,5 @@ pub const FELSTALKER: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };

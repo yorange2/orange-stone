@@ -304,6 +304,9 @@ fn resolve_summon(
         if let Some(ete) = card_def.end_turn_effect {
             world.set_end_turn_effect(e, crate::core::component::EndTurnEffect(ete));
         }
+        if let Some(st) = card_def.spell_trigger {
+            world.set_spell_trigger(e, crate::core::component::SpellTrigger(st));
+        }
         e
     };
 

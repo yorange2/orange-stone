@@ -298,6 +298,12 @@ pub struct CantAttack;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EndTurnEffect(pub crate::core::effect::CardEffect);
 
+/// 法术施放触发效果 — 当友方施放法术时触发。
+///
+/// 效果通过 `CardEffect` 定义，在 `SpellCast` 事件处理时被检测。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SpellTrigger(pub crate::core::effect::CardEffect);
+
 #[cfg(test)]
 mod tests {
     use super::*;

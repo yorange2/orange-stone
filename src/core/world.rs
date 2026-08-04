@@ -10,7 +10,8 @@
 
 use crate::core::component::{
     Armor, Attack, AttacksUsed, Aura, Battlecry, CantAttack, CardType, Charge, Cost, Deathrattle, DivineShield,
-    Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Secret, SpellDamage, Taunt, Windfury,
+    Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Secret, SpellDamage, SpellTrigger,
+    Taunt, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -125,6 +126,8 @@ pub struct World {
     cant_attack: SparseSet<CantAttack>,
     /// EndTurnEffect 组件存储（回合结束效果）
     end_turn_effect: SparseSet<EndTurnEffect>,
+    /// SpellTrigger 组件存储（法术触发效果）
+    spell_trigger: SparseSet<SpellTrigger>,
     /// 区域表 — 每个 Zone 的有序实体列表
     zones: Zones,
 }
@@ -159,6 +162,7 @@ impl World {
             freeze: SparseSet::new(),
             cant_attack: SparseSet::new(),
             end_turn_effect: SparseSet::new(),
+            spell_trigger: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -219,6 +223,7 @@ impl World {
         self.freeze.remove(entity);
         self.cant_attack.remove(entity);
         self.end_turn_effect.remove(entity);
+        self.spell_trigger.remove(entity);
         // 提升 generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // 归还槽位
@@ -414,6 +419,14 @@ impl World {
         set_end_turn_effect,
         remove_end_turn_effect,
         iter_end_turn_effect
+    );
+    component_accessors!(
+        spell_trigger,
+        SpellTrigger,
+        spell_trigger,
+        set_spell_trigger,
+        remove_spell_trigger,
+        iter_spell_trigger
     );
 
     /// 获取实体每回合可攻击的最大次数。

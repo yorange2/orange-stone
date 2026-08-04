@@ -267,6 +267,10 @@ impl GameBuilder {
         if let Some(se) = card.spell_effect {
             world.set_battlecry(e, crate::core::component::Battlecry(se));
         }
+        // 法术触发效果
+        if let Some(st) = card.spell_trigger {
+            world.set_spell_trigger(e, crate::core::component::SpellTrigger(st));
+        }
         e
     }
 }

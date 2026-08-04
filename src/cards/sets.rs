@@ -141,6 +141,8 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     PINT_SIZED_SUMMONER,
     SI7_INFILTRATOR,
     EATER_OF_SECRETS,
+    ARCANE_DEVOURER,
+    VIOLET_APPRENTICE,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -219,6 +221,7 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     BLIZZARD,
     ARCANE_EXPLOSION,
     CONE_OF_COLD,
+    MANA_WYRM,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -473,6 +476,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     COUNTERSPELL,
     BLIZZARD,
     ARCANE_EXPLOSION,
+    MANA_WYRM,
     // Paladin
     BLESSING_OF_MIGHT,
     HUMILITY,
@@ -658,4 +662,6 @@ pub const ALL_CARDS: &[CardDef] = &[
     PINT_SIZED_SUMMONER,
     SI7_INFILTRATOR,
     EATER_OF_SECRETS,
+    ARCANE_DEVOURER,
+    VIOLET_APPRENTICE,
 ];

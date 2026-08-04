@@ -334,6 +334,9 @@ fn two_bots_battle() {
                             orange_stone::core::event::Event::SecretRevealed { player, .. } => {
                                 format!("  ↪ 奥秘揭示: {}", player_name(*player))
                             }
+                            orange_stone::core::event::Event::SpellCast { player, .. } => {
+                                format!("  ↪ 法术施放: {}", player_name(*player))
+                            }
                         };
                         println!("{evt_str}");
                     }
@@ -576,6 +579,9 @@ fn two_smart_bots_battle() {
                                 }
                                 orange_stone::core::event::Event::SecretRevealed { player, .. } => {
                                     format!("  ↪ 奥秘揭示: {}", player_name(*player))
+                                }
+                                orange_stone::core::event::Event::SpellCast { player, .. } => {
+                                    format!("  ↪ 法术施放: {}", player_name(*player))
                                 }
                             };
                             println!("{evt_str}");

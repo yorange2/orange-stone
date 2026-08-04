@@ -30,6 +30,7 @@ pub const BLESSING_OF_MIGHT: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const HUMILITY: CardDef = CardDef {
@@ -53,6 +54,7 @@ pub const HUMILITY: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const HOLY_LIGHT: CardDef = CardDef {
@@ -76,6 +78,7 @@ pub const HOLY_LIGHT: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const BLESSING_OF_KINGS: CardDef = CardDef {
@@ -99,6 +102,7 @@ pub const BLESSING_OF_KINGS: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const CONSECRATION: CardDef = CardDef {
@@ -122,6 +126,7 @@ pub const CONSECRATION: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const TRUESILVER_CHAMPION: CardDef = CardDef {
@@ -145,6 +150,7 @@ pub const TRUESILVER_CHAMPION: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const GUARDIAN_OF_KINGS: CardDef = CardDef {
@@ -171,6 +177,7 @@ pub const GUARDIAN_OF_KINGS: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const TIRION_FORDRING: CardDef = CardDef {
@@ -196,6 +203,7 @@ pub const TIRION_FORDRING: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 pub const ASHBRINGER: CardDef = CardDef {
     id: "PALADIN_008t",
@@ -218,6 +226,7 @@ pub const ASHBRINGER: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const ALDOR_PEACEKEEPER: CardDef = CardDef {
@@ -244,6 +253,7 @@ pub const ALDOR_PEACEKEEPER: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 
@@ -268,6 +278,7 @@ pub const EQUALITY: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const HAMMER_OF_WRATH: CardDef = CardDef {
@@ -291,6 +302,7 @@ pub const HAMMER_OF_WRATH: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const AVENGING_WRATH: CardDef = CardDef {
@@ -314,6 +326,7 @@ pub const AVENGING_WRATH: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const LAY_ON_HANDS: CardDef = CardDef {
@@ -337,6 +350,7 @@ pub const LAY_ON_HANDS: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 /// 神圣愤怒 — 抽一张牌，造成等同于其法力消耗的伤害（简化：仅抽牌）
@@ -361,6 +375,7 @@ pub const HOLY_WRATH: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 /// 正义 — 使你的随从获得圣盾（简化版，无法实现群体圣盾）
 pub const RIGHTEOUSNESS: CardDef = CardDef {
@@ -384,6 +399,7 @@ pub const RIGHTEOUSNESS: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 // 圣骑士补全
@@ -408,6 +424,7 @@ pub const HAND_OF_PROTECTION: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 pub const LIGHTS_JUSTICE: CardDef = CardDef {
     id: "PALADIN_015",
@@ -430,6 +447,7 @@ pub const LIGHTS_JUSTICE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 pub const ARGENT_PROTECTOR: CardDef = CardDef {
     id: "PALADIN_016",
@@ -452,6 +470,7 @@ pub const ARGENT_PROTECTOR: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 
@@ -479,4 +498,5 @@ pub const BLESSED_CHAMPION: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };

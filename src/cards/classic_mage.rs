@@ -3,6 +3,7 @@
 
 use crate::cards::def::CardDef;
 use crate::core::component::{CardType, SecretTrigger};
+use crate::core::effect::{CardEffect, EffectTarget};
 
 // 怀旧系列 — 法师 (Mage)
 // ============================================================
@@ -28,6 +29,7 @@ pub const ARCANE_MISSILES: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const FROSTBOLT: CardDef = CardDef {
@@ -51,6 +53,7 @@ pub const FROSTBOLT: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const ARCANE_INTELLECT: CardDef = CardDef {
@@ -74,6 +77,7 @@ pub const ARCANE_INTELLECT: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const FROST_NOVA: CardDef = CardDef {
@@ -97,6 +101,7 @@ pub const FROST_NOVA: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const FIREBALL: CardDef = CardDef {
@@ -120,6 +125,7 @@ pub const FIREBALL: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const POLYMORPH: CardDef = CardDef {
@@ -143,6 +149,7 @@ pub const POLYMORPH: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const WATER_ELEMENTAL: CardDef = CardDef {
@@ -166,6 +173,7 @@ pub const WATER_ELEMENTAL: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const FLAMESTRIKE: CardDef = CardDef {
@@ -189,6 +197,7 @@ pub const FLAMESTRIKE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const PYROBLAST: CardDef = CardDef {
@@ -212,6 +221,7 @@ pub const PYROBLAST: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 
@@ -236,6 +246,7 @@ pub const ICE_BARRIER: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const ICE_BLOCK: CardDef = CardDef {
@@ -259,6 +270,7 @@ pub const ICE_BLOCK: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const MIRROR_ENTITY: CardDef = CardDef {
@@ -282,6 +294,7 @@ pub const MIRROR_ENTITY: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const COUNTERSPELL: CardDef = CardDef {
@@ -305,6 +318,7 @@ pub const COUNTERSPELL: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const BLIZZARD: CardDef = CardDef {
@@ -328,6 +342,7 @@ pub const BLIZZARD: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 /// 冰锥术 — 冻结一个随从和相邻的随从（简化：冻结一个随机敌方随从）
@@ -352,6 +367,7 @@ pub const CONE_OF_COLD: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 // 法师补全
@@ -376,5 +392,35 @@ pub const ARCANE_EXPLOSION: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
+
+/// 玛瑙巫师 — 每当你施放一个法术，获得+1攻击力
+pub const MANA_WYRM: CardDef = CardDef {
+    id: "MAGE_016",
+    name: "Mana Wyrm",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 1,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    spell_trigger: Some(CardEffect::GainStats {
+        attack: 1,
+        health: 0,
+        target: EffectTarget::Self_,
+    }),
+};

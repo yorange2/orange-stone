@@ -84,6 +84,13 @@ pub enum Event {
         /// 被摧毁的武器实体
         weapon: Entity,
     },
+    /// 法术被施放
+    SpellCast {
+        /// 施放法术的玩家
+        player: PlayerId,
+        /// 法术实体
+        spell: Entity,
+    },
     /// 英雄技能被使用
     HeroPowerActivated {
         /// 使用技能的玩家
