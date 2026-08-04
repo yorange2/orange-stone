@@ -1241,3 +1241,135 @@ fn hero_with_temp_attack_can_attack() {
         Some(orange_stone::core::component::Health(26))
     );
 }
+
+// ============================================================
+// Phase 4: Grant Windfury / Charge / Double stat tests
+// ============================================================
+
+#[test]
+fn grant_windfury_gives_minion_windfury() {
+    use orange_stone::cards::def::WINDFURY;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &WINDFURY);
+    // 放一个友方随从在场上
+    let minion = builder.add_custom_minion_to_board(PlayerId::Player1, 3, 5, 3);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine
+        .apply(&mut state, Action::PlayCard { card })
+        .unwrap();
+
+    // 随从应获得风怒
+    assert!(state.world().windfury(minion).is_some());
+    // max_attacks 应该变为 2
+    assert_eq!(state.world().max_attacks(minion), 2);
+}
+
+#[test]
+fn double_attack_doubles_minion_attack() {
+    use orange_stone::cards::def::BLESSED_CHAMPION;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &BLESSED_CHAMPION);
+    let minion = builder.add_custom_minion_to_board(PlayerId::Player1, 4, 5, 3);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine
+        .apply(&mut state, Action::PlayCard { card })
+        .unwrap();
+
+    // 随从攻击力应从 4 翻倍到 8
+    assert_eq!(
+        state.world().attack(minion),
+        Some(orange_stone::core::component::Attack(8))
+    );
+}
+
+#[test]
+fn double_health_doubles_minion_health() {
+    use orange_stone::cards::def::DIVINE_SPIRIT;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &DIVINE_SPIRIT);
+    let minion = builder.add_custom_minion_to_board(PlayerId::Player1, 2, 6, 3);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine
+        .apply(&mut state, Action::PlayCard { card })
+        .unwrap();
+
+    // 随从生命值应从 6 翻倍到 12 (上限 30)
+    assert_eq!(
+        state.world().health(minion),
+        Some(orange_stone::core::component::Health(12))
+    );
+}
+
+#[test]
+fn grant_charge_allows_immediate_attack() {
+    use orange_stone::cards::def::CHARGE_SPELL;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &CHARGE_SPELL);
+    let minion = builder.add_custom_minion_to_board(PlayerId::Player1, 3, 5, 3);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    // 先让随从进入召唤失调状态
+    state
+        .world_mut()
+        .set_attacks_used(minion, orange_stone::core::component::AttacksUsed(1));
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine
+        .apply(&mut state, Action::PlayCard { card })
+        .unwrap();
+
+    // 随从应获得冲锋
+    assert!(state.world().charge(minion).is_some());
+    // 攻击次数应重置，允许立即攻击
+    assert_eq!(
+        state.world().attacks_used(minion),
+        Some(orange_stone::core::component::AttacksUsed(0))
+    );
+    // 攻击力应从 3 变为 5（+2 加成）
+    assert_eq!(
+        state.world().attack(minion),
+        Some(orange_stone::core::component::Attack(5))
+    );
+}

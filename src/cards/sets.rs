@@ -239,6 +239,7 @@ pub const PALADIN_CLASSIC: &[CardDef] = &[
     ARGENT_PROTECTOR,
     HOLY_WRATH,
     RIGHTEOUSNESS,
+    BLESSED_CHAMPION,
 ];
 
 pub const PRIEST_CLASSIC: &[CardDef] = &[
@@ -260,6 +261,7 @@ pub const PRIEST_CLASSIC: &[CardDef] = &[
     RADIANCE,
     KUL_TIRAN_CHAPLAIN,
     MASS_DISPEL,
+    DIVINE_SPIRIT,
 ];
 
 pub const ROGUE_CLASSIC: &[CardDef] = &[
@@ -300,6 +302,8 @@ pub const SHAMAN_CLASSIC: &[CardDef] = &[
     LAVA_BURST,
     STORMFORGED_AXE,
     EARTH_ELEMENTAL,
+    WINDFURY,
+    WINDSPEAKER,
 ];
 
 pub const WARLOCK_CLASSIC: &[CardDef] = &[
@@ -335,6 +339,7 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
     ARMORSMITH,
     INNER_RAGE,
     HEROIC_STRIKE,
+    CHARGE_SPELL,
 ];
 
 pub const ALL_CARDS: &[CardDef] = &[
@@ -480,6 +485,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     HAND_OF_PROTECTION,
     LIGHTS_JUSTICE,
     ARGENT_PROTECTOR,
+    BLESSED_CHAMPION,
     // Priest
     HOLY_SMITE,
     MIND_BLAST,
@@ -496,6 +502,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     SILENCE,
     SHADOW_WORD_RUIN,
     TEMPLE_ENFORCER,
+    DIVINE_SPIRIT,
     // Rogue
     BACKSTAB,
     DEADLY_POISON,
@@ -532,6 +539,8 @@ pub const ALL_CARDS: &[CardDef] = &[
     LAVA_BURST,
     STORMFORGED_AXE,
     EARTH_ELEMENTAL,
+    WINDFURY,
+    WINDSPEAKER,
     // Warlock
     SOULFIRE,
     FLAME_IMP,
@@ -564,6 +573,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     INNER_RAGE,
     // Hero Attack
     HEROIC_STRIKE,
+    CHARGE_SPELL,
     // Legendary
     CAIRNE_BLOODHOOF,
     BAINE_BLOODHOOF,

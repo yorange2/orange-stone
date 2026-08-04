@@ -454,3 +454,29 @@ pub const ARGENT_PROTECTOR: CardDef = CardDef {
     end_turn_effect: None,
 };
 
+
+/// 受祝福的勇士 — 使一个随从的攻击力翻倍
+pub const BLESSED_CHAMPION: CardDef = CardDef {
+    id: "PALADIN_016",
+    name: "Blessed Champion",
+    card_type: CardType::Spell,
+    cost: 5,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::DoubleAttack {
+        target: EffectTarget::FriendlyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+};

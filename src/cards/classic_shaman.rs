@@ -444,3 +444,55 @@ pub const EARTH_ELEMENTAL: CardDef = CardDef {
     end_turn_effect: None,
 };
 
+
+/// 风怒 — 使一个友方随从获得风怒
+pub const WINDFURY: CardDef = CardDef {
+    id: "SHAMAN_016",
+    name: "Windfury",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::GrantWindfury {
+        target: EffectTarget::FriendlyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+};
+
+/// 风语者 — 战吼：使一个友方随从获得风怒
+pub const WINDSPEAKER: CardDef = CardDef {
+    id: "SHAMAN_017",
+    name: "Windspeaker",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 3,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::GrantWindfury {
+        target: EffectTarget::FriendlyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+};
