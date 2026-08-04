@@ -30,6 +30,8 @@ pub const BACKSTAB: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const DEADLY_POISON: CardDef = CardDef {
@@ -54,6 +56,8 @@ pub const DEADLY_POISON: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const EVISCERATE: CardDef = CardDef {
@@ -78,6 +82,8 @@ pub const EVISCERATE: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const SAP: CardDef = CardDef {
@@ -102,6 +108,8 @@ pub const SAP: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const SI7_AGENT: CardDef = CardDef {
@@ -129,6 +137,8 @@ pub const SI7_AGENT: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const ASSASSINATE: CardDef = CardDef {
@@ -153,6 +163,8 @@ pub const ASSASSINATE: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const SPRINT: CardDef = CardDef {
@@ -177,6 +189,8 @@ pub const SPRINT: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const FAN_OF_KNIVES: CardDef = CardDef {
@@ -201,6 +215,8 @@ pub const FAN_OF_KNIVES: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 
@@ -226,6 +242,8 @@ pub const PREPARATION: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const COLD_BLOOD: CardDef = CardDef {
@@ -250,6 +268,8 @@ pub const COLD_BLOOD: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const DEFIAS_RINGLEADER: CardDef = CardDef {
@@ -274,6 +294,8 @@ pub const DEFIAS_RINGLEADER: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const EDWIN_VANCLEEF: CardDef = CardDef {
@@ -298,6 +320,8 @@ pub const EDWIN_VANCLEEF: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 // 潜行者补全
@@ -323,6 +347,8 @@ pub const SINISTER_STRIKE: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 pub const SHIV: CardDef = CardDef {
     id: "ROGUE_014",
@@ -346,6 +372,8 @@ pub const SHIV: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 pub const ASSASSINS_BLADE: CardDef = CardDef {
     id: "ROGUE_015",
@@ -369,6 +397,8 @@ pub const ASSASSINS_BLADE: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 
@@ -395,4 +425,6 @@ pub const VANISH: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };

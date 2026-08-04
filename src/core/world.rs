@@ -9,9 +9,9 @@
 //! 所有实体访问都经过 generation 检查，防止悬垂引用。
 
 use crate::core::component::{
-    Armor, Attack, AttacksUsed, Aura, Battlecry, CantAttack, CardType, Charge, Cost, Deathrattle, DivineShield,
-    Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Secret, SpellDamage, SpellTrigger,
-    Taunt, Windfury,
+    Armor, Attack, AttacksUsed, Aura, Battlecry, CantAttack, CardType, Charge, Cost, DeathTrigger, Deathrattle,
+    DivineShield, Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Secret, SpellDamage,
+    SpellTrigger, SummonTrigger, Taunt, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -128,6 +128,10 @@ pub struct World {
     end_turn_effect: SparseSet<EndTurnEffect>,
     /// SpellTrigger 组件存储（法术触发效果）
     spell_trigger: SparseSet<SpellTrigger>,
+    /// DeathTrigger 组件存储（随从死亡触发效果）
+    death_trigger: SparseSet<DeathTrigger>,
+    /// SummonTrigger 组件存储（随从召唤触发效果）
+    summon_trigger: SparseSet<SummonTrigger>,
     /// 区域表 — 每个 Zone 的有序实体列表
     zones: Zones,
 }
@@ -163,6 +167,8 @@ impl World {
             cant_attack: SparseSet::new(),
             end_turn_effect: SparseSet::new(),
             spell_trigger: SparseSet::new(),
+            death_trigger: SparseSet::new(),
+            summon_trigger: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -224,6 +230,8 @@ impl World {
         self.cant_attack.remove(entity);
         self.end_turn_effect.remove(entity);
         self.spell_trigger.remove(entity);
+        self.death_trigger.remove(entity);
+        self.summon_trigger.remove(entity);
         // 提升 generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // 归还槽位
@@ -427,6 +435,22 @@ impl World {
         set_spell_trigger,
         remove_spell_trigger,
         iter_spell_trigger
+    );
+    component_accessors!(
+        death_trigger,
+        DeathTrigger,
+        death_trigger,
+        set_death_trigger,
+        remove_death_trigger,
+        iter_death_trigger
+    );
+    component_accessors!(
+        summon_trigger,
+        SummonTrigger,
+        summon_trigger,
+        set_summon_trigger,
+        remove_summon_trigger,
+        iter_summon_trigger
     );
 
     /// 获取实体每回合可攻击的最大次数。

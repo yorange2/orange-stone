@@ -32,6 +32,8 @@ pub const INNERVATE: CardDef = CardDef {
     end_turn_effect: None,
     // 效果: 获得2法力水晶 (在 trigger 中处理)
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const CLAW: CardDef = CardDef {
@@ -59,6 +61,8 @@ pub const CLAW: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const MARK_OF_THE_WILD: CardDef = CardDef {
@@ -83,6 +87,8 @@ pub const MARK_OF_THE_WILD: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const WRATH: CardDef = CardDef {
@@ -107,6 +113,8 @@ pub const WRATH: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const SWIPE: CardDef = CardDef {
@@ -131,6 +139,8 @@ pub const SWIPE: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const STARFIRE: CardDef = CardDef {
@@ -155,6 +165,8 @@ pub const STARFIRE: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const DRUID_OF_THE_CLAW: CardDef = CardDef {
@@ -179,6 +191,8 @@ pub const DRUID_OF_THE_CLAW: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const ANCIENT_OF_LORE: CardDef = CardDef {
@@ -203,6 +217,8 @@ pub const ANCIENT_OF_LORE: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const ANCIENT_OF_WAR: CardDef = CardDef {
@@ -227,6 +243,8 @@ pub const ANCIENT_OF_WAR: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 // 怀旧系列 — 更多职业卡牌
@@ -254,6 +272,8 @@ pub const SAVAGE_ROAR: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 
@@ -280,6 +300,8 @@ pub const MOONFIRE: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 pub const WILD_GROWTH: CardDef = CardDef {
     id: "DRUID_012",
@@ -303,6 +325,8 @@ pub const WILD_GROWTH: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 pub const HEALING_TOUCH: CardDef = CardDef {
     id: "DRUID_013",
@@ -326,6 +350,8 @@ pub const HEALING_TOUCH: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 pub const IRONBARK_PROTECTOR: CardDef = CardDef {
     id: "DRUID_014",
@@ -349,6 +375,8 @@ pub const IRONBARK_PROTECTOR: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 
@@ -375,6 +403,8 @@ pub const FORCE_OF_NATURE: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 pub const TREANT: CardDef = CardDef {
     id: "DRUID_015t",
@@ -398,6 +428,8 @@ pub const TREANT: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 /// 野性赐福 — 使你的随从获得+2/+2和嘲讽（简化：仅+2/+2）
@@ -423,6 +455,8 @@ pub const GIFT_OF_THE_WILD: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 /// 撕咬 — 使你的英雄获得+4攻击力本回合，获得4点护甲
@@ -451,6 +485,8 @@ pub const BITE: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 /// 野蛮之击 — 对一个随从造成等同于你英雄攻击力的伤害
@@ -478,5 +514,7 @@ pub const SAVAGERY: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 

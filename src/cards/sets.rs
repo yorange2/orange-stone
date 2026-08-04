@@ -202,6 +202,8 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     KING_KRUSH,
     UNLEASH_THE_HOUNDS,
     MULTI_SHOT,
+    SCAVENGING_HYENA,
+    STARVING_BUZZARD,
 ];
 
 pub const MAGE_CLASSIC: &[CardDef] = &[
@@ -245,6 +247,7 @@ pub const PALADIN_CLASSIC: &[CardDef] = &[
     HOLY_WRATH,
     RIGHTEOUSNESS,
     BLESSED_CHAMPION,
+    SWORD_OF_JUSTICE,
 ];
 
 pub const PRIEST_CLASSIC: &[CardDef] = &[

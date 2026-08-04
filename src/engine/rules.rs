@@ -496,6 +496,21 @@ pub fn apply_event(
                 let effect = battlecry.0;
                 trigger::resolve_effect(state, queue, minion, player, effect);
             }
+            // 检查召唤触发（友方随从被召唤时，场上其他随从的 summon_trigger）
+            let summon_triggers: Vec<(Entity, crate::core::effect::CardEffect)> = state
+                .world()
+                .iter_summon_trigger()
+                .filter(|(e, _)| {
+                    *e != minion  // 不包括自身
+                        && state.world().zone(*e) == Some(Zone::Play)
+                        && state.world().is_alive(*e)
+                        && state.world().player(*e) == Some(player)
+                })
+                .map(|(e, st)| (e, st.0))
+                .collect();
+            for (source, effect) in summon_triggers {
+                trigger::resolve_effect(state, queue, source, player, effect);
+            }
         }
         Event::AttackDeclared { attacker, .. } => {
             // 冻结检查：被冻结的角色不能攻击
@@ -616,6 +631,24 @@ pub fn apply_event(
             // 如果是亡语效果，入队（之后处理，保持当前实体状态）
             if let (Some(dr), Some(owner)) = (deathrattle_effect, owner) {
                 trigger::resolve_effect(state, queue, minion, owner, dr.0);
+            }
+
+            // 检查死亡触发（其他友方随从的 death_trigger）
+            if let Some(owner) = owner {
+                let death_triggers: Vec<(Entity, crate::core::effect::CardEffect)> = state
+                    .world()
+                    .iter_death_trigger()
+                    .filter(|(e, _)| {
+                        *e != minion  // 不包括死亡的随从自身
+                            && state.world().zone(*e) == Some(Zone::Play)
+                            && state.world().is_alive(*e)
+                            && state.world().player(*e) == Some(owner)
+                    })
+                    .map(|(e, dt)| (e, dt.0))
+                    .collect();
+                for (source, effect) in death_triggers {
+                    trigger::resolve_effect(state, queue, source, owner, effect);
+                }
             }
 
             // 随从移到坟墓场（保留实体和组件，用于回放和 Phase 2+ 的坟场效果）

@@ -304,6 +304,14 @@ pub struct EndTurnEffect(pub crate::core::effect::CardEffect);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SpellTrigger(pub crate::core::effect::CardEffect);
 
+/// 随从死亡触发效果 — 当友方随从死亡时触发。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DeathTrigger(pub crate::core::effect::CardEffect);
+
+/// 随从召唤触发效果 — 当友方随从被召唤时触发。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SummonTrigger(pub crate::core::effect::CardEffect);
+
 #[cfg(test)]
 mod tests {
     use super::*;
