@@ -279,6 +279,14 @@ impl GameBuilder {
         if let Some(st) = card.summon_trigger {
             world.set_summon_trigger(e, crate::core::component::SummonTrigger(st));
         }
+        // 抉择效果
+        if let Some(ce) = card.choose_one_effect {
+            world.set_choose_one_effect(e, crate::core::component::ChooseOneEffect(ce));
+        }
+        // 连击效果
+        if let Some(cb) = card.combo_effect {
+            world.set_combo_effect(e, crate::core::component::ComboEffect(cb));
+        }
         e
     }
 }

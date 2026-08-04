@@ -9,9 +9,9 @@
 //! 所有实体访问都经过 generation 检查，防止悬垂引用。
 
 use crate::core::component::{
-    Armor, Attack, AttacksUsed, Aura, Battlecry, CantAttack, CardType, Charge, Cost, DeathTrigger, Deathrattle,
-    DivineShield, Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Secret, SpellDamage,
-    SpellTrigger, SummonTrigger, Taunt, Windfury,
+    Armor, Attack, AttacksUsed, Aura, Battlecry, CantAttack, CardType, Charge, ChooseOneEffect, ComboEffect,
+    Cost, DeathTrigger, Deathrattle, DivineShield, Durability, EndTurnEffect, Freeze, Health, HeroPowerDef,
+    HeroPowerUsed, Secret, SpellDamage, SpellTrigger, SummonTrigger, Taunt, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -132,6 +132,10 @@ pub struct World {
     death_trigger: SparseSet<DeathTrigger>,
     /// SummonTrigger 组件存储（随从召唤触发效果）
     summon_trigger: SparseSet<SummonTrigger>,
+    /// ChooseOneEffect 组件存储（抉择效果）
+    choose_one_effect: SparseSet<ChooseOneEffect>,
+    /// ComboEffect 组件存储（连击效果）
+    combo_effect: SparseSet<ComboEffect>,
     /// 区域表 — 每个 Zone 的有序实体列表
     zones: Zones,
 }
@@ -169,6 +173,8 @@ impl World {
             spell_trigger: SparseSet::new(),
             death_trigger: SparseSet::new(),
             summon_trigger: SparseSet::new(),
+            choose_one_effect: SparseSet::new(),
+            combo_effect: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -232,6 +238,8 @@ impl World {
         self.spell_trigger.remove(entity);
         self.death_trigger.remove(entity);
         self.summon_trigger.remove(entity);
+        self.choose_one_effect.remove(entity);
+        self.combo_effect.remove(entity);
         // 提升 generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // 归还槽位
@@ -451,6 +459,22 @@ impl World {
         set_summon_trigger,
         remove_summon_trigger,
         iter_summon_trigger
+    );
+    component_accessors!(
+        choose_one_effect,
+        ChooseOneEffect,
+        choose_one_effect,
+        set_choose_one_effect,
+        remove_choose_one_effect,
+        iter_choose_one_effect
+    );
+    component_accessors!(
+        combo_effect,
+        ComboEffect,
+        combo_effect,
+        set_combo_effect,
+        remove_combo_effect,
+        iter_combo_effect
     );
 
     /// 获取实体每回合可攻击的最大次数。

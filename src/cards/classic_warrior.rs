@@ -35,6 +35,8 @@ pub const EXECUTE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const WHIRLWIND: CardDef = CardDef {
@@ -64,6 +66,8 @@ pub const WHIRLWIND: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const SHIELD_BLOCK: CardDef = CardDef {
@@ -90,6 +94,8 @@ pub const SHIELD_BLOCK: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const CRUEL_TASKMASTER: CardDef = CardDef {
@@ -119,6 +125,8 @@ pub const CRUEL_TASKMASTER: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const KORKRON_ELITE: CardDef = CardDef {
@@ -145,6 +153,8 @@ pub const KORKRON_ELITE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const ARATHI_WEAPONSMITH: CardDef = CardDef {
@@ -173,6 +183,8 @@ pub const ARATHI_WEAPONSMITH: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const BATTLE_AXE: CardDef = CardDef {
     id: "WARRIOR_006t",
@@ -198,6 +210,8 @@ pub const BATTLE_AXE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const FROTHING_BERSERKER: CardDef = vanilla!("WARRIOR_007", "Frothing Berserker", 3, 2, 4);
@@ -227,6 +241,8 @@ pub const WARSONG_COMMANDER: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const GOREHOWL: CardDef = CardDef {
@@ -253,6 +269,8 @@ pub const GOREHOWL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const GROMMASH_HELLSCREAM: CardDef = CardDef {
@@ -279,6 +297,8 @@ pub const GROMMASH_HELLSCREAM: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const SLAM: CardDef = CardDef {
@@ -309,6 +329,8 @@ pub const SLAM: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const CLEAVE: CardDef = CardDef {
@@ -335,6 +357,8 @@ pub const CLEAVE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const ARMORSMITH: CardDef = CardDef {
@@ -361,6 +385,8 @@ pub const ARMORSMITH: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 // 战士补全
@@ -392,6 +418,8 @@ pub const INNER_RAGE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 // Hero attack cards
@@ -422,6 +450,8 @@ pub const HEROIC_STRIKE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 
@@ -453,6 +483,8 @@ pub const CHARGE_SPELL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 盾牌猛击 — 对一个随从造成等同于你护甲值的伤害
@@ -482,6 +514,8 @@ pub const SHIELD_SLAM: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 升级！ — 如果你有武器，使其获得+1/+1；否则装备一把1/3的武器
@@ -512,6 +546,8 @@ pub const UPGRADE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 绝命乱斗 — 随机消灭所有随从，只留下一个
@@ -539,6 +575,8 @@ pub const BRAWL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 致死打击 — 造成4点伤害；如果你的生命值≤12，改为造成6点伤害（简化：造成4点伤害）
@@ -569,6 +607,8 @@ pub const MORTAL_STRIKE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 战斗怒火 — 每有一个受伤的友方角色，抽一张牌（简化：抽2张牌）
@@ -596,6 +636,8 @@ pub const BATTLE_RAGE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 狂暴 — 使一个受伤的随从获得+3/+3（简化：给友方随从+3/+3）
@@ -627,4 +669,6 @@ pub const RAMPAGE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };

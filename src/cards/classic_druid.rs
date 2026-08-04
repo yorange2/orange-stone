@@ -4,6 +4,7 @@
 use crate::cards::def::CardDef;
 use crate::core::component::CardType;
 use crate::core::effect::{CardEffect, EffectTarget};
+use crate::vanilla;
 
 // ============================================================
 // 怀旧系列 — 德鲁伊 (Druid)
@@ -34,6 +35,8 @@ pub const INNERVATE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const CLAW: CardDef = CardDef {
@@ -63,6 +66,8 @@ pub const CLAW: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const MARK_OF_THE_WILD: CardDef = CardDef {
@@ -89,6 +94,8 @@ pub const MARK_OF_THE_WILD: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const WRATH: CardDef = CardDef {
@@ -115,6 +122,8 @@ pub const WRATH: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const SWIPE: CardDef = CardDef {
@@ -141,6 +150,8 @@ pub const SWIPE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const STARFIRE: CardDef = CardDef {
@@ -167,6 +178,8 @@ pub const STARFIRE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const DRUID_OF_THE_CLAW: CardDef = CardDef {
@@ -193,6 +206,8 @@ pub const DRUID_OF_THE_CLAW: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const ANCIENT_OF_LORE: CardDef = CardDef {
@@ -219,6 +234,8 @@ pub const ANCIENT_OF_LORE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const ANCIENT_OF_WAR: CardDef = CardDef {
@@ -245,6 +262,8 @@ pub const ANCIENT_OF_WAR: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 // 怀旧系列 — 更多职业卡牌
@@ -274,6 +293,8 @@ pub const SAVAGE_ROAR: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 
@@ -302,6 +323,8 @@ pub const MOONFIRE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const WILD_GROWTH: CardDef = CardDef {
     id: "DRUID_012",
@@ -327,6 +350,8 @@ pub const WILD_GROWTH: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const HEALING_TOUCH: CardDef = CardDef {
     id: "DRUID_013",
@@ -352,6 +377,8 @@ pub const HEALING_TOUCH: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const IRONBARK_PROTECTOR: CardDef = CardDef {
     id: "DRUID_014",
@@ -377,6 +404,8 @@ pub const IRONBARK_PROTECTOR: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 
@@ -405,6 +434,8 @@ pub const FORCE_OF_NATURE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const TREANT: CardDef = CardDef {
     id: "DRUID_015t",
@@ -430,6 +461,8 @@ pub const TREANT: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 野性赐福 — 使你的随从获得+2/+2和嘲讽（简化：仅+2/+2）
@@ -457,6 +490,8 @@ pub const GIFT_OF_THE_WILD: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 撕咬 — 使你的英雄获得+4攻击力本回合，获得4点护甲
@@ -487,6 +522,8 @@ pub const BITE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 野蛮之击 — 对一个随从造成等同于你英雄攻击力的伤害
@@ -516,5 +553,126 @@ pub const SAVAGERY: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
+
+/// 野性之力 — 抉择：使你的随从获得+1/+1；或召唤一个3/2的猎豹
+pub const POWER_OF_THE_WILD: CardDef = CardDef {
+    id: "DRUID_019",
+    name: "Power of the Wild",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::GainStats { attack: 1, health: 1, target: EffectTarget::AllFriendlyMinions }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: Some(CardEffect::SummonMinion { card_id: "DRUID_019t" }),
+    combo_effect: None,
+};
+
+/// 猎豹（野性之力token）— 3/2
+pub const PANTHER: CardDef = vanilla!("DRUID_019t", "Panther", 1, 3, 2);
+
+/// 自然印记 — 抉择：使一个随从获得+4攻击力；或+4生命值和嘲讽
+pub const MARK_OF_NATURE: CardDef = CardDef {
+    id: "DRUID_020",
+    name: "Mark of Nature",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::GainStats { attack: 4, health: 0, target: EffectTarget::FriendlyMinion }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: Some(CardEffect::GainStats { attack: 0, health: 4, target: EffectTarget::FriendlyMinion }),
+    combo_effect: None,
+};
+
+/// 滋养 — 抉择：获得2颗法力水晶；或抽3张牌
+pub const NOURISH: CardDef = CardDef {
+    id: "DRUID_021",
+    name: "Nourish",
+    card_type: CardType::Spell,
+    cost: 5,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::GainManaCrystal { count: 2 }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: Some(CardEffect::DrawCard { count: 3 }),
+    combo_effect: None,
+};
+
+/// 星落 — 抉择：对一个随从造成5点伤害；或对所有敌方随从造成2点伤害
+pub const STARFALL: CardDef = CardDef {
+    id: "DRUID_022",
+    name: "Starfall",
+    card_type: CardType::Spell,
+    cost: 5,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::DealDamage { amount: 5, target: EffectTarget::AnyEnemyMinion }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: Some(CardEffect::DealDamage { amount: 2, target: EffectTarget::AllEnemyMinions }),
+    combo_effect: None,
+};

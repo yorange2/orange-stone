@@ -41,6 +41,10 @@ pub struct CardDef {
     pub death_trigger: Option<CardEffect>,
     /// 召唤触发效果 — 当友方随从被召唤时触发
     pub summon_trigger: Option<CardEffect>,
+    /// 抉择效果 — 德鲁伊"抉择"卡牌的备选效果
+    pub choose_one_effect: Option<CardEffect>,
+    /// 连击效果 — 盗贼"连击"卡牌在本回合已出牌后触发
+    pub combo_effect: Option<CardEffect>,
 }
 
 /// 宏：简化白板随从定义。
@@ -72,6 +76,8 @@ macro_rules! vanilla {
             spell_trigger: None,
             death_trigger: None,
             summon_trigger: None,
+            choose_one_effect: None,
+            combo_effect: None,
         }
     };
 }
