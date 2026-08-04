@@ -30,6 +30,7 @@ pub const EXECUTE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const WHIRLWIND: CardDef = CardDef {
@@ -53,6 +54,7 @@ pub const WHIRLWIND: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const SHIELD_BLOCK: CardDef = CardDef {
@@ -76,6 +78,7 @@ pub const SHIELD_BLOCK: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const CRUEL_TASKMASTER: CardDef = CardDef {
@@ -102,6 +105,7 @@ pub const CRUEL_TASKMASTER: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const KORKRON_ELITE: CardDef = CardDef {
@@ -125,6 +129,7 @@ pub const KORKRON_ELITE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const ARATHI_WEAPONSMITH: CardDef = CardDef {
@@ -150,6 +155,7 @@ pub const ARATHI_WEAPONSMITH: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 pub const BATTLE_AXE: CardDef = CardDef {
     id: "WARRIOR_006t",
@@ -172,6 +178,7 @@ pub const BATTLE_AXE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const FROTHING_BERSERKER: CardDef = vanilla!("WARRIOR_007", "Frothing Berserker", 3, 2, 4);
@@ -198,6 +205,7 @@ pub const WARSONG_COMMANDER: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const GOREHOWL: CardDef = CardDef {
@@ -221,6 +229,7 @@ pub const GOREHOWL: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const GROMMASH_HELLSCREAM: CardDef = CardDef {
@@ -244,6 +253,7 @@ pub const GROMMASH_HELLSCREAM: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const SLAM: CardDef = CardDef {
@@ -267,6 +277,7 @@ pub const SLAM: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const CLEAVE: CardDef = CardDef {
@@ -290,6 +301,7 @@ pub const CLEAVE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const ARMORSMITH: CardDef = CardDef {
@@ -313,6 +325,7 @@ pub const ARMORSMITH: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 // 战士补全
@@ -337,6 +350,7 @@ pub const INNER_RAGE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 // Hero attack cards
@@ -364,6 +378,7 @@ pub const HEROIC_STRIKE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 
@@ -392,6 +407,7 @@ pub const CHARGE_SPELL: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 /// 盾牌猛击 — 对一个随从造成等同于你护甲值的伤害
@@ -418,6 +434,7 @@ pub const SHIELD_SLAM: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 /// 升级！ — 如果你有武器，使其获得+1/+1；否则装备一把1/3的武器
@@ -445,4 +462,5 @@ pub const UPGRADE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };

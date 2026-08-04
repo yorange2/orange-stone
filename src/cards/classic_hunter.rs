@@ -30,6 +30,7 @@ pub const ARCANE_SHOT: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const HUNTERS_MARK: CardDef = CardDef {
@@ -53,6 +54,7 @@ pub const HUNTERS_MARK: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const TRACKING: CardDef = CardDef {
@@ -76,6 +78,7 @@ pub const TRACKING: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const KILL_COMMAND: CardDef = CardDef {
@@ -99,6 +102,7 @@ pub const KILL_COMMAND: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const UNLEASH_THE_HOUNDS: CardDef = CardDef {
@@ -122,6 +126,7 @@ pub const UNLEASH_THE_HOUNDS: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const SAVANNAH_HIGHMANE: CardDef = CardDef {
@@ -147,6 +152,7 @@ pub const SAVANNAH_HIGHMANE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 pub const HYENA: CardDef = vanilla!("HUNTER_006t", "Hyena", 2, 2, 2);
 
@@ -172,6 +178,7 @@ pub const EAGLEHORN_BOW: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const DEADLY_SHOT: CardDef = CardDef {
@@ -195,6 +202,7 @@ pub const DEADLY_SHOT: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const EXPLOSIVE_SHOT: CardDef = CardDef {
@@ -218,6 +226,7 @@ pub const EXPLOSIVE_SHOT: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 /// 多重射击 — 对两个随机敌方随从各造成3点伤害（简化：对一个随机敌方随从造成3点伤害）
@@ -242,6 +251,7 @@ pub const MULTI_SHOT: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 // 猎人补全
@@ -266,6 +276,7 @@ pub const TIMBER_WOLF: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 pub const KING_KRUSH: CardDef = CardDef {
     id: "HUNTER_011",
@@ -288,5 +299,6 @@ pub const KING_KRUSH: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 

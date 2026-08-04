@@ -29,6 +29,7 @@ pub const BACKSTAB: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const DEADLY_POISON: CardDef = CardDef {
@@ -52,6 +53,7 @@ pub const DEADLY_POISON: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const EVISCERATE: CardDef = CardDef {
@@ -75,6 +77,7 @@ pub const EVISCERATE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const SAP: CardDef = CardDef {
@@ -98,6 +101,7 @@ pub const SAP: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const SI7_AGENT: CardDef = CardDef {
@@ -124,6 +128,7 @@ pub const SI7_AGENT: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const ASSASSINATE: CardDef = CardDef {
@@ -147,6 +152,7 @@ pub const ASSASSINATE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const SPRINT: CardDef = CardDef {
@@ -170,6 +176,7 @@ pub const SPRINT: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const FAN_OF_KNIVES: CardDef = CardDef {
@@ -193,6 +200,7 @@ pub const FAN_OF_KNIVES: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 
@@ -217,6 +225,7 @@ pub const PREPARATION: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const COLD_BLOOD: CardDef = CardDef {
@@ -240,6 +249,7 @@ pub const COLD_BLOOD: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const DEFIAS_RINGLEADER: CardDef = CardDef {
@@ -263,6 +273,7 @@ pub const DEFIAS_RINGLEADER: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 pub const EDWIN_VANCLEEF: CardDef = CardDef {
@@ -286,6 +297,7 @@ pub const EDWIN_VANCLEEF: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 
 // 潜行者补全
@@ -310,6 +322,7 @@ pub const SINISTER_STRIKE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 pub const SHIV: CardDef = CardDef {
     id: "ROGUE_014",
@@ -332,6 +345,7 @@ pub const SHIV: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 pub const ASSASSINS_BLADE: CardDef = CardDef {
     id: "ROGUE_015",
@@ -354,5 +368,6 @@ pub const ASSASSINS_BLADE: CardDef = CardDef {
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
+    spell_trigger: None,
 };
 

@@ -35,6 +35,8 @@ pub struct CardDef {
     pub end_turn_effect: Option<CardEffect>,
     /// 法术效果（仅对法术牌有效，打出时触发）
     pub spell_effect: Option<CardEffect>,
+    /// 法术触发效果 — 当友方施放法术时触发此效果（此随从需在场上）
+    pub spell_trigger: Option<CardEffect>,
 }
 
 /// 宏：简化白板随从定义。
@@ -63,6 +65,7 @@ macro_rules! vanilla {
             cant_attack: false,
             end_turn_effect: None,
             spell_effect: None,
+            spell_trigger: None,
         }
     };
 }

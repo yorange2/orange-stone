@@ -448,6 +448,8 @@ pub fn apply_event(
                     let effect = bc.0;
                     trigger::resolve_effect(state, queue, card, player, effect);
                 }
+                // 触发法术施放事件（用于法术触发随从如玛瑙巫师）
+                queue.push(Event::SpellCast { player, spell: card });
                 state
                     .world_mut()
                     .move_to_zone(card, Zone::Graveyard)
@@ -655,6 +657,22 @@ pub fn apply_event(
         }
         Event::SecretRevealed { .. } => {
             // 通知事件 — 奥秘效果通过 trigger 系统解析
+        }
+        Event::SpellCast { player, spell: _ } => {
+            // 法术触发效果 — 检查场上所有友方随从的 spell_trigger 组件
+            let spell_triggers: Vec<(Entity, crate::core::effect::CardEffect)> = state
+                .world()
+                .iter_spell_trigger()
+                .filter(|(e, _)| {
+                    state.world().zone(*e) == Some(Zone::Play)
+                        && state.world().is_alive(*e)
+                        && state.world().player(*e) == Some(player)
+                })
+                .map(|(e, st)| (e, st.0))
+                .collect();
+            for (source, effect) in spell_triggers {
+                trigger::resolve_effect(state, queue, source, player, effect);
+            }
         }
         Event::GameOver { winner } => {
             state.set_phase(Phase::GameOver { winner });
