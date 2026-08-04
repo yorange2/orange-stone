@@ -28,6 +28,10 @@ pub struct CardDef {
     pub windfury: bool,
     pub charge: bool,
     pub spell_damage: i32,
+    /// 不能主动攻击（如拉格纳罗斯）
+    pub cant_attack: bool,
+    /// 回合结束效果
+    pub end_turn_effect: Option<CardEffect>,
 }
 
 // 宏：简化白板随从定义
@@ -51,6 +55,8 @@ macro_rules! vanilla {
             windfury: false,
             charge: false,
             spell_damage: 0,
+            cant_attack: false,
+            end_turn_effect: None,
         }
     };
 }
@@ -86,6 +92,8 @@ pub const ELVEN_ARCHER: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const LOOT_HOARDER: CardDef = CardDef {
     id: "ORANGE_011",
@@ -105,6 +113,8 @@ pub const LOOT_HOARDER: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const GOLDSHIRE_FOOTMAN: CardDef = CardDef {
     id: "ORANGE_012",
@@ -124,6 +134,8 @@ pub const GOLDSHIRE_FOOTMAN: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const SHATTERED_SUN_CLERIC: CardDef = CardDef {
     id: "ORANGE_013",
@@ -147,6 +159,8 @@ pub const SHATTERED_SUN_CLERIC: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const NOVICE_ENGINEER: CardDef = CardDef {
     id: "ORANGE_014",
@@ -166,6 +180,8 @@ pub const NOVICE_ENGINEER: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 // Phase 3 weapons / auras / secrets
@@ -187,6 +203,8 @@ pub const FIERY_WAR_AXE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const ARCANITE_REAPER: CardDef = CardDef {
     id: "ORANGE_021",
@@ -206,6 +224,8 @@ pub const ARCANITE_REAPER: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const FIREBLAST: CardDef = CardDef {
     id: "ORANGE_030",
@@ -228,6 +248,8 @@ pub const FIREBLAST: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const LIFE_TAP: CardDef = CardDef {
     id: "ORANGE_031",
@@ -247,6 +269,8 @@ pub const LIFE_TAP: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const DIRE_WOLF_ALPHA: CardDef = CardDef {
     id: "ORANGE_040",
@@ -266,6 +290,8 @@ pub const DIRE_WOLF_ALPHA: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const RAID_LEADER: CardDef = CardDef {
     id: "ORANGE_041",
@@ -285,6 +311,8 @@ pub const RAID_LEADER: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const STORMWIND_CHAMPION: CardDef = CardDef {
     id: "ORANGE_042",
@@ -310,6 +338,8 @@ pub const STORMWIND_CHAMPION: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const EXPLOSIVE_TRAP: CardDef = CardDef {
     id: "ORANGE_050",
@@ -329,6 +359,8 @@ pub const EXPLOSIVE_TRAP: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const FREEZING_TRAP: CardDef = CardDef {
     id: "ORANGE_051",
@@ -348,6 +380,8 @@ pub const FREEZING_TRAP: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 // ============================================================
@@ -373,6 +407,8 @@ pub const BLUEGILL_WARRIOR: CardDef = CardDef {
     windfury: false,
     charge: true,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const ACIDIC_SWAMP_OOZE: CardDef = CardDef {
@@ -393,6 +429,8 @@ pub const ACIDIC_SWAMP_OOZE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const IRONBEAK_OWL: CardDef = CardDef {
@@ -415,6 +453,8 @@ pub const IRONBEAK_OWL: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const KOBOLD_GEOMANCER: CardDef = CardDef {
@@ -435,6 +475,8 @@ pub const KOBOLD_GEOMANCER: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 1,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const MURLOC_TIDEHUNTER: CardDef = CardDef {
@@ -457,6 +499,8 @@ pub const MURLOC_TIDEHUNTER: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const MURLOC_SCOUT: CardDef = vanilla!("CLASSIC_006t", "Murloc Scout", 1, 1, 1);
 
@@ -480,6 +524,8 @@ pub const HARVEST_GOLEM: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const DAMAGED_GOLEM: CardDef = vanilla!("CLASSIC_007t", "Damaged Golem", 1, 2, 1);
 
@@ -501,6 +547,8 @@ pub const SENJIN_SHIELDMASTA: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const DARK_IRON_DWARF: CardDef = CardDef {
@@ -525,6 +573,8 @@ pub const DARK_IRON_DWARF: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const DEFENDER_OF_ARGUS: CardDef = CardDef {
@@ -549,6 +599,8 @@ pub const DEFENDER_OF_ARGUS: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const GNOMISH_INVENTOR: CardDef = CardDef {
@@ -569,6 +621,8 @@ pub const GNOMISH_INVENTOR: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const SPELLBREAKER: CardDef = CardDef {
@@ -591,6 +645,8 @@ pub const SPELLBREAKER: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const AZURE_DRAKE: CardDef = CardDef {
@@ -611,6 +667,8 @@ pub const AZURE_DRAKE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 1,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const SUNWALKER: CardDef = CardDef {
@@ -631,6 +689,8 @@ pub const SUNWALKER: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const ARGENT_COMMANDER: CardDef = CardDef {
@@ -651,6 +711,8 @@ pub const ARGENT_COMMANDER: CardDef = CardDef {
     windfury: false,
     charge: true,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const WINDFURY_HARPY: CardDef = CardDef {
@@ -671,6 +733,8 @@ pub const WINDFURY_HARPY: CardDef = CardDef {
     windfury: true,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const WOLFRIDER: CardDef = CardDef {
@@ -691,6 +755,8 @@ pub const WOLFRIDER: CardDef = CardDef {
     windfury: false,
     charge: true,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const AMANI_BERSERKER: CardDef = vanilla!("CLASSIC_018", "Amani Berserker", 2, 2, 3);
@@ -719,6 +785,8 @@ pub const INNERVATE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
     // 效果: 获得2法力水晶 (在 trigger 中处理)
 };
 
@@ -740,6 +808,8 @@ pub const CLAW: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const MARK_OF_THE_WILD: CardDef = CardDef {
@@ -760,6 +830,8 @@ pub const MARK_OF_THE_WILD: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const WRATH: CardDef = CardDef {
@@ -780,6 +852,8 @@ pub const WRATH: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const SWIPE: CardDef = CardDef {
@@ -800,6 +874,8 @@ pub const SWIPE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const STARFIRE: CardDef = CardDef {
@@ -820,6 +896,8 @@ pub const STARFIRE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const DRUID_OF_THE_CLAW: CardDef = CardDef {
@@ -840,6 +918,8 @@ pub const DRUID_OF_THE_CLAW: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const ANCIENT_OF_LORE: CardDef = CardDef {
@@ -860,6 +940,8 @@ pub const ANCIENT_OF_LORE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const ANCIENT_OF_WAR: CardDef = CardDef {
@@ -880,6 +962,8 @@ pub const ANCIENT_OF_WAR: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 // ============================================================
@@ -904,6 +988,8 @@ pub const ARCANE_SHOT: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const HUNTERS_MARK: CardDef = CardDef {
@@ -924,6 +1010,8 @@ pub const HUNTERS_MARK: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const TRACKING: CardDef = CardDef {
@@ -944,6 +1032,8 @@ pub const TRACKING: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const KILL_COMMAND: CardDef = CardDef {
@@ -964,6 +1054,8 @@ pub const KILL_COMMAND: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const UNLEASH_THE_HOUNDS: CardDef = CardDef {
@@ -984,6 +1076,8 @@ pub const UNLEASH_THE_HOUNDS: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const SAVANNAH_HIGHMANE: CardDef = CardDef {
@@ -1006,6 +1100,8 @@ pub const SAVANNAH_HIGHMANE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const HYENA: CardDef = vanilla!("HUNTER_006t", "Hyena", 2, 2, 2);
 
@@ -1031,6 +1127,8 @@ pub const ARCANE_MISSILES: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const FROSTBOLT: CardDef = CardDef {
@@ -1051,6 +1149,8 @@ pub const FROSTBOLT: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const ARCANE_INTELLECT: CardDef = CardDef {
@@ -1071,6 +1171,8 @@ pub const ARCANE_INTELLECT: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const FROST_NOVA: CardDef = CardDef {
@@ -1091,6 +1193,8 @@ pub const FROST_NOVA: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const FIREBALL: CardDef = CardDef {
@@ -1111,6 +1215,8 @@ pub const FIREBALL: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const POLYMORPH: CardDef = CardDef {
@@ -1131,6 +1237,8 @@ pub const POLYMORPH: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const WATER_ELEMENTAL: CardDef = CardDef {
@@ -1151,6 +1259,8 @@ pub const WATER_ELEMENTAL: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const FLAMESTRIKE: CardDef = CardDef {
@@ -1171,6 +1281,8 @@ pub const FLAMESTRIKE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const PYROBLAST: CardDef = CardDef {
@@ -1191,6 +1303,8 @@ pub const PYROBLAST: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 // ============================================================
@@ -1215,6 +1329,8 @@ pub const BLESSING_OF_MIGHT: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const HUMILITY: CardDef = CardDef {
@@ -1235,6 +1351,8 @@ pub const HUMILITY: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const HOLY_LIGHT: CardDef = CardDef {
@@ -1255,6 +1373,8 @@ pub const HOLY_LIGHT: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const BLESSING_OF_KINGS: CardDef = CardDef {
@@ -1275,6 +1395,8 @@ pub const BLESSING_OF_KINGS: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const CONSECRATION: CardDef = CardDef {
@@ -1295,6 +1417,8 @@ pub const CONSECRATION: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const TRUESILVER_CHAMPION: CardDef = CardDef {
@@ -1315,6 +1439,8 @@ pub const TRUESILVER_CHAMPION: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const GUARDIAN_OF_KINGS: CardDef = CardDef {
@@ -1338,6 +1464,8 @@ pub const GUARDIAN_OF_KINGS: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const TIRION_FORDRING: CardDef = CardDef {
@@ -1360,6 +1488,8 @@ pub const TIRION_FORDRING: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const ASHBRINGER: CardDef = CardDef {
     id: "PALADIN_008t",
@@ -1379,6 +1509,8 @@ pub const ASHBRINGER: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const ALDOR_PEACEKEEPER: CardDef = CardDef {
@@ -1402,6 +1534,8 @@ pub const ALDOR_PEACEKEEPER: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 // ============================================================
@@ -1426,6 +1560,8 @@ pub const HOLY_SMITE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const MIND_BLAST: CardDef = CardDef {
@@ -1446,6 +1582,8 @@ pub const MIND_BLAST: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const POWER_WORD_SHIELD: CardDef = CardDef {
@@ -1466,6 +1604,8 @@ pub const POWER_WORD_SHIELD: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const NORTHSHIRE_CLERIC: CardDef = vanilla!("PRIEST_004", "Northshire Cleric", 1, 1, 3);
@@ -1488,6 +1628,8 @@ pub const SHADOW_WORD_PAIN: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const SHADOW_WORD_DEATH: CardDef = CardDef {
@@ -1508,6 +1650,8 @@ pub const SHADOW_WORD_DEATH: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const HOLY_NOVA: CardDef = CardDef {
@@ -1528,6 +1672,8 @@ pub const HOLY_NOVA: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const HOLY_FIRE: CardDef = CardDef {
@@ -1548,6 +1694,8 @@ pub const HOLY_FIRE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 // ============================================================
@@ -1572,6 +1720,8 @@ pub const BACKSTAB: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const DEADLY_POISON: CardDef = CardDef {
@@ -1592,6 +1742,8 @@ pub const DEADLY_POISON: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const EVISCERATE: CardDef = CardDef {
@@ -1612,6 +1764,8 @@ pub const EVISCERATE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const SAP: CardDef = CardDef {
@@ -1632,6 +1786,8 @@ pub const SAP: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const SI7_AGENT: CardDef = CardDef {
@@ -1655,6 +1811,8 @@ pub const SI7_AGENT: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const ASSASSINATE: CardDef = CardDef {
@@ -1675,6 +1833,8 @@ pub const ASSASSINATE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const SPRINT: CardDef = CardDef {
@@ -1695,6 +1855,8 @@ pub const SPRINT: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const FAN_OF_KNIVES: CardDef = CardDef {
@@ -1715,6 +1877,8 @@ pub const FAN_OF_KNIVES: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 // ============================================================
@@ -1739,6 +1903,8 @@ pub const EARTH_SHOCK: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const LIGHTNING_BOLT: CardDef = CardDef {
@@ -1759,6 +1925,8 @@ pub const LIGHTNING_BOLT: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const ROCKBITER_WEAPON: CardDef = CardDef {
@@ -1779,6 +1947,8 @@ pub const ROCKBITER_WEAPON: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const FLAMETONGUE_TOTEM: CardDef = CardDef {
@@ -1799,6 +1969,8 @@ pub const FLAMETONGUE_TOTEM: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const HEX: CardDef = CardDef {
@@ -1819,6 +1991,8 @@ pub const HEX: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const LIGHTNING_STORM: CardDef = CardDef {
@@ -1839,6 +2013,8 @@ pub const LIGHTNING_STORM: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const FIRE_ELEMENTAL: CardDef = CardDef {
@@ -1862,6 +2038,8 @@ pub const FIRE_ELEMENTAL: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const BLOODLUST: CardDef = CardDef {
@@ -1882,6 +2060,8 @@ pub const BLOODLUST: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 // ============================================================
@@ -1906,6 +2086,8 @@ pub const SOULFIRE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const FLAME_IMP: CardDef = CardDef {
@@ -1929,6 +2111,8 @@ pub const FLAME_IMP: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const MORTAL_COIL: CardDef = CardDef {
@@ -1949,6 +2133,8 @@ pub const MORTAL_COIL: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const VOIDWALKER: CardDef = CardDef {
@@ -1969,6 +2155,8 @@ pub const VOIDWALKER: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const HELLFIRE: CardDef = CardDef {
@@ -1989,6 +2177,8 @@ pub const HELLFIRE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const DRAIN_LIFE: CardDef = CardDef {
@@ -2009,6 +2199,8 @@ pub const DRAIN_LIFE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const DOOMGUARD: CardDef = CardDef {
@@ -2029,6 +2221,8 @@ pub const DOOMGUARD: CardDef = CardDef {
     windfury: false,
     charge: true,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 // ============================================================
@@ -2053,6 +2247,8 @@ pub const EXECUTE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const WHIRLWIND: CardDef = CardDef {
@@ -2073,6 +2269,8 @@ pub const WHIRLWIND: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const SHIELD_BLOCK: CardDef = CardDef {
@@ -2093,6 +2291,8 @@ pub const SHIELD_BLOCK: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const CRUEL_TASKMASTER: CardDef = CardDef {
@@ -2116,6 +2316,8 @@ pub const CRUEL_TASKMASTER: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const KORKRON_ELITE: CardDef = CardDef {
@@ -2136,6 +2338,8 @@ pub const KORKRON_ELITE: CardDef = CardDef {
     windfury: false,
     charge: true,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const ARATHI_WEAPONSMITH: CardDef = CardDef {
@@ -2158,6 +2362,8 @@ pub const ARATHI_WEAPONSMITH: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 pub const BATTLE_AXE: CardDef = CardDef {
     id: "WARRIOR_006t",
@@ -2177,9 +2383,1648 @@ pub const BATTLE_AXE: CardDef = CardDef {
     windfury: false,
     charge: false,
     spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
 };
 
 pub const FROTHING_BERSERKER: CardDef = vanilla!("WARRIOR_007", "Frothing Berserker", 3, 2, 4);
+
+// ============================================================
+// 怀旧系列 — 更多中立随从 (2)
+// ============================================================
+
+pub const ABUSIVE_SERGEANT: CardDef = CardDef {
+    id: "NEUTRAL_001",
+    name: "Abusive Sergeant",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 2,
+    health: 1,
+    durability: 0,
+    battlecry: Some(CardEffect::GainStats {
+        attack: 2,
+        health: 0,
+        target: EffectTarget::Self_,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const YOUTHFUL_BREWMASTER: CardDef = CardDef {
+    id: "NEUTRAL_002",
+    name: "Youthful Brewmaster",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 3,
+    health: 2,
+    durability: 0,
+    battlecry: Some(CardEffect::ReturnToHand {
+        target: EffectTarget::Self_,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const MAD_BOMBER: CardDef = CardDef {
+    id: "NEUTRAL_003",
+    name: "Mad Bomber",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 3,
+    health: 2,
+    durability: 0,
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 3,
+        target: EffectTarget::AllCharacters,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const ACOLYTE_OF_PAIN: CardDef = CardDef {
+    id: "NEUTRAL_004",
+    name: "Acolyte of Pain",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 1,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: Some(CardEffect::DrawCard { count: 1 }),
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const EARTHEN_RING_FARSEER: CardDef = CardDef {
+    id: "NEUTRAL_005",
+    name: "Earthen Ring Farseer",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::RestoreHealth {
+        amount: 3,
+        target: EffectTarget::Self_,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const INJURED_BLADEMASTER: CardDef = CardDef {
+    id: "NEUTRAL_006",
+    name: "Injured Blademaster",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 4,
+    health: 7,
+    durability: 0,
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 4,
+        target: EffectTarget::Self_,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const IMP_MASTER: CardDef = CardDef {
+    id: "NEUTRAL_007",
+    name: "Imp Master",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 1,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: Some(CardEffect::SummonMinion {
+        card_id: "CLASSIC_006t",
+    }),
+};
+
+pub const RAGING_WORGEN: CardDef = CardDef {
+    id: "NEUTRAL_008",
+    name: "Raging Worgen",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: true,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const SCARLET_CRUSADER: CardDef = CardDef {
+    id: "NEUTRAL_009",
+    name: "Scarlet Crusader",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 1,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: true,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const THRALLMAR_FARSEER: CardDef = CardDef {
+    id: "NEUTRAL_010",
+    name: "Thrallmar Farseer",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 2,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: true,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const ANCIENT_BREWMASTER: CardDef = CardDef {
+    id: "NEUTRAL_011",
+    name: "Ancient Brewmaster",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 5,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::ReturnToHand {
+        target: EffectTarget::Self_,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const CULT_MASTER: CardDef = CardDef {
+    id: "NEUTRAL_012",
+    name: "Cult Master",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 4,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const OGRE_MAGI: CardDef = CardDef {
+    id: "NEUTRAL_013",
+    name: "Ogre Magi",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 4,
+    health: 4,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 1,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const SILVERMOON_GUARDIAN: CardDef = CardDef {
+    id: "NEUTRAL_014",
+    name: "Silvermoon Guardian",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 3,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: true,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const VIOLET_TEACHER: CardDef = CardDef {
+    id: "NEUTRAL_015",
+    name: "Violet Teacher",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 3,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const MOGUSHAN_WARDEN: CardDef = CardDef {
+    id: "NEUTRAL_016",
+    name: "Mogu'shan Warden",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 1,
+    health: 7,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const ABOMINATION: CardDef = CardDef {
+    id: "NEUTRAL_017",
+    name: "Abomination",
+    card_type: CardType::Minion,
+    cost: 5,
+    attack: 4,
+    health: 4,
+    durability: 0,
+    battlecry: None,
+    deathrattle: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AllCharacters,
+    }),
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const FROSTWOLF_WARLORD: CardDef = CardDef {
+    id: "NEUTRAL_018",
+    name: "Frostwolf Warlord",
+    card_type: CardType::Minion,
+    cost: 5,
+    attack: 4,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::GainStats {
+        attack: 1,
+        health: 1,
+        target: EffectTarget::Self_,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const GADGETZAN_AUCTIONEER: CardDef = CardDef {
+    id: "NEUTRAL_019",
+    name: "Gadgetzan Auctioneer",
+    card_type: CardType::Minion,
+    cost: 5,
+    attack: 4,
+    health: 4,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const SILVER_HAND_KNIGHT: CardDef = CardDef {
+    id: "NEUTRAL_020",
+    name: "Silver Hand Knight",
+    card_type: CardType::Minion,
+    cost: 5,
+    attack: 4,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::SummonMinion {
+        card_id: "NEUTRAL_020t",
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+pub const SQUIRE: CardDef = vanilla!("NEUTRAL_020t", "Squire", 1, 2, 2);
+
+pub const FROST_ELEMENTAL: CardDef = CardDef {
+    id: "NEUTRAL_021",
+    name: "Frost Elemental",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 5,
+    health: 5,
+    durability: 0,
+    battlecry: Some(CardEffect::FreezeCharacter {
+        target: EffectTarget::AnyEnemy,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const LORD_OF_THE_ARENA: CardDef = CardDef {
+    id: "NEUTRAL_022",
+    name: "Lord of the Arena",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 6,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const RECKLESS_ROCKETEER: CardDef = CardDef {
+    id: "NEUTRAL_023",
+    name: "Reckless Rocketeer",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 5,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: true,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const ARCHMAGE: CardDef = CardDef {
+    id: "NEUTRAL_024",
+    name: "Archmage",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 4,
+    health: 7,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 1,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const CORE_HOUND: CardDef = vanilla!("NEUTRAL_025", "Core Hound", 7, 9, 5);
+
+pub const SEA_GIANT: CardDef = vanilla!("NEUTRAL_026", "Sea Giant", 10, 8, 8);
+pub const MOLTEN_GIANT: CardDef = vanilla!("NEUTRAL_027", "Molten Giant", 20, 8, 8);
+pub const MOUNTAIN_GIANT: CardDef = vanilla!("NEUTRAL_028", "Mountain Giant", 12, 8, 8);
+
+// ============================================================
+// 怀旧系列 — 传奇卡牌 (Legendary)
+// ============================================================
+
+pub const CAIRNE_BLOODHOOF: CardDef = CardDef {
+    id: "LEGENDARY_001",
+    name: "Cairne Bloodhoof",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 4,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: Some(CardEffect::SummonMinion {
+        card_id: "LEGENDARY_001t",
+    }),
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+pub const BAINE_BLOODHOOF: CardDef = vanilla!("LEGENDARY_001t", "Baine Bloodhoof", 6, 4, 5);
+
+pub const HOGGER: CardDef = CardDef {
+    id: "LEGENDARY_002",
+    name: "Hogger",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 4,
+    health: 4,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: Some(CardEffect::SummonMinion {
+        card_id: "LEGENDARY_002t",
+    }),
+};
+pub const GNOLL: CardDef = CardDef {
+    id: "LEGENDARY_002t",
+    name: "Gnoll",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 2,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const ILLIDAN_STORMRAGE: CardDef = CardDef {
+    id: "LEGENDARY_003",
+    name: "Illidan Stormrage",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 7,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: Some(CardEffect::SummonMinion {
+        card_id: "LEGENDARY_003t",
+    }),
+};
+pub const FLAME_OF_AZZINOTH: CardDef = vanilla!("LEGENDARY_003t", "Flame of Azzinoth", 1, 2, 1);
+
+pub const THE_BEAST: CardDef = CardDef {
+    id: "LEGENDARY_004",
+    name: "The Beast",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 9,
+    health: 7,
+    durability: 0,
+    battlecry: None,
+    deathrattle: Some(CardEffect::SummonMinion {
+        card_id: "LEGENDARY_004t",
+    }),
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+pub const FINKLE_EINHORN: CardDef = vanilla!("LEGENDARY_004t", "Finkle Einhorn", 3, 3, 3);
+
+pub const BARON_GEDDON: CardDef = CardDef {
+    id: "LEGENDARY_005",
+    name: "Baron Geddon",
+    card_type: CardType::Minion,
+    cost: 7,
+    attack: 7,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AllCharacters,
+    }),
+};
+
+pub const GRUUL: CardDef = CardDef {
+    id: "LEGENDARY_006",
+    name: "Gruul",
+    card_type: CardType::Minion,
+    cost: 8,
+    attack: 7,
+    health: 7,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: Some(CardEffect::GainStats {
+        attack: 1,
+        health: 1,
+        target: EffectTarget::Self_,
+    }),
+};
+
+pub const RAGNAROS_THE_FIRELORD: CardDef = CardDef {
+    id: "LEGENDARY_007",
+    name: "Ragnaros the Firelord",
+    card_type: CardType::Minion,
+    cost: 8,
+    attack: 8,
+    health: 8,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: true,
+    end_turn_effect: Some(CardEffect::DealDamage {
+        amount: 8,
+        target: EffectTarget::AnyEnemy,
+    }),
+};
+
+pub const ALEXSTRASZA: CardDef = CardDef {
+    id: "LEGENDARY_008",
+    name: "Alexstrasza",
+    card_type: CardType::Minion,
+    cost: 9,
+    attack: 8,
+    health: 8,
+    durability: 0,
+    battlecry: Some(CardEffect::SetAttack {
+        attack: 15,
+        target: EffectTarget::AnyEnemy,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const MALYGOS: CardDef = CardDef {
+    id: "LEGENDARY_009",
+    name: "Malygos",
+    card_type: CardType::Minion,
+    cost: 9,
+    attack: 4,
+    health: 12,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 5,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const ONYXIA: CardDef = CardDef {
+    id: "LEGENDARY_010",
+    name: "Onyxia",
+    card_type: CardType::Minion,
+    cost: 9,
+    attack: 8,
+    health: 8,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const DEATHWING: CardDef = CardDef {
+    id: "LEGENDARY_011",
+    name: "Deathwing",
+    card_type: CardType::Minion,
+    cost: 10,
+    attack: 12,
+    health: 12,
+    durability: 0,
+    battlecry: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::AllMinions,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+// ============================================================
+// 怀旧系列 — 更多职业卡牌
+// ============================================================
+
+pub const SAVAGE_ROAR: CardDef = CardDef {
+    id: "DRUID_010",
+    name: "Savage Roar",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const EAGLEHORN_BOW: CardDef = CardDef {
+    id: "HUNTER_007",
+    name: "Eaglehorn Bow",
+    card_type: CardType::Weapon,
+    cost: 3,
+    attack: 3,
+    health: 0,
+    durability: 2,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const DEADLY_SHOT: CardDef = CardDef {
+    id: "HUNTER_008",
+    name: "Deadly Shot",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const EXPLOSIVE_SHOT: CardDef = CardDef {
+    id: "HUNTER_009",
+    name: "Explosive Shot",
+    card_type: CardType::Spell,
+    cost: 5,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const ICE_BARRIER: CardDef = CardDef {
+    id: "MAGE_010",
+    name: "Ice Barrier",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: Some(SecretTrigger::AfterFriendlyAttacked),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const ICE_BLOCK: CardDef = CardDef {
+    id: "MAGE_011",
+    name: "Ice Block",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: Some(SecretTrigger::AfterFriendlyAttacked),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const MIRROR_ENTITY: CardDef = CardDef {
+    id: "MAGE_012",
+    name: "Mirror Entity",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: Some(SecretTrigger::AfterEnemyMinionPlayed),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const COUNTERSPELL: CardDef = CardDef {
+    id: "MAGE_013",
+    name: "Counterspell",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: Some(SecretTrigger::WhenEnemySpellCast),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const BLIZZARD: CardDef = CardDef {
+    id: "MAGE_014",
+    name: "Blizzard",
+    card_type: CardType::Spell,
+    cost: 5,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const EQUALITY: CardDef = CardDef {
+    id: "PALADIN_010",
+    name: "Equality",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const HAMMER_OF_WRATH: CardDef = CardDef {
+    id: "PALADIN_011",
+    name: "Hammer of Wrath",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const AVENGING_WRATH: CardDef = CardDef {
+    id: "PALADIN_012",
+    name: "Avenging Wrath",
+    card_type: CardType::Spell,
+    cost: 6,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const LAY_ON_HANDS: CardDef = CardDef {
+    id: "PALADIN_013",
+    name: "Lay on Hands",
+    card_type: CardType::Spell,
+    cost: 8,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const CIRCLE_OF_HEALING: CardDef = CardDef {
+    id: "PRIEST_009",
+    name: "Circle of Healing",
+    card_type: CardType::Spell,
+    cost: 0,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const AUCHENAI_SOULPRIEST: CardDef = CardDef {
+    id: "PRIEST_010",
+    name: "Auchenai Soulpriest",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 3,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const CABAL_SHADOW_PRIEST: CardDef = CardDef {
+    id: "PRIEST_011",
+    name: "Cabal Shadow Priest",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 4,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const PROPHET_VELEN: CardDef = CardDef {
+    id: "PRIEST_012",
+    name: "Prophet Velen",
+    card_type: CardType::Minion,
+    cost: 7,
+    attack: 7,
+    health: 7,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 1,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const PREPARATION: CardDef = CardDef {
+    id: "ROGUE_009",
+    name: "Preparation",
+    card_type: CardType::Spell,
+    cost: 0,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const COLD_BLOOD: CardDef = CardDef {
+    id: "ROGUE_010",
+    name: "Cold Blood",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const DEFIAS_RINGLEADER: CardDef = CardDef {
+    id: "ROGUE_011",
+    name: "Defias Ringleader",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const EDWIN_VANCLEEF: CardDef = CardDef {
+    id: "ROGUE_012",
+    name: "Edwin VanCleef",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 2,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const FERAL_SPIRIT: CardDef = CardDef {
+    id: "SHAMAN_009",
+    name: "Feral Spirit",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const MANA_TIDE_TOTEM: CardDef = CardDef {
+    id: "SHAMAN_010",
+    name: "Mana Tide Totem",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 0,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: Some(CardEffect::DrawCard { count: 1 }),
+};
+
+pub const DOOMHAMMER: CardDef = CardDef {
+    id: "SHAMAN_011",
+    name: "Doomhammer",
+    card_type: CardType::Weapon,
+    cost: 5,
+    attack: 2,
+    health: 0,
+    durability: 8,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: true,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const ALAKIR_THE_WINDLORD: CardDef = CardDef {
+    id: "SHAMAN_012",
+    name: "Al'Akir the Windlord",
+    card_type: CardType::Minion,
+    cost: 8,
+    attack: 3,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: true,
+    windfury: true,
+    charge: true,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const SHADOW_BOLT: CardDef = CardDef {
+    id: "WARLOCK_008",
+    name: "Shadow Bolt",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const TWISTING_NETHER: CardDef = CardDef {
+    id: "WARLOCK_009",
+    name: "Twisting Nether",
+    card_type: CardType::Spell,
+    cost: 8,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const LORD_JARAXXUS: CardDef = CardDef {
+    id: "WARLOCK_010",
+    name: "Lord Jaraxxus",
+    card_type: CardType::Minion,
+    cost: 9,
+    attack: 3,
+    health: 15,
+    durability: 0,
+    battlecry: Some(CardEffect::EquipWeapon {
+        card_id: "WARLOCK_010t",
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+pub const BLOOD_FURY: CardDef = CardDef {
+    id: "WARLOCK_010t",
+    name: "Blood Fury",
+    card_type: CardType::Weapon,
+    cost: 3,
+    attack: 3,
+    health: 0,
+    durability: 8,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const WARSONG_COMMANDER: CardDef = CardDef {
+    id: "WARRIOR_008",
+    name: "Warsong Commander",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 2,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const GOREHOWL: CardDef = CardDef {
+    id: "WARRIOR_009",
+    name: "Gorehowl",
+    card_type: CardType::Weapon,
+    cost: 7,
+    attack: 7,
+    health: 0,
+    durability: 1,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const GROMMASH_HELLSCREAM: CardDef = CardDef {
+    id: "WARRIOR_010",
+    name: "Grommash Hellscream",
+    card_type: CardType::Minion,
+    cost: 8,
+    attack: 4,
+    health: 9,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: true,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const SLAM: CardDef = CardDef {
+    id: "WARRIOR_011",
+    name: "Slam",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const CLEAVE: CardDef = CardDef {
+    id: "WARRIOR_012",
+    name: "Cleave",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+pub const ARMORSMITH: CardDef = CardDef {
+    id: "WARRIOR_013",
+    name: "Armorsmith",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 1,
+    health: 4,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
 
 // ============================================================
 // 卡牌列表
@@ -2228,8 +4073,54 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     WOLFRIDER,
     AMANI_BERSERKER,
     FAERIE_DRAGON,
+    ABUSIVE_SERGEANT,
+    YOUTHFUL_BREWMASTER,
+    MAD_BOMBER,
+    ACOLYTE_OF_PAIN,
+    EARTHEN_RING_FARSEER,
+    INJURED_BLADEMASTER,
+    IMP_MASTER,
+    RAGING_WORGEN,
+    SCARLET_CRUSADER,
+    THRALLMAR_FARSEER,
+    ANCIENT_BREWMASTER,
+    CULT_MASTER,
+    OGRE_MAGI,
+    SILVERMOON_GUARDIAN,
+    VIOLET_TEACHER,
+    MOGUSHAN_WARDEN,
+    ABOMINATION,
+    FROSTWOLF_WARLORD,
+    GADGETZAN_AUCTIONEER,
+    SILVER_HAND_KNIGHT,
+    SQUIRE,
+    FROST_ELEMENTAL,
+    LORD_OF_THE_ARENA,
+    RECKLESS_ROCKETEER,
+    ARCHMAGE,
+    CORE_HOUND,
+    SEA_GIANT,
+    MOLTEN_GIANT,
+    MOUNTAIN_GIANT,
 ];
 
+pub const LEGENDARY_CLASSIC: &[CardDef] = &[
+    CAIRNE_BLOODHOOF,
+    BAINE_BLOODHOOF,
+    HOGGER,
+    GNOLL,
+    ILLIDAN_STORMRAGE,
+    FLAME_OF_AZZINOTH,
+    THE_BEAST,
+    FINKLE_EINHORN,
+    BARON_GEDDON,
+    GRUUL,
+    RAGNAROS_THE_FIRELORD,
+    ALEXSTRASZA,
+    MALYGOS,
+    ONYXIA,
+    DEATHWING,
+];
 pub const DRUID_CLASSIC: &[CardDef] = &[
     INNERVATE,
     CLAW,
@@ -2240,6 +4131,7 @@ pub const DRUID_CLASSIC: &[CardDef] = &[
     DRUID_OF_THE_CLAW,
     ANCIENT_OF_LORE,
     ANCIENT_OF_WAR,
+    SAVAGE_ROAR,
 ];
 
 pub const HUNTER_CLASSIC: &[CardDef] = &[
@@ -2249,6 +4141,9 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     KILL_COMMAND,
     SAVANNAH_HIGHMANE,
     HYENA,
+    EAGLEHORN_BOW,
+    DEADLY_SHOT,
+    EXPLOSIVE_SHOT,
 ];
 
 pub const MAGE_CLASSIC: &[CardDef] = &[
@@ -2261,6 +4156,11 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     WATER_ELEMENTAL,
     FLAMESTRIKE,
     PYROBLAST,
+    ICE_BARRIER,
+    ICE_BLOCK,
+    MIRROR_ENTITY,
+    COUNTERSPELL,
+    BLIZZARD,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -2274,6 +4174,10 @@ pub const PALADIN_CLASSIC: &[CardDef] = &[
     TIRION_FORDRING,
     ASHBRINGER,
     ALDOR_PEACEKEEPER,
+    EQUALITY,
+    HAMMER_OF_WRATH,
+    AVENGING_WRATH,
+    LAY_ON_HANDS,
 ];
 
 pub const PRIEST_CLASSIC: &[CardDef] = &[
@@ -2285,6 +4189,10 @@ pub const PRIEST_CLASSIC: &[CardDef] = &[
     SHADOW_WORD_DEATH,
     HOLY_NOVA,
     HOLY_FIRE,
+    CIRCLE_OF_HEALING,
+    AUCHENAI_SOULPRIEST,
+    CABAL_SHADOW_PRIEST,
+    PROPHET_VELEN,
 ];
 
 pub const ROGUE_CLASSIC: &[CardDef] = &[
@@ -2296,6 +4204,10 @@ pub const ROGUE_CLASSIC: &[CardDef] = &[
     ASSASSINATE,
     SPRINT,
     FAN_OF_KNIVES,
+    PREPARATION,
+    COLD_BLOOD,
+    DEFIAS_RINGLEADER,
+    EDWIN_VANCLEEF,
 ];
 
 pub const SHAMAN_CLASSIC: &[CardDef] = &[
@@ -2307,6 +4219,10 @@ pub const SHAMAN_CLASSIC: &[CardDef] = &[
     LIGHTNING_STORM,
     FIRE_ELEMENTAL,
     BLOODLUST,
+    FERAL_SPIRIT,
+    MANA_TIDE_TOTEM,
+    DOOMHAMMER,
+    ALAKIR_THE_WINDLORD,
 ];
 
 pub const WARLOCK_CLASSIC: &[CardDef] = &[
@@ -2317,6 +4233,10 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     HELLFIRE,
     DRAIN_LIFE,
     DOOMGUARD,
+    SHADOW_BOLT,
+    TWISTING_NETHER,
+    LORD_JARAXXUS,
+    BLOOD_FURY,
 ];
 
 pub const WARRIOR_CLASSIC: &[CardDef] = &[
@@ -2328,6 +4248,18 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
     ARATHI_WEAPONSMITH,
     BATTLE_AXE,
     FROTHING_BERSERKER,
+    WARSONG_COMMANDER,
+    GOREHOWL,
+    GROMMASH_HELLSCREAM,
+    SLAM,
+    CLEAVE,
+    ARMORSMITH,
+    WARSONG_COMMANDER,
+    GOREHOWL,
+    GROMMASH_HELLSCREAM,
+    SLAM,
+    CLEAVE,
+    ARMORSMITH,
 ];
 
 pub const ALL_CARDS: &[CardDef] = &[
@@ -2371,6 +4303,35 @@ pub const ALL_CARDS: &[CardDef] = &[
     WOLFRIDER,
     AMANI_BERSERKER,
     FAERIE_DRAGON,
+    ABUSIVE_SERGEANT,
+    YOUTHFUL_BREWMASTER,
+    MAD_BOMBER,
+    ACOLYTE_OF_PAIN,
+    EARTHEN_RING_FARSEER,
+    INJURED_BLADEMASTER,
+    IMP_MASTER,
+    RAGING_WORGEN,
+    SCARLET_CRUSADER,
+    THRALLMAR_FARSEER,
+    ANCIENT_BREWMASTER,
+    CULT_MASTER,
+    OGRE_MAGI,
+    SILVERMOON_GUARDIAN,
+    VIOLET_TEACHER,
+    MOGUSHAN_WARDEN,
+    ABOMINATION,
+    FROSTWOLF_WARLORD,
+    GADGETZAN_AUCTIONEER,
+    SILVER_HAND_KNIGHT,
+    SQUIRE,
+    FROST_ELEMENTAL,
+    LORD_OF_THE_ARENA,
+    RECKLESS_ROCKETEER,
+    ARCHMAGE,
+    CORE_HOUND,
+    SEA_GIANT,
+    MOLTEN_GIANT,
+    MOUNTAIN_GIANT,
     // Druid
     INNERVATE,
     CLAW,
@@ -2381,6 +4342,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     DRUID_OF_THE_CLAW,
     ANCIENT_OF_LORE,
     ANCIENT_OF_WAR,
+    SAVAGE_ROAR,
     // Hunter
     ARCANE_SHOT,
     HUNTERS_MARK,
@@ -2388,6 +4350,9 @@ pub const ALL_CARDS: &[CardDef] = &[
     KILL_COMMAND,
     SAVANNAH_HIGHMANE,
     HYENA,
+    EAGLEHORN_BOW,
+    DEADLY_SHOT,
+    EXPLOSIVE_SHOT,
     // Mage
     ARCANE_MISSILES,
     FROSTBOLT,
@@ -2398,6 +4363,11 @@ pub const ALL_CARDS: &[CardDef] = &[
     WATER_ELEMENTAL,
     FLAMESTRIKE,
     PYROBLAST,
+    ICE_BARRIER,
+    ICE_BLOCK,
+    MIRROR_ENTITY,
+    COUNTERSPELL,
+    BLIZZARD,
     // Paladin
     BLESSING_OF_MIGHT,
     HUMILITY,
@@ -2409,6 +4379,10 @@ pub const ALL_CARDS: &[CardDef] = &[
     TIRION_FORDRING,
     ASHBRINGER,
     ALDOR_PEACEKEEPER,
+    EQUALITY,
+    HAMMER_OF_WRATH,
+    AVENGING_WRATH,
+    LAY_ON_HANDS,
     // Priest
     HOLY_SMITE,
     MIND_BLAST,
@@ -2418,6 +4392,10 @@ pub const ALL_CARDS: &[CardDef] = &[
     SHADOW_WORD_DEATH,
     HOLY_NOVA,
     HOLY_FIRE,
+    CIRCLE_OF_HEALING,
+    AUCHENAI_SOULPRIEST,
+    CABAL_SHADOW_PRIEST,
+    PROPHET_VELEN,
     // Rogue
     BACKSTAB,
     DEADLY_POISON,
@@ -2427,6 +4405,10 @@ pub const ALL_CARDS: &[CardDef] = &[
     ASSASSINATE,
     SPRINT,
     FAN_OF_KNIVES,
+    PREPARATION,
+    COLD_BLOOD,
+    DEFIAS_RINGLEADER,
+    EDWIN_VANCLEEF,
     // Shaman
     EARTH_SHOCK,
     LIGHTNING_BOLT,
@@ -2436,6 +4418,10 @@ pub const ALL_CARDS: &[CardDef] = &[
     LIGHTNING_STORM,
     FIRE_ELEMENTAL,
     BLOODLUST,
+    FERAL_SPIRIT,
+    MANA_TIDE_TOTEM,
+    DOOMHAMMER,
+    ALAKIR_THE_WINDLORD,
     // Warlock
     SOULFIRE,
     FLAME_IMP,
@@ -2444,6 +4430,10 @@ pub const ALL_CARDS: &[CardDef] = &[
     HELLFIRE,
     DRAIN_LIFE,
     DOOMGUARD,
+    SHADOW_BOLT,
+    TWISTING_NETHER,
+    LORD_JARAXXUS,
+    BLOOD_FURY,
     // Warrior
     EXECUTE,
     WHIRLWIND,
@@ -2453,6 +4443,18 @@ pub const ALL_CARDS: &[CardDef] = &[
     ARATHI_WEAPONSMITH,
     BATTLE_AXE,
     FROTHING_BERSERKER,
+    WARSONG_COMMANDER,
+    GOREHOWL,
+    GROMMASH_HELLSCREAM,
+    SLAM,
+    CLEAVE,
+    ARMORSMITH,
+    WARSONG_COMMANDER,
+    GOREHOWL,
+    GROMMASH_HELLSCREAM,
+    SLAM,
+    CLEAVE,
+    ARMORSMITH,
 ];
 
 pub fn card_by_id(id: &str) -> Option<&'static CardDef> {
