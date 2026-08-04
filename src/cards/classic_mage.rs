@@ -32,6 +32,8 @@ pub const ARCANE_MISSILES: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const FROSTBOLT: CardDef = CardDef {
@@ -58,6 +60,8 @@ pub const FROSTBOLT: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const ARCANE_INTELLECT: CardDef = CardDef {
@@ -84,6 +88,8 @@ pub const ARCANE_INTELLECT: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const FROST_NOVA: CardDef = CardDef {
@@ -110,6 +116,8 @@ pub const FROST_NOVA: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const FIREBALL: CardDef = CardDef {
@@ -136,6 +144,8 @@ pub const FIREBALL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const POLYMORPH: CardDef = CardDef {
@@ -162,6 +172,8 @@ pub const POLYMORPH: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const WATER_ELEMENTAL: CardDef = CardDef {
@@ -188,6 +200,8 @@ pub const WATER_ELEMENTAL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const FLAMESTRIKE: CardDef = CardDef {
@@ -214,6 +228,8 @@ pub const FLAMESTRIKE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const PYROBLAST: CardDef = CardDef {
@@ -240,6 +256,8 @@ pub const PYROBLAST: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 
@@ -267,6 +285,8 @@ pub const ICE_BARRIER: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const ICE_BLOCK: CardDef = CardDef {
@@ -293,6 +313,8 @@ pub const ICE_BLOCK: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const MIRROR_ENTITY: CardDef = CardDef {
@@ -319,6 +341,8 @@ pub const MIRROR_ENTITY: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const COUNTERSPELL: CardDef = CardDef {
@@ -345,6 +369,8 @@ pub const COUNTERSPELL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const BLIZZARD: CardDef = CardDef {
@@ -371,6 +397,8 @@ pub const BLIZZARD: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 冰锥术 — 冻结一个随从和相邻的随从（简化：冻结一个随机敌方随从）
@@ -398,6 +426,8 @@ pub const CONE_OF_COLD: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 // 法师补全
@@ -425,6 +455,8 @@ pub const ARCANE_EXPLOSION: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 
@@ -457,4 +489,6 @@ pub const MANA_WYRM: CardDef = CardDef {
     }),
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };

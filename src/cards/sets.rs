@@ -186,6 +186,11 @@ pub const DRUID_CLASSIC: &[CardDef] = &[
     // Hero Attack
     BITE,
     SAVAGERY,
+    POWER_OF_THE_WILD,
+    PANTHER,
+    MARK_OF_NATURE,
+    NOURISH,
+    STARFALL,
 ];
 
 pub const HUNTER_CLASSIC: &[CardDef] = &[
@@ -649,6 +654,11 @@ pub const ALL_CARDS: &[CardDef] = &[
     HEROIC_STRIKE,
     BITE,
     SAVAGERY,
+    POWER_OF_THE_WILD,
+    PANTHER,
+    MARK_OF_NATURE,
+    NOURISH,
+    STARFALL,
     // 🔧 简化补全
     GURUBASHI_BERSERKER,
     SOUTHSHORE_DECKHAND,

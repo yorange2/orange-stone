@@ -418,6 +418,12 @@ fn resolve_summon(
         if let Some(st) = card_def.summon_trigger {
             world.set_summon_trigger(e, crate::core::component::SummonTrigger(st));
         }
+        if let Some(ce) = card_def.choose_one_effect {
+            world.set_choose_one_effect(e, crate::core::component::ChooseOneEffect(ce));
+        }
+        if let Some(cb) = card_def.combo_effect {
+            world.set_combo_effect(e, crate::core::component::ComboEffect(cb));
+        }
         e
     };
 

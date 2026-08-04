@@ -312,6 +312,14 @@ pub struct DeathTrigger(pub crate::core::effect::CardEffect);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SummonTrigger(pub crate::core::effect::CardEffect);
 
+/// 抉择效果 — 德鲁伊抉择卡牌的备选效果。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ChooseOneEffect(pub crate::core::effect::CardEffect);
+
+/// 连击效果 — 盗贼连击卡牌的替代效果。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ComboEffect(pub crate::core::effect::CardEffect);
+
 #[cfg(test)]
 mod tests {
     use super::*;

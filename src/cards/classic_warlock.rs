@@ -32,6 +32,8 @@ pub const SOULFIRE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const FLAME_IMP: CardDef = CardDef {
@@ -61,6 +63,8 @@ pub const FLAME_IMP: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const MORTAL_COIL: CardDef = CardDef {
@@ -87,6 +91,8 @@ pub const MORTAL_COIL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const VOIDWALKER: CardDef = CardDef {
@@ -113,6 +119,8 @@ pub const VOIDWALKER: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const HELLFIRE: CardDef = CardDef {
@@ -139,6 +147,8 @@ pub const HELLFIRE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const DRAIN_LIFE: CardDef = CardDef {
@@ -165,6 +175,8 @@ pub const DRAIN_LIFE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const DOOMGUARD: CardDef = CardDef {
@@ -191,6 +203,8 @@ pub const DOOMGUARD: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 
@@ -218,6 +232,8 @@ pub const SHADOW_BOLT: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const TWISTING_NETHER: CardDef = CardDef {
@@ -244,6 +260,8 @@ pub const TWISTING_NETHER: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const LORD_JARAXXUS: CardDef = CardDef {
@@ -272,6 +290,8 @@ pub const LORD_JARAXXUS: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const BLOOD_FURY: CardDef = CardDef {
     id: "WARLOCK_010t",
@@ -297,6 +317,8 @@ pub const BLOOD_FURY: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 // 术士补全
@@ -327,6 +349,8 @@ pub const DREAD_INFERNAL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const PIT_LORD: CardDef = CardDef {
     id: "WARLOCK_012",
@@ -355,6 +379,8 @@ pub const PIT_LORD: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 
@@ -383,6 +409,8 @@ pub const FELSTALKER: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 灵魂虹吸 — 消灭一个随从，为你的英雄恢复3点生命值
@@ -413,6 +441,8 @@ pub const SIPHON_SOUL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 暗影烈焰 — 消灭一个友方随从，对所有敌方随从造成等同于其攻击力的伤害
@@ -442,6 +472,8 @@ pub const SHADOWFLAME: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 恶魔卫士 — 战吼：摧毁一颗你的法力水晶
@@ -469,6 +501,8 @@ pub const FELGUARD: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 感知恶魔 — 从你的牌库中抽两张恶魔牌（简化：抽1张牌）
@@ -496,6 +530,8 @@ pub const SENSE_DEMONS: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 恶魔之火 — 对一个随从造成2点伤害；如果是友方恶魔，改为获得+2/+2（简化：造成2点伤害）
@@ -526,6 +562,8 @@ pub const DEMONFIRE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 虚空恐魔 — 战吼：消灭相邻的随从并获得其攻击力和生命值
@@ -553,4 +591,6 @@ pub const VOID_TERROR: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };

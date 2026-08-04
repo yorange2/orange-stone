@@ -35,6 +35,8 @@ pub const CAIRNE_BLOODHOOF: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const BAINE_BLOODHOOF: CardDef = vanilla!("LEGENDARY_001t", "Baine Bloodhoof", 6, 4, 5);
 
@@ -64,6 +66,8 @@ pub const HOGGER: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const GNOLL: CardDef = CardDef {
     id: "LEGENDARY_002t",
@@ -89,6 +93,8 @@ pub const GNOLL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const ILLIDAN_STORMRAGE: CardDef = CardDef {
@@ -117,6 +123,8 @@ pub const ILLIDAN_STORMRAGE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const FLAME_OF_AZZINOTH: CardDef = vanilla!("LEGENDARY_003t", "Flame of Azzinoth", 1, 2, 1);
 
@@ -146,6 +154,8 @@ pub const THE_BEAST: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const FINKLE_EINHORN: CardDef = vanilla!("LEGENDARY_004t", "Finkle Einhorn", 3, 3, 3);
 
@@ -176,6 +186,8 @@ pub const BARON_GEDDON: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const GRUUL: CardDef = CardDef {
@@ -206,6 +218,8 @@ pub const GRUUL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const RAGNAROS_THE_FIRELORD: CardDef = CardDef {
@@ -235,6 +249,8 @@ pub const RAGNAROS_THE_FIRELORD: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const ALEXSTRASZA: CardDef = CardDef {
@@ -264,6 +280,8 @@ pub const ALEXSTRASZA: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const MALYGOS: CardDef = CardDef {
@@ -290,6 +308,8 @@ pub const MALYGOS: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const ONYXIA: CardDef = CardDef {
@@ -316,6 +336,8 @@ pub const ONYXIA: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const DEATHWING: CardDef = CardDef {
@@ -344,6 +366,8 @@ pub const DEATHWING: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 
@@ -375,6 +399,8 @@ pub const CAPTAIN_GREENSKIN: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 哈里森·琼斯 — 战吼：摧毁对手的武器，并抽等同于其耐久度的牌
@@ -402,4 +428,6 @@ pub const HARRISON_JONES: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };

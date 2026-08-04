@@ -55,6 +55,8 @@ pub struct Player {
     pub armor: i32,
     /// 英雄本回合的临时攻击力加成（回合结束时清除）
     pub temp_attack_bonus: i32,
+    /// 本回合已打出的卡牌数（用于连击机制）
+    pub cards_played_this_turn: u32,
 }
 
 impl Player {
@@ -69,6 +71,7 @@ impl Player {
             weapon: None,
             armor: 0,
             temp_attack_bonus: 0,
+            cards_played_this_turn: 0,
         }
     }
 }

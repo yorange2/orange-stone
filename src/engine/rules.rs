@@ -397,6 +397,7 @@ pub fn apply_event(
                 let p = &mut inner.players[player.index()];
                 p.mana_crystals = (p.mana_crystals + 1).min(10);
                 p.current_mana = p.mana_crystals;
+                p.cards_played_this_turn = 0;
             }
 
             // 抽一张牌
@@ -441,14 +442,37 @@ pub fn apply_event(
                 let inner = state.make_mut();
                 let p = &mut inner.players[player.index()];
                 p.current_mana -= cost.0;
+                p.cards_played_this_turn += 1;
             }
+            // 检测连击：本回合已打出其他牌 (cards_played > 1 因为刚递增了)
+            let combo_active = state.player(player).cards_played_this_turn > 1;
             if card_type == Some(CardType::Spell) {
-                // 法术牌：解析效果，然后移入坟墓场
-                if let Some(bc) = state.world().battlecry(card) {
-                    let effect = bc.0;
+                // 法术牌：解析效果（支持抉择随机选择和连击），然后移入坟墓场
+                let chosen_effect = if combo_active {
+                    // 连击：优先使用 combo_effect
+                    state.world().combo_effect(card).map(|c| c.0)
+                        .or_else(|| state.world().battlecry(card).map(|b| b.0))
+                } else if state.world().choose_one_effect(card).is_some() {
+                    // 抉择：随机选一个
+                    let has_main = state.world().battlecry(card).is_some();
+                    let has_alt = state.world().choose_one_effect(card).is_some();
+                    if has_main && has_alt {
+                        if state.rng_mut().next_usize(2) == 0 {
+                            state.world().battlecry(card).map(|b| b.0)
+                        } else {
+                            state.world().choose_one_effect(card).map(|c| c.0)
+                        }
+                    } else {
+                        state.world().battlecry(card).map(|b| b.0)
+                            .or_else(|| state.world().choose_one_effect(card).map(|c| c.0))
+                    }
+                } else {
+                    state.world().battlecry(card).map(|b| b.0)
+                };
+                if let Some(effect) = chosen_effect {
                     trigger::resolve_effect(state, queue, card, player, effect);
                 }
-                // 触发法术施放事件（用于法术触发随从如玛瑙巫师）
+                // 触发法术施放事件
                 queue.push(Event::SpellCast { player, spell: card });
                 state
                     .world_mut()
@@ -491,9 +515,15 @@ pub fn apply_event(
                     .world_mut()
                     .set_attacks_used(minion, AttacksUsed(1));
             }
-            // 检查战吼组件
-            if let Some(battlecry) = state.world().battlecry(minion) {
-                let effect = battlecry.0;
+            // 检查战吼组件（支持连击）
+            let combo_active = state.player(player).cards_played_this_turn > 1;
+            let chosen_effect = if combo_active {
+                state.world().combo_effect(minion).map(|c| c.0)
+                    .or_else(|| state.world().battlecry(minion).map(|b| b.0))
+            } else {
+                state.world().battlecry(minion).map(|b| b.0)
+            };
+            if let Some(effect) = chosen_effect {
                 trigger::resolve_effect(state, queue, minion, player, effect);
             }
             // 检查召唤触发（友方随从被召唤时，场上其他随从的 summon_trigger）

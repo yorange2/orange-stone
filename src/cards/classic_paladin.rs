@@ -33,6 +33,8 @@ pub const BLESSING_OF_MIGHT: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const HUMILITY: CardDef = CardDef {
@@ -59,6 +61,8 @@ pub const HUMILITY: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const HOLY_LIGHT: CardDef = CardDef {
@@ -85,6 +89,8 @@ pub const HOLY_LIGHT: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const BLESSING_OF_KINGS: CardDef = CardDef {
@@ -111,6 +117,8 @@ pub const BLESSING_OF_KINGS: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const CONSECRATION: CardDef = CardDef {
@@ -137,6 +145,8 @@ pub const CONSECRATION: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const TRUESILVER_CHAMPION: CardDef = CardDef {
@@ -163,6 +173,8 @@ pub const TRUESILVER_CHAMPION: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const GUARDIAN_OF_KINGS: CardDef = CardDef {
@@ -192,6 +204,8 @@ pub const GUARDIAN_OF_KINGS: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const TIRION_FORDRING: CardDef = CardDef {
@@ -220,6 +234,8 @@ pub const TIRION_FORDRING: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const ASHBRINGER: CardDef = CardDef {
     id: "PALADIN_008t",
@@ -245,6 +261,8 @@ pub const ASHBRINGER: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const ALDOR_PEACEKEEPER: CardDef = CardDef {
@@ -274,6 +292,8 @@ pub const ALDOR_PEACEKEEPER: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 
@@ -301,6 +321,8 @@ pub const EQUALITY: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const HAMMER_OF_WRATH: CardDef = CardDef {
@@ -327,6 +349,8 @@ pub const HAMMER_OF_WRATH: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const AVENGING_WRATH: CardDef = CardDef {
@@ -353,6 +377,8 @@ pub const AVENGING_WRATH: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const LAY_ON_HANDS: CardDef = CardDef {
@@ -379,6 +405,8 @@ pub const LAY_ON_HANDS: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 神圣愤怒 — 抽一张牌，造成等同于其法力消耗的伤害（简化：仅抽牌）
@@ -406,6 +434,8 @@ pub const HOLY_WRATH: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 /// 正义 — 使你的随从获得圣盾（简化版，无法实现群体圣盾）
 pub const RIGHTEOUSNESS: CardDef = CardDef {
@@ -432,6 +462,8 @@ pub const RIGHTEOUSNESS: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 // 圣骑士补全
@@ -459,6 +491,8 @@ pub const HAND_OF_PROTECTION: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const LIGHTS_JUSTICE: CardDef = CardDef {
     id: "PALADIN_015",
@@ -484,6 +518,8 @@ pub const LIGHTS_JUSTICE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const ARGENT_PROTECTOR: CardDef = CardDef {
     id: "PALADIN_016",
@@ -509,6 +545,8 @@ pub const ARGENT_PROTECTOR: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 
@@ -539,6 +577,8 @@ pub const BLESSED_CHAMPION: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 公正之剑 — 每当你召唤随从，使其获得+1/+1（简化）
@@ -566,4 +606,6 @@ pub const SWORD_OF_JUSTICE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: Some(CardEffect::GainStats { attack: 1, health: 1, target: EffectTarget::Self_ }),
+    choose_one_effect: None,
+    combo_effect: None,
 };

@@ -33,6 +33,8 @@ pub const ARCANE_SHOT: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const HUNTERS_MARK: CardDef = CardDef {
@@ -59,6 +61,8 @@ pub const HUNTERS_MARK: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const TRACKING: CardDef = CardDef {
@@ -85,6 +89,8 @@ pub const TRACKING: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const KILL_COMMAND: CardDef = CardDef {
@@ -111,6 +117,8 @@ pub const KILL_COMMAND: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const UNLEASH_THE_HOUNDS: CardDef = CardDef {
@@ -137,6 +145,8 @@ pub const UNLEASH_THE_HOUNDS: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const SAVANNAH_HIGHMANE: CardDef = CardDef {
@@ -165,6 +175,8 @@ pub const SAVANNAH_HIGHMANE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const HYENA: CardDef = vanilla!("HUNTER_006t", "Hyena", 2, 2, 2);
 
@@ -193,6 +205,8 @@ pub const EAGLEHORN_BOW: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const DEADLY_SHOT: CardDef = CardDef {
@@ -219,6 +233,8 @@ pub const DEADLY_SHOT: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const EXPLOSIVE_SHOT: CardDef = CardDef {
@@ -245,6 +261,8 @@ pub const EXPLOSIVE_SHOT: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 多重射击 — 对两个随机敌方随从各造成3点伤害（简化：对一个随机敌方随从造成3点伤害）
@@ -272,6 +290,8 @@ pub const MULTI_SHOT: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 // 猎人补全
@@ -299,6 +319,8 @@ pub const TIMBER_WOLF: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const KING_KRUSH: CardDef = CardDef {
     id: "HUNTER_011",
@@ -324,6 +346,8 @@ pub const KING_KRUSH: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 
@@ -352,6 +376,8 @@ pub const SCAVENGING_HYENA: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: Some(CardEffect::GainStats { attack: 2, health: 1, target: EffectTarget::Self_ }),
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 饥饿的秃鹫 — 每当你召唤随从，抽一张牌
@@ -379,4 +405,6 @@ pub const STARVING_BUZZARD: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: Some(CardEffect::DrawCard { count: 1 }),
+    choose_one_effect: None,
+    combo_effect: None,
 };

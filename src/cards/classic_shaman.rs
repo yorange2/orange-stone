@@ -32,6 +32,8 @@ pub const EARTH_SHOCK: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const LIGHTNING_BOLT: CardDef = CardDef {
@@ -58,6 +60,8 @@ pub const LIGHTNING_BOLT: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const ROCKBITER_WEAPON: CardDef = CardDef {
@@ -84,6 +88,8 @@ pub const ROCKBITER_WEAPON: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const FLAMETONGUE_TOTEM: CardDef = CardDef {
@@ -110,6 +116,8 @@ pub const FLAMETONGUE_TOTEM: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const HEX: CardDef = CardDef {
@@ -136,6 +144,8 @@ pub const HEX: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const LIGHTNING_STORM: CardDef = CardDef {
@@ -162,6 +172,8 @@ pub const LIGHTNING_STORM: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const FIRE_ELEMENTAL: CardDef = CardDef {
@@ -191,6 +203,8 @@ pub const FIRE_ELEMENTAL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const BLOODLUST: CardDef = CardDef {
@@ -217,6 +231,8 @@ pub const BLOODLUST: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 
@@ -244,6 +260,8 @@ pub const FERAL_SPIRIT: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const MANA_TIDE_TOTEM: CardDef = CardDef {
@@ -270,6 +288,8 @@ pub const MANA_TIDE_TOTEM: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const DOOMHAMMER: CardDef = CardDef {
@@ -296,6 +316,8 @@ pub const DOOMHAMMER: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 pub const ALAKIR_THE_WINDLORD: CardDef = CardDef {
@@ -322,6 +344,8 @@ pub const ALAKIR_THE_WINDLORD: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 // 萨满补全
@@ -349,6 +373,8 @@ pub const TOTEMIC_MIGHT: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const FROST_SHOCK: CardDef = CardDef {
     id: "SHAMAN_014",
@@ -374,6 +400,8 @@ pub const FROST_SHOCK: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const DUST_DEVIL: CardDef = CardDef {
     id: "SHAMAN_015",
@@ -399,6 +427,8 @@ pub const DUST_DEVIL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const FORKED_LIGHTNING: CardDef = CardDef {
     id: "SHAMAN_016",
@@ -424,6 +454,8 @@ pub const FORKED_LIGHTNING: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const LAVA_BURST: CardDef = CardDef {
     id: "SHAMAN_017",
@@ -449,6 +481,8 @@ pub const LAVA_BURST: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const STORMFORGED_AXE: CardDef = CardDef {
     id: "SHAMAN_018",
@@ -474,6 +508,8 @@ pub const STORMFORGED_AXE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 pub const EARTH_ELEMENTAL: CardDef = CardDef {
     id: "SHAMAN_019",
@@ -499,6 +535,8 @@ pub const EARTH_ELEMENTAL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 
@@ -529,6 +567,8 @@ pub const WINDFURY: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 风语者 — 战吼：使一个友方随从获得风怒
@@ -558,6 +598,8 @@ pub const WINDSPEAKER: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
 
 /// 先祖治疗 — 为一个随从恢复所有生命值并使其获得嘲讽（简化：恢复生命+嘲讽）
@@ -587,4 +629,6 @@ pub const ANCESTRAL_HEALING: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
 };
