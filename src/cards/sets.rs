@@ -215,6 +215,9 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     MULTI_SHOT,
     SCAVENGING_HYENA,
     STARVING_BUZZARD,
+    HOUNDMASTER,
+    TUNDRA_RHINO,
+    FLARE,
 ];
 
 pub const MAGE_CLASSIC: &[CardDef] = &[
@@ -237,6 +240,8 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     MANA_WYRM,
     MIRROR_IMAGE_MINION,
     ETHEREAL_ARCANIST,
+    VAPORIZE,
+    VAPORIZE,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -261,6 +266,8 @@ pub const PALADIN_CLASSIC: &[CardDef] = &[
     RIGHTEOUSNESS,
     BLESSED_CHAMPION,
     SWORD_OF_JUSTICE,
+    REPENTANCE,
+    BLESSING_OF_WISDOM,
 ];
 
 pub const PRIEST_CLASSIC: &[CardDef] = &[
@@ -508,6 +515,8 @@ pub const ALL_CARDS: &[CardDef] = &[
     MANA_WYRM,
     MIRROR_IMAGE_MINION,
     ETHEREAL_ARCANIST,
+    VAPORIZE,
+    VAPORIZE,
     // Paladin
     BLESSING_OF_MIGHT,
     HUMILITY,

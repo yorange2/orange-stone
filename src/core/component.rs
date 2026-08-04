@@ -243,6 +243,8 @@ pub enum SecretTrigger {
     AfterMinionDied,
     /// 敌方施放法术后（Counter 类奥秘）
     WhenEnemySpellCast,
+    /// 敌方随从攻击己方英雄时（蒸发类奥秘）
+    WhenEnemyMinionAttacksHero,
 }
 
 /// 圣盾 — 吸收一次伤害后消失。
