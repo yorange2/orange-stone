@@ -5,7 +5,9 @@
 //! 未来 Phase 的 RL 环境也会使用它来重置对局。
 
 use crate::cards::def::CardDef;
-use crate::core::component::{Attack, AttacksUsed, CardType, Cost, Health};
+use crate::core::component::{
+    Attack, AttacksUsed, Aura, CardType, Cost, Durability, Health, HeroPowerDef, Secret,
+};
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
 use crate::core::state::{GameState, Phase};
@@ -157,6 +159,65 @@ impl GameBuilder {
         e
     }
 
+    /// 给英雄装备武器。
+    pub fn equip_weapon(&mut self, player: PlayerId, card: &CardDef) -> &mut Self {
+        let inner = self.state.make_mut();
+        let world = &mut inner.world;
+        let weapon = world.spawn();
+        world.set_attack(weapon, Attack(card.attack));
+        world.set_durability(weapon, Durability(card.durability));
+        world.set_cost(weapon, Cost(card.cost));
+        world.set_card_type(weapon, CardType::Weapon);
+        world.set_player(weapon, player);
+        world.set_zone(weapon, Zone::Play);
+        world.zones_mut().insert(Zone::Play, player, weapon);
+        inner.players[player.index()].weapon = Some(weapon);
+        self
+    }
+
+    /// 设置英雄护甲。
+    pub fn hero_armor(&mut self, player: PlayerId, armor: i32) -> &mut Self {
+        let inner = self.state.make_mut();
+        inner.players[player.index()].armor = armor;
+        self
+    }
+
+    /// 给英雄设置英雄技能。
+    pub fn set_hero_power(
+        &mut self,
+        player: PlayerId,
+        cost: i32,
+        effect: crate::core::effect::CardEffect,
+    ) -> &mut Self {
+        let hero = self.state.player(player).hero;
+        let world = self.state.world_mut();
+        world.set_hero_power(
+            hero,
+            HeroPowerDef { cost, effect },
+        );
+        self
+    }
+
+    /// 给随从设置光环效果。
+    pub fn set_aura_on_entity(
+        &mut self,
+        entity: Entity,
+        aura: Aura,
+    ) -> &mut Self {
+        self.state.world_mut().set_aura(entity, aura);
+        self
+    }
+
+    /// 给随从设置奥秘组件。
+    pub fn set_secret_on_entity(
+        &mut self,
+        entity: Entity,
+        secret: Secret,
+    ) -> &mut Self {
+        self.state.world_mut().set_secret(entity, secret);
+        self
+    }
+
     /// 内部辅助：根据 CardDef 生成一个随从实体（不设置 Zone）。
     fn spawn_minion(&mut self, player: PlayerId, card: &CardDef) -> Entity {
         let world = self.state.world_mut();
@@ -167,6 +228,24 @@ impl GameBuilder {
         world.set_card_type(e, card.card_type);
         world.set_player(e, player);
         world.set_attacks_used(e, AttacksUsed(0));
+        // 设置光环（如果有）
+        if let Some((aura_effect, aura_target)) = card.aura {
+            world.set_aura(e, Aura {
+                effect: aura_effect,
+                target: aura_target,
+            });
+        }
+        // 设置战吼/亡语（已有字段）
+        if let Some(bc) = card.battlecry {
+            world.set_battlecry(e, crate::core::component::Battlecry(bc));
+        }
+        if let Some(dr) = card.deathrattle {
+            world.set_deathrattle(e, crate::core::component::Deathrattle(dr));
+        }
+        // 设置嘲讽
+        if card.taunt {
+            world.set_taunt(e, crate::core::component::Taunt);
+        }
         e
     }
 }

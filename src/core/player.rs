@@ -49,6 +49,10 @@ pub struct Player {
     pub mana_crystals: i32,
     /// 当前可用法力（打牌时消耗，回合开始时回满）
     pub current_mana: i32,
+    /// 当前装备的武器实体（`None` 表示无武器）
+    pub weapon: Option<crate::core::entity::Entity>,
+    /// 英雄护甲值
+    pub armor: i32,
 }
 
 impl Player {
@@ -60,6 +64,8 @@ impl Player {
             hero,
             mana_crystals,
             current_mana: mana_crystals,
+            weapon: None,
+            armor: 0,
         }
     }
 }

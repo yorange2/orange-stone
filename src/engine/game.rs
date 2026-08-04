@@ -23,6 +23,7 @@ use crate::core::action::Action;
 use crate::core::event::{Event, EventQueue};
 use crate::core::state::GameState;
 use crate::engine::rules::{self, EngineError};
+use crate::engine::secret;
 
 /// 游戏引擎 — 无状态，纯逻辑编排。
 #[derive(Debug, Default, Clone, Copy)]
@@ -53,7 +54,10 @@ impl GameEngine {
         // 3. 事件循环
         let mut log = Vec::new();
         while let Some(event) = queue.pop_front() {
+            // 处理事件（修改状态 + 可能产生新事件）
             rules::apply_event(state, event, &mut queue)?;
+            // 事件处理后检查奥秘触发
+            secret::check_secrets(state, &mut queue, &event);
             log.push(event);
         }
 

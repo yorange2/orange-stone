@@ -129,6 +129,121 @@ pub struct Deathrattle(pub crate::core::effect::CardEffect);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Taunt;
 
+/// 武器耐久度 — 英雄攻击时消耗 1 点，归零时摧毁武器。
+///
+/// 耐久度在武器实体的 `Weapon` 组件中。英雄攻击宣言后，
+/// 武器耐久 -1；耐久降至 0 时，武器被摧毁。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct Durability(pub i32);
+impl From<i32> for Durability {
+    fn from(v: i32) -> Self {
+        Self(v)
+    }
+}
+impl_arith!(Durability);
+
+/// 英雄护甲 — 吸收伤害，先于生命值扣除。
+///
+/// 英雄受到伤害时，先扣除护甲值。护甲降至 0 后，
+/// 剩余伤害由生命值承受。护甲不能为负。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct Armor(pub i32);
+impl From<i32> for Armor {
+    fn from(v: i32) -> Self {
+        Self(v)
+    }
+}
+impl_arith!(Armor);
+
+/// 英雄技能定义 — 英雄可使用的主动技能。
+///
+/// 大多数英雄技能消耗 2 点法力，每回合限用一次。
+/// 效果通过 `CardEffect` 定义。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct HeroPowerDef {
+    /// 法力消耗（通常为 2）
+    pub cost: i32,
+    /// 技能效果
+    pub effect: crate::core::effect::CardEffect,
+}
+
+/// 本回合是否已使用过英雄技能。
+///
+/// 回合开始时重置为 `false`，使用英雄技能后设为 `true`。
+/// 使用 `bool` 而非次数计数器，因为英雄技能每回合只能使用一次。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct HeroPowerUsed(pub bool);
+
+/// 光环效果 — 持续影响符合条件实体的被动效果。
+///
+/// 光环不修改实体的基础属性，而是在查询时动态叠加 buff。
+/// 光环源死亡或移出战场后，效果自动消失。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Aura {
+    /// 光环效果类型
+    pub effect: AuraEffect,
+    /// 影响范围
+    pub target: AuraTarget,
+}
+
+/// 光环效果类型。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AuraEffect {
+    /// +N/+M 增益
+    GainStats {
+        /// 攻击力增量
+        attack: i32,
+        /// 生命值增量
+        health: i32,
+    },
+    /// +N 攻击力
+    GainAttack(i32),
+    /// +N 生命值
+    GainHealth(i32),
+}
+
+/// 光环影响范围。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AuraTarget {
+    /// 相邻随从（左右各一个）
+    AdjacentMinions,
+    /// 其他友方随从（不含自身）
+    OtherFriendlyMinions,
+    /// 所有友方随从（含自身）
+    AllFriendlyMinions,
+    /// 所有敌方随从
+    AllEnemyMinions,
+}
+
+/// 奥秘 — 面朝下挂载的被动触发法术。
+///
+/// 奥秘卡牌打出后进入 `SetAside` 区域（对对手隐藏）。
+/// 当触发条件满足时，奥秘被揭示并执行效果。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Secret {
+    /// 触发条件
+    pub trigger: SecretTrigger,
+    /// 触发后执行的效果
+    pub effect: crate::core::effect::CardEffect,
+}
+
+/// 奥秘触发条件。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SecretTrigger {
+    /// 己方角色（英雄或随从）被攻击后
+    AfterFriendlyAttacked,
+    /// 敌方随从被打出后
+    AfterEnemyMinionPlayed,
+    /// 敌方英雄攻击后
+    AfterEnemyHeroAttacks,
+    /// 己方回合开始时
+    OnFriendlyTurnStart,
+    /// 随从死亡后
+    AfterMinionDied,
+    /// 敌方施放法术后（Counter 类奥秘）
+    WhenEnemySpellCast,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

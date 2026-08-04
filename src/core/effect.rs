@@ -53,4 +53,28 @@ pub enum CardEffect {
         /// 目标选择方式
         target: EffectTarget,
     },
+    /// 装备武器
+    EquipWeapon {
+        /// 要装备的武器卡牌 ID
+        card_id: &'static str,
+    },
+    /// 获得护甲
+    GainArmor {
+        /// 护甲值
+        amount: i32,
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 将一个随从移回手牌
+    ReturnToHand {
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 增加随从的法力消耗（冰冻陷阱效果）
+    IncreaseCost {
+        /// 法力消耗增量
+        amount: i32,
+        /// 目标选择方式
+        target: EffectTarget,
+    },
 }

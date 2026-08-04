@@ -9,7 +9,8 @@
 //! 所有实体访问都经过 generation 检查，防止悬垂引用。
 
 use crate::core::component::{
-    Attack, AttacksUsed, Battlecry, CardType, Cost, Deathrattle, Health, Taunt,
+    Armor, Attack, AttacksUsed, Aura, Battlecry, CardType, Cost, Deathrattle, Durability, Health,
+    HeroPowerDef, HeroPowerUsed, Secret, Taunt,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -98,6 +99,18 @@ pub struct World {
     deathrattle: SparseSet<Deathrattle>,
     /// Taunt 组件存储
     taunt: SparseSet<Taunt>,
+    /// Durability 组件存储（武器耐久）
+    durability: SparseSet<Durability>,
+    /// Armor 组件存储（英雄护甲）
+    armor: SparseSet<Armor>,
+    /// HeroPowerDef 组件存储（英雄技能定义）
+    hero_power: SparseSet<HeroPowerDef>,
+    /// HeroPowerUsed 组件存储（本回合是否已使用技能）
+    hero_power_used: SparseSet<HeroPowerUsed>,
+    /// Aura 组件存储（光环效果）
+    aura: SparseSet<Aura>,
+    /// Secret 组件存储（奥秘）
+    secret: SparseSet<Secret>,
     /// 区域表 — 每个 Zone 的有序实体列表
     zones: Zones,
 }
@@ -119,6 +132,12 @@ impl World {
             battlecry: SparseSet::new(),
             deathrattle: SparseSet::new(),
             taunt: SparseSet::new(),
+            durability: SparseSet::new(),
+            armor: SparseSet::new(),
+            hero_power: SparseSet::new(),
+            hero_power_used: SparseSet::new(),
+            aura: SparseSet::new(),
+            secret: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -166,6 +185,12 @@ impl World {
         self.battlecry.remove(entity);
         self.deathrattle.remove(entity);
         self.taunt.remove(entity);
+        self.durability.remove(entity);
+        self.armor.remove(entity);
+        self.hero_power.remove(entity);
+        self.hero_power_used.remove(entity);
+        self.aura.remove(entity);
+        self.secret.remove(entity);
         // 提升 generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // 归还槽位
@@ -272,11 +297,183 @@ impl World {
         iter_deathrattle
     );
     component_accessors!(taunt, Taunt, taunt, set_taunt, remove_taunt, iter_taunt);
+    component_accessors!(
+        durability,
+        Durability,
+        durability,
+        set_durability,
+        remove_durability,
+        iter_durability
+    );
+    component_accessors!(armor, Armor, armor, set_armor, remove_armor, iter_armor);
+    component_accessors!(
+        hero_power,
+        HeroPowerDef,
+        hero_power,
+        set_hero_power,
+        remove_hero_power,
+        iter_hero_power
+    );
+    component_accessors!(
+        hero_power_used,
+        HeroPowerUsed,
+        hero_power_used,
+        set_hero_power_used,
+        remove_hero_power_used,
+        iter_hero_power_used
+    );
+    component_accessors!(aura, Aura, aura, set_aura, remove_aura, iter_aura);
+    component_accessors!(secret, Secret, secret, set_secret, remove_secret, iter_secret);
+
+    /// 获取实体的有效攻击力（基础攻击力 + 所有光环加成）。
+    ///
+    /// 遍历场上所有带 `Aura` 组件的存活实体，检查当前实体是否在光环范围内，
+    /// 累积叠加所有匹配光环的攻击力加成。
+    #[must_use]
+    pub fn effective_attack(&self, entity: Entity) -> Option<Attack> {
+        let base = self.attack(entity)?;
+        let player = self.player(entity)?;
+
+        let mut bonus = 0i32;
+        for (aura_entity, aura) in self.iter_aura() {
+            // 跳过不存活的光环源
+            if !self.is_alive(aura_entity) {
+                continue;
+            }
+            // 光环源必须在战场上
+            if self.zone(aura_entity) != Some(crate::core::zone::Zone::Play) {
+                continue;
+            }
+            let aura_player = match self.player(aura_entity) {
+                Some(p) => p,
+                None => continue,
+            };
+
+            if aura_applies_to(aura, aura_entity, aura_player, entity, player, self) {
+                bonus += aura_attack_bonus(aura.effect);
+            }
+        }
+
+        Some(Attack(base.0 + bonus))
+    }
+
+    /// 获取实体的有效生命值（基础生命值 + 所有光环加成）。
+    ///
+    /// 遍历场上所有带 `Aura` 组件的存活实体，累积叠加匹配光环的生命值加成。
+    #[must_use]
+    pub fn effective_health(&self, entity: Entity) -> Option<Health> {
+        let base = self.health(entity)?;
+        let player = self.player(entity)?;
+
+        let mut bonus = 0i32;
+        for (aura_entity, aura) in self.iter_aura() {
+            if !self.is_alive(aura_entity) {
+                continue;
+            }
+            if self.zone(aura_entity) != Some(crate::core::zone::Zone::Play) {
+                continue;
+            }
+            let aura_player = match self.player(aura_entity) {
+                Some(p) => p,
+                None => continue,
+            };
+
+            if aura_applies_to(aura, aura_entity, aura_player, entity, player, self) {
+                bonus += aura_health_bonus(aura.effect);
+            }
+        }
+
+        Some(Health(base.0 + bonus))
+    }
 }
 
 impl Default for World {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// ============================================================
+// 光环辅助函数
+// ============================================================
+
+/// 检查光环效果是否作用于目标实体。
+fn aura_applies_to(
+    aura: &Aura,
+    aura_source: Entity,
+    aura_player: PlayerId,
+    target: Entity,
+    target_player: PlayerId,
+    world: &World,
+) -> bool {
+    use crate::core::component::{AuraTarget, CardType};
+
+    // 目标必须是存活的随从
+    if world.card_type(target) != Some(CardType::Minion) {
+        return false;
+    }
+    if !world.is_alive(target) {
+        return false;
+    }
+
+    match aura.target {
+        AuraTarget::AllFriendlyMinions => target_player == aura_player,
+        AuraTarget::OtherFriendlyMinions => target_player == aura_player && target != aura_source,
+        AuraTarget::AdjacentMinions => {
+            if target_player != aura_player || target == aura_source {
+                return false;
+            }
+            is_adjacent(aura_source, target, aura_player, world)
+        }
+        AuraTarget::AllEnemyMinions => target_player != aura_player,
+    }
+}
+
+/// 检查两个实体在战场上是否相邻。
+fn is_adjacent(
+    source: Entity,
+    target: Entity,
+    player: PlayerId,
+    world: &World,
+) -> bool {
+    use crate::core::component::CardType;
+    use crate::core::zone::Zone;
+
+    let minions: Vec<Entity> = world
+        .zones()
+        .iter(Zone::Play, player)
+        .filter(|&e| world.card_type(e) == Some(CardType::Minion) && world.is_alive(e))
+        .collect();
+
+    let source_pos = minions.iter().position(|&e| e == source);
+    let target_pos = minions.iter().position(|&e| e == target);
+
+    match (source_pos, target_pos) {
+        (Some(s), Some(t)) => {
+            // 相邻 = 位置差为 1
+            (s as isize - t as isize).unsigned_abs() == 1
+        }
+        _ => false,
+    }
+}
+
+/// 返回光环效果的攻击力加成。
+const fn aura_attack_bonus(effect: AuraEffect) -> i32 {
+    use crate::core::component::AuraEffect;
+    match effect {
+        AuraEffect::GainStats { attack, .. } => attack,
+        AuraEffect::GainAttack(a) => a,
+        AuraEffect::GainHealth(_) => 0,
+    }
+}
+
+/// 返回光环效果的生命值加成。
+const fn aura_health_bonus(effect: AuraEffect) -> i32 {
+    use crate::core::component::AuraEffect;
+    match effect {
+        AuraEffect::GainStats { health, .. } => health,
+        AuraEffect::GainAttack(_) => 0,
+        AuraEffect::GainHealth(h) => h,
     }
 }
 

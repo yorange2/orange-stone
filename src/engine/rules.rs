@@ -8,7 +8,9 @@
 //! 所有函数都是纯函数式风格，通过 `GameState` 参数与状态交互。
 
 use crate::core::action::Action;
-use crate::core::component::{Attack, AttacksUsed, CardType, Health};
+use crate::core::component::{
+    Attack, AttacksUsed, CardType, Durability, Health, HeroPowerUsed,
+};
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue, Priority};
 use crate::core::player::PlayerId;
@@ -43,6 +45,8 @@ pub enum EngineError {
     NotEnoughMana,
     /// 必须先攻击嘲讽随从
     MustAttackTaunt,
+    /// 英雄技能本回合已使用过
+    HeroPowerAlreadyUsed,
     /// 功能尚未实现（Phase 2+）
     Unimplemented,
 }
@@ -63,7 +67,7 @@ pub fn validate(state: &GameState, action: Action) -> Result<(), EngineError> {
         Action::PlayCard { card } => validate_play_card(state, card),
         Action::Attack { attacker, defender } => validate_attack(state, attacker, defender),
         Action::EndTurn => validate_end_turn(state),
-        Action::HeroPower { .. } => Err(EngineError::Unimplemented),
+        Action::HeroPower { hero } => validate_hero_power(state, hero),
     }
 }
 
@@ -125,7 +129,7 @@ fn validate_attack(
     check_entity(world, attacker)?;
     check_entity(world, defender)?;
 
-    // 攻击者必须是己方随从，在战场上
+    // 攻击者必须是己方角色（随从或英雄），在战场上
     let attacker_player = world
         .player(attacker)
         .ok_or(EngineError::EntityGone(attacker))?;
@@ -133,8 +137,16 @@ fn validate_attack(
         return Err(EngineError::InvalidTarget);
     }
     let attacker_type = world.card_type(attacker).ok_or(EngineError::NotOnBoard)?;
-    if attacker_type != CardType::Minion {
-        return Err(EngineError::NotOnBoard);
+    match attacker_type {
+        CardType::Minion => {}
+        CardType::Hero => {
+            // 英雄攻击必须有武器
+            let has_weapon = state.player(attacker_player).weapon.is_some();
+            if !has_weapon {
+                return Err(EngineError::InvalidTarget);
+            }
+        }
+        _ => return Err(EngineError::NotOnBoard),
     }
     let attacker_zone = world.zone(attacker).ok_or(EngineError::NotOnBoard)?;
     if attacker_zone != Zone::Play {
@@ -149,11 +161,9 @@ fn validate_attack(
         return Err(EngineError::AttacksExhausted);
     }
 
-    // 攻击力必须 > 0
-    let atk = world
-        .attack(attacker)
-        .ok_or(EngineError::EntityGone(attacker))?;
-    if atk.0 <= 0 {
+    // 攻击力必须 > 0（考虑武器和光环）
+    let total_atk = compute_attacker_damage(state, attacker);
+    if total_atk <= 0 {
         return Err(EngineError::InvalidTarget);
     }
 
@@ -200,6 +210,62 @@ fn validate_end_turn(state: &GameState) -> Result<(), EngineError> {
     Ok(())
 }
 
+/// 验证英雄技能使用。
+fn validate_hero_power(state: &GameState, hero: Entity) -> Result<(), EngineError> {
+    let world = state.world();
+    let active = state.active_player();
+
+    // 检查实体存活
+    check_entity(world, hero)?;
+
+    // 必须是英雄
+    if world.card_type(hero) != Some(CardType::Hero) {
+        return Err(EngineError::InvalidTarget);
+    }
+
+    // 必须是己方英雄
+    let hero_player = world.player(hero).ok_or(EngineError::EntityGone(hero))?;
+    if hero_player != active {
+        return Err(EngineError::NotYourTurn);
+    }
+
+    // 阶段检查
+    if state.phase() != Phase::Main {
+        return Err(EngineError::NotYourTurn);
+    }
+
+    // 检查本回合是否已使用
+    if world.hero_power_used(hero).is_some_and(|u| u.0) {
+        return Err(EngineError::HeroPowerAlreadyUsed);
+    }
+
+    // 检查法力
+    let hero_power = world.hero_power(hero);
+    let cost = hero_power.map(|hp| hp.cost).unwrap_or(2);
+    if cost > state.player(active).current_mana {
+        return Err(EngineError::NotEnoughMana);
+    }
+
+    Ok(())
+}
+
+/// 计算攻击者的总伤害（基础攻击 + 光环 + 武器加成）。
+fn compute_attacker_damage(state: &GameState, attacker: Entity) -> i32 {
+    let world = state.world();
+    let base = world.effective_attack(attacker).unwrap_or(Attack(0));
+    let weapon_bonus = if world.card_type(attacker) == Some(CardType::Hero) {
+        world
+            .player(attacker)
+            .and_then(|pid| state.player(pid).weapon)
+            .and_then(|w| world.attack(w))
+            .unwrap_or(Attack(0))
+            .0
+    } else {
+        0
+    };
+    base.0 + weapon_bonus
+}
+
 /// 检查实体是否存活，不稳定则返回 `EntityGone`。
 fn check_entity(world: &crate::core::world::World, entity: Entity) -> Result<(), EngineError> {
     if world.is_alive(entity) {
@@ -240,16 +306,18 @@ pub fn enqueue(
         Action::Attack { attacker, defender } => {
             let world = state.world();
             queue.push(Event::AttackDeclared { attacker, defender });
-            // 攻击者造成伤害
-            let attacker_atk = world.attack(attacker).unwrap_or(Attack(0));
+            // 计算攻击者的有效攻击力（含光环加成和武器加成）
+            let attacker_total_atk = compute_attacker_damage(state, attacker);
             queue.push(Event::DamageDealt {
                 source: attacker,
                 target: defender,
-                amount: attacker_atk.0,
+                amount: attacker_total_atk,
             });
             // 如果防御者是随从，它也会反击
             if world.card_type(defender) == Some(CardType::Minion) {
-                let defender_atk = world.attack(defender).unwrap_or(Attack(0));
+                let defender_atk = world
+                    .effective_attack(defender)
+                    .unwrap_or(Attack(0));
                 if defender_atk.0 > 0 {
                     queue.push(Event::DamageDealt {
                         source: defender,
@@ -265,7 +333,13 @@ pub fn enqueue(
             queue.push(Event::TurnEnded { player: active });
             queue.push(Event::TurnStarted { player: opponent });
         }
-        Action::HeroPower { .. } => return Err(EngineError::Unimplemented),
+        Action::HeroPower { hero } => {
+            let active = state.active_player();
+            queue.push(Event::HeroPowerActivated {
+                player: active,
+                hero,
+            });
+        }
     }
     Ok(())
 }
@@ -299,6 +373,8 @@ pub fn apply_event(
                 let world = state.world_mut();
                 for entity in &player_entities {
                     world.set_attacks_used(*entity, AttacksUsed(0));
+                    // 重置英雄技能使用标记
+                    world.set_hero_power_used(*entity, HeroPowerUsed(false));
                 }
             }
             state.set_active_player(player);
@@ -341,17 +417,82 @@ pub fn apply_event(
             }
         }
         Event::AttackDeclared { attacker, .. } => {
+            // 先读取攻击者类型和武器信息（只读 borrow）
+            let is_hero = state.world().card_type(attacker) == Some(CardType::Hero);
+            let attacker_player = state.world().player(attacker);
+            let weapon_info: Option<(PlayerId, Entity)> = if is_hero {
+                attacker_player.and_then(|pid| {
+                    state.player(pid).weapon.map(|w| (pid, w))
+                })
+            } else {
+                None
+            };
+
             // 标记攻击者已使用过攻击次数
-            let world = state.world_mut();
-            let used = world.attacks_used(attacker).unwrap_or(AttacksUsed(0));
-            world.set_attacks_used(attacker, AttacksUsed(used.0 + 1));
+            {
+                let world = state.world_mut();
+                let used = world.attacks_used(attacker).unwrap_or(AttacksUsed(0));
+                world.set_attacks_used(attacker, AttacksUsed(used.0 + 1));
+            }
+
+            // 武器耐久减 1
+            if let Some((player, weapon)) = weapon_info {
+                let dur = state.world().durability(weapon).unwrap_or(Durability(0));
+                let new_dur = Durability(dur.0 - 1);
+                state.world_mut().set_durability(weapon, new_dur);
+                if new_dur.0 <= 0 {
+                    // 武器摧毁
+                    let inner = state.make_mut();
+                    inner.players[player.index()].weapon = None;
+                    queue.push(Event::WeaponDestroyed { player, weapon });
+                }
+            }
         }
         Event::DamageDealt {
             target,
             amount,
             source: _,
         } => {
-            // 造成伤害
+            // 获取目标的卡牌类型
+            let card_type = state.world().card_type(target);
+
+            // 如果目标是英雄，先扣护甲
+            if card_type == Some(CardType::Hero) {
+                let target_player = state.world().player(target);
+                if let Some(pid) = target_player {
+                    let armor = state.player(pid).armor;
+                    if armor > 0 {
+                        let absorbed = amount.min(armor);
+                        let remaining = amount - absorbed;
+                        let inner = state.make_mut();
+                        inner.players[pid.index()].armor -= absorbed;
+                        if remaining <= 0 {
+                            // 伤害全部被护甲吸收
+                            return Ok(());
+                        }
+                        // 剩余伤害继续穿透到生命值
+                        let current_health = state.world().health(target);
+                        let Some(hp) = current_health else {
+                            return Ok(());
+                        };
+                        let new_hp = Health(hp.0 - remaining);
+                        state.world_mut().set_health(target, new_hp);
+
+                        let effective_hp =
+                            state.world().effective_health(target).unwrap_or(new_hp);
+                        if effective_hp.is_dead() {
+                            let winner = pid.opponent();
+                            queue.push_with_priority(
+                                Event::GameOver { winner },
+                                Priority::Highest,
+                            );
+                        }
+                        return Ok(());
+                    }
+                }
+            }
+
+            // 无护甲或非英雄：直接扣生命值
             let current_health = state.world().health(target);
             let Some(hp) = current_health else {
                 // 目标不存在（已死或已移除），跳过
@@ -362,9 +503,9 @@ pub fn apply_event(
             // 通过 CoW 修改状态
             state.world_mut().set_health(target, new_hp);
 
-            // 检查死亡
-            if new_hp.is_dead() {
-                let card_type = state.world().card_type(target);
+            // 检查死亡（使用有效生命值考虑光环加成）
+            let effective_hp = state.world().effective_health(target).unwrap_or(new_hp);
+            if effective_hp.is_dead() {
                 match card_type {
                     Some(CardType::Hero) => {
                         // 英雄死亡 → 游戏结束
@@ -399,6 +540,37 @@ pub fn apply_event(
         }
         Event::CardDrawn { .. } => {
             // 通知事件 — 卡牌已在 draw_card 中移到手牌
+        }
+        Event::HeroPowerActivated { player, hero } => {
+            // 扣除法力
+            let cost = state
+                .world()
+                .hero_power(hero)
+                .map(|hp| hp.cost)
+                .unwrap_or(2);
+            {
+                let inner = state.make_mut();
+                let p = &mut inner.players[player.index()];
+                p.current_mana = (p.current_mana - cost).max(0);
+            }
+            // 标记已使用
+            state
+                .world_mut()
+                .set_hero_power_used(hero, HeroPowerUsed(true));
+            // 解析英雄技能效果
+            if let Some(hp_def) = state.world().hero_power(hero) {
+                let effect = hp_def.effect;
+                trigger::resolve_effect(state, queue, hero, player, effect);
+            }
+        }
+        Event::WeaponEquipped { .. } => {
+            // 通知事件 — 武器已在 resolve_equip_weapon 中创建
+        }
+        Event::WeaponDestroyed { .. } => {
+            // 通知事件 — 武器已在 AttackDeclared 或 equip 时移除
+        }
+        Event::SecretRevealed { .. } => {
+            // 通知事件 — 奥秘效果通过 trigger 系统解析
         }
         Event::GameOver { winner } => {
             state.set_phase(Phase::GameOver { winner });

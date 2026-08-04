@@ -70,6 +70,34 @@ pub enum Event {
         /// 获胜方
         winner: PlayerId,
     },
+    /// 武器被装备
+    WeaponEquipped {
+        /// 装备武器的玩家
+        player: PlayerId,
+        /// 武器实体
+        weapon: Entity,
+    },
+    /// 武器被摧毁（耐久归零或被替换）
+    WeaponDestroyed {
+        /// 失去武器的玩家
+        player: PlayerId,
+        /// 被摧毁的武器实体
+        weapon: Entity,
+    },
+    /// 英雄技能被使用
+    HeroPowerActivated {
+        /// 使用技能的玩家
+        player: PlayerId,
+        /// 英雄实体
+        hero: Entity,
+    },
+    /// 奥秘被揭示并触发
+    SecretRevealed {
+        /// 拥有奥秘的玩家
+        player: PlayerId,
+        /// 奥秘实体
+        secret: Entity,
+    },
 }
 
 /// 事件优先级 — 数值越小越先处理。
