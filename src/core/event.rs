@@ -58,6 +58,13 @@ pub enum Event {
         /// 死亡的随从实体
         minion: Entity,
     },
+    /// 卡牌被抽到手中
+    CardDrawn {
+        /// 抽牌玩家
+        player: PlayerId,
+        /// 被抽到的卡牌实体
+        card: Entity,
+    },
     /// 游戏结束
     GameOver {
         /// 获胜方

@@ -1,7 +1,8 @@
-//! 核心抽象：Entity、Component、GameState、Zone、Action、Event
+//! 核心抽象：Entity、Component、GameState、Zone、Action、Event、Effect
 
 pub mod action;
 pub mod component;
+pub mod effect;
 pub mod entity;
 pub mod event;
 pub mod player;

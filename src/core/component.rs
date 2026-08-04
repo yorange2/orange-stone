@@ -107,6 +107,28 @@ impl AttacksUsed {
     }
 }
 
+/// 战吼组件 — 随从被召唤时触发。
+///
+/// `Battlecry` 在 `MinionSummoned` 事件处理时被检测，
+/// 触发效果通过 `CardEffect` 定义。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Battlecry(pub crate::core::effect::CardEffect);
+
+/// 亡语组件 — 随从死亡时触发。
+///
+/// `Deathrattle` 在 `MinionDied` 事件处理时被检测（在移入坟墓场之前），
+/// 触发效果通过 `CardEffect` 定义。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Deathrattle(pub crate::core::effect::CardEffect);
+
+/// 嘲讽组件 — 敌方必须优先攻击此随从。
+///
+/// 如果敌方战场上有任何带 `Taunt` 的随从，
+/// 攻击者不能选择英雄或非嘲讽随从作为攻击目标。
+/// 多个嘲讽随从可以自由选择攻击哪个。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Taunt;
+
 #[cfg(test)]
 mod tests {
     use super::*;

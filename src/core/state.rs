@@ -19,6 +19,7 @@ use crate::core::component::{Attack, AttacksUsed, CardType, Cost, Health};
 use crate::core::player::{Player, PlayerId};
 use crate::core::world::World;
 use crate::core::zone::Zone;
+use crate::sim::rng::GameRng;
 use std::sync::Arc;
 
 /// 游戏阶段。
@@ -50,6 +51,8 @@ pub struct Inner {
     pub phase: Phase,
     /// 当前行动玩家
     pub active_player: PlayerId,
+    /// 随机数生成器（可复现）
+    pub rng: GameRng,
 }
 
 /// 不可变游戏状态，支持 Copy-on-Write。
@@ -65,8 +68,10 @@ pub struct GameState {
 impl GameState {
     /// 创建一个新的初始游戏状态。
     ///
-    /// 包含两个玩家及其英雄实体（30 HP, 0 Attack）。
+    /// 包含两个玩家及其英雄实体（30 HP, 0 Attack），每人法力水晶初始为 0。
+    /// 牌库初始为空（通过 GameBuilder 填充）。
     /// 游戏从 Player1 的回合 1 开始，阶段为 Main。
+    /// RNG seed 固定为 12345。
     #[must_use]
     pub fn new() -> Self {
         let mut world = World::new();
@@ -99,12 +104,13 @@ impl GameState {
         let inner = Inner {
             world,
             players: [
-                Player::new(PlayerId::Player1, hero1),
-                Player::new(PlayerId::Player2, hero2),
+                Player::new(PlayerId::Player1, hero1, 0),
+                Player::new(PlayerId::Player2, hero2, 0),
             ],
             turn: 1,
             phase: Phase::Main,
             active_player: PlayerId::Player1,
+            rng: GameRng::new(12345),
         };
 
         Self {
@@ -157,6 +163,18 @@ impl GameState {
     /// 设置当前回合数。
     pub fn set_turn(&mut self, turn: u32) {
         self.make_mut().turn = turn;
+    }
+
+    /// 获取 RNG 的只读引用。
+    #[must_use]
+    pub fn rng(&self) -> &GameRng {
+        &self.inner.rng
+    }
+
+    /// 获取 RNG 的可变引用（触发 CoW）。
+    #[must_use]
+    pub fn rng_mut(&mut self) -> &mut GameRng {
+        &mut self.make_mut().rng
     }
 
     /// 获取 Inner 的可变引用，触发 CoW。

@@ -38,20 +38,29 @@ impl PlayerId {
 /// 玩家状态 — 非实体级别的玩家数据。
 ///
 /// 英雄本身是一个实体（`CardType::Hero`），存储在 World 中。
-/// `Player` 则持有对英雄实体的引用以及将来会加入的法力水晶等状态。
+/// `Player` 则持有对英雄实体的引用以及法力水晶等状态。
 #[derive(Debug, Clone)]
 pub struct Player {
     /// 玩家 ID
     pub id: PlayerId,
     /// 指向英雄实体的句柄
     pub hero: crate::core::entity::Entity,
+    /// 总法力水晶数（上限 10，每回合开始时增加 1）
+    pub mana_crystals: i32,
+    /// 当前可用法力（打牌时消耗，回合开始时回满）
+    pub current_mana: i32,
 }
 
 impl Player {
     /// 创建一个新的玩家状态。
     #[must_use]
-    pub const fn new(id: PlayerId, hero: crate::core::entity::Entity) -> Self {
-        Self { id, hero }
+    pub const fn new(id: PlayerId, hero: crate::core::entity::Entity, mana_crystals: i32) -> Self {
+        Self {
+            id,
+            hero,
+            mana_crystals,
+            current_mana: mana_crystals,
+        }
     }
 }
 
