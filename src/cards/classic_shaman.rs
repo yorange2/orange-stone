@@ -496,3 +496,29 @@ pub const WINDSPEAKER: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
 };
+
+/// 先祖治疗 — 为一个随从恢复所有生命值并使其获得嘲讽（简化：恢复生命+嘲讽）
+pub const ANCESTRAL_HEALING: CardDef = CardDef {
+    id: "SHAMAN_018",
+    name: "Ancestral Healing",
+    card_type: CardType::Spell,
+    cost: 0,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::FullHeal {
+        target: EffectTarget::FriendlyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+};

@@ -310,3 +310,54 @@ pub const DEATHWING: CardDef = CardDef {
     end_turn_effect: None,
 };
 
+
+/// 绿皮船长 — 战吼：使你的武器获得+1/+1
+pub const CAPTAIN_GREENSKIN: CardDef = CardDef {
+    id: "LEGENDARY_018",
+    name: "Captain Greenskin",
+    card_type: CardType::Minion,
+    cost: 5,
+    attack: 5,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::BuffWeapon {
+        attack: 1,
+        durability: 1,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+};
+
+/// 哈里森·琼斯 — 战吼：摧毁对手的武器，并抽等同于其耐久度的牌
+pub const HARRISON_JONES: CardDef = CardDef {
+    id: "LEGENDARY_019",
+    name: "Harrison Jones",
+    card_type: CardType::Minion,
+    cost: 5,
+    attack: 5,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::DestroyWeaponAndDraw),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+};

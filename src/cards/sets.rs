@@ -160,6 +160,8 @@ pub const LEGENDARY_CLASSIC: &[CardDef] = &[
     ONYXIA,
     DEATHWING,
     BLOODMAGE_THALNOS,
+    CAPTAIN_GREENSKIN,
+    HARRISON_JONES,
 ];
 pub const DRUID_CLASSIC: &[CardDef] = &[
     INNERVATE,
@@ -304,6 +306,7 @@ pub const SHAMAN_CLASSIC: &[CardDef] = &[
     EARTH_ELEMENTAL,
     WINDFURY,
     WINDSPEAKER,
+    ANCESTRAL_HEALING,
 ];
 
 pub const WARLOCK_CLASSIC: &[CardDef] = &[
@@ -320,6 +323,7 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     BLOOD_FURY,
     DREAD_INFERNAL,
     PIT_LORD,
+    FELSTALKER,
 ];
 
 pub const WARRIOR_CLASSIC: &[CardDef] = &[
@@ -340,6 +344,8 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
     INNER_RAGE,
     HEROIC_STRIKE,
     CHARGE_SPELL,
+    SHIELD_SLAM,
+    UPGRADE,
 ];
 
 pub const ALL_CARDS: &[CardDef] = &[
@@ -541,6 +547,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     EARTH_ELEMENTAL,
     WINDFURY,
     WINDSPEAKER,
+    ANCESTRAL_HEALING,
     // Warlock
     SOULFIRE,
     FLAME_IMP,
@@ -555,6 +562,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     BLOOD_FURY,
     DREAD_INFERNAL,
     PIT_LORD,
+    FELSTALKER,
     // Warrior
     EXECUTE,
     WHIRLWIND,
@@ -574,6 +582,8 @@ pub const ALL_CARDS: &[CardDef] = &[
     // Hero Attack
     HEROIC_STRIKE,
     CHARGE_SPELL,
+    SHIELD_SLAM,
+    UPGRADE,
     // Legendary
     CAIRNE_BLOODHOOF,
     BAINE_BLOODHOOF,
@@ -591,6 +601,8 @@ pub const ALL_CARDS: &[CardDef] = &[
     ONYXIA,
     DEATHWING,
     BLOODMAGE_THALNOS,
+    CAPTAIN_GREENSKIN,
+    HARRISON_JONES,
     // ⬜ 补全
     GIFT_OF_THE_WILD,
     MULTI_SHOT,
