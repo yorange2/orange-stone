@@ -91,10 +91,28 @@ fn matches_trigger(
             matches!(event, Event::MinionDied { .. })
         }
         SecretTrigger::WhenEnemySpellCast => {
-            // 敌方施放法术（在 CardPlayed 时触发）
-            // 注意：需要在 CardPlayed 时检查 spell type
             matches!(event, Event::CardPlayed { player, .. } if *player != owner)
         }
+        SecretTrigger::WhenEnemyMinionAttacksHero => {
+            matches_enemy_minion_attacks_hero(event, state, owner)
+        }
+    }
+}
+
+/// 检查敌方随从是否攻击己方英雄。
+fn matches_enemy_minion_attacks_hero(
+    event: &Event,
+    state: &GameState,
+    owner: PlayerId,
+) -> bool {
+    use crate::core::component::CardType;
+    if let Event::AttackDeclared { attacker, defender } = event {
+        let hero = state.player(owner).hero;
+        *defender == hero
+            && state.world().card_type(*attacker) == Some(CardType::Minion)
+            && state.world().player(*attacker) == Some(owner.opponent())
+    } else {
+        false
     }
 }
 

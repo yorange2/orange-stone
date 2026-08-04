@@ -569,3 +569,33 @@ pub const ETHEREAL_ARCANIST: CardDef = CardDef {
     choose_one_effect: None,
     combo_effect: None,
 };
+
+/// 蒸发 — 奥秘：当一个敌方随从攻击你的英雄时，消灭它
+pub const VAPORIZE: CardDef = CardDef {
+    id: "MAGE_018",
+    name: "Vaporize",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: Some(SecretTrigger::WhenEnemyMinionAttacksHero),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+};

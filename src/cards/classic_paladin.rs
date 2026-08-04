@@ -2,7 +2,7 @@
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
-use crate::core::component::CardType;
+use crate::core::component::{CardType, SecretTrigger};
 use crate::core::effect::{CardEffect, EffectTarget};
 
 // ============================================================
@@ -627,6 +627,66 @@ pub const SWORD_OF_JUSTICE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: Some(CardEffect::GainStats { attack: 1, health: 1, target: EffectTarget::Self_ }),
+    choose_one_effect: None,
+    combo_effect: None,
+};
+
+/// 忏悔 — 奥秘：当你的对手打出一个随从，将其生命值变为1（简化：DealDamage）
+pub const REPENTANCE: CardDef = CardDef {
+    id: "PALADIN_018",
+    name: "Repentance",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: Some(SecretTrigger::AfterEnemyMinionPlayed),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+};
+
+/// 智慧祝福 — 每当目标随从攻击，抽一张牌（简化：无效果）
+pub const BLESSING_OF_WISDOM: CardDef = CardDef {
+    id: "PALADIN_019",
+    name: "Blessing of Wisdom",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
 };
