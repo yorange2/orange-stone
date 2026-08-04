@@ -30,6 +30,8 @@ pub enum EffectTarget {
     DamagedEnemyMinion,
     /// 随机友方随从
     FriendlyMinion,
+    /// 随机敌方嘲讽随从
+    TauntEnemyMinion,
 }
 
 /// 卡牌效果 — 触发时执行的动作。
