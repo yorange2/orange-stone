@@ -199,4 +199,32 @@ pub enum CardEffect {
         /// 目标：所有敌方随从 / 所有敌方角色
         target: EffectTarget,
     },
+    /// 对两个随机敌方随从造成伤害
+    DealDamageToTwo {
+        /// 伤害数值
+        amount: i32,
+    },
+    /// 造成伤害 + 抽牌
+    DealDamageAndDraw {
+        /// 伤害数值
+        damage: i32,
+        /// 目标选择方式
+        target: EffectTarget,
+        /// 抽牌数量
+        draw: u32,
+    },
+    /// 对一个随从造成伤害并获得攻击力
+    DamageAndGainAttack {
+        /// 伤害数值
+        damage: i32,
+        /// 攻击力加成
+        attack_bonus: i32,
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 消灭一个友方随从并获得其攻击力和生命值
+    DestroyAdjacent {
+        /// 是否获得属性值
+        gain_stats: bool,
+    },
 }

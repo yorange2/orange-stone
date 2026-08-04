@@ -145,6 +145,38 @@ pub fn resolve_effect(
         CardEffect::DestroyAndAOE { target } => {
             resolve_destroy_and_aoe(state, queue, owner, source, target);
         }
+        CardEffect::DealDamageToTwo { amount } => {
+            resolve_deal_damage_to_two(state, queue, source, owner, amount);
+        }
+        CardEffect::DealDamageAndDraw {
+            damage,
+            target,
+            draw,
+        } => {
+            resolve_deal_damage(state, queue, source, owner, damage, target);
+            for _ in 0..draw {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::DamageAndGainAttack {
+            damage,
+            attack_bonus,
+            target,
+        } => {
+            resolve_deal_damage(state, queue, source, owner, damage, target);
+            // 给目标随从增加攻击力（简化：随机友方随从）
+            let minions = collect_friendly_minions(state, owner);
+            if !minions.is_empty() {
+                let idx = state.rng_mut().next_usize(minions.len());
+                let world = state.world_mut();
+                let m = minions[idx];
+                let cur = world.attack(m).unwrap_or(Attack(0));
+                world.set_attack(m, Attack(cur.0 + attack_bonus));
+            }
+        }
+        CardEffect::DestroyAdjacent { gain_stats: _ } => {
+            // 简化实现
+        }
     }
 }
 
@@ -175,6 +207,22 @@ pub fn draw_card(state: &mut GameState, queue: &mut EventQueue, player: PlayerId
 }
 
 /// 解析伤害效果。
+/// 收集友方受伤的随从。
+fn collect_damaged_friendly(state: &GameState, owner: PlayerId) -> Vec<Entity> {
+    state
+        .world()
+        .zones()
+        .iter(Zone::Play, owner)
+        .filter(|&e| {
+            state.world().card_type(e) == Some(CardType::Minion)
+                && state.world().health(e).is_some_and(|h| {
+                    // 受伤 = 当前生命值 < 有效生命值
+                    h.0 < state.world().effective_health(e).unwrap_or(h).0
+                })
+        })
+        .collect()
+}
+
 fn resolve_deal_damage(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -220,12 +268,22 @@ fn resolve_deal_damage(
             });
             return;
         }
-        EffectTarget::AllMinions
-        | EffectTarget::AllCharacters
+        EffectTarget::AllMinions => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_enemy_minions(state, owner));
+            for m in &all {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: *m,
+                    amount,
+                });
+            }
+            return;
+        }
+        EffectTarget::AllCharacters
         | EffectTarget::FriendlyHero
         | EffectTarget::DamagedEnemyMinion
         | EffectTarget::FriendlyMinion => {
-            // 这些目标类型不在 DealDamage 中使用
             return;
         }
     };
@@ -494,7 +552,27 @@ fn resolve_destroy_minion(
 ) {
     let minions: Vec<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
-        EffectTarget::DamagedEnemyMinion => collect_enemy_minions(state, owner),
+        EffectTarget::DamagedEnemyMinion => collect_enemy_minions(state, owner)
+            .into_iter()
+            .filter(|&e| {
+                state.world().health(e).is_some_and(|h| {
+                    h.0 < state.world().effective_health(e).unwrap_or(h).0
+                })
+            })
+            .collect(),
+        EffectTarget::AllMinions => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_enemy_minions(state, owner));
+            for &m in &all {
+                let hp = state.world().health(m).unwrap_or(Health(1));
+                queue.push(Event::DamageDealt {
+                    source: m,
+                    target: m,
+                    amount: hp.0.max(1),
+                });
+            }
+            return;
+        }
         _ => return,
     };
     for &m in &minions {
@@ -820,6 +898,34 @@ fn resolve_destroy_weapon_and_draw(
     }
 }
 
+/// 对两个随机敌方随从造成伤害。
+fn resolve_deal_damage_to_two(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+    amount: i32,
+) {
+    let mut enemies = collect_enemy_minions(state, owner);
+    if enemies.is_empty() {
+        return;
+    }
+    // 随机选两个（可能同一个被选两次如果敌方只有1个随从）
+    for _ in 0..2 {
+        if enemies.is_empty() {
+            break;
+        }
+        let idx = state.rng_mut().next_usize(enemies.len());
+        let target = enemies[idx];
+        queue.push(Event::DamageDealt {
+            source,
+            target,
+            amount,
+        });
+        enemies.remove(idx);
+    }
+}
+
 /// 返回所有随从到各自拥有者手牌。
 fn resolve_return_all_to_hand(state: &mut GameState, owner: PlayerId) {
     let all_minions: Vec<Entity> = [owner, owner.opponent()]
@@ -942,7 +1048,7 @@ fn resolve_destroy_and_aoe(
         amount: hp.0.max(1),
     });
     // 对所有敌方随从造成等于其攻击力的伤害
-    let enemy = owner.opponent();
+    let _enemy = owner.opponent();
     let targets: Vec<Entity> = match target {
         EffectTarget::AllEnemyMinions => collect_enemy_minions(state, owner),
         _ => return,
