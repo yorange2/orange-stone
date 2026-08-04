@@ -130,6 +130,21 @@ pub fn resolve_effect(
         CardEffect::DestroyWeaponAndDraw => {
             resolve_destroy_weapon_and_draw(state, queue, owner);
         }
+        CardEffect::ReturnAllToHand => {
+            resolve_return_all_to_hand(state, owner);
+        }
+        CardEffect::SetAttackToHealth { target } => {
+            resolve_set_attack_to_health(state, owner, target);
+        }
+        CardEffect::DestroyAllExceptOne => {
+            resolve_destroy_all_except_one(state, queue, owner);
+        }
+        CardEffect::DestroyAndHeal { target, heal } => {
+            resolve_destroy_and_heal(state, queue, owner, target, heal);
+        }
+        CardEffect::DestroyAndAOE { target } => {
+            resolve_destroy_and_aoe(state, queue, owner, source, target);
+        }
     }
 }
 
@@ -336,7 +351,6 @@ fn resolve_gain_stats(
             world.set_health(source, Health(cur_hp.0 + health));
         }
         EffectTarget::AllFriendlyMinions => {
-            // 先收集，再获取可变引用
             let minions: Vec<Entity> = collect_friendly_minions(state, owner);
             let world = state.world_mut();
             for minion in &minions {
@@ -346,9 +360,20 @@ fn resolve_gain_stats(
                 world.set_health(*minion, Health(cur_hp.0 + health));
             }
         }
-        _ => {
-            // Phase 2 不支持其他 buff 目标类型
+        EffectTarget::FriendlyMinion => {
+            let minions = collect_friendly_minions(state, owner);
+            if minions.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(minions.len());
+            let world = state.world_mut();
+            let m = minions[idx];
+            let cur_atk = world.attack(m).unwrap_or(Attack(0));
+            let cur_hp = world.health(m).unwrap_or(Health(0));
+            world.set_attack(m, Attack(cur_atk.0 + attack));
+            world.set_health(m, Health(cur_hp.0 + health));
         }
+        _ => {}
     }
 }
 
@@ -783,17 +808,151 @@ fn resolve_destroy_weapon_and_draw(
     let weapon = state.player(enemy).weapon;
     if let Some(w) = weapon {
         let durability = state.world().durability(w).unwrap_or(Durability(0)).0;
-        // 摧毁武器
         let inner = state.make_mut();
         inner.players[enemy.index()].weapon = None;
         queue.push(Event::WeaponDestroyed {
             player: enemy,
             weapon: w,
         });
-        // 抽等于耐久度的牌数
         for _ in 0..durability {
             draw_card(state, queue, owner);
         }
+    }
+}
+
+/// 返回所有随从到各自拥有者手牌。
+fn resolve_return_all_to_hand(state: &mut GameState, owner: PlayerId) {
+    let all_minions: Vec<Entity> = [owner, owner.opponent()]
+        .iter()
+        .flat_map(|&pid| {
+            state
+                .world()
+                .zones()
+                .iter(Zone::Play, pid)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    for m in &all_minions {
+        let _ = state.world_mut().move_to_zone(*m, Zone::Hand);
+    }
+}
+
+/// 将随从的攻击力设为等于其当前生命值。
+fn resolve_set_attack_to_health(state: &mut GameState, owner: PlayerId, target: EffectTarget) {
+    let minions: Vec<Entity> = match target {
+        EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        _ => return,
+    };
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let world = state.world_mut();
+    let m = minions[idx];
+    let hp = world.health(m).unwrap_or(Health(0));
+    world.set_attack(m, Attack(hp.0));
+}
+
+/// 消灭所有随从，除随机一个之外。
+fn resolve_destroy_all_except_one(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    owner: PlayerId,
+) {
+    let enemy = owner.opponent();
+    let mut all_minions: Vec<Entity> = [owner, enemy]
+        .iter()
+        .flat_map(|&pid| {
+            state
+                .world()
+                .zones()
+                .iter(Zone::Play, pid)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    if all_minions.is_empty() {
+        return;
+    }
+    // 随机选一个幸存者，消灭其余
+    let survivor_idx = state.rng_mut().next_usize(all_minions.len());
+    let survivor = all_minions.remove(survivor_idx);
+    for &m in &all_minions {
+        let hp = state.world().health(m).unwrap_or(Health(1));
+        queue.push(Event::DamageDealt {
+            source: survivor,
+            target: m,
+            amount: hp.0.max(1),
+        });
+    }
+}
+
+/// 消灭一个随从并为英雄恢复生命值。
+fn resolve_destroy_and_heal(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    owner: PlayerId,
+    target: EffectTarget,
+    heal: i32,
+) {
+    let minions: Vec<Entity> = match target {
+        EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
+        _ => return,
+    };
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let m = minions[idx];
+    let hp = state.world().health(m).unwrap_or(Health(1));
+    queue.push(Event::DamageDealt {
+        source: m,
+        target: m,
+        amount: hp.0.max(1),
+    });
+    let hero = state.player(owner).hero;
+    let cur = state.world().health(hero).unwrap_or(Health(0));
+    state
+        .world_mut()
+        .set_health(hero, Health((cur.0 + heal).min(30)));
+}
+
+/// 消灭一个友方随从并对其攻击力造成AOE伤害。
+fn resolve_destroy_and_aoe(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    owner: PlayerId,
+    source: Entity,
+    target: EffectTarget,
+) {
+    // 先收集友方随从，随机选一个
+    let friendly = collect_friendly_minions(state, owner);
+    if friendly.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(friendly.len());
+    let sacrifice = friendly[idx];
+    let atk = state.world().attack(sacrifice).unwrap_or(Attack(0)).0;
+    // 消灭牺牲品
+    let hp = state.world().health(sacrifice).unwrap_or(Health(1));
+    queue.push(Event::DamageDealt {
+        source,
+        target: sacrifice,
+        amount: hp.0.max(1),
+    });
+    // 对所有敌方随从造成等于其攻击力的伤害
+    let enemy = owner.opponent();
+    let targets: Vec<Entity> = match target {
+        EffectTarget::AllEnemyMinions => collect_enemy_minions(state, owner),
+        _ => return,
+    };
+    for t in &targets {
+        queue.push(Event::DamageDealt {
+            source,
+            target: *t,
+            amount: atk,
+        });
     }
 }
 

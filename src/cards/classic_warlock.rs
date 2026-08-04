@@ -356,3 +356,58 @@ pub const FELSTALKER: CardDef = CardDef {
     end_turn_effect: None,
     spell_trigger: None,
 };
+
+/// 灵魂虹吸 — 消灭一个随从，为你的英雄恢复3点生命值
+pub const SIPHON_SOUL: CardDef = CardDef {
+    id: "WARLOCK_017",
+    name: "Siphon Soul",
+    card_type: CardType::Spell,
+    cost: 6,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::DestroyAndHeal {
+        target: EffectTarget::AnyEnemyMinion,
+        heal: 3,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    spell_trigger: None,
+};
+
+/// 暗影烈焰 — 消灭一个友方随从，对所有敌方随从造成等同于其攻击力的伤害
+pub const SHADOWFLAME: CardDef = CardDef {
+    id: "WARLOCK_018",
+    name: "Shadowflame",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::DestroyAndAOE {
+        target: EffectTarget::AllEnemyMinions,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    spell_trigger: None,
+};
