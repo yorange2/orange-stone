@@ -318,3 +318,27 @@ pub const PIT_LORD: CardDef = CardDef {
     end_turn_effect: None,
 };
 
+
+/// 恶魔猎犬 — 战吼：随机丢弃一张手牌
+pub const FELSTALKER: CardDef = CardDef {
+    id: "WARLOCK_016",
+    name: "Felstalker",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 4,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::DiscardRandomCard),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+};

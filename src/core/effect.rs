@@ -162,4 +162,20 @@ pub enum CardEffect {
         /// 目标选择方式
         target: EffectTarget,
     },
+    /// 给友方武器增加攻击力和耐久度
+    BuffWeapon {
+        /// 攻击力增量
+        attack: i32,
+        /// 耐久度增量
+        durability: i32,
+    },
+    /// 随机丢弃一张手牌
+    DiscardRandomCard,
+    /// 对目标造成等于友方英雄护甲值的伤害
+    DealArmorDamage {
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 摧毁敌方武器并抽等于其耐久度的牌数
+    DestroyWeaponAndDraw,
 }

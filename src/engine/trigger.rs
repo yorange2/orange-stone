@@ -118,6 +118,18 @@ pub fn resolve_effect(
         CardEffect::DoubleHealth { target } => {
             resolve_double_health(state, owner, target);
         }
+        CardEffect::BuffWeapon { attack, durability } => {
+            resolve_buff_weapon(state, owner, attack, durability);
+        }
+        CardEffect::DiscardRandomCard => {
+            resolve_discard_random(state, owner);
+        }
+        CardEffect::DealArmorDamage { target } => {
+            resolve_deal_armor_damage(state, queue, source, owner, target);
+        }
+        CardEffect::DestroyWeaponAndDraw => {
+            resolve_destroy_weapon_and_draw(state, queue, owner);
+        }
     }
 }
 
@@ -697,6 +709,89 @@ fn resolve_double_health(state: &mut GameState, owner: PlayerId, target: EffectT
     let m = minions[idx];
     let cur_hp = world.health(m).unwrap_or(Health(0));
     world.set_health(m, Health((cur_hp.0 * 2).min(30)));
+}
+
+/// 给友方英雄的武器增加攻击力和耐久度。
+fn resolve_buff_weapon(state: &mut GameState, owner: PlayerId, attack: i32, durability: i32) {
+    let weapon = state.player(owner).weapon;
+    if let Some(w) = weapon {
+        let world = state.world_mut();
+        if attack != 0 {
+            let cur_atk = world.attack(w).unwrap_or(Attack(0));
+            world.set_attack(w, Attack(cur_atk.0 + attack));
+        }
+        if durability != 0 {
+            let cur_dur = world.durability(w).unwrap_or(Durability(0));
+            world.set_durability(w, Durability(cur_dur.0 + durability));
+        }
+    }
+}
+
+/// 随机丢弃一张手牌。
+fn resolve_discard_random(state: &mut GameState, owner: PlayerId) {
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, owner)
+        .collect();
+    if hand.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(hand.len());
+    let card = hand[idx];
+    let _ = state.world_mut().move_to_zone(card, Zone::Graveyard);
+}
+
+/// 对目标造成等于英雄护甲值的伤害。
+fn resolve_deal_armor_damage(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+    target: EffectTarget,
+) {
+    let armor = state.player(owner).armor;
+    if armor <= 0 {
+        return;
+    }
+    let minions: Vec<Entity> = match target {
+        EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
+        EffectTarget::AnyEnemy => collect_enemy_characters(state, owner),
+        _ => return,
+    };
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    queue.push(Event::DamageDealt {
+        source,
+        target: minions[idx],
+        amount: armor,
+    });
+}
+
+/// 摧毁敌方武器并抽等于其耐久度的牌数。
+fn resolve_destroy_weapon_and_draw(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    owner: PlayerId,
+) {
+    let enemy = owner.opponent();
+    let weapon = state.player(enemy).weapon;
+    if let Some(w) = weapon {
+        let durability = state.world().durability(w).unwrap_or(Durability(0)).0;
+        // 摧毁武器
+        let inner = state.make_mut();
+        inner.players[enemy.index()].weapon = None;
+        queue.push(Event::WeaponDestroyed {
+            player: enemy,
+            weapon: w,
+        });
+        // 抽等于耐久度的牌数
+        for _ in 0..durability {
+            draw_card(state, queue, owner);
+        }
+    }
 }
 
 // ============================================================

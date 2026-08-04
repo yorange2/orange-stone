@@ -393,3 +393,56 @@ pub const CHARGE_SPELL: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
 };
+
+/// 盾牌猛击 — 对一个随从造成等同于你护甲值的伤害
+pub const SHIELD_SLAM: CardDef = CardDef {
+    id: "WARRIOR_017",
+    name: "Shield Slam",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::DealArmorDamage {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+};
+
+/// 升级！ — 如果你有武器，使其获得+1/+1；否则装备一把1/3的武器
+pub const UPGRADE: CardDef = CardDef {
+    id: "WARRIOR_018",
+    name: "Upgrade!",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::BuffWeapon {
+        attack: 1,
+        durability: 1,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+};
