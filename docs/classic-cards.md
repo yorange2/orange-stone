@@ -1,7 +1,7 @@
 # Classic/Basic Set Card List
 
 > Source: [Hearthstone Wiki - Classic (2014-2021)](https://hearthstone.wiki.gg/wiki/Classic_(2014-2021)), [Basic card list](https://hearthstone.wiki.gg/wiki/Basic_card_list)
-> Total: ~379 cards | Implemented: ~248 | Skipped: ~13 | Needs new mechanics: ~118
+> Total: ~379 cards | Implemented: ~298 | Skipped: ~13 | Needs new mechanics: ~68
 
 Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine mechanic | ⏸️ Skipped (random/discover/opponent cards)
 
@@ -44,7 +44,7 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 31 | Booty Bay Bodyguard | 5 | 5/4 | Minion | **Taunt** | ✅ |
 | 32 | Darkscale Healer | 5 | 4/5 | Naga Minion | **Battlecry:** Restore 2 Health to all friendly characters. | ✅ |
 | 33 | Frostwolf Warlord | 5 | 4/4 | Minion | **Battlecry:** Gain +1/+1 for each other friendly minion on the battlefield. | ✅ |
-| 34 | Gurubashi Berserker | 5 | 2/8 | Minion | Whenever this minion takes damage, gain +3 Attack. | 🔧 Enrage |
+| 34 | Gurubashi Berserker | 5 | 2/8 | Minion | Whenever this minion takes damage, gain +3 Attack. | ✅ (simplified) |
 | 35 | Nightblade | 5 | 4/4 | Minion | **Battlecry:** Deal 3 damage to the enemy hero. | ✅ |
 | 36 | Stormpike Commando | 5 | 4/2 | Minion | **Battlecry:** Deal 2 damage. | ✅ |
 | 37 | Archmage | 6 | 4/7 | Minion | **Spell Damage +1** | ✅ |
@@ -64,36 +64,36 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 3 | Argent Squire | 1 | 1/1 | **Divine Shield** | ✅ |
 | 4 | Leper Gnome | 1 | 2/1 | **Deathrattle:** Deal 2 damage to the enemy hero. | ✅ |
 | 5 | Shieldbearer | 1 | 0/4 | **Taunt** | ✅ |
-| 6 | Southsea Deckhand | 1 | 2/1 | Has **Charge** while you have a weapon equipped. | 🔧 Conditional Charge |
-| 7 | Worgen Infiltrator | 1 | 2/1 | **Stealth** | 🔧 Stealth |
+| 6 | Southsea Deckhand | 1 | 2/1 | Has **Charge** while you have a weapon equipped. | ✅ (simplified) |
+| 7 | Worgen Infiltrator | 1 | 2/1 | **Stealth** | ✅ (simplified) |
 | 8 | Young Dragonhawk | 1 | 1/1 | **Windfury** | ✅ |
 | 9 | Amani Berserker | 2 | 2/3 | **Enrage:** +3 Attack. | ✅ (no Enrage) |
-| 10 | Bloodsail Raider | 2 | 2/3 | **Battlecry:** Gain Attack equal to the Attack of your weapon. | 🔧 Weapon buff |
+| 10 | Bloodsail Raider | 2 | 2/3 | **Battlecry:** Gain Attack equal to the Attack of your weapon. | ✅ (simplified) |
 | 11 | Dire Wolf Alpha | 2 | 2/2 | Adjacent minions have +1 Attack. | ✅ |
 | 12 | Faerie Dragon | 2 | 3/2 | Can't be targeted by spells or Hero Powers. | ✅ (no Elusive) |
 | 13 | Loot Hoarder | 2 | 2/1 | **Deathrattle:** Draw a card. | ✅ |
 | 14 | Mad Bomber | 2 | 3/2 | **Battlecry:** Deal 3 damage randomly split among all other characters. | ✅ |
 | 15 | Youthful Brewmaster | 2 | 3/2 | **Battlecry:** Return a friendly minion from the battlefield to your hand. | ✅ |
 | 16 | Earthen Ring Farseer | 3 | 3/3 | **Battlecry:** Restore 3 Health. | ✅ |
-| 17 | Flesheating Ghoul | 3 | 3/3 | Whenever a minion dies, gain +1 Attack. | 🔧 Death trigger |
+| 17 | Flesheating Ghoul | 3 | 3/3 | Whenever a minion dies, gain +1 Attack. | ✅ (simplified) |
 | 18 | Harvest Golem | 3 | 2/3 | **Deathrattle:** Summon a 2/1 Damaged Golem. | ✅ |
 | 19 | Ironbeak Owl | 2 | 2/1 | **Battlecry:** **Silence** a minion. | ✅ |
-| 20 | Jungle Panther | 3 | 4/2 | **Stealth** | 🔧 Stealth |
+| 20 | Jungle Panther | 3 | 4/2 | **Stealth** | ✅ (simplified) |
 | 21 | Raging Worgen | 3 | 3/3 | **Enrage:** **Windfury** and +1 Attack. | ✅ (Windfury only) |
 | 22 | Scarlet Crusader | 3 | 3/1 | **Divine Shield** | ✅ |
-| 23 | Tauren Warrior | 3 | 2/3 | **Taunt** **Enrage:** +3 Attack. | 🔧 Enrage |
+| 23 | Tauren Warrior | 3 | 2/3 | **Taunt** **Enrage:** +3 Attack. | ✅ (simplified) |
 | 24 | Thrallmar Farseer | 3 | 2/3 | **Windfury** | ✅ |
 | 25 | Ancient Brewmaster | 4 | 5/4 | **Battlecry:** Return a friendly minion from the battlefield to your hand. | ✅ |
 | 26 | Cult Master | 4 | 4/2 | Whenever one of your other minions dies, draw a card. | 🔧 Death trigger |
 | 27 | Dark Iron Dwarf | 4 | 4/4 | **Battlecry:** Give a friendly minion +2 Attack this turn. | ✅ |
-| 28 | Dread Corsair | 4 | 3/3 | **Taunt.** Costs (1) less per Attack of your weapon. | 🔧 Cost reduction |
+| 28 | Dread Corsair | 4 | 3/3 | **Taunt.** Costs (1) less per Attack of your weapon. | ✅ (simplified) |
 | 29 | Mogu'shan Warden | 4 | 1/7 | **Taunt** | ✅ |
 | 30 | Silvermoon Guardian | 4 | 3/3 | **Divine Shield** | ✅ |
 | 31 | Fen Creeper | 5 | 3/6 | **Taunt** | ✅ |
 | 32 | Silver Hand Knight | 5 | 4/4 | **Battlecry:** Summon a 2/2 Squire. | ✅ |
-| 33 | Spiteful Smith | 5 | 4/6 | **Enrage:** Your weapon has +2 Attack. | 🔧 Enrage |
+| 33 | Spiteful Smith | 5 | 4/6 | **Enrage:** Your weapon has +2 Attack. | ✅ (simplified) |
 | 34 | Stranglethorn Tiger | 5 | 5/5 | **Stealth** | ✅ (no Stealth) |
-| 35 | Venture Co. Mercenary | 5 | 7/6 | Your minions cost (3) more. | 🔧 Cost aura |
+| 35 | Venture Co. Mercenary | 5 | 7/6 | Your minions cost (3) more. | ✅ (simplified) |
 | 36 | Frost Elemental | 6 | 5/5 | **Battlecry:** **Freeze** a character. | ✅ |
 | 37 | Priestess of Elune | 6 | 5/4 | **Battlecry:** Restore 4 Health to your hero. | ✅ |
 | 38 | Windfury Harpy | 6 | 4/5 | **Windfury** | ✅ |
@@ -102,36 +102,36 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 
 | # | Card | Cost | Atk/HP | Text | Status |
 |---|------|------|--------|------|--------|
-| 1 | Angry Chicken | 1 | 1/1 | **Enrage:** +5 Attack. | 🔧 Enrage |
-| 2 | Bloodsail Corsair | 1 | 1/2 | **Battlecry:** Remove 1 Durability from your opponent's weapon. | 🔧 Weapon durability |
-| 3 | Lightwarden | 1 | 1/2 | Whenever a character is healed, gain +2 Attack. | 🔧 Heal trigger |
-| 4 | Murloc Tidecaller | 1 | 1/2 | Whenever you summon a Murloc, gain +1 Attack. | 🔧 Summon trigger |
-| 5 | Secretkeeper | 1 | 1/2 | Whenever a **Secret** is played, gain +1/+1. | 🔧 Secret trigger |
-| 6 | Young Priestess | 1 | 2/1 | At the end of your turn, give another random friendly minion +1 Health. | 🔧 End of turn |
-| 7 | Ancient Watcher | 2 | 4/5 | Can't attack. | 🔧 Can't attack |
-| 8 | Crazed Alchemist | 2 | 2/2 | **Battlecry:** Swap the Attack and Health of a minion. | 🔧 Swap stats |
-| 9 | Knife Juggler | 2 | 3/2 | After you summon a minion, deal 1 damage to a random enemy. | 🔧 Summon trigger |
-| 10 | Mana Addict | 2 | 1/3 | Whenever you cast a spell, gain +2 Attack this turn. | 🔧 Spell trigger |
-| 11 | Mana Wraith | 2 | 2/2 | ALL minions cost (1) more. | 🔧 Cost aura |
-| 12 | Master Swordsmith | 2 | 1/3 | At the end of your turn, give another random friendly minion +1 Attack. | 🔧 End of turn |
-| 13 | Pint-Sized Summoner | 2 | 2/2 | The first minion you play each turn costs (1) less. | 🔧 Cost reduction |
-| 14 | Sunfury Protector | 2 | 2/3 | **Battlecry:** Give adjacent minions **Taunt**. | 🔧 Adjacent taunt |
-| 15 | Wild Pyromancer | 2 | 3/2 | After you cast a spell, deal 1 damage to ALL minions. | 🔧 Spell trigger |
-| 16 | Alarm-o-Bot | 3 | 0/3 | At the start of your turn, swap this minion with a random one in your hand. | 🔧 Swap |
-| 17 | Arcane Golem | 3 | 4/4 | **Charge.** **Battlecry:** Give your opponent a Mana Crystal. | 🔧 Mana to opponent |
-| 18 | Coldlight Seer | 3 | 2/3 | **Battlecry:** Give ALL other Murlocs +2 Health. | ⬜ |
-| 19 | Demolisher | 3 | 1/4 | At the start of your turn, deal 2 damage to a random enemy. | 🔧 Start of turn |
-| 20 | Emperor Cobra | 3 | 2/3 | Destroy any minion damaged by this minion. | 🔧 Poisonous |
+| 1 | Angry Chicken | 1 | 1/1 | **Enrage:** +5 Attack. | ✅ (simplified) |
+| 2 | Bloodsail Corsair | 1 | 1/2 | **Battlecry:** Remove 1 Durability from your opponent's weapon. | ✅ (simplified) |
+| 3 | Lightwarden | 1 | 1/2 | Whenever a character is healed, gain +2 Attack. | ✅ (simplified) |
+| 4 | Murloc Tidecaller | 1 | 1/2 | Whenever you summon a Murloc, gain +1 Attack. | ✅ (simplified) |
+| 5 | Secretkeeper | 1 | 1/2 | Whenever a **Secret** is played, gain +1/+1. | ✅ (simplified) |
+| 6 | Young Priestess | 1 | 2/1 | At the end of your turn, give another random friendly minion +1 Health. | ✅ (simplified) |
+| 7 | Ancient Watcher | 2 | 4/5 | Can't attack. | ✅ (cant_attack) |
+| 8 | Crazed Alchemist | 2 | 2/2 | **Battlecry:** Swap the Attack and Health of a minion. | ✅ (simplified) |
+| 9 | Knife Juggler | 2 | 3/2 | After you summon a minion, deal 1 damage to a random enemy. | ✅ (simplified) |
+| 10 | Mana Addict | 2 | 1/3 | Whenever you cast a spell, gain +2 Attack this turn. | ✅ (simplified) |
+| 11 | Mana Wraith | 2 | 2/2 | ALL minions cost (1) more. | ✅ (simplified) |
+| 12 | Master Swordsmith | 2 | 1/3 | At the end of your turn, give another random friendly minion +1 Attack. | ✅ (simplified) |
+| 13 | Pint-Sized Summoner | 2 | 2/2 | The first minion you play each turn costs (1) less. | ✅ (simplified) |
+| 14 | Sunfury Protector | 2 | 2/3 | **Battlecry:** Give adjacent minions **Taunt**. | ✅ (simplified) |
+| 15 | Wild Pyromancer | 2 | 3/2 | After you cast a spell, deal 1 damage to ALL minions. | ✅ (simplified) |
+| 16 | Alarm-o-Bot | 3 | 0/3 | At the start of your turn, swap this minion with a random one in your hand. | ✅ (simplified) |
+| 17 | Arcane Golem | 3 | 4/4 | **Charge.** **Battlecry:** Give your opponent a Mana Crystal. | ✅ (simplified) |
+| 18 | Coldlight Seer | 3 | 2/3 | **Battlecry:** Give ALL other Murlocs +2 Health. | ✅ (simplified) |
+| 19 | Demolisher | 3 | 1/4 | At the start of your turn, deal 2 damage to a random enemy. | ✅ (simplified) |
+| 20 | Emperor Cobra | 3 | 2/3 | Destroy any minion damaged by this minion. | ✅ (simplified) |
 | 21 | Imp Master | 3 | 1/5 | At the end of your turn, deal 1 damage to this minion and summon a 1/1 Imp. | ✅ (simplified) |
 | 22 | Injured Blademaster | 3 | 4/7 | **Battlecry:** Deal 4 damage to HIMSELF. | ✅ |
-| 23 | Questing Adventurer | 3 | 2/2 | Whenever you play a card, gain +1/+1. | 🔧 Play trigger |
-| 24 | Ancient Mage | 4 | 2/5 | **Battlecry:** Give adjacent minions **Spell Damage +1**. | 🔧 Adjacent spell dmg |
+| 23 | Questing Adventurer | 3 | 2/2 | Whenever you play a card, gain +1/+1. | ✅ (simplified) |
+| 24 | Ancient Mage | 4 | 2/5 | **Battlecry:** Give adjacent minions **Spell Damage +1**. | ✅ (simplified) |
 | 25 | Defender of Argus | 4 | 2/3 | **Battlecry:** Give adjacent minions +1/+1 and **Taunt**. | ✅ (simplified) |
-| 26 | SI:7 Infiltrator | 4 | 5/4 | **Battlecry:** Destroy a random enemy **Secret**. | 🔧 Destroy secret |
-| 27 | Twilight Drake | 4 | 4/1 | **Battlecry:** Gain +1 Health for each card in your hand. | 🔧 Hand size buff |
+| 26 | SI:7 Infiltrator | 4 | 5/4 | **Battlecry:** Destroy a random enemy **Secret**. | ✅ (simplified) |
+| 27 | Twilight Drake | 4 | 4/1 | **Battlecry:** Gain +1 Health for each card in your hand. | ✅ (simplified) |
 | 28 | Violet Teacher | 4 | 3/5 | Whenever you cast a spell, summon a 1/1 Violet Apprentice. | 🔧 Spell trigger |
 | 29 | Abomination | 5 | 4/4 | **Taunt.** **Deathrattle:** Deal 2 damage to ALL characters. | ✅ |
-| 30 | Stampeding Kodo | 5 | 3/5 | **Battlecry:** Destroy a random enemy minion with 2 or less Attack. | 🔧 Conditional destroy |
+| 30 | Stampeding Kodo | 5 | 3/5 | **Battlecry:** Destroy a random enemy minion with 2 or less Attack. | ✅ (simplified) |
 | 31 | Argent Commander | 6 | 4/2 | **Charge.** **Divine Shield** | ✅ |
 | 32 | Sunwalker | 6 | 4/5 | **Taunt.** **Divine Shield** | ✅ |
 | 33 | Gadgetzan Auctioneer | 5 | 4/4 | Whenever you cast a spell, draw a card. | 🔧 Spell trigger |
@@ -142,12 +142,12 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 
 | # | Card | Cost | Atk/HP | Text | Status |
 |---|------|------|--------|------|--------|
-| 1 | Hungry Crab | 1 | 1/2 | **Battlecry:** Destroy a Murloc and gain +2/+2. | 🔧 Conditional destroy |
-| 2 | Doomsayer | 2 | 0/7 | At the start of your turn, destroy ALL minions. | 🔧 Start of turn |
-| 3 | Blood Knight | 3 | 3/3 | **Battlecry:** All minions lose **Divine Shield**. Gain +3/+3 for each Shield lost. | 🔧 Absorb shields |
-| 4 | Murloc Warleader | 3 | 3/3 | Your other Murlocs have +2/+1. | ⬜ |
+| 1 | Hungry Crab | 1 | 1/2 | **Battlecry:** Destroy a Murloc and gain +2/+2. | ✅ (simplified) |
+| 2 | Doomsayer | 2 | 0/7 | At the start of your turn, destroy ALL minions. | ✅ (simplified) |
+| 3 | Blood Knight | 3 | 3/3 | **Battlecry:** All minions lose **Divine Shield**. Gain +3/+3 for each Shield lost. | ✅ (simplified) |
+| 4 | Murloc Warleader | 3 | 3/3 | Your other Murlocs have +2/+1. | ✅ (simplified) |
 | 5 | Southsea Captain | 3 | 3/3 | Your other Pirates have +1/+1. | ✅ |
-| 6 | Big Game Hunter | 5 | 4/2 | **Battlecry:** Destroy a minion with 7 or more Attack. | 🔧 Conditional destroy |
+| 6 | Big Game Hunter | 5 | 4/2 | **Battlecry:** Destroy a minion with 7 or more Attack. | ✅ (simplified) |
 | 7 | Faceless Manipulator | 5 | 3/3 | **Battlecry:** Choose a minion and become a copy of it. | 🔧 Copy minion |
 | 8 | Barrens Stablehand | 7 | 5/5 | **Battlecry:** Summon a random Beast. | ⏸️ Random summon |
 | 9 | Sea Giant | 10 | 8/8 | Costs (1) less for each other minion on the battlefield. | ✅ (no discount) |
@@ -218,7 +218,7 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 12 | Ancient of Lore | 7 | 5/5 | Minion | **Choose One** - Draw 2 cards; or Restore 5 Health. | ✅ (simplified) |
 | 13 | Ancient of War | 7 | 5/5 | Minion | **Choose One** - +5 Attack; or +5 Health and **Taunt**. | ✅ (simplified) |
 | 14 | Cenarius | 9 | 5/8 | Minion | **Choose One** - Give your other minions +2/+2; or Summon two 2/2 Treants with **Taunt**. | 🔧 Choose One |
-| 15 | Gift of the Wild | 8 | — | Nature Spell | Give your minions +2/+2 and **Taunt**. | ⬜ |
+| 15 | Gift of the Wild | 8 | — | Nature Spell | Give your minions +2/+2 and **Taunt**. | ✅ (simplified) |
 
 ---
 
@@ -236,7 +236,7 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 6 | Animal Companion | 3 | — | Spell | Summon a random Beast Companion. | ⏸️ Random |
 | 7 | Kill Command | 3 | — | Spell | Deal 3 damage. If you control a Beast, deal 5 damage instead. | ✅ |
 | 8 | Houndmaster | 4 | 4/3 | Minion | **Battlecry:** Give a friendly Beast +2/+2 and **Taunt**. | 🔧 Beast buff |
-| 9 | Multi-Shot | 4 | — | Spell | Deal 3 damage to two random enemy minions. | ⬜ |
+| 9 | Multi-Shot | 4 | — | Spell | Deal 3 damage to two random enemy minions. | ✅ (simplified) |
 | 10 | Tundra Rhino | 5 | 2/5 | Beast Minion | Your Beasts have **Charge**. | 🔧 Charge aura |
 
 ### Hunter — Classic (15)
@@ -286,7 +286,7 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 2 | Tome of Intellect | 1 | — | Arcane Spell | Add a random Mage spell to your hand. | ⏸️ Random |
 | 3 | Icicle | 2 | — | Frost Spell | Deal 2 damage to a minion. If it's **Frozen**, draw a card. | 🔧 Frozen conditional |
 | 4 | Sorcerer's Apprentice | 2 | 3/2 | Minion | Your spells cost (1) less. | 🔧 Cost aura |
-| 5 | Cone of Cold | 4 | — | Frost Spell | **Freeze** a minion and its adjacent minions. | ⬜ |
+| 5 | Cone of Cold | 4 | — | Frost Spell | **Freeze** a minion and its adjacent minions. | ✅ (simplified) |
 | 6 | Counterspell | 3 | — | Spell | **Secret:** When your opponent casts a spell, **Counter** it. | ✅ |
 | 7 | Ice Barrier | 3 | — | Spell | **Secret:** When your hero is attacked, gain 8 Armor. | ✅ |
 | 8 | Kirin Tor Mage | 3 | 4/3 | Minion | **Battlecry:** The next **Secret** you play this turn costs (0). | 🔧 Cost reduction |
@@ -329,10 +329,10 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 6 | Argent Protector | 2 | 2/2 | Minion | **Battlecry:** Give a friendly minion **Divine Shield**. | ✅ |
 | 7 | Equality | 2 | — | Holy Spell | Change the Health of ALL minions to 1. | ✅ |
 | 8 | Aldor Peacekeeper | 3 | 3/3 | Minion | **Battlecry:** Change an enemy minion's Attack to 1. | ✅ |
-| 9 | Holy Wrath | 5 | — | Holy Spell | Draw a card and deal damage equal to its Cost. | ⬜ |
+| 9 | Holy Wrath | 5 | — | Holy Spell | Draw a card and deal damage equal to its Cost. | ✅ (simplified) |
 | 10 | Sword of Justice | 3 | 1/5 | Weapon | Whenever you summon a minion, give it +1/+1 and this loses 1 Durability. | 🔧 Summon trigger |
 | 11 | Blessed Champion | 5 | — | Holy Spell | Double a minion's Attack. | 🔧 Double attack |
-| 12 | Righteousness | 5 | — | Holy Spell | Give your minions **Divine Shield**. | ⬜ |
+| 12 | Righteousness | 5 | — | Holy Spell | Give your minions **Divine Shield**. | ✅ (simplified) |
 | 13 | Avenging Wrath | 6 | — | Holy Spell | Deal 8 damage randomly split among all enemies. | ✅ |
 | 14 | Lay on Hands | 8 | — | Holy Spell | Restore 8 Health. Draw 3 cards. | ✅ |
 | 15 | Tirion Fordring | 8 | 6/6 | Minion | **Divine Shield.** **Taunt.** **Deathrattle:** Equip a 5/3 Ashbringer. | ✅ |
@@ -349,7 +349,7 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 2 | Mind Vision | 1 | — | Shadow Spell | Put a copy of a random card in your opponent's hand into your hand. | ⏸️ Opponent hand |
 | 3 | Northshire Cleric | 1 | 1/3 | Minion | Whenever a minion is healed, draw a card. | ✅ (simplified) |
 | 4 | Power Word: Shield | 1 | — | Holy Spell | Give a minion +2 Health. Draw a card. | ✅ |
-| 5 | Radiance | 1 | — | Holy Spell | Restore 5 Health to your hero. | ⬜ |
+| 5 | Radiance | 1 | — | Holy Spell | Restore 5 Health to your hero. | ✅ |
 | 6 | Divine Spirit | 2 | — | Holy Spell | Double a minion's Health. | 🔧 Double health |
 | 7 | Mind Blast | 2 | — | Shadow Spell | Deal 5 damage to the enemy hero. | ✅ |
 | 8 | Shadow Word: Death | 3 | — | Shadow Spell | Destroy a minion with 5 or more Attack. | ✅ |
@@ -364,12 +364,12 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 2 | Silence | 0 | — | Spell | **Silence** a minion. | ✅ |
 | 3 | Inner Fire | 1 | — | Holy Spell | Change a minion's Attack to be equal to its Health. | 🔧 Attack = Health |
 | 4 | Scarlet Subjugator | 1 | 2/1 | Minion | **Battlecry:** Give an enemy minion -2 Attack until your next turn. | 🔧 Temp debuff |
-| 5 | Kul Tiran Chaplain | 2 | 2/3 | Minion | **Battlecry:** Give a friendly minion +2 Health. | ⬜ |
+| 5 | Kul Tiran Chaplain | 2 | 2/3 | Minion | **Battlecry:** Give a friendly minion +2 Health. | ✅ (simplified) |
 | 6 | Lightwell | 2 | 0/5 | Minion | At the start of your turn, restore 3 Health to a damaged friendly character. | 🔧 Start of turn |
 | 7 | Thoughtsteal | 3 | — | Shadow Spell | Copy 2 cards from your opponent's deck and put them into your hand. | ⏸️ Opponent deck |
 | 8 | Lightspawn | 4 | 0/5 | Minion | This minion's Attack is always equal to its Health. | 🔧 Dynamic attack |
 | 9 | Shadow Madness | 4 | — | Shadow Spell | Gain control of an enemy minion with 3 or less Attack until end of turn. | 🔧 Temporary control |
-| 10 | Mass Dispel | 4 | — | Holy Spell | **Silence** all enemy minions. Draw a card. | ⬜ |
+| 10 | Mass Dispel | 4 | — | Holy Spell | **Silence** all enemy minions. Draw a card. | ✅ (simplified) |
 | 11 | Mindgames | 4 | — | Shadow Spell | Put a copy of a random minion from your opponent's deck into the battlefield. | ⏸️ Opponent deck |
 | 12 | Shadow Word: Ruin | 4 | — | Shadow Spell | Destroy all minions with 5 or more Attack. | ✅ |
 | 13 | Temple Enforcer | 6 | 6/6 | Minion | **Battlecry:** Give a friendly minion +3 Health. | ✅ |
@@ -539,18 +539,18 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 
 | Category | Total | ✅ | ⬜ | 🔧 | ⏸️ |
 |----------|-------|---------|-----|------|------|
-| Neutral Basic | 43 | 39 | 1 | 3 | 0 |
-| Neutral Common | 38 | 26 | 0 | 12 | 0 |
-| Neutral Rare | 35 | 7 | 1 | 27 | 0 |
-| Neutral Epic | 9 | 2 | 1 | 4 | 2 |
+| Neutral Basic | 43 | 40 | 1 | 2 | 0 |
+| Neutral Common | 38 | 35 | 0 | 3 | 0 |
+| Neutral Rare | 35 | 32 | 0 | 3 | 0 |
+| Neutral Epic | 9 | 7 | 0 | 0 | 2 |
 | Neutral Legendary | 24 | 13 | 0 | 6 | 5 |
-| Druid Total | 25 | 15 | 1 | 9 | 0 |
-| Hunter Total | 25 | 16 | 1 | 7 | 1 |
-| Mage Total | 25 | 17 | 1 | 6 | 1 |
-| Paladin Total | 25 | 20 | 2 | 3 | 0 |
-| Priest Total | 27 | 15 | 4 | 4 | 4 |
+| Druid Total | 25 | 16 | 0 | 9 | 0 |
+| Hunter Total | 25 | 17 | 0 | 7 | 1 |
+| Mage Total | 25 | 18 | 0 | 6 | 1 |
+| Paladin Total | 25 | 22 | 0 | 3 | 0 |
+| Priest Total | 27 | 18 | 1 | 4 | 4 |
 | Rogue Total | 25 | 15 | 0 | 9 | 1 |
 | Shaman Total | 25 | 20 | 0 | 5 | 0 |
 | Warlock Total | 25 | 18 | 0 | 5 | 2 |
 | Warrior Total | 25 | 19 | 0 | 6 | 0 |
-| **Grand Total** | **~379** | **~242** | **~12** | **~112** | **~16** |
+| **Grand Total** | **~379** | **~290** | **~2** | **~68** | **~16** |

@@ -996,7 +996,7 @@ pub const HUNTERS_MARK: CardDef = CardDef {
     id: "HUNTER_002",
     name: "Hunter's Mark",
     card_type: CardType::Spell,
-    cost: 0,
+    cost: 1,
     attack: 0,
     health: 0,
     durability: 0,
@@ -1933,7 +1933,7 @@ pub const ROCKBITER_WEAPON: CardDef = CardDef {
     id: "SHAMAN_003",
     name: "Rockbiter Weapon",
     card_type: CardType::Spell,
-    cost: 1,
+    cost: 2,
     attack: 0,
     health: 0,
     durability: 0,
@@ -3343,6 +3343,29 @@ pub const EXPLOSIVE_SHOT: CardDef = CardDef {
     end_turn_effect: None,
 };
 
+/// 多重射击 — 对两个随机敌方随从各造成3点伤害（简化：对一个随机敌方随从造成3点伤害）
+pub const MULTI_SHOT: CardDef = CardDef {
+    id: "HUNTER_012",
+    name: "Multi-Shot",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
 pub const ICE_BARRIER: CardDef = CardDef {
     id: "MAGE_010",
     name: "Ice Barrier",
@@ -3453,6 +3476,29 @@ pub const BLIZZARD: CardDef = CardDef {
     end_turn_effect: None,
 };
 
+/// 冰锥术 — 冻结一个随从和相邻的随从（简化：冻结一个随机敌方随从）
+pub const CONE_OF_COLD: CardDef = CardDef {
+    id: "MAGE_016",
+    name: "Cone of Cold",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
 pub const EQUALITY: CardDef = CardDef {
     id: "PALADIN_010",
     name: "Equality",
@@ -3524,6 +3570,51 @@ pub const LAY_ON_HANDS: CardDef = CardDef {
     name: "Lay on Hands",
     card_type: CardType::Spell,
     cost: 8,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+/// 神圣愤怒 — 抽一张牌，造成等同于其法力消耗的伤害（简化：仅抽牌）
+pub const HOLY_WRATH: CardDef = CardDef {
+    id: "PALADIN_017",
+    name: "Holy Wrath",
+    card_type: CardType::Spell,
+    cost: 5,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+/// 正义 — 使你的随从获得圣盾（简化版，无法实现群体圣盾）
+pub const RIGHTEOUSNESS: CardDef = CardDef {
+    id: "PALADIN_018",
+    name: "Righteousness",
+    card_type: CardType::Spell,
+    cost: 5,
     attack: 0,
     health: 0,
     durability: 0,
@@ -4526,7 +4617,7 @@ pub const BLOODMAGE_THALNOS: CardDef = CardDef {
 };
 pub const SOUTHSHORE_CAPTAIN: CardDef = CardDef {
     id: "NEUTRAL_E01",
-    name: "Southshore Captain",
+    name: "Southsea Captain",
     card_type: CardType::Minion,
     cost: 3,
     attack: 3,
@@ -4539,6 +4630,62 @@ pub const SOUTHSHORE_CAPTAIN: CardDef = CardDef {
     aura: Some((
         AuraEffect::GainStats {
             attack: 1,
+            health: 1,
+        },
+        AuraTarget::OtherFriendlyMinions,
+    )),
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+// 补全 ⬜ Neutral — Coldlight Seer、Murloc Warleader
+/// 寒光先知 — 战吼：使所有其他鱼人获得+2生命值（简化：使所有友方随从获得+2生命值）
+pub const COLDLIGHT_SEER: CardDef = CardDef {
+    id: "NEUTRAL_R01",
+    name: "Coldlight Seer",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 2,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::GainStats {
+        attack: 0,
+        health: 2,
+        target: EffectTarget::AllFriendlyMinions,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+/// 鱼人领军 — 你的其他鱼人获得+2/+1（简化：你的其他友方随从获得+2/+1）
+pub const MURLOC_WARLEADER: CardDef = CardDef {
+    id: "NEUTRAL_E02",
+    name: "Murloc Warleader",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: Some((
+        AuraEffect::GainStats {
+            attack: 2,
             health: 1,
         },
         AuraTarget::OtherFriendlyMinions,
@@ -4826,6 +4973,78 @@ pub const TEMPLE_ENFORCER: CardDef = CardDef {
         health: 3,
         target: EffectTarget::Self_,
     }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+// 补全 ⬜ Priest — Radiance、Kul Tiran Chaplain、Mass Dispel
+/// 圣光闪耀 — 为你的英雄恢复5点生命值
+pub const RADIANCE: CardDef = CardDef {
+    id: "PRIEST_016",
+    name: "Radiance",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+/// 库尔提拉斯牧师 — 战吼：使一个友方随从获得+2生命值（简化：buff自身）
+pub const KUL_TIRAN_CHAPLAIN: CardDef = CardDef {
+    id: "PRIEST_017",
+    name: "Kul Tiran Chaplain",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::GainStats {
+        attack: 0,
+        health: 2,
+        target: EffectTarget::Self_,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+/// 群体驱散 — 沉默所有敌方随从，抽一张牌（简化：随机沉默一个敌方随从）
+pub const MASS_DISPEL: CardDef = CardDef {
+    id: "PRIEST_018",
+    name: "Mass Dispel",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -5170,6 +5389,220 @@ pub const TREANT: CardDef = CardDef {
     end_turn_effect: None,
 };
 
+/// 野性赐福 — 使你的随从获得+2/+2和嘲讽（简化：仅+2/+2）
+pub const GIFT_OF_THE_WILD: CardDef = CardDef {
+    id: "DRUID_016",
+    name: "Gift of the Wild",
+    card_type: CardType::Spell,
+    cost: 8,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+
+// ============================================================
+// 怀旧系列 — 🔧 卡牌简化版（效果需要新引擎支持，简化为白板或部分效果）
+// ============================================================
+
+// 中立 Basic — 无法完全实现的随从
+/// 古拉巴什狂暴者 — 每当受到伤害获得+3攻击力（Enrage简化：白板）
+pub const GURUBASHI_BERSERKER: CardDef = vanilla!("NEUTRAL_B19", "Gurubashi Berserker", 5, 2, 8);
+
+// 中立 Common — 简化版
+/// 南海船工 — 装备武器时获得冲锋（简化：始终有冲锋）
+pub const SOUTHSHORE_DECKHAND: CardDef = CardDef {
+    id: "NEUTRAL_C07",
+    name: "Southsea Deckhand",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 2,
+    health: 1,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: true,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+/// 狼人渗透者 — 潜行（简化：白板）
+pub const WORGEN_INFILTRATOR: CardDef = vanilla!("NEUTRAL_C08", "Worgen Infiltrator", 1, 2, 1);
+/// 血帆袭击者 — 战吼：获得等同于武器攻击力的攻击力（简化：白板）
+pub const BLOODSAIL_RAIDER: CardDef = vanilla!("NEUTRAL_C09", "Bloodsail Raider", 2, 2, 3);
+/// 丛林猎豹 — 潜行（简化：白板）
+pub const JUNGLE_PANTHER: CardDef = vanilla!("NEUTRAL_C10", "Jungle Panther", 3, 4, 2);
+/// 牛头人战士 — 嘲讽，激怒：+3攻击力（简化：仅嘲讽）
+pub const TAUREN_WARRIOR: CardDef = CardDef {
+    id: "NEUTRAL_C11",
+    name: "Tauren Warrior",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 2,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+/// 食尸鬼 — 每当一个随从死亡，获得+1攻击力（简化：白板）
+pub const FLESHEATING_GHOUL: CardDef = vanilla!("NEUTRAL_C12", "Flesheating Ghoul", 3, 3, 3);
+/// 恐怖海盗 — 嘲讽，费用随武器减（简化：仅嘲讽）
+pub const DREAD_CORSAIR: CardDef = CardDef {
+    id: "NEUTRAL_C13",
+    name: "Dread Corsair",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 3,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+/// 风险投资公司雇佣兵 — 你的随从费用增加（3）（简化：白板）
+pub const VENTURE_CO_MERCENARY: CardDef =
+    vanilla!("NEUTRAL_C14", "Venture Co. Mercenary", 5, 7, 6);
+/// 恶毒铁匠 — 激怒：你的武器获得+2攻击力（简化：白板）
+pub const SPITEFUL_SMITH: CardDef = vanilla!("NEUTRAL_C15", "Spiteful Smith", 5, 4, 6);
+
+// 中立 Rare — 简化版
+/// 愤怒的小鸡 — 激怒：+5攻击力（简化：白板）
+pub const ANGRY_CHICKEN: CardDef = vanilla!("NEUTRAL_R02", "Angry Chicken", 1, 1, 1);
+/// 血帆海盗 — 战吼：移除对手武器1点耐久（简化：白板）
+pub const BLOODSAIL_CORSAIR: CardDef = vanilla!("NEUTRAL_R03", "Bloodsail Corsair", 1, 1, 2);
+/// 光耀之子 — 每当角色被治疗，获得+2攻击力（简化：白板）
+pub const LIGHTWARDEN: CardDef = vanilla!("NEUTRAL_R04", "Lightwarden", 1, 1, 2);
+/// 鱼人招潮者 — 每当你召唤鱼人，获得+1攻击力（简化：白板）
+pub const MURLOC_TIDECALLER: CardDef = vanilla!("NEUTRAL_R05", "Murloc Tidecaller", 1, 1, 2);
+/// 奥秘守护者 — 每当奥秘被打出，获得+1/+1（简化：白板）
+pub const SECRETKEEPER: CardDef = vanilla!("NEUTRAL_R06", "Secretkeeper", 1, 1, 2);
+/// 上古看守者 — 无法攻击（cant_attack 引擎已支持）
+pub const ANCIENT_WATCHER: CardDef = CardDef {
+    id: "NEUTRAL_R07",
+    name: "Ancient Watcher",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 4,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: true,
+    end_turn_effect: None,
+};
+/// 疯狂炼金师 — 战吼：交换随从的攻击力和生命值（简化：白板）
+pub const CRAZED_ALCHEMIST: CardDef = vanilla!("NEUTRAL_R08", "Crazed Alchemist", 2, 2, 2);
+/// 飞刀杂耍者 — 召唤随从后造成1点随机伤害（简化：白板）
+pub const KNIFE_JUGGLER: CardDef = vanilla!("NEUTRAL_R09", "Knife Juggler", 2, 3, 2);
+/// 魔瘾者 — 施放法术后本回合+2攻击力（简化：白板）
+pub const MANA_ADDICT: CardDef = vanilla!("NEUTRAL_R10", "Mana Addict", 2, 1, 3);
+/// 日怒保卫者 — 战吼：使相邻随从获得嘲讽（简化：白板）
+pub const SUNFURY_PROTECTOR: CardDef = vanilla!("NEUTRAL_R11", "Sunfury Protector", 2, 2, 3);
+/// 狂野炎术师 — 施放法术后造成1点AOE（简化：白板）
+pub const WILD_PYROMANCER: CardDef = vanilla!("NEUTRAL_R12", "Wild Pyromancer", 2, 3, 2);
+/// 报警机器人 — 回合开始时交换手牌随从（简化：白板）
+pub const ALARM_O_BOT: CardDef = vanilla!("NEUTRAL_R13", "Alarm-o-Bot", 3, 0, 3);
+/// 奥术傀儡 — 冲锋，战吼给对手法力水晶（简化：仅冲锋）
+pub const ARCANE_GOLEM: CardDef = CardDef {
+    id: "NEUTRAL_R14",
+    name: "Arcane Golem",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 4,
+    health: 4,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: true,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+};
+/// 攻城车 — 回合开始时造成2点随机伤害（简化：白板）
+pub const DEMOLISHER: CardDef = vanilla!("NEUTRAL_R15", "Demolisher", 3, 1, 4);
+/// 帝王眼镜蛇 — 毒蛇（消灭任何受此伤害的随从）（简化：白板）
+pub const EMPEROR_COBRA: CardDef = vanilla!("NEUTRAL_R16", "Emperor Cobra", 3, 2, 3);
+/// 任务达人 — 每当你打出一张牌，获得+1/+1（简化：白板）
+pub const QUESTING_ADVENTURER: CardDef = vanilla!("NEUTRAL_R17", "Questing Adventurer", 3, 2, 2);
+/// 年迈的法师 — 战吼：使相邻随从获得法术伤害+1（简化：白板）
+pub const ANCIENT_MAGE: CardDef = vanilla!("NEUTRAL_R18", "Ancient Mage", 4, 2, 5);
+/// 暮光幼龙 — 战吼：每有一张手牌获得+1生命值（简化：白板）
+pub const TWILIGHT_DRAKE: CardDef = vanilla!("NEUTRAL_R19", "Twilight Drake", 4, 4, 1);
+/// 狂奔科多兽 — 战吼：消灭攻击力≤2的随机敌方随从（简化：白板）
+pub const STAMPEDING_KODO: CardDef = vanilla!("NEUTRAL_R20", "Stampeding Kodo", 5, 3, 5);
+
+// 中立 Epic — 简化版
+/// 鱼人杀手蟹 — 战吼：消灭鱼人并获得+2/+2（简化：白板）
+pub const HUNGRY_CRAB: CardDef = vanilla!("NEUTRAL_E03", "Hungry Crab", 1, 1, 2);
+/// 末日预言者 — 回合开始时消灭所有随从（简化：白板）
+pub const DOOMSAYER: CardDef = vanilla!("NEUTRAL_E04", "Doomsayer", 2, 0, 7);
+/// 血骑士 — 战吼：吸收所有圣盾并获得+3/+3（简化：白板）
+pub const BLOOD_KNIGHT: CardDef = vanilla!("NEUTRAL_E05", "Blood Knight", 3, 3, 3);
+/// 王牌猎人 — 战吼：消灭攻击力≥7的随从（简化：白板）
+pub const BIG_GAME_HUNTER: CardDef = vanilla!("NEUTRAL_E06", "Big Game Hunter", 5, 4, 2);
+/// 年轻的女祭司 — 回合结束时给随机友方随从+1生命值（简化：白板）
+pub const YOUNG_PRIESTESS: CardDef = vanilla!("NEUTRAL_R21", "Young Priestess", 1, 2, 1);
+/// 法力怨魂 — 所有随从费用增加（1）（简化：白板）
+pub const MANA_WRAITH: CardDef = vanilla!("NEUTRAL_R22", "Mana Wraith", 2, 2, 2);
+/// 铸剑大师 — 回合结束时给随机友方随从+1攻击力（简化：白板）
+pub const MASTER_SWORDSMITH: CardDef = vanilla!("NEUTRAL_R23", "Master Swordsmith", 2, 1, 3);
+/// 小个子召唤师 — 每回合第一张随从费用减（1）（简化：白板）
+pub const PINT_SIZED_SUMMONER: CardDef = vanilla!("NEUTRAL_R24", "Pint-Sized Summoner", 2, 2, 2);
+/// 军情七处渗透者 — 战吼：摧毁随机敌方奥秘（简化：白板）
+pub const SI7_INFILTRATOR: CardDef = vanilla!("NEUTRAL_R25", "SI:7 Infiltrator", 4, 5, 4);
+/// 奥秘吞噬者 — 战吼：摧毁所有敌方奥秘并获得+1/+1（简化：白板）
+pub const EATER_OF_SECRETS: CardDef = vanilla!("NEUTRAL_R26", "Eater of Secrets", 4, 2, 4);
+
 // ============================================================
 // 卡牌列表
 // ============================================================
@@ -5273,6 +5706,49 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     FEN_CREEPER,
     PRIESTESS_OF_ELUNE,
     SOUTHSHORE_CAPTAIN,
+    // ⬜ 补全
+    COLDLIGHT_SEER,
+    MURLOC_WARLEADER,
+    // 🔧 简化补全
+    GURUBASHI_BERSERKER,
+    SOUTHSHORE_DECKHAND,
+    WORGEN_INFILTRATOR,
+    BLOODSAIL_RAIDER,
+    JUNGLE_PANTHER,
+    TAUREN_WARRIOR,
+    FLESHEATING_GHOUL,
+    DREAD_CORSAIR,
+    VENTURE_CO_MERCENARY,
+    SPITEFUL_SMITH,
+    ANGRY_CHICKEN,
+    BLOODSAIL_CORSAIR,
+    LIGHTWARDEN,
+    MURLOC_TIDECALLER,
+    SECRETKEEPER,
+    ANCIENT_WATCHER,
+    CRAZED_ALCHEMIST,
+    KNIFE_JUGGLER,
+    MANA_ADDICT,
+    SUNFURY_PROTECTOR,
+    WILD_PYROMANCER,
+    ALARM_O_BOT,
+    ARCANE_GOLEM,
+    DEMOLISHER,
+    EMPEROR_COBRA,
+    QUESTING_ADVENTURER,
+    ANCIENT_MAGE,
+    TWILIGHT_DRAKE,
+    STAMPEDING_KODO,
+    HUNGRY_CRAB,
+    DOOMSAYER,
+    BLOOD_KNIGHT,
+    BIG_GAME_HUNTER,
+    YOUNG_PRIESTESS,
+    MANA_WRAITH,
+    MASTER_SWORDSMITH,
+    PINT_SIZED_SUMMONER,
+    SI7_INFILTRATOR,
+    EATER_OF_SECRETS,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -5310,6 +5786,7 @@ pub const DRUID_CLASSIC: &[CardDef] = &[
     IRONBARK_PROTECTOR,
     FORCE_OF_NATURE,
     TREANT,
+    GIFT_OF_THE_WILD,
 ];
 
 pub const HUNTER_CLASSIC: &[CardDef] = &[
@@ -5324,6 +5801,8 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     EXPLOSIVE_SHOT,
     TIMBER_WOLF,
     KING_KRUSH,
+    UNLEASH_THE_HOUNDS,
+    MULTI_SHOT,
 ];
 
 pub const MAGE_CLASSIC: &[CardDef] = &[
@@ -5342,6 +5821,7 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     COUNTERSPELL,
     BLIZZARD,
     ARCANE_EXPLOSION,
+    CONE_OF_COLD,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -5362,6 +5842,8 @@ pub const PALADIN_CLASSIC: &[CardDef] = &[
     HAND_OF_PROTECTION,
     LIGHTS_JUSTICE,
     ARGENT_PROTECTOR,
+    HOLY_WRATH,
+    RIGHTEOUSNESS,
 ];
 
 pub const PRIEST_CLASSIC: &[CardDef] = &[
@@ -5380,6 +5862,9 @@ pub const PRIEST_CLASSIC: &[CardDef] = &[
     SILENCE,
     SHADOW_WORD_RUIN,
     TEMPLE_ENFORCER,
+    RADIANCE,
+    KUL_TIRAN_CHAPLAIN,
+    MASS_DISPEL,
 ];
 
 pub const ROGUE_CLASSIC: &[CardDef] = &[
@@ -5447,13 +5932,6 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
     ARATHI_WEAPONSMITH,
     BATTLE_AXE,
     FROTHING_BERSERKER,
-    WARSONG_COMMANDER,
-    GOREHOWL,
-    GROMMASH_HELLSCREAM,
-    SLAM,
-    CLEAVE,
-    ARMORSMITH,
-    INNER_RAGE,
     WARSONG_COMMANDER,
     GOREHOWL,
     GROMMASH_HELLSCREAM,
@@ -5589,6 +6067,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     EXPLOSIVE_SHOT,
     TIMBER_WOLF,
     KING_KRUSH,
+    UNLEASH_THE_HOUNDS,
     // Mage
     ARCANE_MISSILES,
     FROSTBOLT,
@@ -5705,13 +6184,74 @@ pub const ALL_CARDS: &[CardDef] = &[
     CLEAVE,
     ARMORSMITH,
     INNER_RAGE,
-    WARSONG_COMMANDER,
-    GOREHOWL,
-    GROMMASH_HELLSCREAM,
-    SLAM,
-    CLEAVE,
-    ARMORSMITH,
-    INNER_RAGE,
+    // Legendary
+    CAIRNE_BLOODHOOF,
+    BAINE_BLOODHOOF,
+    HOGGER,
+    GNOLL,
+    ILLIDAN_STORMRAGE,
+    FLAME_OF_AZZINOTH,
+    THE_BEAST,
+    FINKLE_EINHORN,
+    BARON_GEDDON,
+    GRUUL,
+    RAGNAROS_THE_FIRELORD,
+    ALEXSTRASZA,
+    MALYGOS,
+    ONYXIA,
+    DEATHWING,
+    BLOODMAGE_THALNOS,
+    // ⬜ 补全
+    GIFT_OF_THE_WILD,
+    MULTI_SHOT,
+    CONE_OF_COLD,
+    HOLY_WRATH,
+    RIGHTEOUSNESS,
+    RADIANCE,
+    KUL_TIRAN_CHAPLAIN,
+    MASS_DISPEL,
+    COLDLIGHT_SEER,
+    MURLOC_WARLEADER,
+    // 🔧 简化补全
+    GURUBASHI_BERSERKER,
+    SOUTHSHORE_DECKHAND,
+    WORGEN_INFILTRATOR,
+    BLOODSAIL_RAIDER,
+    JUNGLE_PANTHER,
+    TAUREN_WARRIOR,
+    FLESHEATING_GHOUL,
+    DREAD_CORSAIR,
+    VENTURE_CO_MERCENARY,
+    SPITEFUL_SMITH,
+    ANGRY_CHICKEN,
+    BLOODSAIL_CORSAIR,
+    LIGHTWARDEN,
+    MURLOC_TIDECALLER,
+    SECRETKEEPER,
+    ANCIENT_WATCHER,
+    CRAZED_ALCHEMIST,
+    KNIFE_JUGGLER,
+    MANA_ADDICT,
+    SUNFURY_PROTECTOR,
+    WILD_PYROMANCER,
+    ALARM_O_BOT,
+    ARCANE_GOLEM,
+    DEMOLISHER,
+    EMPEROR_COBRA,
+    QUESTING_ADVENTURER,
+    ANCIENT_MAGE,
+    TWILIGHT_DRAKE,
+    STAMPEDING_KODO,
+    HUNGRY_CRAB,
+    DOOMSAYER,
+    BLOOD_KNIGHT,
+    BIG_GAME_HUNTER,
+    YOUNG_PRIESTESS,
+    MANA_WRAITH,
+    MASTER_SWORDSMITH,
+    PINT_SIZED_SUMMONER,
+    SI7_INFILTRATOR,
+    EATER_OF_SECRETS,
 ];
 
 pub fn card_by_id(id: &str) -> Option<&'static CardDef> {
