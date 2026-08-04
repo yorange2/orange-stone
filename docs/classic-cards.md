@@ -1,585 +1,556 @@
-# 怀旧系列 (Classic/Basic) 卡牌清单
+# Classic/Basic Set Card List
 
-> 数据来源: [Hearthstone Wiki - Classic (2014-2021)](https://hearthstone.wiki.gg/wiki/Classic_(2014-2021))  
-> 最后更新: 2026-08-04  
-> 总计: **~348 张** (Basic ~133 + Classic ~245) | 已实现: **~190 张** | 跳过: **~68** | 待实现: **~90**
+> Source: [Hearthstone Wiki - Classic (2014-2021)](https://hearthstone.wiki.gg/wiki/Classic_(2014-2021)), [Basic card list](https://hearthstone.wiki.gg/wiki/Basic_card_list)
+> Total: ~379 cards | Implemented: ~248 | Skipped: ~13 | Needs new mechanics: ~118
 
-状态图例:
-- ✅ 已实现
-- ⬜ 待实现（效果已支持，只需加卡牌定义）
-- ⏸️ 跳过（涉及随机/发现/跨系列/对手牌库等复杂机制）
-- 🔧 需新机制（引擎不支持该效果）
+Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine mechanic | ⏸️ Skipped (random/discover/opponent cards)
 
 ---
 
-## 中立 (Neutral)
+## Neutral — Basic (Free)
 
-### Basic 中立 (43 张)
+| # | Card | Cost | Atk/HP | Type | Text | Status |
+|---|------|------|--------|------|------|--------|
+| 1 | Elven Archer | 1 | 1/1 | Minion | **Battlecry:** Deal 1 damage. | ✅ |
+| 2 | Goldshire Footman | 1 | 1/2 | Minion | **Taunt** | ✅ |
+| 3 | Grimscale Oracle | 1 | 1/1 | Murloc Minion | Your other Murlocs have +1 Attack. | ✅ |
+| 4 | Murloc Raider | 1 | 2/1 | Murloc Minion | — | ✅ |
+| 5 | Stonetusk Boar | 1 | 1/1 | Beast Minion | **Charge** | ✅ |
+| 6 | Voodoo Doctor | 1 | 2/1 | Minion | **Battlecry:** Restore 2 Health. | ✅ |
+| 7 | Acidic Swamp Ooze | 2 | 3/2 | Minion | **Battlecry:** Destroy your opponent's weapon. | ✅ |
+| 8 | Bloodfen Raptor | 2 | 3/2 | Beast Minion | — | ✅ |
+| 9 | Bluegill Warrior | 2 | 2/1 | Murloc Minion | **Charge** | ✅ |
+| 10 | Frostwolf Grunt | 2 | 2/2 | Minion | **Taunt** | ✅ |
+| 11 | Kobold Geomancer | 2 | 2/2 | Minion | **Spell Damage +1** | ✅ |
+| 12 | Murloc Tidehunter | 2 | 2/1 | Murloc Minion | **Battlecry:** Summon a 1/1 Murloc Scout. | ✅ |
+| 13 | Novice Engineer | 2 | 1/1 | Minion | **Battlecry:** Draw a card. | ✅ |
+| 14 | River Crocolisk | 2 | 2/3 | Beast Minion | — | ✅ |
+| 15 | Dalaran Mage | 3 | 1/4 | Minion | **Spell Damage +1** | ✅ |
+| 16 | Ironforge Rifleman | 3 | 2/2 | Minion | **Battlecry:** Deal 1 damage. | ✅ |
+| 17 | Ironfur Grizzly | 3 | 3/3 | Beast Minion | **Taunt** | ✅ |
+| 18 | Magma Rager | 3 | 5/1 | Elemental Minion | — | ✅ |
+| 19 | Raid Leader | 3 | 2/3 | Minion | Your other minions have +1 Attack. | ✅ |
+| 20 | Razorfen Hunter | 3 | 2/3 | Minion | **Battlecry:** Summon a 1/1 Boar. | ✅ |
+| 21 | Shattered Sun Cleric | 3 | 3/2 | Minion | **Battlecry:** Give a friendly minion +1/+1. | ✅ |
+| 22 | Silverback Patriarch | 3 | 1/4 | Beast Minion | **Taunt** | ✅ |
+| 23 | Wolfrider | 3 | 3/1 | Minion | **Charge** | ✅ |
+| 24 | Chillwind Yeti | 4 | 4/5 | Minion | — | ✅ |
+| 25 | Dragonling Mechanic | 4 | 2/4 | Minion | **Battlecry:** Summon a 2/1 Mechanical Dragonling. | ✅ |
+| 26 | Gnomish Inventor | 4 | 2/4 | Minion | **Battlecry:** Draw a card. | ✅ |
+| 27 | Oasis Snapjaw | 4 | 2/7 | Beast Minion | — | ✅ |
+| 28 | Ogre Magi | 4 | 4/4 | Minion | **Spell Damage +1** | ✅ |
+| 29 | Sen'jin Shieldmasta | 4 | 3/5 | Minion | **Taunt** | ✅ |
+| 30 | Stormwind Knight | 4 | 2/5 | Minion | **Charge** | ✅ |
+| 31 | Booty Bay Bodyguard | 5 | 5/4 | Minion | **Taunt** | ✅ |
+| 32 | Darkscale Healer | 5 | 4/5 | Naga Minion | **Battlecry:** Restore 2 Health to all friendly characters. | ✅ |
+| 33 | Frostwolf Warlord | 5 | 4/4 | Minion | **Battlecry:** Gain +1/+1 for each other friendly minion on the battlefield. | ✅ |
+| 34 | Gurubashi Berserker | 5 | 2/8 | Minion | Whenever this minion takes damage, gain +3 Attack. | 🔧 Enrage |
+| 35 | Nightblade | 5 | 4/4 | Minion | **Battlecry:** Deal 3 damage to the enemy hero. | ✅ |
+| 36 | Stormpike Commando | 5 | 4/2 | Minion | **Battlecry:** Deal 2 damage. | ✅ |
+| 37 | Archmage | 6 | 4/7 | Minion | **Spell Damage +1** | ✅ |
+| 38 | Boulderfist Ogre | 6 | 6/7 | Minion | — | ✅ |
+| 39 | Lord of the Arena | 6 | 6/5 | Minion | **Taunt** | ✅ |
+| 40 | Reckless Rocketeer | 6 | 5/2 | Minion | **Charge** | ✅ |
+| 41 | Core Hound | 7 | 9/5 | Minion | — | ✅ |
+| 42 | Stormwind Champion | 7 | 6/6 | Minion | Your other minions have +1/+1. | ✅ |
+| 43 | War Golem | 7 | 7/7 | Minion | — | ✅ |
 
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Elven Archer 精灵弓箭手 | 1 | 1/1 | 战吼: 造成1点伤害 | ✅ |
-| Goldshire Footman 闪金镇步兵 | 1 | 1/2 | 嘲讽 | ✅ |
-| Grimscale Oracle 暗鳞先知 | 1 | 1/1 | 其他鱼人+1攻 | ⬜ |
-| Murloc Raider 鱼人袭击者 | 1 | 2/1 | - | ⬜ |
-| Stonetusk Boar 石牙野猪 | 1 | 1/1 | 冲锋 | ⬜ |
-| Voodoo Doctor 巫医 | 1 | 2/1 | 战吼: 恢复2生命 | ⬜ |
-| Acidic Swamp Ooze 酸性沼泽软泥怪 | 2 | 3/2 | 战吼: 摧毁对手武器 | ✅ |
-| Bloodfen Raptor 血沼迅猛龙 | 2 | 3/2 | - | ✅ |
-| Bluegill Warrior 蓝腮战士 | 2 | 2/1 | 冲锋 | ✅ |
-| Frostwolf Grunt 霜狼步兵 | 2 | 2/2 | 嘲讽 | ⬜ |
-| Kobold Geomancer 狗头人地卜师 | 2 | 2/2 | 法术伤害+1 | ✅ |
-| Murloc Tidehunter 鱼人猎潮者 | 2 | 2/1 | 战吼: 召唤1/1鱼人 | ✅ |
-| Novice Engineer 新手工程师 | 2 | 1/1 | 战吼: 抽1张牌 | ✅ |
-| River Crocolisk 淡水鳄 | 2 | 2/3 | - | ✅ |
-| Dalaran Mage 达拉然法师 | 3 | 1/4 | 法术伤害+1 | ⬜ |
-| Ironforge Rifleman 铁炉堡火枪手 | 3 | 2/2 | 战吼: 造成1点伤害 | ⬜ |
-| Ironfur Grizzly 铁鬃灰熊 | 3 | 3/3 | 嘲讽 | ⬜ |
-| Magma Rager 岩浆暴怒者 | 3 | 5/1 | - | ⬜ |
-| Raid Leader 团队领袖 | 3 | 2/3 | 其他友方随从+1攻 | ✅ |
-| Razorfen Hunter 剃刀猎手 | 3 | 2/3 | 战吼: 召唤1/1野猪 | ⬜ |
-| Shattered Sun Cleric 破碎残阳祭司 | 3 | 3/2 | 战吼: 给友方随从+1/+1 | ✅ |
-| Silverback Patriarch 银背族长 | 3 | 1/4 | 嘲讽 | ⬜ |
-| Wolfrider 狼骑兵 | 3 | 3/1 | 冲锋 | ✅ |
-| Chillwind Yeti 冰风雪人 | 4 | 4/5 | - | ✅ |
-| Dragonling Mechanic 机械幼龙技工 | 4 | 2/4 | 战吼: 召唤2/1 | ⬜ |
-| Gnomish Inventor 侏儒发明家 | 4 | 2/4 | 战吼: 抽1张牌 | ✅ |
-| Oasis Snapjaw 绿洲钳嘴龟 | 4 | 2/7 | - | ⬜ |
-| Ogre Magi 食人魔法师 | 4 | 4/4 | 法术伤害+1 | ✅ |
-| Sen'jin Shieldmasta 森金持盾卫士 | 4 | 3/5 | 嘲讽 | ✅ |
-| Stormwind Knight 暴风城骑士 | 4 | 2/5 | 冲锋 | ⬜ |
-| Booty Bay Bodyguard 藏宝海湾保镖 | 5 | 5/4 | 嘲讽 | ⬜ |
-| Darkscale Healer 暗鳞治愈者 | 5 | 4/5 | 战吼: 所有友方角色恢复2 | ⬜ |
-| Frostwolf Warlord 霜狼督军 | 5 | 4/4 | 战吼: 每个友方随从+1/+1 | ✅ |
-| Gurubashi Berserker 古拉巴什狂暴者 | 5 | 2/8 | 受伤时+3攻 | 🔧 Enrage |
-| Nightblade 夜刃刺客 | 5 | 4/4 | 战吼: 对敌方英雄造成3伤 | ⬜ |
-| Stormpike Commando 雷矛特种兵 | 5 | 4/2 | 战吼: 造成2点伤害 | ⬜ |
-| Archmage 大法师 | 6 | 4/7 | 法术伤害+1 | ✅ |
-| Boulderfist Ogre 石拳食人魔 | 6 | 6/7 | - | ✅ |
-| Lord of the Arena 竞技场主宰 | 6 | 6/5 | 嘲讽 | ✅ |
-| Reckless Rocketeer 鲁莽火箭兵 | 6 | 5/2 | 冲锋 | ✅ |
-| Core Hound 熔火恶犬 | 7 | 9/5 | - | ✅ |
-| Stormwind Champion 暴风城勇士 | 7 | 6/6 | 其他友方随从+1/+1 | ✅ |
-| War Golem 作战傀儡 | 7 | 7/7 | - | ✅ |
+## Neutral — Classic Common (38)
 
-### Classic 中立 — 普通 (Common) (38 张)
+| # | Card | Cost | Atk/HP | Text | Status |
+|---|------|------|--------|------|--------|
+| 1 | Wisp | 0 | 1/1 | — | ✅ |
+| 2 | Abusive Sergeant | 1 | 2/1 | **Battlecry:** Give a friendly minion +2 Attack this turn. | ✅ |
+| 3 | Argent Squire | 1 | 1/1 | **Divine Shield** | ✅ |
+| 4 | Leper Gnome | 1 | 2/1 | **Deathrattle:** Deal 2 damage to the enemy hero. | ✅ |
+| 5 | Shieldbearer | 1 | 0/4 | **Taunt** | ✅ |
+| 6 | Southsea Deckhand | 1 | 2/1 | Has **Charge** while you have a weapon equipped. | 🔧 Conditional Charge |
+| 7 | Worgen Infiltrator | 1 | 2/1 | **Stealth** | 🔧 Stealth |
+| 8 | Young Dragonhawk | 1 | 1/1 | **Windfury** | ✅ |
+| 9 | Amani Berserker | 2 | 2/3 | **Enrage:** +3 Attack. | ✅ (no Enrage) |
+| 10 | Bloodsail Raider | 2 | 2/3 | **Battlecry:** Gain Attack equal to the Attack of your weapon. | 🔧 Weapon buff |
+| 11 | Dire Wolf Alpha | 2 | 2/2 | Adjacent minions have +1 Attack. | ✅ |
+| 12 | Faerie Dragon | 2 | 3/2 | Can't be targeted by spells or Hero Powers. | ✅ (no Elusive) |
+| 13 | Loot Hoarder | 2 | 2/1 | **Deathrattle:** Draw a card. | ✅ |
+| 14 | Mad Bomber | 2 | 3/2 | **Battlecry:** Deal 3 damage randomly split among all other characters. | ✅ |
+| 15 | Youthful Brewmaster | 2 | 3/2 | **Battlecry:** Return a friendly minion from the battlefield to your hand. | ✅ |
+| 16 | Earthen Ring Farseer | 3 | 3/3 | **Battlecry:** Restore 3 Health. | ✅ |
+| 17 | Flesheating Ghoul | 3 | 3/3 | Whenever a minion dies, gain +1 Attack. | 🔧 Death trigger |
+| 18 | Harvest Golem | 3 | 2/3 | **Deathrattle:** Summon a 2/1 Damaged Golem. | ✅ |
+| 19 | Ironbeak Owl | 2 | 2/1 | **Battlecry:** **Silence** a minion. | ✅ |
+| 20 | Jungle Panther | 3 | 4/2 | **Stealth** | 🔧 Stealth |
+| 21 | Raging Worgen | 3 | 3/3 | **Enrage:** **Windfury** and +1 Attack. | ✅ (Windfury only) |
+| 22 | Scarlet Crusader | 3 | 3/1 | **Divine Shield** | ✅ |
+| 23 | Tauren Warrior | 3 | 2/3 | **Taunt** **Enrage:** +3 Attack. | 🔧 Enrage |
+| 24 | Thrallmar Farseer | 3 | 2/3 | **Windfury** | ✅ |
+| 25 | Ancient Brewmaster | 4 | 5/4 | **Battlecry:** Return a friendly minion from the battlefield to your hand. | ✅ |
+| 26 | Cult Master | 4 | 4/2 | Whenever one of your other minions dies, draw a card. | 🔧 Death trigger |
+| 27 | Dark Iron Dwarf | 4 | 4/4 | **Battlecry:** Give a friendly minion +2 Attack this turn. | ✅ |
+| 28 | Dread Corsair | 4 | 3/3 | **Taunt.** Costs (1) less per Attack of your weapon. | 🔧 Cost reduction |
+| 29 | Mogu'shan Warden | 4 | 1/7 | **Taunt** | ✅ |
+| 30 | Silvermoon Guardian | 4 | 3/3 | **Divine Shield** | ✅ |
+| 31 | Fen Creeper | 5 | 3/6 | **Taunt** | ✅ |
+| 32 | Silver Hand Knight | 5 | 4/4 | **Battlecry:** Summon a 2/2 Squire. | ✅ |
+| 33 | Spiteful Smith | 5 | 4/6 | **Enrage:** Your weapon has +2 Attack. | 🔧 Enrage |
+| 34 | Stranglethorn Tiger | 5 | 5/5 | **Stealth** | ✅ (no Stealth) |
+| 35 | Venture Co. Mercenary | 5 | 7/6 | Your minions cost (3) more. | 🔧 Cost aura |
+| 36 | Frost Elemental | 6 | 5/5 | **Battlecry:** **Freeze** a character. | ✅ |
+| 37 | Priestess of Elune | 6 | 5/4 | **Battlecry:** Restore 4 Health to your hero. | ✅ |
+| 38 | Windfury Harpy | 6 | 4/5 | **Windfury** | ✅ |
 
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Wisp 小精灵 | 0 | 1/1 | - | ✅ |
-| Abusive Sergeant 叫嚣的中士 | 1 | 2/1 | 战吼: 给友方随从+2攻 | ✅ |
-| Argent Squire 银色侍从 | 1 | 1/1 | 圣盾 | ⬜ |
-| Leper Gnome 麻风侏儒 | 1 | 2/1 | 亡语: 对敌方英雄造成2伤 | ⬜ |
-| Shieldbearer 持盾卫士 | 1 | 0/4 | 嘲讽 | ⬜ |
-| Southsea Deckhand 南海船工 | 1 | 2/1 | 有武器时冲锋 | 🔧 条件冲锋 |
-| Worgen Infiltrator 狼人渗透者 | 1 | 2/1 | 潜行 | 🔧 Stealth |
-| Young Dragonhawk 幼龙鹰 | 1 | 1/1 | 风怒 | ⬜ |
-| Amani Berserker 阿曼尼狂战士 | 2 | 2/3 | 激怒: +3攻 | ✅ (无激怒) |
-| Bloodsail Raider 血帆袭击者 | 2 | 2/3 | 战吼: 获得武器攻击力加成 | 🔧 条件Buff |
-| Dire Wolf Alpha 恐狼前锋 | 2 | 2/2 | 相邻随从+1攻 | ✅ |
-| Faerie Dragon 精灵龙 | 2 | 3/2 | 无法成为法术/技能目标 | ✅ (无Elusive) |
-| Loot Hoarder 战利品贮藏者 | 2 | 2/1 | 亡语: 抽1 | ✅ |
-| Mad Bomber 疯狂投弹手 | 2 | 3/2 | 战吼: 随机造成3点伤害 | ✅ |
-| Youthful Brewmaster 年轻酒仙 | 2 | 3/2 | 战吼: 将一个友方随从移回手牌 | ✅ |
-| Earthen Ring Farseer 大地环先知 | 3 | 3/3 | 战吼: 恢复3点生命值 | ✅ |
-| Flesheating Ghoul 食尸鬼 | 3 | 3/3 | 每当有随从死亡+1攻 | 🔧 死亡触发 |
-| Harvest Golem 麦田傀儡 | 3 | 2/3 | 亡语: 召唤2/1 | ✅ |
-| Ironbeak Owl 铁喙猫头鹰 | 2 | 2/1 | 战吼: 沉默一个随从 | ✅ |
-| Jungle Panther 丛林猎豹 | 3 | 4/2 | 潜行 | 🔧 Stealth |
-| Raging Worgen 暴怒的狼人 | 3 | 3/3 | 激怒: +1攻和风怒 | ✅ (仅风怒) |
-| Scarlet Crusader 血色十字军战士 | 3 | 3/1 | 圣盾 | ✅ |
-| Tauren Warrior 牛头人战士 | 3 | 2/3 | 嘲讽, 激怒: +3攻 | 🔧 Enrage |
-| Thrallmar Farseer 萨尔玛先知 | 3 | 2/3 | 风怒 | ✅ |
-| Ancient Brewmaster 年迈的酒仙 | 4 | 5/4 | 战吼: 将一个友方随从移回手牌 | ✅ |
-| Cult Master 诅咒教派领袖 | 4 | 4/2 | 每当友方随从死亡抽1 | ✅ (仅白板) |
-| Dark Iron Dwarf 黑铁矮人 | 4 | 4/4 | 战吼: 给友方随从+2攻 | ✅ |
-| Dread Corsair 血帆海盗 | 4 | 3/3 | 嘲讽, 武器攻击力减费 | 🔧 条件减费 |
-| Mogu'shan Warden 魔古山守望者 | 4 | 1/7 | 嘲讽 | ✅ |
-| Silvermoon Guardian 银月城卫兵 | 4 | 3/3 | 圣盾 | ✅ |
-| Fen Creeper 沼泽爬行者 | 5 | 3/6 | 嘲讽 | ⬜ |
-| Silver Hand Knight 白银之手骑士 | 5 | 4/4 | 战吼: 召唤2/2侍从 | ✅ |
-| Spiteful Smith 恶毒铁匠 | 5 | 4/6 | 激怒: 武器+2攻 | 🔧 Enrage |
-| Stranglethorn Tiger 荆棘谷猛虎 | 5 | 5/5 | 潜行 | ✅ (仅白板) |
-| Venture Co. Mercenary 风险投资公司雇佣兵 | 5 | 7/6 | 你的随从费用+3 | 🔧 光环减费 |
-| Frost Elemental 冰霜元素 | 6 | 5/5 | 战吼: 冻结一个角色 | ✅ |
-| Priestess of Elune 艾露恩的女祭司 | 6 | 5/4 | 战吼: 为英雄恢复4生命 | ⬜ |
-| Windfury Harpy 风怒鹰身人 | 6 | 4/5 | 风怒 | ✅ |
+## Neutral — Classic Rare (35)
 
-### Classic 中立 — 稀有 (Rare) (35 张)
+| # | Card | Cost | Atk/HP | Text | Status |
+|---|------|------|--------|------|--------|
+| 1 | Angry Chicken | 1 | 1/1 | **Enrage:** +5 Attack. | 🔧 Enrage |
+| 2 | Bloodsail Corsair | 1 | 1/2 | **Battlecry:** Remove 1 Durability from your opponent's weapon. | 🔧 Weapon durability |
+| 3 | Lightwarden | 1 | 1/2 | Whenever a character is healed, gain +2 Attack. | 🔧 Heal trigger |
+| 4 | Murloc Tidecaller | 1 | 1/2 | Whenever you summon a Murloc, gain +1 Attack. | 🔧 Summon trigger |
+| 5 | Secretkeeper | 1 | 1/2 | Whenever a **Secret** is played, gain +1/+1. | 🔧 Secret trigger |
+| 6 | Young Priestess | 1 | 2/1 | At the end of your turn, give another random friendly minion +1 Health. | 🔧 End of turn |
+| 7 | Ancient Watcher | 2 | 4/5 | Can't attack. | 🔧 Can't attack |
+| 8 | Crazed Alchemist | 2 | 2/2 | **Battlecry:** Swap the Attack and Health of a minion. | 🔧 Swap stats |
+| 9 | Knife Juggler | 2 | 3/2 | After you summon a minion, deal 1 damage to a random enemy. | 🔧 Summon trigger |
+| 10 | Mana Addict | 2 | 1/3 | Whenever you cast a spell, gain +2 Attack this turn. | 🔧 Spell trigger |
+| 11 | Mana Wraith | 2 | 2/2 | ALL minions cost (1) more. | 🔧 Cost aura |
+| 12 | Master Swordsmith | 2 | 1/3 | At the end of your turn, give another random friendly minion +1 Attack. | 🔧 End of turn |
+| 13 | Pint-Sized Summoner | 2 | 2/2 | The first minion you play each turn costs (1) less. | 🔧 Cost reduction |
+| 14 | Sunfury Protector | 2 | 2/3 | **Battlecry:** Give adjacent minions **Taunt**. | 🔧 Adjacent taunt |
+| 15 | Wild Pyromancer | 2 | 3/2 | After you cast a spell, deal 1 damage to ALL minions. | 🔧 Spell trigger |
+| 16 | Alarm-o-Bot | 3 | 0/3 | At the start of your turn, swap this minion with a random one in your hand. | 🔧 Swap |
+| 17 | Arcane Golem | 3 | 4/4 | **Charge.** **Battlecry:** Give your opponent a Mana Crystal. | 🔧 Mana to opponent |
+| 18 | Coldlight Seer | 3 | 2/3 | **Battlecry:** Give ALL other Murlocs +2 Health. | ⬜ |
+| 19 | Demolisher | 3 | 1/4 | At the start of your turn, deal 2 damage to a random enemy. | 🔧 Start of turn |
+| 20 | Emperor Cobra | 3 | 2/3 | Destroy any minion damaged by this minion. | 🔧 Poisonous |
+| 21 | Imp Master | 3 | 1/5 | At the end of your turn, deal 1 damage to this minion and summon a 1/1 Imp. | ✅ (simplified) |
+| 22 | Injured Blademaster | 3 | 4/7 | **Battlecry:** Deal 4 damage to HIMSELF. | ✅ |
+| 23 | Questing Adventurer | 3 | 2/2 | Whenever you play a card, gain +1/+1. | 🔧 Play trigger |
+| 24 | Ancient Mage | 4 | 2/5 | **Battlecry:** Give adjacent minions **Spell Damage +1**. | 🔧 Adjacent spell dmg |
+| 25 | Defender of Argus | 4 | 2/3 | **Battlecry:** Give adjacent minions +1/+1 and **Taunt**. | ✅ (simplified) |
+| 26 | SI:7 Infiltrator | 4 | 5/4 | **Battlecry:** Destroy a random enemy **Secret**. | 🔧 Destroy secret |
+| 27 | Twilight Drake | 4 | 4/1 | **Battlecry:** Gain +1 Health for each card in your hand. | 🔧 Hand size buff |
+| 28 | Violet Teacher | 4 | 3/5 | Whenever you cast a spell, summon a 1/1 Violet Apprentice. | 🔧 Spell trigger |
+| 29 | Abomination | 5 | 4/4 | **Taunt.** **Deathrattle:** Deal 2 damage to ALL characters. | ✅ |
+| 30 | Stampeding Kodo | 5 | 3/5 | **Battlecry:** Destroy a random enemy minion with 2 or less Attack. | 🔧 Conditional destroy |
+| 31 | Argent Commander | 6 | 4/2 | **Charge.** **Divine Shield** | ✅ |
+| 32 | Sunwalker | 6 | 4/5 | **Taunt.** **Divine Shield** | ✅ |
+| 33 | Gadgetzan Auctioneer | 5 | 4/4 | Whenever you cast a spell, draw a card. | 🔧 Spell trigger |
+| 34 | Ravenholdt Assassin | 7 | 7/5 | **Stealth** | ✅ (no Stealth) |
+| 35 | Arcane Devourer | 8 | 4/8 | Whenever you cast a spell, gain +2/+2. | 🔧 Spell trigger |
 
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Angry Chicken 愤怒的小鸡 | 1 | 1/1 | 激怒: +5攻 | 🔧 Enrage |
-| Bloodsail Corsair 血帆海盗 | 1 | 1/2 | 战吼: 移除对手武器1耐久 | 🔧 减耐久 |
-| Lightwarden 圣光护卫者 | 1 | 1/2 | 每当角色被治疗+2攻 | 🔧 治疗触发 |
-| Murloc Tidecaller 鱼人招潮者 | 1 | 1/2 | 每当召唤鱼人+1攻 | 🔧 召唤触发 |
-| Secretkeeper 奥秘守护者 | 1 | 1/2 | 每当奥秘触发+1/+1 | 🔧 奥秘触发 |
-| Young Priestess 年轻的女祭司 | 1 | 2/1 | 回合结束: 给随机友方+1血 | 🔧 回合结束随机 |
-| Ancient Watcher 远古看守者 | 2 | 4/5 | 无法攻击 | 🔧 cant_attack |
-| Crazed Alchemist 疯狂的炼金师 | 2 | 2/2 | 战吼: 交换一个随从的攻血 | 🔧 Swap stats |
-| Knife Juggler 飞刀杂耍者 | 2 | 3/2 | 召唤随从后随机1伤 | 🔧 召唤触发 |
-| Mana Addict 法力成瘾者 | 2 | 1/3 | 施法后+2攻 | 🔧 施法触发 |
-| Mana Wraith 法力怨魂 | 2 | 2/2 | 所有随从费用+1 | 🔧 费用光环 |
-| Master Swordsmith 铸剑大师 | 2 | 1/3 | 回合结束: 随机友方+1攻 | 🔧 回合结束随机 |
-| Pint-Sized Summoner 小个子召唤师 | 2 | 2/2 | 第一个召唤随从费用-1 | 🔧 减费 |
-| Sunfury Protector 日怒保卫者 | 2 | 2/3 | 战吼: 相邻随从获得嘲讽 | 🔧 相邻加嘲讽 |
-| Wild Pyromancer 狂野炎术师 | 2 | 3/2 | 施法后对所有随从1伤 | 🔧 施法触发 |
-| Alarm-o-Bot 报警机器人 | 3 | 0/3 | 回合开始: 与手中随从交换 | 🔧 交换机制 |
-| Arcane Golem 奥术傀儡 | 3 | 4/4 | 冲锋, 战吼: 给对手法力水晶 | 🔧 给对手法力 |
-| Coldlight Seer 寒光先知 | 3 | 2/3 | 战吼: 给其他鱼人+2血 | ⬜ |
-| Demolisher 攻城车 | 3 | 1/4 | 回合开始: 对随机敌人2伤 | 🔧 回合开始随机 |
-| Emperor Cobra 帝王眼镜蛇 | 3 | 2/3 | 消灭任何被其伤害的随从 | 🔧 Poisonous |
-| Imp Master 小鬼召唤师 | 3 | 1/5 | 回合结束: 自伤1 + 召唤1/1 | ✅ (仅召唤) |
-| Injured Blademaster 受伤的剑圣 | 3 | 4/7 | 战吼: 对自己造成4伤 | ✅ |
-| Questing Adventurer 任务达人 | 3 | 2/2 | 出牌后+1/+1 | 🔧 出牌触发 |
-| Ancient Mage 年迈的法师 | 4 | 2/5 | 战吼: 相邻随从+法术伤害 | 🔧 相邻加法伤 |
-| Defender of Argus 阿古斯防御者 | 4 | 2/3 | 战吼: 相邻随从+1/+1和嘲讽 | ✅ (简化) |
-| SI:7 Infiltrator SI:7渗透者 | 4 | 5/4 | 战吼: 摧毁随机敌方奥秘 | 🔧 摧毁奥秘 |
-| Twilight Drake 暮光幼龙 | 4 | 4/1 | 战吼: 手中每张牌+1血 | 🔧 手牌计数 |
-| Violet Teacher 紫罗兰教师 | 4 | 3/5 | 施法后召唤1/1 | ✅ (仅白板) |
-| Abomination 憎恶 | 5 | 4/4 | 嘲讽, 亡语: 全角色2伤 | ✅ |
-| Stampeding Kodo 狂奔科多兽 | 5 | 3/5 | 战吼: 随机消灭攻击≤2的敌方随从 | 🔧 条件消灭 |
-| Argent Commander 银色指挥官 | 6 | 4/2 | 冲锋, 圣盾 | ✅ |
-| Sunwalker 烈日行者 | 6 | 4/5 | 嘲讽, 圣盾 | ✅ |
-| Gadgetzan Auctioneer 加基森拍卖师 | 5 | 4/4 | 施法后抽1 | ✅ (仅白板) |
-| Ravenholdt Assassin 拉文霍德刺客 | 7 | 7/5 | 潜行 | ✅ (仅白板) |
-| Arcane Devourer 奥术吞噬者 | 8 | 4/8 | 施法后+2/+2 | 🔧 施法触发 |
+## Neutral — Classic Epic (9)
 
-### Classic 中立 — 史诗 (Epic) (9 张)
+| # | Card | Cost | Atk/HP | Text | Status |
+|---|------|------|--------|------|--------|
+| 1 | Hungry Crab | 1 | 1/2 | **Battlecry:** Destroy a Murloc and gain +2/+2. | 🔧 Conditional destroy |
+| 2 | Doomsayer | 2 | 0/7 | At the start of your turn, destroy ALL minions. | 🔧 Start of turn |
+| 3 | Blood Knight | 3 | 3/3 | **Battlecry:** All minions lose **Divine Shield**. Gain +3/+3 for each Shield lost. | 🔧 Absorb shields |
+| 4 | Murloc Warleader | 3 | 3/3 | Your other Murlocs have +2/+1. | ⬜ |
+| 5 | Southsea Captain | 3 | 3/3 | Your other Pirates have +1/+1. | ✅ |
+| 6 | Big Game Hunter | 5 | 4/2 | **Battlecry:** Destroy a minion with 7 or more Attack. | 🔧 Conditional destroy |
+| 7 | Faceless Manipulator | 5 | 3/3 | **Battlecry:** Choose a minion and become a copy of it. | 🔧 Copy minion |
+| 8 | Barrens Stablehand | 7 | 5/5 | **Battlecry:** Summon a random Beast. | ⏸️ Random summon |
+| 9 | Sea Giant | 10 | 8/8 | Costs (1) less for each other minion on the battlefield. | ✅ (no discount) |
 
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Hungry Crab 鱼人杀手蟹 | 1 | 1/2 | 战吼: 消灭一个鱼人+2/+2 | 🔧 条件消灭 |
-| Doomsayer 末日预言者 | 2 | 0/7 | 回合开始: 消灭所有随从 | 🔧 回合开始消灭 |
-| Blood Knight 血骑士 | 3 | 3/3 | 战吼: 吸收所有圣盾+3/+3 | 🔧 吸收圣盾 |
-| Murloc Warleader 鱼人领军 | 3 | 3/3 | 其他鱼人+2/+1 | ✅ (简化光环) |
-| Southsea Captain 南海船长 | 3 | 3/3 | 其他海盗+1/+1 | ⬜ |
-| Big Game Hunter 王牌猎人 | 5 | 4/2 | 战吼: 消灭攻击≥7的随从 | 🔧 条件消灭 |
-| Faceless Manipulator 无面操纵者 | 5 | 3/3 | 战吼: 复制一个随从 | 🔧 复制随从 |
-| Barrens Stablehand 贫瘠之地马夫 | 7 | 5/5 | 战吼: 随机召唤野兽 | ⏸️ 随机召唤 |
-| Sea Giant 海巨人 | 10 | 8/8 | 场上每个随从-1费 | ✅ (无减费) |
+## Neutral — Classic Legendary (23)
 
-### Classic 中立 — 传说 (Legendary) (23 张)
-
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Bloodmage Thalnos 血法师萨尔诺斯 | 2 | 1/1 | 法伤+1, 亡语: 抽1 | ⬜ |
-| Brightwing 光明之翼 | 2 | 3/2 | 战吼: 随机传说 | ⏸️ 随机 |
-| Lorewalker Cho 游学者周卓 | 2 | 0/4 | 双方施法后复制给对方 | 🔧 施法复制 |
-| Millhouse Manastorm 米尔豪斯 | 2 | 4/4 | 战吼: 对手下回合法术免费 | 🔧 对手减费 |
-| Nat Pagle 纳特·帕格 | 2 | 0/4 | 回合开始: 50%抽1 | 🔧 概率触发 |
-| King Mukla 穆克拉 | 3 | 5/5 | 战吼: 给对手2根香蕉 | 🔧 给对手卡牌 |
-| Tinkmaster Overspark 工匠大师 | 3 | 3/3 | 战吼: 随机变为5/5或1/1 | ⏸️ 随机变形 |
-| The Black Knight 黑骑士 | 6 | 4/5 | 战吼: 消灭嘲讽随从 | 🔧 条件消灭 |
-| Captain Greenskin 绿皮船长 | 5 | 5/4 | 战吼: 武器+1/+1 | 🔧 武器buff |
-| Harrison Jones 哈里森·琼斯 | 5 | 5/4 | 战吼: 摧毁武器+抽牌 | 🔧 摧毁武器抽牌 |
-| Cairne Bloodhoof 凯恩·血蹄 | 6 | 4/5 | 亡语: 召唤4/5贝恩 | ✅ |
-| High Inquisitor Whitemane 怀特迈恩 | 6 | 5/7 | 战吼: 复活本回合死亡的友方 | 🔧 复活机制 |
-| Hogger 霍格 | 6 | 4/4 | 回合结束: 召唤2/2嘲讽豺狼人 | ✅ |
-| The Beast 比斯巨兽 | 6 | 9/7 | 亡语: 为对手召唤3/3 | ✅ |
-| Xavius 萨维斯 | 6 | - | - | ⏸️ 复杂效果 |
-| Baron Geddon 迦顿男爵 | 7 | 7/5 | 回合结束: 全角色2伤 | ✅ |
-| Gruul 格鲁尔 | 8 | 7/7 | 回合结束: +1/+1 | ✅ |
-| Ragnaros the Firelord 拉格纳罗斯 | 8 | 8/8 | 不能攻击, 回合结束: 随机8伤 | ✅ |
-| Alexstrasza 阿莱克丝塔萨 | 9 | 8/8 | 战吼: 将英雄生命设为15 | ✅ (简化) |
-| Malygos 玛里苟斯 | 9 | 4/12 | 法术伤害+5 | ✅ |
-| Nozdormu 诺兹多姆 | 9 | 8/8 | 双方只有15秒回合 | ⏸️ 机制特殊 |
-| Onyxia 奥妮克希亚 | 9 | 8/8 | 战吼: 召唤雏龙填满战场 | ✅ (简化) |
-| Ysera 伊瑟拉 | 9 | 4/12 | 回合结束: 获得梦境牌 | ⏸️ 随机卡牌 |
-| Deathwing 死亡之翼 | 10 | 12/12 | 战吼: 消灭所有其他随从+弃牌 | ✅ |
+| # | Card | Cost | Atk/HP | Text | Status |
+|---|------|------|--------|------|--------|
+| 1 | Bloodmage Thalnos | 2 | 1/1 | **Spell Damage +1.** **Deathrattle:** Draw a card. | ✅ |
+| 2 | Brightwing | 2 | 3/2 | **Battlecry:** Add a random Legendary minion to your hand. | ⏸️ Random |
+| 3 | Lorewalker Cho | 2 | 0/4 | Whenever a player casts a spell, put a copy into the other player's hand. | 🔧 Spell copy |
+| 4 | Millhouse Manastorm | 2 | 4/4 | **Battlecry:** Enemy spells cost (0) next turn. | 🔧 Opponent cost |
+| 5 | Nat Pagle | 2 | 0/4 | At the start of your turn, you have a 50% chance to draw an extra card. | 🔧 Probability |
+| 6 | King Mukla | 3 | 5/5 | **Battlecry:** Give your opponent 2 Bananas. | 🔧 Give cards |
+| 7 | Tinkmaster Overspark | 3 | 3/3 | **Battlecry:** Transform a minion into a 5/5 Devilsaur or a 1/1 Squirrel at random. | ⏸️ Random transform |
+| 8 | The Black Knight | 6 | 4/5 | **Battlecry:** Destroy an enemy minion with **Taunt**. | 🔧 Conditional destroy |
+| 9 | Captain Greenskin | 5 | 5/4 | **Battlecry:** Give your weapon +1/+1. | 🔧 Weapon buff |
+| 10 | Harrison Jones | 5 | 5/4 | **Battlecry:** Destroy your opponent's weapon and draw cards equal to its Durability. | 🔧 Destroy + draw |
+| 11 | Cairne Bloodhoof | 6 | 4/5 | **Deathrattle:** Summon a 4/5 Baine Bloodhoof. | ✅ |
+| 12 | High Inquisitor Whitemane | 6 | 5/7 | **Battlecry:** Summon all friendly minions that died this turn. | 🔧 Resurrect |
+| 13 | Hogger | 6 | 4/4 | At the end of your turn, summon a 2/2 Gnoll with **Taunt**. | ✅ |
+| 14 | The Beast | 6 | 9/7 | **Deathrattle:** Summon a 3/3 Finkle Einhorn for your opponent. | ✅ |
+| 15 | Xavius | 6 | — | — | ⏸️ Complex |
+| 16 | Baron Geddon | 7 | 7/5 | At the end of your turn, deal 2 damage to ALL other characters. | ✅ |
+| 17 | Gruul | 8 | 7/7 | At the end of each turn, gain +1/+1. | ✅ |
+| 18 | Ragnaros the Firelord | 8 | 8/8 | Can't attack. At the end of your turn, deal 8 damage to a random enemy. | ✅ |
+| 19 | Alexstrasza | 9 | 8/8 | **Battlecry:** Set a hero's remaining Health to 15. | ✅ |
+| 20 | Malygos | 9 | 4/12 | **Spell Damage +5** | ✅ |
+| 21 | Nozdormu | 9 | 8/8 | Players only have 15 seconds to take their turns. | ⏸️ Special |
+| 22 | Onyxia | 9 | 8/8 | **Battlecry:** Summon 1/1 Whelps until your side of the battlefield is full. | ✅ |
+| 23 | Ysera | 9 | 4/12 | At the end of your turn, draw a Dream Card. | ⏸️ Random cards |
+| 24 | Deathwing | 10 | 12/12 | **Battlecry:** Destroy all other minions and discard your hand. | ✅ |
 
 ---
 
-## 德鲁伊 (Druid)
+## Druid
 
-### Basic (10 张)
+### Druid — Basic (10)
 
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Innervate 激活 | 0 | - | 获得2法力水晶 | ✅ |
-| Moonfire 月火术 | 0 | - | 造成1点伤害 | ⬜ |
-| Claw 爪击 | 1 | - | +2攻+2甲 | ✅ |
-| Mark of the Wild 野性印记 | 2 | - | +2/+2和嘲讽 | ✅ |
-| Wild Growth 野性成长 | 2 | - | 获得空法力水晶 | ⬜ |
-| Healing Touch 治疗之触 | 3 | - | 恢复8生命 | ⬜ |
-| Savage Roar 野蛮咆哮 | 3 | - | 所有角色+2攻 | ✅ |
-| Swipe 横扫 | 4 | - | 对一个敌人4伤+其余1伤 | ✅ |
-| Starfire 星火术 | 6 | - | 造成5伤+抽1 | ✅ |
-| Ironbark Protector 铁木树皮保卫者 | 8 | 8/8 | 嘲讽 | ⬜ |
+| # | Card | Cost | Atk/HP | Type | Text | Status |
+|---|------|------|--------|------|------|--------|
+| 1 | Innervate | 0 | — | Nature Spell | Gain 1 Mana Crystal this turn only. | ✅ |
+| 2 | Moonfire | 0 | — | Arcane Spell | Deal 1 damage. | ✅ |
+| 3 | Claw | 1 | — | Spell | Give your hero +2 Attack this turn. Gain 2 Armor. | ✅ |
+| 4 | Mark of the Wild | 2 | — | Nature Spell | Give a minion **Taunt** and +2/+3. | ✅ |
+| 5 | Wild Growth | 2 | — | Nature Spell | Gain an empty Mana Crystal. | ✅ |
+| 6 | Healing Touch | 3 | — | Nature Spell | Restore 8 Health. | ✅ |
+| 7 | Savage Roar | 3 | — | Spell | Give your characters +2 Attack this turn. | ✅ |
+| 8 | Swipe | 4 | — | Spell | Deal 4 damage to an enemy and 1 damage to all other enemies. | ✅ |
+| 9 | Starfire | 6 | — | Arcane Spell | Deal 5 damage. Draw a card. | ✅ |
+| 10 | Ironbark Protector | 8 | 8/8 | Minion | **Taunt** | ✅ |
 
-### Classic (15 张)
+### Druid — Classic (15)
 
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Savagery 野蛮之击 | 1 | - | 对随从造成英雄攻击力伤害 | 🔧 英雄攻击力 |
-| Power of the Wild 野性之力 | 2 | - | 抉择: +1/+1或3/2猎豹 | 🔧 Choose One |
-| Wrath 愤怒 | 2 | - | 抉择: 3伤或1伤+抽1 | ✅ (简化为3伤) |
-| Mark of Nature 自然印记 | 3 | - | 抉择: +4攻或+4血嘲讽 | 🔧 Choose One |
-| Soul of the Forest 丛林之魂 | 4 | - | 友方随从亡语: 召唤2/2 | 🔧 群体亡语 |
-| Bite 撕咬 | 4 | - | +4攻+4甲 | 🔧 Hero attack buff |
-| Keeper of the Grove 丛林守护者 | 4 | 2/4 | 抉择: 2伤或沉默 | 🔧 Choose One |
-| Force of Nature 自然之力 | 6 | - | 召唤3个2/2冲锋树人 | ⬜ |
-| Nourish 滋养 | 5 | - | 抉择: 2法力水晶或抽3 | 🔧 Choose One |
-| Starfall 星辰坠落 | 5 | - | 抉择: 单5伤或全2伤 | 🔧 Choose One |
-| Druid of the Claw 利爪德鲁伊 | 5 | 4/4 | 抉择: Charge或+2血嘲讽 | ✅ (简化) |
-| Ancient of Lore 知识古树 | 7 | 5/5 | 战吼: 抽2 | ✅ (简化) |
-| Ancient of War 战争古树 | 7 | 5/5 | 抉择: +5血嘲讽或+5攻 | ✅ (简化) |
-| Cenarius 塞纳留斯 | 9 | 5/8 | 抉择: +2/+2或2个2/2 | 🔧 Choose One, 传说 |
-| Gift of the Wild 荒野之礼 | 8 | - | 友方随从+2/+2和嘲讽 | ⬜ |
-
----
-
-## 猎人 (Hunter)
-
-### Basic (10 张)
-
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Arcane Shot 奥术射击 | 1 | - | 造成2点伤害 | ✅ |
-| Hunter's Mark 猎人印记 | 0 | - | 将一个随从生命变为1 | ✅ |
-| Timber Wolf 森林狼 | 1 | 1/1 | 野兽+1攻 | ⬜ |
-| Tracking 追踪术 | 1 | - | 抽1 (简化) | ✅ |
-| Starving Buzzard 饥饿的秃鹫 | 2 | 2/1 | 召唤野兽时抽1 | 🔧 召唤触发 |
-| Animal Companion 动物伙伴 | 3 | - | 随机召唤野兽伙伴 | ⏸️ 随机 |
-| Kill Command 杀戮命令 | 3 | - | 3伤(有野兽5伤) | ✅ |
-| Houndmaster 驯犬者 | 4 | 4/3 | 战吼: 野兽+2/+2嘲讽 | 🔧 有条件buff |
-| Multi-Shot 多重射击 | 4 | - | 随机2个敌方随从3伤 | ⬜ |
-| Tundra Rhino 苔原犀牛 | 5 | 2/5 | 野兽冲锋 | 🔧 赋予冲锋光环 |
-
-### Classic (15 张)
-
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Bestial Wrath 狂野怒火 | 1 | - | 野兽+2攻且免疫 | 🔧 Immune |
-| Flare 照明弹 | 1 | - | 摧毁敌方奥秘+抽1 | 🔧 摧毁奥秘 |
-| Explosive Trap 爆炸陷阱 | 2 | - | 奥秘: 敌人攻英雄后全敌2伤 | ✅ |
-| Freezing Trap 冰冻陷阱 | 2 | - | 奥秘: 敌人攻英雄后回手+2费 | ✅ |
-| Misdirection 误导 | 2 | - | 奥秘: 攻击转移 | 🔧 攻击重定向 |
-| Scavenging Hyena 食腐土狼 | 2 | 2/2 | 友方野兽死亡+2/+1 | 🔧 死亡触发 |
-| Snake Trap 毒蛇陷阱 | 2 | - | 奥秘: 随从被攻后召唤3条蛇 | 🔧 召唤令牌 |
-| Snipe 狙击 | 2 | - | 奥秘: 对手召唤随从后4伤 | 🔧 召唤触发 |
-| Deadly Shot 致命射击 | 3 | - | 消灭随机敌方随从 | ✅ |
-| Eaglehorn Bow 鹰角弓 | 3 | 3/2 | 奥秘揭示时+1耐久 | ✅ (简化) |
-| Unleash the Hounds 关门放狗 | 3 | - | 每个敌方随从召唤1/1冲锋 | ✅ |
-| Explosive Shot 爆炸射击 | 5 | - | 对一个随从及相邻5伤 | ✅ |
-| Savannah Highmane 长鬓草原狮 | 6 | 6/5 | 亡语: 召唤2只2/2土狼 | ✅ |
-| Gladiator's Longbow 角斗士长弓 | 7 | 5/2 | 英雄攻击时免疫 | 🔧 Immune |
-| King Krush 克鲁什 | 9 | 8/8 | 冲锋 | ⬜ |
+| # | Card | Cost | Atk/HP | Text | Status |
+|---|------|------|--------|------|--------|
+| 1 | Savagery | 1 | — | Spell | Deal damage equal to your hero's Attack to a minion. | 🔧 Hero attack |
+| 2 | Power of the Wild | 2 | — | Spell | **Choose One** - Give your minions +1/+1; or Summon a 3/2 Panther. | 🔧 Choose One |
+| 3 | Wrath | 2 | — | Spell | **Choose One** - Deal 3 damage to a minion; or Deal 1 damage and draw a card. | ✅ (simplified) |
+| 4 | Mark of Nature | 3 | — | Spell | **Choose One** - Give a minion +4 Attack; or +4 Health and **Taunt**. | 🔧 Choose One |
+| 5 | Soul of the Forest | 4 | — | Spell | Give your minions "**Deathrattle:** Summon a 2/2 Treant." | 🔧 Mass deathrattle |
+| 6 | Bite | 4 | — | Spell | Give your hero +4 Attack this turn. Gain 4 Armor. | 🔧 Hero attack |
+| 7 | Keeper of the Grove | 4 | 2/4 | Minion | **Choose One** - Deal 2 damage; or **Silence** a minion. | 🔧 Choose One |
+| 8 | Force of Nature | 6 | — | Spell | Summon three 2/2 Treants with **Charge**. | ✅ |
+| 9 | Nourish | 5 | — | Spell | **Choose One** - Gain 2 Mana Crystals; or Draw 3 cards. | 🔧 Choose One |
+| 10 | Starfall | 5 | — | Spell | **Choose One** - Deal 5 damage to a minion; or Deal 2 damage to all enemy minions. | 🔧 Choose One |
+| 11 | Druid of the Claw | 5 | 4/4 | Minion | **Choose One** - **Charge**; or +2 Health and **Taunt**. | ✅ (simplified) |
+| 12 | Ancient of Lore | 7 | 5/5 | Minion | **Choose One** - Draw 2 cards; or Restore 5 Health. | ✅ (simplified) |
+| 13 | Ancient of War | 7 | 5/5 | Minion | **Choose One** - +5 Attack; or +5 Health and **Taunt**. | ✅ (simplified) |
+| 14 | Cenarius | 9 | 5/8 | Minion | **Choose One** - Give your other minions +2/+2; or Summon two 2/2 Treants with **Taunt**. | 🔧 Choose One |
+| 15 | Gift of the Wild | 8 | — | Nature Spell | Give your minions +2/+2 and **Taunt**. | ⬜ |
 
 ---
 
-## 法师 (Mage)
+## Hunter
 
-### Basic (10 张)
+### Hunter — Basic (10)
 
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Arcane Missiles 奥术飞弹 | 1 | - | 随机3伤分给敌人 | ✅ |
-| Mirror Image 镜像 | 1 | - | 召唤2个0/2嘲讽 | 🔧 Token |
-| Arcane Explosion 魔爆术 | 2 | - | 对所有敌方随从1伤 | ⬜ |
-| Frostbolt 寒冰箭 | 2 | - | 3伤+冻结 | ✅ |
-| Arcane Intellect 奥术智慧 | 3 | - | 抽2张牌 | ✅ |
-| Frost Nova 冰霜新星 | 3 | - | 冻结所有敌方随从 | ✅ |
-| Fireball 火球术 | 4 | - | 造成6点伤害 | ✅ |
-| Polymorph 变形术 | 4 | - | 将随从变为1/1绵羊 | ✅ |
-| Water Elemental 水元素 | 4 | 3/6 | 冻结受伤角色 | ✅ |
-| Flamestrike 烈焰风暴 | 7 | - | 对所有敌方随从5伤 | ✅ |
+| # | Card | Cost | Atk/HP | Type | Text | Status |
+|---|------|------|--------|------|------|--------|
+| 1 | Arcane Shot | 1 | — | Arcane Spell | Deal 2 damage. | ✅ |
+| 2 | Hunter's Mark | 1 | — | Spell | Change a minion's Health to 1. | ✅ |
+| 3 | Timber Wolf | 1 | 1/1 | Beast Minion | Your other Beasts have +1 Attack. | ✅ |
+| 4 | Tracking | 1 | — | Spell | Discover a card from your deck. | ✅ (simplified) |
+| 5 | Starving Buzzard | 2 | 2/1 | Beast Minion | Whenever you summon a Beast, draw a card. | 🔧 Summon trigger |
+| 6 | Animal Companion | 3 | — | Spell | Summon a random Beast Companion. | ⏸️ Random |
+| 7 | Kill Command | 3 | — | Spell | Deal 3 damage. If you control a Beast, deal 5 damage instead. | ✅ |
+| 8 | Houndmaster | 4 | 4/3 | Minion | **Battlecry:** Give a friendly Beast +2/+2 and **Taunt**. | 🔧 Beast buff |
+| 9 | Multi-Shot | 4 | — | Spell | Deal 3 damage to two random enemy minions. | ⬜ |
+| 10 | Tundra Rhino | 5 | 2/5 | Beast Minion | Your Beasts have **Charge**. | 🔧 Charge aura |
 
-### Classic (15 张)
+### Hunter — Classic (15)
 
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Mana Wyrm 法力浮龙 | 1 | 1/3 | 施法后+1攻 | 🔧 施法触发 |
-| Tome of Intellect 智慧卷轴 | 1 | - | 随机获得法师法术 | ⏸️ 随机 |
-| Icicle 冰锥 | 2 | - | 对冻结随从2伤+抽1 | 🔧 条件 |
-| Sorcerer's Apprentice 巫师学徒 | 2 | 3/2 | 法术费用-1 | 🔧 减费光环 |
-| Cone of Cold 冰锥术 | 4 | - | 冻结相邻随从 | ⬜ |
-| Counterspell 法术反制 | 3 | - | 奥秘: 反制对手法术 | ✅ |
-| Ice Barrier 寒冰屏障 | 3 | - | 奥秘: 被攻击后+8甲 | ✅ |
-| Kirin Tor Mage 肯瑞托法师 | 3 | 4/3 | 战吼: 下个奥秘免费 | 🔧 减费 |
-| Mirror Entity 镜像实体 | 3 | - | 奥秘: 对手召唤后复制 | ✅ |
-| Spellbender 扰咒术 | 3 | - | 奥秘: 法术目标转移 | 🔧 目标重定向 |
-| Vaporize 蒸发 | 3 | - | 奥秘: 随从被攻后消灭攻击者 | 🔧 消灭攻击者 |
-| Ethereal Arcanist 虚灵奥术师 | 4 | 3/3 | 回合结束有奥秘+2/+2 | 🔧 条件回合结束 |
-| Blizzard 暴风雪 | 5 | - | 全敌2伤+冻结 | ✅ |
-| Archmage Antonidas 大法师安东尼达斯 | 7 | 5/7 | 施法后获得火球术 | ⏸️ 生成卡牌 |
-| Pyroblast 炎爆术 | 10 | - | 造成10点伤害 | ✅ |
-
----
-
-## 圣骑士 (Paladin)
-
-### Basic (10 张)
-
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Blessing of Might 力量祝福 | 1 | - | +3攻 | ✅ |
-| Hand of Protection 保护之手 | 1 | - | 给随从圣盾 | ⬜ |
-| Humility 谦逊 | 1 | - | 将随从攻击变为1 | ✅ |
-| Light's Justice 圣光的正义 | 1 | 1/4 | 武器 | ⬜ |
-| Holy Light 圣光术 | 2 | - | 恢复8生命 | ✅ |
-| Consecration 奉献 | 4 | - | 对所有敌人2伤 | ✅ |
-| Hammer of Wrath 愤怒之锤 | 4 | - | 3伤+抽1 | ✅ |
-| Blessing of Kings 王者祝福 | 4 | - | +4/+4 | ✅ |
-| Truesilver Champion 真银圣剑 | 4 | 4/2 | 攻时回2血 | ✅ |
-| Guardian of Kings 列王守卫 | 7 | 5/6 | 战吼: 回6血 | ✅ |
-
-### Classic (15 张)
-
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Blessing of Wisdom 智慧祝福 | 1 | - | 随从攻时抽1 | 🔧 攻击触发 |
-| Eye for an Eye 以眼还眼 | 1 | - | 奥秘: 英雄受伤反弹 | 🔧 伤害反弹 |
-| Noble Sacrifice 崇高牺牲 | 1 | - | 奥秘: 敌人攻击时召唤2/1 | 🔧 攻击触发召唤 |
-| Redemption 救赎 | 1 | - | 奥秘: 友方死亡时1血复活 | 🔧 复活机制 |
-| Repentance 忏悔 | 1 | - | 奥秘: 对手召唤后生命变1 | 🔧 召唤触发 |
-| Argent Protector 阿古斯保护者 | 2 | 2/2 | 战吼: 给友方圣盾 | ⬜ |
-| Equality 生而平等 | 2 | - | 所有随从生命变1 | ✅ |
-| Aldor Peacekeeper 奥尔多卫士 | 3 | 3/3 | 战吼: 敌随攻击变1 | ✅ |
-| Holy Wrath 神圣愤怒 | 5 | - | 抽1+等伤 | ⬜ |
-| Sword of Justice 公正之剑 | 3 | 1/5 | 召唤随从后+1/+1减1耐 | 🔧 召唤触发 |
-| Blessed Champion 受祝福的勇士 | 5 | - | 使随从攻击翻倍 | 🔧 翻倍攻击 |
-| Righteousness 正义 | 5 | - | 友方随从获得圣盾 | ⬜ |
-| Avenging Wrath 复仇之怒 | 6 | - | 随机8伤分给敌人 | ✅ |
-| Lay on Hands 圣疗术 | 8 | - | 回8血+抽3 | ✅ |
-| Tirion Fordring 提里奥·弗丁 | 8 | 6/6 | 圣盾嘲讽, 亡语: 装备5/3 | ✅ |
+| # | Card | Cost | Atk/HP | Text | Status |
+|---|------|------|--------|------|--------|
+| 1 | Bestial Wrath | 1 | — | Spell | Give a friendly Beast +2 Attack and **Immune** this turn. | 🔧 Immune |
+| 2 | Flare | 1 | — | Spell | Destroy all enemy **Secrets**. Draw a card. | 🔧 Destroy secrets |
+| 3 | Explosive Trap | 2 | — | Spell | **Secret:** When your hero is attacked, deal 2 damage to all enemies. | ✅ |
+| 4 | Freezing Trap | 2 | — | Spell | **Secret:** When an enemy minion attacks, return it to its owner's hand. It costs (2) more. | ✅ |
+| 5 | Misdirection | 2 | — | Spell | **Secret:** When a character attacks your hero, instead it attacks another random character. | 🔧 Redirect |
+| 6 | Scavenging Hyena | 2 | 2/2 | Beast Minion | Whenever a friendly Beast dies, gain +2/+1. | 🔧 Death trigger |
+| 7 | Snake Trap | 2 | — | Spell | **Secret:** When one of your minions is attacked, summon three 1/1 Snakes. | 🔧 Summon trigger |
+| 8 | Snipe | 2 | — | Spell | **Secret:** When your opponent plays a minion, deal 4 damage to it. | 🔧 Play trigger |
+| 9 | Deadly Shot | 3 | — | Spell | Destroy a random enemy minion. | ✅ |
+| 10 | Eaglehorn Bow | 3 | 3/2 | Weapon | Whenever a friendly **Secret** is revealed, gain +1 Durability. | ✅ (simplified) |
+| 11 | Unleash the Hounds | 3 | — | Spell | For each enemy minion, summon a 1/1 Hound with **Charge**. | ✅ |
+| 12 | Explosive Shot | 5 | — | Spell | Deal 5 damage to a minion and 2 damage to adjacent ones. | ✅ |
+| 13 | Savannah Highmane | 6 | 6/5 | Beast Minion | **Deathrattle:** Summon two 2/2 Hyenas. | ✅ |
+| 14 | Gladiator's Longbow | 7 | 5/2 | Weapon | Your hero is **Immune** while attacking. | 🔧 Immune |
+| 15 | King Krush | 9 | 8/8 | Beast Minion | **Charge** | ✅ |
 
 ---
 
-## 牧师 (Priest)
+## Mage
 
-### Basic (10 张)
+### Mage — Basic (10)
 
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Holy Smite 神圣惩击 | 1 | - | 对随从造成3点伤害 | ✅ |
-| Mind Vision 心灵视界 | 1 | - | 复制对手手牌 | ⏸️ 对手手牌 |
-| Northshire Cleric 北郡牧师 | 1 | 1/3 | 随从回血时抽1 | ✅ (简化) |
-| Power Word: Shield 真言术:盾 | 1 | - | +2血+抽1 | ✅ |
-| Radiance 圣光闪耀 | 1 | - | 回5血 | ⬜ |
-| Divine Spirit 神圣之灵 | 2 | - | 使随从生命翻倍 | 🔧 翻倍生命 |
-| Mind Blast 心灵震爆 | 2 | - | 对英雄5伤 | ✅ |
-| Shadow Word: Death 暗言术:灭 | 3 | - | 消灭攻击≥5的随从 | ✅ |
-| Shadow Word: Pain 暗言术:痛 | 2 | - | 消灭攻击≤3的随从 | ✅ |
-| Holy Nova 神圣新星 | 5 | - | 全敌2伤+友方回2 | ✅ |
+| # | Card | Cost | Atk/HP | Type | Text | Status |
+|---|------|------|--------|------|------|--------|
+| 1 | Arcane Missiles | 1 | — | Arcane Spell | Deal 3 damage randomly split among all enemies. | ✅ |
+| 2 | Mirror Image | 1 | — | Spell | Summon two 0/2 minions with **Taunt**. | 🔧 Token |
+| 3 | Arcane Explosion | 2 | — | Arcane Spell | Deal 1 damage to all enemy minions. | ✅ |
+| 4 | Frostbolt | 2 | — | Frost Spell | Deal 3 damage to a character and **Freeze** it. | ✅ |
+| 5 | Arcane Intellect | 3 | — | Arcane Spell | Draw 2 cards. | ✅ |
+| 6 | Frost Nova | 3 | — | Frost Spell | **Freeze** all enemy minions. | ✅ |
+| 7 | Fireball | 4 | — | Fire Spell | Deal 6 damage. | ✅ |
+| 8 | Polymorph | 4 | — | Arcane Spell | Transform a minion into a 1/1 Sheep. | ✅ |
+| 9 | Water Elemental | 4 | 3/6 | Elemental Minion | **Freeze** any character damaged by this minion. | ✅ |
+| 10 | Flamestrike | 7 | — | Fire Spell | Deal 4 damage to all enemy minions. | ✅ |
 
-### Classic (15 张)
+### Mage — Classic (15)
 
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Circle of Healing 治疗之环 | 0 | - | 所有随从回4血 | ✅ |
-| Silence 沉默 | 0 | - | 沉默一个随从 | ⬜ |
-| Inner Fire 心灵之火 | 1 | - | 使随从攻击等于生命 | 🔧 攻=血 |
-| Scarlet Subjugator 血色征服者 | 1 | 2/1 | 战吼: 敌人-2攻 | 🔧 减攻 |
-| Kul Tiran Chaplain 库尔提拉斯牧师 | 2 | 2/3 | 战吼: 友方+2血 | ⬜ |
-| Lightwell 光明之泉 | 2 | 0/5 | 回合开始: 给受伤友方回3 | 🔧 回合开始治疗 |
-| Thoughtsteal 思维窃取 | 3 | - | 复制对手牌库2张牌 | ⏸️ 对手牌库 |
-| Lightspawn 光之子 | 4 | 0/5 | 攻击等于生命值 | 🔧 动态攻击 |
-| Shadow Madness 暗影狂乱 | 4 | - | 控制攻击≤3的敌方随从 | 🔧 临时控制 |
-| Mass Dispel 群体驱散 | 4 | - | 沉默所有敌方随从+抽1 | ⬜ |
-| Mindgames 心灵游戏 | 4 | - | 复制对手牌库随机随从 | ⏸️ 对手牌库 |
-| Shadow Word: Ruin 暗言术:毁 | 4 | - | 消灭所有攻击≥5的随从 | ⬜ |
-| Temple Enforcer 圣殿执行者 | 6 | 6/6 | 战吼: 友方+3血 | ⬜ |
-| Cabal Shadow Priest 秘教暗影祭司 | 6 | 4/5 | 战吼: 控制攻击≤2的敌人 | ✅ (简化) |
-| Natalie Seline 娜塔莉·塞林 | 7 | 7/1 | 战吼: 消灭随从+获得生命 | 🔧 消灭+加血 |
-| Mind Control 精神控制 | 10 | - | 控制敌方随从 | ⏸️ 控制机制 |
-| Prophet Velen 先知维伦 | 7 | 7/7 | 法术/治疗双倍 | ✅ (简化) |
+| # | Card | Cost | Atk/HP | Text | Status |
+|---|------|------|--------|------|--------|
+| 1 | Mana Wyrm | 1 | 1/3 | Minion | Whenever you cast a spell, gain +1 Attack. | 🔧 Spell trigger |
+| 2 | Tome of Intellect | 1 | — | Arcane Spell | Add a random Mage spell to your hand. | ⏸️ Random |
+| 3 | Icicle | 2 | — | Frost Spell | Deal 2 damage to a minion. If it's **Frozen**, draw a card. | 🔧 Frozen conditional |
+| 4 | Sorcerer's Apprentice | 2 | 3/2 | Minion | Your spells cost (1) less. | 🔧 Cost aura |
+| 5 | Cone of Cold | 4 | — | Frost Spell | **Freeze** a minion and its adjacent minions. | ⬜ |
+| 6 | Counterspell | 3 | — | Spell | **Secret:** When your opponent casts a spell, **Counter** it. | ✅ |
+| 7 | Ice Barrier | 3 | — | Spell | **Secret:** When your hero is attacked, gain 8 Armor. | ✅ |
+| 8 | Kirin Tor Mage | 3 | 4/3 | Minion | **Battlecry:** The next **Secret** you play this turn costs (0). | 🔧 Cost reduction |
+| 9 | Mirror Entity | 3 | — | Spell | **Secret:** When your opponent plays a minion, summon a copy of it. | ✅ |
+| 10 | Spellbender | 3 | — | Spell | **Secret:** When an enemy casts a spell on a minion, summon a 1/3 as the new target. | 🔧 Redirect |
+| 11 | Vaporize | 3 | — | Spell | **Secret:** When a minion attacks your hero, destroy it. | 🔧 Destroy attacker |
+| 12 | Ethereal Arcanist | 4 | 3/3 | Minion | At the end of your turn, if you control a **Secret**, gain +2/+2. | 🔧 End of turn |
+| 13 | Blizzard | 5 | — | Frost Spell | Deal 2 damage to all enemy minions and **Freeze** them. | ✅ |
+| 14 | Archmage Antonidas | 7 | 5/7 | Minion | Whenever you cast a spell, put a 'Fireball' spell into your hand. | ⏸️ Generates cards |
+| 15 | Pyroblast | 10 | — | Fire Spell | Deal 10 damage. | ✅ |
 
 ---
 
-## 潜行者 (Rogue)
+## Paladin
 
-### Basic (10 张)
+### Paladin — Basic (10)
 
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Backstab 背刺 | 0 | - | 对未受伤随从2伤 | ✅ |
-| Deadly Poison 致命药膏 | 1 | - | 武器+2攻 | ✅ |
-| Sinister Strike 影袭 | 1 | - | 对英雄3伤 | ⬜ |
-| Fan of Knives 刀扇 | 3 | - | 全敌1伤+抽1 | ✅ |
-| Sap 闷棍 | 2 | - | 将敌方随从移回手牌 | ✅ |
-| Shiv 毒刃 | 2 | - | 1伤+抽1 | ⬜ |
-| Assassin's Blade 刺客之刃 | 5 | 3/4 | 武器 | ⬜ |
-| Assassinate 刺杀 | 5 | - | 消灭敌方随从 | ✅ |
-| Sprint 疾跑 | 7 | - | 抽4张牌 | ✅ |
-| Vanish 消失 | 6 | - | 所有随从回手 | 🔧 群体回手 |
+| # | Card | Cost | Atk/HP | Type | Text | Status |
+|---|------|------|--------|------|------|--------|
+| 1 | Blessing of Might | 1 | — | Holy Spell | Give a minion +3 Attack. | ✅ |
+| 2 | Hand of Protection | 1 | — | Holy Spell | Give a minion **Divine Shield**. | ✅ |
+| 3 | Humility | 1 | — | Spell | Change a minion's Attack to 1. | ✅ |
+| 4 | Light's Justice | 1 | 1/4 | Weapon | — | ✅ |
+| 5 | Holy Light | 2 | — | Holy Spell | Restore 8 Health to your hero. | ✅ |
+| 6 | Consecration | 4 | — | Holy Spell | Deal 2 damage to all enemies. | ✅ |
+| 7 | Hammer of Wrath | 4 | — | Holy Spell | Deal 3 damage. Draw a card. | ✅ |
+| 8 | Blessing of Kings | 4 | — | Holy Spell | Give a minion +4/+4. (+4 Attack/+4 Health) | ✅ |
+| 9 | Truesilver Champion | 4 | 4/2 | Weapon | Whenever your hero attacks, restore 3 Health to it. | ✅ |
+| 10 | Guardian of Kings | 7 | 5/6 | Minion | **Taunt.** **Battlecry:** Restore 6 Health to your hero. | ✅ |
 
-### Classic (15 张)
+### Paladin — Classic (15)
 
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Preparation 伺机待发 | 0 | - | 下个法术费用-3 | ✅ (简化) |
-| Shadowstep 暗影步 | 0 | - | 友方随从回手且费用-2 | 🔧 回手减费 |
-| Cold Blood 冷血 | 1 | - | +2攻(连击+4) | ✅ |
-| Pilfer 顺手牵羊 | 1 | - | 随机获得其他职业牌 | ⏸️ 随机 |
-| Betrayal 背叛 | 2 | - | 敌随从对相邻造成伤害 | 🔧 相邻伤害 |
-| Blade Flurry 剑刃乱舞 | 2 | - | 摧毁武器+全敌等伤 | 🔧 武器AOE |
-| Defias Ringleader 迪菲亚头目 | 2 | 2/2 | 连击: 召唤2/1 | ✅ (简化) |
-| Eviscerate 刺骨 | 2 | - | 2伤(连击4伤) | ✅ |
-| Patient Assassin 耐心的刺客 | 2 | 1/1 | 潜行, 剧毒 | 🔧 Poisonous+Stealth |
-| Edwin VanCleef 艾德温·范克里夫 | 3 | 2/2 | 连击: 每张牌+2/+2 | ✅ (简化) |
-| Headcrack 裂颅 | 3 | - | 对英雄2伤, 连击回手 | 🔧 连击回手 |
-| Perdition's Blade 毁灭之刃 | 3 | 2/2 | 战吼: 1伤, 连击2伤 | 🔧 连击增伤 |
-| SI:7 Agent 军情七处特工 | 3 | 3/3 | 连击: 2伤 | ✅ (简化) |
-| Master of Disguise 伪装大师 | 4 | 4/4 | 战吼: 给友方潜行 | 🔧 赋予潜行 |
-| Kidnapper 绑匪 | 6 | 5/3 | 连击: 将随从移回手牌 | 🔧 连击回手 |
-
----
-
-## 萨满 (Shaman)
-
-### Basic (10 张)
-
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Ancestral Healing 先祖治疗 | 0 | - | 回满血+嘲讽 | 🔧 回满血 |
-| Totemic Might 图腾之力 | 0 | - | 图腾+2血 | ⬜ |
-| Frost Shock 冰霜震击 | 1 | - | 1伤+冻结 | ⬜ |
-| Flametongue Totem 火舌图腾 | 2 | 0/3 | 相邻+2攻 | ✅ |
-| Rockbiter Weapon 石化武器 | 1 | - | +3攻 | ✅ |
-| Windfury 风怒 | 2 | - | 给随从风怒 | 🔧 赋予风怒 |
-| Hex 妖术 | 3 | - | 变随从为0/1青蛙嘲讽 | ✅ |
-| Windspeaker 风语者 | 4 | 3/3 | 战吼: 给友方风怒 | 🔧 赋予风怒 |
-| Bloodlust 嗜血 | 5 | - | 友方+3攻 | ✅ |
-| Fire Elemental 火元素 | 6 | 6/5 | 战吼: 3伤 | ✅ |
-
-### Classic (15 张)
-
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Dust Devil 沙尘风暴 | 1 | 3/1 | 风怒 | ⬜ |
-| Earth Shock 大地震击 | 1 | - | 沉默+1伤 | ✅ |
-| Forked Lightning 叉状闪电 | 1 | - | 随机2个敌方随从2伤 | ⬜ |
-| Lightning Bolt 闪电箭 | 1 | - | 3伤 | ✅ |
-| Ancestral Spirit 先祖之魂 | 2 | - | 亡语: 复活随从 | 🔧 复活机制 |
-| Stormforged Axe 雷铸战斧 | 2 | 2/3 | 武器 | ⬜ |
-| Far Sight 视界术 | 3 | - | 抽1, 费用-3 | 🔧 减费 |
-| Feral Spirit 野性狼魂 | 3 | - | 召唤2个2/3嘲讽 | ✅ |
-| Lava Burst 熔岩爆裂 | 3 | - | 5伤 | ⬜ |
-| Lightning Storm 闪电风暴 | 3 | - | 全敌2-3伤 | ✅ |
-| Mana Tide Totem 法力潮汐图腾 | 3 | 0/3 | 回合结束: 抽1 | ✅ |
-| Unbound Elemental 无羁元素 | 3 | 2/4 | 过载牌后+1/+1 | 🔧 过载触发 |
-| Doomhammer 毁灭之锤 | 5 | 2/8 | 风怒武器 | ✅ |
-| Earth Elemental 土元素 | 5 | 7/8 | 嘲讽 | ⬜ |
-| Al'Akir the Windlord 风领主奥拉基尔 | 8 | 3/5 | 冲锋圣盾嘲讽风怒 | ✅ |
+| # | Card | Cost | Atk/HP | Text | Status |
+|---|------|------|--------|------|--------|
+| 1 | Blessing of Wisdom | 1 | — | Holy Spell | Whenever the target minion attacks, draw a card. | 🔧 Attack trigger |
+| 2 | Eye for an Eye | 1 | — | Spell | **Secret:** When your hero takes damage, deal that much damage to the enemy hero. | 🔧 Damage reflect |
+| 3 | Noble Sacrifice | 1 | — | Spell | **Secret:** When an enemy attacks, summon a 2/1 Defender as the new target. | 🔧 Summon defender |
+| 4 | Redemption | 1 | — | Spell | **Secret:** When a friendly minion dies, return it to life with 1 Health. | 🔧 Resurrect |
+| 5 | Repentance | 1 | — | Spell | **Secret:** When your opponent plays a minion, reduce its Health to 1. | 🔧 Play trigger |
+| 6 | Argent Protector | 2 | 2/2 | Minion | **Battlecry:** Give a friendly minion **Divine Shield**. | ✅ |
+| 7 | Equality | 2 | — | Holy Spell | Change the Health of ALL minions to 1. | ✅ |
+| 8 | Aldor Peacekeeper | 3 | 3/3 | Minion | **Battlecry:** Change an enemy minion's Attack to 1. | ✅ |
+| 9 | Holy Wrath | 5 | — | Holy Spell | Draw a card and deal damage equal to its Cost. | ⬜ |
+| 10 | Sword of Justice | 3 | 1/5 | Weapon | Whenever you summon a minion, give it +1/+1 and this loses 1 Durability. | 🔧 Summon trigger |
+| 11 | Blessed Champion | 5 | — | Holy Spell | Double a minion's Attack. | 🔧 Double attack |
+| 12 | Righteousness | 5 | — | Holy Spell | Give your minions **Divine Shield**. | ⬜ |
+| 13 | Avenging Wrath | 6 | — | Holy Spell | Deal 8 damage randomly split among all enemies. | ✅ |
+| 14 | Lay on Hands | 8 | — | Holy Spell | Restore 8 Health. Draw 3 cards. | ✅ |
+| 15 | Tirion Fordring | 8 | 6/6 | Minion | **Divine Shield.** **Taunt.** **Deathrattle:** Equip a 5/3 Ashbringer. | ✅ |
 
 ---
 
-## 术士 (Warlock)
+## Priest
 
-### Basic (10 张)
+### Priest — Basic (10)
 
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Corruption 腐蚀术 | 1 | - | 选择敌方随从, 下回合消灭 | 🔧 延迟消灭 |
-| Mortal Coil 死亡缠绕 | 1 | - | 1伤, 杀死则抽1 | ✅ |
-| Soulfire 灵魂之火 | 1 | - | 4伤, 随机弃1牌 | ✅ (简化) |
-| Voidwalker 虚空行者 | 1 | 1/3 | 嘲讽 | ✅ |
-| Felstalker 地狱犬 | 2 | 4/3 | 战吼: 随机弃1牌 | 🔧 弃牌 |
-| Drain Life 吸取生命 | 3 | - | 2伤+回2血 | ✅ |
-| Hellfire 地狱烈焰 | 4 | - | 全角色3伤 | ✅ |
-| Shadow Bolt 暗影箭 | 3 | - | 对随从4伤 | ✅ |
-| Dread Infernal 恐惧地狱火 | 6 | 6/6 | 战吼: 全其他角色1伤 | ⬜ |
-| Siegebreaker 攻城破坏者 | 7 | 5/8 | 嘲讽, 其他恶魔+1攻 | ✅ (简化) |
+| # | Card | Cost | Atk/HP | Type | Text | Status |
+|---|------|------|--------|------|------|--------|
+| 1 | Holy Smite | 1 | — | Holy Spell | Deal 3 damage to a minion. | ✅ |
+| 2 | Mind Vision | 1 | — | Shadow Spell | Put a copy of a random card in your opponent's hand into your hand. | ⏸️ Opponent hand |
+| 3 | Northshire Cleric | 1 | 1/3 | Minion | Whenever a minion is healed, draw a card. | ✅ (simplified) |
+| 4 | Power Word: Shield | 1 | — | Holy Spell | Give a minion +2 Health. Draw a card. | ✅ |
+| 5 | Radiance | 1 | — | Holy Spell | Restore 5 Health to your hero. | ⬜ |
+| 6 | Divine Spirit | 2 | — | Holy Spell | Double a minion's Health. | 🔧 Double health |
+| 7 | Mind Blast | 2 | — | Shadow Spell | Deal 5 damage to the enemy hero. | ✅ |
+| 8 | Shadow Word: Death | 3 | — | Shadow Spell | Destroy a minion with 5 or more Attack. | ✅ |
+| 9 | Shadow Word: Pain | 2 | — | Shadow Spell | Destroy a minion with 3 or less Attack. | ✅ |
+| 10 | Holy Nova | 5 | — | Holy Spell | Deal 2 damage to all enemy minions. Restore 2 Health to all friendly characters. | ✅ |
 
-### Classic (15 张)
+### Priest — Classic (15)
 
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Blood Imp 鲜血小鬼 | 1 | 0/1 | 潜行, 回合结束给友方+1血 | 🔧 Stealth+回合结束 |
-| Call of the Void 虚空召唤 | 1 | - | 随机恶魔加入手牌 | ⏸️ 随机 |
-| Flame Imp 烈焰小鬼 | 1 | 3/2 | 战吼: 对自己3伤 | ✅ |
-| Demonfire 恶魔之火 | 2 | - | 对随从2伤(恶魔+2/+2) | 🔧 条件buff |
-| Felguard 恶魔卫士 | 3 | 3/5 | 嘲讽, 战吼: 摧毁法力水晶 | 🔧 摧毁法力 |
-| Sense Demons 感知恶魔 | 3 | - | 从牌库抽2恶魔 | 🔧 种族检索 |
-| Void Terror 虚空恐魔 | 3 | 3/3 | 战吼: 消灭相邻随从+攻血 | 🔧 消灭相邻 |
-| Pit Lord 深渊领主 | 4 | 5/6 | 战吼: 对自己5伤 | ⬜ |
-| Shadowflame 暗影烈焰 | 4 | - | 消灭友方随从, 全敌等伤 | 🔧 消灭+AOE |
-| Siphon Soul 吸取灵魂 | 6 | - | 消灭随从+回3血 | 🔧 消灭+回血 |
-| Summoning Portal 召唤传送门 | 4 | 0/4 | 随从费用-2, 最少1 | 🔧 减费光环 |
-| Bane of Doom 厄运 | 5 | - | 2伤, 杀死则随机召唤恶魔 | ⏸️ 随机召唤 |
-| Lord Jaraxxus 加拉克苏斯大王 | 9 | 3/15 | 战吼: 替换英雄+5甲+武器 | ✅ (简化) |
-| Twisting Nether 扭曲虚空 | 8 | - | 消灭所有随从 | ✅ |
-
----
-
-## 战士 (Warrior)
-
-### Basic (10 张)
-
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Execute 斩杀 | 1 | - | 消灭受伤敌方随从 | ✅ |
-| Whirlwind 旋风斩 | 1 | - | 全随从1伤 | ✅ |
-| Cleave 顺劈斩 | 2 | - | 随机2个敌方随从2伤 | ✅ |
-| Fiery War Axe 炽炎战斧 | 2 | 3/2 | 武器 | ✅ |
-| Heroic Strike 英勇打击 | 2 | - | 英雄+4攻 | 🔧 英雄攻击buff |
-| Shield Block 盾牌格挡 | 3 | - | +5甲+抽1 | ✅ |
-| Charge 冲锋 | 3 | - | +2攻+冲锋 | 🔧 赋予冲锋 |
-| Warsong Commander 战歌指挥官 | 3 | 2/3 | 召唤≤3攻随从给冲锋 | ✅ (简化) |
-| Kor'kron Elite 库卡隆精英卫士 | 4 | 4/3 | 冲锋 | ✅ |
-| Arcanite Reaper 奥金斧 | 5 | 5/2 | 武器 | ✅ |
-
-### Classic (15 张)
-
-| 卡牌名 | 费用 | 攻/血 | 效果 | 状态 |
-|--------|------|-------|------|------|
-| Inner Rage 怒火中烧 | 0 | - | +2攻, 1伤 | ⬜ |
-| Shield Slam 盾牌猛击 | 1 | - | 护甲等伤 | 🔧 护甲伤害 |
-| Slam 猛击 | 2 | - | 对随从2伤, 存活则抽1 | ✅ |
-| Upgrade! 升级 | 1 | - | 武器+1/+1 | 🔧 武器buff |
-| Armorsmith 铸甲师 | 2 | 1/4 | 友方随从受伤+1甲 | ✅ (简化) |
-| Battle Rage 战斗怒火 | 2 | - | 每个受伤友方抽1 | 🔧 条件抽牌 |
-| Commanding Shout 命令怒吼 | 2 | - | 友方本回合不死+抽1 | 🔧 不死机制 |
-| Cruel Taskmaster 残酷的监工 | 2 | 2/2 | 战吼: 对随从1伤+2攻 | ✅ (简化) |
-| Rampage 狂暴 | 2 | - | 受伤随从+3/+3 | 🔧 条件buff |
-| Frothing Berserker 暴乱狂战士 | 3 | 2/4 | 随从受伤+1攻 | ✅ (简化) |
-| Arathi Weaponsmith 阿拉希武器匠 | 4 | 3/3 | 战吼: 装备2/2武器 | ✅ |
-| Mortal Strike 致死打击 | 4 | - | 4伤(≤12血则6伤) | 🔧 条件增伤 |
-| Brawl 绝命乱斗 | 5 | - | 消灭所有随从只剩一个 | 🔧 随机存活 |
-| Gorehowl 血吼 | 7 | 7/1 | 攻击随从不减耐久减攻 | ✅ (简化) |
-| Grommash Hellscream 格罗玛什·地狱咆哮 | 8 | 4/9 | 冲锋, 激怒: +6攻 | ✅ (简化) |
+| # | Card | Cost | Atk/HP | Text | Status |
+|---|------|------|--------|------|--------|
+| 1 | Circle of Healing | 0 | — | Holy Spell | Restore 4 Health to ALL minions. | ✅ |
+| 2 | Silence | 0 | — | Spell | **Silence** a minion. | ✅ |
+| 3 | Inner Fire | 1 | — | Holy Spell | Change a minion's Attack to be equal to its Health. | 🔧 Attack = Health |
+| 4 | Scarlet Subjugator | 1 | 2/1 | Minion | **Battlecry:** Give an enemy minion -2 Attack until your next turn. | 🔧 Temp debuff |
+| 5 | Kul Tiran Chaplain | 2 | 2/3 | Minion | **Battlecry:** Give a friendly minion +2 Health. | ⬜ |
+| 6 | Lightwell | 2 | 0/5 | Minion | At the start of your turn, restore 3 Health to a damaged friendly character. | 🔧 Start of turn |
+| 7 | Thoughtsteal | 3 | — | Shadow Spell | Copy 2 cards from your opponent's deck and put them into your hand. | ⏸️ Opponent deck |
+| 8 | Lightspawn | 4 | 0/5 | Minion | This minion's Attack is always equal to its Health. | 🔧 Dynamic attack |
+| 9 | Shadow Madness | 4 | — | Shadow Spell | Gain control of an enemy minion with 3 or less Attack until end of turn. | 🔧 Temporary control |
+| 10 | Mass Dispel | 4 | — | Holy Spell | **Silence** all enemy minions. Draw a card. | ⬜ |
+| 11 | Mindgames | 4 | — | Shadow Spell | Put a copy of a random minion from your opponent's deck into the battlefield. | ⏸️ Opponent deck |
+| 12 | Shadow Word: Ruin | 4 | — | Shadow Spell | Destroy all minions with 5 or more Attack. | ✅ |
+| 13 | Temple Enforcer | 6 | 6/6 | Minion | **Battlecry:** Give a friendly minion +3 Health. | ✅ |
+| 14 | Cabal Shadow Priest | 6 | 4/5 | Minion | **Battlecry:** Take control of an enemy minion that has 2 or less Attack. | ✅ (simplified) |
+| 15 | Natalie Seline | 7 | 7/1 | Minion | **Battlecry:** Destroy a minion and gain its Health. | 🔧 Destroy + gain |
+| 16 | Prophet Velen | 7 | 7/7 | Minion | Double the damage and healing of your spells and Hero Power. | ✅ (simplified) |
+| 17 | Mind Control | 10 | — | Shadow Spell | Take control of an enemy minion. | ⏸️ Mind control |
 
 ---
 
-## 统计数据
+## Rogue
 
-| 分类 | 总数 | ✅ 已实现 | ⬜ 待实现 | 🔧 需新机制 | ⏸️ 跳过 |
-|------|------|----------|----------|------------|----------|
-| 中立 Basic | 43 | 18 | 17 | 3 | 0 |
-| 中立 Common | 38 | 22 | 4 | 12 | 0 |
-| 中立 Rare | 35 | 6 | 0 | 25 | 0 |
-| 中立 Epic | 9 | 2 | 0 | 5 | 2 |
-| 中立 Legendary | 23 | 11 | 1 | 6 | 5 |
-| 德鲁伊 | 25 | 12 | 5 | 8 | 0 |
-| 猎人 | 25 | 13 | 2 | 9 | 1 |
-| 法师 | 25 | 16 | 2 | 6 | 1 |
-| 圣骑士 | 25 | 16 | 4 | 5 | 0 |
-| 牧师 | 27 | 12 | 8 | 5 | 2 |
-| 潜行者 | 25 | 13 | 3 | 8 | 1 |
-| 萨满 | 25 | 14 | 5 | 6 | 0 |
-| 术士 | 25 | 15 | 2 | 7 | 1 |
-| 战士 | 25 | 17 | 1 | 7 | 0 |
-| **总计** | **~379** | **~187** | **~54** | **~112** | **~13** |
+### Rogue — Basic (10)
+
+| # | Card | Cost | Atk/HP | Type | Text | Status |
+|---|------|------|--------|------|------|--------|
+| 1 | Backstab | 0 | — | Spell | Deal 2 damage to an undamaged minion. | ✅ |
+| 2 | Deadly Poison | 1 | — | Nature Spell | Give your weapon +2 Attack. | ✅ |
+| 3 | Sinister Strike | 1 | — | Spell | Deal 3 damage to the enemy hero. | ✅ |
+| 4 | Fan of Knives | 3 | — | Spell | Deal 1 damage to all enemy minions. Draw a card. | ✅ |
+| 5 | Sap | 2 | — | Spell | Return an enemy minion to your opponent's hand. | ✅ |
+| 6 | Shiv | 2 | — | Spell | Deal 1 damage. Draw a card. | ✅ |
+| 7 | Assassin's Blade | 5 | 3/4 | Weapon | — | ✅ |
+| 8 | Assassinate | 5 | — | Spell | Destroy an enemy minion. | ✅ |
+| 9 | Sprint | 7 | — | Spell | Draw 4 cards. | ✅ |
+| 10 | Vanish | 6 | — | Spell | Return all minions to their owner's hand. | 🔧 Mass return |
+
+### Rogue — Classic (15)
+
+| # | Card | Cost | Atk/HP | Text | Status |
+|---|------|------|--------|------|--------|
+| 1 | Preparation | 0 | — | Spell | The next spell you cast this turn costs (3) less. | ✅ (simplified) |
+| 2 | Shadowstep | 0 | — | Spell | Return a friendly minion to your hand. It costs (2) less. | 🔧 Return + discount |
+| 3 | Cold Blood | 1 | — | Spell | Give a minion +2 Attack. **Combo:** +4 Attack instead. | ✅ (simplified) |
+| 4 | Pilfer | 1 | — | Spell | Add a random card from another class to your hand. | ⏸️ Random |
+| 5 | Betrayal | 2 | — | Spell | Force an enemy minion to deal its damage to the minions next to it. | 🔧 Adjacent damage |
+| 6 | Blade Flurry | 2 | — | Spell | Destroy your weapon and deal its damage to all enemy minions. | 🔧 Weapon AOE |
+| 7 | Defias Ringleader | 2 | 2/2 | Minion | **Combo:** Summon a 2/1 Defias Bandit. | ✅ (simplified) |
+| 8 | Eviscerate | 2 | — | Spell | Deal 2 damage. **Combo:** Deal 4 damage instead. | ✅ |
+| 9 | Patient Assassin | 2 | 1/1 | Minion | **Stealth.** Destroy any minion damaged by this minion. | 🔧 Stealth + Poisonous |
+| 10 | Edwin VanCleef | 3 | 2/2 | Minion | **Combo:** Gain +2/+2 for each other card you've played this turn. | ✅ (simplified) |
+| 11 | Headcrack | 3 | — | Spell | Deal 2 damage to the enemy hero. **Combo:** Return this to your hand next turn. | 🔧 Combo return |
+| 12 | Perdition's Blade | 3 | 2/2 | Weapon | **Battlecry:** Deal 1 damage. **Combo:** Deal 2 instead. | 🔧 Combo damage |
+| 13 | SI:7 Agent | 3 | 3/3 | Minion | **Combo:** Deal 2 damage. | ✅ (simplified) |
+| 14 | Master of Disguise | 4 | 4/4 | Minion | **Battlecry:** Give a friendly minion **Stealth** until your next turn. | 🔧 Grant Stealth |
+| 15 | Kidnapper | 6 | 5/3 | Minion | **Combo:** Return a minion to its owner's hand. | 🔧 Combo return |
 
 ---
 
-## 未实现的主要原因
+## Shaman
 
-### 🔧 需要新引擎机制 (约 112 张)
-- **激怒 (Enrage)**: 受伤时触发效果 — ~12 张
-- **触发式效果**: 施法/召唤/死亡/回合开始/结束触发 — ~30 张  
-- **潜行 (Stealth)**: 无法被指定为目标 — ~5 张
-- **抉择 (Choose One)**: 德鲁伊专属二选一 — ~8 张
-- **连击 (Combo)**: 潜行者专属条件增强 — ~8 张
-- **过载 (Overload)**: 萨满专属锁法力 — ~5 张
-- **条件式效果**: 有野兽/有武器/受伤/手牌数等条件 — ~25 张
-- **特殊机制**: 毒药、免疫、复制、复活、控制、费用修改 — ~19 张
+### Shaman — Basic (10)
 
-### ⏸️ 跳过 (约 13 张)
-- 随机获得跨系列卡牌 (发现、随机加入手牌)
-- 复制/获取对手牌库中的牌
-- 过于特殊的唯一机制 (诺兹多姆的时间限制等)
+| # | Card | Cost | Atk/HP | Type | Text | Status |
+|---|------|------|--------|------|------|--------|
+| 1 | Ancestral Healing | 0 | — | Nature Spell | Restore a minion to full Health and give it **Taunt**. | 🔧 Full heal |
+| 2 | Totemic Might | 0 | — | Spell | Give your Totems +2 Health. | ✅ |
+| 3 | Frost Shock | 1 | — | Frost Spell | Deal 1 damage to an enemy character and **Freeze** it. | ✅ |
+| 4 | Flametongue Totem | 2 | 0/3 | Totem Minion | Adjacent minions have +2 Attack. | ✅ |
+| 5 | Rockbiter Weapon | 2 | — | Nature Spell | Give a friendly character +3 Attack this turn. | ✅ |
+| 6 | Windfury | 2 | — | Nature Spell | Give a minion **Windfury**. | 🔧 Grant Windfury |
+| 7 | Hex | 3 | — | Nature Spell | Transform a minion into a 0/1 Frog with **Taunt**. | ✅ |
+| 8 | Windspeaker | 4 | 3/3 | Minion | **Battlecry:** Give a friendly minion **Windfury**. | 🔧 Grant Windfury |
+| 9 | Bloodlust | 5 | — | Spell | Give your minions +3 Attack this turn. | ✅ |
+| 10 | Fire Elemental | 6 | 6/5 | Elemental Minion | **Battlecry:** Deal 4 damage. | ✅ |
 
-### ⬜ 简单可添加 (约 54 张)
-效果已被现有引擎支持，只需补充 CardDef 定义即可加入。
+### Shaman — Classic (15)
+
+| # | Card | Cost | Atk/HP | Text | Status |
+|---|------|------|--------|------|--------|
+| 1 | Dust Devil | 1 | 3/1 | Minion | **Windfury.** **Overload:** (2) | ✅ (no Overload) |
+| 2 | Earth Shock | 1 | — | Nature Spell | **Silence** a minion, then deal 1 damage to it. | ✅ |
+| 3 | Forked Lightning | 1 | — | Spell | Deal 2 damage to 2 random enemy minions. **Overload:** (2) | ✅ (no Overload) |
+| 4 | Lightning Bolt | 1 | — | Nature Spell | Deal 3 damage. **Overload:** (1) | ✅ (no Overload) |
+| 5 | Ancestral Spirit | 2 | — | Nature Spell | Give a minion "**Deathrattle:** Resummon this minion." | 🔧 Resurrect |
+| 6 | Stormforged Axe | 2 | 2/3 | Weapon | **Overload:** (1) | ✅ (no Overload) |
+| 7 | Far Sight | 3 | — | Spell | Draw a card. That card costs (3) less. | 🔧 Draw + discount |
+| 8 | Feral Spirit | 3 | — | Spell | Summon two 2/3 Spirit Wolves with **Taunt.** **Overload:** (2) | ✅ (no Overload) |
+| 9 | Lava Burst | 3 | — | Fire Spell | Deal 5 damage. **Overload:** (2) | ✅ (no Overload) |
+| 10 | Lightning Storm | 3 | — | Nature Spell | Deal 2-3 damage to all enemy minions. **Overload:** (2) | ✅ |
+| 11 | Mana Tide Totem | 3 | 0/3 | Totem Minion | At the end of your turn, draw a card. | ✅ |
+| 12 | Unbound Elemental | 3 | 2/4 | Elemental Minion | Whenever you play a card with **Overload**, gain +1/+1. | 🔧 Overload trigger |
+| 13 | Doomhammer | 5 | 2/8 | Weapon | **Windfury.** **Overload:** (2) | ✅ (no Overload) |
+| 14 | Earth Elemental | 5 | 7/8 | Elemental Minion | **Taunt.** **Overload:** (3) | ✅ (no Overload) |
+| 15 | Al'Akir the Windlord | 8 | 3/5 | Minion | **Windfury, Charge, Divine Shield, Taunt** | ✅ |
+
+---
+
+## Warlock
+
+### Warlock — Basic (10)
+
+| # | Card | Cost | Atk/HP | Type | Text | Status |
+|---|------|------|--------|------|------|--------|
+| 1 | Corruption | 1 | — | Shadow Spell | Choose an enemy minion. At the start of your turn, destroy it. | 🔧 Delayed destroy |
+| 2 | Mortal Coil | 1 | — | Shadow Spell | Deal 1 damage to a minion. If it dies, draw a card. | ✅ |
+| 3 | Soulfire | 1 | — | Fire Spell | Deal 4 damage. Discard a random card. | ✅ (simplified) |
+| 4 | Voidwalker | 1 | 1/3 | Demon Minion | **Taunt** | ✅ |
+| 5 | Felstalker | 2 | 4/3 | Demon Minion | **Battlecry:** Discard a random card. | 🔧 Discard |
+| 6 | Drain Life | 3 | — | Shadow Spell | Deal 2 damage. Restore 2 Health to your hero. | ✅ |
+| 7 | Hellfire | 4 | — | Fire Spell | Deal 3 damage to ALL characters. | ✅ |
+| 8 | Shadow Bolt | 3 | — | Shadow Spell | Deal 4 damage to a minion. | ✅ |
+| 9 | Dread Infernal | 6 | 6/6 | Demon Minion | **Battlecry:** Deal 1 damage to ALL other characters. | ✅ |
+| 10 | Siegebreaker | 7 | 5/8 | Demon Minion | **Taunt.** Your other Demons have +1 Attack. | ✅ (simplified) |
+
+### Warlock — Classic (15)
+
+| # | Card | Cost | Atk/HP | Text | Status |
+|---|------|------|--------|------|--------|
+| 1 | Blood Imp | 1 | 0/1 | Demon Minion | **Stealth.** At the end of your turn, give another random friendly minion +1 Health. | 🔧 Stealth + trigger |
+| 2 | Call of the Void | 1 | — | Shadow Spell | Add a random Demon to your hand. | ⏸️ Random |
+| 3 | Flame Imp | 1 | 3/2 | Demon Minion | **Battlecry:** Deal 3 damage to your hero. | ✅ |
+| 4 | Demonfire | 2 | — | Shadow Spell | Deal 2 damage to a minion. If it's a friendly Demon, give it +2/+2 instead. | 🔧 Conditional buff |
+| 5 | Felguard | 3 | 3/5 | Demon Minion | **Taunt.** **Battlecry:** Destroy one of your Mana Crystals. | 🔧 Destroy mana |
+| 6 | Sense Demons | 3 | — | Spell | Draw 2 Demons from your deck. | 🔧 Tribe draw |
+| 7 | Void Terror | 3 | 3/3 | Demon Minion | **Battlecry:** Destroy the minions on both sides of this minion and gain their Attack and Health. | 🔧 Destroy adjacent |
+| 8 | Pit Lord | 4 | 5/6 | Demon Minion | **Battlecry:** Deal 5 damage to your hero. | ✅ |
+| 9 | Shadowflame | 4 | — | Shadow Spell | Destroy a friendly minion and deal its Attack damage to all enemy minions. | 🔧 Destroy + AOE |
+| 10 | Siphon Soul | 6 | — | Shadow Spell | Destroy a minion. Restore 3 Health to your hero. | 🔧 Destroy + heal |
+| 11 | Summoning Portal | 4 | 0/4 | Minion | Your minions cost (2) less, but not less than (1). | 🔧 Cost aura |
+| 12 | Bane of Doom | 5 | — | Shadow Spell | Deal 2 damage to a character. If that kills it, summon a random Demon. | ⏸️ Random summon |
+| 13 | Lord Jaraxxus | 9 | 3/15 | Demon Minion | **Battlecry:** Destroy your hero and replace it with Lord Jaraxxus. Equip a 3/8 Blood Fury. | ✅ (simplified) |
+| 14 | Twisting Nether | 8 | — | Shadow Spell | Destroy all minions. | ✅ |
+
+---
+
+## Warrior
+
+### Warrior — Basic (10)
+
+| # | Card | Cost | Atk/HP | Type | Text | Status |
+|---|------|------|--------|------|------|--------|
+| 1 | Execute | 1 | — | Spell | Destroy a damaged enemy minion. | ✅ |
+| 2 | Whirlwind | 1 | — | Spell | Deal 1 damage to ALL minions. | ✅ |
+| 3 | Cleave | 2 | — | Spell | Deal 2 damage to two random enemy minions. | ✅ |
+| 4 | Fiery War Axe | 2 | 3/2 | Weapon | — | ✅ |
+| 5 | Heroic Strike | 2 | — | Spell | Give your hero +4 Attack this turn. | 🔧 Hero attack |
+| 6 | Shield Block | 3 | — | Spell | Gain 5 Armor. Draw a card. | ✅ |
+| 7 | Charge | 3 | — | Spell | Give a friendly minion +2 Attack and **Charge**. | 🔧 Grant Charge |
+| 8 | Warsong Commander | 3 | 2/3 | Minion | Whenever you summon a minion with 3 or less Attack, give it **Charge**. | ✅ (simplified) |
+| 9 | Kor'kron Elite | 4 | 4/3 | Minion | **Charge** | ✅ |
+| 10 | Arcanite Reaper | 5 | 5/2 | Weapon | — | ✅ |
+
+### Warrior — Classic (15)
+
+| # | Card | Cost | Atk/HP | Text | Status |
+|---|------|------|--------|------|--------|
+| 1 | Inner Rage | 0 | — | Spell | Deal 1 damage to a minion and give it +2 Attack. | ✅ |
+| 2 | Shield Slam | 1 | — | Spell | Deal 1 damage to a minion for each Armor you have. | 🔧 Armor damage |
+| 3 | Slam | 2 | — | Spell | Deal 2 damage to a minion. If it survives, draw a card. | ✅ |
+| 4 | Upgrade! | 1 | — | Spell | If you have a weapon, give it +1/+1. Otherwise equip a 1/3 weapon. | 🔧 Weapon buff |
+| 5 | Armorsmith | 2 | 1/4 | Minion | Whenever a friendly minion takes damage, gain 1 Armor. | ✅ (simplified) |
+| 6 | Battle Rage | 2 | — | Spell | Draw a card for each damaged friendly character. | 🔧 Conditional draw |
+| 7 | Commanding Shout | 2 | — | Spell | Your minions can't be reduced below 1 Health this turn. Draw a card. | 🔧 Immune mechanism |
+| 8 | Cruel Taskmaster | 2 | 2/2 | Minion | **Battlecry:** Deal 1 damage to a minion and give it +2 Attack. | ✅ (simplified) |
+| 9 | Rampage | 2 | — | Spell | Give a damaged minion +3/+3. | 🔧 Conditional buff |
+| 10 | Frothing Berserker | 3 | 2/4 | Minion | Whenever a minion takes damage, gain +1 Attack. | ✅ (simplified) |
+| 11 | Arathi Weaponsmith | 4 | 3/3 | Minion | **Battlecry:** Equip a 2/2 Battle Axe. | ✅ |
+| 12 | Mortal Strike | 4 | — | Spell | Deal 4 damage. If you have 12 or less Health, deal 6 instead. | 🔧 Conditional damage |
+| 13 | Brawl | 5 | — | Spell | Destroy all minions except one. (chosen randomly) | 🔧 Random survivor |
+| 14 | Gorehowl | 7 | 7/1 | Weapon | Attacking a minion costs 1 Attack instead of 1 Durability. | ✅ (simplified) |
+| 15 | Grommash Hellscream | 8 | 4/9 | Minion | **Charge.** **Enrage:** +6 Attack. | ✅ (simplified) |
+
+---
+
+## Statistics
+
+| Category | Total | ✅ | ⬜ | 🔧 | ⏸️ |
+|----------|-------|---------|-----|------|------|
+| Neutral Basic | 43 | 39 | 1 | 3 | 0 |
+| Neutral Common | 38 | 26 | 0 | 12 | 0 |
+| Neutral Rare | 35 | 7 | 1 | 27 | 0 |
+| Neutral Epic | 9 | 2 | 1 | 4 | 2 |
+| Neutral Legendary | 24 | 13 | 0 | 6 | 5 |
+| Druid Total | 25 | 15 | 1 | 9 | 0 |
+| Hunter Total | 25 | 16 | 1 | 7 | 1 |
+| Mage Total | 25 | 17 | 1 | 6 | 1 |
+| Paladin Total | 25 | 20 | 2 | 3 | 0 |
+| Priest Total | 27 | 15 | 4 | 4 | 4 |
+| Rogue Total | 25 | 15 | 0 | 9 | 1 |
+| Shaman Total | 25 | 20 | 0 | 5 | 0 |
+| Warlock Total | 25 | 18 | 0 | 5 | 2 |
+| Warrior Total | 25 | 19 | 0 | 6 | 0 |
+| **Grand Total** | **~379** | **~242** | **~12** | **~112** | **~16** |
