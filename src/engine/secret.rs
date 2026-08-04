@@ -20,11 +20,7 @@ use crate::core::zone::Zone;
 ///
 /// 在 `apply_event` 处理完每个事件后调用。
 /// 返回被揭示的奥秘数量。
-pub fn check_secrets(
-    state: &mut GameState,
-    queue: &mut EventQueue,
-    event: &Event,
-) -> usize {
+pub fn check_secrets(state: &mut GameState, queue: &mut EventQueue, event: &Event) -> usize {
     let active = state.active_player();
 
     // 收集所有 SetAside 中的奥秘（按打出的顺序，主玩家优先）
@@ -60,13 +56,7 @@ pub fn check_secrets(
                 secret: *entity,
             });
             // 解析奥秘效果
-            crate::engine::trigger::resolve_effect(
-                state,
-                queue,
-                *entity,
-                *player,
-                secret.effect,
-            );
+            crate::engine::trigger::resolve_effect(state, queue, *entity, *player, secret.effect);
             triggered += 1;
         }
     }
@@ -109,27 +99,16 @@ fn matches_trigger(
 }
 
 /// 检查 AfterFriendlyAttacked 触发条件。
-fn matches_after_friendly_attacked(
-    event: &Event,
-    state: &GameState,
-    owner: PlayerId,
-) -> bool {
+fn matches_after_friendly_attacked(event: &Event, state: &GameState, owner: PlayerId) -> bool {
     let Event::AttackDeclared { defender, .. } = event else {
         return false;
     };
     // 防御者是己方角色
-    state
-        .world()
-        .player(*defender)
-        .is_some_and(|p| p == owner)
+    state.world().player(*defender).is_some_and(|p| p == owner)
 }
 
 /// 检查 AfterEnemyHeroAttacks 触发条件。
-fn matches_after_enemy_hero_attacks(
-    event: &Event,
-    state: &GameState,
-    owner: PlayerId,
-) -> bool {
+fn matches_after_enemy_hero_attacks(event: &Event, state: &GameState, owner: PlayerId) -> bool {
     let Event::AttackDeclared { attacker, .. } = event else {
         return false;
     };

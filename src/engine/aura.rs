@@ -36,7 +36,7 @@ pub fn compute_aura_attack_bonus(
             Some(p) => p,
             None => continue,
         };
-        if aura_applies_to_entity(*aura, *source, aura_player, target, target_player, world) {
+        if aura_applies_to_entity(**aura, *source, aura_player, target, target_player, world) {
             bonus += aura_attack_value(aura.effect);
         }
     }
@@ -63,7 +63,7 @@ pub fn compute_aura_health_bonus(
             Some(p) => p,
             None => continue,
         };
-        if aura_applies_to_entity(*aura, *source, aura_player, target, target_player, world) {
+        if aura_applies_to_entity(**aura, *source, aura_player, target, target_player, world) {
             bonus += aura_health_value(aura.effect);
         }
     }
@@ -91,9 +91,7 @@ fn aura_applies_to_entity(
 
     match aura.target {
         AuraTarget::AllFriendlyMinions => target_player == aura_player,
-        AuraTarget::OtherFriendlyMinions => {
-            target_player == aura_player && target != aura_source
-        }
+        AuraTarget::OtherFriendlyMinions => target_player == aura_player && target != aura_source,
         AuraTarget::AdjacentMinions => {
             if target_player != aura_player || target == aura_source {
                 return false;

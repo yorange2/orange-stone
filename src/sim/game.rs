@@ -191,29 +191,18 @@ impl GameBuilder {
     ) -> &mut Self {
         let hero = self.state.player(player).hero;
         let world = self.state.world_mut();
-        world.set_hero_power(
-            hero,
-            HeroPowerDef { cost, effect },
-        );
+        world.set_hero_power(hero, HeroPowerDef { cost, effect });
         self
     }
 
     /// 给随从设置光环效果。
-    pub fn set_aura_on_entity(
-        &mut self,
-        entity: Entity,
-        aura: Aura,
-    ) -> &mut Self {
+    pub fn set_aura_on_entity(&mut self, entity: Entity, aura: Aura) -> &mut Self {
         self.state.world_mut().set_aura(entity, aura);
         self
     }
 
     /// 给随从设置奥秘组件。
-    pub fn set_secret_on_entity(
-        &mut self,
-        entity: Entity,
-        secret: Secret,
-    ) -> &mut Self {
+    pub fn set_secret_on_entity(&mut self, entity: Entity, secret: Secret) -> &mut Self {
         self.state.world_mut().set_secret(entity, secret);
         self
     }
@@ -230,10 +219,13 @@ impl GameBuilder {
         world.set_attacks_used(e, AttacksUsed(0));
         // 设置光环（如果有）
         if let Some((aura_effect, aura_target)) = card.aura {
-            world.set_aura(e, Aura {
-                effect: aura_effect,
-                target: aura_target,
-            });
+            world.set_aura(
+                e,
+                Aura {
+                    effect: aura_effect,
+                    target: aura_target,
+                },
+            );
         }
         // 设置战吼/亡语（已有字段）
         if let Some(bc) = card.battlecry {

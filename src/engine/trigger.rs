@@ -12,7 +12,7 @@
 //! - `Self_` → 效果来源实体自身
 //! - `AllEnemyMinions` → 所有敌方随从
 
-use crate::core::component::{Attack, CardType, Health};
+use crate::core::component::{Attack, CardType, Cost, Durability, Health};
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue};
@@ -192,10 +192,13 @@ fn resolve_summon(
         world.zones_mut().insert(Zone::Play, owner, e);
         // 设置光环、战吼、亡语、嘲讽（如果有）
         if let Some((aura_effect, aura_target)) = card_def.aura {
-            world.set_aura(e, crate::core::component::Aura {
-                effect: aura_effect,
-                target: aura_target,
-            });
+            world.set_aura(
+                e,
+                crate::core::component::Aura {
+                    effect: aura_effect,
+                    target: aura_target,
+                },
+            );
         }
         if let Some(bc) = card_def.battlecry {
             world.set_battlecry(e, crate::core::component::Battlecry(bc));
@@ -292,12 +295,7 @@ fn resolve_equip_weapon(
 }
 
 /// 获得护甲。
-fn resolve_gain_armor(
-    state: &mut GameState,
-    owner: PlayerId,
-    amount: i32,
-    target: EffectTarget,
-) {
+fn resolve_gain_armor(state: &mut GameState, owner: PlayerId, amount: i32, target: EffectTarget) {
     match target {
         EffectTarget::Self_ => {
             let inner = state.make_mut();
@@ -320,7 +318,7 @@ fn resolve_return_to_hand(
     owner: PlayerId,
     target: EffectTarget,
 ) {
-    let enemy = owner.opponent();
+    let _enemy = owner.opponent();
     let minions = match target {
         EffectTarget::AnyEnemy => collect_enemy_minions(state, owner),
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
@@ -345,7 +343,7 @@ fn resolve_increase_cost(
     amount: i32,
     target: EffectTarget,
 ) {
-    let enemy = owner.opponent();
+    let _enemy = owner.opponent();
     let minions = match target {
         EffectTarget::AnyEnemy => collect_enemy_minions(state, owner),
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),

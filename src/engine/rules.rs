@@ -8,9 +8,7 @@
 //! 所有函数都是纯函数式风格，通过 `GameState` 参数与状态交互。
 
 use crate::core::action::Action;
-use crate::core::component::{
-    Attack, AttacksUsed, CardType, Durability, Health, HeroPowerUsed,
-};
+use crate::core::component::{Attack, AttacksUsed, CardType, Durability, Health, HeroPowerUsed};
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue, Priority};
 use crate::core::player::PlayerId;
@@ -315,9 +313,7 @@ pub fn enqueue(
             });
             // 如果防御者是随从，它也会反击
             if world.card_type(defender) == Some(CardType::Minion) {
-                let defender_atk = world
-                    .effective_attack(defender)
-                    .unwrap_or(Attack(0));
+                let defender_atk = world.effective_attack(defender).unwrap_or(Attack(0));
                 if defender_atk.0 > 0 {
                     queue.push(Event::DamageDealt {
                         source: defender,
@@ -421,9 +417,7 @@ pub fn apply_event(
             let is_hero = state.world().card_type(attacker) == Some(CardType::Hero);
             let attacker_player = state.world().player(attacker);
             let weapon_info: Option<(PlayerId, Entity)> = if is_hero {
-                attacker_player.and_then(|pid| {
-                    state.player(pid).weapon.map(|w| (pid, w))
-                })
+                attacker_player.and_then(|pid| state.player(pid).weapon.map(|w| (pid, w)))
             } else {
                 None
             };
@@ -478,14 +472,10 @@ pub fn apply_event(
                         let new_hp = Health(hp.0 - remaining);
                         state.world_mut().set_health(target, new_hp);
 
-                        let effective_hp =
-                            state.world().effective_health(target).unwrap_or(new_hp);
+                        let effective_hp = state.world().effective_health(target).unwrap_or(new_hp);
                         if effective_hp.is_dead() {
                             let winner = pid.opponent();
-                            queue.push_with_priority(
-                                Event::GameOver { winner },
-                                Priority::Highest,
-                            );
+                            queue.push_with_priority(Event::GameOver { winner }, Priority::Highest);
                         }
                         return Ok(());
                     }

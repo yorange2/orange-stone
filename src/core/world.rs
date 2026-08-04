@@ -323,7 +323,14 @@ impl World {
         iter_hero_power_used
     );
     component_accessors!(aura, Aura, aura, set_aura, remove_aura, iter_aura);
-    component_accessors!(secret, Secret, secret, set_secret, remove_secret, iter_secret);
+    component_accessors!(
+        secret,
+        Secret,
+        secret,
+        set_secret,
+        remove_secret,
+        iter_secret
+    );
 
     /// 获取实体的有效攻击力（基础攻击力 + 所有光环加成）。
     ///
@@ -430,12 +437,7 @@ fn aura_applies_to(
 }
 
 /// 检查两个实体在战场上是否相邻。
-fn is_adjacent(
-    source: Entity,
-    target: Entity,
-    player: PlayerId,
-    world: &World,
-) -> bool {
+fn is_adjacent(source: Entity, target: Entity, player: PlayerId, world: &World) -> bool {
     use crate::core::component::CardType;
     use crate::core::zone::Zone;
 
@@ -458,7 +460,7 @@ fn is_adjacent(
 }
 
 /// 返回光环效果的攻击力加成。
-const fn aura_attack_bonus(effect: AuraEffect) -> i32 {
+const fn aura_attack_bonus(effect: crate::core::component::AuraEffect) -> i32 {
     use crate::core::component::AuraEffect;
     match effect {
         AuraEffect::GainStats { attack, .. } => attack,
@@ -468,7 +470,7 @@ const fn aura_attack_bonus(effect: AuraEffect) -> i32 {
 }
 
 /// 返回光环效果的生命值加成。
-const fn aura_health_bonus(effect: AuraEffect) -> i32 {
+const fn aura_health_bonus(effect: crate::core::component::AuraEffect) -> i32 {
     use crate::core::component::AuraEffect;
     match effect {
         AuraEffect::GainStats { health, .. } => health,

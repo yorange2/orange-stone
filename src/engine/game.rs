@@ -214,11 +214,12 @@ mod tests {
     }
 
     #[test]
-    fn hero_power_unimplemented() {
+    fn hero_power_no_definition_rejected() {
         let engine = GameEngine::new();
         let mut state = GameState::new();
         let hero = state.player(PlayerId::Player1).hero;
+        // 没有定义英雄技能，法力不足
         let result = engine.apply(&mut state, Action::HeroPower { hero });
-        assert_eq!(result, Err(EngineError::Unimplemented));
+        assert_eq!(result, Err(EngineError::NotEnoughMana));
     }
 }

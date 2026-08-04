@@ -597,9 +597,10 @@ fn hero_attack_with_weapon_consumes_durability() {
         state.world().health(defender_hero),
         Some(orange_stone::core::component::Health(27))
     );
-    assert!(log
-        .iter()
-        .any(|e| matches!(e, Event::AttackDeclared { .. })));
+    assert!(
+        log.iter()
+            .any(|e| matches!(e, Event::AttackDeclared { .. }))
+    );
 }
 
 #[test]
@@ -610,6 +611,7 @@ fn weapon_breaks_when_durability_reaches_zero() {
     let mut builder = GameBuilder::new();
     builder.equip_weapon(PlayerId::Player1, &FIERY_WAR_AXE);
     builder.set_mana(PlayerId::Player1, 10, 10);
+    builder.set_mana(PlayerId::Player2, 10, 10);
     let state = builder.build();
     let hero = state.player(PlayerId::Player1).hero;
     let enemy = state.player(PlayerId::Player2).hero;
@@ -627,6 +629,10 @@ fn weapon_breaks_when_durability_reaches_zero() {
         .unwrap();
     assert!(state.player(PlayerId::Player1).weapon.is_some());
 
+    // 需要结束两个回合才能再次攻击（英雄每回合只能攻击一次）
+    engine.apply(&mut state, Action::EndTurn).unwrap(); // Player2's turn
+    engine.apply(&mut state, Action::EndTurn).unwrap(); // Back to Player1
+
     // 第二次攻击：耐久 1 → 0，武器应被摧毁
     let log = engine
         .apply(
@@ -639,9 +645,10 @@ fn weapon_breaks_when_durability_reaches_zero() {
         .unwrap();
 
     assert!(state.player(PlayerId::Player1).weapon.is_none());
-    assert!(log
-        .iter()
-        .any(|e| matches!(e, Event::WeaponDestroyed { .. })));
+    assert!(
+        log.iter()
+            .any(|e| matches!(e, Event::WeaponDestroyed { .. }))
+    );
 }
 
 #[test]
@@ -729,7 +736,6 @@ fn damage_spills_over_armor_to_health() {
 
 #[test]
 fn hero_power_use_once_per_turn() {
-    use orange_stone::core::component::HeroPowerDef;
     use orange_stone::core::effect::{CardEffect, EffectTarget};
 
     let engine = GameEngine::new();
@@ -751,9 +757,10 @@ fn hero_power_use_once_per_turn() {
     let log = engine
         .apply(&mut state, Action::HeroPower { hero })
         .unwrap();
-    assert!(log
-        .iter()
-        .any(|e| matches!(e, Event::HeroPowerActivated { .. })));
+    assert!(
+        log.iter()
+            .any(|e| matches!(e, Event::HeroPowerActivated { .. }))
+    );
     // 法力应减少 2
     assert_eq!(state.player(PlayerId::Player1).current_mana, 8);
 
@@ -764,7 +771,6 @@ fn hero_power_use_once_per_turn() {
 
 #[test]
 fn hero_power_resets_after_turn() {
-    use orange_stone::core::component::HeroPowerDef;
     use orange_stone::core::effect::{CardEffect, EffectTarget};
 
     let engine = GameEngine::new();
@@ -830,11 +836,10 @@ fn aura_buffs_other_friendly_minions() {
     let leader: Vec<_> = state
         .world()
         .zones()
-        .iter(
-            orange_stone::core::zone::Zone::Play,
-            PlayerId::Player1,
-        )
-        .filter(|&e| state.world().card_type(e) == Some(orange_stone::core::component::CardType::Minion))
+        .iter(orange_stone::core::zone::Zone::Play, PlayerId::Player1)
+        .filter(|&e| {
+            state.world().card_type(e) == Some(orange_stone::core::component::CardType::Minion)
+        })
         .collect();
     // leader 的有效攻击力应包括自身基础攻击力 + 其他光环
     // RAID_LEADER 有 2 攻击力（自身），不给自己加
@@ -853,6 +858,7 @@ fn aura_bonus_disappears_when_source_dies() {
     builder.add_minion_to_board(PlayerId::Player1, &RAID_LEADER);
     let croc = builder.add_custom_minion_to_board(PlayerId::Player1, 2, 3, 2);
     let enemy = builder.add_custom_minion_to_board(PlayerId::Player2, 5, 1, 3);
+    builder.active_player(PlayerId::Player2);
     let state = builder.build();
 
     let mut state = state;
@@ -860,10 +866,7 @@ fn aura_bonus_disappears_when_source_dies() {
     let leader: Vec<_> = state
         .world()
         .zones()
-        .iter(
-            orange_stone::core::zone::Zone::Play,
-            PlayerId::Player1,
-        )
+        .iter(orange_stone::core::zone::Zone::Play, PlayerId::Player1)
         .filter(|&e| {
             state.world().card_type(e) == Some(orange_stone::core::component::CardType::Minion)
         })
@@ -926,18 +929,26 @@ fn secret_triggers_on_enemy_hero_attack() {
     let mut builder = GameBuilder::new();
     builder.set_mana(PlayerId::Player1, 10, 10);
     builder.set_mana(PlayerId::Player2, 10, 10);
+    builder.active_player(PlayerId::Player2);
     let mut state = builder.build();
 
     // 给 Player2 装备武器
     {
         let inner = state.make_mut();
         let weapon = inner.world.spawn();
-        inner.world.set_attack(weapon, orange_stone::core::component::Attack(3));
-        inner.world.set_durability(weapon, orange_stone::core::component::Durability(2));
+        inner
+            .world
+            .set_attack(weapon, orange_stone::core::component::Attack(3));
+        inner
+            .world
+            .set_durability(weapon, orange_stone::core::component::Durability(2));
         inner.world.set_card_type(weapon, CardType::Weapon);
         inner.world.set_player(weapon, PlayerId::Player2);
         inner.world.set_zone(weapon, Zone::Play);
-        inner.world.zones_mut().insert(Zone::Play, PlayerId::Player2, weapon);
+        inner
+            .world
+            .zones_mut()
+            .insert(Zone::Play, PlayerId::Player2, weapon);
         inner.players[PlayerId::Player2.index()].weapon = Some(weapon);
     }
 
@@ -958,7 +969,9 @@ fn secret_triggers_on_enemy_hero_attack() {
                 },
             },
         );
-        world.zones_mut().insert(Zone::SetAside, PlayerId::Player1, secret_entity);
+        world
+            .zones_mut()
+            .insert(Zone::SetAside, PlayerId::Player1, secret_entity);
     }
 
     let attacker_hero = state.player(PlayerId::Player2).hero;
@@ -975,9 +988,10 @@ fn secret_triggers_on_enemy_hero_attack() {
         .unwrap();
 
     // 奥秘应该被触发
-    assert!(log
-        .iter()
-        .any(|e| matches!(e, Event::SecretRevealed { .. })));
+    assert!(
+        log.iter()
+            .any(|e| matches!(e, Event::SecretRevealed { .. }))
+    );
 }
 
 // ============================================================
@@ -987,7 +1001,7 @@ fn secret_triggers_on_enemy_hero_attack() {
 #[test]
 fn deathrattle_triggers_before_zone_transfer() {
     use orange_stone::core::component::{CardType, Deathrattle};
-    use orange_stone::core::effect::{CardEffect, EffectTarget};
+    use orange_stone::core::effect::CardEffect;
     use orange_stone::core::zone::Zone;
 
     let engine = GameEngine::new();
@@ -997,10 +1011,9 @@ fn deathrattle_triggers_before_zone_transfer() {
     let mut state = builder.build();
 
     // 给 minion 添加亡语：抽一张牌
-    state.world_mut().set_deathrattle(
-        minion,
-        Deathrattle(CardEffect::DrawCard { count: 1 }),
-    );
+    state
+        .world_mut()
+        .set_deathrattle(minion, Deathrattle(CardEffect::DrawCard { count: 1 }));
 
     // 把一张牌放入 Player2 的牌库
     let card_in_deck = {
@@ -1012,7 +1025,9 @@ fn deathrattle_triggers_before_zone_transfer() {
         world.set_health(card, orange_stone::core::component::Health(1));
         world.set_attack(card, orange_stone::core::component::Attack(1));
         world.set_cost(card, orange_stone::core::component::Cost(1));
-        world.zones_mut().insert(Zone::Deck, PlayerId::Player2, card);
+        world
+            .zones_mut()
+            .insert(Zone::Deck, PlayerId::Player2, card);
         card
     };
 
@@ -1027,18 +1042,10 @@ fn deathrattle_triggers_before_zone_transfer() {
         .unwrap();
 
     // minion 应被杀死并触发亡语抽牌
-    assert_eq!(
-        state.world().zone(minion),
-        Some(Zone::Graveyard)
-    );
+    assert_eq!(state.world().zone(minion), Some(Zone::Graveyard));
     // 亡语抽的牌应在手牌中
-    assert!(log
-        .iter()
-        .any(|e| matches!(e, Event::CardDrawn { .. })));
-    assert_eq!(
-        state.world().zone(card_in_deck),
-        Some(Zone::Hand)
-    );
+    assert!(log.iter().any(|e| matches!(e, Event::CardDrawn { .. })));
+    assert_eq!(state.world().zone(card_in_deck), Some(Zone::Hand));
 }
 
 #[test]
@@ -1051,6 +1058,7 @@ fn multiple_secrets_trigger_in_order() {
     let mut builder = GameBuilder::new();
     builder.set_mana(PlayerId::Player1, 10, 10);
     builder.set_mana(PlayerId::Player2, 10, 10);
+    builder.active_player(PlayerId::Player2);
     let mut state = builder.build();
 
     // 在 Player1 的 SetAside 创建两个奥秘
@@ -1060,33 +1068,56 @@ fn multiple_secrets_trigger_in_order() {
         world.set_card_type(s1, CardType::Spell);
         world.set_player(s1, PlayerId::Player1);
         world.set_zone(s1, Zone::SetAside);
-        world.set_secret(s1, Secret {
-            trigger: SecretTrigger::AfterEnemyHeroAttacks,
-            effect: CardEffect::DealDamage { amount: 1, target: EffectTarget::AnyEnemy },
-        });
-        world.zones_mut().insert(Zone::SetAside, PlayerId::Player1, s1);
+        world.set_secret(
+            s1,
+            Secret {
+                trigger: SecretTrigger::AfterEnemyHeroAttacks,
+                effect: CardEffect::DealDamage {
+                    amount: 1,
+                    target: EffectTarget::AnyEnemy,
+                },
+            },
+        );
+        world
+            .zones_mut()
+            .insert(Zone::SetAside, PlayerId::Player1, s1);
 
         let s2 = world.spawn();
         world.set_card_type(s2, CardType::Spell);
         world.set_player(s2, PlayerId::Player1);
         world.set_zone(s2, Zone::SetAside);
-        world.set_secret(s2, Secret {
-            trigger: SecretTrigger::AfterEnemyHeroAttacks,
-            effect: CardEffect::GainArmor { amount: 5, target: EffectTarget::Self_ },
-        });
-        world.zones_mut().insert(Zone::SetAside, PlayerId::Player1, s2);
+        world.set_secret(
+            s2,
+            Secret {
+                trigger: SecretTrigger::AfterEnemyHeroAttacks,
+                effect: CardEffect::GainArmor {
+                    amount: 5,
+                    target: EffectTarget::Self_,
+                },
+            },
+        );
+        world
+            .zones_mut()
+            .insert(Zone::SetAside, PlayerId::Player1, s2);
     }
 
     // 给 Player2 装备武器
     {
         let inner = state.make_mut();
         let weapon = inner.world.spawn();
-        inner.world.set_attack(weapon, orange_stone::core::component::Attack(3));
-        inner.world.set_durability(weapon, orange_stone::core::component::Durability(2));
+        inner
+            .world
+            .set_attack(weapon, orange_stone::core::component::Attack(3));
+        inner
+            .world
+            .set_durability(weapon, orange_stone::core::component::Durability(2));
         inner.world.set_card_type(weapon, CardType::Weapon);
         inner.world.set_player(weapon, PlayerId::Player2);
         inner.world.set_zone(weapon, Zone::Play);
-        inner.world.zones_mut().insert(Zone::Play, PlayerId::Player2, weapon);
+        inner
+            .world
+            .zones_mut()
+            .insert(Zone::Play, PlayerId::Player2, weapon);
         inner.players[PlayerId::Player2.index()].weapon = Some(weapon);
     }
 
