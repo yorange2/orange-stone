@@ -287,6 +287,10 @@ impl GameBuilder {
         if let Some(cb) = card.combo_effect {
             world.set_combo_effect(e, crate::core::component::ComboEffect(cb));
         }
+        // 攻击力等于生命值
+        if card.attack_equals_health {
+            world.set_attack_equals_health(e, crate::core::component::AttackEqualsHealth);
+        }
         e
     }
 }

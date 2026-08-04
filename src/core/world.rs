@@ -9,9 +9,10 @@
 //! 所有实体访问都经过 generation 检查，防止悬垂引用。
 
 use crate::core::component::{
-    Armor, Attack, AttacksUsed, Aura, Battlecry, CantAttack, CardType, Charge, ChooseOneEffect, ComboEffect,
-    Cost, DeathTrigger, Deathrattle, DivineShield, Durability, EndTurnEffect, Freeze, Health, HeroPowerDef,
-    HeroPowerUsed, Secret, SpellDamage, SpellTrigger, SummonTrigger, Taunt, Windfury,
+    Armor, Attack, AttacksUsed, AttackEqualsHealth, Aura, Battlecry, CantAttack, CardType, Charge,
+    ChooseOneEffect, ComboEffect, Cost, DeathTrigger, Deathrattle, DivineShield, Durability,
+    EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Secret, SpellDamage, SpellTrigger,
+    SummonTrigger, Taunt, TempAttackDebuff, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -136,6 +137,10 @@ pub struct World {
     choose_one_effect: SparseSet<ChooseOneEffect>,
     /// ComboEffect 组件存储（连击效果）
     combo_effect: SparseSet<ComboEffect>,
+    /// AttackEqualsHealth 组件存储（光耀之子）
+    attack_equals_health: SparseSet<AttackEqualsHealth>,
+    /// TempAttackDebuff 组件存储（临时攻击减益）
+    temp_attack_debuff: SparseSet<TempAttackDebuff>,
     /// 区域表 — 每个 Zone 的有序实体列表
     zones: Zones,
 }
@@ -175,6 +180,8 @@ impl World {
             summon_trigger: SparseSet::new(),
             choose_one_effect: SparseSet::new(),
             combo_effect: SparseSet::new(),
+            attack_equals_health: SparseSet::new(),
+            temp_attack_debuff: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -240,6 +247,8 @@ impl World {
         self.summon_trigger.remove(entity);
         self.choose_one_effect.remove(entity);
         self.combo_effect.remove(entity);
+        self.attack_equals_health.remove(entity);
+        self.temp_attack_debuff.remove(entity);
         // 提升 generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // 归还槽位
@@ -475,6 +484,22 @@ impl World {
         set_combo_effect,
         remove_combo_effect,
         iter_combo_effect
+    );
+    component_accessors!(
+        attack_equals_health,
+        AttackEqualsHealth,
+        attack_equals_health,
+        set_attack_equals_health,
+        remove_attack_equals_health,
+        iter_attack_equals_health
+    );
+    component_accessors!(
+        temp_attack_debuff,
+        TempAttackDebuff,
+        temp_attack_debuff,
+        set_temp_attack_debuff,
+        remove_temp_attack_debuff,
+        iter_temp_attack_debuff
     );
 
     /// 获取实体每回合可攻击的最大次数。

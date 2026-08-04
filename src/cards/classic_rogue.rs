@@ -35,6 +35,7 @@ pub const BACKSTAB: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const DEADLY_POISON: CardDef = CardDef {
@@ -64,6 +65,7 @@ pub const DEADLY_POISON: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const EVISCERATE: CardDef = CardDef {
@@ -93,6 +95,7 @@ pub const EVISCERATE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: Some(CardEffect::DealDamage { amount: 4, target: EffectTarget::AnyEnemy }),
+    attack_equals_health: false,
 };
 
 pub const SAP: CardDef = CardDef {
@@ -122,6 +125,7 @@ pub const SAP: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const SI7_AGENT: CardDef = CardDef {
@@ -154,6 +158,7 @@ pub const SI7_AGENT: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: Some(CardEffect::DealDamage { amount: 2, target: EffectTarget::AnyEnemy }),
+    attack_equals_health: false,
 };
 
 pub const ASSASSINATE: CardDef = CardDef {
@@ -183,6 +188,7 @@ pub const ASSASSINATE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const SPRINT: CardDef = CardDef {
@@ -212,6 +218,7 @@ pub const SPRINT: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const FAN_OF_KNIVES: CardDef = CardDef {
@@ -241,6 +248,7 @@ pub const FAN_OF_KNIVES: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 
@@ -271,6 +279,7 @@ pub const PREPARATION: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const COLD_BLOOD: CardDef = CardDef {
@@ -300,6 +309,7 @@ pub const COLD_BLOOD: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: Some(CardEffect::GainStats { attack: 4, health: 0, target: EffectTarget::FriendlyMinion }),
+    attack_equals_health: false,
 };
 
 pub const DEFIAS_RINGLEADER: CardDef = CardDef {
@@ -329,6 +339,7 @@ pub const DEFIAS_RINGLEADER: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: Some(CardEffect::SummonMinion { card_id: "ROGUE_t" }),
+    attack_equals_health: false,
 };
 
 pub const EDWIN_VANCLEEF: CardDef = CardDef {
@@ -358,6 +369,7 @@ pub const EDWIN_VANCLEEF: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: Some(CardEffect::GainStats { attack: 4, health: 4, target: EffectTarget::Self_ }),
+    attack_equals_health: false,
 };
 
 // 潜行者补全
@@ -388,6 +400,7 @@ pub const SINISTER_STRIKE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 pub const SHIV: CardDef = CardDef {
     id: "ROGUE_014",
@@ -416,6 +429,7 @@ pub const SHIV: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 pub const ASSASSINS_BLADE: CardDef = CardDef {
     id: "ROGUE_015",
@@ -444,6 +458,7 @@ pub const ASSASSINS_BLADE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 
@@ -475,4 +490,5 @@ pub const VANISH: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };

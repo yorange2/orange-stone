@@ -322,6 +322,14 @@ pub struct ChooseOneEffect(pub crate::core::effect::CardEffect);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ComboEffect(pub crate::core::effect::CardEffect);
 
+/// 攻击力等于生命值 — 此随从的攻击力始终等于其当前生命值（光耀之子）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct AttackEqualsHealth;
+
+/// 临时攻击力减益 — 回合结束时清除。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct TempAttackDebuff(pub i32);
+
 #[cfg(test)]
 mod tests {
     use super::*;

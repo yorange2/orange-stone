@@ -36,6 +36,7 @@ pub const HOLY_SMITE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const MIND_BLAST: CardDef = CardDef {
@@ -65,6 +66,7 @@ pub const MIND_BLAST: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const POWER_WORD_SHIELD: CardDef = CardDef {
@@ -94,6 +96,7 @@ pub const POWER_WORD_SHIELD: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const NORTHSHIRE_CLERIC: CardDef = vanilla!("PRIEST_004", "Northshire Cleric", 1, 1, 3);
@@ -125,6 +128,7 @@ pub const SHADOW_WORD_PAIN: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const SHADOW_WORD_DEATH: CardDef = CardDef {
@@ -154,6 +158,7 @@ pub const SHADOW_WORD_DEATH: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const HOLY_NOVA: CardDef = CardDef {
@@ -183,6 +188,7 @@ pub const HOLY_NOVA: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const HOLY_FIRE: CardDef = CardDef {
@@ -212,6 +218,7 @@ pub const HOLY_FIRE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 
@@ -242,6 +249,7 @@ pub const CIRCLE_OF_HEALING: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const AUCHENAI_SOULPRIEST: CardDef = CardDef {
@@ -271,6 +279,7 @@ pub const AUCHENAI_SOULPRIEST: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const CABAL_SHADOW_PRIEST: CardDef = CardDef {
@@ -300,6 +309,7 @@ pub const CABAL_SHADOW_PRIEST: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const PROPHET_VELEN: CardDef = CardDef {
@@ -329,6 +339,7 @@ pub const PROPHET_VELEN: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 // 牧师补全
@@ -359,6 +370,7 @@ pub const SILENCE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 pub const SHADOW_WORD_RUIN: CardDef = CardDef {
     id: "PRIEST_014",
@@ -387,6 +399,7 @@ pub const SHADOW_WORD_RUIN: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 pub const TEMPLE_ENFORCER: CardDef = CardDef {
     id: "PRIEST_015",
@@ -419,6 +432,7 @@ pub const TEMPLE_ENFORCER: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 // 补全 ⬜ Priest — Radiance、Kul Tiran Chaplain、Mass Dispel
@@ -450,6 +464,7 @@ pub const RADIANCE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 /// 库尔提拉斯牧师 — 战吼：使一个友方随从获得+2生命值（简化：buff自身）
 pub const KUL_TIRAN_CHAPLAIN: CardDef = CardDef {
@@ -483,6 +498,7 @@ pub const KUL_TIRAN_CHAPLAIN: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 /// 群体驱散 — 沉默所有敌方随从，抽一张牌（简化：随机沉默一个敌方随从）
 pub const MASS_DISPEL: CardDef = CardDef {
@@ -512,6 +528,7 @@ pub const MASS_DISPEL: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 
@@ -545,6 +562,7 @@ pub const DIVINE_SPIRIT: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 心灵之火 — 使一个随从的攻击力等于其生命值
@@ -577,6 +595,7 @@ pub const INNER_FIRE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 光明之泉 — 在你的回合开始时，为一个受伤的友方角色恢复3点生命值（简化：回合结束恢复3点生命值）
@@ -607,4 +626,67 @@ pub const LIGHTWELL: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 光耀之子 — 该随从的攻击力始终等于其生命值
+pub const LIGHTSPAWN: CardDef = CardDef {
+    id: "PRIEST_019",
+    name: "Lightspawn",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 0,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: true,
+};
+
+/// 血色净化者 — 战吼：使一个敌方随从获得-2攻击力直到你的下个回合
+pub const SCARLET_SUBJUGATOR: CardDef = CardDef {
+    id: "PRIEST_020",
+    name: "Scarlet Subjugator",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 2,
+    health: 1,
+    durability: 0,
+    battlecry: Some(CardEffect::TempDebuff { attack_reduction: 2, target: EffectTarget::AnyEnemyMinion }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
 };

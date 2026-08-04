@@ -57,6 +57,8 @@ pub struct Player {
     pub temp_attack_bonus: i32,
     /// 本回合已打出的卡牌数（用于连击机制）
     pub cards_played_this_turn: u32,
+    /// 本回合死亡的友方随从（用于复活效果）
+    pub died_this_turn: Vec<crate::core::entity::Entity>,
 }
 
 impl Player {
@@ -72,6 +74,7 @@ impl Player {
             armor: 0,
             temp_attack_bonus: 0,
             cards_played_this_turn: 0,
+            died_this_turn: Vec::new(),
         }
     }
 }

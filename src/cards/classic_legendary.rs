@@ -38,6 +38,7 @@ pub const CAIRNE_BLOODHOOF: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 pub const BAINE_BLOODHOOF: CardDef = vanilla!("LEGENDARY_001t", "Baine Bloodhoof", 6, 4, 5);
 
@@ -70,6 +71,7 @@ pub const HOGGER: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 pub const GNOLL: CardDef = CardDef {
     id: "LEGENDARY_002t",
@@ -98,6 +100,7 @@ pub const GNOLL: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const ILLIDAN_STORMRAGE: CardDef = CardDef {
@@ -129,6 +132,7 @@ pub const ILLIDAN_STORMRAGE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 pub const FLAME_OF_AZZINOTH: CardDef = vanilla!("LEGENDARY_003t", "Flame of Azzinoth", 1, 2, 1);
 
@@ -161,6 +165,7 @@ pub const THE_BEAST: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 pub const FINKLE_EINHORN: CardDef = vanilla!("LEGENDARY_004t", "Finkle Einhorn", 3, 3, 3);
 
@@ -194,6 +199,7 @@ pub const BARON_GEDDON: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const GRUUL: CardDef = CardDef {
@@ -227,6 +233,7 @@ pub const GRUUL: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const RAGNAROS_THE_FIRELORD: CardDef = CardDef {
@@ -259,6 +266,7 @@ pub const RAGNAROS_THE_FIRELORD: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const ALEXSTRASZA: CardDef = CardDef {
@@ -291,6 +299,7 @@ pub const ALEXSTRASZA: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const MALYGOS: CardDef = CardDef {
@@ -320,6 +329,7 @@ pub const MALYGOS: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const ONYXIA: CardDef = CardDef {
@@ -349,6 +359,7 @@ pub const ONYXIA: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const DEATHWING: CardDef = CardDef {
@@ -380,6 +391,7 @@ pub const DEATHWING: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 
@@ -414,6 +426,7 @@ pub const CAPTAIN_GREENSKIN: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 哈里森·琼斯 — 战吼：摧毁对手的武器，并抽等同于其耐久度的牌
@@ -444,6 +457,7 @@ pub const HARRISON_JONES: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 黑骑士 — 战吼：消灭一个具有嘲讽的敌方随从
@@ -474,6 +488,7 @@ pub const THE_BLACK_KNIGHT: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 米尔豪斯·法力风暴 — 2费4/4，战吼：敌方下回合法术费用为0（简化：无负面效果）
@@ -504,6 +519,7 @@ pub const MILLHOUSE_MANASTORM: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 纳特·帕格 — 在你的回合结束时，有50%几率抽一张牌（简化：回合结束抽一张牌）
@@ -534,4 +550,36 @@ pub const NAT_PAGLE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 高阶检察官怀特迈恩 — 战吼：召唤所有本回合死亡的友方随从
+pub const HIGH_INQUISITOR_WHITEMANE: CardDef = CardDef {
+    id: "LEGENDARY_023",
+    name: "High Inquisitor Whitemane",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 5,
+    health: 7,
+    durability: 0,
+    battlecry: Some(CardEffect::ResurrectMinion),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
 };

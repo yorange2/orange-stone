@@ -419,6 +419,21 @@ pub fn apply_event(
                     p.temp_attack_bonus = 0;
                 }
             }
+            // 清除临时攻击减益和死亡记录
+            {
+                let inner = state.make_mut();
+                let p = &mut inner.players[player.index()];
+                p.died_this_turn.clear();
+                // 清除所有实体的临时攻击减益
+                let debuff_entities: Vec<Entity> = inner
+                    .world
+                    .iter_temp_attack_debuff()
+                    .map(|(e, _)| e)
+                    .collect();
+                for e in debuff_entities {
+                    inner.world.remove_temp_attack_debuff(e);
+                }
+            }
             // 触发回合结束效果（先收集再逐个处理）
             let end_turn_effects: Vec<(Entity, crate::core::effect::CardEffect)> = state
                 .world()
@@ -686,6 +701,11 @@ pub fn apply_event(
                 .world_mut()
                 .move_to_zone(minion, Zone::Graveyard)
                 .map_err(|_| EngineError::EntityGone(minion))?;
+            // 记录死亡用于复活效果
+            if let Some(owner) = owner {
+                let inner = state.make_mut();
+                inner.players[owner.index()].died_this_turn.push(minion);
+            }
         }
         Event::CardDrawn { .. } => {
             // 通知事件 — 卡牌已在 draw_card 中移到手牌
