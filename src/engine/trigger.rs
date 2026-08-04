@@ -50,6 +50,18 @@ pub fn resolve_effect(
         } => {
             resolve_gain_stats(state, queue, source, owner, attack, health, target);
         }
+        CardEffect::EquipWeapon { card_id } => {
+            resolve_equip_weapon(state, queue, owner, card_id);
+        }
+        CardEffect::GainArmor { amount, target } => {
+            resolve_gain_armor(state, owner, amount, target);
+        }
+        CardEffect::ReturnToHand { target } => {
+            resolve_return_to_hand(state, queue, owner, target);
+        }
+        CardEffect::IncreaseCost { amount, target } => {
+            resolve_increase_cost(state, owner, amount, target);
+        }
     }
 }
 
@@ -145,7 +157,7 @@ fn resolve_deal_damage(
 /// 解析召唤随从效果。
 fn resolve_summon(
     state: &mut GameState,
-    _queue: &mut EventQueue,
+    queue: &mut EventQueue,
     _source: Entity,
     owner: PlayerId,
     card_id: &str,
@@ -167,16 +179,41 @@ fn resolve_summon(
     }
 
     // 创建随从实体并放到战场
-    let world = state.world_mut();
-    let e = world.spawn();
-    world.set_health(e, Health(card_def.health));
-    world.set_attack(e, Attack(card_def.attack));
-    world.set_cost(e, crate::core::component::Cost(card_def.cost));
-    world.set_card_type(e, card_def.card_type);
-    world.set_player(e, owner);
-    world.set_attacks_used(e, crate::core::component::AttacksUsed(0));
-    world.set_zone(e, Zone::Play);
-    world.zones_mut().insert(Zone::Play, owner, e);
+    let e = {
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_health(e, Health(card_def.health));
+        world.set_attack(e, Attack(card_def.attack));
+        world.set_cost(e, crate::core::component::Cost(card_def.cost));
+        world.set_card_type(e, card_def.card_type);
+        world.set_player(e, owner);
+        world.set_attacks_used(e, crate::core::component::AttacksUsed(0));
+        world.set_zone(e, Zone::Play);
+        world.zones_mut().insert(Zone::Play, owner, e);
+        // 设置光环、战吼、亡语、嘲讽（如果有）
+        if let Some((aura_effect, aura_target)) = card_def.aura {
+            world.set_aura(e, crate::core::component::Aura {
+                effect: aura_effect,
+                target: aura_target,
+            });
+        }
+        if let Some(bc) = card_def.battlecry {
+            world.set_battlecry(e, crate::core::component::Battlecry(bc));
+        }
+        if let Some(dr) = card_def.deathrattle {
+            world.set_deathrattle(e, crate::core::component::Deathrattle(dr));
+        }
+        if card_def.taunt {
+            world.set_taunt(e, crate::core::component::Taunt);
+        }
+        e
+    };
+
+    // 入队 MinionSummoned 事件（触发战吼等效果）
+    queue.push(Event::MinionSummoned {
+        player: owner,
+        minion: e,
+    });
 }
 
 /// 解析 buff 效果。
@@ -212,6 +249,119 @@ fn resolve_gain_stats(
             // Phase 2 不支持其他 buff 目标类型
         }
     }
+}
+
+/// 装备武器。
+fn resolve_equip_weapon(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    owner: PlayerId,
+    card_id: &str,
+) {
+    let Some(card_def) = crate::cards::def::card_by_id(card_id) else {
+        return;
+    };
+
+    // 如果已有武器，先摧毁旧武器
+    let old_weapon = state.player(owner).weapon;
+    if let Some(w) = old_weapon {
+        queue.push(Event::WeaponDestroyed {
+            player: owner,
+            weapon: w,
+        });
+    }
+
+    // 创建武器实体并更新 Player
+    let inner = state.make_mut();
+    let weapon = inner.world.spawn();
+    inner.world.set_attack(weapon, Attack(card_def.attack));
+    inner
+        .world
+        .set_durability(weapon, Durability(card_def.durability));
+    inner.world.set_cost(weapon, Cost(card_def.cost));
+    inner.world.set_card_type(weapon, CardType::Weapon);
+    inner.world.set_player(weapon, owner);
+    inner.world.set_zone(weapon, Zone::Play);
+    inner.world.zones_mut().insert(Zone::Play, owner, weapon);
+    inner.players[owner.index()].weapon = Some(weapon);
+
+    queue.push(Event::WeaponEquipped {
+        player: owner,
+        weapon,
+    });
+}
+
+/// 获得护甲。
+fn resolve_gain_armor(
+    state: &mut GameState,
+    owner: PlayerId,
+    amount: i32,
+    target: EffectTarget,
+) {
+    match target {
+        EffectTarget::Self_ => {
+            let inner = state.make_mut();
+            inner.players[owner.index()].armor += amount;
+        }
+        EffectTarget::EnemyHero => {
+            let inner = state.make_mut();
+            inner.players[owner.opponent().index()].armor += amount;
+        }
+        _ => {
+            // 其他目标暂不支持
+        }
+    }
+}
+
+/// 将随从移回手牌。
+fn resolve_return_to_hand(
+    state: &mut GameState,
+    _queue: &mut EventQueue,
+    owner: PlayerId,
+    target: EffectTarget,
+) {
+    let enemy = owner.opponent();
+    let minions = match target {
+        EffectTarget::AnyEnemy => collect_enemy_minions(state, owner),
+        EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
+        _ => return,
+    };
+
+    if minions.is_empty() {
+        return;
+    }
+
+    let idx = state.rng_mut().next_usize(minions.len());
+    let target_entity = minions[idx];
+
+    // 移到手牌
+    let _ = state.world_mut().move_to_zone(target_entity, Zone::Hand);
+}
+
+/// 增加随从的法力消耗（如冰冻陷阱效果）。
+fn resolve_increase_cost(
+    state: &mut GameState,
+    owner: PlayerId,
+    amount: i32,
+    target: EffectTarget,
+) {
+    let enemy = owner.opponent();
+    let minions = match target {
+        EffectTarget::AnyEnemy => collect_enemy_minions(state, owner),
+        EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
+        _ => return,
+    };
+
+    if minions.is_empty() {
+        return;
+    }
+
+    let idx = state.rng_mut().next_usize(minions.len());
+    let target_entity = minions[idx];
+
+    let world = state.world_mut();
+    let cur_cost = world.cost(target_entity).unwrap_or(Cost(0));
+    world.set_cost(target_entity, Cost(cur_cost.0 + amount));
 }
 
 // ============================================================

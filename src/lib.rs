@@ -8,9 +8,9 @@
 //! - **不可变 GameState + Copy-on-Write**：低成本状态分支，MCTS 友好
 //! - **事件驱动规则引擎**：Action → Event → Trigger → 新 Action
 //!
-//! ## Phase 1 (当前)
+//! ## Phase 3 (当前)
 //!
-//! 核心框架：ECS、GameState、基础 Action/Event、白板随从对战
+//! 完整规则：武器、英雄技能、光环、奥秘、复杂卡牌交互时序
 
 #![warn(missing_docs)]
 #![deny(unsafe_code)]
