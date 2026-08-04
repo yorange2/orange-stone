@@ -366,3 +366,30 @@ pub const HEROIC_STRIKE: CardDef = CardDef {
     end_turn_effect: None,
 };
 
+
+/// 冲锋 — 使一个友方随从获得+2攻击力和冲锋
+pub const CHARGE_SPELL: CardDef = CardDef {
+    id: "WARRIOR_016",
+    name: "Charge",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::GrantCharge {
+        target: EffectTarget::FriendlyMinion,
+        attack_bonus: 2,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+};

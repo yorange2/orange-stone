@@ -412,3 +412,29 @@ pub const MASS_DISPEL: CardDef = CardDef {
     end_turn_effect: None,
 };
 
+
+/// 神圣之灵 — 使一个随从的生命值翻倍
+pub const DIVINE_SPIRIT: CardDef = CardDef {
+    id: "PRIEST_016",
+    name: "Divine Spirit",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::DoubleHealth {
+        target: EffectTarget::FriendlyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+};
