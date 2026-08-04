@@ -267,6 +267,7 @@ pub const PRIEST_CLASSIC: &[CardDef] = &[
     KUL_TIRAN_CHAPLAIN,
     MASS_DISPEL,
     DIVINE_SPIRIT,
+    INNER_FIRE,
 ];
 
 pub const ROGUE_CLASSIC: &[CardDef] = &[
@@ -284,6 +285,7 @@ pub const ROGUE_CLASSIC: &[CardDef] = &[
     EDWIN_VANCLEEF,
     SINISTER_STRIKE,
     SHIV,
+    VANISH,
     ASSASSINS_BLADE,
 ];
 
@@ -327,6 +329,8 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     DREAD_INFERNAL,
     PIT_LORD,
     FELSTALKER,
+    SIPHON_SOUL,
+    SHADOWFLAME,
 ];
 
 pub const WARRIOR_CLASSIC: &[CardDef] = &[
@@ -349,6 +353,10 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
     CHARGE_SPELL,
     SHIELD_SLAM,
     UPGRADE,
+    BRAWL,
+    MORTAL_STRIKE,
+    BATTLE_RAGE,
+    RAMPAGE,
 ];
 
 pub const ALL_CARDS: &[CardDef] = &[
@@ -513,6 +521,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     SHADOW_WORD_RUIN,
     TEMPLE_ENFORCER,
     DIVINE_SPIRIT,
+    INNER_FIRE,
     // Rogue
     BACKSTAB,
     DEADLY_POISON,
@@ -528,6 +537,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     EDWIN_VANCLEEF,
     SINISTER_STRIKE,
     SHIV,
+    VANISH,
     ASSASSINS_BLADE,
     // Shaman
     EARTH_SHOCK,
@@ -567,6 +577,8 @@ pub const ALL_CARDS: &[CardDef] = &[
     DREAD_INFERNAL,
     PIT_LORD,
     FELSTALKER,
+    SIPHON_SOUL,
+    SHADOWFLAME,
     // Warrior
     EXECUTE,
     WHIRLWIND,
@@ -588,6 +600,10 @@ pub const ALL_CARDS: &[CardDef] = &[
     CHARGE_SPELL,
     SHIELD_SLAM,
     UPGRADE,
+    BRAWL,
+    MORTAL_STRIKE,
+    BATTLE_RAGE,
+    RAMPAGE,
     // Legendary
     CAIRNE_BLOODHOOF,
     BAINE_BLOODHOOF,

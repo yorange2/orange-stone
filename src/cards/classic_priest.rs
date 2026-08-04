@@ -456,3 +456,30 @@ pub const DIVINE_SPIRIT: CardDef = CardDef {
     end_turn_effect: None,
     spell_trigger: None,
 };
+
+/// 心灵之火 — 使一个随从的攻击力等于其生命值
+pub const INNER_FIRE: CardDef = CardDef {
+    id: "PRIEST_017",
+    name: "Inner Fire",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::SetAttackToHealth {
+        target: EffectTarget::FriendlyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    spell_trigger: None,
+};

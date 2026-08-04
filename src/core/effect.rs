@@ -178,4 +178,25 @@ pub enum CardEffect {
     },
     /// 摧毁敌方武器并抽等于其耐久度的牌数
     DestroyWeaponAndDraw,
+    /// 返回所有随从到各自拥有者手牌
+    ReturnAllToHand,
+    /// 将随从的攻击力设为等于其当前生命值
+    SetAttackToHealth {
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 消灭所有随从，除随机一个之外
+    DestroyAllExceptOne,
+    /// 消灭一个随从并为己方英雄恢复生命值
+    DestroyAndHeal {
+        /// 目标选择方式
+        target: EffectTarget,
+        /// 恢复量
+        heal: i32,
+    },
+    /// 消灭一个友方随从，对其攻击力数值造成AOE伤害
+    DestroyAndAOE {
+        /// 目标：所有敌方随从 / 所有敌方角色
+        target: EffectTarget,
+    },
 }

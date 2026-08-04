@@ -371,3 +371,28 @@ pub const ASSASSINS_BLADE: CardDef = CardDef {
     spell_trigger: None,
 };
 
+
+/// 消失 — 将所有随从移回其拥有者的手牌
+pub const VANISH: CardDef = CardDef {
+    id: "ROGUE_016",
+    name: "Vanish",
+    card_type: CardType::Spell,
+    cost: 6,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::ReturnAllToHand),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    spell_trigger: None,
+};

@@ -1139,6 +1139,11 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DiscardRandomCard => -2.0,
         CardEffect::DealArmorDamage { .. } => 3.0,
         CardEffect::DestroyWeaponAndDraw => 5.0,
+        CardEffect::ReturnAllToHand => 3.0,
+        CardEffect::SetAttackToHealth { .. } => 3.0,
+        CardEffect::DestroyAllExceptOne => 4.0,
+        CardEffect::DestroyAndHeal { heal, .. } => 4.0 + heal as f64 * 0.7,
+        CardEffect::DestroyAndAOE { .. } => 5.0,
     }
 }
 
