@@ -13,7 +13,7 @@ use orange_stone::core::player::PlayerId;
 use orange_stone::core::state::Phase;
 use orange_stone::core::zone::Zone;
 use orange_stone::engine::game::GameEngine;
-use orange_stone::sim::bot::GreedyBot;
+use orange_stone::sim::bot::{GreedyBot, SmartBot};
 use orange_stone::sim::game::GameBuilder;
 
 /// 辅助：获取玩家名称
@@ -381,3 +381,244 @@ fn two_bots_battle() {
         }
     }
 }
+
+#[test]
+fn two_smart_bots_battle() {
+        let engine = GameEngine::new();
+        let bot = SmartBot::new();
+
+        // ===== 构建初始对局 =====
+        let mut builder = GameBuilder::new();
+
+        // --- Player1 牌库 (10 张) ---
+        let p1_cards = [
+            &MURLOC_RAIDER,         // 1费 2/1
+            &MURLOC_RAIDER,         // 1费 2/1
+            &VOODOO_DOCTOR,         // 1费 2/1 战吼:回2
+            &VOIDWALKER,            // 1费 1/3 嘲讽
+            &BLOODFEN_RAPTOR,       // 2费 3/2
+            &BLOODFEN_RAPTOR,       // 2费 3/2
+            &KOBOLD_GEOMANCER,      // 2费 2/2 法伤+1
+            &MURLOC_TIDEHUNTER,     // 2费 2/1 战吼:召唤1/1
+            &OGRE_MAGI,             // 4费 4/4
+            &ARCHMAGE,              // 6费 4/7
+        ];
+        for card in &p1_cards {
+            builder.add_minion_to_deck(PlayerId::Player1, card);
+        }
+
+        // --- Player2 牌库 (10 张) ---
+        let p2_cards = [
+            &MURLOC_RAIDER,
+            &MURLOC_RAIDER,
+            &VOODOO_DOCTOR,
+            &VOIDWALKER,
+            &BLOODFEN_RAPTOR,
+            &ACIDIC_SWAMP_OOZE,
+            &ACIDIC_SWAMP_OOZE,
+            &OGRE_MAGI,
+            &EAGLEHORN_BOW,
+            &ARCHMAGE,
+        ];
+        for card in &p2_cards {
+            builder.add_minion_to_deck(PlayerId::Player2, card);
+        }
+
+        builder.set_mana(PlayerId::Player1, 0, 0);
+        builder.set_mana(PlayerId::Player2, 0, 0);
+        let mut state = builder.build();
+
+        // 手动给每人抽 3 张起手牌
+        for &pid in &[PlayerId::Player1, PlayerId::Player2] {
+            for _ in 0..3 {
+                let deck_len = state.world().zones().len(Zone::Deck, pid);
+                if deck_len > 0 {
+                    let idx = state.rng_mut().next_usize(deck_len);
+                    let card = state
+                        .world()
+                        .zones()
+                        .iter(Zone::Deck, pid)
+                        .nth(idx)
+                        .expect("deck card");
+                    state
+                        .world_mut()
+                        .move_to_zone(card, Zone::Hand)
+                        .expect("move to hand");
+                }
+            }
+        }
+
+        // ===== 对局循环 =====
+        println!("\n🧠 === SmartBot 对战开始! ===");
+        let max_turns = 60; // SmartBot 可能更聪明，给更多回合
+        let mut turn_count = 0;
+
+        loop {
+            turn_count += 1;
+            if turn_count > max_turns {
+                println!("\n⏰ 达到最大回合数限制 ({})，强制结束", max_turns);
+                break;
+            }
+
+            if matches!(state.phase(), Phase::GameOver { .. }) {
+                break;
+            }
+
+            let active = state.active_player();
+            print_board(&state);
+
+            let actions = bot.decide_actions(&state);
+            println!(
+                "\n🧠 {} (SmartBot) 决定执行 {} 个动作:",
+                player_name(active),
+                actions.len()
+            );
+
+            for (i, action) in actions.iter().enumerate() {
+                let action_desc = match action {
+                    Action::PlayCard { card } => {
+                        format!("打出 {}", entity_info(&state, *card))
+                    }
+                    Action::Attack { attacker, defender } => {
+                        format!(
+                            "{} 攻击 {}",
+                            entity_info(&state, *attacker),
+                            entity_info(&state, *defender)
+                        )
+                    }
+                    Action::EndTurn => "结束回合".to_string(),
+                    Action::HeroPower { .. } => "使用英雄技能".to_string(),
+                };
+                println!("  [{}/{}] {}", i + 1, actions.len(), action_desc);
+
+                match engine.apply(&mut state, *action) {
+                    Ok(events) => {
+                        for event in &events {
+                            let evt_str = match event {
+                                orange_stone::core::event::Event::TurnStarted { player } => {
+                                    format!("  ↪ 回合开始: {}", player_name(*player))
+                                }
+                                orange_stone::core::event::Event::TurnEnded { player } => {
+                                    format!("  ↪ 回合结束: {}", player_name(*player))
+                                }
+                                orange_stone::core::event::Event::CardPlayed { player, .. } => {
+                                    format!("  ↪ 卡牌打出: {}", player_name(*player))
+                                }
+                                orange_stone::core::event::Event::MinionSummoned {
+                                    player,
+                                    minion,
+                                    ..
+                                } => {
+                                    format!(
+                                        "  ↪ 随从召唤: {} → {}",
+                                        player_name(*player),
+                                        entity_info(&state, *minion)
+                                    )
+                                }
+                                orange_stone::core::event::Event::AttackDeclared {
+                                    attacker,
+                                    defender,
+                                } => {
+                                    format!(
+                                        "  ↪ 攻击宣言: {} → {}",
+                                        entity_info(&state, *attacker),
+                                        entity_info(&state, *defender)
+                                    )
+                                }
+                                orange_stone::core::event::Event::DamageDealt {
+                                    target,
+                                    amount,
+                                    ..
+                                } => {
+                                    let hp = state.world().health(*target).unwrap_or(Health(0));
+                                    format!(
+                                        "  ↪ 受到 {} 点伤害: {} (剩余 {} HP)",
+                                        amount,
+                                        entity_info(&state, *target),
+                                        hp.0
+                                    )
+                                }
+                                orange_stone::core::event::Event::MinionDied { minion } => {
+                                    format!("  ↪ 💀 随从死亡: {}", entity_info(&state, *minion))
+                                }
+                                orange_stone::core::event::Event::CardDrawn { player, .. } => {
+                                    format!("  ↪ 抽牌: {}", player_name(*player))
+                                }
+                                orange_stone::core::event::Event::GameOver { winner } => {
+                                    format!("  ↪ 🏆 游戏结束! 胜者: {}", player_name(*winner))
+                                }
+                                orange_stone::core::event::Event::WeaponEquipped {
+                                    player,
+                                    weapon,
+                                    ..
+                                } => {
+                                    format!(
+                                        "  ↪ 武器装备: {} → {}",
+                                        player_name(*player),
+                                        entity_info(&state, *weapon)
+                                    )
+                                }
+                                orange_stone::core::event::Event::WeaponDestroyed {
+                                    player,
+                                    weapon,
+                                    ..
+                                } => {
+                                    format!(
+                                        "  ↪ 💥 武器摧毁: {} → {}",
+                                        player_name(*player),
+                                        entity_info(&state, *weapon)
+                                    )
+                                }
+                                orange_stone::core::event::Event::HeroPowerActivated {
+                                    player, ..
+                                } => {
+                                    format!("  ↪ 英雄技能: {}", player_name(*player))
+                                }
+                                orange_stone::core::event::Event::SecretRevealed { player, .. } => {
+                                    format!("  ↪ 奥秘揭示: {}", player_name(*player))
+                                }
+                            };
+                            println!("{evt_str}");
+                        }
+                        if matches!(state.phase(), Phase::GameOver { .. }) {
+                            break;
+                        }
+                    }
+                    Err(err) => {
+                        println!("  ❌ 动作失败: {err:?}");
+                    }
+                }
+            }
+
+            if matches!(state.phase(), Phase::GameOver { .. }) {
+                break;
+            }
+        }
+
+        // ===== 最终结果 =====
+        println!("\n📊 === SmartBot 对战结束 ===");
+        print_board(&state);
+
+        match state.phase() {
+            Phase::GameOver { winner } => {
+                println!("\n🧠🏆 胜者: {}!", player_name(winner));
+                let loser = winner.opponent();
+                let winner_hp = state.world().health(state.player(winner).hero);
+                let loser_hp = state.world().health(state.player(loser).hero);
+                println!(
+                    "   {} 英雄 HP: {}",
+                    player_name(winner),
+                    winner_hp.map(|h| h.0).unwrap_or(0)
+                );
+                println!(
+                    "   {} 英雄 HP: {}",
+                    player_name(loser),
+                    loser_hp.map(|h| h.0).unwrap_or(0)
+                );
+                println!("  总回合数: {}", state.turn());
+            }
+            _ => {
+                println!("\n⚠️ 游戏未正常结束 (达到最大回合数)");
+            }
+        }
+    }

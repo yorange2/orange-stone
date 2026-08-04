@@ -28,6 +28,7 @@ pub const INNERVATE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
     // 效果: 获得2法力水晶 (在 trigger 中处理)
 };
@@ -51,6 +52,7 @@ pub const CLAW: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -73,6 +75,7 @@ pub const MARK_OF_THE_WILD: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -95,6 +98,7 @@ pub const WRATH: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -117,6 +121,7 @@ pub const SWIPE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -139,6 +144,7 @@ pub const STARFIRE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -161,6 +167,7 @@ pub const DRUID_OF_THE_CLAW: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -183,6 +190,7 @@ pub const ANCIENT_OF_LORE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -205,6 +213,7 @@ pub const ANCIENT_OF_WAR: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -230,6 +239,7 @@ pub const SAVAGE_ROAR: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -254,6 +264,7 @@ pub const MOONFIRE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const WILD_GROWTH: CardDef = CardDef {
@@ -275,6 +286,7 @@ pub const WILD_GROWTH: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const HEALING_TOUCH: CardDef = CardDef {
@@ -296,6 +308,7 @@ pub const HEALING_TOUCH: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const IRONBARK_PROTECTOR: CardDef = CardDef {
@@ -317,6 +330,7 @@ pub const IRONBARK_PROTECTOR: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -341,6 +355,7 @@ pub const FORCE_OF_NATURE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const TREANT: CardDef = CardDef {
@@ -362,6 +377,7 @@ pub const TREANT: CardDef = CardDef {
     charge: true,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -385,6 +401,7 @@ pub const GIFT_OF_THE_WILD: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 

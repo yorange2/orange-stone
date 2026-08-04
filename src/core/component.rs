@@ -285,6 +285,19 @@ impl_arith!(SpellDamage);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Freeze;
 
+/// 不能攻击 — 此随从不能主动发起攻击（如拉格纳罗斯、上古看守者）。
+///
+/// `CantAttack` 在攻击验证中被检查。
+/// 与冻结不同：冻结是临时状态（回合开始清除），CantAttack 是永久属性。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct CantAttack;
+
+/// 回合结束效果 — 在每个回合结束时触发。
+///
+/// 效果通过 `CardEffect` 定义，在 `TurnEnded` 事件处理时被检测。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct EndTurnEffect(pub crate::core::effect::CardEffect);
+
 #[cfg(test)]
 mod tests {
     use super::*;

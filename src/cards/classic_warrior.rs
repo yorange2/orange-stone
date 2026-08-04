@@ -28,6 +28,7 @@ pub const EXECUTE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -50,6 +51,7 @@ pub const WHIRLWIND: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -72,6 +74,7 @@ pub const SHIELD_BLOCK: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -97,6 +100,7 @@ pub const CRUEL_TASKMASTER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -119,6 +123,7 @@ pub const KORKRON_ELITE: CardDef = CardDef {
     charge: true,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -143,6 +148,7 @@ pub const ARATHI_WEAPONSMITH: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const BATTLE_AXE: CardDef = CardDef {
@@ -164,6 +170,7 @@ pub const BATTLE_AXE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -189,6 +196,7 @@ pub const WARSONG_COMMANDER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -211,6 +219,7 @@ pub const GOREHOWL: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -233,6 +242,7 @@ pub const GROMMASH_HELLSCREAM: CardDef = CardDef {
     charge: true,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -255,6 +265,7 @@ pub const SLAM: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -277,6 +288,7 @@ pub const CLEAVE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -299,6 +311,7 @@ pub const ARMORSMITH: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -322,6 +335,7 @@ pub const INNER_RAGE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 

@@ -27,6 +27,7 @@ pub const SOULFIRE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -52,6 +53,7 @@ pub const FLAME_IMP: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -74,6 +76,7 @@ pub const MORTAL_COIL: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -96,6 +99,7 @@ pub const VOIDWALKER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -118,6 +122,7 @@ pub const HELLFIRE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -140,6 +145,7 @@ pub const DRAIN_LIFE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -162,6 +168,7 @@ pub const DOOMGUARD: CardDef = CardDef {
     charge: true,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -185,6 +192,7 @@ pub const SHADOW_BOLT: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -207,6 +215,7 @@ pub const TWISTING_NETHER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -231,6 +240,7 @@ pub const LORD_JARAXXUS: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const BLOOD_FURY: CardDef = CardDef {
@@ -252,6 +262,7 @@ pub const BLOOD_FURY: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -278,6 +289,7 @@ pub const DREAD_INFERNAL: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const PIT_LORD: CardDef = CardDef {
@@ -302,6 +314,7 @@ pub const PIT_LORD: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 

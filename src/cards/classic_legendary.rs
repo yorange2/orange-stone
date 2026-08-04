@@ -30,6 +30,7 @@ pub const CAIRNE_BLOODHOOF: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const BAINE_BLOODHOOF: CardDef = vanilla!("LEGENDARY_001t", "Baine Bloodhoof", 6, 4, 5);
@@ -53,6 +54,7 @@ pub const HOGGER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: Some(CardEffect::SummonMinion {
         card_id: "LEGENDARY_002t",
     }),
@@ -76,6 +78,7 @@ pub const GNOLL: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -98,6 +101,7 @@ pub const ILLIDAN_STORMRAGE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: Some(CardEffect::SummonMinion {
         card_id: "LEGENDARY_003t",
     }),
@@ -125,6 +129,7 @@ pub const THE_BEAST: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const FINKLE_EINHORN: CardDef = vanilla!("LEGENDARY_004t", "Finkle Einhorn", 3, 3, 3);
@@ -148,6 +153,7 @@ pub const BARON_GEDDON: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: Some(CardEffect::DealDamage {
         amount: 2,
         target: EffectTarget::AllCharacters,
@@ -173,6 +179,7 @@ pub const GRUUL: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: Some(CardEffect::GainStats {
         attack: 1,
         health: 1,
@@ -199,6 +206,7 @@ pub const RAGNAROS_THE_FIRELORD: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: true,
+    spell_effect: None,
     end_turn_effect: Some(CardEffect::DealDamage {
         amount: 8,
         target: EffectTarget::AnyEnemy,
@@ -227,6 +235,7 @@ pub const ALEXSTRASZA: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -249,6 +258,7 @@ pub const MALYGOS: CardDef = CardDef {
     charge: false,
     spell_damage: 5,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -271,6 +281,7 @@ pub const ONYXIA: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -295,6 +306,7 @@ pub const DEATHWING: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 

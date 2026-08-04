@@ -82,9 +82,9 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
         return Err(EngineError::NotYourCard);
     }
 
-    // 必须是随从或武器
+    // 必须是随从、武器或法术
     let card_type = world.card_type(card).ok_or(EngineError::NotPlayable)?;
-    if card_type != CardType::Minion && card_type != CardType::Weapon {
+    if card_type != CardType::Minion && card_type != CardType::Weapon && card_type != CardType::Spell {
         return Err(EngineError::NotPlayable);
     }
 
@@ -160,6 +160,11 @@ fn validate_attack(
         .is_some_and(|a| a.is_exhausted_with(max_atks))
     {
         return Err(EngineError::AttacksExhausted);
+    }
+
+    // 不能攻击的随从（如拉格纳罗斯）
+    if world.cant_attack(attacker).is_some() {
+        return Err(EngineError::InvalidTarget);
     }
 
     // 攻击力必须 > 0（考虑武器和光环）
@@ -396,8 +401,22 @@ pub fn apply_event(
             // 抽一张牌
             trigger::draw_card(state, queue, player);
         }
-        Event::TurnEnded { .. } => {
+        Event::TurnEnded { player } => {
             state.set_phase(Phase::End);
+            // 触发回合结束效果（先收集再逐个处理）
+            let end_turn_effects: Vec<(Entity, crate::core::effect::CardEffect)> = state
+                .world()
+                .iter_end_turn_effect()
+                .filter(|(e, _)| {
+                    state.world().zone(*e) == Some(Zone::Play)
+                        && state.world().is_alive(*e)
+                        && state.world().player(*e) == Some(player)
+                })
+                .map(|(e, ete)| (e, ete.0))
+                .collect();
+            for (source, effect) in end_turn_effects {
+                trigger::resolve_effect(state, queue, source, player, effect);
+            }
         }
         Event::CardPlayed { player, card } => {
             // 扣除法力
@@ -408,7 +427,17 @@ pub fn apply_event(
                 let p = &mut inner.players[player.index()];
                 p.current_mana -= cost.0;
             }
-            if card_type == Some(CardType::Weapon) {
+            if card_type == Some(CardType::Spell) {
+                // 法术牌：解析效果，然后移入坟墓场
+                if let Some(bc) = state.world().battlecry(card) {
+                    let effect = bc.0;
+                    trigger::resolve_effect(state, queue, card, player, effect);
+                }
+                state
+                    .world_mut()
+                    .move_to_zone(card, Zone::Graveyard)
+                    .map_err(|_| EngineError::EntityGone(card))?;
+            } else if card_type == Some(CardType::Weapon) {
                 // 武器牌：先销毁旧武器，然后装备新武器
                 let old_weapon = state.player(player).weapon;
                 if let Some(old) = old_weapon {
@@ -439,6 +468,12 @@ pub fn apply_event(
             }
         }
         Event::MinionSummoned { player, minion } => {
+            // 召唤失调：非冲锋随从本回合不能攻击
+            if state.world().charge(minion).is_none() {
+                state
+                    .world_mut()
+                    .set_attacks_used(minion, AttacksUsed(1));
+            }
             // 检查战吼组件
             if let Some(battlecry) = state.world().battlecry(minion) {
                 let effect = battlecry.0;

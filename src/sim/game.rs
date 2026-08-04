@@ -255,6 +255,18 @@ impl GameBuilder {
         if card.taunt {
             world.set_taunt(e, crate::core::component::Taunt);
         }
+        // 设置不能攻击
+        if card.cant_attack {
+            world.set_cant_attack(e, crate::core::component::CantAttack);
+        }
+        // 设置回合结束效果
+        if let Some(ete) = card.end_turn_effect {
+            world.set_end_turn_effect(e, crate::core::component::EndTurnEffect(ete));
+        }
+        // 法术牌效果存储在 battlecry 组件中（打出时由引擎解析）
+        if let Some(se) = card.spell_effect {
+            world.set_battlecry(e, crate::core::component::Battlecry(se));
+        }
         e
     }
 }

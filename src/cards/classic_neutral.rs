@@ -30,6 +30,7 @@ pub const BLUEGILL_WARRIOR: CardDef = CardDef {
     charge: true,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -52,6 +53,7 @@ pub const ACIDIC_SWAMP_OOZE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -76,6 +78,7 @@ pub const IRONBEAK_OWL: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -98,6 +101,7 @@ pub const KOBOLD_GEOMANCER: CardDef = CardDef {
     charge: false,
     spell_damage: 1,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -122,6 +126,7 @@ pub const MURLOC_TIDEHUNTER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const MURLOC_SCOUT: CardDef = vanilla!("CLASSIC_006t", "Murloc Scout", 1, 1, 1);
@@ -147,6 +152,7 @@ pub const HARVEST_GOLEM: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const DAMAGED_GOLEM: CardDef = vanilla!("CLASSIC_007t", "Damaged Golem", 1, 2, 1);
@@ -170,6 +176,7 @@ pub const SENJIN_SHIELDMASTA: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -196,6 +203,7 @@ pub const DARK_IRON_DWARF: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -222,6 +230,7 @@ pub const DEFENDER_OF_ARGUS: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -244,6 +253,7 @@ pub const GNOMISH_INVENTOR: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -268,6 +278,7 @@ pub const SPELLBREAKER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -290,6 +301,7 @@ pub const AZURE_DRAKE: CardDef = CardDef {
     charge: false,
     spell_damage: 1,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -312,6 +324,7 @@ pub const SUNWALKER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -334,6 +347,7 @@ pub const ARGENT_COMMANDER: CardDef = CardDef {
     charge: true,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -356,6 +370,7 @@ pub const WINDFURY_HARPY: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -378,6 +393,7 @@ pub const WOLFRIDER: CardDef = CardDef {
     charge: true,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -411,6 +427,7 @@ pub const ABUSIVE_SERGEANT: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -435,6 +452,7 @@ pub const YOUTHFUL_BREWMASTER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -460,6 +478,7 @@ pub const MAD_BOMBER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -482,6 +501,7 @@ pub const ACOLYTE_OF_PAIN: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -507,6 +527,7 @@ pub const EARTHEN_RING_FARSEER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -532,6 +553,7 @@ pub const INJURED_BLADEMASTER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -554,6 +576,7 @@ pub const IMP_MASTER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: Some(CardEffect::SummonMinion {
         card_id: "CLASSIC_006t",
     }),
@@ -578,6 +601,7 @@ pub const RAGING_WORGEN: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -600,6 +624,7 @@ pub const SCARLET_CRUSADER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -622,6 +647,7 @@ pub const THRALLMAR_FARSEER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -646,6 +672,7 @@ pub const ANCIENT_BREWMASTER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -668,6 +695,7 @@ pub const CULT_MASTER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -690,6 +718,7 @@ pub const OGRE_MAGI: CardDef = CardDef {
     charge: false,
     spell_damage: 1,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -712,6 +741,7 @@ pub const SILVERMOON_GUARDIAN: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -734,6 +764,7 @@ pub const VIOLET_TEACHER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -756,6 +787,7 @@ pub const MOGUSHAN_WARDEN: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -781,6 +813,7 @@ pub const ABOMINATION: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -807,6 +840,7 @@ pub const FROSTWOLF_WARLORD: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -829,6 +863,7 @@ pub const GADGETZAN_AUCTIONEER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -853,6 +888,7 @@ pub const SILVER_HAND_KNIGHT: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const SQUIRE: CardDef = vanilla!("NEUTRAL_020t", "Squire", 1, 2, 2);
@@ -878,6 +914,7 @@ pub const FROST_ELEMENTAL: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -900,6 +937,7 @@ pub const LORD_OF_THE_ARENA: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -922,6 +960,7 @@ pub const RECKLESS_ROCKETEER: CardDef = CardDef {
     charge: true,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -944,6 +983,7 @@ pub const ARCHMAGE: CardDef = CardDef {
     charge: false,
     spell_damage: 1,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -976,6 +1016,7 @@ pub const GRIMSCALE_ORACLE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const MURLOC_RAIDER: CardDef = vanilla!("NEUTRAL_B02", "Murloc Raider", 1, 2, 1);
@@ -998,6 +1039,7 @@ pub const STONETUSK_BOAR: CardDef = CardDef {
     charge: true,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const VOODOO_DOCTOR: CardDef = CardDef {
@@ -1022,6 +1064,7 @@ pub const VOODOO_DOCTOR: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const FROSTWOLF_GRUNT: CardDef = CardDef {
@@ -1043,6 +1086,7 @@ pub const FROSTWOLF_GRUNT: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const DALARAN_MAGE: CardDef = CardDef {
@@ -1064,6 +1108,7 @@ pub const DALARAN_MAGE: CardDef = CardDef {
     charge: false,
     spell_damage: 1,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const IRONFORGE_RIFLEMAN: CardDef = CardDef {
@@ -1088,6 +1133,7 @@ pub const IRONFORGE_RIFLEMAN: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const IRONFUR_GRIZZLY: CardDef = CardDef {
@@ -1109,6 +1155,7 @@ pub const IRONFUR_GRIZZLY: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const MAGMA_RAGER: CardDef = vanilla!("NEUTRAL_B09", "Magma Rager", 3, 5, 1);
@@ -1133,6 +1180,7 @@ pub const RAZORFEN_HUNTER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const BOAR: CardDef = vanilla!("NEUTRAL_B10t", "Boar", 1, 1, 1);
@@ -1155,6 +1203,7 @@ pub const SILVERBACK_PATRIARCH: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const DRAGONLING_MECHANIC: CardDef = CardDef {
@@ -1178,6 +1227,7 @@ pub const DRAGONLING_MECHANIC: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const MECHANICAL_DRAGONLING: CardDef =
@@ -1202,6 +1252,7 @@ pub const STORMWIND_KNIGHT: CardDef = CardDef {
     charge: true,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const BOOTY_BAY_BODYGUARD: CardDef = CardDef {
@@ -1223,6 +1274,7 @@ pub const BOOTY_BAY_BODYGUARD: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const DARKSCALE_HEALER: CardDef = CardDef {
@@ -1247,6 +1299,7 @@ pub const DARKSCALE_HEALER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const NIGHTBLADE: CardDef = CardDef {
@@ -1271,6 +1324,7 @@ pub const NIGHTBLADE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const STORMPIKE_COMMANDO: CardDef = CardDef {
@@ -1295,6 +1349,7 @@ pub const STORMPIKE_COMMANDO: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const ARGENT_SQUIRE: CardDef = CardDef {
@@ -1316,6 +1371,7 @@ pub const ARGENT_SQUIRE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const LEPER_GNOME: CardDef = CardDef {
@@ -1340,6 +1396,7 @@ pub const LEPER_GNOME: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const SHIELDBEARER: CardDef = CardDef {
@@ -1361,6 +1418,7 @@ pub const SHIELDBEARER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const YOUNG_DRAGONHAWK: CardDef = CardDef {
@@ -1382,6 +1440,7 @@ pub const YOUNG_DRAGONHAWK: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const FEN_CREEPER: CardDef = CardDef {
@@ -1403,6 +1462,7 @@ pub const FEN_CREEPER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const PRIESTESS_OF_ELUNE: CardDef = CardDef {
@@ -1427,6 +1487,7 @@ pub const PRIESTESS_OF_ELUNE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const BLOODMAGE_THALNOS: CardDef = CardDef {
@@ -1448,6 +1509,7 @@ pub const BLOODMAGE_THALNOS: CardDef = CardDef {
     charge: false,
     spell_damage: 1,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const SOUTHSHORE_CAPTAIN: CardDef = CardDef {
@@ -1475,6 +1537,7 @@ pub const SOUTHSHORE_CAPTAIN: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -1503,6 +1566,7 @@ pub const COLDLIGHT_SEER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 /// 鱼人领军 — 你的其他鱼人获得+2/+1（简化：你的其他友方随从获得+2/+1）
@@ -1531,6 +1595,7 @@ pub const MURLOC_WARLEADER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -1564,6 +1629,7 @@ pub const SOUTHSHORE_DECKHAND: CardDef = CardDef {
     charge: true,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 /// 狼人渗透者 — 潜行（简化：白板）
@@ -1592,6 +1658,7 @@ pub const TAUREN_WARRIOR: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 /// 食尸鬼 — 每当一个随从死亡，获得+1攻击力（简化：白板）
@@ -1616,6 +1683,7 @@ pub const DREAD_CORSAIR: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 /// 风险投资公司雇佣兵 — 你的随从费用增加（3）（简化：白板）
@@ -1655,6 +1723,7 @@ pub const ANCIENT_WATCHER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: true,
+    spell_effect: None,
     end_turn_effect: None,
 };
 /// 疯狂炼金师 — 战吼：交换随从的攻击力和生命值（简化：白板）
@@ -1689,6 +1758,7 @@ pub const ARCANE_GOLEM: CardDef = CardDef {
     charge: true,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 /// 攻城车 — 回合开始时造成2点随机伤害（简化：白板）
