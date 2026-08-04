@@ -28,6 +28,7 @@ fn play_minion_moves_from_hand_to_board() {
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
     builder.add_minion_to_hand(PlayerId::Player1, &CHILLWIND_YETI);
+    builder.set_mana(PlayerId::Player1, 10, 10);
     let mut state = builder.build();
 
     let hand: Vec<Entity> = state
@@ -55,6 +56,24 @@ fn play_minion_moves_from_hand_to_board() {
 }
 
 #[test]
+fn not_enough_mana_rejected() {
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &CHILLWIND_YETI);
+    // 不设置法力，默认 0
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+    let result = engine.apply(&mut state, Action::PlayCard { card });
+    assert_eq!(result, Err(EngineError::NotEnoughMana));
+}
+
+#[test]
 fn play_card_when_board_has_7_minions_fails() {
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
@@ -63,6 +82,7 @@ fn play_card_when_board_has_7_minions_fails() {
         builder.add_minion_to_board(PlayerId::Player1, &WISP);
     }
     builder.add_minion_to_hand(PlayerId::Player1, &CHILLWIND_YETI);
+    builder.set_mana(PlayerId::Player1, 10, 10);
     let mut state = builder.build();
 
     let hand: Vec<Entity> = state
@@ -375,6 +395,7 @@ fn same_actions_produce_identical_results() {
         let card1 = builder.add_custom_minion_to_hand(PlayerId::Player1, 3, 4, 3);
         let card2 = builder.add_custom_minion_to_hand(PlayerId::Player1, 2, 3, 2);
         let defender = builder.add_custom_minion_to_board(PlayerId::Player2, 1, 10, 1);
+        builder.set_mana(PlayerId::Player1, 10, 10);
         (builder.build(), card1, card2, defender)
     };
 
@@ -439,6 +460,8 @@ fn full_game_scenario() {
     let yeti = builder.add_custom_minion_to_hand(PlayerId::Player1, 4, 5, 4);
     let croc = builder.add_custom_minion_to_hand(PlayerId::Player1, 2, 3, 2);
     let ogre = builder.add_custom_minion_to_board(PlayerId::Player2, 6, 7, 6);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    builder.set_mana(PlayerId::Player2, 10, 10);
     let mut state = builder.build();
 
     // Turn 1: Player1 打出 Yeti (4/5)

@@ -8,7 +8,9 @@
 //!
 //! 所有实体访问都经过 generation 检查，防止悬垂引用。
 
-use crate::core::component::{Attack, AttacksUsed, CardType, Cost, Health};
+use crate::core::component::{
+    Attack, AttacksUsed, Battlecry, CardType, Cost, Deathrattle, Health, Taunt,
+};
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
 use crate::core::sparse_set::SparseSet;
@@ -69,7 +71,7 @@ macro_rules! component_accessors {
 ///
 /// - `generations`: 每个槽位的代际版本号（despawn 时递增）
 /// - `free_list`: 可复用的空闲槽位（FIFO）
-/// - 7 个组件稀疏集 + Zones 表
+/// - 10 个组件稀疏集 + Zones 表
 #[derive(Debug, Clone)]
 pub struct World {
     /// 每个槽位的代际版本号，用于检测过期 Entity handle
@@ -90,6 +92,12 @@ pub struct World {
     player: SparseSet<PlayerId>,
     /// AttacksUsed 组件存储
     attacks_used: SparseSet<AttacksUsed>,
+    /// Battlecry 组件存储
+    battlecry: SparseSet<Battlecry>,
+    /// Deathrattle 组件存储
+    deathrattle: SparseSet<Deathrattle>,
+    /// Taunt 组件存储
+    taunt: SparseSet<Taunt>,
     /// 区域表 — 每个 Zone 的有序实体列表
     zones: Zones,
 }
@@ -108,6 +116,9 @@ impl World {
             zone_comp: SparseSet::new(),
             player: SparseSet::new(),
             attacks_used: SparseSet::new(),
+            battlecry: SparseSet::new(),
+            deathrattle: SparseSet::new(),
+            taunt: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -152,6 +163,9 @@ impl World {
         self.zone_comp.remove(entity);
         self.player.remove(entity);
         self.attacks_used.remove(entity);
+        self.battlecry.remove(entity);
+        self.deathrattle.remove(entity);
+        self.taunt.remove(entity);
         // 提升 generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // 归还槽位
@@ -241,6 +255,23 @@ impl World {
         remove_attacks_used,
         iter_attacks_used
     );
+    component_accessors!(
+        battlecry,
+        Battlecry,
+        battlecry,
+        set_battlecry,
+        remove_battlecry,
+        iter_battlecry
+    );
+    component_accessors!(
+        deathrattle,
+        Deathrattle,
+        deathrattle,
+        set_deathrattle,
+        remove_deathrattle,
+        iter_deathrattle
+    );
+    component_accessors!(taunt, Taunt, taunt, set_taunt, remove_taunt, iter_taunt);
 }
 
 impl Default for World {

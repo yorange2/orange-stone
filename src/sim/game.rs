@@ -73,6 +73,30 @@ impl GameBuilder {
         self
     }
 
+    /// 设置玩家的法力水晶。
+    pub fn set_mana(&mut self, player: PlayerId, crystals: i32, current: i32) -> &mut Self {
+        let inner = self.state.make_mut();
+        let p = &mut inner.players[player.index()];
+        p.mana_crystals = crystals;
+        p.current_mana = current;
+        self
+    }
+
+    /// 设置 RNG seed（重建 RNG）。
+    pub fn with_rng_seed(&mut self, seed: u64) -> &mut Self {
+        self.state.make_mut().rng = crate::sim::rng::GameRng::new(seed);
+        self
+    }
+
+    /// 根据 CardDef 创建一个随从并放入指定玩家的牌库。
+    pub fn add_minion_to_deck(&mut self, player: PlayerId, card: &CardDef) -> &mut Self {
+        let e = self.spawn_minion(player, card);
+        let world = self.state.world_mut();
+        world.set_zone(e, Zone::Deck);
+        world.zones_mut().insert(Zone::Deck, player, e);
+        self
+    }
+
     /// 根据 `CardDef` 创建一个随从并放入指定玩家的手牌。
     pub fn add_minion_to_hand(&mut self, player: PlayerId, card: &CardDef) -> &mut Self {
         let e = self.spawn_minion(player, card);

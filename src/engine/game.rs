@@ -105,6 +105,7 @@ mod tests {
         world.set_attacks_used(e, AttacksUsed(0));
         world.set_zone(e, Zone::Hand);
         world.zones_mut().insert(Zone::Hand, player, e);
+        state.make_mut().players[player.index()].current_mana = 10;
         e
     }
 

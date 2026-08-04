@@ -14,6 +14,7 @@ use crate::core::event::{Event, EventQueue, Priority};
 use crate::core::player::PlayerId;
 use crate::core::state::{GameState, Phase};
 use crate::core::zone::Zone;
+use crate::engine::trigger;
 
 /// 引擎错误 — action 不能被执行的原因。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,6 +39,10 @@ pub enum EngineError {
     EntityGone(Entity),
     /// 游戏已经结束
     GameAlreadyOver,
+    /// 法力不足
+    NotEnoughMana,
+    /// 必须先攻击嘲讽随从
+    MustAttackTaunt,
     /// 功能尚未实现（Phase 2+）
     Unimplemented,
 }
@@ -85,6 +90,12 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
     let zone = world.zone(card).ok_or(EngineError::CardNotInHand)?;
     if zone != Zone::Hand {
         return Err(EngineError::CardNotInHand);
+    }
+
+    // 检查法力
+    let cost = world.cost(card).unwrap_or_default();
+    if cost.0 > state.player(active).current_mana {
+        return Err(EngineError::NotEnoughMana);
     }
 
     // 检查战场上限
@@ -163,6 +174,19 @@ fn validate_attack(
     match defender_type {
         CardType::Minion | CardType::Hero => {}
         _ => return Err(EngineError::InvalidTarget),
+    }
+
+    // 嘲讽检查：如果敌方场上有嘲讽随从，必须攻击嘲讽
+    let enemy = active.opponent();
+    let has_taunt = world
+        .zones()
+        .iter(Zone::Play, enemy)
+        .any(|e| world.taunt(e).is_some());
+    if has_taunt {
+        // defender 必须是嘲讽随从
+        if world.taunt(defender).is_none() {
+            return Err(EngineError::MustAttackTaunt);
+        }
     }
 
     Ok(())
@@ -280,20 +304,41 @@ pub fn apply_event(
             state.set_active_player(player);
             state.set_turn(new_turn);
             state.set_phase(Phase::Main);
+
+            // 法力水晶增长和回满
+            {
+                let inner = state.make_mut();
+                let p = &mut inner.players[player.index()];
+                p.mana_crystals = (p.mana_crystals + 1).min(10);
+                p.current_mana = p.mana_crystals;
+            }
+
+            // 抽一张牌
+            trigger::draw_card(state, queue, player);
         }
         Event::TurnEnded { .. } => {
             state.set_phase(Phase::End);
         }
-        Event::CardPlayed { card, .. } => {
+        Event::CardPlayed { player, card } => {
+            // 扣除法力
+            let cost = state.world().cost(card).unwrap_or_default();
+            {
+                let inner = state.make_mut();
+                let p = &mut inner.players[player.index()];
+                p.current_mana -= cost.0;
+            }
             // 卡牌从手牌移到战场
             state
                 .world_mut()
                 .move_to_zone(card, Zone::Play)
                 .map_err(|_| EngineError::EntityGone(card))?;
         }
-        Event::MinionSummoned { .. } => {
-            // 召唤纯粹是通知事件，实体已在 Play（由 CardPlayed 移动）
-            // Phase 2+ 会有战吼触发等
+        Event::MinionSummoned { player, minion } => {
+            // 检查战吼组件
+            if let Some(battlecry) = state.world().battlecry(minion) {
+                let effect = battlecry.0;
+                trigger::resolve_effect(state, queue, minion, player, effect);
+            }
         }
         Event::AttackDeclared { attacker, .. } => {
             // 标记攻击者已使用过攻击次数
@@ -337,11 +382,23 @@ pub fn apply_event(
             }
         }
         Event::MinionDied { minion } => {
+            // 先检查亡语效果（实体还在战场上）
+            let deathrattle_effect = state.world().deathrattle(minion);
+            let owner = state.world().player(minion);
+
+            // 如果是亡语效果，入队（之后处理，保持当前实体状态）
+            if let (Some(dr), Some(owner)) = (deathrattle_effect, owner) {
+                trigger::resolve_effect(state, queue, minion, owner, dr.0);
+            }
+
             // 随从移到坟墓场（保留实体和组件，用于回放和 Phase 2+ 的坟场效果）
             state
                 .world_mut()
                 .move_to_zone(minion, Zone::Graveyard)
                 .map_err(|_| EngineError::EntityGone(minion))?;
+        }
+        Event::CardDrawn { .. } => {
+            // 通知事件 — 卡牌已在 draw_card 中移到手牌
         }
         Event::GameOver { winner } => {
             state.set_phase(Phase::GameOver { winner });
@@ -385,6 +442,8 @@ mod tests {
         world.set_attacks_used(e, AttacksUsed(0));
         world.set_zone(e, Zone::Hand);
         world.zones_mut().insert(Zone::Hand, player, e);
+        // 设置足够的法力用于测试
+        state.make_mut().players[player.index()].current_mana = 10;
         e
     }
 
