@@ -207,7 +207,7 @@ impl GameBuilder {
         self
     }
 
-    /// 内部辅助：根据 CardDef 生成一个随从实体（不设置 Zone）。
+    /// 内部辅助：根据 CardDef 生成一个卡牌实体（不设置 Zone）。
     fn spawn_minion(&mut self, player: PlayerId, card: &CardDef) -> Entity {
         let world = self.state.world_mut();
         let e = world.spawn();
@@ -217,6 +217,10 @@ impl GameBuilder {
         world.set_card_type(e, card.card_type);
         world.set_player(e, player);
         world.set_attacks_used(e, AttacksUsed(0));
+        // 设置武器耐久（如果是武器牌）
+        if card.card_type == CardType::Weapon && card.durability > 0 {
+            world.set_durability(e, Durability(card.durability));
+        }
         // 设置光环（如果有）
         if let Some((aura_effect, aura_target)) = card.aura {
             world.set_aura(

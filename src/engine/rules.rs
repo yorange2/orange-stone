@@ -25,8 +25,8 @@ pub enum EngineError {
     NotYourCard,
     /// 卡牌不在手牌中
     CardNotInHand,
-    /// 不是随从（PlayCard 只能打出随从）
-    NotAMinion,
+    /// 不是随从或武器（PlayCard 只能打出随从或武器）
+    NotPlayable,
     /// 战场已满（7 个随从上限）
     BoardFull,
     /// 无效的目标（攻击己方或目标不存在）
@@ -82,10 +82,10 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
         return Err(EngineError::NotYourCard);
     }
 
-    // 必须是随从
-    let card_type = world.card_type(card).ok_or(EngineError::NotAMinion)?;
-    if card_type != CardType::Minion {
-        return Err(EngineError::NotAMinion);
+    // 必须是随从或武器
+    let card_type = world.card_type(card).ok_or(EngineError::NotPlayable)?;
+    if card_type != CardType::Minion && card_type != CardType::Weapon {
+        return Err(EngineError::NotPlayable);
     }
 
     // 必须在手牌中
@@ -100,10 +100,12 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
         return Err(EngineError::NotEnoughMana);
     }
 
-    // 检查战场上限
-    let board_count = count_board_minions(world, active);
-    if board_count >= MAX_BOARD_SIZE {
-        return Err(EngineError::BoardFull);
+    // 检查战场上限（武器不占随从位）
+    if card_type == CardType::Minion {
+        let board_count = count_board_minions(world, active);
+        if board_count >= MAX_BOARD_SIZE {
+            return Err(EngineError::BoardFull);
+        }
     }
 
     Ok(())
@@ -296,10 +298,13 @@ pub fn enqueue(
         Action::PlayCard { card } => {
             let player = state.active_player();
             queue.push(Event::CardPlayed { player, card });
-            queue.push(Event::MinionSummoned {
-                player,
-                minion: card,
-            });
+            let card_type = state.world().card_type(card);
+            if card_type == Some(CardType::Minion) {
+                queue.push(Event::MinionSummoned {
+                    player,
+                    minion: card,
+                });
+            }
         }
         Action::Attack { attacker, defender } => {
             let world = state.world();
@@ -394,16 +399,41 @@ pub fn apply_event(
         Event::CardPlayed { player, card } => {
             // 扣除法力
             let cost = state.world().cost(card).unwrap_or_default();
+            let card_type = state.world().card_type(card);
             {
                 let inner = state.make_mut();
                 let p = &mut inner.players[player.index()];
                 p.current_mana -= cost.0;
             }
-            // 卡牌从手牌移到战场
-            state
-                .world_mut()
-                .move_to_zone(card, Zone::Play)
-                .map_err(|_| EngineError::EntityGone(card))?;
+            if card_type == Some(CardType::Weapon) {
+                // 武器牌：先销毁旧武器，然后装备新武器
+                let old_weapon = state.player(player).weapon;
+                if let Some(old) = old_weapon {
+                    let inner = state.make_mut();
+                    inner.players[player.index()].weapon = None;
+                    queue.push(Event::WeaponDestroyed {
+                        player,
+                        weapon: old,
+                    });
+                }
+                // 装备新武器：卡牌移到战场作为武器实体
+                state
+                    .world_mut()
+                    .move_to_zone(card, Zone::Play)
+                    .map_err(|_| EngineError::EntityGone(card))?;
+                let inner = state.make_mut();
+                inner.players[player.index()].weapon = Some(card);
+                queue.push(Event::WeaponEquipped {
+                    player,
+                    weapon: card,
+                });
+            } else {
+                // 卡牌从手牌移到战场
+                state
+                    .world_mut()
+                    .move_to_zone(card, Zone::Play)
+                    .map_err(|_| EngineError::EntityGone(card))?;
+            }
         }
         Event::MinionSummoned { player, minion } => {
             // 检查战吼组件

@@ -43,11 +43,12 @@ impl GreedyBot {
         let active = state.active_player();
         let mut actions = Vec::new();
 
-        // 1. 出牌：从手牌打出所有可负担的随从
-        actions.extend(self.play_cards(state, active));
+        // 1. 出牌：从手牌打出所有可负担的随从和武器
+        let (play_actions, remaining_mana) = self.play_cards(state, active);
+        actions.extend(play_actions);
 
-        // 2. 英雄技能（如果可用）
-        if let Some(hp_action) = self.hero_power(state, active) {
+        // 2. 英雄技能（考虑打牌后的剩余法力）
+        if let Some(hp_action) = self.hero_power(state, active, remaining_mana) {
             actions.push(hp_action);
         }
 
@@ -60,17 +61,19 @@ impl GreedyBot {
         actions
     }
 
-    /// 打出所有可负担的随从牌（费用从低到高）。
-    fn play_cards(&self, state: &GameState, player: PlayerId) -> Vec<Action> {
+    /// 打出所有可负担的随从和武器牌（费用从低到高）。
+    /// 返回 (动作列表, 剩余法力)。
+    fn play_cards(&self, state: &GameState, player: PlayerId) -> (Vec<Action>, i32) {
         let world = state.world();
         let current_mana = state.player(player).current_mana;
 
-        // 收集所有可打出的随从牌
+        // 收集所有可打出的牌（随从 + 武器）
         let mut playable: Vec<(i32, Entity)> = world
             .zones()
             .iter(Zone::Hand, player)
             .filter(|&e| {
-                world.card_type(e) == Some(CardType::Minion)
+                let ct = world.card_type(e);
+                (ct == Some(CardType::Minion) || ct == Some(CardType::Weapon))
                     && world.cost(e).is_some_and(|c| c.0 <= current_mana)
             })
             .map(|e| (world.cost(e).unwrap().0, e))
@@ -89,11 +92,16 @@ impl GreedyBot {
             }
         }
 
-        actions
+        (actions, remaining_mana)
     }
 
-    /// 尝试使用英雄技能（如果有剩余法力且未使用过）。
-    fn hero_power(&self, state: &GameState, player: PlayerId) -> Option<Action> {
+    /// 尝试使用英雄技能（如果出牌后还有剩余法力且未使用过）。
+    fn hero_power(
+        &self,
+        state: &GameState,
+        player: PlayerId,
+        remaining_mana: i32,
+    ) -> Option<Action> {
         let hero = state.player(player).hero;
         let world = state.world();
 
@@ -104,7 +112,7 @@ impl GreedyBot {
 
         // 检查是否有足够的法力（英雄技能定义或默认 2）
         let cost = world.hero_power(hero).map(|hp| hp.cost).unwrap_or(2);
-        if state.player(player).current_mana >= cost {
+        if remaining_mana >= cost {
             Some(Action::HeroPower { hero })
         } else {
             None
