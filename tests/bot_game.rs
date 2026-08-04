@@ -123,7 +123,7 @@ fn print_board(state: &orange_stone::core::state::GameState) {
             let used = if state
                 .world()
                 .attacks_used(*e)
-                .is_some_and(|a| a.is_exhausted())
+                .is_some_and(|a| a.is_exhausted_with(state.world().max_attacks(*e)))
             {
                 " (已攻击)"
             } else {

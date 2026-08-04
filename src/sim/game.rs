@@ -221,6 +221,19 @@ impl GameBuilder {
         if card.card_type == CardType::Weapon && card.durability > 0 {
             world.set_durability(e, Durability(card.durability));
         }
+        // 设置圣盾/风怒/冲锋/法伤
+        if card.divine_shield {
+            world.set_divine_shield(e, crate::core::component::DivineShield);
+        }
+        if card.windfury {
+            world.set_windfury(e, crate::core::component::Windfury);
+        }
+        if card.charge {
+            world.set_charge(e, crate::core::component::Charge);
+        }
+        if card.spell_damage != 0 {
+            world.set_spell_damage(e, crate::core::component::SpellDamage(card.spell_damage));
+        }
         // 设置光环（如果有）
         if let Some((aura_effect, aura_target)) = card.aura {
             world.set_aura(

@@ -9,8 +9,8 @@
 //! 所有实体访问都经过 generation 检查，防止悬垂引用。
 
 use crate::core::component::{
-    Armor, Attack, AttacksUsed, Aura, Battlecry, CardType, Cost, Deathrattle, Durability, Health,
-    HeroPowerDef, HeroPowerUsed, Secret, Taunt,
+    Armor, Attack, AttacksUsed, Aura, Battlecry, CardType, Charge, Cost, Deathrattle, DivineShield,
+    Durability, Freeze, Health, HeroPowerDef, HeroPowerUsed, Secret, SpellDamage, Taunt, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -111,6 +111,16 @@ pub struct World {
     aura: SparseSet<Aura>,
     /// Secret 组件存储（奥秘）
     secret: SparseSet<Secret>,
+    /// DivineShield 组件存储（圣盾）
+    divine_shield: SparseSet<DivineShield>,
+    /// Windfury 组件存储（风怒）
+    windfury: SparseSet<Windfury>,
+    /// Charge 组件存储（冲锋）
+    charge: SparseSet<Charge>,
+    /// SpellDamage 组件存储（法术伤害加成）
+    spell_damage: SparseSet<SpellDamage>,
+    /// Freeze 组件存储（冻结）
+    freeze: SparseSet<Freeze>,
     /// 区域表 — 每个 Zone 的有序实体列表
     zones: Zones,
 }
@@ -138,6 +148,11 @@ impl World {
             hero_power_used: SparseSet::new(),
             aura: SparseSet::new(),
             secret: SparseSet::new(),
+            divine_shield: SparseSet::new(),
+            windfury: SparseSet::new(),
+            charge: SparseSet::new(),
+            spell_damage: SparseSet::new(),
+            freeze: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -191,6 +206,11 @@ impl World {
         self.hero_power_used.remove(entity);
         self.aura.remove(entity);
         self.secret.remove(entity);
+        self.divine_shield.remove(entity);
+        self.windfury.remove(entity);
+        self.charge.remove(entity);
+        self.spell_damage.remove(entity);
+        self.freeze.remove(entity);
         // 提升 generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // 归还槽位
@@ -331,6 +351,72 @@ impl World {
         remove_secret,
         iter_secret
     );
+    component_accessors!(
+        divine_shield,
+        DivineShield,
+        divine_shield,
+        set_divine_shield,
+        remove_divine_shield,
+        iter_divine_shield
+    );
+    component_accessors!(
+        windfury,
+        Windfury,
+        windfury,
+        set_windfury,
+        remove_windfury,
+        iter_windfury
+    );
+    component_accessors!(
+        charge,
+        Charge,
+        charge,
+        set_charge,
+        remove_charge,
+        iter_charge
+    );
+    component_accessors!(
+        spell_damage,
+        SpellDamage,
+        spell_damage,
+        set_spell_damage,
+        remove_spell_damage,
+        iter_spell_damage
+    );
+    component_accessors!(
+        freeze,
+        Freeze,
+        freeze,
+        set_freeze,
+        remove_freeze,
+        iter_freeze
+    );
+
+    /// 获取实体每回合可攻击的最大次数。
+    #[must_use]
+    pub fn max_attacks(&self, entity: Entity) -> u8 {
+        if self.windfury(entity).is_some() {
+            2
+        } else {
+            1
+        }
+    }
+
+    /// 获取场上友方法术伤害加成总和。
+    #[must_use]
+    pub fn total_spell_damage(&self, player: PlayerId) -> i32 {
+        use crate::core::zone::Zone;
+        let mut total = 0i32;
+        for (e, sd) in self.iter_spell_damage() {
+            if self.is_alive(e)
+                && self.zone(e) == Some(Zone::Play)
+                && self.player(e) == Some(player)
+            {
+                total += sd.0;
+            }
+        }
+        total
+    }
 
     /// 获取实体的有效攻击力（基础攻击力 + 所有光环加成）。
     ///

@@ -153,10 +153,11 @@ fn validate_attack(
         return Err(EngineError::NotOnBoard);
     }
 
-    // 检查攻击次数
+    // 检查攻击次数（考虑风怒）
+    let max_atks = world.max_attacks(attacker);
     if world
         .attacks_used(attacker)
-        .is_some_and(|a| a.is_exhausted())
+        .is_some_and(|a| a.is_exhausted_with(max_atks))
     {
         return Err(EngineError::AttacksExhausted);
     }
@@ -376,6 +377,8 @@ pub fn apply_event(
                     world.set_attacks_used(*entity, AttacksUsed(0));
                     // 重置英雄技能使用标记
                     world.set_hero_power_used(*entity, HeroPowerUsed(false));
+                    // 清除冻结
+                    world.remove_freeze(*entity);
                 }
             }
             state.set_active_player(player);
@@ -443,6 +446,11 @@ pub fn apply_event(
             }
         }
         Event::AttackDeclared { attacker, .. } => {
+            // 冻结检查：被冻结的角色不能攻击
+            if state.world().freeze(attacker).is_some() {
+                return Err(EngineError::InvalidTarget);
+            }
+
             // 先读取攻击者类型和武器信息（只读 borrow）
             let is_hero = state.world().card_type(attacker) == Some(CardType::Hero);
             let attacker_player = state.world().player(attacker);
@@ -477,6 +485,12 @@ pub fn apply_event(
             amount,
             source: _,
         } => {
+            // 圣盾吸收：如果目标有圣盾，移除圣盾，伤害归零
+            if state.world().divine_shield(target).is_some() {
+                state.world_mut().remove_divine_shield(target);
+                return Ok(());
+            }
+
             // 获取目标的卡牌类型
             let card_type = state.world().card_type(target);
 

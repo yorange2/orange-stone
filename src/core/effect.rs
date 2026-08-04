@@ -20,6 +20,14 @@ pub enum EffectTarget {
     Self_,
     /// 所有友方随从
     AllFriendlyMinions,
+    /// 所有随从（不分敌我）
+    AllMinions,
+    /// 所有角色（英雄+随从，不分敌我）
+    AllCharacters,
+    /// 友方英雄
+    FriendlyHero,
+    /// 受伤的敌方随从
+    DamagedEnemyMinion,
 }
 
 /// 卡牌效果 — 触发时执行的动作。
@@ -77,4 +85,40 @@ pub enum CardEffect {
         /// 目标选择方式
         target: EffectTarget,
     },
+    /// 消灭随从（暗言术：灭、刺杀）
+    DestroyMinion {
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 沉默随从 — 移除所有效果组件
+    SilenceMinion {
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 设置攻击力为固定值
+    SetAttack {
+        /// 目标攻击力
+        attack: i32,
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 恢复生命值
+    RestoreHealth {
+        /// 恢复量
+        amount: i32,
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 冻结角色
+    FreezeCharacter {
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 获得空法力水晶
+    GainManaCrystal {
+        /// 获得数量
+        count: i32,
+    },
+    /// 摧毁敌方武器
+    DestroyWeapon,
 }

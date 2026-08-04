@@ -12,7 +12,7 @@
 //! - `Self_` → 效果来源实体自身
 //! - `AllEnemyMinions` → 所有敌方随从
 
-use crate::core::component::{Attack, CardType, Cost, Durability, Health};
+use crate::core::component::{Attack, CardType, Cost, Durability, Freeze, Health};
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue};
@@ -61,6 +61,38 @@ pub fn resolve_effect(
         }
         CardEffect::IncreaseCost { amount, target } => {
             resolve_increase_cost(state, owner, amount, target);
+        }
+        CardEffect::DestroyMinion { target } => {
+            resolve_destroy_minion(state, queue, owner, target);
+        }
+        CardEffect::SilenceMinion { target } => {
+            resolve_silence(state, owner, target);
+        }
+        CardEffect::SetAttack { attack, target } => {
+            resolve_set_attack(state, owner, attack, target);
+        }
+        CardEffect::RestoreHealth { amount, target } => {
+            resolve_restore_health(state, owner, amount, target);
+        }
+        CardEffect::FreezeCharacter { target } => {
+            resolve_freeze(state, owner, target);
+        }
+        CardEffect::GainManaCrystal { count } => {
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            p.mana_crystals = (p.mana_crystals + count).min(10);
+            p.current_mana += count;
+        }
+        CardEffect::DestroyWeapon => {
+            let enemy = owner.opponent();
+            if let Some(weapon) = state.player(enemy).weapon {
+                let inner = state.make_mut();
+                inner.players[enemy.index()].weapon = None;
+                queue.push(Event::WeaponDestroyed {
+                    player: enemy,
+                    weapon,
+                });
+            }
         }
     }
 }
@@ -135,6 +167,13 @@ fn resolve_deal_damage(
                 target: source,
                 amount,
             });
+            return;
+        }
+        EffectTarget::AllMinions
+        | EffectTarget::AllCharacters
+        | EffectTarget::FriendlyHero
+        | EffectTarget::DamagedEnemyMinion => {
+            // 这些目标类型不在 DealDamage 中使用
             return;
         }
     };
@@ -360,6 +399,118 @@ fn resolve_increase_cost(
     let world = state.world_mut();
     let cur_cost = world.cost(target_entity).unwrap_or(Cost(0));
     world.set_cost(target_entity, Cost(cur_cost.0 + amount));
+}
+
+/// 消灭随从 — 造成等于当前生命值的伤害来确保击杀。
+fn resolve_destroy_minion(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    owner: PlayerId,
+    target: EffectTarget,
+) {
+    let minions: Vec<Entity> = match target {
+        EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
+        EffectTarget::DamagedEnemyMinion => collect_enemy_minions(state, owner),
+        _ => return,
+    };
+    for &m in &minions {
+        let hp = state.world().health(m).unwrap_or(Health(1));
+        queue.push(Event::DamageDealt {
+            source: m,
+            target: m,
+            amount: hp.0.max(1),
+        });
+    }
+}
+
+/// 沉默随从 — 移除所有效果组件。
+fn resolve_silence(state: &mut GameState, owner: PlayerId, target: EffectTarget) {
+    let minions: Vec<Entity> = match target {
+        EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
+        EffectTarget::AllMinions => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_enemy_minions(state, owner));
+            all
+        }
+        _ => return,
+    };
+    for &m in &minions {
+        let world = state.world_mut();
+        world.remove_taunt(m);
+        world.remove_battlecry(m);
+        world.remove_deathrattle(m);
+        world.remove_aura(m);
+        world.remove_divine_shield(m);
+        world.remove_windfury(m);
+        world.remove_charge(m);
+        world.remove_spell_damage(m);
+    }
+}
+
+/// 设置攻击力。
+fn resolve_set_attack(state: &mut GameState, owner: PlayerId, attack: i32, target: EffectTarget) {
+    let minions: Vec<Entity> = match target {
+        EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
+        _ => return,
+    };
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    state.world_mut().set_attack(minions[idx], Attack(attack));
+}
+
+/// 恢复生命值。
+fn resolve_restore_health(
+    state: &mut GameState,
+    owner: PlayerId,
+    amount: i32,
+    target: EffectTarget,
+) {
+    match target {
+        EffectTarget::FriendlyHero => {
+            let hero = state.player(owner).hero;
+            let cur = state.world().health(hero).unwrap_or(Health(0));
+            state
+                .world_mut()
+                .set_health(hero, Health((cur.0 + amount).min(30)));
+        }
+        EffectTarget::Self_ => {
+            // source is the effect source, but here we use hero
+            let hero = state.player(owner).hero;
+            let cur = state.world().health(hero).unwrap_or(Health(0));
+            state
+                .world_mut()
+                .set_health(hero, Health((cur.0 + amount).min(30)));
+        }
+        EffectTarget::AllFriendlyMinions => {
+            let minions = collect_friendly_minions(state, owner);
+            let world = state.world_mut();
+            for &m in &minions {
+                let cur = world.health(m).unwrap_or(Health(0));
+                world.set_health(m, Health((cur.0 + amount).min(30)));
+            }
+        }
+        _ => {}
+    }
+}
+
+/// 冻结角色。
+fn resolve_freeze(state: &mut GameState, owner: PlayerId, target: EffectTarget) {
+    let targets: Vec<Entity> = match target {
+        EffectTarget::AnyEnemy => collect_enemy_characters(state, owner),
+        EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
+        EffectTarget::AllEnemyMinions => collect_enemy_minions(state, owner),
+        EffectTarget::AllCharacters => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_enemy_characters(state, owner));
+            all
+        }
+        _ => return,
+    };
+    for &t in &targets {
+        state.world_mut().set_freeze(t, Freeze);
+    }
 }
 
 // ============================================================

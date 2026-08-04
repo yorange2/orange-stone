@@ -221,7 +221,9 @@ impl GreedyBot {
             .iter(Zone::Play, player)
             .filter(|&e| {
                 world.card_type(e) == Some(CardType::Minion)
-                    && world.attacks_used(e).is_some_and(|a| !a.is_exhausted())
+                    && world
+                        .attacks_used(e)
+                        .is_some_and(|a| !a.is_exhausted_with(world.max_attacks(e)))
                     && world.effective_attack(e).is_some_and(|a| a.0 > 0)
             })
             .collect();
@@ -229,7 +231,9 @@ impl GreedyBot {
         // 英雄（有武器且未攻击过）
         let hero = state.player(player).hero;
         let has_weapon = state.player(player).weapon.is_some();
-        let hero_can_attack = world.attacks_used(hero).is_some_and(|a| !a.is_exhausted());
+        let hero_can_attack = world
+            .attacks_used(hero)
+            .is_some_and(|a| !a.is_exhausted_with(world.max_attacks(hero)));
         if has_weapon && hero_can_attack {
             attackers.push(hero);
         }

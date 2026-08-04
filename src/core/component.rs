@@ -100,10 +100,11 @@ impl From<u8> for AttacksUsed {
     }
 }
 impl AttacksUsed {
-    /// 返回 `true` 如果已耗尽本回合的攻击次数。
+    /// 返回 `true` 如果已耗尽本回合的攻击次数（默认 1 次）。
+    /// 传入 `max_attacks` 以支持风怒（2 次）。
     #[must_use]
-    pub const fn is_exhausted(self) -> bool {
-        self.0 >= 1
+    pub const fn is_exhausted_with(self, max_attacks: u8) -> bool {
+        self.0 >= max_attacks
     }
 }
 
@@ -244,6 +245,46 @@ pub enum SecretTrigger {
     WhenEnemySpellCast,
 }
 
+/// 圣盾 — 吸收一次伤害后消失。
+///
+/// 当带圣盾的角色受到伤害时，圣盾移除，伤害完全被吸收。
+/// 圣盾不叠加（一个实体只能有一个圣盾）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct DivineShield;
+
+/// 风怒 — 每回合可攻击 2 次。
+///
+/// 拥有风怒的角色每回合最多攻击 2 次（而非默认的 1 次）。
+/// `AttacksUsed.is_exhausted()` 检查时需根据是否拥有风怒判断。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Windfury;
+
+/// 冲锋 — 召唤当回合即可攻击。
+///
+/// 当随从被召唤时，如果有冲锋组件，则不标记为已攻击
+/// （即 `AttacksUsed` 保持为 0，允许立即攻击）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Charge;
+
+/// 法术伤害加成 — 增加法术造成的伤害。
+///
+/// 场上所有友方 `SpellDamage` 值累加，加到法术伤害上。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct SpellDamage(pub i32);
+impl From<i32> for SpellDamage {
+    fn from(v: i32) -> Self {
+        Self(v)
+    }
+}
+impl_arith!(SpellDamage);
+
+/// 冻结 — 角色被冻结，跳过下一次攻击机会。
+///
+/// 冻结的角色在回合开始时解冻（清除 Freeze 组件）。
+/// 如果在被冻结的回合，角色无法攻击。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Freeze;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -268,8 +309,9 @@ mod tests {
 
     #[test]
     fn attacks_used_is_exhausted() {
-        assert!(AttacksUsed(1).is_exhausted());
-        assert!(AttacksUsed(2).is_exhausted());
-        assert!(!AttacksUsed(0).is_exhausted());
+        assert!(AttacksUsed(1).is_exhausted_with(1));
+        assert!(AttacksUsed(2).is_exhausted_with(2));
+        assert!(!AttacksUsed(1).is_exhausted_with(2));
+        assert!(!AttacksUsed(0).is_exhausted_with(1));
     }
 }

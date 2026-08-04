@@ -1,141 +1,70 @@
 //! 卡牌定义 — 数据驱动的卡牌数据。
 //!
-//! 每张卡牌由 `CardDef` 描述其基本属性和效果。
-//! Phase 2 支持战吼、亡语、嘲讽等关键词效果。
-//! Phase 3 支持武器、英雄技能、光环、奥秘。
-//!
-//! 未来 Phase 会扩展为从 JSON/YAML 加载。
+//! 包含怀旧系列（Classic/Basic）卡牌。
+//! 跳过会引入跨系列随机卡牌的牌（发现、随机获取、复制对手牌等）。
+
+#![allow(missing_docs)]
 
 use crate::core::component::{AuraEffect, AuraTarget, CardType, SecretTrigger};
 use crate::core::effect::{CardEffect, EffectTarget};
 
 /// 卡牌静态定义 — 描述一张卡牌的基本属性和效果。
-///
-/// 所有字段都是 `'static` 生命周期（编译时常量）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CardDef {
-    /// 卡牌唯一标识符（如 "ORANGE_001"）
     pub id: &'static str,
-    /// 卡牌名称
     pub name: &'static str,
-    /// 卡牌类型
     pub card_type: CardType,
-    /// 法力消耗
     pub cost: i32,
-    /// 攻击力
     pub attack: i32,
-    /// 生命值
     pub health: i32,
-    /// 武器耐久（0 表示非武器）
     pub durability: i32,
-    /// 战吼效果（Phase 2+）
     pub battlecry: Option<CardEffect>,
-    /// 亡语效果（Phase 2+）
     pub deathrattle: Option<CardEffect>,
-    /// 是否有嘲讽（Phase 2+）
     pub taunt: bool,
-    /// 英雄技能效果（Phase 3）
     pub hero_power: Option<CardEffect>,
-    /// 光环效果（Phase 3）
     pub aura: Option<(AuraEffect, AuraTarget)>,
-    /// 奥秘触发条件（Phase 3，仅 Spell 且为奥秘时有效）
     pub secret: Option<SecretTrigger>,
+    pub divine_shield: bool,
+    pub windfury: bool,
+    pub charge: bool,
+    pub spell_damage: i32,
+}
+
+// 宏：简化白板随从定义
+macro_rules! vanilla {
+    ($id:expr, $name:expr, $cost:expr, $atk:expr, $hp:expr) => {
+        CardDef {
+            id: $id,
+            name: $name,
+            card_type: CardType::Minion,
+            cost: $cost,
+            attack: $atk,
+            health: $hp,
+            durability: 0,
+            battlecry: None,
+            deathrattle: None,
+            taunt: false,
+            hero_power: None,
+            aura: None,
+            secret: None,
+            divine_shield: false,
+            windfury: false,
+            charge: false,
+            spell_damage: 0,
+        }
+    };
 }
 
 // ============================================================
-// 基础白板随从（Phase 1）
+// Phase 1-2: Demo 卡牌（保留向后兼容）
 // ============================================================
 
-/// 小精灵 — 0 费 1/1
-pub const WISP: CardDef = CardDef {
-    id: "ORANGE_001",
-    name: "Wisp",
-    card_type: CardType::Minion,
-    cost: 0,
-    attack: 1,
-    health: 1,
-    battlecry: None,
-    deathrattle: None,
-    taunt: false,
-    durability: 0,
-    hero_power: None,
-    aura: None,
-    secret: None,
-};
+pub const WISP: CardDef = vanilla!("ORANGE_001", "Wisp", 0, 1, 1);
+pub const RIVER_CROCOLISK: CardDef = vanilla!("ORANGE_002", "River Crocolisk", 2, 2, 3);
+pub const CHILLWIND_YETI: CardDef = vanilla!("ORANGE_003", "Chillwind Yeti", 4, 4, 5);
+pub const BOULDERFIST_OGRE: CardDef = vanilla!("ORANGE_004", "Boulderfist Ogre", 6, 6, 7);
+pub const WAR_GOLEM: CardDef = vanilla!("ORANGE_005", "War Golem", 7, 7, 7);
 
-/// 淡水鳄 — 2 费 2/3
-pub const RIVER_CROCOLISK: CardDef = CardDef {
-    id: "ORANGE_002",
-    name: "River Crocolisk",
-    card_type: CardType::Minion,
-    cost: 2,
-    attack: 2,
-    health: 3,
-    battlecry: None,
-    deathrattle: None,
-    taunt: false,
-    durability: 0,
-    hero_power: None,
-    aura: None,
-    secret: None,
-};
-
-/// 冰风雪人 — 4 费 4/5
-pub const CHILLWIND_YETI: CardDef = CardDef {
-    id: "ORANGE_003",
-    name: "Chillwind Yeti",
-    card_type: CardType::Minion,
-    cost: 4,
-    attack: 4,
-    health: 5,
-    battlecry: None,
-    deathrattle: None,
-    taunt: false,
-    durability: 0,
-    hero_power: None,
-    aura: None,
-    secret: None,
-};
-
-/// 石拳食人魔 — 6 费 6/7
-pub const BOULDERFIST_OGRE: CardDef = CardDef {
-    id: "ORANGE_004",
-    name: "Boulderfist Ogre",
-    card_type: CardType::Minion,
-    cost: 6,
-    attack: 6,
-    health: 7,
-    battlecry: None,
-    deathrattle: None,
-    taunt: false,
-    durability: 0,
-    hero_power: None,
-    aura: None,
-    secret: None,
-};
-
-/// 作战傀儡 — 7 费 7/7
-pub const WAR_GOLEM: CardDef = CardDef {
-    id: "ORANGE_005",
-    name: "War Golem",
-    card_type: CardType::Minion,
-    cost: 7,
-    attack: 7,
-    health: 7,
-    battlecry: None,
-    deathrattle: None,
-    taunt: false,
-    durability: 0,
-    hero_power: None,
-    aura: None,
-    secret: None,
-};
-
-// ============================================================
-// 关键词 Demo 卡牌（Phase 2）
-// ============================================================
-
-/// 精灵弓箭手 — 1 费 1/1，战吼：对一个随机敌方角色造成 1 点伤害
 pub const ELVEN_ARCHER: CardDef = CardDef {
     id: "ORANGE_010",
     name: "Elven Archer",
@@ -143,19 +72,21 @@ pub const ELVEN_ARCHER: CardDef = CardDef {
     cost: 1,
     attack: 1,
     health: 1,
+    durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 1,
         target: EffectTarget::AnyEnemy,
     }),
     deathrattle: None,
     taunt: false,
-    durability: 0,
     hero_power: None,
     aura: None,
     secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
 };
-
-/// 战利品贮藏者 — 2 费 2/1，亡语：抽一张牌
 pub const LOOT_HOARDER: CardDef = CardDef {
     id: "ORANGE_011",
     name: "Loot Hoarder",
@@ -163,16 +94,18 @@ pub const LOOT_HOARDER: CardDef = CardDef {
     cost: 2,
     attack: 2,
     health: 1,
+    durability: 0,
     battlecry: None,
     deathrattle: Some(CardEffect::DrawCard { count: 1 }),
     taunt: false,
-    durability: 0,
     hero_power: None,
     aura: None,
     secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
 };
-
-/// 闪金镇步兵 — 1 费 1/2，嘲讽
 pub const GOLDSHIRE_FOOTMAN: CardDef = CardDef {
     id: "ORANGE_012",
     name: "Goldshire Footman",
@@ -180,16 +113,18 @@ pub const GOLDSHIRE_FOOTMAN: CardDef = CardDef {
     cost: 1,
     attack: 1,
     health: 2,
+    durability: 0,
     battlecry: None,
     deathrattle: None,
     taunt: true,
-    durability: 0,
     hero_power: None,
     aura: None,
     secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
 };
-
-/// 破碎残阳祭司 — 3 费 3/2，战吼：使一个友方随从获得 +1/+1
 pub const SHATTERED_SUN_CLERIC: CardDef = CardDef {
     id: "ORANGE_013",
     name: "Shattered Sun Cleric",
@@ -197,6 +132,7 @@ pub const SHATTERED_SUN_CLERIC: CardDef = CardDef {
     cost: 3,
     attack: 3,
     health: 2,
+    durability: 0,
     battlecry: Some(CardEffect::GainStats {
         attack: 1,
         health: 1,
@@ -204,13 +140,14 @@ pub const SHATTERED_SUN_CLERIC: CardDef = CardDef {
     }),
     deathrattle: None,
     taunt: false,
-    durability: 0,
     hero_power: None,
     aura: None,
     secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
 };
-
-/// 新手工程师 — 2 费 1/1，战吼：抽一张牌
 pub const NOVICE_ENGINEER: CardDef = CardDef {
     id: "ORANGE_014",
     name: "Novice Engineer",
@@ -218,20 +155,20 @@ pub const NOVICE_ENGINEER: CardDef = CardDef {
     cost: 2,
     attack: 1,
     health: 1,
+    durability: 0,
     battlecry: Some(CardEffect::DrawCard { count: 1 }),
     deathrattle: None,
     taunt: false,
-    durability: 0,
     hero_power: None,
     aura: None,
     secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
 };
 
-// ============================================================
-// 武器 Demo 卡牌（Phase 3）
-// ============================================================
-
-/// 炽炎战斧 — 2 费 3/2 武器
+// Phase 3 weapons / auras / secrets
 pub const FIERY_WAR_AXE: CardDef = CardDef {
     id: "ORANGE_020",
     name: "Fiery War Axe",
@@ -246,9 +183,11 @@ pub const FIERY_WAR_AXE: CardDef = CardDef {
     hero_power: None,
     aura: None,
     secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
 };
-
-/// 奥金斧 — 5 费 5/2 武器
 pub const ARCANITE_REAPER: CardDef = CardDef {
     id: "ORANGE_021",
     name: "Arcanite Reaper",
@@ -263,13 +202,11 @@ pub const ARCANITE_REAPER: CardDef = CardDef {
     hero_power: None,
     aura: None,
     secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
 };
-
-// ============================================================
-// 英雄技能 Demo（Phase 3）
-// ============================================================
-
-/// 火焰冲击 — 2 费，对任一敌人造成 1 点伤害
 pub const FIREBLAST: CardDef = CardDef {
     id: "ORANGE_030",
     name: "Fireblast",
@@ -287,9 +224,11 @@ pub const FIREBLAST: CardDef = CardDef {
     }),
     aura: None,
     secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
 };
-
-/// 生命分流 — 2 费，抽 1 张牌，对自己造成 2 点伤害
 pub const LIFE_TAP: CardDef = CardDef {
     id: "ORANGE_031",
     name: "Life Tap",
@@ -304,13 +243,11 @@ pub const LIFE_TAP: CardDef = CardDef {
     hero_power: Some(CardEffect::DrawCard { count: 1 }),
     aura: None,
     secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
 };
-
-// ============================================================
-// 光环 Demo 卡牌（Phase 3）
-// ============================================================
-
-/// 恐狼前锋 — 2 费 2/2，相邻随从 +1 攻击力
 pub const DIRE_WOLF_ALPHA: CardDef = CardDef {
     id: "ORANGE_040",
     name: "Dire Wolf Alpha",
@@ -325,9 +262,11 @@ pub const DIRE_WOLF_ALPHA: CardDef = CardDef {
     hero_power: None,
     aura: Some((AuraEffect::GainAttack(1), AuraTarget::AdjacentMinions)),
     secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
 };
-
-/// 团队领袖 — 3 费 2/3，你的其他随从 +1 攻击力
 pub const RAID_LEADER: CardDef = CardDef {
     id: "ORANGE_041",
     name: "Raid Leader",
@@ -342,9 +281,11 @@ pub const RAID_LEADER: CardDef = CardDef {
     hero_power: None,
     aura: Some((AuraEffect::GainAttack(1), AuraTarget::OtherFriendlyMinions)),
     secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
 };
-
-/// 暴风城勇士 — 7 费 6/6，你的其他随从 +1/+1
 pub const STORMWIND_CHAMPION: CardDef = CardDef {
     id: "ORANGE_042",
     name: "Stormwind Champion",
@@ -365,13 +306,11 @@ pub const STORMWIND_CHAMPION: CardDef = CardDef {
         AuraTarget::OtherFriendlyMinions,
     )),
     secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
 };
-
-// ============================================================
-// 奥秘 Demo 卡牌（Phase 3）
-// ============================================================
-
-/// 爆炸陷阱 — 2 费奥秘，敌人攻击己方英雄后，对所有敌人造成 2 点伤害
 pub const EXPLOSIVE_TRAP: CardDef = CardDef {
     id: "ORANGE_050",
     name: "Explosive Trap",
@@ -386,9 +325,11 @@ pub const EXPLOSIVE_TRAP: CardDef = CardDef {
     hero_power: None,
     aura: None,
     secret: Some(SecretTrigger::AfterEnemyHeroAttacks),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
 };
-
-/// 冰冻陷阱 — 2 费奥秘，敌人攻击己方后，将其移回手牌并 +2 费
 pub const FREEZING_TRAP: CardDef = CardDef {
     id: "ORANGE_051",
     name: "Freezing Trap",
@@ -403,13 +344,1847 @@ pub const FREEZING_TRAP: CardDef = CardDef {
     hero_power: None,
     aura: None,
     secret: Some(SecretTrigger::AfterFriendlyAttacked),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
 };
+
+// ============================================================
+// 怀旧系列 — 中立随从
+// ============================================================
+
+pub const BLOODFEN_RAPTOR: CardDef = vanilla!("CLASSIC_001", "Bloodfen Raptor", 2, 3, 2);
+pub const BLUEGILL_WARRIOR: CardDef = CardDef {
+    id: "CLASSIC_002",
+    name: "Bluegill Warrior",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 1,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: true,
+    spell_damage: 0,
+};
+
+pub const ACIDIC_SWAMP_OOZE: CardDef = CardDef {
+    id: "CLASSIC_003",
+    name: "Acidic Swamp Ooze",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 3,
+    health: 2,
+    durability: 0,
+    battlecry: Some(CardEffect::DestroyWeapon),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const IRONBEAK_OWL: CardDef = CardDef {
+    id: "CLASSIC_004",
+    name: "Ironbeak Owl",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 1,
+    durability: 0,
+    battlecry: Some(CardEffect::SilenceMinion {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const KOBOLD_GEOMANCER: CardDef = CardDef {
+    id: "CLASSIC_005",
+    name: "Kobold Geomancer",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 1,
+};
+
+pub const MURLOC_TIDEHUNTER: CardDef = CardDef {
+    id: "CLASSIC_006",
+    name: "Murloc Tidehunter",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 1,
+    durability: 0,
+    battlecry: Some(CardEffect::SummonMinion {
+        card_id: "CLASSIC_006t",
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+pub const MURLOC_SCOUT: CardDef = vanilla!("CLASSIC_006t", "Murloc Scout", 1, 1, 1);
+
+pub const HARVEST_GOLEM: CardDef = CardDef {
+    id: "CLASSIC_007",
+    name: "Harvest Golem",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 2,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: Some(CardEffect::SummonMinion {
+        card_id: "CLASSIC_007t",
+    }),
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+pub const DAMAGED_GOLEM: CardDef = vanilla!("CLASSIC_007t", "Damaged Golem", 1, 2, 1);
+
+pub const SENJIN_SHIELDMASTA: CardDef = CardDef {
+    id: "CLASSIC_008",
+    name: "Sen'jin Shieldmasta",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 3,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const DARK_IRON_DWARF: CardDef = CardDef {
+    id: "CLASSIC_009",
+    name: "Dark Iron Dwarf",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 4,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::GainStats {
+        attack: 2,
+        health: 0,
+        target: EffectTarget::Self_,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const DEFENDER_OF_ARGUS: CardDef = CardDef {
+    id: "CLASSIC_010",
+    name: "Defender of Argus",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 2,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::GainStats {
+        attack: 1,
+        health: 1,
+        target: EffectTarget::Self_,
+    }),
+    deathrattle: None,
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const GNOMISH_INVENTOR: CardDef = CardDef {
+    id: "CLASSIC_011",
+    name: "Gnomish Inventor",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 2,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::DrawCard { count: 1 }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const SPELLBREAKER: CardDef = CardDef {
+    id: "CLASSIC_012",
+    name: "Spellbreaker",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 4,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::SilenceMinion {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const AZURE_DRAKE: CardDef = CardDef {
+    id: "CLASSIC_013",
+    name: "Azure Drake",
+    card_type: CardType::Minion,
+    cost: 5,
+    attack: 4,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::DrawCard { count: 1 }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 1,
+};
+
+pub const SUNWALKER: CardDef = CardDef {
+    id: "CLASSIC_014",
+    name: "Sunwalker",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 4,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: true,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const ARGENT_COMMANDER: CardDef = CardDef {
+    id: "CLASSIC_015",
+    name: "Argent Commander",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 4,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: true,
+    windfury: false,
+    charge: true,
+    spell_damage: 0,
+};
+
+pub const WINDFURY_HARPY: CardDef = CardDef {
+    id: "CLASSIC_016",
+    name: "Windfury Harpy",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 4,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: true,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const WOLFRIDER: CardDef = CardDef {
+    id: "CLASSIC_017",
+    name: "Wolfrider",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 1,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: true,
+    spell_damage: 0,
+};
+
+pub const AMANI_BERSERKER: CardDef = vanilla!("CLASSIC_018", "Amani Berserker", 2, 2, 3);
+
+pub const FAERIE_DRAGON: CardDef = vanilla!("CLASSIC_019", "Faerie Dragon", 2, 3, 2);
+
+// ============================================================
+// 怀旧系列 — 德鲁伊 (Druid)
+// ============================================================
+
+pub const INNERVATE: CardDef = CardDef {
+    id: "DRUID_001",
+    name: "Innervate",
+    card_type: CardType::Spell,
+    cost: 0,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    // 效果: 获得2法力水晶 (在 trigger 中处理)
+};
+
+pub const CLAW: CardDef = CardDef {
+    id: "DRUID_002",
+    name: "Claw",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const MARK_OF_THE_WILD: CardDef = CardDef {
+    id: "DRUID_003",
+    name: "Mark of the Wild",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const WRATH: CardDef = CardDef {
+    id: "DRUID_004",
+    name: "Wrath",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const SWIPE: CardDef = CardDef {
+    id: "DRUID_005",
+    name: "Swipe",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const STARFIRE: CardDef = CardDef {
+    id: "DRUID_006",
+    name: "Starfire",
+    card_type: CardType::Spell,
+    cost: 6,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const DRUID_OF_THE_CLAW: CardDef = CardDef {
+    id: "DRUID_007",
+    name: "Druid of the Claw",
+    card_type: CardType::Minion,
+    cost: 5,
+    attack: 4,
+    health: 6,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const ANCIENT_OF_LORE: CardDef = CardDef {
+    id: "DRUID_008",
+    name: "Ancient of Lore",
+    card_type: CardType::Minion,
+    cost: 7,
+    attack: 5,
+    health: 5,
+    durability: 0,
+    battlecry: Some(CardEffect::DrawCard { count: 2 }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const ANCIENT_OF_WAR: CardDef = CardDef {
+    id: "DRUID_009",
+    name: "Ancient of War",
+    card_type: CardType::Minion,
+    cost: 7,
+    attack: 5,
+    health: 10,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+// ============================================================
+// 怀旧系列 — 猎人 (Hunter)
+// ============================================================
+
+pub const ARCANE_SHOT: CardDef = CardDef {
+    id: "HUNTER_001",
+    name: "Arcane Shot",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const HUNTERS_MARK: CardDef = CardDef {
+    id: "HUNTER_002",
+    name: "Hunter's Mark",
+    card_type: CardType::Spell,
+    cost: 0,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const TRACKING: CardDef = CardDef {
+    id: "HUNTER_003",
+    name: "Tracking",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const KILL_COMMAND: CardDef = CardDef {
+    id: "HUNTER_004",
+    name: "Kill Command",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const UNLEASH_THE_HOUNDS: CardDef = CardDef {
+    id: "HUNTER_005",
+    name: "Unleash the Hounds",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const SAVANNAH_HIGHMANE: CardDef = CardDef {
+    id: "HUNTER_006",
+    name: "Savannah Highmane",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 6,
+    health: 5,
+    durability: 0,
+    battlecry: None,
+    deathrattle: Some(CardEffect::SummonMinion {
+        card_id: "HUNTER_006t",
+    }),
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+pub const HYENA: CardDef = vanilla!("HUNTER_006t", "Hyena", 2, 2, 2);
+
+// ============================================================
+// 怀旧系列 — 法师 (Mage)
+// ============================================================
+
+pub const ARCANE_MISSILES: CardDef = CardDef {
+    id: "MAGE_001",
+    name: "Arcane Missiles",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const FROSTBOLT: CardDef = CardDef {
+    id: "MAGE_002",
+    name: "Frostbolt",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const ARCANE_INTELLECT: CardDef = CardDef {
+    id: "MAGE_003",
+    name: "Arcane Intellect",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const FROST_NOVA: CardDef = CardDef {
+    id: "MAGE_004",
+    name: "Frost Nova",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const FIREBALL: CardDef = CardDef {
+    id: "MAGE_005",
+    name: "Fireball",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const POLYMORPH: CardDef = CardDef {
+    id: "MAGE_006",
+    name: "Polymorph",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const WATER_ELEMENTAL: CardDef = CardDef {
+    id: "MAGE_007",
+    name: "Water Elemental",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 3,
+    health: 6,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const FLAMESTRIKE: CardDef = CardDef {
+    id: "MAGE_008",
+    name: "Flamestrike",
+    card_type: CardType::Spell,
+    cost: 7,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const PYROBLAST: CardDef = CardDef {
+    id: "MAGE_009",
+    name: "Pyroblast",
+    card_type: CardType::Spell,
+    cost: 10,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+// ============================================================
+// 怀旧系列 — 圣骑士 (Paladin)
+// ============================================================
+
+pub const BLESSING_OF_MIGHT: CardDef = CardDef {
+    id: "PALADIN_001",
+    name: "Blessing of Might",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const HUMILITY: CardDef = CardDef {
+    id: "PALADIN_002",
+    name: "Humility",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const HOLY_LIGHT: CardDef = CardDef {
+    id: "PALADIN_003",
+    name: "Holy Light",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const BLESSING_OF_KINGS: CardDef = CardDef {
+    id: "PALADIN_004",
+    name: "Blessing of Kings",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const CONSECRATION: CardDef = CardDef {
+    id: "PALADIN_005",
+    name: "Consecration",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const TRUESILVER_CHAMPION: CardDef = CardDef {
+    id: "PALADIN_006",
+    name: "Truesilver Champion",
+    card_type: CardType::Weapon,
+    cost: 4,
+    attack: 4,
+    health: 0,
+    durability: 2,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const GUARDIAN_OF_KINGS: CardDef = CardDef {
+    id: "PALADIN_007",
+    name: "Guardian of Kings",
+    card_type: CardType::Minion,
+    cost: 7,
+    attack: 5,
+    health: 6,
+    durability: 0,
+    battlecry: Some(CardEffect::RestoreHealth {
+        amount: 6,
+        target: EffectTarget::FriendlyHero,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const TIRION_FORDRING: CardDef = CardDef {
+    id: "PALADIN_008",
+    name: "Tirion Fordring",
+    card_type: CardType::Minion,
+    cost: 8,
+    attack: 6,
+    health: 6,
+    durability: 0,
+    battlecry: None,
+    deathrattle: Some(CardEffect::EquipWeapon {
+        card_id: "PALADIN_008t",
+    }),
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: true,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+pub const ASHBRINGER: CardDef = CardDef {
+    id: "PALADIN_008t",
+    name: "Ashbringer",
+    card_type: CardType::Weapon,
+    cost: 5,
+    attack: 5,
+    health: 0,
+    durability: 3,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const ALDOR_PEACEKEEPER: CardDef = CardDef {
+    id: "PALADIN_009",
+    name: "Aldor Peacekeeper",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::SetAttack {
+        attack: 1,
+        target: EffectTarget::AnyEnemyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+// ============================================================
+// 怀旧系列 — 牧师 (Priest)
+// ============================================================
+
+pub const HOLY_SMITE: CardDef = CardDef {
+    id: "PRIEST_001",
+    name: "Holy Smite",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const MIND_BLAST: CardDef = CardDef {
+    id: "PRIEST_002",
+    name: "Mind Blast",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const POWER_WORD_SHIELD: CardDef = CardDef {
+    id: "PRIEST_003",
+    name: "Power Word: Shield",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const NORTHSHIRE_CLERIC: CardDef = vanilla!("PRIEST_004", "Northshire Cleric", 1, 1, 3);
+
+pub const SHADOW_WORD_PAIN: CardDef = CardDef {
+    id: "PRIEST_005",
+    name: "Shadow Word: Pain",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const SHADOW_WORD_DEATH: CardDef = CardDef {
+    id: "PRIEST_006",
+    name: "Shadow Word: Death",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const HOLY_NOVA: CardDef = CardDef {
+    id: "PRIEST_007",
+    name: "Holy Nova",
+    card_type: CardType::Spell,
+    cost: 5,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const HOLY_FIRE: CardDef = CardDef {
+    id: "PRIEST_008",
+    name: "Holy Fire",
+    card_type: CardType::Spell,
+    cost: 6,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+// ============================================================
+// 怀旧系列 — 潜行者 (Rogue)
+// ============================================================
+
+pub const BACKSTAB: CardDef = CardDef {
+    id: "ROGUE_001",
+    name: "Backstab",
+    card_type: CardType::Spell,
+    cost: 0,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const DEADLY_POISON: CardDef = CardDef {
+    id: "ROGUE_002",
+    name: "Deadly Poison",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const EVISCERATE: CardDef = CardDef {
+    id: "ROGUE_003",
+    name: "Eviscerate",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const SAP: CardDef = CardDef {
+    id: "ROGUE_004",
+    name: "Sap",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const SI7_AGENT: CardDef = CardDef {
+    id: "ROGUE_005",
+    name: "SI:7 Agent",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AnyEnemy,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const ASSASSINATE: CardDef = CardDef {
+    id: "ROGUE_006",
+    name: "Assassinate",
+    card_type: CardType::Spell,
+    cost: 5,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const SPRINT: CardDef = CardDef {
+    id: "ROGUE_007",
+    name: "Sprint",
+    card_type: CardType::Spell,
+    cost: 7,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const FAN_OF_KNIVES: CardDef = CardDef {
+    id: "ROGUE_008",
+    name: "Fan of Knives",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+// ============================================================
+// 怀旧系列 — 萨满 (Shaman)
+// ============================================================
+
+pub const EARTH_SHOCK: CardDef = CardDef {
+    id: "SHAMAN_001",
+    name: "Earth Shock",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const LIGHTNING_BOLT: CardDef = CardDef {
+    id: "SHAMAN_002",
+    name: "Lightning Bolt",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const ROCKBITER_WEAPON: CardDef = CardDef {
+    id: "SHAMAN_003",
+    name: "Rockbiter Weapon",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const FLAMETONGUE_TOTEM: CardDef = CardDef {
+    id: "SHAMAN_004",
+    name: "Flametongue Totem",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 0,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: Some((AuraEffect::GainAttack(2), AuraTarget::AdjacentMinions)),
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const HEX: CardDef = CardDef {
+    id: "SHAMAN_005",
+    name: "Hex",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const LIGHTNING_STORM: CardDef = CardDef {
+    id: "SHAMAN_006",
+    name: "Lightning Storm",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const FIRE_ELEMENTAL: CardDef = CardDef {
+    id: "SHAMAN_007",
+    name: "Fire Elemental",
+    card_type: CardType::Minion,
+    cost: 6,
+    attack: 6,
+    health: 5,
+    durability: 0,
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 3,
+        target: EffectTarget::AnyEnemy,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const BLOODLUST: CardDef = CardDef {
+    id: "SHAMAN_008",
+    name: "Bloodlust",
+    card_type: CardType::Spell,
+    cost: 5,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+// ============================================================
+// 怀旧系列 — 术士 (Warlock)
+// ============================================================
+
+pub const SOULFIRE: CardDef = CardDef {
+    id: "WARLOCK_001",
+    name: "Soulfire",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const FLAME_IMP: CardDef = CardDef {
+    id: "WARLOCK_002",
+    name: "Flame Imp",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 3,
+    health: 2,
+    durability: 0,
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 3,
+        target: EffectTarget::Self_,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const MORTAL_COIL: CardDef = CardDef {
+    id: "WARLOCK_003",
+    name: "Mortal Coil",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const VOIDWALKER: CardDef = CardDef {
+    id: "WARLOCK_004",
+    name: "Voidwalker",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 1,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const HELLFIRE: CardDef = CardDef {
+    id: "WARLOCK_005",
+    name: "Hellfire",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const DRAIN_LIFE: CardDef = CardDef {
+    id: "WARLOCK_006",
+    name: "Drain Life",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const DOOMGUARD: CardDef = CardDef {
+    id: "WARLOCK_007",
+    name: "Doomguard",
+    card_type: CardType::Minion,
+    cost: 5,
+    attack: 5,
+    health: 7,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: true,
+    spell_damage: 0,
+};
+
+// ============================================================
+// 怀旧系列 — 战士 (Warrior)
+// ============================================================
+
+pub const EXECUTE: CardDef = CardDef {
+    id: "WARRIOR_001",
+    name: "Execute",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const WHIRLWIND: CardDef = CardDef {
+    id: "WARRIOR_002",
+    name: "Whirlwind",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const SHIELD_BLOCK: CardDef = CardDef {
+    id: "WARRIOR_003",
+    name: "Shield Block",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const CRUEL_TASKMASTER: CardDef = CardDef {
+    id: "WARRIOR_004",
+    name: "Cruel Taskmaster",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 2,
+    durability: 0,
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 1,
+        target: EffectTarget::AnyEnemyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const KORKRON_ELITE: CardDef = CardDef {
+    id: "WARRIOR_005",
+    name: "Kor'kron Elite",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 4,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: true,
+    spell_damage: 0,
+};
+
+pub const ARATHI_WEAPONSMITH: CardDef = CardDef {
+    id: "WARRIOR_006",
+    name: "Arathi Weaponsmith",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 3,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::EquipWeapon {
+        card_id: "WARRIOR_006t",
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+pub const BATTLE_AXE: CardDef = CardDef {
+    id: "WARRIOR_006t",
+    name: "Battle Axe",
+    card_type: CardType::Weapon,
+    cost: 1,
+    attack: 2,
+    health: 0,
+    durability: 2,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+};
+
+pub const FROTHING_BERSERKER: CardDef = vanilla!("WARRIOR_007", "Frothing Berserker", 3, 2, 4);
 
 // ============================================================
 // 卡牌列表
 // ============================================================
 
-/// 所有基本白板随从的列表。
 pub const BASIC_MINIONS: &[CardDef] = &[
     WISP,
     RIVER_CROCOLISK,
@@ -418,7 +2193,6 @@ pub const BASIC_MINIONS: &[CardDef] = &[
     WAR_GOLEM,
 ];
 
-/// 所有有效果的 Demo 卡牌列表（Phase 2）。
 pub const DEMO_MINIONS: &[CardDef] = &[
     ELVEN_ARCHER,
     LOOT_HOARDER,
@@ -427,20 +2201,137 @@ pub const DEMO_MINIONS: &[CardDef] = &[
     NOVICE_ENGINEER,
 ];
 
-/// 武器卡牌列表（Phase 3）。
 pub const WEAPON_CARDS: &[CardDef] = &[FIERY_WAR_AXE, ARCANITE_REAPER];
-
-/// 英雄技能卡牌列表（Phase 3）。
-pub const HERO_POWER_CARDS: &[CardDef] = &[FIREBLAST, LIFE_TAP];
-
-/// 光环卡牌列表（Phase 3）。
 pub const AURA_CARDS: &[CardDef] = &[DIRE_WOLF_ALPHA, RAID_LEADER, STORMWIND_CHAMPION];
-
-/// 奥秘卡牌列表（Phase 3）。
 pub const SECRET_CARDS: &[CardDef] = &[EXPLOSIVE_TRAP, FREEZING_TRAP];
 
-/// 所有已定义的卡牌。
+// 怀旧系列按职业分组
+pub const NEUTRAL_CLASSIC: &[CardDef] = &[
+    BLOODFEN_RAPTOR,
+    BLUEGILL_WARRIOR,
+    ACIDIC_SWAMP_OOZE,
+    IRONBEAK_OWL,
+    KOBOLD_GEOMANCER,
+    MURLOC_TIDEHUNTER,
+    MURLOC_SCOUT,
+    HARVEST_GOLEM,
+    DAMAGED_GOLEM,
+    SENJIN_SHIELDMASTA,
+    DARK_IRON_DWARF,
+    DEFENDER_OF_ARGUS,
+    GNOMISH_INVENTOR,
+    SPELLBREAKER,
+    AZURE_DRAKE,
+    SUNWALKER,
+    ARGENT_COMMANDER,
+    WINDFURY_HARPY,
+    WOLFRIDER,
+    AMANI_BERSERKER,
+    FAERIE_DRAGON,
+];
+
+pub const DRUID_CLASSIC: &[CardDef] = &[
+    INNERVATE,
+    CLAW,
+    MARK_OF_THE_WILD,
+    WRATH,
+    SWIPE,
+    STARFIRE,
+    DRUID_OF_THE_CLAW,
+    ANCIENT_OF_LORE,
+    ANCIENT_OF_WAR,
+];
+
+pub const HUNTER_CLASSIC: &[CardDef] = &[
+    ARCANE_SHOT,
+    HUNTERS_MARK,
+    TRACKING,
+    KILL_COMMAND,
+    SAVANNAH_HIGHMANE,
+    HYENA,
+];
+
+pub const MAGE_CLASSIC: &[CardDef] = &[
+    ARCANE_MISSILES,
+    FROSTBOLT,
+    ARCANE_INTELLECT,
+    FROST_NOVA,
+    FIREBALL,
+    POLYMORPH,
+    WATER_ELEMENTAL,
+    FLAMESTRIKE,
+    PYROBLAST,
+];
+
+pub const PALADIN_CLASSIC: &[CardDef] = &[
+    BLESSING_OF_MIGHT,
+    HUMILITY,
+    HOLY_LIGHT,
+    BLESSING_OF_KINGS,
+    CONSECRATION,
+    TRUESILVER_CHAMPION,
+    GUARDIAN_OF_KINGS,
+    TIRION_FORDRING,
+    ASHBRINGER,
+    ALDOR_PEACEKEEPER,
+];
+
+pub const PRIEST_CLASSIC: &[CardDef] = &[
+    HOLY_SMITE,
+    MIND_BLAST,
+    POWER_WORD_SHIELD,
+    NORTHSHIRE_CLERIC,
+    SHADOW_WORD_PAIN,
+    SHADOW_WORD_DEATH,
+    HOLY_NOVA,
+    HOLY_FIRE,
+];
+
+pub const ROGUE_CLASSIC: &[CardDef] = &[
+    BACKSTAB,
+    DEADLY_POISON,
+    EVISCERATE,
+    SAP,
+    SI7_AGENT,
+    ASSASSINATE,
+    SPRINT,
+    FAN_OF_KNIVES,
+];
+
+pub const SHAMAN_CLASSIC: &[CardDef] = &[
+    EARTH_SHOCK,
+    LIGHTNING_BOLT,
+    ROCKBITER_WEAPON,
+    FLAMETONGUE_TOTEM,
+    HEX,
+    LIGHTNING_STORM,
+    FIRE_ELEMENTAL,
+    BLOODLUST,
+];
+
+pub const WARLOCK_CLASSIC: &[CardDef] = &[
+    SOULFIRE,
+    FLAME_IMP,
+    MORTAL_COIL,
+    VOIDWALKER,
+    HELLFIRE,
+    DRAIN_LIFE,
+    DOOMGUARD,
+];
+
+pub const WARRIOR_CLASSIC: &[CardDef] = &[
+    EXECUTE,
+    WHIRLWIND,
+    SHIELD_BLOCK,
+    CRUEL_TASKMASTER,
+    KORKRON_ELITE,
+    ARATHI_WEAPONSMITH,
+    BATTLE_AXE,
+    FROTHING_BERSERKER,
+];
+
 pub const ALL_CARDS: &[CardDef] = &[
+    // Demo cards
     WISP,
     RIVER_CROCOLISK,
     CHILLWIND_YETI,
@@ -458,10 +2349,112 @@ pub const ALL_CARDS: &[CardDef] = &[
     STORMWIND_CHAMPION,
     EXPLOSIVE_TRAP,
     FREEZING_TRAP,
+    // Neutral
+    BLOODFEN_RAPTOR,
+    BLUEGILL_WARRIOR,
+    ACIDIC_SWAMP_OOZE,
+    IRONBEAK_OWL,
+    KOBOLD_GEOMANCER,
+    MURLOC_TIDEHUNTER,
+    MURLOC_SCOUT,
+    HARVEST_GOLEM,
+    DAMAGED_GOLEM,
+    SENJIN_SHIELDMASTA,
+    DARK_IRON_DWARF,
+    DEFENDER_OF_ARGUS,
+    GNOMISH_INVENTOR,
+    SPELLBREAKER,
+    AZURE_DRAKE,
+    SUNWALKER,
+    ARGENT_COMMANDER,
+    WINDFURY_HARPY,
+    WOLFRIDER,
+    AMANI_BERSERKER,
+    FAERIE_DRAGON,
+    // Druid
+    INNERVATE,
+    CLAW,
+    MARK_OF_THE_WILD,
+    WRATH,
+    SWIPE,
+    STARFIRE,
+    DRUID_OF_THE_CLAW,
+    ANCIENT_OF_LORE,
+    ANCIENT_OF_WAR,
+    // Hunter
+    ARCANE_SHOT,
+    HUNTERS_MARK,
+    TRACKING,
+    KILL_COMMAND,
+    SAVANNAH_HIGHMANE,
+    HYENA,
+    // Mage
+    ARCANE_MISSILES,
+    FROSTBOLT,
+    ARCANE_INTELLECT,
+    FROST_NOVA,
+    FIREBALL,
+    POLYMORPH,
+    WATER_ELEMENTAL,
+    FLAMESTRIKE,
+    PYROBLAST,
+    // Paladin
+    BLESSING_OF_MIGHT,
+    HUMILITY,
+    HOLY_LIGHT,
+    BLESSING_OF_KINGS,
+    CONSECRATION,
+    TRUESILVER_CHAMPION,
+    GUARDIAN_OF_KINGS,
+    TIRION_FORDRING,
+    ASHBRINGER,
+    ALDOR_PEACEKEEPER,
+    // Priest
+    HOLY_SMITE,
+    MIND_BLAST,
+    POWER_WORD_SHIELD,
+    NORTHSHIRE_CLERIC,
+    SHADOW_WORD_PAIN,
+    SHADOW_WORD_DEATH,
+    HOLY_NOVA,
+    HOLY_FIRE,
+    // Rogue
+    BACKSTAB,
+    DEADLY_POISON,
+    EVISCERATE,
+    SAP,
+    SI7_AGENT,
+    ASSASSINATE,
+    SPRINT,
+    FAN_OF_KNIVES,
+    // Shaman
+    EARTH_SHOCK,
+    LIGHTNING_BOLT,
+    ROCKBITER_WEAPON,
+    FLAMETONGUE_TOTEM,
+    HEX,
+    LIGHTNING_STORM,
+    FIRE_ELEMENTAL,
+    BLOODLUST,
+    // Warlock
+    SOULFIRE,
+    FLAME_IMP,
+    MORTAL_COIL,
+    VOIDWALKER,
+    HELLFIRE,
+    DRAIN_LIFE,
+    DOOMGUARD,
+    // Warrior
+    EXECUTE,
+    WHIRLWIND,
+    SHIELD_BLOCK,
+    CRUEL_TASKMASTER,
+    KORKRON_ELITE,
+    ARATHI_WEAPONSMITH,
+    BATTLE_AXE,
+    FROTHING_BERSERKER,
 ];
 
-/// 根据 ID 查找卡牌定义。
-#[must_use]
 pub fn card_by_id(id: &str) -> Option<&'static CardDef> {
     ALL_CARDS.iter().find(|c| c.id == id)
 }
