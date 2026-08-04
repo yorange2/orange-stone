@@ -271,6 +271,14 @@ impl GameBuilder {
         if let Some(st) = card.spell_trigger {
             world.set_spell_trigger(e, crate::core::component::SpellTrigger(st));
         }
+        // 死亡触发效果
+        if let Some(dt) = card.death_trigger {
+            world.set_death_trigger(e, crate::core::component::DeathTrigger(dt));
+        }
+        // 召唤触发效果
+        if let Some(st) = card.summon_trigger {
+            world.set_summon_trigger(e, crate::core::component::SummonTrigger(st));
+        }
         e
     }
 }

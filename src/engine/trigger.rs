@@ -412,6 +412,12 @@ fn resolve_summon(
         if let Some(st) = card_def.spell_trigger {
             world.set_spell_trigger(e, crate::core::component::SpellTrigger(st));
         }
+        if let Some(dt) = card_def.death_trigger {
+            world.set_death_trigger(e, crate::core::component::DeathTrigger(dt));
+        }
+        if let Some(st) = card_def.summon_trigger {
+            world.set_summon_trigger(e, crate::core::component::SummonTrigger(st));
+        }
         e
     };
 

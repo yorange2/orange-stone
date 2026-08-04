@@ -31,6 +31,8 @@ pub const ARCANE_SHOT: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const HUNTERS_MARK: CardDef = CardDef {
@@ -55,6 +57,8 @@ pub const HUNTERS_MARK: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const TRACKING: CardDef = CardDef {
@@ -79,6 +83,8 @@ pub const TRACKING: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const KILL_COMMAND: CardDef = CardDef {
@@ -103,6 +109,8 @@ pub const KILL_COMMAND: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const UNLEASH_THE_HOUNDS: CardDef = CardDef {
@@ -127,6 +135,8 @@ pub const UNLEASH_THE_HOUNDS: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const SAVANNAH_HIGHMANE: CardDef = CardDef {
@@ -153,6 +163,8 @@ pub const SAVANNAH_HIGHMANE: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 pub const HYENA: CardDef = vanilla!("HUNTER_006t", "Hyena", 2, 2, 2);
 
@@ -179,6 +191,8 @@ pub const EAGLEHORN_BOW: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const DEADLY_SHOT: CardDef = CardDef {
@@ -203,6 +217,8 @@ pub const DEADLY_SHOT: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 pub const EXPLOSIVE_SHOT: CardDef = CardDef {
@@ -227,6 +243,8 @@ pub const EXPLOSIVE_SHOT: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 /// 多重射击 — 对两个随机敌方随从各造成3点伤害（简化：对一个随机敌方随从造成3点伤害）
@@ -252,6 +270,8 @@ pub const MULTI_SHOT: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
 // 猎人补全
@@ -277,6 +297,8 @@ pub const TIMBER_WOLF: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 pub const KING_KRUSH: CardDef = CardDef {
     id: "HUNTER_011",
@@ -300,5 +322,61 @@ pub const KING_KRUSH: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
 };
 
+
+/// 食腐土狼 — 每当友方随从死亡，获得+2/+1
+pub const SCAVENGING_HYENA: CardDef = CardDef {
+    id: "HUNTER_013",
+    name: "Scavenging Hyena",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: Some(CardEffect::GainStats { attack: 2, health: 1, target: EffectTarget::Self_ }),
+    summon_trigger: None,
+};
+
+/// 饥饿的秃鹫 — 每当你召唤随从，抽一张牌
+pub const STARVING_BUZZARD: CardDef = CardDef {
+    id: "HUNTER_014",
+    name: "Starving Buzzard",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 1,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: Some(CardEffect::DrawCard { count: 1 }),
+};
