@@ -1152,6 +1152,8 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
             ..
         } => damage as f64 * 0.5 + attack_bonus as f64 * 1.5,
         CardEffect::DestroyAdjacent { .. } => 3.0,
+        CardEffect::DestroyManaCrystal => -1.0,
+        CardEffect::GiveCardsToOpponent { .. } => -2.0,
     }
 }
 

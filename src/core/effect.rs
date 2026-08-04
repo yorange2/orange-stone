@@ -227,4 +227,11 @@ pub enum CardEffect {
         /// 是否获得属性值
         gain_stats: bool,
     },
+    /// 摧毁一颗法力水晶
+    DestroyManaCrystal,
+    /// 给对手手牌中添加卡牌
+    GiveCardsToOpponent {
+        /// 要添加的卡牌数量
+        count: u32,
+    },
 }
