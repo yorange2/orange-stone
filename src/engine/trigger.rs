@@ -12,7 +12,7 @@
 //! - `Self_` → 效果来源实体自身
 //! - `AllEnemyMinions` → 所有敌方随从
 
-use crate::core::component::{Attack, CardType, Cost, Durability, Freeze, Health};
+use crate::core::component::{Attack, AttacksUsed, CardType, Cost, Durability, Freeze, Health};
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue};
@@ -205,9 +205,54 @@ pub fn resolve_effect(
             }
         }
         CardEffect::GiveCardsToOpponent { count: _ } => {
-            // 简化：给对手发"硬币"效果 — 实际抽牌给对手
             let enemy = owner.opponent();
             draw_card(state, queue, enemy);
+        }
+        CardEffect::ResurrectMinion => {
+            let inner = state.make_mut();
+            let died = &mut inner.players[owner.index()].died_this_turn;
+            if let Some(entity) = died.pop() {
+                // 复活：将随从从坟场移回战场，生命值设为1
+                let world = &mut inner.world;
+                if world.zone(entity) == Some(Zone::Graveyard) {
+                    let _ = world.move_to_zone(entity, Zone::Play);
+                    world.set_health(entity, Health(1));
+                    world.set_attacks_used(entity, AttacksUsed(0));
+                }
+            }
+        }
+        CardEffect::CopyMinionStats => {
+            let friendly = collect_friendly_minions(state, owner);
+            if friendly.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(friendly.len());
+            let target = friendly[idx];
+            let atk = state.world().effective_attack(target).unwrap_or(Attack(0));
+            let hp = state.world().effective_health(target).unwrap_or(Health(0));
+            let world = state.world_mut();
+            world.set_attack(source, Attack(atk.0));
+            world.set_health(source, Health(hp.0));
+        }
+        CardEffect::TempDebuff {
+            attack_reduction,
+            target,
+        } => {
+            let enemies = match target {
+                EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
+                _ => return,
+            };
+            if enemies.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(enemies.len());
+            let enemy = enemies[idx];
+            state
+                .world_mut()
+                .set_temp_attack_debuff(enemy, crate::core::component::TempAttackDebuff(attack_reduction));
+        }
+        CardEffect::ReflectDamage => {
+            // 已由奥秘系统的 WhenHeroDamaged 触发器处理
         }
     }
 }
@@ -424,6 +469,9 @@ fn resolve_summon(
         }
         if let Some(cb) = card_def.combo_effect {
             world.set_combo_effect(e, crate::core::component::ComboEffect(cb));
+        }
+        if card_def.attack_equals_health {
+            world.set_attack_equals_health(e, crate::core::component::AttackEqualsHealth);
         }
         e
     };

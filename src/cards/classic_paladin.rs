@@ -36,6 +36,7 @@ pub const BLESSING_OF_MIGHT: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const HUMILITY: CardDef = CardDef {
@@ -65,6 +66,7 @@ pub const HUMILITY: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const HOLY_LIGHT: CardDef = CardDef {
@@ -94,6 +96,7 @@ pub const HOLY_LIGHT: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const BLESSING_OF_KINGS: CardDef = CardDef {
@@ -123,6 +126,7 @@ pub const BLESSING_OF_KINGS: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const CONSECRATION: CardDef = CardDef {
@@ -152,6 +156,7 @@ pub const CONSECRATION: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const TRUESILVER_CHAMPION: CardDef = CardDef {
@@ -181,6 +186,7 @@ pub const TRUESILVER_CHAMPION: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const GUARDIAN_OF_KINGS: CardDef = CardDef {
@@ -213,6 +219,7 @@ pub const GUARDIAN_OF_KINGS: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const TIRION_FORDRING: CardDef = CardDef {
@@ -244,6 +251,7 @@ pub const TIRION_FORDRING: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 pub const ASHBRINGER: CardDef = CardDef {
     id: "PALADIN_008t",
@@ -272,6 +280,7 @@ pub const ASHBRINGER: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const ALDOR_PEACEKEEPER: CardDef = CardDef {
@@ -304,6 +313,7 @@ pub const ALDOR_PEACEKEEPER: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 
@@ -334,6 +344,7 @@ pub const EQUALITY: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const HAMMER_OF_WRATH: CardDef = CardDef {
@@ -363,6 +374,7 @@ pub const HAMMER_OF_WRATH: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const AVENGING_WRATH: CardDef = CardDef {
@@ -392,6 +404,7 @@ pub const AVENGING_WRATH: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const LAY_ON_HANDS: CardDef = CardDef {
@@ -421,6 +434,7 @@ pub const LAY_ON_HANDS: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 神圣愤怒 — 抽一张牌，造成等同于其法力消耗的伤害（简化：仅抽牌）
@@ -451,6 +465,7 @@ pub const HOLY_WRATH: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 /// 正义 — 使你的随从获得圣盾（简化版，无法实现群体圣盾）
 pub const RIGHTEOUSNESS: CardDef = CardDef {
@@ -480,6 +495,7 @@ pub const RIGHTEOUSNESS: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 // 圣骑士补全
@@ -510,6 +526,7 @@ pub const HAND_OF_PROTECTION: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 pub const LIGHTS_JUSTICE: CardDef = CardDef {
     id: "PALADIN_015",
@@ -538,6 +555,7 @@ pub const LIGHTS_JUSTICE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 pub const ARGENT_PROTECTOR: CardDef = CardDef {
     id: "PALADIN_016",
@@ -566,6 +584,7 @@ pub const ARGENT_PROTECTOR: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 
@@ -599,6 +618,7 @@ pub const BLESSED_CHAMPION: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 公正之剑 — 每当你召唤随从，使其获得+1/+1（简化）
@@ -629,6 +649,7 @@ pub const SWORD_OF_JUSTICE: CardDef = CardDef {
     summon_trigger: Some(CardEffect::GainStats { attack: 1, health: 1, target: EffectTarget::Self_ }),
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 忏悔 — 奥秘：当你的对手打出一个随从，将其生命值变为1（简化：DealDamage）
@@ -659,6 +680,7 @@ pub const REPENTANCE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 智慧祝福 — 每当目标随从攻击，抽一张牌（简化：无效果）
@@ -689,4 +711,67 @@ pub const BLESSING_OF_WISDOM: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 以眼还眼 — 奥秘：当你的英雄受到伤害时，对敌方英雄造成等量伤害
+pub const EYE_FOR_AN_EYE: CardDef = CardDef {
+    id: "PALADIN_020",
+    name: "Eye for an Eye",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: Some(SecretTrigger::AfterFriendlyAttacked),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 救赎 — 奥秘：当一个友方随从死亡时，将其复活并具有1点生命值
+pub const REDEMPTION: CardDef = CardDef {
+    id: "PALADIN_021",
+    name: "Redemption",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: Some(SecretTrigger::AfterMinionDied),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
 };

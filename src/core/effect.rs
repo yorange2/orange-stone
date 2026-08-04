@@ -236,4 +236,17 @@ pub enum CardEffect {
         /// 要添加的卡牌数量
         count: u32,
     },
+    /// 复活一个本回合死亡的友方随从，生命值为1
+    ResurrectMinion,
+    /// 复制一个随机友方随从的攻击力和生命值
+    CopyMinionStats,
+    /// 给敌方随从-2攻击力（本回合有效）
+    TempDebuff {
+        /// 攻击力减少量
+        attack_reduction: i32,
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 将受到的反伤反射给攻击者（奥秘效果）
+    ReflectDamage,
 }

@@ -47,6 +47,8 @@ pub struct CardDef {
     pub choose_one_effect: Option<CardEffect>,
     /// 连击效果 — 盗贼"连击"卡牌在本回合已出牌后触发
     pub combo_effect: Option<CardEffect>,
+    /// 攻击力始终等于生命值（光耀之子特性）
+    pub attack_equals_health: bool,
 }
 
 /// 宏：简化白板随从定义。
@@ -81,6 +83,7 @@ macro_rules! vanilla {
             summon_trigger: None,
             choose_one_effect: None,
             combo_effect: None,
+            attack_equals_health: false,
         }
     };
 }

@@ -1154,6 +1154,10 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DestroyAdjacent { .. } => 3.0,
         CardEffect::DestroyManaCrystal => -1.0,
         CardEffect::GiveCardsToOpponent { .. } => -2.0,
+        CardEffect::ResurrectMinion => 5.0,
+        CardEffect::CopyMinionStats => 4.0,
+        CardEffect::TempDebuff { attack_reduction, .. } => attack_reduction as f64 * 1.5,
+        CardEffect::ReflectDamage => 3.0,
     }
 }
 

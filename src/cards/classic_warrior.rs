@@ -38,6 +38,7 @@ pub const EXECUTE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const WHIRLWIND: CardDef = CardDef {
@@ -70,6 +71,7 @@ pub const WHIRLWIND: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const SHIELD_BLOCK: CardDef = CardDef {
@@ -99,6 +101,7 @@ pub const SHIELD_BLOCK: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const CRUEL_TASKMASTER: CardDef = CardDef {
@@ -131,6 +134,7 @@ pub const CRUEL_TASKMASTER: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const KORKRON_ELITE: CardDef = CardDef {
@@ -160,6 +164,7 @@ pub const KORKRON_ELITE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const ARATHI_WEAPONSMITH: CardDef = CardDef {
@@ -191,6 +196,7 @@ pub const ARATHI_WEAPONSMITH: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 pub const BATTLE_AXE: CardDef = CardDef {
     id: "WARRIOR_006t",
@@ -219,6 +225,7 @@ pub const BATTLE_AXE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const FROTHING_BERSERKER: CardDef = vanilla!("WARRIOR_007", "Frothing Berserker", 3, 2, 4);
@@ -251,6 +258,7 @@ pub const WARSONG_COMMANDER: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const GOREHOWL: CardDef = CardDef {
@@ -280,6 +288,7 @@ pub const GOREHOWL: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const GROMMASH_HELLSCREAM: CardDef = CardDef {
@@ -309,6 +318,7 @@ pub const GROMMASH_HELLSCREAM: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const SLAM: CardDef = CardDef {
@@ -342,6 +352,7 @@ pub const SLAM: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const CLEAVE: CardDef = CardDef {
@@ -371,6 +382,7 @@ pub const CLEAVE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const ARMORSMITH: CardDef = CardDef {
@@ -400,6 +412,7 @@ pub const ARMORSMITH: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 // 战士补全
@@ -434,6 +447,7 @@ pub const INNER_RAGE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 // Hero attack cards
@@ -467,6 +481,7 @@ pub const HEROIC_STRIKE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 
@@ -501,6 +516,7 @@ pub const CHARGE_SPELL: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 盾牌猛击 — 对一个随从造成等同于你护甲值的伤害
@@ -533,6 +549,7 @@ pub const SHIELD_SLAM: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 升级！ — 如果你有武器，使其获得+1/+1；否则装备一把1/3的武器
@@ -566,6 +583,7 @@ pub const UPGRADE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 绝命乱斗 — 随机消灭所有随从，只留下一个
@@ -596,6 +614,7 @@ pub const BRAWL: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 致死打击 — 造成4点伤害；如果你的生命值≤12，改为造成6点伤害（简化：造成4点伤害）
@@ -629,6 +648,7 @@ pub const MORTAL_STRIKE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 战斗怒火 — 每有一个受伤的友方角色，抽一张牌（简化：抽2张牌）
@@ -659,6 +679,7 @@ pub const BATTLE_RAGE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 狂暴 — 使一个受伤的随从获得+3/+3（简化：给友方随从+3/+3）
@@ -693,4 +714,5 @@ pub const RAMPAGE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };

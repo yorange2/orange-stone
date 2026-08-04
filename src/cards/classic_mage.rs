@@ -35,6 +35,7 @@ pub const ARCANE_MISSILES: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const FROSTBOLT: CardDef = CardDef {
@@ -64,6 +65,7 @@ pub const FROSTBOLT: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const ARCANE_INTELLECT: CardDef = CardDef {
@@ -93,6 +95,7 @@ pub const ARCANE_INTELLECT: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const FROST_NOVA: CardDef = CardDef {
@@ -122,6 +125,7 @@ pub const FROST_NOVA: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const FIREBALL: CardDef = CardDef {
@@ -151,6 +155,7 @@ pub const FIREBALL: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const POLYMORPH: CardDef = CardDef {
@@ -180,6 +185,7 @@ pub const POLYMORPH: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const WATER_ELEMENTAL: CardDef = CardDef {
@@ -209,6 +215,7 @@ pub const WATER_ELEMENTAL: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const FLAMESTRIKE: CardDef = CardDef {
@@ -238,6 +245,7 @@ pub const FLAMESTRIKE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const PYROBLAST: CardDef = CardDef {
@@ -267,6 +275,7 @@ pub const PYROBLAST: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 
@@ -297,6 +306,7 @@ pub const ICE_BARRIER: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const ICE_BLOCK: CardDef = CardDef {
@@ -326,6 +336,7 @@ pub const ICE_BLOCK: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const MIRROR_ENTITY: CardDef = CardDef {
@@ -355,6 +366,7 @@ pub const MIRROR_ENTITY: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const COUNTERSPELL: CardDef = CardDef {
@@ -384,6 +396,7 @@ pub const COUNTERSPELL: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 pub const BLIZZARD: CardDef = CardDef {
@@ -413,6 +426,7 @@ pub const BLIZZARD: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 冰锥术 — 冻结一个随从和相邻的随从（简化：冻结一个随机敌方随从）
@@ -443,6 +457,7 @@ pub const CONE_OF_COLD: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 // 法师补全
@@ -473,6 +488,7 @@ pub const ARCANE_EXPLOSION: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 
@@ -508,6 +524,7 @@ pub const MANA_WYRM: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 镜像 — 召唤两个0/2嘲讽随从
@@ -538,6 +555,7 @@ pub const MIRROR_IMAGE_MINION: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 以太秘法师 — 在你的回合结束时，如果你控制一个奥秘，获得+2/+2（简化：回合结束获得+2/+2）
@@ -568,6 +586,7 @@ pub const ETHEREAL_ARCANIST: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
 
 /// 蒸发 — 奥秘：当一个敌方随从攻击你的英雄时，消灭它
@@ -598,4 +617,5 @@ pub const VAPORIZE: CardDef = CardDef {
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
+    attack_equals_health: false,
 };
