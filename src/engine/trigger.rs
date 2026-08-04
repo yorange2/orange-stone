@@ -315,7 +315,8 @@ fn resolve_deal_damage(
         EffectTarget::AllCharacters
         | EffectTarget::FriendlyHero
         | EffectTarget::DamagedEnemyMinion
-        | EffectTarget::FriendlyMinion => {
+        | EffectTarget::FriendlyMinion
+        | EffectTarget::TauntEnemyMinion => {
             return;
         }
     };
@@ -604,6 +605,24 @@ fn resolve_destroy_minion(
                 })
             })
             .collect(),
+        EffectTarget::TauntEnemyMinion => {
+            let minions: Vec<Entity> = collect_enemy_minions(state, owner)
+                .into_iter()
+                .filter(|&e| state.world().taunt(e).is_some())
+                .collect();
+            if minions.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(minions.len());
+            let m = minions[idx];
+            let hp = state.world().health(m).unwrap_or(Health(1));
+            queue.push(Event::DamageDealt {
+                source: m,
+                target: m,
+                amount: hp.0.max(1),
+            });
+            return;
+        }
         EffectTarget::AllMinions => {
             let mut all = collect_friendly_minions(state, owner);
             all.extend(collect_enemy_minions(state, owner));

@@ -164,6 +164,12 @@ pub const LEGENDARY_CLASSIC: &[CardDef] = &[
     BLOODMAGE_THALNOS,
     CAPTAIN_GREENSKIN,
     HARRISON_JONES,
+    THE_BLACK_KNIGHT,
+    MILLHOUSE_MANASTORM,
+    NAT_PAGLE,
+    THE_BLACK_KNIGHT,
+    MILLHOUSE_MANASTORM,
+    NAT_PAGLE,
 ];
 pub const DRUID_CLASSIC: &[CardDef] = &[
     INNERVATE,
@@ -229,6 +235,8 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     ARCANE_EXPLOSION,
     CONE_OF_COLD,
     MANA_WYRM,
+    MIRROR_IMAGE_MINION,
+    ETHEREAL_ARCANIST,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -276,6 +284,7 @@ pub const PRIEST_CLASSIC: &[CardDef] = &[
     MASS_DISPEL,
     DIVINE_SPIRIT,
     INNER_FIRE,
+    LIGHTWELL,
 ];
 
 pub const ROGUE_CLASSIC: &[CardDef] = &[
@@ -497,6 +506,8 @@ pub const ALL_CARDS: &[CardDef] = &[
     BLIZZARD,
     ARCANE_EXPLOSION,
     MANA_WYRM,
+    MIRROR_IMAGE_MINION,
+    ETHEREAL_ARCANIST,
     // Paladin
     BLESSING_OF_MIGHT,
     HUMILITY,
@@ -534,6 +545,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     TEMPLE_ENFORCER,
     DIVINE_SPIRIT,
     INNER_FIRE,
+    LIGHTWELL,
     // Rogue
     BACKSTAB,
     DEADLY_POISON,
@@ -639,6 +651,12 @@ pub const ALL_CARDS: &[CardDef] = &[
     BLOODMAGE_THALNOS,
     CAPTAIN_GREENSKIN,
     HARRISON_JONES,
+    THE_BLACK_KNIGHT,
+    MILLHOUSE_MANASTORM,
+    NAT_PAGLE,
+    THE_BLACK_KNIGHT,
+    MILLHOUSE_MANASTORM,
+    NAT_PAGLE,
     // ⬜ 补全
     GIFT_OF_THE_WILD,
     MULTI_SHOT,
