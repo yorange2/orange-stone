@@ -4,8 +4,8 @@
 //! 通过 `cargo test bot_game -- --nocapture` 查看完整输出。
 
 use orange_stone::cards::def::{
-    BOULDERFIST_OGRE, CHILLWIND_YETI, ELVEN_ARCHER, FIERY_WAR_AXE, GOLDSHIRE_FOOTMAN, LOOT_HOARDER,
-    NOVICE_ENGINEER, RIVER_CROCOLISK, SHATTERED_SUN_CLERIC, WISP,
+    ACIDIC_SWAMP_OOZE, ARCHMAGE, BLOODFEN_RAPTOR, EAGLEHORN_BOW, KOBOLD_GEOMANCER,
+    MURLOC_RAIDER, MURLOC_TIDEHUNTER, OGRE_MAGI, VOIDWALKER, VOODOO_DOCTOR,
 };
 use orange_stone::core::action::Action;
 use orange_stone::core::component::{CardType, Health};
@@ -148,16 +148,16 @@ fn two_bots_battle() {
 
     // --- Player1 牌库 (10 张) ---
     let p1_cards = [
-        &WISP,              // 0费 1/1
-        &WISP,              // 0费 1/1
-        &ELVEN_ARCHER,      // 1费 1/1 战吼:1伤
-        &GOLDSHIRE_FOOTMAN, // 1费 1/2 嘲讽
-        &RIVER_CROCOLISK,   // 2费 2/3
-        &RIVER_CROCOLISK,   // 2费 2/3
-        &NOVICE_ENGINEER,   // 2费 1/1 战吼:抽1
-        &LOOT_HOARDER,      // 2费 2/1 亡语:抽1
-        &CHILLWIND_YETI,    // 4费 4/5
-        &BOULDERFIST_OGRE,  // 6费 6/7
+        &MURLOC_RAIDER, // 1费 2/1
+        &MURLOC_RAIDER, // 1费 2/1
+        &VOODOO_DOCTOR, // 1费 2/1 战吼:回2
+        &VOIDWALKER, // 1费 1/3 嘲讽
+        &BLOODFEN_RAPTOR, // 2费 3/2
+        &BLOODFEN_RAPTOR, // 2费 3/2
+        &KOBOLD_GEOMANCER, // 2费 2/2 法伤+1
+        &MURLOC_TIDEHUNTER, // 2费 2/1 战吼:召唤1/1
+        &OGRE_MAGI, // 4费 4/4
+        &ARCHMAGE, // 6费 4/7
     ];
     for card in &p1_cards {
         builder.add_minion_to_deck(PlayerId::Player1, card);
@@ -165,16 +165,16 @@ fn two_bots_battle() {
 
     // --- Player2 牌库 (10 张) ---
     let p2_cards = [
-        &WISP,                 // 0费 1/1
-        &WISP,                 // 0费 1/1
-        &ELVEN_ARCHER,         // 1费 1/1 战吼:1伤
-        &GOLDSHIRE_FOOTMAN,    // 1费 1/2 嘲讽
-        &RIVER_CROCOLISK,      // 2费 2/3
-        &SHATTERED_SUN_CLERIC, // 3费 3/2 战吼:+1/+1
-        &SHATTERED_SUN_CLERIC, // 3费 3/2 战吼:+1/+1
-        &CHILLWIND_YETI,       // 4费 4/5
-        &FIERY_WAR_AXE,        // 2费 3/2 武器
-        &BOULDERFIST_OGRE,     // 6费 6/7
+        &MURLOC_RAIDER, // 1费 2/1
+        &MURLOC_RAIDER, // 1费 2/1
+        &VOODOO_DOCTOR,         // 1费 1/1 战吼:1伤
+        &VOIDWALKER,    // 1费 1/2 嘲讽
+        &BLOODFEN_RAPTOR,      // 2费 2/3
+        &ACIDIC_SWAMP_OOZE, // 2费 3/2 战吼:摧毁武器
+        &ACIDIC_SWAMP_OOZE, // 2费 3/2 战吼:摧毁武器
+        &OGRE_MAGI,       // 4费 4/5
+        &EAGLEHORN_BOW, // 3费 3/2 武器
+        &ARCHMAGE,     // 6费 6/7
     ];
     for card in &p2_cards {
         builder.add_minion_to_deck(PlayerId::Player2, card);

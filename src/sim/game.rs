@@ -21,12 +21,12 @@ use crate::core::zone::Zone;
 ///
 /// ```rust
 /// use orange_stone::sim::game::GameBuilder;
-/// use orange_stone::cards::def::{CHILLWIND_YETI, BOULDERFIST_OGRE};
+/// use orange_stone::cards::def::{OGRE_MAGI, ARCHMAGE};
 /// use orange_stone::core::player::PlayerId;
 ///
 /// let mut builder = GameBuilder::new();
-/// builder.add_minion_to_hand(PlayerId::Player1, &CHILLWIND_YETI);
-/// builder.add_minion_to_board(PlayerId::Player2, &BOULDERFIST_OGRE);
+/// builder.add_minion_to_hand(PlayerId::Player1, &OGRE_MAGI);
+/// builder.add_minion_to_board(PlayerId::Player2, &ARCHMAGE);
 /// let state = builder.build();
 /// ```
 #[derive(Debug, Default)]
