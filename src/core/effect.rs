@@ -28,6 +28,8 @@ pub enum EffectTarget {
     FriendlyHero,
     /// 受伤的敌方随从
     DamagedEnemyMinion,
+    /// 随机友方随从
+    FriendlyMinion,
 }
 
 /// 卡牌效果 — 触发时执行的动作。
@@ -121,4 +123,43 @@ pub enum CardEffect {
     },
     /// 摧毁敌方武器
     DestroyWeapon,
+    /// 给英雄增加临时攻击力和可选护甲（本回合有效，回合结束时清除攻击力加成）
+    GainHeroAttack {
+        /// 攻击力加成
+        attack: i32,
+        /// 护甲加成（0 表示不加护甲）
+        armor: i32,
+    },
+    /// 对目标造成等于英雄攻击力的伤害
+    DealHeroAttackDamage {
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 将一个随从的生命值恢复到满
+    FullHeal {
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 给一个随从增加风怒
+    GrantWindfury {
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 给一个随从增加冲锋和可选的攻击力
+    GrantCharge {
+        /// 目标选择方式
+        target: EffectTarget,
+        /// 额外攻击力（0 表示不加攻击力）
+        attack_bonus: i32,
+    },
+    /// 双倍一个随从的攻击力
+    DoubleAttack {
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 双倍一个随从的生命值
+    DoubleHealth {
+        /// 目标选择方式
+        target: EffectTarget,
+    },
 }

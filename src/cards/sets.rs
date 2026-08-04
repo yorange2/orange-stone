@@ -179,6 +179,9 @@ pub const DRUID_CLASSIC: &[CardDef] = &[
     FORCE_OF_NATURE,
     TREANT,
     GIFT_OF_THE_WILD,
+    // Hero Attack
+    BITE,
+    SAVAGERY,
 ];
 
 pub const HUNTER_CLASSIC: &[CardDef] = &[
@@ -331,6 +334,7 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
     CLEAVE,
     ARMORSMITH,
     INNER_RAGE,
+    HEROIC_STRIKE,
 ];
 
 pub const ALL_CARDS: &[CardDef] = &[
@@ -558,6 +562,8 @@ pub const ALL_CARDS: &[CardDef] = &[
     CLEAVE,
     ARMORSMITH,
     INNER_RAGE,
+    // Hero Attack
+    HEROIC_STRIKE,
     // Legendary
     CAIRNE_BLOODHOOF,
     BAINE_BLOODHOOF,
@@ -586,6 +592,10 @@ pub const ALL_CARDS: &[CardDef] = &[
     MASS_DISPEL,
     COLDLIGHT_SEER,
     MURLOC_WARLEADER,
+    // Hero Attack
+    HEROIC_STRIKE,
+    BITE,
+    SAVAGERY,
     // 🔧 简化补全
     GURUBASHI_BERSERKER,
     SOUTHSHORE_DECKHAND,

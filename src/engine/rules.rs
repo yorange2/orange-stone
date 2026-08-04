@@ -140,9 +140,10 @@ fn validate_attack(
     match attacker_type {
         CardType::Minion => {}
         CardType::Hero => {
-            // 英雄攻击必须有武器
+            // 英雄攻击必须有武器或临时攻击力加成
             let has_weapon = state.player(attacker_player).weapon.is_some();
-            if !has_weapon {
+            let has_temp_attack = state.player(attacker_player).temp_attack_bonus > 0;
+            if !has_weapon && !has_temp_attack {
                 return Err(EngineError::InvalidTarget);
             }
         }
@@ -403,6 +404,20 @@ pub fn apply_event(
         }
         Event::TurnEnded { player } => {
             state.set_phase(Phase::End);
+            // 清除临时攻击力加成
+            {
+                let inner = state.make_mut();
+                let p = &mut inner.players[player.index()];
+                let hero = p.hero;
+                let bonus = p.temp_attack_bonus;
+                if bonus > 0 {
+                    let cur_atk = inner.world.attack(hero).unwrap_or(Attack(0));
+                    inner
+                        .world
+                        .set_attack(hero, Attack((cur_atk.0 - bonus).max(0)));
+                    p.temp_attack_bonus = 0;
+                }
+            }
             // 触发回合结束效果（先收集再逐个处理）
             let end_turn_effects: Vec<(Entity, crate::core::effect::CardEffect)> = state
                 .world()
