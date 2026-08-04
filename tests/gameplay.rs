@@ -1141,3 +1141,103 @@ fn multiple_secrets_trigger_in_order() {
         .count();
     assert_eq!(secret_count, 2, "Both secrets should trigger");
 }
+
+// ============================================================
+// Phase 4: Hero Attack 测试 (Heroic Strike, Claw, Bite)
+// ============================================================
+
+#[test]
+fn heroic_strike_gives_hero_attack_this_turn() {
+    use orange_stone::cards::def::HEROIC_STRIKE;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &HEROIC_STRIKE);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hero = state.player(PlayerId::Player1).hero;
+
+    // 英雄初始攻击力应为 0
+    assert_eq!(
+        state.world().attack(hero),
+        Some(orange_stone::core::component::Attack(0))
+    );
+
+    // 找到手牌中的 Heroic Strike
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    // 打出 Heroic Strike
+    let log = engine
+        .apply(&mut state, Action::PlayCard { card })
+        .unwrap();
+
+    // 检查事件
+    assert!(log.iter().any(|e| matches!(e, Event::CardPlayed { .. })));
+
+    // 英雄攻击力应为 4
+    assert_eq!(
+        state.world().attack(hero),
+        Some(orange_stone::core::component::Attack(4))
+    );
+    assert_eq!(state.player(PlayerId::Player1).temp_attack_bonus, 4);
+
+    // 法术牌应进入坟场
+    assert_eq!(state.world().zone(card), Some(Zone::Graveyard));
+
+    // 结束回合 → 英雄攻击力应恢复为 0
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+
+    assert_eq!(
+        state.world().attack(hero),
+        Some(orange_stone::core::component::Attack(0))
+    );
+    assert_eq!(state.player(PlayerId::Player1).temp_attack_bonus, 0);
+}
+
+#[test]
+fn hero_with_temp_attack_can_attack() {
+    use orange_stone::cards::def::HEROIC_STRIKE;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &HEROIC_STRIKE);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hero = state.player(PlayerId::Player1).hero;
+    let enemy_hero = state.player(PlayerId::Player2).hero;
+
+    // 打 Heroic Strike
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+    engine
+        .apply(&mut state, Action::PlayCard { card })
+        .unwrap();
+
+    // 现在英雄有 4 攻击力，可以攻击（无需武器）
+    let _log = engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: enemy_hero,
+            },
+        )
+        .unwrap();
+
+    // 敌方英雄应受到 4 点伤害
+    assert_eq!(
+        state.world().health(enemy_hero),
+        Some(orange_stone::core::component::Health(26))
+    );
+}

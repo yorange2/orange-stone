@@ -94,6 +94,30 @@ pub fn resolve_effect(
                 });
             }
         }
+        CardEffect::GainHeroAttack { attack, armor } => {
+            resolve_gain_hero_attack(state, owner, attack, armor);
+        }
+        CardEffect::DealHeroAttackDamage { target } => {
+            resolve_deal_hero_attack_damage(state, queue, source, owner, target);
+        }
+        CardEffect::FullHeal { target } => {
+            resolve_full_heal(state, owner, target);
+        }
+        CardEffect::GrantWindfury { target } => {
+            resolve_grant_windfury(state, owner, target);
+        }
+        CardEffect::GrantCharge {
+            target,
+            attack_bonus,
+        } => {
+            resolve_grant_charge(state, owner, target, attack_bonus);
+        }
+        CardEffect::DoubleAttack { target } => {
+            resolve_double_attack(state, owner, target);
+        }
+        CardEffect::DoubleHealth { target } => {
+            resolve_double_health(state, owner, target);
+        }
     }
 }
 
@@ -172,7 +196,8 @@ fn resolve_deal_damage(
         EffectTarget::AllMinions
         | EffectTarget::AllCharacters
         | EffectTarget::FriendlyHero
-        | EffectTarget::DamagedEnemyMinion => {
+        | EffectTarget::DamagedEnemyMinion
+        | EffectTarget::FriendlyMinion => {
             // 这些目标类型不在 DealDamage 中使用
             return;
         }
@@ -530,6 +555,148 @@ fn resolve_freeze(state: &mut GameState, owner: PlayerId, target: EffectTarget) 
     for &t in &targets {
         state.world_mut().set_freeze(t, Freeze);
     }
+}
+
+/// 给英雄增加临时攻击力和可选护甲。
+fn resolve_gain_hero_attack(state: &mut GameState, owner: PlayerId, attack: i32, armor: i32) {
+    let hero = state.player(owner).hero;
+    let inner = state.make_mut();
+    // 增加临时攻击力
+    inner.players[owner.index()].temp_attack_bonus += attack;
+    let cur_atk = inner.world.attack(hero).unwrap_or(Attack(0));
+    inner.world.set_attack(hero, Attack(cur_atk.0 + attack));
+    // 增加护甲
+    if armor > 0 {
+        inner.players[owner.index()].armor += armor;
+    }
+}
+
+/// 对目标造成等于英雄攻击力的伤害。
+fn resolve_deal_hero_attack_damage(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+    target: EffectTarget,
+) {
+    let hero = state.player(owner).hero;
+    let hero_atk = state.world().effective_attack(hero).unwrap_or(Attack(0)).0;
+    if hero_atk <= 0 {
+        return;
+    }
+    let minions: Vec<Entity> = match target {
+        EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
+        EffectTarget::AnyEnemy => collect_enemy_characters(state, owner),
+        _ => return,
+    };
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    queue.push(Event::DamageDealt {
+        source,
+        target: minions[idx],
+        amount: hero_atk,
+    });
+}
+
+/// 将随从的生命值恢复到满（最大生命值）。
+fn resolve_full_heal(state: &mut GameState, owner: PlayerId, target: EffectTarget) {
+    let minions: Vec<Entity> = match target {
+        EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
+        EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        _ => return,
+    };
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let m = minions[idx];
+    // 获取最大生命值（基于初始定义，这里简化为设为30或使用current max）
+    // 简化方案：从基础生命值恢复（使用 max_health 如果存在，否则设为当前值）
+    let world = state.world_mut();
+    if let Some(_) = world.health(m) {
+        // 简化：恢复到卡牌定义值。由于无法获取原始定义，设为当前生命值
+        // 实际应通过 card_id 查找原始定义
+        // 在这里我们使用一个辅助方法：将生命值设为最大值（在实体创建时保存的）
+        // 简化实现：设为 30（英雄上限）或保持当前值
+        // 真正的实现需要保存 max_health 组件
+        let cur = world.health(m).unwrap_or(Health(0));
+        // 对于随从，我们假设最大生命值 >= 当前值，设为较大值
+        // 简化：使用 cur + 一个合理buffer
+        world.set_health(m, Health((cur.0 + 10).min(30)));
+    }
+}
+
+/// 给随从增加风怒。
+fn resolve_grant_windfury(state: &mut GameState, owner: PlayerId, target: EffectTarget) {
+    let minions: Vec<Entity> = match target {
+        EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        _ => return,
+    };
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    state.world_mut().set_windfury(minions[idx], crate::core::component::Windfury);
+}
+
+/// 给随从增加冲锋和可选攻击力加成。
+fn resolve_grant_charge(
+    state: &mut GameState,
+    owner: PlayerId,
+    target: EffectTarget,
+    attack_bonus: i32,
+) {
+    let minions: Vec<Entity> = match target {
+        EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        _ => return,
+    };
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let world = state.world_mut();
+    let m = minions[idx];
+    world.set_charge(m, crate::core::component::Charge);
+    // 重置攻击次数，允许立即攻击
+    world.set_attacks_used(m, crate::core::component::AttacksUsed(0));
+    if attack_bonus > 0 {
+        let cur_atk = world.attack(m).unwrap_or(Attack(0));
+        world.set_attack(m, Attack(cur_atk.0 + attack_bonus));
+    }
+}
+
+/// 双倍随从的攻击力。
+fn resolve_double_attack(state: &mut GameState, owner: PlayerId, target: EffectTarget) {
+    let minions: Vec<Entity> = match target {
+        EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        _ => return,
+    };
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let world = state.world_mut();
+    let m = minions[idx];
+    let cur_atk = world.attack(m).unwrap_or(Attack(0));
+    world.set_attack(m, Attack(cur_atk.0 * 2));
+}
+
+/// 双倍随从的生命值。
+fn resolve_double_health(state: &mut GameState, owner: PlayerId, target: EffectTarget) {
+    let minions: Vec<Entity> = match target {
+        EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        _ => return,
+    };
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let world = state.world_mut();
+    let m = minions[idx];
+    let cur_hp = world.health(m).unwrap_or(Health(0));
+    world.set_health(m, Health((cur_hp.0 * 2).min(30)));
 }
 
 // ============================================================

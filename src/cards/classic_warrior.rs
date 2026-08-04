@@ -339,3 +339,30 @@ pub const INNER_RAGE: CardDef = CardDef {
     end_turn_effect: None,
 };
 
+// Hero attack cards
+pub const HEROIC_STRIKE: CardDef = CardDef {
+    id: "WARRIOR_015",
+    name: "Heroic Strike",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::GainHeroAttack {
+        attack: 4,
+        armor: 0,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+};
+

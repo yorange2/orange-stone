@@ -53,6 +53,8 @@ pub struct Player {
     pub weapon: Option<crate::core::entity::Entity>,
     /// 英雄护甲值
     pub armor: i32,
+    /// 英雄本回合的临时攻击力加成（回合结束时清除）
+    pub temp_attack_bonus: i32,
 }
 
 impl Player {
@@ -66,6 +68,7 @@ impl Player {
             current_mana: mana_crystals,
             weapon: None,
             armor: 0,
+            temp_attack_bonus: 0,
         }
     }
 }

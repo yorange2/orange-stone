@@ -3,7 +3,7 @@
 
 use crate::cards::def::CardDef;
 use crate::core::component::CardType;
-use crate::core::effect::CardEffect;
+use crate::core::effect::{CardEffect, EffectTarget};
 
 // ============================================================
 // 怀旧系列 — 德鲁伊 (Druid)
@@ -41,7 +41,10 @@ pub const CLAW: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::GainHeroAttack {
+        attack: 2,
+        armor: 2,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -391,6 +394,59 @@ pub const GIFT_OF_THE_WILD: CardDef = CardDef {
     health: 0,
     durability: 0,
     battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+};
+
+/// 撕咬 — 使你的英雄获得+4攻击力本回合，获得4点护甲
+pub const BITE: CardDef = CardDef {
+    id: "DRUID_017",
+    name: "Bite",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::GainHeroAttack {
+        attack: 4,
+        armor: 4,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+};
+
+/// 野蛮之击 — 对一个随从造成等同于你英雄攻击力的伤害
+pub const SAVAGERY: CardDef = CardDef {
+    id: "DRUID_018",
+    name: "Savagery",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::DealHeroAttackDamage {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
