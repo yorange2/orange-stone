@@ -3,7 +3,7 @@
 
 use crate::cards::def::CardDef;
 use crate::core::component::{AuraEffect, AuraTarget, CardType};
-use crate::core::effect::CardEffect;
+use crate::core::effect::{CardEffect, EffectTarget};
 use crate::vanilla;
 
 // 怀旧系列 — 猎人 (Hunter)
@@ -17,7 +17,7 @@ pub const ARCANE_SHOT: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::DealDamage { amount: 2, target: EffectTarget::AnyEnemy }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -41,7 +41,7 @@ pub const HUNTERS_MARK: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::SetAttack { attack: 0, target: EffectTarget::AnyEnemyMinion }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -89,7 +89,7 @@ pub const KILL_COMMAND: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::DealDamage { amount: 3, target: EffectTarget::AnyEnemy }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -113,7 +113,7 @@ pub const UNLEASH_THE_HOUNDS: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::SummonMinion { card_id: "HUNTER_t" }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -189,7 +189,7 @@ pub const DEADLY_SHOT: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::DestroyMinion { target: EffectTarget::AnyEnemyMinion }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -213,7 +213,7 @@ pub const EXPLOSIVE_SHOT: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::DealDamage { amount: 5, target: EffectTarget::AnyEnemyMinion }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -238,7 +238,7 @@ pub const MULTI_SHOT: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::DealDamageToTwo { amount: 3 }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
