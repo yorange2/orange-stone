@@ -175,7 +175,39 @@ pub fn resolve_effect(
             }
         }
         CardEffect::DestroyAdjacent { gain_stats: _ } => {
-            // 简化实现
+            // 简化实现 — 随机消灭一个友方随从并获得其属性
+            let friendly = collect_friendly_minions(state, owner);
+            if friendly.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(friendly.len());
+            let sacrifice = friendly[idx];
+            let atk = state.world().attack(sacrifice).unwrap_or(Attack(0));
+            let hp = state.world().health(sacrifice).unwrap_or(Health(0));
+            // 消灭牺牲品
+            queue.push(Event::DamageDealt {
+                source,
+                target: sacrifice,
+                amount: hp.0.max(1),
+            });
+            // 给source随从增加属性
+            let cur_atk = state.world().attack(source).unwrap_or(Attack(0));
+            let cur_hp = state.world().health(source).unwrap_or(Health(0));
+            state.world_mut().set_attack(source, Attack(cur_atk.0 + atk.0));
+            state.world_mut().set_health(source, Health(cur_hp.0 + hp.0));
+        }
+        CardEffect::DestroyManaCrystal => {
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            if p.mana_crystals > 0 {
+                p.mana_crystals -= 1;
+                p.current_mana = p.current_mana.min(p.mana_crystals);
+            }
+        }
+        CardEffect::GiveCardsToOpponent { count: _ } => {
+            // 简化：给对手发"硬币"效果 — 实际抽牌给对手
+            let enemy = owner.opponent();
+            draw_card(state, queue, enemy);
         }
     }
 }

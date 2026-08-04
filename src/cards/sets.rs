@@ -331,6 +331,10 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     FELSTALKER,
     SIPHON_SOUL,
     SHADOWFLAME,
+    FELGUARD,
+    SENSE_DEMONS,
+    DEMONFIRE,
+    VOID_TERROR,
 ];
 
 pub const WARRIOR_CLASSIC: &[CardDef] = &[
@@ -579,6 +583,10 @@ pub const ALL_CARDS: &[CardDef] = &[
     FELSTALKER,
     SIPHON_SOUL,
     SHADOWFLAME,
+    FELGUARD,
+    SENSE_DEMONS,
+    DEMONFIRE,
+    VOID_TERROR,
     // Warrior
     EXECUTE,
     WHIRLWIND,
