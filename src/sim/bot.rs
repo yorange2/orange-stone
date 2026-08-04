@@ -245,15 +245,15 @@ impl GreedyBot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cards::def::{CHILLWIND_YETI, GOLDSHIRE_FOOTMAN, RIVER_CROCOLISK};
+    use crate::cards::def::{BLOODFEN_RAPTOR, OGRE_MAGI, VOIDWALKER};
     use crate::core::player::PlayerId;
     use crate::sim::game::GameBuilder;
 
     #[test]
     fn bot_plays_cards_from_hand() {
         let mut builder = GameBuilder::new();
-        builder.add_minion_to_hand(PlayerId::Player1, &CHILLWIND_YETI);
-        builder.add_minion_to_hand(PlayerId::Player1, &RIVER_CROCOLISK);
+        builder.add_minion_to_hand(PlayerId::Player1, &OGRE_MAGI);
+        builder.add_minion_to_hand(PlayerId::Player1, &BLOODFEN_RAPTOR);
         builder.set_mana(PlayerId::Player1, 10, 10);
         let state = builder.build();
 
@@ -292,7 +292,7 @@ mod tests {
     fn bot_must_attack_taunt_first() {
         let mut builder = GameBuilder::new();
         let attacker = builder.add_custom_minion_to_board(PlayerId::Player1, 3, 3, 3);
-        builder.add_minion_to_board(PlayerId::Player2, &GOLDSHIRE_FOOTMAN);
+        builder.add_minion_to_board(PlayerId::Player2, &VOIDWALKER);
         builder.set_mana(PlayerId::Player1, 10, 10);
         let state = builder.build();
 
@@ -351,10 +351,10 @@ mod tests {
 
     #[test]
     fn bot_hero_attacks_with_weapon() {
-        use crate::cards::def::FIERY_WAR_AXE;
+        use crate::cards::def::EAGLEHORN_BOW;
 
         let mut builder = GameBuilder::new();
-        builder.equip_weapon(PlayerId::Player1, &FIERY_WAR_AXE);
+        builder.equip_weapon(PlayerId::Player1, &EAGLEHORN_BOW);
         builder.set_mana(PlayerId::Player1, 10, 10);
         let state = builder.build();
         let hero = state.player(PlayerId::Player1).hero;

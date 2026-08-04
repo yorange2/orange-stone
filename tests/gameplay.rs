@@ -8,7 +8,7 @@
 //! - 游戏结束
 //! - 确定性回放
 
-use orange_stone::cards::def::{CHILLWIND_YETI, RIVER_CROCOLISK, WISP};
+use orange_stone::cards::def::{BLOODFEN_RAPTOR, MURLOC_RAIDER, OGRE_MAGI};
 use orange_stone::core::action::Action;
 use orange_stone::core::entity::Entity;
 use orange_stone::core::event::Event;
@@ -27,7 +27,7 @@ use orange_stone::sim::game::GameBuilder;
 fn play_minion_moves_from_hand_to_board() {
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
-    builder.add_minion_to_hand(PlayerId::Player1, &CHILLWIND_YETI);
+    builder.add_minion_to_hand(PlayerId::Player1, &OGRE_MAGI);
     builder.set_mana(PlayerId::Player1, 10, 10);
     let mut state = builder.build();
 
@@ -59,7 +59,7 @@ fn play_minion_moves_from_hand_to_board() {
 fn not_enough_mana_rejected() {
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
-    builder.add_minion_to_hand(PlayerId::Player1, &CHILLWIND_YETI);
+    builder.add_minion_to_hand(PlayerId::Player1, &OGRE_MAGI);
     // 不设置法力，默认 0
     let mut state = builder.build();
 
@@ -79,9 +79,9 @@ fn play_card_when_board_has_7_minions_fails() {
     let mut builder = GameBuilder::new();
     // 填满 7 个随从
     for _ in 0..7 {
-        builder.add_minion_to_board(PlayerId::Player1, &WISP);
+        builder.add_minion_to_board(PlayerId::Player1, &MURLOC_RAIDER);
     }
-    builder.add_minion_to_hand(PlayerId::Player1, &CHILLWIND_YETI);
+    builder.add_minion_to_hand(PlayerId::Player1, &OGRE_MAGI);
     builder.set_mana(PlayerId::Player1, 10, 10);
     let mut state = builder.build();
 
@@ -100,7 +100,7 @@ fn play_card_when_board_has_7_minions_fails() {
 fn play_card_not_your_turn() {
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
-    builder.add_minion_to_hand(PlayerId::Player2, &RIVER_CROCOLISK);
+    builder.add_minion_to_hand(PlayerId::Player2, &BLOODFEN_RAPTOR);
     builder.active_player(PlayerId::Player1);
     let mut state = builder.build();
 
@@ -543,10 +543,10 @@ fn full_game_scenario() {
 
 #[test]
 fn equip_weapon_gives_hero_attack() {
-    use orange_stone::cards::def::FIERY_WAR_AXE;
+    use orange_stone::cards::def::EAGLEHORN_BOW;
 
     let mut builder = GameBuilder::new();
-    builder.equip_weapon(PlayerId::Player1, &FIERY_WAR_AXE);
+    builder.equip_weapon(PlayerId::Player1, &EAGLEHORN_BOW);
     let state = builder.build();
 
     let player = state.player(PlayerId::Player1);
@@ -564,11 +564,11 @@ fn equip_weapon_gives_hero_attack() {
 
 #[test]
 fn hero_attack_with_weapon_consumes_durability() {
-    use orange_stone::cards::def::FIERY_WAR_AXE;
+    use orange_stone::cards::def::EAGLEHORN_BOW;
 
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
-    builder.equip_weapon(PlayerId::Player1, &FIERY_WAR_AXE);
+    builder.equip_weapon(PlayerId::Player1, &EAGLEHORN_BOW);
     builder.set_mana(PlayerId::Player1, 10, 10);
     let state = builder.build();
 
@@ -605,11 +605,11 @@ fn hero_attack_with_weapon_consumes_durability() {
 
 #[test]
 fn weapon_breaks_when_durability_reaches_zero() {
-    use orange_stone::cards::def::FIERY_WAR_AXE;
+    use orange_stone::cards::def::EAGLEHORN_BOW;
 
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
-    builder.equip_weapon(PlayerId::Player1, &FIERY_WAR_AXE);
+    builder.equip_weapon(PlayerId::Player1, &EAGLEHORN_BOW);
     builder.set_mana(PlayerId::Player1, 10, 10);
     builder.set_mana(PlayerId::Player2, 10, 10);
     let state = builder.build();
@@ -819,11 +819,11 @@ fn hero_power_resets_after_turn() {
 
 #[test]
 fn aura_buffs_other_friendly_minions() {
-    use orange_stone::cards::def::RAID_LEADER;
+    use orange_stone::cards::def::GRIMSCALE_ORACLE;
 
     let mut builder = GameBuilder::new();
     // 团队领袖：其他友方随从 +1 攻击力
-    builder.add_minion_to_board(PlayerId::Player1, &RAID_LEADER);
+    builder.add_minion_to_board(PlayerId::Player1, &GRIMSCALE_ORACLE);
     let croc = builder.add_custom_minion_to_board(PlayerId::Player1, 2, 3, 2);
     let state = builder.build();
 
@@ -842,20 +842,20 @@ fn aura_buffs_other_friendly_minions() {
         })
         .collect();
     // leader 的有效攻击力应包括自身基础攻击力 + 其他光环
-    // RAID_LEADER 有 2 攻击力（自身），不给自己加
+    // GRIMSCALE_ORACLE 有 1 攻击力（自身），不给自己加
     assert_eq!(
         state.world().effective_attack(leader[0]),
-        Some(orange_stone::core::component::Attack(2))
+        Some(orange_stone::core::component::Attack(1))
     );
 }
 
 #[test]
 fn aura_bonus_disappears_when_source_dies() {
-    use orange_stone::cards::def::RAID_LEADER;
+    use orange_stone::cards::def::GRIMSCALE_ORACLE;
 
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
-    builder.add_minion_to_board(PlayerId::Player1, &RAID_LEADER);
+    builder.add_minion_to_board(PlayerId::Player1, &GRIMSCALE_ORACLE);
     let croc = builder.add_custom_minion_to_board(PlayerId::Player1, 2, 3, 2);
     let enemy = builder.add_custom_minion_to_board(PlayerId::Player2, 5, 1, 3);
     builder.active_player(PlayerId::Player2);
@@ -883,7 +883,7 @@ fn aura_bonus_disappears_when_source_dies() {
         )
         .unwrap();
 
-    // 团队领袖应死亡（2 HP vs 5 ATK → -3）
+    // 团队领袖应死亡（1 HP vs 5 ATK → -4）
     assert_eq!(
         state.world().zone(leader_entity),
         Some(orange_stone::core::zone::Zone::Graveyard)
@@ -897,17 +897,17 @@ fn aura_bonus_disappears_when_source_dies() {
 
 #[test]
 fn stormwind_champion_buffs_attack_and_health() {
-    use orange_stone::cards::def::STORMWIND_CHAMPION;
+    use orange_stone::cards::def::MURLOC_WARLEADER;
 
     let mut builder = GameBuilder::new();
-    builder.add_minion_to_board(PlayerId::Player1, &STORMWIND_CHAMPION);
+    builder.add_minion_to_board(PlayerId::Player1, &MURLOC_WARLEADER);
     let ally = builder.add_custom_minion_to_board(PlayerId::Player1, 2, 3, 2);
     let state = builder.build();
 
-    // 友方随从应获得 +1/+1
+    // 友方随从应获得 +2/+1
     assert_eq!(
         state.world().effective_attack(ally),
-        Some(orange_stone::core::component::Attack(3))
+        Some(orange_stone::core::component::Attack(4))
     );
     assert_eq!(
         state.world().effective_health(ally),
