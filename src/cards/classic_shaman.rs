@@ -27,6 +27,7 @@ pub const EARTH_SHOCK: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -49,6 +50,7 @@ pub const LIGHTNING_BOLT: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -71,6 +73,7 @@ pub const ROCKBITER_WEAPON: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -93,6 +96,7 @@ pub const FLAMETONGUE_TOTEM: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -115,6 +119,7 @@ pub const HEX: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -137,6 +142,7 @@ pub const LIGHTNING_STORM: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -162,6 +168,7 @@ pub const FIRE_ELEMENTAL: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -184,6 +191,7 @@ pub const BLOODLUST: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -207,6 +215,7 @@ pub const FERAL_SPIRIT: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -229,6 +238,7 @@ pub const MANA_TIDE_TOTEM: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: Some(CardEffect::DrawCard { count: 1 }),
 };
 
@@ -251,6 +261,7 @@ pub const DOOMHAMMER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -273,6 +284,7 @@ pub const ALAKIR_THE_WINDLORD: CardDef = CardDef {
     charge: true,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -296,6 +308,7 @@ pub const TOTEMIC_MIGHT: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const FROST_SHOCK: CardDef = CardDef {
@@ -317,6 +330,7 @@ pub const FROST_SHOCK: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const DUST_DEVIL: CardDef = CardDef {
@@ -338,6 +352,7 @@ pub const DUST_DEVIL: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const FORKED_LIGHTNING: CardDef = CardDef {
@@ -359,6 +374,7 @@ pub const FORKED_LIGHTNING: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const LAVA_BURST: CardDef = CardDef {
@@ -380,6 +396,7 @@ pub const LAVA_BURST: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const STORMFORGED_AXE: CardDef = CardDef {
@@ -401,6 +418,7 @@ pub const STORMFORGED_AXE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const EARTH_ELEMENTAL: CardDef = CardDef {
@@ -422,6 +440,7 @@ pub const EARTH_ELEMENTAL: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 

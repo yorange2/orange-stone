@@ -28,6 +28,7 @@ pub const HOLY_SMITE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -50,6 +51,7 @@ pub const MIND_BLAST: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -72,6 +74,7 @@ pub const POWER_WORD_SHIELD: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -96,6 +99,7 @@ pub const SHADOW_WORD_PAIN: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -118,6 +122,7 @@ pub const SHADOW_WORD_DEATH: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -140,6 +145,7 @@ pub const HOLY_NOVA: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -162,6 +168,7 @@ pub const HOLY_FIRE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -185,6 +192,7 @@ pub const CIRCLE_OF_HEALING: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -207,6 +215,7 @@ pub const AUCHENAI_SOULPRIEST: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -229,6 +238,7 @@ pub const CABAL_SHADOW_PRIEST: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -251,6 +261,7 @@ pub const PROPHET_VELEN: CardDef = CardDef {
     charge: false,
     spell_damage: 1,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -274,6 +285,7 @@ pub const SILENCE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const SHADOW_WORD_RUIN: CardDef = CardDef {
@@ -295,6 +307,7 @@ pub const SHADOW_WORD_RUIN: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const TEMPLE_ENFORCER: CardDef = CardDef {
@@ -320,6 +333,7 @@ pub const TEMPLE_ENFORCER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -344,6 +358,7 @@ pub const RADIANCE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 /// 库尔提拉斯牧师 — 战吼：使一个友方随从获得+2生命值（简化：buff自身）
@@ -370,6 +385,7 @@ pub const KUL_TIRAN_CHAPLAIN: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 /// 群体驱散 — 沉默所有敌方随从，抽一张牌（简化：随机沉默一个敌方随从）
@@ -392,6 +408,7 @@ pub const MASS_DISPEL: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 

@@ -33,6 +33,8 @@ pub struct CardDef {
     pub cant_attack: bool,
     /// 回合结束效果
     pub end_turn_effect: Option<CardEffect>,
+    /// 法术效果（仅对法术牌有效，打出时触发）
+    pub spell_effect: Option<CardEffect>,
 }
 
 /// 宏：简化白板随从定义。
@@ -60,6 +62,7 @@ macro_rules! vanilla {
             spell_damage: 0,
             cant_attack: false,
             end_turn_effect: None,
+            spell_effect: None,
         }
     };
 }

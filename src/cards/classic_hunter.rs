@@ -28,6 +28,7 @@ pub const ARCANE_SHOT: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -50,6 +51,7 @@ pub const HUNTERS_MARK: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -72,6 +74,7 @@ pub const TRACKING: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -94,6 +97,7 @@ pub const KILL_COMMAND: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -116,6 +120,7 @@ pub const UNLEASH_THE_HOUNDS: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -140,6 +145,7 @@ pub const SAVANNAH_HIGHMANE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const HYENA: CardDef = vanilla!("HUNTER_006t", "Hyena", 2, 2, 2);
@@ -164,6 +170,7 @@ pub const EAGLEHORN_BOW: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -186,6 +193,7 @@ pub const DEADLY_SHOT: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -208,6 +216,7 @@ pub const EXPLOSIVE_SHOT: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -231,6 +240,7 @@ pub const MULTI_SHOT: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -254,6 +264,7 @@ pub const TIMBER_WOLF: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const KING_KRUSH: CardDef = CardDef {
@@ -275,6 +286,7 @@ pub const KING_KRUSH: CardDef = CardDef {
     charge: true,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 

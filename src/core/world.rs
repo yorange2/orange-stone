@@ -9,8 +9,8 @@
 //! 所有实体访问都经过 generation 检查，防止悬垂引用。
 
 use crate::core::component::{
-    Armor, Attack, AttacksUsed, Aura, Battlecry, CardType, Charge, Cost, Deathrattle, DivineShield,
-    Durability, Freeze, Health, HeroPowerDef, HeroPowerUsed, Secret, SpellDamage, Taunt, Windfury,
+    Armor, Attack, AttacksUsed, Aura, Battlecry, CantAttack, CardType, Charge, Cost, Deathrattle, DivineShield,
+    Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Secret, SpellDamage, Taunt, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -121,6 +121,10 @@ pub struct World {
     spell_damage: SparseSet<SpellDamage>,
     /// Freeze 组件存储（冻结）
     freeze: SparseSet<Freeze>,
+    /// CantAttack 组件存储（不能攻击）
+    cant_attack: SparseSet<CantAttack>,
+    /// EndTurnEffect 组件存储（回合结束效果）
+    end_turn_effect: SparseSet<EndTurnEffect>,
     /// 区域表 — 每个 Zone 的有序实体列表
     zones: Zones,
 }
@@ -153,6 +157,8 @@ impl World {
             charge: SparseSet::new(),
             spell_damage: SparseSet::new(),
             freeze: SparseSet::new(),
+            cant_attack: SparseSet::new(),
+            end_turn_effect: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -211,6 +217,8 @@ impl World {
         self.charge.remove(entity);
         self.spell_damage.remove(entity);
         self.freeze.remove(entity);
+        self.cant_attack.remove(entity);
+        self.end_turn_effect.remove(entity);
         // 提升 generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // 归还槽位
@@ -390,6 +398,22 @@ impl World {
         set_freeze,
         remove_freeze,
         iter_freeze
+    );
+    component_accessors!(
+        cant_attack,
+        CantAttack,
+        cant_attack,
+        set_cant_attack,
+        remove_cant_attack,
+        iter_cant_attack
+    );
+    component_accessors!(
+        end_turn_effect,
+        EndTurnEffect,
+        end_turn_effect,
+        set_end_turn_effect,
+        remove_end_turn_effect,
+        iter_end_turn_effect
     );
 
     /// 获取实体每回合可攻击的最大次数。

@@ -248,6 +248,25 @@ fn resolve_summon(
         if card_def.taunt {
             world.set_taunt(e, crate::core::component::Taunt);
         }
+        // 设置圣盾/风怒/冲锋/法伤/不能攻击/回合结束效果
+        if card_def.divine_shield {
+            world.set_divine_shield(e, crate::core::component::DivineShield);
+        }
+        if card_def.windfury {
+            world.set_windfury(e, crate::core::component::Windfury);
+        }
+        if card_def.charge {
+            world.set_charge(e, crate::core::component::Charge);
+        }
+        if card_def.spell_damage != 0 {
+            world.set_spell_damage(e, crate::core::component::SpellDamage(card_def.spell_damage));
+        }
+        if card_def.cant_attack {
+            world.set_cant_attack(e, crate::core::component::CantAttack);
+        }
+        if let Some(ete) = card_def.end_turn_effect {
+            world.set_end_turn_effect(e, crate::core::component::EndTurnEffect(ete));
+        }
         e
     };
 

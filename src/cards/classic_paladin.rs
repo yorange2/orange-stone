@@ -28,6 +28,7 @@ pub const BLESSING_OF_MIGHT: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -50,6 +51,7 @@ pub const HUMILITY: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -72,6 +74,7 @@ pub const HOLY_LIGHT: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -94,6 +97,7 @@ pub const BLESSING_OF_KINGS: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -116,6 +120,7 @@ pub const CONSECRATION: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -138,6 +143,7 @@ pub const TRUESILVER_CHAMPION: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -163,6 +169,7 @@ pub const GUARDIAN_OF_KINGS: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -187,6 +194,7 @@ pub const TIRION_FORDRING: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const ASHBRINGER: CardDef = CardDef {
@@ -208,6 +216,7 @@ pub const ASHBRINGER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -233,6 +242,7 @@ pub const ALDOR_PEACEKEEPER: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -256,6 +266,7 @@ pub const EQUALITY: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -278,6 +289,7 @@ pub const HAMMER_OF_WRATH: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -300,6 +312,7 @@ pub const AVENGING_WRATH: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -322,6 +335,7 @@ pub const LAY_ON_HANDS: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -345,6 +359,7 @@ pub const HOLY_WRATH: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 /// 正义 — 使你的随从获得圣盾（简化版，无法实现群体圣盾）
@@ -367,6 +382,7 @@ pub const RIGHTEOUSNESS: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 
@@ -390,6 +406,7 @@ pub const HAND_OF_PROTECTION: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const LIGHTS_JUSTICE: CardDef = CardDef {
@@ -411,6 +428,7 @@ pub const LIGHTS_JUSTICE: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 pub const ARGENT_PROTECTOR: CardDef = CardDef {
@@ -432,6 +450,7 @@ pub const ARGENT_PROTECTOR: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
+    spell_effect: None,
     end_turn_effect: None,
 };
 

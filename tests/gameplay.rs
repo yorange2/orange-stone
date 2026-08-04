@@ -480,6 +480,12 @@ fn full_game_scenario() {
         .unwrap();
     assert_eq!(log.len(), 2);
 
+    // 召唤失调：刚打出的随从不能攻击，先过两个回合让召唤失调消失
+    // Player1 结束回合 → Player2 的回合
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Player2 结束回合 → 回到 Player1 的回合
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+
     // 尝试用 Croc (2/3) 攻击 Ogre (6/7) — 自杀式攻击但合法
     engine
         .apply(
