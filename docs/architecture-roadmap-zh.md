@@ -82,9 +82,9 @@
 
 ### 里程碑 B — 伤害管线统一（设计工作）
 
-- [ ] **B1** — 将伤害结算收敛为单一管线：免疫 → 圣盾 → 护甲 → 生命值 → 死亡检查（`rules.rs` 中的 `DamageDealt` 处理器 + 反击已部分就位）。
-- [ ] **B2** — 将奥秘/反应性效果挂在管线节点上，而非改写已入队事件；退役 `redirect_damage` / `replace_damage` / `redirect_damages` 特判（`src/core/event.rs:192-253`）。
-- [ ] **B3** — 用现有自对弈覆盖工具重验全部奥秘卡牌（误导、崇高牺牲、爆炸陷阱、法术扭曲者、蒸发等）在统一管线下的行为。
+- [x] **B1** — 将伤害结算收敛为单一管线：免疫 → 圣盾 → 护甲 → 生命值 → 死亡检查（`rules.rs` 中的 `DamageDealt` 处理器 + 反击已部分就位）。*(PR #39：提取 `queue_death_events`，攻击经 `ResolveAttack` 统一入管线)*
+- [x] **B2** — 将奥秘/反应性效果挂在管线节点上，而非改写已入队事件；退役 `redirect_damage` / `replace_damage` / `redirect_damages` 特判（`src/core/event.rs:192-253`）。*(PR #39：`redirect_attack` 统一原语；`redirect_damage`/`replace_damage` 删除；`redirect_damages` 保留为法术来源重定向原语)*
+- [x] **B3** — 用现有自对弈覆盖工具重验全部奥秘卡牌（误导、崇高牺牲、爆炸陷阱、法术扭曲者、蒸发等）在统一管线下的行为。*(PR #39：全部奥秘测试通过 + 3 个新管线测试)*
 
 ### 里程碑 C — RL 环境准备（CLAUDE.md Phase 4）
 

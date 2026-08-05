@@ -282,6 +282,9 @@ fn two_bots_battle() {
                                     entity_info(&state, *defender)
                                 )
                             }
+                            orange_stone::core::event::Event::ResolveAttack { .. } => {
+                                "  ↪ 攻击结算".to_string()
+                            }
                             orange_stone::core::event::Event::DamageDealt {
                                 target,
                                 amount,
@@ -527,6 +530,9 @@ fn two_smart_bots_battle() {
                                     entity_info(&state, *attacker),
                                     entity_info(&state, *defender)
                                 )
+                            }
+                            orange_stone::core::event::Event::ResolveAttack { .. } => {
+                                "  ↪ 攻击结算".to_string()
                             }
                             orange_stone::core::event::Event::DamageDealt {
                                 target,

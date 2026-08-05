@@ -2121,3 +2121,111 @@ fn bane_of_doom_damages_and_summons_demon_if_killed() {
         assert_eq!(state.world().zone(enemy_minion), Some(Zone::Play));
     }
 }
+
+// ============================================================
+// Milestone B — unified attack pipeline verification
+// ============================================================
+
+/// 崇高牺牲：攻击重定向后，被召唤的防御者自动反击（统一管线按当前状态计算反击）。
+#[test]
+fn noble_sacrifice_attacker_takes_defender_retaliation() {
+    use orange_stone::cards::def::NOBLE_SACRIFICE;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &NOBLE_SACRIFICE);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let attacker = builder.add_custom_minion_to_board(PlayerId::Player2, 3, 3, 3);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    engine
+        .apply(&mut state, Action::PlayCard { card: hand[0] })
+        .unwrap();
+
+    // Player2 攻击 Player1 英雄 → 崇高牺牲召唤 2/1 防御者
+    state.set_active_player(PlayerId::Player2);
+    let hero = state.player(PlayerId::Player1).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: hero,
+            },
+        )
+        .unwrap();
+
+    // 防御者承受 3 点伤害死亡，同时向攻击者反击 2 点（同时结算）
+    assert_eq!(
+        state.world().health(hero),
+        Some(orange_stone::core::component::Health(30)),
+        "hero should take no damage"
+    );
+    assert_eq!(
+        state.world().health(attacker),
+        Some(orange_stone::core::component::Health(1)),
+        "attacker should take 2 retaliation from the defender"
+    );
+}
+
+/// 武器在攻击中碎裂：攻击伤害仍包含武器加成（伤害在入队时已确定）。
+#[test]
+fn attack_with_breaking_weapon_deals_full_damage() {
+    use orange_stone::cards::def::GOREHOWL;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.equip_weapon(PlayerId::Player1, &GOREHOWL);
+    let mut state = builder.build();
+
+    let hero = state.player(PlayerId::Player1).hero;
+    let enemy_hero = state.player(PlayerId::Player2).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: enemy_hero,
+            },
+        )
+        .unwrap();
+
+    // 7 点武器伤害全部生效，即使武器因这次攻击碎裂
+    assert_eq!(
+        state.world().health(enemy_hero),
+        Some(orange_stone::core::component::Health(23))
+    );
+    // 武器被摧毁
+    assert!(state.player(PlayerId::Player1).weapon.is_none());
+}
+
+/// 防御方随从死亡后仍然反击（炉石的同时结算语义）。
+#[test]
+fn dead_defender_still_retaliates() {
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    let attacker = builder.add_custom_minion_to_board(PlayerId::Player1, 4, 5, 3);
+    let defender = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 2, 2);
+    let mut state = builder.build();
+
+    engine
+        .apply(&mut state, Action::Attack { attacker, defender })
+        .unwrap();
+
+    // 防御者被 4 点伤害击杀（生命值降为负，进入坟墓场），但它的 2 点反击仍然生效
+    assert_eq!(
+        state.world().zone(defender),
+        Some(Zone::Graveyard),
+        "defender should be dead"
+    );
+    assert_eq!(
+        state.world().health(attacker),
+        Some(orange_stone::core::component::Health(3)),
+        "attacker should take 2 retaliation even though defender died"
+    );
+}

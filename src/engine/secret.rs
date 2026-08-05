@@ -192,6 +192,9 @@ fn resolve_secret_effect(
 }
 
 /// 误导：将攻击重定向到另一个随机角色（包括攻击者自身，排除己方英雄）。
+///
+/// 只替换 `ResolveAttack` 事件的防御方；反击伤害由结算逻辑按新目标的
+/// 当前状态自动计算。
 fn resolve_misdirection(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -223,29 +226,14 @@ fn resolve_misdirection(
     }
     let idx = state.rng_mut().next_usize(candidates.len());
     let new_target = candidates[idx];
-    // 重定向待结算的攻击伤害
-    if queue.redirect_damage(*attacker, hero, new_target) {
-        // 若新目标是随从，它也会反击攻击者
-        if state.world().card_type(new_target) == Some(CardType::Minion) {
-            let atk = state
-                .world()
-                .effective_attack(new_target)
-                .unwrap_or(crate::core::component::Attack(0))
-                .0;
-            if atk > 0 {
-                queue.push(Event::DamageDealt {
-                    source: new_target,
-                    target: *attacker,
-                    amount: atk,
-                });
-            }
-        }
-    }
+    // 重定向待结算的攻击
+    queue.redirect_attack(*attacker, hero, new_target);
 }
 
 /// 崇高牺牲：召唤防御者作为攻击的新目标。
 ///
-/// 原防御者为随从时替换其反击；为英雄时新增防御者的反击。
+/// 只替换 `ResolveAttack` 事件的防御方；原防御者的反击自动被
+/// 新防御者的反击取代（结算逻辑按新目标的当前状态计算）。
 fn resolve_noble_sacrifice(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -262,33 +250,8 @@ fn resolve_noble_sacrifice(
         // 战场已满无法召唤防御者
         return;
     };
-    // 重定向攻击伤害到防御者
-    queue.redirect_damage(*attacker, *defender, defender_minion);
-    // 反击处理
-    let defender_atk = state
-        .world()
-        .attack(defender_minion)
-        .unwrap_or(crate::core::component::Attack(0))
-        .0;
-    if state.world().card_type(*defender) == Some(CardType::Minion) {
-        // 原防御者是随从：替换其反击为防御者的反击
-        queue.replace_damage(
-            *defender,
-            *attacker,
-            Event::DamageDealt {
-                source: defender_minion,
-                target: *attacker,
-                amount: defender_atk,
-            },
-        );
-    } else {
-        // 原防御者是英雄：新增防御者的反击
-        queue.push(Event::DamageDealt {
-            source: defender_minion,
-            target: *attacker,
-            amount: defender_atk,
-        });
-    }
+    // 重定向攻击到防御者
+    queue.redirect_attack(*attacker, *defender, defender_minion);
 }
 
 /// 法术扭曲者：召唤 1/3 随从，将敌方法术对随从的待结算伤害重定向到它。
