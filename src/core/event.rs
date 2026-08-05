@@ -9,6 +9,7 @@
 
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
+use std::collections::VecDeque;
 
 /// 游戏事件 — 规则引擎处理的原子事件。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -126,16 +127,25 @@ pub enum Priority {
 ///
 /// 同优先级内保持入队顺序（FIFO），这保证了游戏逻辑的确定性。
 /// 不适用 `BinaryHeap`，因为它不保证同优先级元素的顺序。
+///
+/// 内部使用三个 `VecDeque`（每个优先级一个），
+/// 入队和出队都是 O(1) — 事件循环是引擎的最热路径。
 #[derive(Debug, Default, Clone)]
 pub struct EventQueue {
-    items: Vec<(Priority, Event)>,
+    buckets: [VecDeque<Event>; 3],
 }
 
 impl EventQueue {
     /// 创建一个空的事件队列。
     #[must_use]
     pub const fn new() -> Self {
-        Self { items: Vec::new() }
+        Self {
+            buckets: [
+                const { VecDeque::new() },
+                const { VecDeque::new() },
+                const { VecDeque::new() },
+            ],
+        }
     }
 
     /// 以 Normal 优先级入队一个事件。
@@ -145,44 +155,42 @@ impl EventQueue {
 
     /// 以指定优先级入队一个事件。
     ///
-    /// 插入到同优先级元素的末尾（保持 FIFO）。
+    /// 追加到同优先级队列的末尾（保持 FIFO）。
     pub fn push_with_priority(&mut self, event: Event, priority: Priority) {
-        // 找到同优先级的最后一个位置 + 1
-        let pos = self
-            .items
-            .iter()
-            .rposition(|(p, _)| *p <= priority)
-            .map_or(0, |i| i + 1);
-        self.items.insert(pos, (priority, event));
+        self.buckets[priority as usize].push_back(event);
     }
 
     /// 取出并移除队首事件（最高优先级中的最先入队者）。
+    ///
+    /// 按优先级从高到低检查各桶，返回第一个非空桶的队首。O(1)。
     pub fn pop_front(&mut self) -> Option<Event> {
-        if self.items.is_empty() {
-            None
-        } else {
-            Some(self.items.remove(0).1)
+        for bucket in &mut self.buckets {
+            if let Some(event) = bucket.pop_front() {
+                return Some(event);
+            }
         }
+        None
     }
 
     /// 返回 `true` 如果队列为空。
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.items.is_empty()
+        self.buckets.iter().all(VecDeque::is_empty)
     }
 
     /// 返回队列中的事件数量。
     #[must_use]
     pub fn len(&self) -> usize {
-        self.items.len()
+        self.buckets.iter().map(VecDeque::len).sum()
     }
 
     /// 清空队列并返回所有事件（按处理顺序）。
     pub fn drain(&mut self) -> Vec<Event> {
-        std::mem::take(&mut self.items)
-            .into_iter()
-            .map(|(_, e)| e)
-            .collect()
+        let mut events = Vec::with_capacity(self.len());
+        for bucket in &mut self.buckets {
+            events.extend(bucket.drain(..));
+        }
+        events
     }
 
     /// 重定向队列中第一个匹配 `DamageDealt { source, target }` 事件的目标。
@@ -195,16 +203,19 @@ impl EventQueue {
         old_target: Entity,
         new_target: Entity,
     ) -> bool {
-        for (_, event) in &mut self.items {
-            if let Event::DamageDealt {
-                source: s,
-                target: t,
-                ..
-            } = event
-            {
-                if *s == source && *t == old_target {
-                    *t = new_target;
-                    return true;
+        // 按处理顺序（优先级从高到低）扫描各桶，找到第一个匹配
+        for bucket in &mut self.buckets {
+            for event in bucket {
+                if let Event::DamageDealt {
+                    source: s,
+                    target: t,
+                    ..
+                } = event
+                {
+                    if *s == source && *t == old_target {
+                        *t = new_target;
+                        return true;
+                    }
                 }
             }
         }
@@ -215,16 +226,18 @@ impl EventQueue {
     ///
     /// 用于攻击重定向后的反击结算（崇高牺牲：防御者的反击替换原防御者反击）。
     pub fn replace_damage(&mut self, source: Entity, target: Entity, replacement: Event) -> bool {
-        for (_, event) in &mut self.items {
-            if let Event::DamageDealt {
-                source: s,
-                target: t,
-                ..
-            } = *event
-            {
-                if s == source && t == target {
-                    *event = replacement;
-                    return true;
+        for bucket in &mut self.buckets {
+            for event in bucket {
+                if let Event::DamageDealt {
+                    source: s,
+                    target: t,
+                    ..
+                } = *event
+                {
+                    if s == source && t == target {
+                        *event = replacement;
+                        return true;
+                    }
                 }
             }
         }
@@ -241,11 +254,13 @@ impl EventQueue {
         new_target: Entity,
     ) -> usize {
         let mut count = 0;
-        for (_, event) in &mut self.items {
-            if let Event::DamageDealt { source, target, .. } = event {
-                if predicate(*source, *target) {
-                    *target = new_target;
-                    count += 1;
+        for bucket in &mut self.buckets {
+            for event in bucket {
+                if let Event::DamageDealt { source, target, .. } = event {
+                    if predicate(*source, *target) {
+                        *target = new_target;
+                        count += 1;
+                    }
                 }
             }
         }
@@ -399,5 +414,120 @@ mod tests {
     fn empty_queue_pop_returns_none() {
         let mut q = EventQueue::new();
         assert_eq!(q.pop_front(), None);
+    }
+
+    #[test]
+    fn interleaved_priorities_preserve_fifo() {
+        let mut q = EventQueue::new();
+        // 交错入队：Lowest → Normal → Highest → Normal → Lowest
+        q.push_with_priority(
+            Event::MinionDied {
+                minion: Entity::new(1, 0),
+            },
+            Priority::Lowest,
+        );
+        q.push_with_priority(
+            Event::DamageDealt {
+                source: Entity::new(2, 0),
+                target: Entity::new(3, 0),
+                amount: 1,
+            },
+            Priority::Normal,
+        );
+        q.push_with_priority(
+            Event::GameOver {
+                winner: PlayerId::Player1,
+            },
+            Priority::Highest,
+        );
+        q.push_with_priority(
+            Event::DamageDealt {
+                source: Entity::new(4, 0),
+                target: Entity::new(5, 0),
+                amount: 2,
+            },
+            Priority::Normal,
+        );
+        q.push_with_priority(
+            Event::MinionDied {
+                minion: Entity::new(6, 0),
+            },
+            Priority::Lowest,
+        );
+
+        // 顺序：Highest、Normal FIFO、Lowest FIFO
+        assert_eq!(
+            q.pop_front(),
+            Some(Event::GameOver {
+                winner: PlayerId::Player1
+            })
+        );
+        assert_eq!(
+            q.pop_front(),
+            Some(Event::DamageDealt {
+                source: Entity::new(2, 0),
+                target: Entity::new(3, 0),
+                amount: 1
+            })
+        );
+        assert_eq!(
+            q.pop_front(),
+            Some(Event::DamageDealt {
+                source: Entity::new(4, 0),
+                target: Entity::new(5, 0),
+                amount: 2
+            })
+        );
+        assert_eq!(
+            q.pop_front(),
+            Some(Event::MinionDied {
+                minion: Entity::new(1, 0)
+            })
+        );
+        assert_eq!(
+            q.pop_front(),
+            Some(Event::MinionDied {
+                minion: Entity::new(6, 0)
+            })
+        );
+        assert!(q.is_empty());
+    }
+
+    #[test]
+    fn redirect_matches_processing_order() {
+        let mut q = EventQueue::new();
+        // 同优先级中，先入队的先处理 — 重定向应命中第一个匹配
+        let first = Entity::new(1, 0);
+        let second = Entity::new(2, 0);
+        let source = Entity::new(3, 0);
+        q.push(Event::DamageDealt {
+            source,
+            target: first,
+            amount: 3,
+        });
+        q.push(Event::DamageDealt {
+            source,
+            target: second,
+            amount: 3,
+        });
+
+        assert!(q.redirect_damage(source, second, Entity::new(9, 0)));
+        // 第二个事件被重定向，第一个保持不变
+        assert_eq!(
+            q.pop_front(),
+            Some(Event::DamageDealt {
+                source,
+                target: first,
+                amount: 3
+            })
+        );
+        assert_eq!(
+            q.pop_front(),
+            Some(Event::DamageDealt {
+                source,
+                target: Entity::new(9, 0),
+                amount: 3
+            })
+        );
     }
 }
