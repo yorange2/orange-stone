@@ -1,21 +1,22 @@
-//! 机器人策略 — 贪心机器人和智能机器人。
+//! Bot strategies — the greedy bot and the smart bot.
 //!
 //! ## GreedyBot
 //!
-//! 策略：全力打脸，除非有嘲讽阻挡（必须解嘲讽），或英雄不可被攻击。
-//! 不主动在回合中死亡（避免自杀式攻击）。
+//! Strategy: go all-out for face damage, unless a taunt blocks the way (taunts must be
+//! cleared) or the hero cannot be attacked.
+//! Never intentionally dies during the turn (avoids suicidal attacks).
 //!
 //! ## SmartBot
 //!
-//! 基于规则的启发式策略，相比 GreedyBot 的改进：
+//! Rule-based heuristic strategy, improving on GreedyBot:
 //!
-//! 1. **卡牌评分**：根据身材/费用效率和关键词加成评估每张卡牌
-//! 2. **斩杀检测**：检查是否能当回合击杀对手
-//! 3. **价值交换**：评估随从交换中的价值得失，做出有利交换
-//! 4. **威胁评估**：优先处理高攻击力/圣盾/风怒等高威胁敌方随从
-//! 5. **局势感知**：根据场面优劣势自动切换进攻/防守策略
-//! 6. **圣盾处理**：用最弱的攻击者破盾，保护主力输出
-//! 7. **状态投影**：追踪计划打出的冲锋随从和武器，纳入战斗规划
+//! 1. **Card scoring**: rate each card by stats/cost efficiency and keyword bonuses
+//! 2. **Lethal detection**: check whether the opponent can be killed this turn
+//! 3. **Value trades**: evaluate the value gained or lost in minion trades and trade favorably
+//! 4. **Threat assessment**: prioritize high-threat enemy minions (high attack, divine shield, windfury)
+//! 5. **Board awareness**: switch between aggressive and defensive play based on the board state
+//! 6. **Divine shield handling**: pop shields with the weakest attacker to protect key damage dealers
+//! 7. **State projection**: track planned charge minions and weapons and fold them into combat planning
 
 use crate::core::action::Action;
 use crate::core::component::{CardType, Health};
@@ -24,23 +25,23 @@ use crate::core::player::PlayerId;
 use crate::core::state::GameState;
 use crate::core::zone::Zone;
 
-/// 贪心机器人 — 打脸优先的简单策略。
+/// Greedy bot — a simple face-first strategy.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct GreedyBot;
 
 impl GreedyBot {
-    /// 创建一个新的贪心机器人。
+    /// Creates a new greedy bot.
     #[must_use]
     pub const fn new() -> Self {
         Self
     }
 
-    /// 为当前玩家生成本回合的行动序列。
+    /// Generates the action sequence for the active player this turn.
     ///
-    /// 返回应在当前回合执行的所有动作。
-    /// 返回空 `Vec` 表示游戏已结束。
+    /// Returns all actions to execute in the current turn.
+    /// An empty `Vec` means the game is over.
     pub fn decide_actions(&self, state: &GameState) -> Vec<Action> {
-        // 游戏结束后不返回任何动作
+        // Return no actions once the game is over
         if matches!(state.phase(), crate::core::state::Phase::GameOver { .. }) {
             return vec![];
         }
@@ -48,31 +49,31 @@ impl GreedyBot {
         let active = state.active_player();
         let mut actions = Vec::new();
 
-        // 1. 出牌：从手牌打出所有可负担的随从和武器
+        // 1. Play: play all affordable minions and weapons from hand
         let (play_actions, remaining_mana) = self.play_cards(state, active);
         actions.extend(play_actions);
 
-        // 2. 英雄技能（考虑打牌后的剩余法力）
+        // 2. Hero power (using the mana left after playing cards)
         if let Some(hp_action) = self.hero_power(state, active, remaining_mana) {
             actions.push(hp_action);
         }
 
-        // 3. 攻击：所有能攻击的角色打脸
+        // 3. Attack: all attackers go face
         actions.extend(self.attack_phase(state, active));
 
-        // 4. 结束回合
+        // 4. End turn
         actions.push(Action::EndTurn);
 
         actions
     }
 
-    /// 打出所有可负担的随从和武器牌（费用从低到高）。
-    /// 返回 (动作列表, 剩余法力)。
+    /// Plays all affordable minions and weapons (cheapest first).
+    /// Returns (action list, remaining mana).
     fn play_cards(&self, state: &GameState, player: PlayerId) -> (Vec<Action>, i32) {
         let world = state.world();
         let current_mana = state.player(player).current_mana;
 
-        // 收集所有可打出的牌（随从 + 武器 + 法术）
+        // Collect all playable cards (minions + weapons + spells)
         let mut playable: Vec<(i32, Entity)> = world
             .zones()
             .iter(Zone::Hand, player)
@@ -86,7 +87,7 @@ impl GreedyBot {
             .map(|e| (world.effective_cost(e).unwrap().0, e))
             .collect();
 
-        // 费用从低到高排序（贪心：先打便宜的，以便可能多打一张）
+        // Sort by cost ascending (greedy: play cheap cards first to fit in more plays)
         playable.sort_by_key(|(cost, _)| *cost);
 
         let mut actions = Vec::new();
@@ -102,7 +103,7 @@ impl GreedyBot {
         (actions, remaining_mana)
     }
 
-    /// 尝试使用英雄技能（如果出牌后还有剩余法力且未使用过）。
+    /// Tries to use the hero power (if mana remains after playing cards and it is unused).
     fn hero_power(
         &self,
         state: &GameState,
@@ -112,12 +113,12 @@ impl GreedyBot {
         let hero = state.player(player).hero;
         let world = state.world();
 
-        // 检查是否已使用过
+        // Check whether it was already used
         if world.hero_power_used(hero).is_some_and(|u| u.0) {
             return None;
         }
 
-        // 检查是否有足够的法力（英雄技能定义或默认 2）
+        // Check whether there is enough mana (hero power cost from the definition, or 2 by default)
         let cost = world.hero_power(hero).map(|hp| hp.cost).unwrap_or(2);
         if remaining_mana >= cost {
             Some(Action::HeroPower { hero })
@@ -126,16 +127,16 @@ impl GreedyBot {
         }
     }
 
-    /// 攻击阶段：所有能攻击的角色打脸（或解嘲讽）。
+    /// Attack phase: all attackers go face (or clear taunts).
     fn attack_phase(&self, state: &GameState, player: PlayerId) -> Vec<Action> {
         let enemy = player.opponent();
         let enemy_hero = state.player(enemy).hero;
         let world = state.world();
 
-        // 收集所有能攻击的友方角色（随从 + 有武器的英雄）
+        // Collect all friendly characters that can attack (minions + hero with a weapon)
         let attackers: Vec<Entity> = self.collect_attackers(state, player);
 
-        // 检查敌方是否有嘲讽随从
+        // Check whether the enemy has taunt minions
         let taunts: Vec<Entity> = world
             .zones()
             .iter(Zone::Play, enemy)
@@ -145,7 +146,7 @@ impl GreedyBot {
         let mut actions = Vec::new();
 
         if taunts.is_empty() {
-            // 没有嘲讽，全员打脸
+            // No taunts — everyone goes face
             for attacker in &attackers {
                 actions.push(Action::Attack {
                     attacker: *attacker,
@@ -153,11 +154,11 @@ impl GreedyBot {
                 });
             }
         } else {
-            // 有嘲讽：必须先解嘲讽，剩余攻击打脸
+            // Taunts present: clear them first, remaining attacks go face
             let mut remaining_taunts: Vec<Entity> = taunts.clone();
             let mut used_attackers: Vec<usize> = Vec::new();
 
-            // 贪心：用最弱的攻击者解嘲讽（能解就解）
+            // Greedy: clear taunts with the weakest attacker that can do it
             for (i, attacker) in attackers.iter().enumerate() {
                 if remaining_taunts.is_empty() {
                     break;
@@ -167,12 +168,12 @@ impl GreedyBot {
                     .effective_attack(*attacker)
                     .unwrap_or(crate::core::component::Attack(0));
 
-                // 找一个能杀死的嘲讽（贪心：先杀受伤最重的）
+                // Find a taunt that can be killed (greedy: prefer the most wounded one)
                 let target = remaining_taunts
                     .iter()
                     .filter(|&t| {
                         let hp = world.effective_health(*t).unwrap_or(Health(99));
-                        hp.0 <= atk.0 || i == attackers.len() - 1 // 最后一个攻击者必须出手
+                        hp.0 <= atk.0 || i == attackers.len() - 1 // the last attacker must act
                     })
                     .min_by_key(|&t| world.effective_health(*t).unwrap_or(Health(99)).0);
 
@@ -181,31 +182,31 @@ impl GreedyBot {
                         attacker: *attacker,
                         defender: target,
                     });
-                    // 模拟预测：目标受到攻击后是否死亡
+                    // Simulate: whether the target dies from this attack
                     let target_hp = world.effective_health(target).unwrap_or(Health(0));
                     if target_hp.0 <= atk.0 {
                         remaining_taunts.retain(|&t| t != target);
                     } else {
-                        // 目标存活，从列表中移除（避免重复攻击同一目标）
+                        // Target survives; still remove it from the list (avoid re-attacking the same target)
                         remaining_taunts.retain(|&t| t != target);
                     }
                     used_attackers.push(i);
                 }
             }
 
-            // 嘲讽解完后，剩余攻击者打脸
+            // After taunts are cleared, remaining attackers go face
             for (i, attacker) in attackers.iter().enumerate() {
                 if used_attackers.contains(&i) {
                     continue;
                 }
-                // 再检查一次是否还有嘲讽（如果有嘲讽没解完，跳过打脸）
+                // Re-check for remaining taunts (skip face attacks if any taunt is left)
                 let still_has_taunt = state
                     .world()
                     .zones()
                     .iter(Zone::Play, enemy)
                     .any(|e| world.taunt(e).is_some());
                 if still_has_taunt {
-                    // 还有嘲讽但没攻击者了，跳过
+                    // Taunts remain but no attackers are left — skip
                     continue;
                 }
                 actions.push(Action::Attack {
@@ -218,11 +219,11 @@ impl GreedyBot {
         actions
     }
 
-    /// 收集当前玩家所有可以攻击的角色。
+    /// Collects all characters that can attack for the given player.
     fn collect_attackers(&self, state: &GameState, player: PlayerId) -> Vec<Entity> {
         let world = state.world();
 
-        // 战场上的随从（未攻击过，攻击力 > 0）
+        // Minions on the board (not exhausted, attack > 0)
         let mut attackers: Vec<Entity> = world
             .zones()
             .iter(Zone::Play, player)
@@ -235,7 +236,7 @@ impl GreedyBot {
             })
             .collect();
 
-        // 英雄（有武器且未攻击过）
+        // Hero (has a weapon and is not exhausted)
         let hero = state.player(player).hero;
         let has_weapon = state.player(player).weapon.is_some();
         let hero_can_attack = world
@@ -267,7 +268,7 @@ mod tests {
         let bot = GreedyBot::new();
         let actions = bot.decide_actions(&state);
 
-        // 应该包含两个 PlayCard 和一个 EndTurn
+        // Should include two PlayCards and one EndTurn
         let play_count = actions
             .iter()
             .filter(|a| matches!(a, Action::PlayCard { .. }))
@@ -287,7 +288,7 @@ mod tests {
         let bot = GreedyBot::new();
         let actions = bot.decide_actions(&state);
 
-        // 应有攻击敌方英雄的动作
+        // Should have an action attacking the enemy hero
         assert!(actions.iter().any(|a| matches!(
             a,
             Action::Attack { attacker: a, defender: d }
@@ -303,7 +304,7 @@ mod tests {
         builder.set_mana(PlayerId::Player1, 10, 10);
         let state = builder.build();
 
-        // 获取嘲讽随从 entity
+        // Get the taunt minion entity
         let taunt: Vec<Entity> = state
             .world()
             .zones()
@@ -315,7 +316,7 @@ mod tests {
         let bot = GreedyBot::new();
         let actions = bot.decide_actions(&state);
 
-        // 第一个攻击动作应该攻击嘲讽（不是英雄）
+        // The first attack should hit the taunt (not the hero)
         let attack_actions: Vec<_> = actions
             .iter()
             .filter(|a| matches!(a, Action::Attack { .. }))
@@ -370,7 +371,7 @@ mod tests {
         let bot = GreedyBot::new();
         let actions = bot.decide_actions(&state);
 
-        // 英雄应有攻击动作
+        // The hero should have an attack action
         assert!(actions.iter().any(|a| matches!(
             a,
             Action::Attack { attacker: a, defender: d }
@@ -384,7 +385,7 @@ mod tests {
         let bot = GreedyBot::new();
         let actions = bot.decide_actions(&state);
 
-        // 最后一个动作应该是 EndTurn
+        // The last action should be EndTurn
         assert!(actions.last().is_some_and(|a| matches!(a, Action::EndTurn)));
     }
 
@@ -404,65 +405,65 @@ mod tests {
 }
 
 // ============================================================
-// SmartBot — 基于规则的启发式智能机器人
+// SmartBot — a rule-based heuristic smart bot
 // ============================================================
 
 // SmartBot uses world.divine_shield(), world.taunt(), world.windfury() methods
 // — no direct type imports needed beyond what's already imported above
 
-/// 智能机器人 — 基于规则的启发式策略。
+/// Smart bot — a rule-based heuristic strategy.
 ///
-/// 相比 `GreedyBot` 的关键改进：
+/// Key improvements over `GreedyBot`:
 ///
-/// | 特性 | GreedyBot | SmartBot |
+/// | Feature | GreedyBot | SmartBot |
 /// |------|-----------|----------|
-/// | 卡牌选择 | 费用从低到高 | 价值评分排序 |
-/// | 攻击策略 | 永远打脸 | 斩杀检测 + 价值交换 |
-/// | 嘲讽处理 | 用最弱攻击者解 | 评估最优解法 |
-/// | 圣盾处理 | 忽略 | 用最弱攻击者破盾 |
-/// | 局势感知 | 无 | 攻守策略自动切换 |
-/// | 状态投影 | 无 | 跟踪冲锋随从和武器 |
+/// | Card selection | Cheapest first | Value-scored ordering |
+/// | Attack strategy | Always face | Lethal detection + value trades |
+/// | Taunt handling | Weakest attacker clears | Optimal clear assignment |
+/// | Divine shield | Ignored | Popped by the weakest attacker |
+/// | Board awareness | None | Auto switch between attack and defense |
+/// | State projection | None | Tracks charge minions and weapons |
 ///
-/// # 算法概览
+/// # Algorithm overview
 ///
-/// 1. **卡牌评分** — 对每张可打出的牌按身材效率、关键词、战吼效果打分
-/// 2. **卡牌打出** — 按评分从高到低打出，投影冲锋随从和武器到战斗阶段
-/// 3. **英雄技能** — 有剩余法力时使用（对场面有帮助的技能优先）
-/// 4. **战斗阶段**：
-///    a. 斩杀检测 — 如果总攻击力 ≥ 敌方英雄生命值（含嘲讽阻挡计算），全员打脸
-///    b. 嘲讽清除 — 必须解嘲讽，用最优攻击者交换
-///    c. 价值交换 — 对高威胁敌方随从做有利交换（我方存活 > 互换 > 放弃）
-///    d. 剩余攻击者打脸
-/// 5. **结束回合**
+/// 1. **Card scoring** — score each playable card by stats efficiency, keywords, and battlecry effects
+/// 2. **Card playing** — play in score-descending order, projecting charge minions and weapons into combat
+/// 3. **Hero power** — use it when mana remains (prefer powers that help the board)
+/// 4. **Combat phase**:
+///    a. Lethal check — if total attack >= enemy hero health (accounting for taunts), everyone goes face
+///    b. Taunt clearing — taunts must be cleared, using the best attackers
+///    c. Value trades — trade favorably into high-threat enemies (survive > trade > pass)
+///    d. Remaining attackers go face
+/// 5. **End turn**
 #[derive(Debug, Clone, Copy, Default)]
 pub struct SmartBot;
 
-/// 投影的攻击者信息 — 用于在打出卡牌后将冲锋随从和武器纳入攻击规划。
+/// Projected attacker info — folds charge minions and weapons into attack planning after playing cards.
 #[derive(Debug, Clone, Copy)]
 struct ProjectedAttacker {
-    /// 攻击者实体（已存在或将要打出的）
+    /// Attacker entity (existing or about to be played)
     entity: Entity,
-    /// 攻击力
+    /// Attack
     attack: i32,
-    /// 生命值
+    /// Health
     health: i32,
-    /// 是否有圣盾
+    /// Whether it has divine shield
     has_divine_shield: bool,
-    /// 是否是英雄（英雄攻击时不受反击伤害）
+    /// Whether it is the hero (heroes take no retaliation damage)
     is_hero: bool,
 }
 
 impl SmartBot {
-    /// 创建一个新的智能机器人。
+    /// Creates a new smart bot.
     #[must_use]
     pub const fn new() -> Self {
         Self
     }
 
-    /// 为当前玩家生成本回合的行动序列。
+    /// Generates the action sequence for the active player this turn.
     ///
-    /// 返回应在当前回合执行的所有动作。
-    /// 返回空 `Vec` 表示游戏已结束。
+    /// Returns all actions to execute in the current turn.
+    /// An empty `Vec` means the game is over.
     pub fn decide_actions(&self, state: &GameState) -> Vec<Action> {
         if matches!(state.phase(), crate::core::state::Phase::GameOver { .. }) {
             return vec![];
@@ -472,18 +473,18 @@ impl SmartBot {
         let enemy = active.opponent();
         let current_mana = state.player(active).current_mana;
 
-        // ── 1. 卡牌打出阶段 ──
+        // ── 1. Card playing phase ──
         let (play_actions, projected_charge, hero_weapon_attack, remaining_mana) =
             self.play_cards(state, active, current_mana);
 
-        // ── 2. 英雄技能 ──
+        // ── 2. Hero power ──
         let hero_power_action = self.hero_power(state, active, remaining_mana);
 
-        // ── 3. 战斗阶段 ──
+        // ── 3. Combat phase ──
         let combat_actions =
             self.combat_phase(state, active, enemy, &projected_charge, hero_weapon_attack);
 
-        // ── 4. 组装动作序列 ──
+        // ── 4. Assemble the action sequence ──
         let mut actions = Vec::with_capacity(
             play_actions.len() + hero_power_action.map_or(0, |_| 1) + combat_actions.len() + 1,
         );
@@ -498,12 +499,12 @@ impl SmartBot {
     }
 
     // ============================================================
-    // 卡牌评分与打出
+    // Card scoring and playing
     // ============================================================
 
-    /// 打出最优卡牌序列。
+    /// Plays the best sequence of cards.
     ///
-    /// 返回：`(打牌动作, 投影的冲锋攻击者, 英雄是否获得武器攻击力, 剩余法力)`
+    /// Returns: `(play actions, projected charge attackers, hero weapon attack if any, remaining mana)`
     fn play_cards(
         &self,
         state: &GameState,
@@ -512,7 +513,7 @@ impl SmartBot {
     ) -> (Vec<Action>, Vec<ProjectedAttacker>, Option<i32>, i32) {
         let world = state.world();
 
-        // 收集所有可打出的牌（随从 + 武器 + 法术）及其评分
+        // Collect all playable cards (minions + weapons + spells) with their scores
         let mut candidates: Vec<(f64, Entity)> = world
             .zones()
             .iter(Zone::Hand, player)
@@ -526,7 +527,7 @@ impl SmartBot {
             .map(|e| (self.evaluate_card(state, player, e), e))
             .collect();
 
-        // 按评分从高到低排序
+        // Sort by score descending
         candidates
             .sort_by(|(s1, _), (s2, _)| s2.partial_cmp(s1).unwrap_or(std::cmp::Ordering::Equal));
 
@@ -541,7 +542,7 @@ impl SmartBot {
                 continue;
             }
 
-            // 投影冲锋随从 → 可在本回合攻击
+            // Project charge minions — they can attack this turn
             if world.card_type(card) == Some(CardType::Minion) && world.charge(card).is_some() {
                 let atk = world.attack(card).map(|a| a.0).unwrap_or(0);
                 let hp = world.health(card).map(|h| h.0).unwrap_or(0);
@@ -557,7 +558,7 @@ impl SmartBot {
                 }
             }
 
-            // 投影武器 → 英雄可以攻击
+            // Project weapons — the hero can attack
             if world.card_type(card) == Some(CardType::Weapon) {
                 let atk = world.attack(card).map(|a| a.0).unwrap_or(0);
                 if atk > 0 {
@@ -577,24 +578,24 @@ impl SmartBot {
         )
     }
 
-    /// 评估一张卡牌的价值分数。
+    /// Evaluates a card's value score.
     ///
-    /// 基础公式：`身材效率 + 关键词加成 + 战吼/亡语加成`
+    /// Base formula: `stats efficiency + keyword bonus + battlecry/deathrattle bonus`
     ///
-    /// - 身材效率：`(attack + health) - (cost * 2 + 1)` — 相对于白板标准的偏差
-    /// - 关键词：嘲讽 +1.5, 圣盾 +攻击力*0.7, 冲锋 +攻击力*0.5, 风怒 +攻击力*0.5, 法伤 +值
-    /// - 战吼伤害 +伤害量*1.2，抽牌 +3*数量，buff +增益总量
+    /// - Stats efficiency: `(attack + health) - (cost * 2 + 1)` — deviation from the vanilla standard
+    /// - Keywords: taunt +1.5, divine shield +attack*0.7, charge +attack*0.5, windfury +attack*0.5, spell damage +value
+    /// - Battlecry damage +damage*1.2, card draw +3*count, buffs +total buff amount
     fn evaluate_card(&self, state: &GameState, _player: PlayerId, card: Entity) -> f64 {
         let world = state.world();
         let atk = world.attack(card).map(|a| a.0).unwrap_or(0) as f64;
         let hp = world.health(card).map(|h| h.0).unwrap_or(0) as f64;
         let cost = world.effective_cost(card).map(|c| c.0).unwrap_or(1).max(1) as f64;
 
-        // 身材效率：相对于白板标准 (cost*2+1) 的偏差
+        // Stats efficiency: deviation from the vanilla standard (cost*2+1)
         let vanilla_standard = cost * 2.0 + 1.0;
         let stats_efficiency = (atk + hp) - vanilla_standard;
 
-        // 关键词加成
+        // Keyword bonuses
         let mut keyword_bonus = 0.0;
         if world.taunt(card).is_some() {
             keyword_bonus += 1.5;
@@ -612,25 +613,25 @@ impl SmartBot {
             keyword_bonus += sd.0 as f64 * 1.5;
         }
 
-        // 战吼/亡语加成
+        // Battlecry/deathrattle bonuses
         let mut effect_bonus = 0.0;
         if let Some(bc) = world.battlecry(card) {
             effect_bonus += evaluate_effect_value(bc.0);
         }
         if let Some(dr) = world.deathrattle(card) {
-            // 亡语价值打折（延迟触发）
+            // Deathrattle value is discounted (delayed trigger)
             effect_bonus += evaluate_effect_value(dr.0) * 0.6;
         }
 
-        // 最终分数：效率 + 关键词 + 效果（对费用做归一化，使高分卡排序合理）
+        // Final score: efficiency + keywords + effects (normalized by cost so high-value cards sort well)
         stats_efficiency + keyword_bonus + effect_bonus + (atk + hp) / cost
     }
 
     // ============================================================
-    // 英雄技能
+    // Hero power
     // ============================================================
 
-    /// 决定是否使用英雄技能。
+    /// Decides whether to use the hero power.
     fn hero_power(
         &self,
         state: &GameState,
@@ -639,7 +640,7 @@ impl SmartBot {
     ) -> Option<Action> {
         let hero = state.player(player).hero;
 
-        // 已使用过则不重复
+        // Skip if already used
         if state.world().hero_power_used(hero).is_some_and(|u| u.0) {
             return None;
         }
@@ -653,15 +654,15 @@ impl SmartBot {
             return None;
         }
 
-        // 有剩余法力且英雄技能可用 → 使用（默认打 2 点伤害或护甲等都有价值）
+        // Mana is available and the hero power can be used — use it (2 damage, armor, etc. all have value)
         Some(Action::HeroPower { hero })
     }
 
     // ============================================================
-    // 战斗阶段
+    // Combat phase
     // ============================================================
 
-    /// 战斗阶段：斩杀检测 → 价值交换 → 打脸
+    /// Combat phase: lethal check → value trades → face damage
     fn combat_phase(
         &self,
         state: &GameState,
@@ -672,10 +673,10 @@ impl SmartBot {
     ) -> Vec<Action> {
         let world = state.world();
 
-        // ── 收集所有攻击者 ──
+        // ── Collect all attackers ──
         let mut attackers: Vec<ProjectedAttacker> = self.collect_existing_attackers(state, player);
 
-        // 英雄攻击力（考虑新装备的武器）
+        // Hero attack (accounting for a newly equipped weapon)
         let hero = state.player(player).hero;
         let hero_can_attack = world
             .attacks_used(hero)
@@ -691,7 +692,7 @@ impl SmartBot {
         let effective_hero_atk = hero_weapon_attack.or(existing_weapon_atk);
         if let Some(atk) = effective_hero_atk {
             if atk > 0 && hero_can_attack {
-                // 避免重复添加英雄
+                // Avoid adding the hero twice
                 if !attackers.iter().any(|a| a.entity == hero) {
                     attackers.push(ProjectedAttacker {
                         entity: hero,
@@ -704,9 +705,9 @@ impl SmartBot {
             }
         }
 
-        // 加入投影的冲锋随从
+        // Add projected charge minions
         for pa in projected_charge {
-            // 避免重复（不太可能，但安全检查）
+            // Avoid duplicates (unlikely, but a safe check)
             if !attackers.iter().any(|a| a.entity == pa.entity) {
                 attackers.push(*pa);
             }
@@ -716,7 +717,7 @@ impl SmartBot {
             return vec![];
         }
 
-        // ── 收集敌方场面 ──
+        // ── Collect the enemy board ──
         let enemy_minions: Vec<EnemyMinion> = world
             .zones()
             .iter(Zone::Play, enemy)
@@ -735,16 +736,16 @@ impl SmartBot {
         let enemy_hero_armor = state.player(enemy).armor;
         let enemy_effective_hp = enemy_hero_health + enemy_hero_armor;
 
-        // ── 分离嘲讽和非嘲讽 ──
+        // ── Split taunt and non-taunt minions ──
         let (taunt_minions, non_taunt_minions): (Vec<EnemyMinion>, Vec<EnemyMinion>) =
             enemy_minions.into_iter().partition(|m| m.has_taunt);
 
-        // ── 步骤1: 斩杀检测 ──
+        // ── Step 1: lethal check ──
         if !attackers.is_empty() {
             let total_attack: i32 = attackers.iter().map(|a| a.attack).sum();
 
             if taunt_minions.is_empty() {
-                // 无嘲讽，直接检查是否可以斩杀
+                // No taunts — check whether lethal is possible directly
                 if total_attack >= enemy_effective_hp {
                     return attackers
                         .iter()
@@ -755,15 +756,15 @@ impl SmartBot {
                         .collect();
                 }
             } else {
-                // 有嘲讽，检查是否可以通过嘲讽斩杀
+                // Taunts present — check whether lethal is possible through them
                 let taunt_total_hp: i32 = taunt_minions.iter().map(effective_hp).sum();
                 let damage_needed = taunt_total_hp + enemy_effective_hp;
                 if total_attack >= damage_needed
                     && self.can_clear_and_lethal(&attackers, &taunt_minions, enemy_effective_hp)
                 {
-                    // 先清嘲讽再打脸
+                    // Clear taunts first, then go face
                     let mut actions = self.assign_taunt_clear(&attackers, &taunt_minions);
-                    // 剩余攻击者打脸
+                    // Remaining attackers go face
                     let used: Vec<Entity> = actions
                         .iter()
                         .map(|a| match a {
@@ -784,7 +785,7 @@ impl SmartBot {
             }
         }
 
-        // ── 步骤2: 嘲讽清除（非斩杀情况，必须解嘲讽） ──
+        // ── Step 2: taunt clearing (taunts must be cleared when not lethal) ──
         let mut assigned_attackers: Vec<Entity> = Vec::new();
         let mut actions = Vec::new();
 
@@ -798,7 +799,7 @@ impl SmartBot {
             actions.extend(taunt_actions);
         }
 
-        // ── 步骤3: 价值交换（对非嘲讽敌方随从） ──
+        // ── Step 3: value trades (against non-taunt enemy minions) ──
         let available: Vec<&ProjectedAttacker> = attackers
             .iter()
             .filter(|a| !assigned_attackers.contains(&a.entity))
@@ -810,8 +811,8 @@ impl SmartBot {
             actions.extend(trade_actions);
         }
 
-        // ── 步骤4: 剩余攻击者打脸 ──
-        // 再次检查是否还有未清除的嘲讽
+        // ── Step 4: remaining attackers go face ──
+        // Re-check whether any taunt is still up
         let still_has_taunt = state
             .world()
             .zones()
@@ -832,14 +833,14 @@ impl SmartBot {
         actions
     }
 
-    /// 评估能否在清完嘲讽后完成斩杀。
+    /// Evaluates whether lethal is possible after clearing all taunts.
     fn can_clear_and_lethal(
         &self,
         attackers: &[ProjectedAttacker],
         taunts: &[EnemyMinion],
         enemy_hp: i32,
     ) -> bool {
-        // 简化：按攻击力降序排列攻击者，贪心分配清嘲讽
+        // Simplified: sort attackers by attack descending and greedily assign taunt clearing
         let mut sorted_attackers = attackers.to_vec();
         sorted_attackers.sort_by_key(|a| std::cmp::Reverse(a.attack));
 
@@ -852,16 +853,16 @@ impl SmartBot {
                 idx += 1;
             }
             if *th > 0 {
-                return false; // 无法清完嘲讽
+                return false; // cannot clear all taunts
             }
         }
 
-        // 剩余攻击者能否斩杀
+        // Whether the remaining attackers can deal lethal
         let remaining_damage: i32 = sorted_attackers[idx..].iter().map(|a| a.attack).sum();
         remaining_damage >= enemy_hp
     }
 
-    /// 分配攻击者清除嘲讽随从（最优解法）。
+    /// Assigns attackers to clear taunt minions (optimal assignment).
     fn assign_taunt_clear(
         &self,
         attackers: &[ProjectedAttacker],
@@ -882,9 +883,9 @@ impl SmartBot {
             }
         }
 
-        // 如果有嘲讽没分配完（攻击者不够），用已有攻击者继续攻击
+        // If taunts are left unassigned (not enough attackers), keep attacking with used attackers
         for taunt in &remaining_taunts {
-            // 找一个还有攻击力的未使用攻击者
+            // Find an unused attacker that can still attack
             let remaining_available: Vec<&ProjectedAttacker> = attackers
                 .iter()
                 .filter(|a| !used.contains(&a.entity))
@@ -901,9 +902,9 @@ impl SmartBot {
         actions
     }
 
-    /// 价值交换：对非嘲讽敌方随从做有利交换。
+    /// Value trades: trade favorably into non-taunt enemy minions.
     ///
-    /// 返回 `(攻击动作, 已分配的实体列表)`
+    /// Returns `(attack actions, list of assigned entities)`
     fn value_trades(
         &self,
         available: &[&ProjectedAttacker],
@@ -912,15 +913,15 @@ impl SmartBot {
         let mut actions = Vec::new();
         let mut used: Vec<Entity> = Vec::new();
 
-        // 按威胁程度排序（攻击力权重更高）
+        // Sort by threat level (attack weighted higher)
         let mut sorted_enemies = enemies.to_vec();
         sorted_enemies.sort_by_key(|e| std::cmp::Reverse(e.attack * 2 + e.health));
 
         for enemy in &sorted_enemies {
-            // 评估是否值得交换
+            // Evaluate whether the trade is worthwhile
             let trade_value = self.evaluate_trade(available, &used, enemy);
 
-            // 只有正价值或必须处理的威胁才交换
+            // Trade only when the value is positive or the threat must be dealt with
             if trade_value > -2.0 || enemy.attack >= 4 {
                 if let Some(best) = self.find_best_attacker_slice(available, &used, enemy) {
                     actions.push(Action::Attack {
@@ -935,7 +936,7 @@ impl SmartBot {
         (actions, used)
     }
 
-    /// 为给定敌方随从找到最佳攻击者（使用 `&[ProjectedAttacker]` 切片）。
+    /// Finds the best attacker for the given enemy minion (using a `&[ProjectedAttacker]` slice).
     fn find_best_attacker_slice(
         &self,
         available: &[&ProjectedAttacker],
@@ -950,7 +951,7 @@ impl SmartBot {
         self.find_best_attacker_inner(&candidates, enemy)
     }
 
-    /// 为给定敌方随从找到最佳攻击者（使用 `&[ProjectedAttacker]`）。
+    /// Finds the best attacker for the given enemy minion (using `&[ProjectedAttacker]`).
     fn find_best_attacker(
         &self,
         attackers: &[ProjectedAttacker],
@@ -964,14 +965,14 @@ impl SmartBot {
         self.find_best_attacker_inner(&candidates, enemy)
     }
 
-    /// 核心攻击者选择逻辑。
+    /// Core attacker selection logic.
     ///
-    /// 优先级：
-    /// 1. 能击杀敌方且自己存活（完美交换）
-    /// 2. 能用圣盾无伤交换
-    /// 3. 能击杀敌方但会同归于尽（用价值最低的攻击者）
-    /// 4. 用最弱的攻击者破圣盾
-    /// 5. 无法击杀但可以蹭血（用最弱的攻击者）
+    /// Priority:
+    /// 1. Kill the enemy and survive (perfect trade)
+    /// 2. Trade for free using divine shield
+    /// 3. Kill the enemy but trade (use the lowest-value attacker)
+    /// 4. Pop divine shield with the weakest attacker
+    /// 5. Cannot kill, but chip damage is worthwhile (use the weakest attacker)
     fn find_best_attacker_inner(
         &self,
         candidates: &[&ProjectedAttacker],
@@ -983,7 +984,7 @@ impl SmartBot {
 
         // enemy_effective_hp is computed inline as needed
 
-        // 第一优先：能击杀敌方且自己存活
+        // First priority: kill the enemy and survive
         let best_trade = candidates
             .iter()
             .filter(|a| {
@@ -992,7 +993,7 @@ impl SmartBot {
                 dmg_to_enemy >= enemy.health && dmg_to_self < a.health
             })
             .min_by_key(|a| {
-                // 用价值最低（攻击力最小）的达成完美交换
+                // Use the lowest-value (lowest attack) attacker for the perfect trade
                 (a.attack, a.health)
             });
 
@@ -1000,7 +1001,7 @@ impl SmartBot {
             return Some(*a);
         }
 
-        // 第二优先：用圣盾无伤破敌
+        // Second priority: take out the enemy for free with divine shield
         let divine_trade = candidates
             .iter()
             .filter(|a| a.has_divine_shield && !enemy.has_divine_shield && a.attack >= enemy.health)
@@ -1010,12 +1011,12 @@ impl SmartBot {
             return Some(*a);
         }
 
-        // 第三优先：能击杀敌方（会同归于尽），用价值最低的攻击者
+        // Third priority: can kill the enemy (trading), use the lowest-value attacker
         let kill_trade = candidates
             .iter()
             .filter(|a| a.attack >= enemy.health || (enemy.has_divine_shield && a.attack > 0))
             .min_by_key(|a| {
-                // 优先用会死的，其次用攻击力最小的
+                // Prefer attackers that will die, then the lowest attack
                 let will_die = !a.has_divine_shield && !a.is_hero && enemy.attack >= a.health;
                 (if will_die { 0 } else { 1 }, a.attack, a.health)
             });
@@ -1024,7 +1025,7 @@ impl SmartBot {
             return Some(*a);
         }
 
-        // 第四优先：破圣盾（用最弱攻击者）
+        // Fourth priority: pop divine shield (with the weakest attacker)
         let pop_shield = candidates
             .iter()
             .filter(|_a| enemy.has_divine_shield)
@@ -1034,11 +1035,11 @@ impl SmartBot {
             return Some(*a);
         }
 
-        // 无合适交换，不攻击这个敌方随从
+        // No suitable trade — do not attack this enemy minion
         None
     }
 
-    /// 评估一次交换的价值（正 = 划算，负 = 亏）。
+    /// Evaluates the value of a trade (positive = favorable, negative = loss).
     fn evaluate_trade(
         &self,
         available: &[&ProjectedAttacker],
@@ -1058,14 +1059,14 @@ impl SmartBot {
             if attacker_dies {
                 enemy_value - attacker_value
             } else {
-                enemy_value - (dmg_to_self as f64 * 0.3) // 血量损失的部分价值
+                enemy_value - (dmg_to_self as f64 * 0.3) // partial value of the health lost
             }
         } else {
             -999.0
         }
     }
 
-    /// 收集当前场上所有可攻击的角色（不含冲锋投影）。
+    /// Collects all characters on the board that can attack (excluding charge projections).
     fn collect_existing_attackers(
         &self,
         state: &GameState,
@@ -1096,10 +1097,10 @@ impl SmartBot {
 }
 
 // ============================================================
-// 辅助类型和函数
+// Helper types and functions
 // ============================================================
 
-/// 敌方随从的快照信息（用于战斗规划）。
+/// Snapshot info of an enemy minion (used for combat planning).
 #[derive(Debug, Clone, Copy)]
 struct EnemyMinion {
     entity: Entity,
@@ -1109,16 +1110,16 @@ struct EnemyMinion {
     has_divine_shield: bool,
 }
 
-/// 计算随从的有效生命值（含圣盾）。
+/// Computes a minion's effective health (including divine shield).
 fn effective_hp(minion: &EnemyMinion) -> i32 {
     if minion.has_divine_shield {
-        minion.health + 1 // 圣盾吸收一次伤害
+        minion.health + 1 // divine shield absorbs one hit
     } else {
         minion.health
     }
 }
 
-/// 评估卡牌效果的期望价值。
+/// Evaluates the expected value of a card effect.
 fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
     use crate::core::effect::CardEffect;
     match effect {
@@ -1202,7 +1203,7 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
 }
 
 // ============================================================
-// SmartBot 测试
+// SmartBot tests
 // ============================================================
 
 #[cfg(test)]
@@ -1256,10 +1257,10 @@ mod smart_bot_tests {
 
     #[test]
     fn smart_bot_detects_lethal() {
-        // 场上有一个 30 攻随从 → 应该检测到斩杀
+        // A 30-attack minion is on the board — lethal should be detected
         let mut builder = GameBuilder::new();
         builder.add_custom_minion_to_board(PlayerId::Player1, 30, 5, 3);
-        // 确保敌方英雄 30HP，可以斩杀
+        // Ensure the enemy hero has 30 HP so lethal is possible
         builder.hero_health(PlayerId::Player2, 30);
         builder.set_mana(PlayerId::Player1, 10, 10);
         let state = builder.build();
@@ -1268,7 +1269,7 @@ mod smart_bot_tests {
         let bot = SmartBot::new();
         let actions = bot.decide_actions(&state);
 
-        // 所有攻击应该打脸
+        // All attacks should go face
         let attack_actions: Vec<_> = actions
             .iter()
             .filter(|a| matches!(a, Action::Attack { .. }))
@@ -1331,7 +1332,7 @@ mod smart_bot_tests {
                 ),
                 "First attack should be our minion clearing enemy taunt"
             );
-            // 清除嘲讽后，剩余攻击应该打脸
+            // After clearing the taunt, remaining attacks should go face
             let enemy_hero = state.player(PlayerId::Player2).hero;
             let remaining: Vec<_> = attack_actions.iter().skip(1).collect();
             if !remaining.is_empty() {
@@ -1366,8 +1367,8 @@ mod smart_bot_tests {
 
     #[test]
     fn smart_bot_prefers_high_value_cards() {
-        // 手牌中有 4/4+法伤 食人魔法师（4费）和 3/2 迅猛龙（2费）
-        // 食人魔法师的评分应更高（有法伤加成），在有足够法力时都会打出
+        // Hand contains Ogre Magi (4/4 with spell damage, 4 mana) and Bloodfen Raptor (3/2, 2 mana)
+        // Ogre Magi should score higher (spell damage bonus); both get played with enough mana
         let mut builder = GameBuilder::new();
         builder.add_minion_to_hand(PlayerId::Player1, &OGRE_MAGI); // 4/4 spell_dmg+1 for 4
         builder.add_minion_to_hand(PlayerId::Player1, &BLOODFEN_RAPTOR); // 3/2 for 2
@@ -1377,7 +1378,7 @@ mod smart_bot_tests {
         let bot = SmartBot::new();
         let actions = bot.decide_actions(&state);
 
-        // 两张都应该被打出（有足够法力）
+        // Both should be played (enough mana)
         let play_actions: Vec<_> = actions
             .iter()
             .filter(|a| matches!(a, Action::PlayCard { .. }))
@@ -1387,7 +1388,7 @@ mod smart_bot_tests {
 
     #[test]
     fn smart_bot_plays_charge_minion() {
-        // 蓝鳃战士（2/1 冲锋）应该被打出并纳入攻击规划
+        // Bluegill Warrior (2/1 charge) should be played and included in attack planning
         let mut builder = GameBuilder::new();
         builder.add_minion_to_hand(PlayerId::Player1, &BLUEGILL_WARRIOR);
         builder.set_mana(PlayerId::Player1, 10, 10);
@@ -1402,13 +1403,13 @@ mod smart_bot_tests {
         let bot = SmartBot::new();
         let actions = bot.decide_actions(&state);
 
-        // 应该有出牌动作
+        // Should have a play action
         assert!(actions.iter().any(|a| matches!(
             a,
             Action::PlayCard { card, target: None } if *card == bluegill
         )));
 
-        // 应该有攻击动作（冲锋随从可以攻击）
+        // Should have an attack action (charge minions can attack)
         assert!(actions.iter().any(|a| matches!(
             a,
             Action::Attack { attacker: a, .. } if *a == bluegill
@@ -1443,7 +1444,7 @@ mod smart_bot_tests {
 
     #[test]
     fn smart_bot_trades_favorably() {
-        // 我方有 5/5，敌方有 3/2 → 我方能击杀敌方并存活，应该交换
+        // Our 5/5 vs the enemy 3/2 — we can kill it and survive, so we should trade
         let mut builder = GameBuilder::new();
         let our_minion = builder.add_custom_minion_to_board(PlayerId::Player1, 5, 5, 3);
         let enemy_minion = builder.add_custom_minion_to_board(PlayerId::Player2, 3, 2, 2);
@@ -1453,7 +1454,7 @@ mod smart_bot_tests {
         let bot = SmartBot::new();
         let actions = bot.decide_actions(&state);
 
-        // 应该解掉敌方高威胁随从而非全打脸
+        // Should clear the enemy's high-threat minion instead of going all-face
         assert!(actions.iter().any(|a| matches!(
             a,
             Action::Attack { attacker: a, defender: d }
@@ -1463,8 +1464,8 @@ mod smart_bot_tests {
 
     #[test]
     fn smart_bot_handles_divine_shield_enemy() {
-        // 敌方有圣盾随从，我方有多个随从
-        // SmartBot 应该正确评估圣盾，不会崩溃
+        // The enemy has a divine shield minion and we have several minions
+        // SmartBot should evaluate the divine shield correctly without crashing
         let mut builder = GameBuilder::new();
         let _weak = builder.add_custom_minion_to_board(PlayerId::Player1, 1, 3, 1);
         let _strong = builder.add_custom_minion_to_board(PlayerId::Player1, 6, 6, 5);
@@ -1475,7 +1476,7 @@ mod smart_bot_tests {
         let bot = SmartBot::new();
         let actions = bot.decide_actions(&state);
 
-        // 至少验证 bot 能正常完成决策，不会崩溃
+        // At least verify the bot completes its decision without crashing
         assert!(actions.last().is_some_and(|a| matches!(a, Action::EndTurn)));
     }
 }

@@ -1,6 +1,6 @@
-//! 卡牌定义 — 数据驱动的卡牌数据。
+//! Card definitions — data-driven card data.
 //!
-//! 包含 CardDef 结构体、vanilla! 宏，以及所有卡牌常量的 re-export。
+//! Contains the CardDef struct, the vanilla! macro, and re-exports of all card constants.
 
 #![allow(missing_docs)]
 
@@ -9,7 +9,7 @@ use crate::core::effect::CardEffect;
 
 use super::sets::ALL_CARDS;
 
-/// 卡牌静态定义 — 描述一张卡牌的基本属性和效果。
+/// Static card definition — describes a card's basic attributes and effects.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CardDef {
     pub id: &'static str,
@@ -29,30 +29,30 @@ pub struct CardDef {
     pub windfury: bool,
     pub charge: bool,
     pub spell_damage: i32,
-    /// 不能主动攻击（如拉格纳罗斯）
+    /// Cannot attack actively (e.g., Ragnaros)
     pub cant_attack: bool,
-    /// 回合结束效果
+    /// End-of-turn effect
     pub end_turn_effect: Option<CardEffect>,
-    /// 回合开始效果
+    /// Start-of-turn effect
     pub start_turn_effect: Option<CardEffect>,
-    /// 法术效果（仅对法术牌有效，打出时触发）
+    /// Spell effect (only for spell cards; triggers when played)
     pub spell_effect: Option<CardEffect>,
-    /// 法术触发效果 — 当友方施放法术时触发此效果（此随从需在场上）
+    /// Spell-trigger effect — triggers when a friendly spell is cast (this minion must be on board)
     pub spell_trigger: Option<CardEffect>,
-    /// 死亡触发效果 — 当友方随从死亡时触发
+    /// Death-trigger effect — triggers when a friendly minion dies
     pub death_trigger: Option<CardEffect>,
-    /// 召唤触发效果 — 当友方随从被召唤时触发
+    /// Summon-trigger effect — triggers when a friendly minion is summoned
     pub summon_trigger: Option<CardEffect>,
-    /// 抉择效果 — 德鲁伊"抉择"卡牌的备选效果
+    /// Choose One effect — the alternate effect of Druid "Choose One" cards
     pub choose_one_effect: Option<CardEffect>,
-    /// 连击效果 — 盗贼"连击"卡牌在本回合已出牌后触发
+    /// Combo effect — triggers for Rogue "Combo" cards after another card was played this turn
     pub combo_effect: Option<CardEffect>,
-    /// 攻击力始终等于生命值（光耀之子特性）
+    /// Attack always equals Health (Lightspawn trait)
     pub attack_equals_health: bool,
 }
 
-/// 宏：简化白板随从定义。
-/// 使用 `#[macro_export]` 导出到 crate root，子模块通过 `use crate::vanilla;` 导入。
+/// Macro: simplifies vanilla minion definitions.
+/// Exported to the crate root via `#[macro_export]`; submodules import it with `use crate::vanilla;`.
 #[macro_export]
 macro_rules! vanilla {
     ($id:expr, $name:expr, $cost:expr, $atk:expr, $hp:expr) => {
@@ -89,8 +89,8 @@ macro_rules! vanilla {
 }
 
 // ============================================================
-// Re-export 所有卡牌常量，保持向后兼容
-// 外部代码可通过 `crate::cards::def::CHILLWIND_YETI` 等路径访问
+// Re-export all card constants for backward compatibility
+// External code can access them via paths like `crate::cards::def::CHILLWIND_YETI`
 // ============================================================
 
 pub use super::classic_druid::*;
@@ -105,7 +105,7 @@ pub use super::classic_shaman::*;
 pub use super::classic_warlock::*;
 pub use super::classic_warrior::*;
 
-/// 根据卡牌 ID 查找卡牌定义。
+/// Look up a card definition by card ID.
 pub fn card_by_id(id: &str) -> Option<&'static CardDef> {
     ALL_CARDS.iter().find(|c| c.id == id)
 }

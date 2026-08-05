@@ -1,51 +1,52 @@
-//! Sparse Set — 稀疏集合组件存储（分段竞技场 + 写时复制）。
+//! Sparse Set — sparse component storage (segmented arena + copy-on-write).
 //!
-//! 提供 O(1) 插入、删除、查找，以及缓存友好的密集遍历。
-//! 数据为 SoA（Structure of Arrays）布局。
+//! Provides O(1) insert, remove, and lookup, plus cache-friendly dense iteration.
+//! Data uses a SoA (Structure of Arrays) layout.
 //!
-//! # 结构共享（D1）
+//! # Structural sharing (D1)
 //!
-//! 稠密数据按固定大小的**页**存储，页表与页都通过 `Arc` 共享：
-//! - `Clone` 是 O(1) 的引用计数递增 — `World`/`GameState` 克隆不再
-//!   深拷贝实体数据（CoW 从"整个 Inner 深拷贝"升级为结构性共享）
-//! - 首次写入某页时通过 `Arc::make_mut` 复制该页（写时复制）
+//! Dense data is stored in fixed-size **pages**; both the page table and the pages are
+//! shared via `Arc`:
+//! - `Clone` is an O(1) reference-count bump — cloning `World`/`GameState` no longer
+//!   deep-copies entity data (CoW upgraded from "deep-copy the whole Inner" to structural sharing)
+//! - The first write to a page copies that page via `Arc::make_mut` (copy-on-write)
 //!
-//! 遍历顺序 = 稠密顺序（插入顺序，删除为 swap-remove），与之前一致，
-//! 因此所有确定性语义（光环索引重建、事件顺序）保持不变。
+//! Iteration order = dense order (insertion order, with swap-remove on deletion), unchanged,
+//! so all determinism semantics (aura index rebuild, event order) are preserved.
 
 use crate::core::entity::Entity;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-/// 每页容量 — 2 的幂便于槽位编解码。
+/// Page capacity — a power of two so slots can be encoded/decoded cheaply.
 const PAGE_SHIFT: usize = 6;
-/// 每页容量
+/// Page capacity
 const PAGE_SIZE: usize = 1 << PAGE_SHIFT;
-/// 页内偏移掩码
+/// Mask for the in-page offset
 const OFFSET_MASK: usize = PAGE_SIZE - 1;
 
-/// 稀疏集合 — 按 Entity 索引的泛型组件存储。
+/// Sparse set — a generic component store indexed by Entity.
 ///
-/// 内部结构：
-/// - `sparse[i]` = 实体 i 的稠密槽位（`page * PAGE_SIZE + offset`），或 `ABSENT`
-/// - `pages` / `entities`：并行的定长页数组（值页 + 实体页），`Arc` 共享
+/// Internal layout:
+/// - `sparse[i]` = the dense slot of entity i (`page * PAGE_SIZE + offset`), or `ABSENT`
+/// - `pages` / `entities`: parallel fixed-size page arrays (value pages + entity pages), shared via `Arc`
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SparseSet<T> {
-    /// 映射 entity.index → 稠密槽位，`u32::MAX` 表示不存在
+    /// Maps entity.index → dense slot; `u32::MAX` means absent
     sparse: Vec<u32>,
-    /// 稠密值存储 — 定长页，写时复制
+    /// Dense value storage — fixed-size pages, copy-on-write
     pages: Arc<Vec<Arc<Vec<T>>>>,
-    /// 稠密实体存储（与 pages 并行）
+    /// Dense entity storage (parallel to pages)
     entities: Arc<Vec<Arc<Vec<Entity>>>>,
-    /// 元素总数
+    /// Total number of elements
     len: usize,
 }
 
-/// 标记"不存在"的哨兵值
+/// Sentinel value marking "absent"
 const ABSENT: u32 = u32::MAX;
 
 impl<T: Copy> SparseSet<T> {
-    /// 创建一个空的稀疏集合。
+    /// Create an empty sparse set.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -56,36 +57,36 @@ impl<T: Copy> SparseSet<T> {
         }
     }
 
-    /// 返回当前存储的组件数量。
+    /// Returns the number of stored components.
     #[must_use]
     pub fn len(&self) -> usize {
         self.len
     }
 
-    /// 如果集合为空则返回 `true`。
+    /// Returns `true` if the set is empty.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len == 0
     }
 
-    /// 稠密槽位 → (页, 页内偏移)。
+    /// Dense slot → (page, offset within page).
     fn slot_parts(slot: usize) -> (usize, usize) {
         (slot >> PAGE_SHIFT, slot & OFFSET_MASK)
     }
 
-    /// 读取稠密槽位的值（调用方需保证槽位有效）。
+    /// Read the value at a dense slot (the caller must guarantee the slot is valid).
     fn slot_value(&self, slot: usize) -> T {
         let (page, offset) = Self::slot_parts(slot);
         self.pages[page][offset]
     }
 
-    /// 读取稠密槽位的实体。
+    /// Read the entity at a dense slot.
     fn slot_entity(&self, slot: usize) -> Entity {
         let (page, offset) = Self::slot_parts(slot);
         self.entities[page][offset]
     }
 
-    /// 获取某个页的可变访问（写时复制：页共享时先复制该页）。
+    /// Get mutable access to a page (copy-on-write: copies the page first when shared).
     fn page_mut<R>(&mut self, page: usize, f: impl FnOnce(&mut Vec<T>) -> R) -> R {
         let mut page_arc = self.pages[page].clone();
         let result = f(Arc::make_mut(&mut page_arc));
@@ -93,7 +94,7 @@ impl<T: Copy> SparseSet<T> {
         result
     }
 
-    /// 获取某个实体页的可变访问（与 `page_mut` 并行）。
+    /// Get mutable access to an entity page (parallel to `page_mut`).
     fn entity_page_mut<R>(&mut self, page: usize, f: impl FnOnce(&mut Vec<Entity>) -> R) -> R {
         let mut page_arc = self.entities[page].clone();
         let result = f(Arc::make_mut(&mut page_arc));
@@ -101,14 +102,14 @@ impl<T: Copy> SparseSet<T> {
         result
     }
 
-    /// 写入稠密槽位（写时复制目标页）。
+    /// Write to a dense slot (copy-on-write the target page).
     fn slot_write(&mut self, slot: usize, entity: Entity, value: T) {
         let (page, offset) = Self::slot_parts(slot);
         self.page_mut(page, |values| values[offset] = value);
         self.entity_page_mut(page, |ents| ents[offset] = entity);
     }
 
-    /// 获取实体的组件值（只读引用）。
+    /// Get an entity's component value (read-only reference).
     #[must_use]
     pub fn get_ref(&self, entity: Entity) -> Option<&T> {
         let slot = self.position_of(entity)?;
@@ -116,19 +117,19 @@ impl<T: Copy> SparseSet<T> {
         Some(&self.pages[page][offset])
     }
 
-    /// 获取实体的组件值（Copy 类型按值返回）。
+    /// Get an entity's component value (Copy types are returned by value).
     #[must_use]
     pub fn get(&self, entity: Entity) -> Option<T> {
         self.get_ref(entity).copied()
     }
 
-    /// 插入或更新实体的组件值。
+    /// Insert or update an entity's component value.
     ///
-    /// 如果该实体已有此组件，则更新值；否则新增。
-    /// 更新已有槽位时只复制所在页（O(PAGE_SIZE)）；
-    /// 追加时复制页表（浅拷贝，O(页数)）。
+    /// If the entity already has this component, its value is updated; otherwise it is added.
+    /// Updating an existing slot only copies its page (O(PAGE_SIZE));
+    /// appending copies the page table (a shallow copy, O(number of pages)).
     pub fn insert(&mut self, entity: Entity, value: T) {
-        // 确保 sparse 数组足够大
+        // Make sure the sparse array is large enough
         let idx = entity.index as usize;
         if idx >= self.sparse.len() {
             self.sparse.resize(idx + 1, ABSENT);
@@ -136,12 +137,12 @@ impl<T: Copy> SparseSet<T> {
 
         let slot = self.sparse[idx];
         if slot != ABSENT {
-            // 更新已有槽位
+            // Update the existing slot
             self.slot_write(slot as usize, entity, value);
             return;
         }
 
-        // 追加到最后一个页（若已满则新建一页）
+        // Append to the last page (create a new one if it is full)
         let slot = self.len;
         let (page, _) = Self::slot_parts(slot);
         let pages = Arc::make_mut(&mut self.pages);
@@ -162,10 +163,10 @@ impl<T: Copy> SparseSet<T> {
         self.len += 1;
     }
 
-    /// 移除实体的组件，返回被移除的值（如果存在）。
+    /// Remove an entity's component, returning the removed value (if any).
     ///
-    /// 使用 swap-remove 策略：将最后一个元素移到被删除的位置，
-    /// 并更新该元素的 sparse 映射。这比保持顺序的 remove 快得多（O(1) vs O(n)）。
+    /// Uses the swap-remove strategy: the last element is moved into the deleted position
+    /// and its sparse mapping is updated. This is much faster than an order-preserving remove (O(1) vs O(n)).
     pub fn remove(&mut self, entity: Entity) -> Option<T> {
         let idx = entity.index as usize;
         if idx >= self.sparse.len() {
@@ -181,7 +182,7 @@ impl<T: Copy> SparseSet<T> {
         let removed_value = self.slot_value(slot);
         let last_slot = self.len - 1;
         if slot == last_slot {
-            // 移除最后一个元素：直接从末页弹出
+            // Remove the last element: pop it straight from the final page
             let (page, _) = Self::slot_parts(slot);
             let pages = Arc::make_mut(&mut self.pages);
             let entities = Arc::make_mut(&mut self.entities);
@@ -193,17 +194,17 @@ impl<T: Copy> SparseSet<T> {
                 Arc::make_mut(&mut ent_arc).pop();
                 entities[page] = ent_arc;
             }
-            // 末页变空则丢弃
+            // Drop the final page if it becomes empty
             if pages[page].is_empty() {
                 pages.pop();
                 entities.pop();
             }
         } else {
-            // swap-remove：末元素移到被删槽位
+            // swap-remove: move the last element into the deleted slot
             let moved_entity = self.slot_entity(last_slot);
             let moved_value = self.slot_value(last_slot);
             self.slot_write(slot, moved_entity, moved_value);
-            // 从末页弹出被移走的元素
+            // Pop the moved element from the final page
             let (last_page, _) = Self::slot_parts(last_slot);
             let pages = Arc::make_mut(&mut self.pages);
             let entities = Arc::make_mut(&mut self.entities);
@@ -219,18 +220,18 @@ impl<T: Copy> SparseSet<T> {
                 pages.pop();
                 entities.pop();
             }
-            // 更新被移动实体的 sparse 映射
+            // Update the moved entity's sparse mapping
             self.sparse[moved_entity.index as usize] = slot as u32;
         }
 
-        // 清理被删实体的 sparse 条目
+        // Clear the removed entity's sparse entry
         self.sparse[idx] = ABSENT;
         self.len -= 1;
 
         Some(removed_value)
     }
 
-    /// 遍历所有 (Entity, &T) 对（稠密顺序）。
+    /// Iterate over all (Entity, &T) pairs (in dense order).
     pub fn iter(&self) -> impl Iterator<Item = (Entity, &T)> {
         self.pages
             .iter()
@@ -238,13 +239,13 @@ impl<T: Copy> SparseSet<T> {
             .flat_map(|(values, ents)| values.iter().zip(ents.iter()).map(|(v, e)| (*e, v)))
     }
 
-    /// 检查实体是否存在此组件。
+    /// Check whether the entity has this component.
     #[must_use]
     pub fn contains(&self, entity: Entity) -> bool {
         self.position_of(entity).is_some()
     }
 
-    /// 返回实体在稠密存储中的槽位，不存在返回 None。
+    /// Returns the entity's slot in dense storage, or None if absent.
     fn position_of(&self, entity: Entity) -> Option<usize> {
         let idx = entity.index as usize;
         if idx >= self.sparse.len() {
@@ -254,7 +255,7 @@ impl<T: Copy> SparseSet<T> {
         if slot == ABSENT {
             return None;
         }
-        // 验证 generation 匹配
+        // Verify the generation matches
         let stored = self.slot_entity(slot as usize);
         if stored.generation != entity.generation {
             return None;
@@ -289,9 +290,9 @@ mod tests {
     fn insert_update() {
         let mut set = SparseSet::<i32>::new();
         set.insert(e(0, 0), 1);
-        set.insert(e(0, 0), 2); // 更新
+        set.insert(e(0, 0), 2); // update
         assert_eq!(set.get(e(0, 0)), Some(2));
-        assert_eq!(set.len(), 1); // 还是 1 个
+        assert_eq!(set.len(), 1); // still 1
     }
 
     #[test]
@@ -304,9 +305,9 @@ mod tests {
     fn generation_mismatch_is_missing() {
         let mut set = SparseSet::<i32>::new();
         set.insert(e(0, 0), 42);
-        // 旧 generation 应该查不到(因为 generation 变了)
+        // An old generation must not be found (the generation changed)
         assert_eq!(set.get(e(0, 1)), None);
-        // 但原始 handle 仍然可以访问
+        // But the original handle still works
         assert_eq!(set.get(e(0, 0)), Some(42));
     }
 
@@ -328,23 +329,23 @@ mod tests {
 
     #[test]
     fn swap_remove_correctness() {
-        // 插入多个实体，删除中间的，验证遍历仍然正确
+        // Insert several entities, remove one in the middle, and verify iteration is still correct
         let mut set = SparseSet::<i32>::new();
         let entities = [e(0, 0), e(1, 0), e(2, 0), e(3, 0)];
         for (i, &ent) in entities.iter().enumerate() {
             set.insert(ent, i as i32 * 10);
         }
-        // 删除 e(1, 0) — 值 10
+        // Remove e(1, 0) — value 10
         set.remove(e(1, 0));
 
-        // 剩余的应该都能正确访问
+        // The remaining ones should all be accessible
         assert_eq!(set.get(e(0, 0)), Some(0));
         assert_eq!(set.get(e(2, 0)), Some(20));
         assert_eq!(set.get(e(3, 0)), Some(30));
         assert_eq!(set.get(e(1, 0)), None);
         assert_eq!(set.len(), 3);
 
-        // 遍历应该包含三个元素
+        // Iteration should contain three elements
         let mut found: Vec<(u32, i32)> = set.iter().map(|(e, &v)| (e.index, v)).collect();
         found.sort_by_key(|(idx, _)| *idx);
         assert_eq!(found, vec![(0, 0), (2, 20), (3, 30)]);
@@ -366,8 +367,8 @@ mod tests {
         let mut set = SparseSet::<i32>::new();
         set.insert(e(1, 0), 100);
         assert!(set.contains(e(1, 0)));
-        assert!(!set.contains(e(1, 1))); // 不同 generation
-        assert!(!set.contains(e(2, 0))); // 不存在
+        assert!(!set.contains(e(1, 1))); // different generation
+        assert!(!set.contains(e(2, 0))); // absent
     }
 
     #[test]
@@ -377,11 +378,11 @@ mod tests {
         for i in 0..n {
             set.insert(e(i, 0), i as i32);
         }
-        // 删除偶数索引
+        // Remove even indices
         for i in (0..n).step_by(2) {
             set.remove(e(i, 0));
         }
-        // 验证剩余的是奇数索引
+        // Verify only odd indices remain
         for i in 0..n {
             if i % 2 == 0 {
                 assert!(!set.contains(e(i, 0)), "even index {i} should be removed");
@@ -395,16 +396,16 @@ mod tests {
 
     #[test]
     fn clone_is_structurally_shared() {
-        // 克隆后写入互不影响（写时复制），且克隆本身不复制数据
+        // Writes after cloning do not affect each other (copy-on-write), and cloning itself copies no data
         let mut set = SparseSet::<i32>::new();
         for i in 0..(PAGE_SIZE * 3) as u32 {
             set.insert(e(i, 0), i as i32);
         }
         let mut clone = set.clone();
-        // 共享页表（Arc 引用计数）
+        // Shared page table (Arc reference count)
         assert_eq!(Arc::strong_count(&set.pages), 2, "pages shared after clone");
 
-        // 修改克隆：更新已有槽位 + 追加
+        // Modify the clone: update an existing slot + append
         clone.insert(e(0, 0), -1);
         clone.insert(e(999, 0), 999);
         assert_eq!(set.get(e(0, 0)), Some(0), "original unaffected");
@@ -412,7 +413,7 @@ mod tests {
         assert_eq!(clone.get(e(0, 0)), Some(-1));
         assert_eq!(clone.get(e(999, 0)), Some(999));
 
-        // 原集合继续可写
+        // The original set remains writable
         set.insert(e(2000, 0), 2000);
         assert_eq!(clone.get(e(2000, 0)), None);
         assert_eq!(set.get(e(2000, 0)), Some(2000));
@@ -428,28 +429,28 @@ mod tests {
         clone.remove(e(0, 0));
         assert_eq!(set.get(e(0, 0)), Some(0), "original keeps removed element");
         assert_eq!(clone.get(e(0, 0)), None);
-        // 原集合遍历不受影响
+        // The original set's iteration is unaffected
         let count = set.iter().count();
         assert_eq!(count, PAGE_SIZE + 10);
     }
 
     #[test]
     fn cross_page_swap_remove() {
-        // 删除跨越页边界的槽位，验证 swap-remove 正确更新 sparse 映射
+        // Remove a slot that crosses a page boundary and verify swap-remove updates the sparse mapping correctly
         let mut set = SparseSet::<i32>::new();
         for i in 0..(PAGE_SIZE + 5) as u32 {
             set.insert(e(i, 0), i as i32);
         }
-        // 删除第一页中间的槽位
+        // Remove a slot in the middle of the first page
         set.remove(e(3, 0));
         assert_eq!(set.len(), PAGE_SIZE + 4);
-        // 被移动的末元素（原来在最后一页）应可访问
+        // The moved last element (originally on the final page) must be accessible
         let moved = e(PAGE_SIZE as u32 + 4, 0);
         assert!(set.contains(moved), "moved element must keep its identity");
         assert_eq!(set.get(moved), Some((PAGE_SIZE + 4) as i32));
-        // 删除的槽位不可访问
+        // The removed slot must be inaccessible
         assert!(!set.contains(e(3, 0)));
-        // 遍历数量正确
+        // Iteration count is correct
         assert_eq!(set.iter().count(), PAGE_SIZE + 4);
     }
 }

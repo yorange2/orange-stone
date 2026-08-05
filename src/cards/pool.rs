@@ -1,17 +1,17 @@
-//! 随机卡池 — 从 Classic 池中按条件过滤抽样。
+//! Random pools — filtered sampling from the Classic pool.
 //!
-//! 满足卡池封闭性：所有抽样池都是 `ALL_CARDS`（全部为 Classic 卡牌）
-//! 或内置 token 池的过滤子集，不会引入 Classic 系列之外的卡牌。
+//! Pool closure is guaranteed: every sampling pool is a filtered subset of `ALL_CARDS`
+//! (all Classic cards) or built-in token pools, so no cards outside the Classic set are introduced.
 //!
-//! 种族（野兽/恶魔）未建模，因此这些池按卡牌 ID 硬编码；
-//! 传说/职业过滤基于 `sets` 中的分组列表动态计算。
+//! Races (Beast/Demon) are not modeled, so these pools are hardcoded by card ID;
+//! Legendary/class filtering is computed dynamically from the group lists in `sets`.
 
 use crate::cards::def::{CardDef, card_by_id};
 use crate::core::component::CardType;
 use crate::core::effect::RandomPool;
 use crate::sim::rng::GameRng;
 
-/// 野兽池 — Classic 野兽卡牌 ID。
+/// Beast pool — Classic Beast card IDs.
 pub const BEAST_POOL: &[&str] = &[
     "NEUTRAL_B08", // Bloodfen Raptor / Ironfur Grizzly
     "NEUTRAL_B03", // River Crocolisk
@@ -29,7 +29,7 @@ pub const BEAST_POOL: &[&str] = &[
     "HUNTER_016",  // Tundra Rhino
 ];
 
-/// 恶魔池 — Classic 恶魔卡牌 ID。
+/// Demon pool — Classic Demon card IDs.
 pub const DEMON_POOL: &[&str] = &[
     "WARLOCK_004", // Voidwalker
     "WARLOCK_002", // Flame Imp
@@ -41,7 +41,7 @@ pub const DEMON_POOL: &[&str] = &[
     "WARLOCK_022", // Void Terror
 ];
 
-/// 梦境卡池 — Classic 内置 token（伊瑟拉）。
+/// Dream card pool — Classic built-in tokens (Ysera).
 pub const DREAM_POOL: &[&str] = &[
     "NEUTRAL_T21a", // Emerald Drake
     "NEUTRAL_T21b", // Laughing Sister
@@ -50,10 +50,10 @@ pub const DREAM_POOL: &[&str] = &[
     "NEUTRAL_T21e", // Ysera Awakens
 ];
 
-/// 动物伙伴池 — Classic 内置 token。
+/// Animal Companion pool — Classic built-in tokens.
 pub const COMPANION_POOL: &[&str] = &["HUNTER_023a", "HUNTER_023b", "HUNTER_023c"];
 
-/// 从 ID 池中随机抽取一张卡牌定义。
+/// Draws a random card definition from an ID pool.
 pub(crate) fn random_from_pool(pool: &[&str], rng: &mut GameRng) -> Option<&'static CardDef> {
     if pool.is_empty() {
         return None;
@@ -62,7 +62,7 @@ pub(crate) fn random_from_pool(pool: &[&str], rng: &mut GameRng) -> Option<&'sta
     card_by_id(pool[idx])
 }
 
-/// 按卡池类型随机抽取一张卡牌定义。
+/// Draws a random card definition by pool type.
 pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'static CardDef> {
     match pool {
         RandomPool::Beast => random_from_pool(BEAST_POOL, rng),
@@ -85,7 +85,7 @@ pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'stati
             c.card_type == CardType::Spell && c.name.contains("Shadow")
         }),
         RandomPool::OtherClass => random_filtered(rng, |c| {
-            // 偷窃：另一职业的随机卡牌 — 简化为非盗贼卡牌
+            // Pilfer: a random card from another class — simplified to any non-Rogue card
             !crate::cards::sets::ROGUE_CLASSIC
                 .iter()
                 .any(|r| r.id == c.id)
@@ -93,7 +93,7 @@ pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'stati
     }
 }
 
-/// 从全卡池中按谓词过滤后随机抽取。
+/// Draws randomly from the full pool after filtering by a predicate.
 fn random_filtered(
     rng: &mut GameRng,
     predicate: impl Fn(&CardDef) -> bool,

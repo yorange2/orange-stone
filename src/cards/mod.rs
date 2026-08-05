@@ -1,8 +1,8 @@
-//! 卡牌定义模块 — 基本卡牌数据。
+//! Card definition module — basic card data.
 //!
-//! 包含 CardDef 结构体、vanilla! 宏，以及所有怀旧系列卡牌定义。
-//! 所有卡牌常量通过 `def` 模块统一 re-export，
-//! 外部代码可通过 `crate::cards::def::*` 访问。
+//! Contains the CardDef struct, the vanilla! macro, and all Classic card definitions.
+//! All card constants are re-exported through the `def` module,
+//! accessible to external code via `crate::cards::def::*`.
 
 pub mod classic_druid;
 pub mod classic_hunter;
@@ -30,13 +30,13 @@ use crate::core::player::PlayerId;
 use crate::core::world::World;
 use def::CardDef;
 
-/// 在实体上应用特殊关键词组件（剧毒、潜行、过载等）。
+/// Applies special keyword components (Poison, Stealth, Overload, etc.) to an entity.
 ///
-/// 这些关键词不新增 `CardDef` 字段（避免大面积结构体改动），
-/// 而是按卡牌 ID 在此集中映射。召唤随从（`trigger::resolve_summon`）
-/// 和构建卡牌（`GameBuilder::spawn_minion`）时调用。
+/// These keywords do not add `CardDef` fields (to avoid large struct changes);
+/// instead they are mapped here centrally by card ID. Called when summoning minions
+/// (`trigger::resolve_summon`) and building cards (`GameBuilder::spawn_minion`).
 pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &CardDef) {
-    // 带过载的萨满卡牌（不模拟法力锁定，仅作为触发标记）
+    // Shaman cards with Overload (mana lock not simulated; used only as a trigger marker)
     if matches!(
         card_def.id,
         "SHAMAN_002"
@@ -50,7 +50,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         world.set_overload(entity, Overload);
     }
     if card_def.id == "SHAMAN_021" {
-        // 无羁元素 — 每当你使用一张带过载的牌时，获得 +1/+1
+        // Unbound Elemental — gain +1/+1 whenever you play a card with Overload
         world.set_overload_trigger(
             entity,
             OverloadTrigger(CardEffect::GainStats {
@@ -61,15 +61,15 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         );
     }
     if card_def.id == "ROGUE_022" {
-        // 耐心的刺客 — 潜行 + 剧毒
+        // Patient Assassin — Stealth + Poison
         world.set_poison(entity, Poison);
         world.set_stealth(entity, Stealth);
     }
 }
 
-/// 清除随从的所有效果组件（变形前重置实体）。
+/// Clears all effect components of a minion (resets the entity before transform).
 ///
-/// 保留生命值/攻击力/区域等基础组件，由调用方重新套用目标卡牌的属性。
+/// Keeps base components (Health/Attack/zone, etc.); the caller re-applies the target card's attributes.
 pub(crate) fn clear_minion_effects(world: &mut World, entity: Entity) {
     world.remove_battlecry(entity);
     world.remove_deathrattle(entity);
@@ -97,10 +97,10 @@ pub(crate) fn clear_minion_effects(world: &mut World, entity: Entity) {
     world.remove_overload_trigger(entity);
 }
 
-/// 根据 `CardDef` 在指定玩家名下创建一个卡牌实体（不设置区域）。
+/// Creates a card entity from a `CardDef` under the given player (zone not set).
 ///
-/// 供 `GameBuilder` 与效果系统（如穆克拉的香蕉、随机卡池）共用，
-/// 保证手牌/牌库中的卡牌实体携带完整的组件（战吼/亡语/关键词等）。
+/// Shared by `GameBuilder` and the effect system (e.g., King Mukla's Banana, random pools),
+/// ensuring card entities in hand/deck carry the full set of components (Battlecry/Deathrattle/keywords, etc.).
 pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &CardDef) -> Entity {
     let e = world.spawn();
     world.set_card_id(e, CardId(card.id));
@@ -110,11 +110,11 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
     world.set_card_type(e, card.card_type);
     world.set_player(e, player);
     world.set_attacks_used(e, AttacksUsed(0));
-    // 设置武器耐久（如果是武器牌）
+    // Set weapon durability (if it is a weapon card)
     if card.card_type == crate::core::component::CardType::Weapon && card.durability > 0 {
         world.set_durability(e, Durability(card.durability));
     }
-    // 设置圣盾/风怒/冲锋/法伤
+    // Set Divine Shield / Windfury / Charge / Spell Damage
     if card.divine_shield {
         world.set_divine_shield(e, crate::core::component::DivineShield);
     }
@@ -127,7 +127,7 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
     if card.spell_damage != 0 {
         world.set_spell_damage(e, crate::core::component::SpellDamage(card.spell_damage));
     }
-    // 设置光环（如果有）
+    // Set aura (if any)
     if let Some((aura_effect, aura_target)) = card.aura {
         world.set_aura(
             e,
@@ -137,54 +137,54 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
             },
         );
     }
-    // 设置战吼/亡语（已有字段）
+    // Set Battlecry / Deathrattle (existing fields)
     if let Some(bc) = card.battlecry {
         world.set_battlecry(e, crate::core::component::Battlecry(bc));
     }
     if let Some(dr) = card.deathrattle {
         world.set_deathrattle(e, Deathrattle(dr));
     }
-    // 设置嘲讽
+    // Set Taunt
     if card.taunt {
         world.set_taunt(e, crate::core::component::Taunt);
     }
-    // 设置不能攻击
+    // Set cannot-attack
     if card.cant_attack {
         world.set_cant_attack(e, crate::core::component::CantAttack);
     }
-    // 设置回合结束效果
+    // Set end-of-turn effect
     if let Some(ete) = card.end_turn_effect {
         world.set_end_turn_effect(e, crate::core::component::EndTurnEffect(ete));
     }
-    // 法术牌效果存储在 battlecry 组件中（打出时由引擎解析）
+    // Spell card effects are stored in the battlecry component (resolved by the engine when played)
     if let Some(se) = card.spell_effect {
         world.set_battlecry(e, crate::core::component::Battlecry(se));
     }
-    // 法术触发效果
+    // Spell-trigger effect
     if let Some(st) = card.spell_trigger {
         world.set_spell_trigger(e, crate::core::component::SpellTrigger(st));
     }
-    // 死亡触发效果
+    // Death-trigger effect
     if let Some(dt) = card.death_trigger {
         world.set_death_trigger(e, crate::core::component::DeathTrigger(dt));
     }
-    // 召唤触发效果
+    // Summon-trigger effect
     if let Some(st) = card.summon_trigger {
         world.set_summon_trigger(e, crate::core::component::SummonTrigger(st));
     }
-    // 抉择效果
+    // Choose One effect
     if let Some(ce) = card.choose_one_effect {
         world.set_choose_one_effect(e, crate::core::component::ChooseOneEffect(ce));
     }
-    // 连击效果
+    // Combo effect
     if let Some(cb) = card.combo_effect {
         world.set_combo_effect(e, crate::core::component::ComboEffect(cb));
     }
-    // 攻击力等于生命值
+    // Attack equals Health
     if card.attack_equals_health {
         world.set_attack_equals_health(e, crate::core::component::AttackEqualsHealth);
     }
-    // 特殊关键词（剧毒/潜行等）
+    // Special keywords (Poison/Stealth, etc.)
     apply_card_keywords(world, e, card);
     e
 }
@@ -194,7 +194,7 @@ mod generated_tests {
     use super::def::{CardDef, card_by_id};
     use crate::cards::generated;
 
-    /// 生成的卡牌常量必须与手写常量逐字段一致（静态可表示的部分）。
+    /// Generated card constants must match the handwritten constants field by field (for statically representable parts).
     #[test]
     fn generated_cards_match_handwritten() {
         assert!(
@@ -207,8 +207,8 @@ mod generated_tests {
                 None => panic!("generated const for {id} missing"),
             };
             let handwritten = card_by_id(id).unwrap_or_else(|| panic!("handwritten {id} missing"));
-            // 静态字段完全一致；效果字段（战吼/亡语等）在生成代码中恒为 None，
-            // 因此只对"静态可表示"的卡牌断言整体相等
+            // Static fields must match exactly; effect fields (Battlecry/Deathrattle, etc.) are always None in generated code,
+            // so only cards whose static fields are fully representable are asserted equal
             assert_eq!(generated.id, handwritten.id);
             assert_eq!(generated.name, handwritten.name);
             assert_eq!(generated.card_type, handwritten.card_type);
@@ -224,7 +224,7 @@ mod generated_tests {
         }
     }
 
-    /// 纯静态卡牌（无任何效果字段）应整体相等。
+    /// Purely static cards (no effect fields) should be fully equal.
     #[test]
     fn vanilla_generated_cards_fully_equal() {
         use crate::cards::def::BLOODFEN_RAPTOR;
@@ -236,7 +236,7 @@ mod generated_tests {
     }
 
     fn find_generated(id: &str) -> Option<CardDef> {
-        // 通过注册表与命名规则定位生成的常量
+        // Locate the generated constant via the registry and naming rules
         match id {
             "CLASSIC_001" => Some(generated::CLASSIC_001),
             "NEUTRAL_B02" => Some(generated::NEUTRAL_B02),

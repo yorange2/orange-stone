@@ -1,22 +1,24 @@
-//! 光环系统 — Aura 组件的查询和管理。
+//! Aura system — querying and managing Aura components.
 //!
-//! 光环采用动态计算方案：不修改实体的基础属性，
-//! 而是在查询 `effective_attack` / `effective_health` 时
-//! 遍历所有存活的 `Aura` 源并累积叠加 buff。
+//! Auras are computed dynamically: base entity stats are not modified;
+//! instead, when querying `effective_attack` / `effective_health`, all
+//! living `Aura` sources are iterated and their buffs accumulated.
 //!
-//! 光环的计算逻辑位于 `World::effective_attack` 和
-//! `World::effective_health` 中（在 `src/core/world.rs`），
-//! 以及辅助函数 `aura_applies_to`、`is_adjacent` 等。
+//! Aura computation lives in `World::effective_attack` and
+//! `World::effective_health` (in `src/core/world.rs`), along with helper
+//! functions such as `aura_applies_to` and `is_adjacent`.
 //!
-//! 本模块目前提供光环相关的辅助类型和工具函数。
-//! 未来可能扩展为光环更新事件和增量计算优化。
+//! This module currently provides aura-related helper types and utility
+//! functions. It may later be extended with aura update events and
+//! incremental computation optimizations.
 
 use crate::core::component::{Aura, AuraEffect, AuraTarget};
 
-/// 计算光环对目标实体的攻击力加成总和。
+/// Computes the total attack bonus from auras applied to the target entity.
 ///
-/// 遍历场上所有存活的光环源，返回所有匹配光环的攻击力加成之和。
-/// 此函数供 `World::effective_attack` 内部使用。
+/// Iterates all living aura sources on the battlefield and returns the sum
+/// of attack bonuses from all matching auras.
+/// Used internally by `World::effective_attack`.
 #[must_use]
 pub fn compute_aura_attack_bonus(
     auras: &[(crate::core::entity::Entity, &Aura)],
@@ -43,7 +45,7 @@ pub fn compute_aura_attack_bonus(
     bonus
 }
 
-/// 计算光环对目标实体的生命值加成总和。
+/// Computes the total health bonus from auras applied to the target entity.
 #[must_use]
 pub fn compute_aura_health_bonus(
     auras: &[(crate::core::entity::Entity, &Aura)],
@@ -70,7 +72,7 @@ pub fn compute_aura_health_bonus(
     bonus
 }
 
-/// 检查光环效果是否作用于目标实体。
+/// Checks whether an aura effect applies to the target entity.
 fn aura_applies_to_entity(
     aura: Aura,
     aura_source: crate::core::entity::Entity,
@@ -81,7 +83,7 @@ fn aura_applies_to_entity(
 ) -> bool {
     use crate::core::component::CardType;
 
-    // 目标必须是存活的随从
+    // The target must be a living minion
     if world.card_type(target) != Some(CardType::Minion) {
         return false;
     }
@@ -102,7 +104,7 @@ fn aura_applies_to_entity(
     }
 }
 
-/// 检查两个实体在战场上是否相邻。
+/// Checks whether two entities are adjacent on the battlefield.
 fn is_adjacent_to(
     source: crate::core::entity::Entity,
     target: crate::core::entity::Entity,
@@ -127,7 +129,7 @@ fn is_adjacent_to(
     }
 }
 
-/// 返回光环效果的攻击力加成值。
+/// Returns the attack bonus value of an aura effect.
 const fn aura_attack_value(effect: AuraEffect) -> i32 {
     match effect {
         AuraEffect::GainStats { attack, .. } => attack,
@@ -138,7 +140,7 @@ const fn aura_attack_value(effect: AuraEffect) -> i32 {
     }
 }
 
-/// 返回光环效果的生命值加成值。
+/// Returns the health bonus value of an aura effect.
 const fn aura_health_value(effect: AuraEffect) -> i32 {
     match effect {
         AuraEffect::GainStats { health, .. } => health,

@@ -1,12 +1,12 @@
-//! World — ECS 容器，管理所有实体和组件。
+//! World — the ECS container that manages all entities and components.
 //!
-//! World 是实体生命周期的唯一入口：
-//! - `spawn()` 创建实体（分配槽位）
-//! - `despawn()` 销毁实体（释放槽位，清除所有组件和区域引用）
-//! - `move_to_zone()` 原子性地将实体从一个区域移动到另一个区域
-//! - 组件通过生成的 accessor 方法访问
+//! World is the single entry point for entity lifecycle:
+//! - `spawn()` creates an entity (allocates a slot)
+//! - `despawn()` destroys an entity (frees the slot, clears all components and zone references)
+//! - `move_to_zone()` atomically moves an entity from one zone to another
+//! - components are accessed through generated accessor methods
 //!
-//! 所有实体访问都经过 generation 检查，防止悬垂引用。
+//! All entity access goes through a generation check to prevent dangling references.
 use serde::{Deserialize, Serialize};
 
 use crate::core::component::{
@@ -21,14 +21,14 @@ use crate::core::player::PlayerId;
 use crate::core::sparse_set::SparseSet;
 use crate::core::zone::{Zone, ZoneError, Zones};
 
-/// 区域移动错误 — move_to_zone 的可能失败模式。
+/// Zone move error — the possible failure modes of move_to_zone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MoveError {
-    /// 实体已销毁
+    /// The entity has been destroyed
     EntityGone,
-    /// 缺少 PlayerId 组件
+    /// The PlayerId component is missing
     MissingPlayer,
-    /// 缺少当前 Zone 组件
+    /// The current Zone component is missing
     MissingZone,
 }
 
@@ -42,148 +42,150 @@ impl From<ZoneError> for MoveError {
     }
 }
 
-/// 生成组件访问方法的宏。
+/// Macro that generates component accessor methods.
 ///
-/// 为每种组件类型生成 get/set/remove/iter 四个方法。
+/// Generates get/set/remove/iter methods for each component type.
 macro_rules! component_accessors {
     ($field:ident, $t:ty, $get:ident, $set:ident, $remove:ident, $iter:ident) => {
-        #[doc = concat!("获取实体的 `", stringify!($t), "` 组件。")]
+        #[doc = concat!("Get the `", stringify!($t), "` component of an entity.")]
         #[must_use]
         pub fn $get(&self, entity: Entity) -> Option<$t> {
             self.$field.get(entity)
         }
 
-        #[doc = concat!("设置实体的 `", stringify!($t), "` 组件。")]
+        #[doc = concat!("Set the `", stringify!($t), "` component of an entity.")]
         pub fn $set(&mut self, entity: Entity, value: impl Into<$t>) {
             self.$field.insert(entity, value.into());
         }
 
-        #[doc = concat!("移除实体的 `", stringify!($t), "` 组件。")]
+        #[doc = concat!("Remove the `", stringify!($t), "` component of an entity.")]
         pub fn $remove(&mut self, entity: Entity) -> Option<$t> {
             self.$field.remove(entity)
         }
 
-        #[doc = concat!("遍历所有拥有 `", stringify!($t), "` 组件的实体。")]
+        #[doc = concat!("Iterate all entities with the `", stringify!($t), "` component.")]
         pub fn $iter(&self) -> impl Iterator<Item = (Entity, &$t)> {
             self.$field.iter()
         }
     };
 }
 
-/// ECS World — 所有实体和组件的容器。
+/// ECS World — the container for all entities and components.
 ///
-/// # 内部结构
+/// # Internal layout
 ///
-/// - `generations`: 每个槽位的代际版本号（despawn 时递增）
-/// - `free_list`: 可复用的空闲槽位（FIFO）
-/// - 10 个组件稀疏集 + Zones 表
+/// - `generations`: generation version number per slot (incremented on despawn)
+/// - `free_list`: reusable free slots (FIFO)
+/// - 10 component sparse sets + the Zones table
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct World {
-    /// 活跃光环源索引（见 [`AuraIndex`]）— 由所有相关变异方法增量维护。
+    /// Active aura source index (see [`AuraIndex`]) — incrementally maintained by all relevant mutating methods.
     aura_index: AuraIndex,
-    /// 每个槽位的代际版本号，用于检测过期 Entity handle
+    /// Generation version number per slot, used to detect stale Entity handles
     generations: Vec<u32>,
-    /// 可复用的空闲槽位索引
+    /// Reusable free slot indices
     free_list: Vec<u32>,
-    /// Health 组件存储
+    /// Health component storage
     health: SparseSet<Health>,
-    /// Attack 组件存储
+    /// Attack component storage
     attack: SparseSet<Attack>,
-    /// Cost 组件存储
+    /// Cost component storage
     cost: SparseSet<Cost>,
-    /// CardType 组件存储
+    /// CardType component storage
     card_type: SparseSet<CardType>,
-    /// Zone 组件存储（实体的当前位置）
+    /// Zone component storage (the entity's current zone)
     zone_comp: SparseSet<Zone>,
-    /// PlayerId 组件存储
+    /// PlayerId component storage
     player_comp: SparseSet<PlayerId>,
-    /// AttacksUsed 组件存储
+    /// AttacksUsed component storage
     attacks_used: SparseSet<AttacksUsed>,
-    /// Battlecry 组件存储
+    /// Battlecry component storage
     battlecry: SparseSet<Battlecry>,
-    /// Deathrattle 组件存储
+    /// Deathrattle component storage
     deathrattle: SparseSet<Deathrattle>,
-    /// Taunt 组件存储
+    /// Taunt component storage
     taunt: SparseSet<Taunt>,
-    /// Durability 组件存储（武器耐久）
+    /// Durability component storage (weapon durability)
     durability: SparseSet<Durability>,
-    /// Armor 组件存储（英雄护甲）
+    /// Armor component storage (hero armor)
     armor: SparseSet<Armor>,
-    /// HeroPowerDef 组件存储（英雄技能定义）
+    /// HeroPowerDef component storage (hero power definition)
     hero_power: SparseSet<HeroPowerDef>,
-    /// HeroPowerUsed 组件存储（本回合是否已使用技能）
+    /// HeroPowerUsed component storage (whether the power was used this turn)
     hero_power_used: SparseSet<HeroPowerUsed>,
-    /// Aura 组件存储（光环效果）
+    /// Aura component storage (aura effects)
     aura: SparseSet<Aura>,
-    /// Secret 组件存储（奥秘）
+    /// Secret component storage (secrets)
     secret: SparseSet<Secret>,
-    /// DivineShield 组件存储（圣盾）
+    /// DivineShield component storage (divine shields)
     divine_shield: SparseSet<DivineShield>,
-    /// Windfury 组件存储（风怒）
+    /// Windfury component storage (windfury)
     windfury: SparseSet<Windfury>,
-    /// Charge 组件存储（冲锋）
+    /// Charge component storage (charge)
     charge: SparseSet<Charge>,
-    /// SpellDamage 组件存储（法术伤害加成）
+    /// SpellDamage component storage (spell damage)
     spell_damage: SparseSet<SpellDamage>,
-    /// Freeze 组件存储（冻结）
+    /// Freeze component storage (freeze)
     freeze: SparseSet<Freeze>,
-    /// CantAttack 组件存储（不能攻击）
+    /// CantAttack component storage (cannot attack)
     cant_attack: SparseSet<CantAttack>,
-    /// EndTurnEffect 组件存储（回合结束效果）
+    /// EndTurnEffect component storage (end-of-turn effects)
     end_turn_effect: SparseSet<EndTurnEffect>,
-    /// SpellTrigger 组件存储（法术触发效果）
+    /// SpellTrigger component storage (spell trigger effects)
     spell_trigger: SparseSet<SpellTrigger>,
-    /// DeathTrigger 组件存储（随从死亡触发效果）
+    /// DeathTrigger component storage (minion death trigger effects)
     death_trigger: SparseSet<DeathTrigger>,
-    /// SummonTrigger 组件存储（随从召唤触发效果）
+    /// SummonTrigger component storage (minion summon trigger effects)
     summon_trigger: SparseSet<SummonTrigger>,
-    /// ChooseOneEffect 组件存储（抉择效果）
+    /// ChooseOneEffect component storage (Choose One effects)
     choose_one_effect: SparseSet<ChooseOneEffect>,
-    /// ComboEffect 组件存储（连击效果）
+    /// ComboEffect component storage (combo effects)
     combo_effect: SparseSet<ComboEffect>,
-    /// AttackEqualsHealth 组件存储（光耀之子）
+    /// AttackEqualsHealth component storage (Lightspawn)
     attack_equals_health: SparseSet<AttackEqualsHealth>,
-    /// TempAttackDebuff 组件存储（临时攻击减益）
+    /// TempAttackDebuff component storage (temporary attack debuffs)
     temp_attack_debuff: SparseSet<TempAttackDebuff>,
-    /// CardId 组件存储（原始卡牌定义 ID）
+    /// CardId component storage (original card definition ID)
     card_id: SparseSet<CardId>,
-    /// Poison 组件存储（剧毒）
+    /// Poison component storage (poison)
     poison: SparseSet<Poison>,
-    /// Stealth 组件存储（潜行）
+    /// Stealth component storage (stealth)
     stealth: SparseSet<Stealth>,
-    /// Immune 组件存储（免疫）
+    /// Immune component storage (immune)
     immune: SparseSet<Immune>,
-    /// Overload 组件存储（过载标记）
+    /// Overload component storage (overload marker)
     overload: SparseSet<Overload>,
-    /// OverloadTrigger 组件存储（过载触发效果）
+    /// OverloadTrigger component storage (overload trigger effects)
     overload_trigger: SparseSet<OverloadTrigger>,
-    /// 区域表 — 每个 Zone 的有序实体列表
+    /// Zone table — ordered entity lists per Zone
     zones: Zones,
 }
 
-/// 光环源索引 — 将存活的战场光环源按（拥有者, 效果种类）分桶。
+/// Aura source index — buckets live battlefield aura sources by (owner, effect kind).
 ///
-/// 光环适用性取决于源的三个易变属性（存活、在战场、拥有者）以及效果种类。
-/// 每次查询都扫描全部 `Aura` 组件是 O(实体数 × 光环数)；此索引将每个查询
-/// 限制到可能影响它的分桶。
+/// Aura applicability depends on three volatile properties of the source (alive, on the
+/// battlefield, owner) plus the effect kind. Scanning all `Aura` components per query is
+/// O(entities × auras); this index limits each query to the buckets that can affect it.
 ///
-/// 索引由 `World` 的相关变异方法增量维护（`set_aura`/`remove_aura`/
-/// `set_zone`/`set_player`/`despawn`），查询路径是纯只读，无锁。
+/// The index is incrementally maintained by World's relevant mutating methods
+/// (`set_aura`/`remove_aura`/`set_zone`/`set_player`/`despawn`); the query path is
+/// read-only and lock-free.
 ///
-/// 注意：索引只信任 `zone` 组件（与查询语义一致），不信任 `Zones` 表，
-/// 因此 `zones_mut()` 直接操作区域表不会造成索引与查询不一致。
+/// Note: the index trusts only the `zone` component (consistent with query semantics),
+/// not the `Zones` table, so direct zone-table manipulation via `zones_mut()` cannot
+/// cause the index and queries to diverge.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct AuraIndex {
-    /// 影响攻击力的光环源（按拥有者分桶）
+    /// Aura sources affecting attack (bucketed by owner)
     attack: [Vec<(Entity, Aura)>; 2],
-    /// 影响生命值的光环源（按拥有者分桶）
+    /// Aura sources affecting health (bucketed by owner)
     health: [Vec<(Entity, Aura)>; 2],
-    /// 减少费用的光环源（按拥有者分桶）
+    /// Aura sources reducing cost (bucketed by owner)
     cost: [Vec<(Entity, Aura)>; 2],
 }
 
 impl AuraIndex {
-    /// 创建一个空索引。
+    /// Create an empty index.
     #[must_use]
     const fn new() -> Self {
         Self {
@@ -193,7 +195,7 @@ impl AuraIndex {
         }
     }
 
-    /// 从所有分桶中移除实体。
+    /// Remove an entity from all buckets.
     fn remove_entity(&mut self, entity: Entity) {
         for player in 0..PlayerId::COUNT {
             self.attack[player].retain(|(e, _)| *e != entity);
@@ -202,7 +204,7 @@ impl AuraIndex {
         }
     }
 
-    /// 按效果种类将实体加入对应分桶。
+    /// Add an entity to the bucket matching its effect kind.
     fn add_entity(&mut self, entity: Entity, aura: Aura, owner: PlayerId) {
         use crate::core::component::AuraEffect;
         let oi = owner.index();
@@ -225,7 +227,7 @@ impl AuraIndex {
 }
 
 impl World {
-    /// 创建一个空的世界。
+    /// Create an empty world.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -272,9 +274,9 @@ impl World {
         }
     }
 
-    /// 生成一个新的实体并返回其句柄。
+    /// Spawn a new entity and return its handle.
     ///
-    /// 优先复用空闲槽位，否则扩展数组。
+    /// Reuses a free slot when available; otherwise grows the arrays.
     pub fn spawn(&mut self) -> Entity {
         if let Some(index) = self.free_list.pop() {
             let generation = self.generations[index as usize];
@@ -286,25 +288,25 @@ impl World {
         }
     }
 
-    /// 检查实体是否还存活（generation 匹配）。
+    /// Check whether the entity is still alive (generation matches).
     #[must_use]
     pub fn is_alive(&self, entity: Entity) -> bool {
         let idx = entity.index as usize;
         idx < self.generations.len() && self.generations[idx] == entity.generation
     }
 
-    /// 销毁实体：清除所有组件，从所有区域移除，递增 generation，归还槽位。
+    /// Destroy an entity: clear all components, remove it from all zones, bump the generation, and return the slot.
     ///
-    /// Phase 1 中 despawn 仅用于清理（测试等场景）。
-    /// 游戏内死亡使用 `move_to_zone(entity, Zone::Graveyard)` 而非 despawn。
+    /// In Phase 1 despawn is only used for cleanup (tests, etc.).
+    /// In-game deaths use `move_to_zone(entity, Zone::Graveyard)` instead of despawn.
     pub fn despawn(&mut self, entity: Entity) {
         if !self.is_alive(entity) {
             return;
         }
         let idx = entity.index as usize;
-        // 从所有区域移除
+        // Remove from all zones
         self.zones.remove_from_all(entity);
-        // 清除所有组件
+        // Clear all components
         self.health.remove(entity);
         self.attack.remove(entity);
         self.cost.remove(entity);
@@ -341,21 +343,21 @@ impl World {
         self.immune.remove(entity);
         self.overload.remove(entity);
         self.overload_trigger.remove(entity);
-        // 提升 generation
+        // Bump the generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
-        // 归还槽位
+        // Return the slot
         self.free_list.push(entity.index);
     }
 
-    /// 将实体从一个区域移动到另一个区域。
+    /// Move an entity from one zone to another.
     ///
-    /// 这是区域转移的**唯一入口**，确保 Zone 组件和 Zones 表保持同步。
+    /// This is the **only entry point** for zone transfers, keeping the Zone component and the Zones table in sync.
     ///
-    /// # 错误
+    /// # Errors
     ///
-    /// - `MoveError::EntityGone` — 实体已销毁
-    /// - `MoveError::MissingPlayer` — 缺少 PlayerId 组件，无法判断所属玩家
-    /// - `MoveError::MissingZone` — 缺少当前 Zone 组件（状态不一致）
+    /// - `MoveError::EntityGone` — the entity has been destroyed
+    /// - `MoveError::MissingPlayer` — the PlayerId component is missing, so the owner cannot be determined
+    /// - `MoveError::MissingZone` — the current Zone component is missing (inconsistent state)
     pub fn move_to_zone(&mut self, entity: Entity, target: Zone) -> Result<(), MoveError> {
         if !self.is_alive(entity) {
             return Err(MoveError::EntityGone);
@@ -363,34 +365,34 @@ impl World {
         let player = self.player(entity).ok_or(MoveError::MissingPlayer)?;
         let current = self.zone(entity).ok_or(MoveError::MissingZone)?;
 
-        // 从旧区域移除
+        // Remove from the old zone
         self.zones.remove(current, player, entity);
-        // 插入新区域
+        // Insert into the new zone
         self.zones.insert(target, player, entity);
-        // 更新 Zone 组件
+        // Update the Zone component
         self.set_zone(entity, target);
 
         Ok(())
     }
 
-    /// 获取 Zones 表的只读引用。
+    /// Get a read-only reference to the Zones table.
     #[must_use]
     pub fn zones(&self) -> &Zones {
         &self.zones
     }
 
-    /// 获取 Zones 表的可变引用（用于测试/GameBuilder 直接操作区域）。
+    /// Get a mutable reference to the Zones table (for tests/GameBuilder to manipulate zones directly).
     ///
-    /// ⚠️ 直接操作 Zones 表需要同时更新 Zone 组件，否则状态不一致。
-    /// 优先使用 `move_to_zone`。
+    /// ⚠️ Directly manipulating the Zones table requires updating the Zone components in
+    /// parallel, or the state becomes inconsistent. Prefer `move_to_zone`.
     ///
-    /// 光环索引只信任 `Zone` 组件（与查询语义一致），不信任此表，
-    /// 因此直接操作区域表不会造成索引与查询不一致。
+    /// The aura index trusts only the `Zone` component (consistent with query semantics),
+    /// not this table, so direct zone-table manipulation cannot cause the index and queries to diverge.
     pub fn zones_mut(&mut self) -> &mut Zones {
         &mut self.zones
     }
 
-    // 为每种组件类型生成 accessor 方法
+    // Generate accessor methods for each component type
     component_accessors!(
         health,
         Health,
@@ -416,16 +418,16 @@ impl World {
         remove_card_type,
         iter_card_type
     );
-    /// 获取实体的 `Zone` 组件。
+    /// Get an entity's `Zone` component.
     #[must_use]
     pub fn zone(&self, entity: Entity) -> Option<Zone> {
         self.zone_comp.get(entity)
     }
 
-    /// 设置实体的 `Zone` 组件（可能改变光环适用性，增量维护索引）。
+    /// Set an entity's `Zone` component (may change aura applicability; the index is incrementally maintained).
     pub fn set_zone(&mut self, entity: Entity, value: impl Into<Zone>) {
         let value = value.into();
-        // 光环源进出战场会改变其"活跃"状态，需要同步索引
+        // An aura source entering or leaving the battlefield changes its "active" state; keep the index in sync
         if self.aura.contains(entity) {
             let was_active = self.zone(entity) == Some(Zone::Play);
             let now_active = value == Zone::Play;
@@ -440,7 +442,7 @@ impl World {
         self.zone_comp.insert(entity, value);
     }
 
-    /// 移除实体的 `Zone` 组件（使光环索引失去该实体的活跃状态信息）。
+    /// Remove an entity's `Zone` component (the aura index loses the entity's active-state information).
     pub fn remove_zone(&mut self, entity: Entity) -> Option<Zone> {
         let removed = self.zone_comp.remove(entity);
         if removed.is_some() && self.aura.contains(entity) {
@@ -449,21 +451,21 @@ impl World {
         removed
     }
 
-    /// 遍历所有拥有 `Zone` 组件的实体。
+    /// Iterate over all entities with a `Zone` component.
     pub fn iter_zone(&self) -> impl Iterator<Item = (Entity, &Zone)> {
         self.zone_comp.iter()
     }
 
-    /// 获取实体的 `PlayerId` 组件。
+    /// Get an entity's `PlayerId` component.
     #[must_use]
     pub fn player(&self, entity: Entity) -> Option<PlayerId> {
         self.player_comp.get(entity)
     }
 
-    /// 设置实体的 `PlayerId` 组件（拥有者变化改变光环分桶，增量维护索引）。
+    /// Set an entity's `PlayerId` component (an owner change rebuckets auras; the index is incrementally maintained).
     pub fn set_player(&mut self, entity: Entity, value: impl Into<PlayerId>) {
         let value = value.into();
-        // 活跃光环源换边：先从原分桶移除，再按新拥有者重新加入
+        // An active aura source switching sides: remove it from its old bucket first, then re-add it under the new owner
         if self.aura.contains(entity) && self.zone(entity) == Some(Zone::Play) {
             self.aura_index.remove_entity(entity);
         }
@@ -475,7 +477,7 @@ impl World {
         }
     }
 
-    /// 移除实体的 `PlayerId` 组件（使光环索引失去该实体的活跃状态信息）。
+    /// Remove an entity's `PlayerId` component (the aura index loses the entity's active-state information).
     pub fn remove_player(&mut self, entity: Entity) -> Option<PlayerId> {
         let removed = self.player_comp.remove(entity);
         if removed.is_some() && self.aura.contains(entity) && self.zone(entity) == Some(Zone::Play)
@@ -485,7 +487,7 @@ impl World {
         removed
     }
 
-    /// 遍历所有拥有 `PlayerId` 组件的实体。
+    /// Iterate over all entities with a `PlayerId` component.
     pub fn iter_player(&self) -> impl Iterator<Item = (Entity, &PlayerId)> {
         self.player_comp.iter()
     }
@@ -539,16 +541,16 @@ impl World {
         remove_hero_power_used,
         iter_hero_power_used
     );
-    /// 获取实体的 `Aura` 组件。
+    /// Get an entity's `Aura` component.
     #[must_use]
     pub fn aura(&self, entity: Entity) -> Option<Aura> {
         self.aura.get(entity)
     }
 
-    /// 设置实体的 `Aura` 组件（光环源集合可能变化，增量维护索引）。
+    /// Set an entity's `Aura` component (the aura source set may change; the index is incrementally maintained).
     pub fn set_aura(&mut self, entity: Entity, value: impl Into<Aura>) {
         let value = value.into();
-        // 活跃光环源更新效果：先从索引移除，再按新值重新加入
+        // An active aura source's effect is updated: remove it from the index first, then re-add it with the new value
         if self.aura.contains(entity) && self.zone(entity) == Some(Zone::Play) {
             self.aura_index.remove_entity(entity);
         }
@@ -560,7 +562,7 @@ impl World {
         }
     }
 
-    /// 移除实体的 `Aura` 组件（从索引中移除该光环源）。
+    /// Remove an entity's `Aura` component (removes the aura source from the index).
     pub fn remove_aura(&mut self, entity: Entity) -> Option<Aura> {
         let removed = self.aura.remove(entity);
         if removed.is_some() {
@@ -569,7 +571,7 @@ impl World {
         removed
     }
 
-    /// 遍历所有拥有 `Aura` 组件的实体。
+    /// Iterate over all entities with an `Aura` component.
     pub fn iter_aura(&self) -> impl Iterator<Item = (Entity, &Aura)> {
         self.aura.iter()
     }
@@ -742,7 +744,7 @@ impl World {
         iter_overload_trigger
     );
 
-    /// 获取实体每回合可攻击的最大次数。
+    /// Get the maximum number of attacks an entity can make per turn.
     #[must_use]
     pub fn max_attacks(&self, entity: Entity) -> u8 {
         if self.windfury(entity).is_some() {
@@ -752,7 +754,7 @@ impl World {
         }
     }
 
-    /// 获取场上友方法术伤害加成总和。
+    /// Get the total friendly spell damage on the board.
     #[must_use]
     pub fn total_spell_damage(&self, player: PlayerId) -> i32 {
         use crate::core::zone::Zone;
@@ -768,17 +770,17 @@ impl World {
         total
     }
 
-    /// 获取实体的有效攻击力（基础攻击力 + 所有光环加成）。
+    /// Get an entity's effective attack (base attack + all aura bonuses).
     ///
-    /// 通过光环源索引只扫描可能影响攻击力的光环（己方与敌方的攻击桶），
-    /// 而不是遍历全部 `Aura` 组件。
+    /// Uses the aura source index to scan only the auras that can affect attack
+    /// (the friendly and enemy attack buckets) instead of iterating over all `Aura` components.
     #[must_use]
     pub fn effective_attack(&self, entity: Entity) -> Option<Attack> {
         let base = self.attack(entity)?;
         let player = self.player(entity)?;
 
         let mut bonus = 0i32;
-        // 己方光环影响己方随从，敌方光环通过 AllEnemyMinions 影响己方随从
+        // Friendly auras affect friendly minions; enemy auras affect friendly minions via AllEnemyMinions
         for owner in [player, player.opponent()] {
             for (source, aura) in &self.aura_index.attack[owner.index()] {
                 if aura_applies_to(aura, *source, owner, entity, player, self) {
@@ -790,9 +792,10 @@ impl World {
         Some(Attack(base.0 + bonus))
     }
 
-    /// 获取实体的有效生命值（基础生命值 + 所有光环加成）。
+    /// Get an entity's effective health (base health + all aura bonuses).
     ///
-    /// 通过光环源索引只扫描可能影响生命值的光环（己方与敌方的生命桶）。
+    /// Uses the aura source index to scan only the auras that can affect health
+    /// (the friendly and enemy health buckets).
     #[must_use]
     pub fn effective_health(&self, entity: Entity) -> Option<Health> {
         let base = self.health(entity)?;
@@ -810,12 +813,12 @@ impl World {
         Some(Health(base.0 + bonus))
     }
 
-    /// 获取实体的有效法力消耗（基础费用 - 费用减免光环）。
+    /// Get an entity's effective mana cost (base cost − cost-reduction auras).
     ///
-    /// 通过光环源索引只扫描己方的费用桶：
-    /// - `ReduceSpellCost` 作用于手牌中的友方法术（巫师学徒）
-    /// - `ReduceMinionCost` 作用于手牌中的友方随从，且不低于费用下限
-    ///   （召唤传送门 — 至少 1 费）
+    /// Uses the aura source index to scan only the friendly cost bucket:
+    /// - `ReduceSpellCost` applies to friendly spells in hand (Sorcerer's Apprentice)
+    /// - `ReduceMinionCost` applies to friendly minions in hand, with a cost floor
+    ///   (Summoning Portal — at least 1 mana)
     #[must_use]
     pub fn effective_cost(&self, entity: Entity) -> Option<Cost> {
         use crate::core::component::AuraEffect;
@@ -825,7 +828,7 @@ impl World {
         let card_type = self.card_type(entity)?;
         let in_hand = self.zone(entity) == Some(Zone::Hand);
 
-        // 费用光环只影响光环拥有者自己的手牌
+        // Cost auras only affect the aura owner's own hand
         let mut reduction = 0i32;
         let mut min_cost = 0i32;
         for (_, aura) in &self.aura_index.cost[player.index()] {
@@ -853,10 +856,10 @@ impl Default for World {
 }
 
 // ============================================================
-// 光环辅助函数
+// Aura helper functions
 // ============================================================
 
-/// 检查光环效果是否作用于目标实体。
+/// Check whether an aura effect applies to the target entity.
 fn aura_applies_to(
     aura: &Aura,
     aura_source: Entity,
@@ -867,7 +870,7 @@ fn aura_applies_to(
 ) -> bool {
     use crate::core::component::{AuraTarget, CardType};
 
-    // 目标必须是存活的随从
+    // The target must be a living minion
     if world.card_type(target) != Some(CardType::Minion) {
         return false;
     }
@@ -888,7 +891,7 @@ fn aura_applies_to(
     }
 }
 
-/// 检查两个实体在战场上是否相邻。
+/// Check whether two entities are adjacent on the battlefield.
 fn is_adjacent(source: Entity, target: Entity, player: PlayerId, world: &World) -> bool {
     use crate::core::component::CardType;
     use crate::core::zone::Zone;
@@ -904,14 +907,14 @@ fn is_adjacent(source: Entity, target: Entity, player: PlayerId, world: &World) 
 
     match (source_pos, target_pos) {
         (Some(s), Some(t)) => {
-            // 相邻 = 位置差为 1
+            // Adjacent = position difference of 1
             (s as isize - t as isize).unsigned_abs() == 1
         }
         _ => false,
     }
 }
 
-/// 返回光环效果的攻击力加成。
+/// Returns the attack bonus of an aura effect.
 const fn aura_attack_bonus(effect: crate::core::component::AuraEffect) -> i32 {
     use crate::core::component::AuraEffect;
     match effect {
@@ -923,7 +926,7 @@ const fn aura_attack_bonus(effect: crate::core::component::AuraEffect) -> i32 {
     }
 }
 
-/// 返回光环效果的生命值加成。
+/// Returns the health bonus of an aura effect.
 const fn aura_health_bonus(effect: crate::core::component::AuraEffect) -> i32 {
     use crate::core::component::AuraEffect;
     match effect {
@@ -940,7 +943,7 @@ mod tests {
     use super::*;
     use crate::core::component::{AuraEffect, AuraTarget, CardType};
 
-    /// 生成一个位于战场的随从。
+    /// Spawn a minion on the battlefield.
     fn spawn_play_minion(world: &mut World, player: PlayerId, attack: i32, health: i32) -> Entity {
         let e = world.spawn();
         world.set_card_type(e, CardType::Minion);
@@ -953,7 +956,7 @@ mod tests {
         e
     }
 
-    /// 生成一个位于战场的光环源。
+    /// Spawn an aura source on the battlefield.
     fn spawn_play_aura(
         world: &mut World,
         player: PlayerId,
@@ -965,8 +968,8 @@ mod tests {
         e
     }
 
-    /// 从权威数据（光环组件集 + 存活/战场/拥有者检查）暴力重建索引，
-    /// 用于验证增量维护与"重建"语义完全一致。
+    /// Brute-force rebuilds the index from authoritative data (the aura component set plus
+    /// alive/battlefield/owner checks), to verify that incremental maintenance matches "rebuild" semantics exactly.
     fn brute_force_aura_index(world: &World) -> AuraIndex {
         let mut idx = AuraIndex {
             attack: [Vec::new(), Vec::new()],
@@ -1000,7 +1003,7 @@ mod tests {
         idx
     }
 
-    /// 断言增量维护的索引与暴力重建结果一致（忽略桶内顺序）。
+    /// Assert that the incrementally maintained index matches the brute-force rebuild (ignoring intra-bucket order).
     fn assert_index_matches(world: &World) {
         let mut actual = world.aura_index.clone();
         let mut expected = brute_force_aura_index(world);
@@ -1026,7 +1029,7 @@ mod tests {
             target: AuraTarget::AllFriendlyMinions,
         };
 
-        // 手牌中的光环卡（有 Aura 组件但不活跃）
+        // An aura card in hand (has the Aura component but is not active)
         let hand_aura = world.spawn();
         world.set_card_type(hand_aura, CardType::Minion);
         world.set_attack(hand_aura, Attack(1));
@@ -1040,11 +1043,11 @@ mod tests {
         world.set_aura(hand_aura, attack_aura);
         assert_index_matches(&world);
 
-        // 召唤到战场 → 变为活跃
+        // Summoned to the battlefield → becomes active
         world.move_to_zone(hand_aura, Zone::Play).unwrap();
         assert_index_matches(&world);
 
-        // 活跃时更新光环值
+        // Update the aura value while active
         world.set_aura(
             hand_aura,
             Aura {
@@ -1054,11 +1057,11 @@ mod tests {
         );
         assert_index_matches(&world);
 
-        // 精神控制：换边
+        // Mind Control: switches sides
         world.set_player(hand_aura, PlayerId::Player2);
         assert_index_matches(&world);
 
-        // 光环值覆盖为 GainStats（进两个桶）
+        // The aura is overwritten with GainStats (goes into two buckets)
         world.set_aura(
             hand_aura,
             Aura {
@@ -1071,17 +1074,17 @@ mod tests {
         );
         assert_index_matches(&world);
 
-        // 移除光环
+        // Remove the aura
         world.remove_aura(hand_aura);
         assert_index_matches(&world);
 
-        // 重新挂光环，然后击杀（离开战场）
+        // Re-attach the aura, then kill it (leaves the battlefield)
         world.set_aura(hand_aura, attack_aura);
         assert_index_matches(&world);
         world.move_to_zone(hand_aura, Zone::Graveyard).unwrap();
         assert_index_matches(&world);
 
-        // 费用光环源 + 销毁
+        // Cost aura source + despawn
         let cost_aura = spawn_play_aura(
             &mut world,
             PlayerId::Player1,
@@ -1106,7 +1109,7 @@ mod tests {
 
         assert_eq!(world.effective_attack(target), Some(Attack(3)));
         assert_eq!(world.effective_attack(source), Some(Attack(2)));
-        // 生命值不受攻击光环影响
+        // Health is not affected by attack auras
         assert_eq!(world.effective_health(target), Some(Health(3)));
     }
 
@@ -1177,9 +1180,9 @@ mod tests {
         let p1_minion = spawn_play_minion(&mut world, PlayerId::Player1, 2, 3);
         let p2_minion = spawn_play_minion(&mut world, PlayerId::Player2, 2, 3);
 
-        // P2 的光环攻击 P1 的随从（P2 的敌人）
+        // P2's aura buffs P1's minion (P2's enemy)
         assert_eq!(world.effective_attack(p1_minion), Some(Attack(3)));
-        // 不影响 P2 自己的随从
+        // Does not affect P2's own minions
         assert_eq!(world.effective_attack(p2_minion), Some(Attack(2)));
     }
 
@@ -1210,7 +1213,7 @@ mod tests {
             AuraEffect::ReduceSpellCost(1),
             AuraTarget::AllFriendlyMinions,
         );
-        // P1 手牌中的法术
+        // A spell in P1's hand
         let spell = world.spawn();
         world.set_card_type(spell, CardType::Spell);
         world.set_cost(spell, Cost(2));
@@ -1219,7 +1222,7 @@ mod tests {
         world
             .zones_mut()
             .insert(Zone::Hand, PlayerId::Player1, spell);
-        // P1 手牌中的随从
+        // A minion in P1's hand
         let minion = world.spawn();
         world.set_card_type(minion, CardType::Minion);
         world.set_cost(minion, Cost(2));
@@ -1228,7 +1231,7 @@ mod tests {
         world
             .zones_mut()
             .insert(Zone::Hand, PlayerId::Player1, minion);
-        // P2 手牌中的法术（不应被 P1 的光环影响）
+        // A spell in P2's hand (must not be affected by P1's aura)
         let enemy_spell = world.spawn();
         world.set_card_type(enemy_spell, CardType::Spell);
         world.set_cost(enemy_spell, Cost(2));
@@ -1241,7 +1244,7 @@ mod tests {
         assert_eq!(world.effective_cost(spell), Some(Cost(1)));
         assert_eq!(world.effective_cost(minion), Some(Cost(2)));
         assert_eq!(world.effective_cost(enemy_spell), Some(Cost(2)));
-        // 光环源本身在战场，费用不减免
+        // The aura source itself is on the battlefield; its cost is not reduced
         assert_eq!(world.effective_cost(source), Some(Cost(0)));
     }
 
@@ -1263,7 +1266,7 @@ mod tests {
             .zones_mut()
             .insert(Zone::Hand, PlayerId::Player1, minion);
 
-        // 1 费减 2 且下限 1 → 1 费
+        // 1 cost minus 2 with a floor of 1 → 1 cost
         assert_eq!(world.effective_cost(minion), Some(Cost(1)));
     }
 
@@ -1279,7 +1282,7 @@ mod tests {
         let target = spawn_play_minion(&mut world, PlayerId::Player1, 2, 3);
         assert_eq!(world.effective_attack(target), Some(Attack(3)));
 
-        // 精神控制：source 转移到 P2，不再是 P1 的友方随从
+        // Mind Control: source moves to P2 and is no longer a friendly minion of P1
         world.set_player(source, PlayerId::Player2);
         assert_eq!(world.effective_attack(target), Some(Attack(2)));
     }
@@ -1325,15 +1328,15 @@ mod tests {
         assert_eq!(e1.generation, 0);
         world.despawn(e1);
 
-        // 旧句柄应失效
+        // The old handle must be invalidated
         assert!(!world.is_alive(e1));
 
-        // 复用槽位，generation 应该不同
+        // The slot is reused; the generation must differ
         let e2 = world.spawn();
         assert_eq!(e2.index, 0);
         assert_eq!(e2.generation, 1); // generation bump
         assert!(world.is_alive(e2));
-        assert!(!world.is_alive(e1)); // 旧句柄仍然失效
+        assert!(!world.is_alive(e1)); // old handle still invalid
     }
 
     #[test]
@@ -1352,9 +1355,9 @@ mod tests {
         let e = world.spawn();
         world.set_health(e, Health(5));
         world.despawn(e);
-        // 注意：组件被清除但需要检查 is_alive 语义
-        // despawn 后 generational check，但组件 remove 也是通过 generation
-        // 由于 generation 已变，旧句柄查不到组件
+        // Note: components are cleared, but the is_alive semantics must be checked
+        // despawn does a generational check, and component removal also goes through generation
+        // since the generation changed, the old handle cannot find the component
         assert_eq!(world.health(e), None);
     }
 
@@ -1366,7 +1369,7 @@ mod tests {
         world.set_zone(e, Zone::Hand);
         world.zones.insert(Zone::Hand, PlayerId::Player1, e);
 
-        // 移到战场
+        // Move to the battlefield
         world.move_to_zone(e, Zone::Play).unwrap();
         assert_eq!(world.zone(e), Some(Zone::Play));
         assert!(world.zones.is_empty(Zone::Hand, PlayerId::Player1));
@@ -1385,7 +1388,7 @@ mod tests {
             world.set_health(e, Health(0));
             world.zones.insert(Zone::Hand, pid, e);
         }
-        // 按顺序移到战场
+        // Move to the battlefield in order
         world.move_to_zone(e1, Zone::Play).unwrap();
         world.move_to_zone(e2, Zone::Play).unwrap();
         let play: Vec<_> = world.zones.iter(Zone::Play, PlayerId::Player1).collect();

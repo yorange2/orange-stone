@@ -1,11 +1,11 @@
-//! 强化学习接口 — Gym 风格环境、观察空间与奖励函数。
+//! Reinforcement learning interface — Gym-style environment, observation space, and reward functions.
 //!
-//! `GameEnv` 是单 agent 与脚本对手对弈的 gym 环境：
-//! - `obs.rs` 将 `GameState` 张量化为固定长度观察（168 维）
-//! - `reward.rs` 提供可配置的稀疏/密集奖励
-//! - `env.rs` 提供 `reset`/`step`/`legal_actions` 循环
+//! `GameEnv` is a gym environment where a single agent plays against a scripted opponent:
+//! - `obs.rs` tensorizes `GameState` into a fixed-length observation (168 dimensions)
+//! - `reward.rs` provides configurable sparse/dense rewards
+//! - `env.rs` provides the `reset`/`step`/`legal_actions` loop
 //!
-//! Python 绑定（`py_bind`，需 `py` feature）在其上封装 `PyGameEnv`。
+//! The Python bindings (`py_bind`, requires the `py` feature) wrap `PyGameEnv` on top of it.
 
 pub mod env;
 pub mod obs;

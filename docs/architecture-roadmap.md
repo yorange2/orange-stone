@@ -96,10 +96,10 @@ One-sentence comparison: RosettaStone and SabberStone are **fidelity-first simul
 
 ### Milestone D — Scale
 
-- [ ] **D1** — Upgrade CoW from whole-`Inner` clone to structural sharing (segmented arena / persistent vectors) once entity counts justify it.
-- [ ] **D2** — `build.rs` generation of `CardDef` consts from official CardDefs JSON (keeps "cards as data" while removing manual labor).
-- [ ] **D3** — bincode/rkyv serialization of `GameState` for distributed training.
-- [ ] **D4** — Restore comment-language discipline (English) to match CLAUDE.md.
+- [x] **D1** — Upgrade CoW from whole-`Inner` clone to structural sharing (segmented arena / persistent vectors) once entity counts justify it. *(PR #44: `SparseSet` segmented pages with `Arc` copy-on-write; clone is O(1))*
+- [x] **D2** — `build.rs` generation of `CardDef` consts from official CardDefs JSON (keeps "cards as data" while removing manual labor). *(PR #45: official-format JSON → generated static card consts, verified field-by-field against the hand-written db)*
+- [x] **D3** — bincode/rkyv serialization of `GameState` for distributed training. *(PR #43: serde + bincode `to_bytes`/`from_bytes`; `&'static str` card ids re-interned via the static db)*
+- [x] **D4** — Restore comment-language discipline (English) to match CLAUDE.md. *(PR #46: whole-repo comment translation)*
 
 ---
 

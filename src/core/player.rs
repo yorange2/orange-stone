@@ -1,32 +1,32 @@
-//! 玩家定义 — PlayerId 和 Player 状态。
+//! Player definitions — PlayerId and Player state.
 //!
-//! 每个玩家有一个 `PlayerId`（通过组件挂载到实体上）
-//! 和一个 `Player` 结构体（存储在 `GameState` 中）。
+//! Each player has a `PlayerId` (mounted on entities via a component)
+//! and a `Player` struct (stored in `GameState`).
 use serde::{Deserialize, Serialize};
 
-/// 玩家标识符。
+/// Player identifier.
 ///
-/// 用 `#[repr(u8)]` 确保可以高效索引数组（`[T; 2]`）。
+/// Uses `#[repr(u8)]` so arrays (`[T; 2]`) can be indexed efficiently.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum PlayerId {
-    /// 先手玩家
+    /// The first player
     Player1 = 0,
-    /// 后手玩家
+    /// The second player
     Player2 = 1,
 }
 
 impl PlayerId {
-    /// 玩家数量。
+    /// Number of players.
     pub const COUNT: usize = 2;
 
-    /// 返回 `usize` 索引，用于数组下标。
+    /// Returns the `usize` index for array subscripting.
     #[must_use]
     pub const fn index(self) -> usize {
         self as usize
     }
 
-    /// 返回对手的 `PlayerId`。
+    /// Returns the opponent's `PlayerId`.
     #[must_use]
     pub const fn opponent(self) -> Self {
         match self {
@@ -36,42 +36,42 @@ impl PlayerId {
     }
 }
 
-/// 玩家状态 — 非实体级别的玩家数据。
+/// Player state — player data that is not at the entity level.
 ///
-/// 英雄本身是一个实体（`CardType::Hero`），存储在 World 中。
-/// `Player` 则持有对英雄实体的引用以及法力水晶等状态。
+/// The hero itself is an entity (`CardType::Hero`) stored in the World.
+/// `Player` holds a reference to the hero entity plus state such as mana crystals.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Player {
-    /// 玩家 ID
+    /// The player ID
     pub id: PlayerId,
-    /// 指向英雄实体的句柄
+    /// Handle to the hero entity
     pub hero: crate::core::entity::Entity,
-    /// 总法力水晶数（上限 10，每回合开始时增加 1）
+    /// Total mana crystals (max 10, +1 at the start of each turn)
     pub mana_crystals: i32,
-    /// 当前可用法力（打牌时消耗，回合开始时回满）
+    /// Current available mana (spent when playing cards, refilled at turn start)
     pub current_mana: i32,
-    /// 当前装备的武器实体（`None` 表示无武器）
+    /// The currently equipped weapon entity (`None` means no weapon)
     pub weapon: Option<crate::core::entity::Entity>,
-    /// 英雄护甲值
+    /// Hero armor
     pub armor: i32,
-    /// 英雄本回合的临时攻击力加成（回合结束时清除）
+    /// The hero's temporary attack bonus this turn (cleared at end of turn)
     pub temp_attack_bonus: i32,
-    /// 本回合已打出的卡牌数（用于连击机制）
+    /// Cards played this turn (for the Combo mechanic)
     pub cards_played_this_turn: u32,
-    /// 本回合死亡的友方随从（用于复活效果）
+    /// Friendly minions that died this turn (for resurrection effects)
     pub died_this_turn: Vec<crate::core::entity::Entity>,
-    /// 下一个奥秘费用为 0（肯瑞托法师，一次性）
+    /// The next secret costs 0 (Kirin Tor Mage, one-time)
     pub next_secret_free: bool,
-    /// 被临时控制的敌方随从（实体，原拥有者）— 回合结束时归还（暗影狂乱）
+    /// Enemy minions temporarily controlled (entity, original owner) — returned at end of turn (Shadow Madness)
     pub controlled_this_turn: Vec<(crate::core::entity::Entity, PlayerId)>,
-    /// 被腐蚀的敌方随从 — 拥有者回合开始时消灭（腐蚀术）
+    /// Corrupted enemy minions — destroyed at the owner's turn start (Corruption)
     pub corrupted: Vec<crate::core::entity::Entity>,
-    /// 本回合随从最低生命值（命令怒吼，0 表示无限制）
+    /// Minimum minion health this turn (Commanding Shout, 0 means no limit)
     pub minion_min_health: i32,
 }
 
 impl Player {
-    /// 创建一个新的玩家状态。
+    /// Create a new player state.
     #[must_use]
     pub const fn new(id: PlayerId, hero: crate::core::entity::Entity, mana_crystals: i32) -> Self {
         Self {

@@ -1,8 +1,8 @@
-//! GameBuilder — 用于测试的灵活对局构建器。
+//! GameBuilder — a flexible game builder for tests.
 //!
-//! `GameBuilder` 允许绕过规则验证直接设置游戏状态，
-//! 是单元测试和集成测试的核心工具。
-//! 未来 Phase 的 RL 环境也会使用它来重置对局。
+//! `GameBuilder` lets you set up game state directly without rule validation,
+//! and is a core tool for unit and integration tests.
+//! Future-phase RL environments will also use it to reset games.
 
 use crate::cards::def::CardDef;
 use crate::core::component::{
@@ -13,11 +13,11 @@ use crate::core::player::PlayerId;
 use crate::core::state::{GameState, Phase};
 use crate::core::zone::Zone;
 
-/// 对局构建器 — 用于创建自定义游戏状态。
+/// Game builder — used to create custom game states.
 ///
-/// 所有方法返回 `&mut Self`，支持链式调用。
+/// All methods return `&mut Self` for chained calls.
 ///
-/// # 示例
+/// # Example
 ///
 /// ```rust
 /// use orange_stone::sim::game::GameBuilder;
@@ -35,7 +35,7 @@ pub struct GameBuilder {
 }
 
 impl GameBuilder {
-    /// 创建一个新的构建器，初始状态包含两个 30 HP 英雄。
+    /// Creates a new builder whose initial state has two 30 HP heroes.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -43,31 +43,31 @@ impl GameBuilder {
         }
     }
 
-    /// 消耗构建器，返回构建好的 `GameState`。
+    /// Consumes the builder and returns the built `GameState`.
     #[must_use]
     pub fn build(self) -> GameState {
         self.state
     }
 
-    /// 设置当前行动玩家。
+    /// Sets the active player.
     pub fn active_player(&mut self, player: PlayerId) -> &mut Self {
         self.state.set_active_player(player);
         self
     }
 
-    /// 设置当前回合数。
+    /// Sets the current turn number.
     pub fn turn(&mut self, turn: u32) -> &mut Self {
         self.state.set_turn(turn);
         self
     }
 
-    /// 设置游戏阶段。
+    /// Sets the game phase.
     pub fn phase(&mut self, phase: Phase) -> &mut Self {
         self.state.set_phase(phase);
         self
     }
 
-    /// 设置英雄的生命值。
+    /// Sets the hero's health.
     pub fn hero_health(&mut self, player: PlayerId, hp: i32) -> &mut Self {
         let hero = self.state.player(player).hero;
         let world = self.state.world_mut();
@@ -75,7 +75,7 @@ impl GameBuilder {
         self
     }
 
-    /// 设置玩家的法力水晶。
+    /// Sets the player's mana crystals.
     pub fn set_mana(&mut self, player: PlayerId, crystals: i32, current: i32) -> &mut Self {
         let inner = self.state.make_mut();
         let p = &mut inner.players[player.index()];
@@ -84,13 +84,13 @@ impl GameBuilder {
         self
     }
 
-    /// 设置 RNG seed（重建 RNG）。
+    /// Sets the RNG seed (rebuilds the RNG).
     pub fn with_rng_seed(&mut self, seed: u64) -> &mut Self {
         self.state.make_mut().rng = crate::sim::rng::GameRng::new(seed);
         self
     }
 
-    /// 根据 CardDef 创建一个随从并放入指定玩家的牌库。
+    /// Creates a minion from a `CardDef` and puts it in the given player's deck.
     pub fn add_minion_to_deck(&mut self, player: PlayerId, card: &CardDef) -> &mut Self {
         let e = self.spawn_minion(player, card);
         let world = self.state.world_mut();
@@ -99,7 +99,7 @@ impl GameBuilder {
         self
     }
 
-    /// 根据 `CardDef` 创建一个随从并放入指定玩家的手牌。
+    /// Creates a minion from a `CardDef` and puts it in the given player's hand.
     pub fn add_minion_to_hand(&mut self, player: PlayerId, card: &CardDef) -> &mut Self {
         let e = self.spawn_minion(player, card);
         let world = self.state.world_mut();
@@ -108,7 +108,7 @@ impl GameBuilder {
         self
     }
 
-    /// 根据 `CardDef` 创建一个随从并放入指定玩家的战场。
+    /// Creates a minion from a `CardDef` and puts it on the given player's board.
     pub fn add_minion_to_board(&mut self, player: PlayerId, card: &CardDef) -> &mut Self {
         let e = self.spawn_minion(player, card);
         let world = self.state.world_mut();
@@ -117,7 +117,7 @@ impl GameBuilder {
         self
     }
 
-    /// 生成一个随从实体并设置基本组件，放入指定玩家的手牌并返回实体句柄。
+    /// Spawns a minion entity with basic components, puts it in the given player's hand, and returns the entity handle.
     pub fn add_custom_minion_to_hand(
         &mut self,
         player: PlayerId,
@@ -138,7 +138,7 @@ impl GameBuilder {
         e
     }
 
-    /// 生成一个随从实体并设置基本组件，放入指定玩家的战场并返回实体句柄。
+    /// Spawns a minion entity with basic components, puts it on the given player's board, and returns the entity handle.
     pub fn add_custom_minion_to_board(
         &mut self,
         player: PlayerId,
@@ -159,7 +159,7 @@ impl GameBuilder {
         e
     }
 
-    /// 给英雄装备武器。
+    /// Equips a weapon to the hero.
     pub fn equip_weapon(&mut self, player: PlayerId, card: &CardDef) -> &mut Self {
         let inner = self.state.make_mut();
         let world = &mut inner.world;
@@ -176,14 +176,14 @@ impl GameBuilder {
         self
     }
 
-    /// 设置英雄护甲。
+    /// Sets the hero's armor.
     pub fn hero_armor(&mut self, player: PlayerId, armor: i32) -> &mut Self {
         let inner = self.state.make_mut();
         inner.players[player.index()].armor = armor;
         self
     }
 
-    /// 给英雄设置英雄技能。
+    /// Sets the hero power for the hero.
     pub fn set_hero_power(
         &mut self,
         player: PlayerId,
@@ -196,21 +196,21 @@ impl GameBuilder {
         self
     }
 
-    /// 给随从设置光环效果。
+    /// Sets an aura effect on an entity.
     pub fn set_aura_on_entity(&mut self, entity: Entity, aura: Aura) -> &mut Self {
         self.state.world_mut().set_aura(entity, aura);
         self
     }
 
-    /// 给随从设置奥秘组件。
+    /// Sets a secret component on an entity.
     pub fn set_secret_on_entity(&mut self, entity: Entity, secret: Secret) -> &mut Self {
         self.state.world_mut().set_secret(entity, secret);
         self
     }
 
-    /// 内部辅助：根据 CardDef 生成一个卡牌实体（不设置 Zone）。
+    /// Internal helper: spawns a card entity from a `CardDef` (without setting the zone).
     ///
-    /// 组件设置逻辑统一在 `crate::cards::spawn_card_from_def` 中。
+    /// Component setup is centralized in `crate::cards::spawn_card_from_def`.
     fn spawn_minion(&mut self, player: PlayerId, card: &CardDef) -> Entity {
         crate::cards::spawn_card_from_def(self.state.world_mut(), player, card)
     }

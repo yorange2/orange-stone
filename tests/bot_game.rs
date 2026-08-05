@@ -1,7 +1,7 @@
-//! 机器人对战集成测试 — 两个 GreedyBot 互相博弈。
+//! Bot battle integration test — two GreedyBots play against each other.
 //!
-//! 运行时输出详细的每步日志（action + event），
-//! 通过 `cargo test bot_game -- --nocapture` 查看完整输出。
+//! Prints detailed per-step logs (action + event) at runtime;
+//! run `cargo test bot_game -- --nocapture` to see the full output.
 
 use orange_stone::cards::def::{
     ACIDIC_SWAMP_OOZE, ARCHMAGE, BLOODFEN_RAPTOR, EAGLEHORN_BOW, KOBOLD_GEOMANCER, MURLOC_RAIDER,
@@ -16,7 +16,7 @@ use orange_stone::engine::game::GameEngine;
 use orange_stone::sim::bot::{GreedyBot, SmartBot};
 use orange_stone::sim::game::GameBuilder;
 
-/// 辅助：获取玩家名称
+/// Helper: get the player name
 fn player_name(p: PlayerId) -> &'static str {
     match p {
         PlayerId::Player1 => "玩家1",
@@ -24,7 +24,7 @@ fn player_name(p: PlayerId) -> &'static str {
     }
 }
 
-/// 辅助：格式化实体信息
+/// Helper: format entity info
 fn entity_info(
     state: &orange_stone::core::state::GameState,
     e: orange_stone::core::entity::Entity,
@@ -48,7 +48,7 @@ fn entity_info(
     format!("实体#{} {}", e.index, name)
 }
 
-/// 辅助：打印当前战况
+/// Helper: print the current board state
 fn print_board(state: &orange_stone::core::state::GameState) {
     let active = state.active_player();
     println!("══════════════════════════════════════════");
@@ -83,7 +83,7 @@ fn print_board(state: &orange_stone::core::state::GameState) {
             weapon_str
         );
 
-        // 手牌
+        // Hand
         let hand: Vec<_> = state.world().zones().iter(Zone::Hand, pid).collect();
         println!("    手牌 ({} 张):", hand.len());
         for e in &hand {
@@ -98,7 +98,7 @@ fn print_board(state: &orange_stone::core::state::GameState) {
             println!("      费用{}: {}/{} {}", cost.0, atk.0, hp.0, taunt);
         }
 
-        // 战场
+        // Board
         let board: Vec<_> = state
             .world()
             .zones()
@@ -143,49 +143,49 @@ fn two_bots_battle() {
     let engine = GameEngine::new();
     let bot = GreedyBot::new();
 
-    // ===== 构建初始对局 =====
+    // ===== Build initial game =====
     let mut builder = GameBuilder::new();
 
-    // --- Player1 牌库 (10 张) ---
+    // --- Player1 deck (10 cards) ---
     let p1_cards = [
-        &MURLOC_RAIDER,     // 1费 2/1
-        &MURLOC_RAIDER,     // 1费 2/1
-        &VOODOO_DOCTOR,     // 1费 2/1 战吼:回2
-        &VOIDWALKER,        // 1费 1/3 嘲讽
-        &BLOODFEN_RAPTOR,   // 2费 3/2
-        &BLOODFEN_RAPTOR,   // 2费 3/2
-        &KOBOLD_GEOMANCER,  // 2费 2/2 法伤+1
-        &MURLOC_TIDEHUNTER, // 2费 2/1 战吼:召唤1/1
-        &OGRE_MAGI,         // 4费 4/4
-        &ARCHMAGE,          // 6费 4/7
+        &MURLOC_RAIDER,     // 1-cost 2/1
+        &MURLOC_RAIDER,     // 1-cost 2/1
+        &VOODOO_DOCTOR,     // 1-cost 2/1 battlecry: heal 2
+        &VOIDWALKER,        // 1-cost 1/3 taunt
+        &BLOODFEN_RAPTOR,   // 2-cost 3/2
+        &BLOODFEN_RAPTOR,   // 2-cost 3/2
+        &KOBOLD_GEOMANCER,  // 2-cost 2/2 spell damage +1
+        &MURLOC_TIDEHUNTER, // 2-cost 2/1 battlecry: summon 1/1
+        &OGRE_MAGI,         // 4-cost 4/4
+        &ARCHMAGE,          // 6-cost 4/7
     ];
     for card in &p1_cards {
         builder.add_minion_to_deck(PlayerId::Player1, card);
     }
 
-    // --- Player2 牌库 (10 张) ---
+    // --- Player2 deck (10 cards) ---
     let p2_cards = [
-        &MURLOC_RAIDER,     // 1费 2/1
-        &MURLOC_RAIDER,     // 1费 2/1
-        &VOODOO_DOCTOR,     // 1费 1/1 战吼:1伤
-        &VOIDWALKER,        // 1费 1/2 嘲讽
-        &BLOODFEN_RAPTOR,   // 2费 2/3
-        &ACIDIC_SWAMP_OOZE, // 2费 3/2 战吼:摧毁武器
-        &ACIDIC_SWAMP_OOZE, // 2费 3/2 战吼:摧毁武器
-        &OGRE_MAGI,         // 4费 4/5
-        &EAGLEHORN_BOW,     // 3费 3/2 武器
-        &ARCHMAGE,          // 6费 6/7
+        &MURLOC_RAIDER,     // 1-cost 2/1
+        &MURLOC_RAIDER,     // 1-cost 2/1
+        &VOODOO_DOCTOR,     // 1-cost 1/1 battlecry: 1 damage
+        &VOIDWALKER,        // 1-cost 1/2 taunt
+        &BLOODFEN_RAPTOR,   // 2-cost 2/3
+        &ACIDIC_SWAMP_OOZE, // 2-cost 3/2 battlecry: destroy weapon
+        &ACIDIC_SWAMP_OOZE, // 2-cost 3/2 battlecry: destroy weapon
+        &OGRE_MAGI,         // 4-cost 4/5
+        &EAGLEHORN_BOW,     // 3-cost 3/2 weapon
+        &ARCHMAGE,          // 6-cost 6/7
     ];
     for card in &p2_cards {
         builder.add_minion_to_deck(PlayerId::Player2, card);
     }
 
-    // 初始抽牌（每人 3 张起手）
+    // Initial draw (3-card opening hand per player)
     builder.set_mana(PlayerId::Player1, 0, 0);
     builder.set_mana(PlayerId::Player2, 0, 0);
     let mut state = builder.build();
 
-    // 手动给每人抽 3 张起手牌
+    // Manually draw 3 opening cards for each player
     for &pid in &[PlayerId::Player1, PlayerId::Player2] {
         for _ in 0..3 {
             let deck_len = state.world().zones().len(Zone::Deck, pid);
@@ -205,9 +205,9 @@ fn two_bots_battle() {
         }
     }
 
-    // ===== 对局循环 =====
+    // ===== Game loop =====
     println!("\n🎮 === 贪心机器人对战开始! ===");
-    let max_turns = 30; // 防止无限循环
+    let max_turns = 30; // prevent infinite loop
     let mut turn_count = 0;
 
     loop {
@@ -343,7 +343,7 @@ fn two_bots_battle() {
                         };
                         println!("{evt_str}");
                     }
-                    // 游戏结束后停止处理
+                    // Stop processing once the game is over
                     if matches!(state.phase(), Phase::GameOver { .. }) {
                         break;
                     }
@@ -354,13 +354,13 @@ fn two_bots_battle() {
             }
         }
 
-        // 检查游戏是否结束
+        // Check whether the game is over
         if matches!(state.phase(), Phase::GameOver { .. }) {
             break;
         }
     }
 
-    // ===== 最终结果 =====
+    // ===== Final result =====
     println!("\n📊 === 对战结束 ===");
     print_board(&state);
 
@@ -393,27 +393,27 @@ fn two_smart_bots_battle() {
     let engine = GameEngine::new();
     let bot = SmartBot::new();
 
-    // ===== 构建初始对局 =====
+    // ===== Build initial game =====
     let mut builder = GameBuilder::new();
 
-    // --- Player1 牌库 (10 张) ---
+    // --- Player1 deck (10 cards) ---
     let p1_cards = [
-        &MURLOC_RAIDER,     // 1费 2/1
-        &MURLOC_RAIDER,     // 1费 2/1
-        &VOODOO_DOCTOR,     // 1费 2/1 战吼:回2
-        &VOIDWALKER,        // 1费 1/3 嘲讽
-        &BLOODFEN_RAPTOR,   // 2费 3/2
-        &BLOODFEN_RAPTOR,   // 2费 3/2
-        &KOBOLD_GEOMANCER,  // 2费 2/2 法伤+1
-        &MURLOC_TIDEHUNTER, // 2费 2/1 战吼:召唤1/1
-        &OGRE_MAGI,         // 4费 4/4
-        &ARCHMAGE,          // 6费 4/7
+        &MURLOC_RAIDER,     // 1-cost 2/1
+        &MURLOC_RAIDER,     // 1-cost 2/1
+        &VOODOO_DOCTOR,     // 1-cost 2/1 battlecry: heal 2
+        &VOIDWALKER,        // 1-cost 1/3 taunt
+        &BLOODFEN_RAPTOR,   // 2-cost 3/2
+        &BLOODFEN_RAPTOR,   // 2-cost 3/2
+        &KOBOLD_GEOMANCER,  // 2-cost 2/2 spell damage +1
+        &MURLOC_TIDEHUNTER, // 2-cost 2/1 battlecry: summon 1/1
+        &OGRE_MAGI,         // 4-cost 4/4
+        &ARCHMAGE,          // 6-cost 4/7
     ];
     for card in &p1_cards {
         builder.add_minion_to_deck(PlayerId::Player1, card);
     }
 
-    // --- Player2 牌库 (10 张) ---
+    // --- Player2 deck (10 cards) ---
     let p2_cards = [
         &MURLOC_RAIDER,
         &MURLOC_RAIDER,
@@ -434,7 +434,7 @@ fn two_smart_bots_battle() {
     builder.set_mana(PlayerId::Player2, 0, 0);
     let mut state = builder.build();
 
-    // 手动给每人抽 3 张起手牌
+    // Manually draw 3 opening cards for each player
     for &pid in &[PlayerId::Player1, PlayerId::Player2] {
         for _ in 0..3 {
             let deck_len = state.world().zones().len(Zone::Deck, pid);
@@ -454,9 +454,9 @@ fn two_smart_bots_battle() {
         }
     }
 
-    // ===== 对局循环 =====
+    // ===== Game loop =====
     println!("\n🧠 === SmartBot 对战开始! ===");
-    let max_turns = 60; // SmartBot 可能更聪明，给更多回合
+    let max_turns = 60; // SmartBot may be smarter; give more turns
     let mut turn_count = 0;
 
     loop {
@@ -607,7 +607,7 @@ fn two_smart_bots_battle() {
         }
     }
 
-    // ===== 最终结果 =====
+    // ===== Final result =====
     println!("\n📊 === SmartBot 对战结束 ===");
     print_board(&state);
 

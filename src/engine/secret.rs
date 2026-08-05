@@ -1,13 +1,15 @@
-//! 奥秘系统 — Secret 组件的检查与触发逻辑。
+//! Secret system — checking and triggering logic for Secret components.
 //!
-//! 奥秘卡牌打出后进入 `Zone::SetAside`（对对手隐藏）。
-//! 每次事件处理后，遍历所有 SetAside 中的奥秘，
-//! 检查触发条件是否匹配。匹配的奥秘被揭示并执行效果。
+//! Secret cards go into `Zone::SetAside` when played (hidden from the opponent).
+//! After each event is processed, all secrets in SetAside are iterated and
+//! checked for a matching trigger. Matched secrets are revealed and their
+//! effects executed.
 //!
-//! # 触发顺序
+//! # Trigger order
 //!
-//! 同玩家多个奥秘同时触发时，按打出顺序（SetAside 中的顺序）依次触发。
-//! 不同玩家的奥秘，主玩家（当前 active player）的先触发。
+//! When multiple secrets of the same player trigger at once, they trigger in
+//! play order (the order in SetAside). Between players, the active player's
+//! secrets trigger first.
 
 use crate::core::component::{CardType, Secret, SecretTrigger};
 use crate::core::effect::CardEffect;
@@ -17,19 +19,19 @@ use crate::core::player::PlayerId;
 use crate::core::state::GameState;
 use crate::core::zone::Zone;
 
-/// 检查所有秘密，触发匹配当前事件的奥秘。
+/// Checks all secrets, triggering those matching the current event.
 ///
-/// 在 `apply_event` 处理完每个事件后调用。
-/// 返回被揭示的奥秘数量。
+/// Called after `apply_event` processes each event.
+/// Returns the number of revealed secrets.
 pub fn check_secrets(state: &mut GameState, queue: &mut EventQueue, event: &Event) -> usize {
     let active = state.active_player();
 
-    // 收集所有 SetAside 中的奥秘（按打出的顺序，主玩家优先）
+    // Collect all secrets in SetAside (in play order, active player first)
     let secrets: Vec<(Entity, PlayerId, Secret)> = {
         let world = state.world();
         let mut active_secrets = Vec::new();
         let mut opponent_secrets = Vec::new();
-        // SetAside 是共享区域，需要手动按玩家分类
+        // SetAside is a shared zone; sort by player manually
         for entity in world.zones().iter(Zone::SetAside, active) {
             if let Some(secret) = world.secret(entity) {
                 if let Some(owner) = world.player(entity) {
@@ -41,7 +43,7 @@ pub fn check_secrets(state: &mut GameState, queue: &mut EventQueue, event: &Even
                 }
             }
         }
-        // 主玩家先触发
+        // Active player triggers first
         active_secrets.extend(opponent_secrets);
         active_secrets
     };
@@ -50,13 +52,13 @@ pub fn check_secrets(state: &mut GameState, queue: &mut EventQueue, event: &Even
 
     for (entity, player, secret) in &secrets {
         if matches_trigger(secret.trigger, event, state, *player) {
-            // 奥秘揭示：从 SetAside 移到 Graveyard
+            // Reveal the secret: move from SetAside to Graveyard
             let _ = state.world_mut().move_to_zone(*entity, Zone::Graveyard);
             queue.push(Event::SecretRevealed {
                 player: *player,
                 secret: *entity,
             });
-            // 解析奥秘效果（部分效果需要触发事件上下文，如狙击/误导）
+            // Resolve the secret effect (some effects need trigger event context, e.g. Snipe/Misdirection)
             resolve_secret_effect(state, queue, event, *entity, *player, secret.effect);
             triggered += 1;
         }
@@ -65,7 +67,7 @@ pub fn check_secrets(state: &mut GameState, queue: &mut EventQueue, event: &Even
     triggered
 }
 
-/// 检查奥秘触发条件是否匹配当前事件。
+/// Checks whether a secret's trigger condition matches the current event.
 fn matches_trigger(
     trigger: SecretTrigger,
     event: &Event,
@@ -74,46 +76,46 @@ fn matches_trigger(
 ) -> bool {
     match trigger {
         SecretTrigger::AfterFriendlyAttacked => {
-            // 己方角色被攻击
+            // A friendly character was attacked
             matches_after_friendly_attacked(event, state, owner)
         }
         SecretTrigger::AfterEnemyMinionPlayed => {
             matches!(event, Event::MinionSummoned { player, .. } if *player != owner)
         }
         SecretTrigger::AfterEnemyHeroAttacks => {
-            // 敌方英雄攻击
+            // The enemy hero attacks
             matches_after_enemy_hero_attacks(event, state, owner)
         }
         SecretTrigger::OnFriendlyTurnStart => {
             matches!(event, Event::TurnStarted { player } if *player == owner)
         }
         SecretTrigger::AfterMinionDied => {
-            // 任意随从死亡（Phase 5 可限制为敌方随从）
+            // Any minion dies (Phase 5 may restrict to enemy minions)
             matches!(event, Event::MinionDied { .. })
         }
         SecretTrigger::WhenEnemySpellCast => {
-            // 敌方施放法术（法术卡牌被打出）
+            // The enemy casts a spell (a spell card was played)
             matches!(event, Event::CardPlayed { player, card, .. } if *player != owner && state.world().card_type(*card) == Some(CardType::Spell))
         }
         SecretTrigger::WhenEnemyMinionAttacksHero => {
             matches_enemy_minion_attacks_hero(event, state, owner)
         }
         SecretTrigger::WhenEnemyAttacksHero => {
-            // 敌方任意角色（随从或英雄）攻击己方英雄
+            // Any enemy character (minion or hero) attacks own hero
             matches_when_enemy_attacks_hero(event, state, owner)
         }
         SecretTrigger::WhenEnemyAttacks => {
-            // 敌方任意角色发起攻击
+            // Any enemy character declares an attack
             matches!(event, Event::AttackDeclared { attacker, .. } if state.world().player(*attacker).is_some_and(|p| p != owner))
         }
         SecretTrigger::WhenFriendlyMinionDamaged => {
-            // 己方随从受到伤害
+            // A friendly minion takes damage
             matches!(event, Event::DamageDealt { target, amount, .. } if *amount > 0 && state.world().player(*target).is_some_and(|p| p == owner) && state.world().card_type(*target) == Some(CardType::Minion))
         }
     }
 }
 
-/// 检查敌方随从是否攻击己方英雄。
+/// Checks whether an enemy minion attacks own hero.
 fn matches_enemy_minion_attacks_hero(event: &Event, state: &GameState, owner: PlayerId) -> bool {
     use crate::core::component::CardType;
     if let Event::AttackDeclared { attacker, defender } = event {
@@ -126,26 +128,26 @@ fn matches_enemy_minion_attacks_hero(event: &Event, state: &GameState, owner: Pl
     }
 }
 
-/// 检查 AfterFriendlyAttacked 触发条件。
+/// Checks the AfterFriendlyAttacked trigger condition.
 fn matches_after_friendly_attacked(event: &Event, state: &GameState, owner: PlayerId) -> bool {
     let Event::AttackDeclared { defender, .. } = event else {
         return false;
     };
-    // 防御者是己方角色
+    // The defender is a friendly character
     state.world().player(*defender).is_some_and(|p| p == owner)
 }
 
-/// 检查 AfterEnemyHeroAttacks 触发条件。
+/// Checks the AfterEnemyHeroAttacks trigger condition.
 fn matches_after_enemy_hero_attacks(event: &Event, state: &GameState, owner: PlayerId) -> bool {
     let Event::AttackDeclared { attacker, .. } = event else {
         return false;
     };
-    // 攻击者是敌方英雄
+    // The attacker is the enemy hero
     state.world().card_type(*attacker) == Some(CardType::Hero)
         && state.world().player(*attacker).is_some_and(|p| p != owner)
 }
 
-/// 检查敌方任意角色是否攻击己方英雄（误导触发条件）。
+/// Checks whether any enemy character attacks own hero (Misdirection trigger condition).
 fn matches_when_enemy_attacks_hero(event: &Event, state: &GameState, owner: PlayerId) -> bool {
     let Event::AttackDeclared { attacker, defender } = event else {
         return false;
@@ -154,11 +156,12 @@ fn matches_when_enemy_attacks_hero(event: &Event, state: &GameState, owner: Play
     *defender == hero && state.world().player(*attacker).is_some_and(|p| p != owner)
 }
 
-/// 解析奥秘效果。
+/// Resolves a secret effect.
 ///
-/// 部分奥秘效果依赖触发事件上下文（狙击需要刚被打出的随从，
-/// 误导/崇高牺牲/法术扭曲者需要重定向队列中的待结算事件），
-/// 在此处理；其余效果委托给 `trigger::resolve_effect`。
+/// Some secret effects depend on the triggering event's context (Snipe needs
+/// the just-played minion; Misdirection / Noble Sacrifice / Spellbender need
+/// to redirect pending events in the queue); these are handled here. All
+/// other effects are delegated to `trigger::resolve_effect`.
 fn resolve_secret_effect(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -169,7 +172,7 @@ fn resolve_secret_effect(
 ) {
     match effect {
         CardEffect::DamagePlayedMinion { amount } => {
-            // 狙击：对刚被打出的随从造成伤害
+            // Snipe: deal damage to the just-played minion
             if let Event::MinionSummoned { minion, .. } = event {
                 queue.push(Event::DamageDealt {
                     source: entity,
@@ -191,10 +194,12 @@ fn resolve_secret_effect(
     }
 }
 
-/// 误导：将攻击重定向到另一个随机角色（包括攻击者自身，排除己方英雄）。
+/// Misdirection: redirects an attack to another random character (including
+/// the attacker itself, excluding own hero).
 ///
-/// 只替换 `ResolveAttack` 事件的防御方；反击伤害由结算逻辑按新目标的
-/// 当前状态自动计算。
+/// Only the defender of the `ResolveAttack` event is replaced; retaliation
+/// damage is computed automatically by the resolution logic from the new
+/// target's current state.
 fn resolve_misdirection(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -205,7 +210,7 @@ fn resolve_misdirection(
         return;
     };
     let hero = state.player(owner).hero;
-    // 收集双方所有角色（英雄 + 随从，含潜行），排除己方英雄
+    // Collect all characters of both players (heroes + minions, including stealthed), excluding own hero
     let mut candidates: Vec<Entity> = [owner, owner.opponent()]
         .iter()
         .flat_map(|&pid| {
@@ -226,14 +231,15 @@ fn resolve_misdirection(
     }
     let idx = state.rng_mut().next_usize(candidates.len());
     let new_target = candidates[idx];
-    // 重定向待结算的攻击
+    // Redirect the pending attack
     queue.redirect_attack(*attacker, hero, new_target);
 }
 
-/// 崇高牺牲：召唤防御者作为攻击的新目标。
+/// Noble Sacrifice: summons a defender as the attack's new target.
 ///
-/// 只替换 `ResolveAttack` 事件的防御方；原防御者的反击自动被
-/// 新防御者的反击取代（结算逻辑按新目标的当前状态计算）。
+/// Only the defender of the `ResolveAttack` event is replaced; the original
+/// defender's retaliation is automatically superseded by the new defender's
+/// (computed from the new target's current state by the resolution logic).
 fn resolve_noble_sacrifice(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -247,14 +253,14 @@ fn resolve_noble_sacrifice(
     let Some(defender_minion) =
         crate::engine::trigger::resolve_summon(state, queue, *defender, owner, card_id)
     else {
-        // 战场已满无法召唤防御者
+        // Board is full; cannot summon a defender
         return;
     };
-    // 重定向攻击到防御者
+    // Redirect the attack to the defender
     queue.redirect_attack(*attacker, *defender, defender_minion);
 }
 
-/// 法术扭曲者：召唤 1/3 随从，将敌方法术对随从的待结算伤害重定向到它。
+/// Spellbender: summons a 1/3 minion and redirects pending damage from enemy spells targeting minions to it.
 fn resolve_spellbender(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -269,7 +275,7 @@ fn resolve_spellbender(
     else {
         return;
     };
-    // 重定向来源为该法术、目标是随从的待结算伤害
+    // Redirect pending damage whose source is the spell and whose target is a minion
     queue.redirect_damages(
         |s, t| s == *card && state.world().card_type(t) == Some(CardType::Minion),
         spellbender,

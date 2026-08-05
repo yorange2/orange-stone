@@ -1,4 +1,4 @@
-//! 怀旧系列 — 圣骑士 (Paladin)。
+//! Classic set — Paladin.
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
@@ -7,7 +7,7 @@ use crate::core::effect::{CardEffect, EffectTarget};
 use crate::vanilla;
 
 // ============================================================
-// 怀旧系列 — 圣骑士 (Paladin)
+// Classic set — Paladin
 // ============================================================
 
 pub const BLESSING_OF_MIGHT: CardDef = CardDef {
@@ -466,7 +466,7 @@ pub const LAY_ON_HANDS: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 神圣愤怒 — 抽一张牌，造成等同于其法力消耗的伤害（简化：仅抽牌）
+/// Holy Wrath — draw a card, deal damage equal to its mana cost (simplified: draw only)
 pub const HOLY_WRATH: CardDef = CardDef {
     id: "PALADIN_017",
     name: "Holy Wrath",
@@ -499,7 +499,7 @@ pub const HOLY_WRATH: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 正义 — 使你的随从获得圣盾（简化版，无法实现群体圣盾）
+/// Righteousness — give your minions Divine Shield (simplified; mass Divine Shield not implementable)
 pub const RIGHTEOUSNESS: CardDef = CardDef {
     id: "PALADIN_018",
     name: "Righteousness",
@@ -534,7 +534,7 @@ pub const RIGHTEOUSNESS: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// 圣骑士补全
+// Paladin additions
 pub const HAND_OF_PROTECTION: CardDef = CardDef {
     id: "PALADIN_014",
     name: "Hand of Protection",
@@ -627,7 +627,7 @@ pub const ARGENT_PROTECTOR: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 受祝福的勇士 — 使一个随从的攻击力翻倍
+/// Blessed Champion — double a minion's Attack
 pub const BLESSED_CHAMPION: CardDef = CardDef {
     id: "PALADIN_016",
     name: "Blessed Champion",
@@ -660,7 +660,7 @@ pub const BLESSED_CHAMPION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 公正之剑 — 每当你召唤随从，使其获得+1/+1（简化）
+/// Sword of Justice — whenever you summon a minion, give it +1/+1 (simplified)
 pub const SWORD_OF_JUSTICE: CardDef = CardDef {
     id: "PALADIN_017",
     name: "Sword of Justice",
@@ -695,7 +695,7 @@ pub const SWORD_OF_JUSTICE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 忏悔 — 奥秘：当你的对手打出一个随从，将其生命值变为1（简化：DealDamage）
+/// Repentance — Secret: when your opponent plays a minion, set its Health to 1 (simplified: DealDamage)
 pub const REPENTANCE: CardDef = CardDef {
     id: "PALADIN_018",
     name: "Repentance",
@@ -726,7 +726,7 @@ pub const REPENTANCE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 智慧祝福 — 每当目标随从攻击，抽一张牌（简化：无效果）
+/// Blessing of Wisdom — whenever the target minion attacks, draw a card (simplified: no effect)
 pub const BLESSING_OF_WISDOM: CardDef = CardDef {
     id: "PALADIN_019",
     name: "Blessing of Wisdom",
@@ -757,7 +757,7 @@ pub const BLESSING_OF_WISDOM: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 以眼还眼 — 奥秘：当你的英雄受到伤害时，对敌方英雄造成等量伤害
+/// Eye for an Eye — Secret: when your hero takes damage, deal equal damage to the enemy hero
 pub const EYE_FOR_AN_EYE: CardDef = CardDef {
     id: "PALADIN_020",
     name: "Eye for an Eye",
@@ -788,7 +788,7 @@ pub const EYE_FOR_AN_EYE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 救赎 — 奥秘：当一个友方随从死亡时，将其复活并具有1点生命值
+/// Redemption — Secret: when a friendly minion dies, resummon it with 1 Health
 pub const REDEMPTION: CardDef = CardDef {
     id: "PALADIN_021",
     name: "Redemption",
@@ -819,10 +819,10 @@ pub const REDEMPTION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 崇高牺牲（奥秘）
+// Tier 2 additions — Noble Sacrifice (Secret)
 // ============================================================
 
-/// 崇高牺牲 — 奥秘：当敌方攻击时，召唤一个 2/1 防御者作为新目标。
+/// Noble Sacrifice — Secret: when an enemy attacks, summon a 2/1 Defender as the new target.
 pub const NOBLE_SACRIFICE: CardDef = CardDef {
     id: "PALADIN_022",
     name: "Noble Sacrifice",
@@ -855,5 +855,5 @@ pub const NOBLE_SACRIFICE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 防御者（崇高牺牲 token）— 2/1
+/// Defender (Noble Sacrifice token) — 2/1
 pub const DEFENDER: CardDef = vanilla!("PALADIN_022t", "Defender", 1, 2, 1);

@@ -1,12 +1,12 @@
-//! 集成测试 — 完整对局流程。
+//! Integration tests — full game flow.
 //!
-//! 测试覆盖 Phase 1 所有功能：
-//! - 出牌（白板随从）
-//! - 随从交易
-//! - 攻击英雄
-//! - 回合切换
-//! - 游戏结束
-//! - 确定性回放
+//! Covers all Phase 1 features:
+//! - Playing cards (vanilla minions)
+//! - Minion trading
+//! - Attacking heroes
+//! - Turn switching
+//! - Game over
+//! - Deterministic replay
 
 use orange_stone::cards::def::{BLOODFEN_RAPTOR, MURLOC_RAIDER, OGRE_MAGI};
 use orange_stone::core::action::Action;
@@ -21,7 +21,7 @@ use orange_stone::engine::rules::EngineError;
 use orange_stone::sim::game::GameBuilder;
 
 // ============================================================
-// 出牌测试
+// Play card tests
 // ============================================================
 
 #[test]
@@ -43,12 +43,12 @@ fn play_minion_moves_from_hand_to_board() {
         .apply(&mut state, Action::PlayCard { card, target: None })
         .unwrap();
 
-    // 检查事件
+    // Check events
     assert_eq!(log.len(), 2);
     assert!(matches!(log[0], Event::CardPlayed { .. }));
     assert!(matches!(log[1], Event::MinionSummoned { .. }));
 
-    // 卡牌应在战场上
+    // The card should be on the board
     assert_eq!(state.world().zone(card), Some(Zone::Play));
     assert!(
         state
@@ -63,7 +63,7 @@ fn not_enough_mana_rejected() {
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
     builder.add_minion_to_hand(PlayerId::Player1, &OGRE_MAGI);
-    // 不设置法力，默认 0
+    // No mana set; defaults to 0
     let mut state = builder.build();
 
     let hand: Vec<Entity> = state
@@ -80,7 +80,7 @@ fn not_enough_mana_rejected() {
 fn play_card_when_board_has_7_minions_fails() {
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
-    // 填满 7 个随从
+    // Fill the board with 7 minions
     for _ in 0..7 {
         builder.add_minion_to_board(PlayerId::Player1, &MURLOC_RAIDER);
     }
@@ -119,7 +119,7 @@ fn play_card_not_your_turn() {
 }
 
 // ============================================================
-// 攻击测试
+// Attack tests
 // ============================================================
 
 #[test]
@@ -132,19 +132,19 @@ fn attack_trade_deals_damage_both_ways() {
 
     let mut state_copy = state.clone();
 
-    // 执行攻击
+    // Execute the attack
     let _log = engine
         .apply(&mut state_copy, Action::Attack { attacker, defender })
         .unwrap();
 
-    // defender 应受到 4 伤害: 3 - 4 = -1 → 死亡
+    // defender should take 4 damage: 3 - 4 = -1 → dies
     assert_eq!(
         state_copy.world().health(defender),
         Some(orange_stone::core::component::Health(-1))
     );
     assert_eq!(state_copy.world().zone(defender), Some(Zone::Graveyard));
 
-    // attacker 应受到 2 伤害: 5 - 2 = 3
+    // attacker should take 2 damage: 5 - 2 = 3
     assert_eq!(
         state_copy.world().health(attacker),
         Some(orange_stone::core::component::Health(3))
@@ -164,18 +164,18 @@ fn attacker_dies_in_trade_still_deals_damage() {
         .apply(&mut state, Action::Attack { attacker, defender })
         .unwrap();
 
-    // defender 受到 4 伤害: 10 → 6，存活
+    // defender takes 4 damage: 10 → 6, survives
     assert_eq!(
         state.world().health(defender),
         Some(orange_stone::core::component::Health(6))
     );
-    // attacker 受到 3 伤害: 1 → -2，死亡
+    // attacker takes 3 damage: 1 → -2, dies
     assert_eq!(
         state.world().health(attacker),
         Some(orange_stone::core::component::Health(-2))
     );
     assert_eq!(state.world().zone(attacker), Some(Zone::Graveyard));
-    // event log 包含 MinionDied
+    // Event log contains MinionDied
     assert!(log.iter().any(|e| matches!(e, Event::MinionDied { .. })));
 }
 
@@ -198,17 +198,17 @@ fn attack_hero_deals_damage_one_way() {
         )
         .unwrap();
 
-    // 英雄受到 5 伤害
+    // Hero takes 5 damage
     assert_eq!(
         state.world().health(hero),
         Some(orange_stone::core::component::Health(25))
     );
-    // 攻击者不受伤害（英雄不还手）
+    // Attacker takes no damage (hero does not retaliate)
     assert_eq!(
         state.world().health(attacker),
         Some(orange_stone::core::component::Health(3))
     );
-    // DamageDealt 事件只有一个（只有攻击者→英雄）
+    // Only one DamageDealt event (attacker → hero only)
     let damage_count = log
         .iter()
         .filter(|e| matches!(e, Event::DamageDealt { .. }))
@@ -253,7 +253,7 @@ fn cannot_attack_twice_in_one_turn() {
     let defender2 = builder.add_custom_minion_to_board(PlayerId::Player2, 1, 5, 1);
     let mut state = builder.build();
 
-    // 第一次攻击
+    // First attack
     engine
         .apply(
             &mut state,
@@ -264,7 +264,7 @@ fn cannot_attack_twice_in_one_turn() {
         )
         .unwrap();
 
-    // 第二次攻击应该失败
+    // Second attack should fail
     let result = engine.apply(
         &mut state,
         Action::Attack {
@@ -283,7 +283,7 @@ fn attacks_reset_after_end_turn() {
     let defender = builder.add_custom_minion_to_board(PlayerId::Player2, 1, 20, 1);
     let mut state = builder.build();
 
-    // 攻击
+    // Attack
     engine
         .apply(&mut state, Action::Attack { attacker, defender })
         .unwrap();
@@ -293,12 +293,12 @@ fn attacks_reset_after_end_turn() {
         Some(orange_stone::core::component::AttacksUsed(1))
     );
 
-    // Player1 结束回合 → Player2 的回合
+    // Player1 ends turn → Player2's turn
     engine.apply(&mut state, Action::EndTurn).unwrap();
-    // Player2 结束回合 → 回到 Player1
+    // Player2 ends turn → back to Player1
     engine.apply(&mut state, Action::EndTurn).unwrap();
 
-    // Player1 的随从攻击次数应已重置
+    // Player1's minion attacks should have been reset
     assert_eq!(
         state.world().attacks_used(attacker),
         Some(orange_stone::core::component::AttacksUsed(0))
@@ -341,7 +341,7 @@ fn cannot_attack_with_stale_entity() {
 }
 
 // ============================================================
-// 回合切换测试
+// Turn switching tests
 // ============================================================
 
 #[test]
@@ -367,7 +367,7 @@ fn game_over_rejects_all_actions() {
     let hero = state.player(PlayerId::Player2).hero;
 
     let mut state = state;
-    // 先结束游戏
+    // End the game first
     engine
         .apply(
             &mut state,
@@ -378,7 +378,7 @@ fn game_over_rejects_all_actions() {
         )
         .unwrap();
 
-    // 所有操作都应该拒绝
+    // All actions should be rejected
     assert_eq!(
         engine.apply(&mut state, Action::EndTurn),
         Err(EngineError::GameAlreadyOver)
@@ -386,7 +386,7 @@ fn game_over_rejects_all_actions() {
 }
 
 // ============================================================
-// 确定性测试
+// Determinism tests
 // ============================================================
 
 #[test]
@@ -405,7 +405,7 @@ fn same_actions_produce_identical_results() {
     let (mut state1, card1a, card2a, defender_a) = build_game();
     let (mut state2, card1b, card2b, defender_b) = build_game();
 
-    // 执行相同的操作序列
+    // Execute the same action sequence
     let log1 = engine
         .apply(
             &mut state1,
@@ -450,7 +450,7 @@ fn same_actions_produce_identical_results() {
     let log2 = engine.apply(&mut state2, Action::EndTurn).unwrap();
     assert_eq!(log1, log2);
 
-    // Player2 攻击（现在 Player2 是 active player）
+    // Player2 attacks (Player2 is now the active player)
     let log1 = engine
         .apply(
             &mut state1,
@@ -471,7 +471,7 @@ fn same_actions_produce_identical_results() {
         .unwrap();
     assert_eq!(log1, log2);
 
-    // 最终状态应该一致
+    // Final states should match
     assert_eq!(state1.world().health(card1a), state2.world().health(card1b));
     assert_eq!(
         state1.world().health(defender_a),
@@ -491,7 +491,7 @@ fn full_game_scenario() {
     builder.set_mana(PlayerId::Player2, 10, 10);
     let mut state = builder.build();
 
-    // Turn 1: Player1 打出 Yeti (4/5)
+    // Turn 1: Player1 plays Yeti (4/5)
     let log = engine
         .apply(
             &mut state,
@@ -507,7 +507,7 @@ fn full_game_scenario() {
             .any(|e| matches!(e, Event::MinionSummoned { .. }))
     );
 
-    // Player1 打出 Crocolisk (2/3)
+    // Player1 plays Crocolisk (2/3)
     let log = engine
         .apply(
             &mut state,
@@ -519,13 +519,13 @@ fn full_game_scenario() {
         .unwrap();
     assert_eq!(log.len(), 2);
 
-    // 召唤失调：刚打出的随从不能攻击，先过两个回合让召唤失调消失
-    // Player1 结束回合 → Player2 的回合
+    // Summoning sickness: freshly played minions cannot attack; wait two turns for it to wear off
+    // Player1 ends turn → Player2's turn
     engine.apply(&mut state, Action::EndTurn).unwrap();
-    // Player2 结束回合 → 回到 Player1 的回合
+    // Player2 ends turn → back to Player1's turn
     engine.apply(&mut state, Action::EndTurn).unwrap();
 
-    // 尝试用 Croc (2/3) 攻击 Ogre (6/7) — 自杀式攻击但合法
+    // Try attacking Ogre (6/7) with Croc (2/3) — suicidal but legal
     engine
         .apply(
             &mut state,
@@ -535,14 +535,14 @@ fn full_game_scenario() {
             },
         )
         .unwrap();
-    // Croc 受到 6 伤害: 3 → -3 死亡; Ogre 受到 2 伤害: 7 → 5
+    // Croc takes 6 damage: 3 → -3 dies; Ogre takes 2 damage: 7 → 5
     assert_eq!(state.world().zone(croc), Some(Zone::Graveyard));
     assert_eq!(
         state.world().health(ogre),
         Some(orange_stone::core::component::Health(5))
     );
 
-    // 用 Yeti (4/5) 攻击受伤的 Ogre (6/5)
+    // Attack the wounded Ogre (6/5) with Yeti (4/5)
     engine
         .apply(
             &mut state,
@@ -552,7 +552,7 @@ fn full_game_scenario() {
             },
         )
         .unwrap();
-    // Yeti 受到 6 伤害: 5 → -1 死亡; Ogre 受到 4 伤害: 5 → 1 存活
+    // Yeti takes 6 damage: 5 → -1 dies; Ogre takes 4 damage: 5 → 1 survives
     assert_eq!(state.world().zone(yeti), Some(Zone::Graveyard));
     assert_eq!(state.world().zone(ogre), Some(Zone::Play));
     assert_eq!(
@@ -560,10 +560,10 @@ fn full_game_scenario() {
         Some(orange_stone::core::component::Health(1))
     );
 
-    // Player1 结束回合
+    // Player1 ends turn
     engine.apply(&mut state, Action::EndTurn).unwrap();
 
-    // 现在 Player2 的回合，Ogre 可以攻击; 先获取英雄实体
+    // Now Player2's turn; Ogre can attack; first get the hero entity
     let hero = state.player(PlayerId::Player1).hero;
     engine
         .apply(
@@ -575,7 +575,7 @@ fn full_game_scenario() {
         )
         .unwrap();
 
-    // 英雄受到 6 伤害
+    // Hero takes 6 damage
     assert_eq!(
         state.world().health(hero),
         Some(orange_stone::core::component::Health(24))
@@ -583,7 +583,7 @@ fn full_game_scenario() {
 }
 
 // ============================================================
-// Phase 3: 武器测试
+// Phase 3: Weapon tests
 // ============================================================
 
 #[test]
@@ -631,13 +631,13 @@ fn hero_attack_with_weapon_consumes_durability() {
         )
         .unwrap();
 
-    // 武器耐久应从 2 减到 1
+    // Weapon durability should drop from 2 to 1
     let weapon = state.player(PlayerId::Player1).weapon.unwrap();
     assert_eq!(
         state.world().durability(weapon),
         Some(orange_stone::core::component::Durability(1))
     );
-    // 敌方英雄应受 3 伤害（武器攻击力）
+    // Enemy hero should take 3 damage (weapon attack)
     assert_eq!(
         state.world().health(defender_hero),
         Some(orange_stone::core::component::Health(27))
@@ -662,7 +662,7 @@ fn weapon_breaks_when_durability_reaches_zero() {
     let enemy = state.player(PlayerId::Player2).hero;
 
     let mut state = state;
-    // 第一次攻击：耐久 2 → 1
+    // First attack: durability 2 → 1
     engine
         .apply(
             &mut state,
@@ -674,11 +674,11 @@ fn weapon_breaks_when_durability_reaches_zero() {
         .unwrap();
     assert!(state.player(PlayerId::Player1).weapon.is_some());
 
-    // 需要结束两个回合才能再次攻击（英雄每回合只能攻击一次）
+    // Need two end-turns before attacking again (hero attacks once per turn)
     engine.apply(&mut state, Action::EndTurn).unwrap(); // Player2's turn
     engine.apply(&mut state, Action::EndTurn).unwrap(); // Back to Player1
 
-    // 第二次攻击：耐久 1 → 0，武器应被摧毁
+    // Second attack: durability 1 → 0, weapon should be destroyed
     let log = engine
         .apply(
             &mut state,
@@ -714,7 +714,7 @@ fn hero_cannot_attack_without_weapon() {
 }
 
 // ============================================================
-// Phase 3: 护甲测试
+// Phase 3: Armor tests
 // ============================================================
 
 #[test]
@@ -737,9 +737,9 @@ fn armor_absorbs_damage_before_health() {
         )
         .unwrap();
 
-    // 英雄受到 3 伤害，护甲应该吸收全部：5 → 2
+    // Hero takes 3 damage; armor should absorb it all: 5 → 2
     assert_eq!(state.player(PlayerId::Player2).armor, 2);
-    // 生命值不应减少（全部被护甲吸收）
+    // Health should not decrease (fully absorbed by armor)
     assert_eq!(
         state.world().health(hero),
         Some(orange_stone::core::component::Health(30))
@@ -766,9 +766,9 @@ fn damage_spills_over_armor_to_health() {
         )
         .unwrap();
 
-    // 护甲 3 被全部消耗
+    // All 3 armor is consumed
     assert_eq!(state.player(PlayerId::Player2).armor, 0);
-    // 剩余 7 伤害穿透到生命值：30 → 23
+    // Remaining 7 damage spills over to health: 30 → 23
     assert_eq!(
         state.world().health(hero),
         Some(orange_stone::core::component::Health(23))
@@ -776,7 +776,7 @@ fn damage_spills_over_armor_to_health() {
 }
 
 // ============================================================
-// Phase 3: 英雄技能测试
+// Phase 3: Hero power tests
 // ============================================================
 
 #[test]
@@ -798,7 +798,7 @@ fn hero_power_use_once_per_turn() {
     let hero = state.player(PlayerId::Player1).hero;
 
     let mut state = state;
-    // 第一次使用：成功
+    // First use: succeeds
     let log = engine
         .apply(&mut state, Action::HeroPower { hero })
         .unwrap();
@@ -806,10 +806,10 @@ fn hero_power_use_once_per_turn() {
         log.iter()
             .any(|e| matches!(e, Event::HeroPowerActivated { .. }))
     );
-    // 法力应减少 2
+    // Mana should decrease by 2
     assert_eq!(state.player(PlayerId::Player1).current_mana, 8);
 
-    // 第二次使用：应失败（本回合已使用）
+    // Second use: should fail (already used this turn)
     let result = engine.apply(&mut state, Action::HeroPower { hero });
     assert_eq!(result, Err(EngineError::HeroPowerAlreadyUsed));
 }
@@ -834,7 +834,7 @@ fn hero_power_resets_after_turn() {
     let hero = state.player(PlayerId::Player1).hero;
 
     let mut state = state;
-    // 使用英雄技能
+    // Use the hero power
     engine
         .apply(&mut state, Action::HeroPower { hero })
         .unwrap();
@@ -843,23 +843,23 @@ fn hero_power_resets_after_turn() {
         Some(orange_stone::core::component::HeroPowerUsed(true))
     );
 
-    // Player1 结束回合 → Player2
+    // Player1 ends turn → Player2
     engine.apply(&mut state, Action::EndTurn).unwrap();
-    // Player2 结束回合 → 回到 Player1（TurnStarted 重置）
+    // Player2 ends turn → back to Player1 (TurnStarted resets it)
     engine.apply(&mut state, Action::EndTurn).unwrap();
 
-    // 英雄技能应已重置
+    // Hero power should have been reset
     assert_eq!(
         state.world().hero_power_used(hero),
         Some(orange_stone::core::component::HeroPowerUsed(false))
     );
-    // 可以再次使用
+    // Can be used again
     let result = engine.apply(&mut state, Action::HeroPower { hero });
     assert!(result.is_ok());
 }
 
 // ============================================================
-// Phase 3: 光环测试
+// Phase 3: Aura tests
 // ============================================================
 
 #[test]
@@ -867,17 +867,17 @@ fn aura_buffs_other_friendly_minions() {
     use orange_stone::cards::def::GRIMSCALE_ORACLE;
 
     let mut builder = GameBuilder::new();
-    // 团队领袖：其他友方随从 +1 攻击力
+    // Raid Leader: other friendly minions get +1 attack
     builder.add_minion_to_board(PlayerId::Player1, &GRIMSCALE_ORACLE);
     let croc = builder.add_custom_minion_to_board(PlayerId::Player1, 2, 3, 2);
     let state = builder.build();
 
-    // 鳄鱼的有效攻击力应该从 2 变为 3（光环 +1）
+    // Croc's effective attack should go from 2 to 3 (aura +1)
     assert_eq!(
         state.world().effective_attack(croc),
         Some(orange_stone::core::component::Attack(3))
     );
-    // 团队领袖自身不应受加成（OtherFriendlyMinions）
+    // Raid Leader itself should not be buffed (OtherFriendlyMinions)
     let leader: Vec<_> = state
         .world()
         .zones()
@@ -886,8 +886,8 @@ fn aura_buffs_other_friendly_minions() {
             state.world().card_type(e) == Some(orange_stone::core::component::CardType::Minion)
         })
         .collect();
-    // leader 的有效攻击力应包括自身基础攻击力 + 其他光环
-    // GRIMSCALE_ORACLE 有 1 攻击力（自身），不给自己加
+    // Leader's effective attack should be its base attack plus other auras
+    // GRIMSCALE_ORACLE has 1 base attack; no self-buff
     assert_eq!(
         state.world().effective_attack(leader[0]),
         Some(orange_stone::core::component::Attack(1))
@@ -907,7 +907,7 @@ fn aura_bonus_disappears_when_source_dies() {
     let state = builder.build();
 
     let mut state = state;
-    // 团队领袖被敌方随从攻击致死
+    // Raid Leader is killed by the enemy minion's attack
     let leader: Vec<_> = state
         .world()
         .zones()
@@ -928,12 +928,12 @@ fn aura_bonus_disappears_when_source_dies() {
         )
         .unwrap();
 
-    // 团队领袖应死亡（1 HP vs 5 ATK → -4）
+    // Raid Leader should die (1 HP vs 5 ATK → -4)
     assert_eq!(
         state.world().zone(leader_entity),
         Some(orange_stone::core::zone::Zone::Graveyard)
     );
-    // 鳄鱼的有效攻击力应恢复到 2（无光环加成）
+    // Croc's effective attack should return to 2 (no aura bonus)
     assert_eq!(
         state.world().effective_attack(croc),
         Some(orange_stone::core::component::Attack(2))
@@ -949,7 +949,7 @@ fn stormwind_champion_buffs_attack_and_health() {
     let ally = builder.add_custom_minion_to_board(PlayerId::Player1, 2, 3, 2);
     let state = builder.build();
 
-    // 友方随从应获得 +2/+1
+    // Friendly minion should get +2/+1
     assert_eq!(
         state.world().effective_attack(ally),
         Some(orange_stone::core::component::Attack(4))
@@ -961,7 +961,7 @@ fn stormwind_champion_buffs_attack_and_health() {
 }
 
 // ============================================================
-// Phase 3: 奥秘测试
+// Phase 3: Secret tests
 // ============================================================
 
 #[test]
@@ -977,7 +977,7 @@ fn secret_triggers_on_enemy_hero_attack() {
     builder.active_player(PlayerId::Player2);
     let mut state = builder.build();
 
-    // 给 Player2 装备武器
+    // Equip a weapon for Player2
     {
         let inner = state.make_mut();
         let weapon = inner.world.spawn();
@@ -997,7 +997,7 @@ fn secret_triggers_on_enemy_hero_attack() {
         inner.players[PlayerId::Player2.index()].weapon = Some(weapon);
     }
 
-    // 在 Player1 的 SetAside 创建奥秘
+    // Create a secret in Player1's SetAside
     {
         let world = state.world_mut();
         let secret_entity = world.spawn();
@@ -1032,7 +1032,7 @@ fn secret_triggers_on_enemy_hero_attack() {
         )
         .unwrap();
 
-    // 奥秘应该被触发
+    // Secret should be triggered
     assert!(
         log.iter()
             .any(|e| matches!(e, Event::SecretRevealed { .. }))
@@ -1040,7 +1040,7 @@ fn secret_triggers_on_enemy_hero_attack() {
 }
 
 // ============================================================
-// Phase 3: 复杂时序测试
+// Phase 3: Complex ordering tests
 // ============================================================
 
 #[test]
@@ -1055,12 +1055,12 @@ fn deathrattle_triggers_before_zone_transfer() {
     let minion = builder.add_custom_minion_to_board(PlayerId::Player2, 1, 1, 1);
     let mut state = builder.build();
 
-    // 给 minion 添加亡语：抽一张牌
+    // Give the minion a deathrattle: draw a card
     state
         .world_mut()
         .set_deathrattle(minion, Deathrattle(CardEffect::DrawCard { count: 1 }));
 
-    // 把一张牌放入 Player2 的牌库
+    // Put a card into Player2's deck
     let card_in_deck = {
         let world = state.world_mut();
         let card = world.spawn();
@@ -1086,9 +1086,9 @@ fn deathrattle_triggers_before_zone_transfer() {
         )
         .unwrap();
 
-    // minion 应被杀死并触发亡语抽牌
+    // Minion should die and trigger the deathrattle draw
     assert_eq!(state.world().zone(minion), Some(Zone::Graveyard));
-    // 亡语抽的牌应在手牌中
+    // The deathrattle-drawn card should be in hand
     assert!(log.iter().any(|e| matches!(e, Event::CardDrawn { .. })));
     assert_eq!(state.world().zone(card_in_deck), Some(Zone::Hand));
 }
@@ -1106,7 +1106,7 @@ fn multiple_secrets_trigger_in_order() {
     builder.active_player(PlayerId::Player2);
     let mut state = builder.build();
 
-    // 在 Player1 的 SetAside 创建两个奥秘
+    // Create two secrets in Player1's SetAside
     {
         let world = state.world_mut();
         let s1 = world.spawn();
@@ -1146,7 +1146,7 @@ fn multiple_secrets_trigger_in_order() {
             .insert(Zone::SetAside, PlayerId::Player1, s2);
     }
 
-    // 给 Player2 装备武器
+    // Equip a weapon for Player2
     {
         let inner = state.make_mut();
         let weapon = inner.world.spawn();
@@ -1173,7 +1173,7 @@ fn multiple_secrets_trigger_in_order() {
         .apply(&mut state, Action::Attack { attacker, defender })
         .unwrap();
 
-    // 两个奥秘都应被触发
+    // Both secrets should be triggered
     let secret_count = log
         .iter()
         .filter(|e| matches!(e, Event::SecretRevealed { .. }))
@@ -1182,7 +1182,7 @@ fn multiple_secrets_trigger_in_order() {
 }
 
 // ============================================================
-// Phase 4: Hero Attack 测试 (Heroic Strike, Claw, Bite)
+// Phase 4: Hero Attack tests (Heroic Strike, Claw, Bite)
 // ============================================================
 
 #[test]
@@ -1197,13 +1197,13 @@ fn heroic_strike_gives_hero_attack_this_turn() {
 
     let hero = state.player(PlayerId::Player1).hero;
 
-    // 英雄初始攻击力应为 0
+    // Hero's base attack should be 0
     assert_eq!(
         state.world().attack(hero),
         Some(orange_stone::core::component::Attack(0))
     );
 
-    // 找到手牌中的 Heroic Strike
+    // Find Heroic Strike in hand
     let hand: Vec<Entity> = state
         .world()
         .zones()
@@ -1211,25 +1211,25 @@ fn heroic_strike_gives_hero_attack_this_turn() {
         .collect();
     let card = hand[0];
 
-    // 打出 Heroic Strike
+    // Play Heroic Strike
     let log = engine
         .apply(&mut state, Action::PlayCard { card, target: None })
         .unwrap();
 
-    // 检查事件
+    // Check events
     assert!(log.iter().any(|e| matches!(e, Event::CardPlayed { .. })));
 
-    // 英雄攻击力应为 4
+    // Hero attack should be 4
     assert_eq!(
         state.world().attack(hero),
         Some(orange_stone::core::component::Attack(4))
     );
     assert_eq!(state.player(PlayerId::Player1).temp_attack_bonus, 4);
 
-    // 法术牌应进入坟场
+    // The spell should go to the graveyard
     assert_eq!(state.world().zone(card), Some(Zone::Graveyard));
 
-    // 结束回合 → 英雄攻击力应恢复为 0
+    // End turn → hero attack should return to 0
     engine.apply(&mut state, Action::EndTurn).unwrap();
 
     assert_eq!(
@@ -1252,7 +1252,7 @@ fn hero_with_temp_attack_can_attack() {
     let hero = state.player(PlayerId::Player1).hero;
     let enemy_hero = state.player(PlayerId::Player2).hero;
 
-    // 打 Heroic Strike
+    // Play Heroic Strike
     let hand: Vec<Entity> = state
         .world()
         .zones()
@@ -1263,7 +1263,7 @@ fn hero_with_temp_attack_can_attack() {
         .apply(&mut state, Action::PlayCard { card, target: None })
         .unwrap();
 
-    // 现在英雄有 4 攻击力，可以攻击（无需武器）
+    // Hero now has 4 attack and can attack (no weapon needed)
     let _log = engine
         .apply(
             &mut state,
@@ -1274,7 +1274,7 @@ fn hero_with_temp_attack_can_attack() {
         )
         .unwrap();
 
-    // 敌方英雄应受到 4 点伤害
+    // Enemy hero should take 4 damage
     assert_eq!(
         state.world().health(enemy_hero),
         Some(orange_stone::core::component::Health(26))
@@ -1292,7 +1292,7 @@ fn grant_windfury_gives_minion_windfury() {
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
     builder.add_minion_to_hand(PlayerId::Player1, &WINDFURY);
-    // 放一个友方随从在场上
+    // Put a friendly minion on the board
     let minion = builder.add_custom_minion_to_board(PlayerId::Player1, 3, 5, 3);
     builder.set_mana(PlayerId::Player1, 10, 10);
     let mut state = builder.build();
@@ -1308,9 +1308,9 @@ fn grant_windfury_gives_minion_windfury() {
         .apply(&mut state, Action::PlayCard { card, target: None })
         .unwrap();
 
-    // 随从应获得风怒
+    // Minion should gain windfury
     assert!(state.world().windfury(minion).is_some());
-    // max_attacks 应该变为 2
+    // max_attacks should become 2
     assert_eq!(state.world().max_attacks(minion), 2);
 }
 
@@ -1336,7 +1336,7 @@ fn double_attack_doubles_minion_attack() {
         .apply(&mut state, Action::PlayCard { card, target: None })
         .unwrap();
 
-    // 随从攻击力应从 4 翻倍到 8
+    // Minion attack should double from 4 to 8
     assert_eq!(
         state.world().attack(minion),
         Some(orange_stone::core::component::Attack(8))
@@ -1365,7 +1365,7 @@ fn double_health_doubles_minion_health() {
         .apply(&mut state, Action::PlayCard { card, target: None })
         .unwrap();
 
-    // 随从生命值应从 6 翻倍到 12 (上限 30)
+    // Minion health should double from 6 to 12 (cap 30)
     assert_eq!(
         state.world().health(minion),
         Some(orange_stone::core::component::Health(12))
@@ -1383,7 +1383,7 @@ fn grant_charge_allows_immediate_attack() {
     builder.set_mana(PlayerId::Player1, 10, 10);
     let mut state = builder.build();
 
-    // 先让随从进入召唤失调状态
+    // Put the minion into summoning sickness first
     state
         .world_mut()
         .set_attacks_used(minion, orange_stone::core::component::AttacksUsed(1));
@@ -1399,14 +1399,14 @@ fn grant_charge_allows_immediate_attack() {
         .apply(&mut state, Action::PlayCard { card, target: None })
         .unwrap();
 
-    // 随从应获得冲锋
+    // Minion should gain charge
     assert!(state.world().charge(minion).is_some());
-    // 攻击次数应重置，允许立即攻击
+    // Attacks used should reset, allowing an immediate attack
     assert_eq!(
         state.world().attacks_used(minion),
         Some(orange_stone::core::component::AttacksUsed(0))
     );
-    // 攻击力应从 3 变为 5（+2 加成）
+    // Attack should go from 3 to 5 (+2 bonus)
     assert_eq!(
         state.world().attack(minion),
         Some(orange_stone::core::component::Attack(5))
@@ -1414,14 +1414,14 @@ fn grant_charge_allows_immediate_attack() {
 }
 
 // ============================================================
-// Tier 1: 怀旧系列补全卡牌 (docs/classic-cards-roadmap.md)
+// Tier 1: Classic set completion cards (docs/classic-cards-roadmap.md)
 // ============================================================
 
 #[test]
 fn tier1_vanilla_neutrals_registered() {
     use orange_stone::cards::def::card_by_id;
 
-    // 白板随从 + 潜行随从（简化：白板）
+    // Vanilla minions + stealth minions (simplified: vanilla)
     let checks = [
         ("NEUTRAL_T01", "Wisp", 0, 1, 1),
         ("NEUTRAL_T05", "River Crocolisk", 2, 2, 3),
@@ -1461,7 +1461,7 @@ fn elven_archer_battlecry_deals_one_damage() {
         .apply(&mut state, Action::PlayCard { card, target: None })
         .unwrap();
 
-    // 敌方只有英雄，1 点伤害必然打在英雄上
+    // Enemy has only the hero, so 1 damage must hit the hero
     let enemy_hero = state.player(PlayerId::Player2).hero;
     assert_eq!(
         state.world().health(enemy_hero),
@@ -1524,7 +1524,7 @@ fn novice_engineer_battlecry_draws_card() {
         .unwrap();
 
     assert!(log.iter().any(|e| matches!(e, Event::CardDrawn { .. })));
-    // 牌库中的 Wisp 应被抽到手牌
+    // The Wisp in the deck should be drawn into hand
     let hand_count = state
         .world()
         .zones()
@@ -1569,7 +1569,7 @@ fn shattered_sun_cleric_buffs_friendly_minion() {
         .apply(&mut state, Action::PlayCard { card, target: None })
         .unwrap();
 
-    // 场上唯一的友方随从是祭司自己，战吼必加在它身上
+    // The cleric is the only friendly minion; the battlecry must buff itself
     assert_eq!(
         state.world().attack(card),
         Some(orange_stone::core::component::Attack(4))
@@ -1624,7 +1624,7 @@ fn dire_wolf_alpha_buffs_adjacent_minions() {
         state.world().effective_attack(right),
         Some(orange_stone::core::component::Attack(2))
     );
-    // 狼自身不受自己光环影响
+    // The wolf is not affected by its own aura
     assert_eq!(
         state.world().effective_attack(wolf),
         Some(orange_stone::core::component::Attack(2))
@@ -1675,7 +1675,7 @@ fn fiery_war_axe_and_arcanite_reaper_equip() {
     builder.equip_weapon(PlayerId::Player1, &ARCANITE_REAPER);
     let state = builder.build();
 
-    // 后装备的武器替换先装备的
+    // The later weapon replaces the earlier one
     let weapon = state.player(PlayerId::Player1).weapon.unwrap();
     assert_eq!(
         state.world().attack(weapon),
@@ -1698,7 +1698,7 @@ fn explosive_trap_deals_damage_to_all_enemies() {
     let attacker = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 3, 2);
     let mut state = builder.build();
 
-    // 在 Player1 的 SetAside 放置爆炸陷阱
+    // Place Explosive Trap in Player1's SetAside
     {
         let world = state.world_mut();
         let secret_entity = world.spawn();
@@ -1732,23 +1732,23 @@ fn explosive_trap_deals_damage_to_all_enemies() {
         )
         .unwrap();
 
-    // 奥秘被揭示
+    // Secret is revealed
     assert!(
         log.iter()
             .any(|e| matches!(e, Event::SecretRevealed { .. }))
     );
-    // 敌方英雄受到 2 点伤害
+    // Enemy hero takes 2 damage
     let enemy_hero = state.player(PlayerId::Player2).hero;
     assert_eq!(
         state.world().health(enemy_hero),
         Some(orange_stone::core::component::Health(28))
     );
-    // 敌方随从受到 2 点伤害
+    // Enemy minion takes 2 damage
     assert_eq!(
         state.world().health(attacker),
         Some(orange_stone::core::component::Health(1))
     );
-    // 攻击仍然结算：己方英雄受到攻击者的 2 点伤害（与炉石规则一致，陷阱不取消攻击）
+    // Attack still resolves: own hero takes the attacker's 2 damage (matches Hearthstone rules; traps do not cancel the attack)
     assert_eq!(
         state.world().health(defender_hero),
         Some(orange_stone::core::component::Health(28))
@@ -1766,7 +1766,7 @@ fn freezing_trap_returns_attacker_to_hand_with_cost_increase() {
     let attacker = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 3, 3);
     let mut state = builder.build();
 
-    // 在 Player1 的 SetAside 放置冰冻陷阱
+    // Place Freezing Trap in Player1's SetAside
     {
         let world = state.world_mut();
         let secret_entity = world.spawn();
@@ -1797,13 +1797,13 @@ fn freezing_trap_returns_attacker_to_hand_with_cost_increase() {
         )
         .unwrap();
 
-    // 奥秘被揭示，攻击随从被移回其拥有者手牌
+    // Secret is revealed; the attacking minion is returned to its owner's hand
     assert!(
         log.iter()
             .any(|e| matches!(e, Event::SecretRevealed { .. }))
     );
     assert_eq!(state.world().zone(attacker), Some(Zone::Hand));
-    // 费用增加 (2)：3 -> 5
+    // Cost increases (2): 3 -> 5
     assert_eq!(state.world().cost(attacker), Some(Cost(5)));
 }
 
@@ -1811,7 +1811,7 @@ fn freezing_trap_returns_attacker_to_hand_with_cost_increase() {
 // C1 — explicit play targets
 // ============================================================
 
-/// 显式目标：法术伤害精确命中指定角色（脸 vs 随从的决策面）。
+/// Explicit target: spell damage precisely hits the chosen character (face vs minion decision surface).
 #[test]
 fn spell_with_explicit_target_hits_that_target() {
     use orange_stone::cards::def::FROSTBOLT;
@@ -1857,7 +1857,7 @@ fn spell_with_explicit_target_hits_that_target() {
     );
 }
 
-/// 无显式目标：回退为引擎随机选择（总伤害不变）。
+/// No explicit target: falls back to the engine's random selection (total damage unchanged).
 #[test]
 fn spell_without_target_falls_back_to_random() {
     use orange_stone::cards::def::FROSTBOLT;
@@ -1891,7 +1891,7 @@ fn spell_without_target_falls_back_to_random() {
     assert!(dmg_hero == 3 || dmg_minion == 3);
 }
 
-/// 显式目标不在候选集中（如己方随从）→ 回退为随机选择。
+/// Explicit target not in the candidate set (e.g. own minion) → falls back to random selection.
 #[test]
 fn invalid_explicit_target_falls_back_to_random() {
     use orange_stone::cards::def::FROSTBOLT;
@@ -1909,7 +1909,7 @@ fn invalid_explicit_target_falls_back_to_random() {
         .zones()
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
-    // 己方随从不是"敌方角色"候选 — 回退随机，己方随从不应受伤
+    // Own minion is not an "enemy character" candidate — falls back to random; own minion must not be damaged
     engine
         .apply(
             &mut state,
@@ -1931,7 +1931,7 @@ fn invalid_explicit_target_falls_back_to_random() {
     assert_eq!(dmg, 3, "3 damage lands on an enemy");
 }
 
-/// 战吼伤害：显式目标精确命中。
+/// Battlecry damage: the explicit target is hit precisely.
 #[test]
 fn battlecry_with_explicit_target_hits_that_target() {
     use orange_stone::cards::def::IRONFORGE_RIFLEMAN;

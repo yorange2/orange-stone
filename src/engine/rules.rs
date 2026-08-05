@@ -1,11 +1,11 @@
-//! 规则引擎 — 验证、事件入队、事件应用。
+//! Rule engine — validation, event enqueueing, event application.
 //!
-//! 三个核心函数：
-//! - `validate()` — 只读检查 action 在当前状态下的合法性
-//! - `enqueue()` — 将 action 转化为初始事件并入队
-//! - `apply_event()` — 执行单个事件，可能产生新事件并入队
+//! Three core functions:
+//! - `validate()` — read-only check of an action's legality in the current state
+//! - `enqueue()` — converts an action into initial events and enqueues them
+//! - `apply_event()` — applies a single event, possibly enqueueing new events
 //!
-//! 所有函数都是纯函数式风格，通过 `GameState` 参数与状态交互。
+//! All functions are pure-functional in style, interacting with state via a `GameState` parameter.
 
 use crate::core::action::Action;
 use crate::core::component::{
@@ -18,47 +18,47 @@ use crate::core::state::{GameState, Phase};
 use crate::core::zone::Zone;
 use crate::engine::trigger;
 
-/// 引擎错误 — action 不能被执行的原因。
+/// Engine error — why an action could not be executed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EngineError {
-    /// 不是你的回合
+    /// Not your turn
     NotYourTurn,
-    /// 试图打出对手的牌
+    /// Trying to play the opponent's card
     NotYourCard,
-    /// 卡牌不在手牌中
+    /// Card is not in hand
     CardNotInHand,
-    /// 不是随从或武器（PlayCard 只能打出随从或武器）
+    /// Not a minion or weapon (PlayCard can only play minions or weapons)
     NotPlayable,
-    /// 战场已满（7 个随从上限）
+    /// Board is full (7 minion limit)
     BoardFull,
-    /// 无效的目标（攻击己方或目标不存在）
+    /// Invalid target (attacking own side or target does not exist)
     InvalidTarget,
-    /// 攻击者不在战场上
+    /// Attacker is not on the board
     NotOnBoard,
-    /// 本回合攻击次数已耗尽
+    /// Attack count exhausted this turn
     AttacksExhausted,
-    /// 实体已销毁（过期 handle）
+    /// Entity has been destroyed (stale handle)
     EntityGone(Entity),
-    /// 游戏已经结束
+    /// Game is already over
     GameAlreadyOver,
-    /// 法力不足
+    /// Not enough mana
     NotEnoughMana,
-    /// 必须先攻击嘲讽随从
+    /// Must attack a taunt minion first
     MustAttackTaunt,
-    /// 英雄技能本回合已使用过
+    /// Hero power already used this turn
     HeroPowerAlreadyUsed,
-    /// 功能尚未实现（Phase 2+）
+    /// Feature not yet implemented (Phase 2+)
     Unimplemented,
 }
 
-/// 战场随从数量上限。
+/// Maximum number of minions on the battlefield.
 pub const MAX_BOARD_SIZE: usize = 7;
 
-/// 验证 action 在当前状态下的合法性（只读）。
+/// Validates an action's legality in the current state (read-only).
 ///
-/// 返回 `Ok(())` 或 `Err(EngineError)`。
+/// Returns `Ok(())` or `Err(EngineError)`.
 pub fn validate(state: &GameState, action: Action) -> Result<(), EngineError> {
-    // 游戏结束后拒绝所有操作
+    // Reject all actions once the game is over
     if matches!(state.phase(), Phase::GameOver { .. }) {
         return Err(EngineError::GameAlreadyOver);
     }
@@ -71,12 +71,12 @@ pub fn validate(state: &GameState, action: Action) -> Result<(), EngineError> {
     }
 }
 
-/// 验证出牌操作。
+/// Validates a play-card action.
 fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError> {
     let world = state.world();
     let active = state.active_player();
 
-    // 检查实体存活和组件存在
+    // Check entity liveness and component presence
     check_entity(world, card)?;
 
     let card_player = world.player(card).ok_or(EngineError::EntityGone(card))?;
@@ -84,7 +84,7 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
         return Err(EngineError::NotYourCard);
     }
 
-    // 必须是随从、武器或法术
+    // Must be a minion, weapon, or spell
     let card_type = world.card_type(card).ok_or(EngineError::NotPlayable)?;
     if card_type != CardType::Minion
         && card_type != CardType::Weapon
@@ -93,19 +93,19 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
         return Err(EngineError::NotPlayable);
     }
 
-    // 必须在手牌中
+    // Must be in hand
     let zone = world.zone(card).ok_or(EngineError::CardNotInHand)?;
     if zone != Zone::Hand {
         return Err(EngineError::CardNotInHand);
     }
 
-    // 检查法力（使用有效费用：光环减免 + 肯瑞托法师的一次性免费奥秘）
+    // Check mana (using effective cost: aura reduction + Kirin Tor Mage's one-time free secret)
     let cost = effective_play_cost(state, card, active);
     if cost.0 > state.player(active).current_mana {
         return Err(EngineError::NotEnoughMana);
     }
 
-    // 检查战场上限（武器不占随从位）
+    // Check board size limit (weapons do not occupy a minion slot)
     if card_type == CardType::Minion {
         let board_count = count_board_minions(world, active);
         if board_count >= MAX_BOARD_SIZE {
@@ -116,8 +116,8 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
     Ok(())
 }
 
-/// 计算打出卡牌的实际费用：基础费用 - 光环减免；
-/// 奥秘卡牌额外享受肯瑞托法师的一次性免费。
+/// Computes the effective cost of playing a card: base cost - aura reduction;
+/// secret cards additionally benefit from Kirin Tor Mage's one-time free discount.
 fn effective_play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
     let mut cost = state.world().effective_cost(card).unwrap_or_default();
     let is_secret = state
@@ -131,7 +131,7 @@ fn effective_play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cos
     cost
 }
 
-/// 验证攻击操作。
+/// Validates an attack action.
 fn validate_attack(
     state: &GameState,
     attacker: Entity,
@@ -140,16 +140,16 @@ fn validate_attack(
     let world = state.world();
     let active = state.active_player();
 
-    // 检查 phase
+    // Check phase
     if state.phase() != Phase::Main {
         return Err(EngineError::InvalidTarget);
     }
 
-    // 检查实体存活
+    // Check entity liveness
     check_entity(world, attacker)?;
     check_entity(world, defender)?;
 
-    // 攻击者必须是己方角色（随从或英雄），在战场上
+    // Attacker must be a friendly character (minion or hero) on the board
     let attacker_player = world
         .player(attacker)
         .ok_or(EngineError::EntityGone(attacker))?;
@@ -160,7 +160,7 @@ fn validate_attack(
     match attacker_type {
         CardType::Minion => {}
         CardType::Hero => {
-            // 英雄攻击必须有武器或临时攻击力加成
+            // Hero attacks require a weapon or a temporary attack bonus
             let has_weapon = state.player(attacker_player).weapon.is_some();
             let has_temp_attack = state.player(attacker_player).temp_attack_bonus > 0;
             if !has_weapon && !has_temp_attack {
@@ -174,7 +174,7 @@ fn validate_attack(
         return Err(EngineError::NotOnBoard);
     }
 
-    // 检查攻击次数（考虑风怒）
+    // Check attack count (accounting for windfury)
     let max_atks = world.max_attacks(attacker);
     if world
         .attacks_used(attacker)
@@ -183,24 +183,24 @@ fn validate_attack(
         return Err(EngineError::AttacksExhausted);
     }
 
-    // 不能攻击的随从（如拉格纳罗斯）
+    // Minions that cannot attack (e.g. Ragnaros)
     if world.cant_attack(attacker).is_some() {
         return Err(EngineError::InvalidTarget);
     }
 
-    // 攻击力必须 > 0（考虑武器和光环）
+    // Attack must be > 0 (considering weapon and auras)
     let total_atk = compute_attacker_damage(state, attacker);
     if total_atk <= 0 {
         return Err(EngineError::InvalidTarget);
     }
 
-    // 防御者必须是敌方目标（己方英雄或己方随从不行）
+    // Defender must be an enemy target (own hero or own minion is not allowed)
     let defender_player = world.player(defender).ok_or(EngineError::InvalidTarget)?;
     if defender_player == active {
         return Err(EngineError::InvalidTarget);
     }
 
-    // 防御者必须是在战场上的随从或英雄
+    // Defender must be a minion or hero on the battlefield
     let defender_type = world
         .card_type(defender)
         .ok_or(EngineError::InvalidTarget)?;
@@ -213,20 +213,20 @@ fn validate_attack(
         _ => return Err(EngineError::InvalidTarget),
     }
 
-    // 嘲讽检查：如果敌方场上有嘲讽随从，必须攻击嘲讽
+    // Taunt check: if the enemy board has taunt minions, a taunt must be attacked
     let enemy = active.opponent();
     let has_taunt = world
         .zones()
         .iter(Zone::Play, enemy)
         .any(|e| world.taunt(e).is_some());
     if has_taunt {
-        // defender 必须是嘲讽随从
+        // defender must be a taunt minion
         if world.taunt(defender).is_none() {
             return Err(EngineError::MustAttackTaunt);
         }
     }
 
-    // 潜行检查：不能攻击敌方潜行角色
+    // Stealth check: cannot attack enemy stealthed characters
     if world.stealth(defender).is_some() && defender_player != active {
         return Err(EngineError::InvalidTarget);
     }
@@ -234,7 +234,7 @@ fn validate_attack(
     Ok(())
 }
 
-/// 验证结束回合操作。
+/// Validates an end-turn action.
 fn validate_end_turn(state: &GameState) -> Result<(), EngineError> {
     if state.phase() != Phase::Main {
         return Err(EngineError::NotYourTurn);
@@ -242,36 +242,36 @@ fn validate_end_turn(state: &GameState) -> Result<(), EngineError> {
     Ok(())
 }
 
-/// 验证英雄技能使用。
+/// Validates a hero power use.
 fn validate_hero_power(state: &GameState, hero: Entity) -> Result<(), EngineError> {
     let world = state.world();
     let active = state.active_player();
 
-    // 检查实体存活
+    // Check entity liveness
     check_entity(world, hero)?;
 
-    // 必须是英雄
+    // Must be a hero
     if world.card_type(hero) != Some(CardType::Hero) {
         return Err(EngineError::InvalidTarget);
     }
 
-    // 必须是己方英雄
+    // Must be own hero
     let hero_player = world.player(hero).ok_or(EngineError::EntityGone(hero))?;
     if hero_player != active {
         return Err(EngineError::NotYourTurn);
     }
 
-    // 阶段检查
+    // Phase check
     if state.phase() != Phase::Main {
         return Err(EngineError::NotYourTurn);
     }
 
-    // 检查本回合是否已使用
+    // Check whether already used this turn
     if world.hero_power_used(hero).is_some_and(|u| u.0) {
         return Err(EngineError::HeroPowerAlreadyUsed);
     }
 
-    // 检查法力
+    // Check mana
     let hero_power = world.hero_power(hero);
     let cost = hero_power.map(|hp| hp.cost).unwrap_or(2);
     if cost > state.player(active).current_mana {
@@ -281,7 +281,7 @@ fn validate_hero_power(state: &GameState, hero: Entity) -> Result<(), EngineErro
     Ok(())
 }
 
-/// 计算攻击者的总伤害（基础攻击 + 光环 + 武器加成）。
+/// Computes the attacker's total damage (base attack + auras + weapon bonus).
 fn compute_attacker_damage(state: &GameState, attacker: Entity) -> i32 {
     let world = state.world();
     let base = world.effective_attack(attacker).unwrap_or(Attack(0));
@@ -298,7 +298,7 @@ fn compute_attacker_damage(state: &GameState, attacker: Entity) -> i32 {
     base.0 + weapon_bonus
 }
 
-/// 检查实体是否存活，不稳定则返回 `EntityGone`。
+/// Checks whether an entity is alive, returning `EntityGone` otherwise.
 fn check_entity(world: &crate::core::world::World, entity: Entity) -> Result<(), EngineError> {
     if world.is_alive(entity) {
         Ok(())
@@ -307,7 +307,7 @@ fn check_entity(world: &crate::core::world::World, entity: Entity) -> Result<(),
     }
 }
 
-/// 统计某个玩家战场上的随从数量。
+/// Counts the minions on a player's battlefield.
 fn count_board_minions(world: &crate::core::world::World, player: PlayerId) -> usize {
     world
         .zones()
@@ -317,10 +317,10 @@ fn count_board_minions(world: &crate::core::world::World, player: PlayerId) -> u
 }
 
 // ============================================================
-// 事件入队
+// Event enqueueing
 // ============================================================
 
-/// 根据 action 生成初始事件并入队（只读）。
+/// Generates initial events from an action and enqueues them (read-only).
 pub fn enqueue(
     state: &GameState,
     action: Action,
@@ -345,11 +345,13 @@ pub fn enqueue(
         Action::Attack { attacker, defender } => {
             let world = state.world();
             queue.push(Event::AttackDeclared { attacker, defender });
-            // 攻击结算入队为单一管线事件：伤害数值在 `ResolveAttack`
-            // 处理时计算，但攻击方伤害必须在入队时确定 — 武器在
-            // `AttackDeclared` 中可能被摧毁，攻击伤害必须包含武器加成。
+            // The attack resolution is enqueued as a single pipeline event:
+            // the damage value is computed when `ResolveAttack` is processed,
+            // but the attacker's damage must be fixed at enqueue time — the
+            // weapon may be destroyed in `AttackDeclared`, so the attack
+            // damage must include the weapon bonus.
             let attacker_total_atk = compute_attacker_damage(state, attacker);
-            // 反击免疫（角斗士的长弓：英雄攻击时免疫，不反击）
+            // Retaliation immunity (Gladiator's Longbow: the hero is immune while attacking, no retaliation)
             let retaliation_immune = world.card_type(attacker) == Some(CardType::Hero)
                 && world.player(attacker).is_some_and(|pid| {
                     state.player(pid).weapon.is_some_and(|w| {
@@ -383,13 +385,13 @@ pub fn enqueue(
 }
 
 // ============================================================
-// 事件应用（修改状态）
+// Event application (mutating state)
 // ============================================================
 
-/// 死亡检查 — 伤害管线（`DamageDealt`）的最后一步。
+/// Death check — the last step of the damage pipeline (`DamageDealt`).
 ///
-/// 目标的有效生命值 ≤ 0 时：英雄入队游戏结束（最高优先级），
-/// 随从入队 `MinionDied`。
+/// When the target's effective health is ≤ 0: heroes enqueue a game-over
+/// (highest priority), minions enqueue `MinionDied`.
 fn queue_death_events(
     state: &GameState,
     queue: &mut EventQueue,
@@ -415,10 +417,10 @@ fn queue_death_events(
     }
 }
 
-/// 应用单个事件，可能产生新的事件并入队。
+/// Applies a single event, possibly enqueueing new events.
 ///
-/// 这是事件循环的核心。每个事件只被处理一次；
-/// 如果事件产生了新事件，它们会被加入队列并依次处理。
+/// This is the core of the event loop. Each event is processed exactly once;
+/// if an event produces new events, they are added to the queue and processed in turn.
 pub fn apply_event(
     state: &mut GameState,
     event: Event,
@@ -426,7 +428,7 @@ pub fn apply_event(
 ) -> Result<(), EngineError> {
     match event {
         Event::TurnStarted { player } => {
-            // 腐蚀术：在你的回合开始时消灭被腐蚀的随从
+            // Corruption: destroy corrupted minions at the start of your turn
             let corrupted: Vec<Entity> = state.make_mut().players[player.index()]
                 .corrupted
                 .drain(..)
@@ -445,7 +447,7 @@ pub fn apply_event(
                 });
             }
 
-            // 先收集需要重置攻击次数的实体（需要只读 borrow）
+            // First collect entities whose attack counts need resetting (requires a read-only borrow)
             let player_entities: Vec<Entity> = state
                 .world()
                 .iter_player()
@@ -454,14 +456,14 @@ pub fn apply_event(
                 .collect();
             let new_turn = state.turn() + 1;
 
-            // 然后分步进行所有修改
+            // Then perform all modifications step by step
             {
                 let world = state.world_mut();
                 for entity in &player_entities {
                     world.set_attacks_used(*entity, AttacksUsed(0));
-                    // 重置英雄技能使用标记
+                    // Reset the hero-power-used flag
                     world.set_hero_power_used(*entity, HeroPowerUsed(false));
-                    // 清除冻结
+                    // Clear freeze
                     world.remove_freeze(*entity);
                 }
             }
@@ -469,7 +471,7 @@ pub fn apply_event(
             state.set_turn(new_turn);
             state.set_phase(Phase::Main);
 
-            // 法力水晶增长和回满
+            // Mana crystal growth and refill
             {
                 let inner = state.make_mut();
                 let p = &mut inner.players[player.index()];
@@ -478,12 +480,12 @@ pub fn apply_event(
                 p.cards_played_this_turn = 0;
             }
 
-            // 抽一张牌
+            // Draw a card
             trigger::draw_card(state, queue, player);
         }
         Event::TurnEnded { player } => {
             state.set_phase(Phase::End);
-            // 清除临时攻击力加成
+            // Clear temporary attack bonus
             {
                 let inner = state.make_mut();
                 let p = &mut inner.players[player.index()];
@@ -497,12 +499,12 @@ pub fn apply_event(
                     p.temp_attack_bonus = 0;
                 }
             }
-            // 清除临时攻击减益和死亡记录
+            // Clear temporary attack debuffs and death records
             {
                 let inner = state.make_mut();
                 let p = &mut inner.players[player.index()];
                 p.died_this_turn.clear();
-                // 清除所有实体的临时攻击减益
+                // Clear temporary attack debuffs on all entities
                 let debuff_entities: Vec<Entity> = inner
                     .world
                     .iter_temp_attack_debuff()
@@ -511,14 +513,14 @@ pub fn apply_event(
                 for e in debuff_entities {
                     inner.world.remove_temp_attack_debuff(e);
                 }
-                // 清除所有实体的临时免疫（狂野怒火 — 直到回合结束）
+                // Clear temporary immunity on all entities (Bestial Wrath — until end of turn)
                 let immune_entities: Vec<Entity> =
                     inner.world.iter_immune().map(|(e, _)| e).collect();
                 for e in immune_entities {
                     inner.world.remove_immune(e);
                 }
             }
-            // 归还被临时控制的随从（暗影狂乱 — 直到回合结束）
+            // Return temporarily controlled minions (Shadow Madness — until end of turn)
             let controlled: Vec<(Entity, PlayerId)> = state.make_mut().players[player.index()]
                 .controlled_this_turn
                 .drain(..)
@@ -528,12 +530,12 @@ pub fn apply_event(
                     trigger::transfer_minion(state, entity, original_owner);
                 }
             }
-            // 清除命令怒吼的最低生命值效果（直到回合结束）
+            // Clear the commanding-shout minimum health effect (until end of turn)
             {
                 let inner = state.make_mut();
                 inner.players[player.index()].minion_min_health = 0;
             }
-            // 触发回合结束效果（先收集再逐个处理）
+            // Trigger end-of-turn effects (collect first, then process one by one)
             let end_turn_effects: Vec<(Entity, crate::core::effect::CardEffect)> = state
                 .world()
                 .iter_end_turn_effect()
@@ -553,7 +555,7 @@ pub fn apply_event(
             card,
             target,
         } => {
-            // 扣除法力（使用有效费用：光环减免 + 肯瑞托法师的一次性免费奥秘）
+            // Deduct mana (using effective cost: aura reduction + Kirin Tor Mage's one-time free secret)
             let cost = effective_play_cost(state, card, player);
             let card_type = state.world().card_type(card);
             {
@@ -562,18 +564,20 @@ pub fn apply_event(
                 p.current_mana -= cost.0;
                 p.cards_played_this_turn += 1;
             }
-            // 检测连击：本回合已打出其他牌 (cards_played > 1 因为刚递增了)
+            // Detect combo: another card was played this turn (cards_played > 1 because it was just incremented)
             let combo_active = state.player(player).cards_played_this_turn > 1;
             if card_type == Some(CardType::Spell) {
-                // 奥秘卡牌：挂载奥秘组件并放入 SetAside 区域（触发条件满足时揭示）。
-                // 奥秘效果存储在 battlecry 槽位（与法术牌惯例一致）。
+                // Secret cards: attach the Secret component and move to the
+                // SetAside zone (revealed when the trigger condition is met).
+                // Secret effects are stored in the battlecry slot (consistent
+                // with the spell card convention).
                 let secret_trigger = state
                     .world()
                     .card_id(card)
                     .and_then(|cid| crate::cards::def::card_by_id(cid.0))
                     .and_then(|def| def.secret);
                 if let Some(trigger) = secret_trigger {
-                    // 肯瑞托法师的一次性免费奥秘被消耗
+                    // Kirin Tor Mage's one-time free secret is consumed
                     let secret_effect = state.world().battlecry(card).map(|b| b.0);
                     let inner = state.make_mut();
                     inner.players[player.index()].next_secret_free = false;
@@ -589,16 +593,16 @@ pub fn apply_event(
                         spell: card,
                     });
                 } else {
-                    // 法术牌：解析效果（支持抉择随机选择和连击），然后移入坟墓场
+                    // Spell card: resolve the effect (with choose-one random pick and combo), then move to the graveyard
                     let chosen_effect = if combo_active {
-                        // 连击：优先使用 combo_effect
+                        // Combo: prefer combo_effect
                         state
                             .world()
                             .combo_effect(card)
                             .map(|c| c.0)
                             .or_else(|| state.world().battlecry(card).map(|b| b.0))
                     } else if state.world().choose_one_effect(card).is_some() {
-                        // 抉择：随机选一个
+                        // Choose one: pick randomly
                         let has_main = state.world().battlecry(card).is_some();
                         let has_alt = state.world().choose_one_effect(card).is_some();
                         if has_main && has_alt {
@@ -617,7 +621,7 @@ pub fn apply_event(
                     } else {
                         state.world().battlecry(card).map(|b| b.0)
                     };
-                    // 连击回手（头部爆裂）：效果解析后留在手牌而非进入坟墓场
+                    // Combo bounce-back (Headcrack): the card stays in hand after the effect resolves instead of going to the graveyard
                     let returns_to_hand = matches!(
                         chosen_effect,
                         Some(crate::core::effect::CardEffect::DealDamageAndReturnToHand { .. })
@@ -625,7 +629,7 @@ pub fn apply_event(
                     if let Some(effect) = chosen_effect {
                         trigger::resolve_effect(state, queue, card, player, effect, target);
                     }
-                    // 触发法术施放事件
+                    // Push the spell-cast event
                     queue.push(Event::SpellCast {
                         player,
                         spell: card,
@@ -638,7 +642,7 @@ pub fn apply_event(
                     }
                 }
             } else if card_type == Some(CardType::Weapon) {
-                // 武器牌：先销毁旧武器，然后装备新武器
+                // Weapon card: destroy the old weapon first, then equip the new one
                 let old_weapon = state.player(player).weapon;
                 if let Some(old) = old_weapon {
                     let inner = state.make_mut();
@@ -648,7 +652,7 @@ pub fn apply_event(
                         weapon: old,
                     });
                 }
-                // 装备新武器：卡牌移到战场作为武器实体
+                // Equip the new weapon: move the card to the battlefield as a weapon entity
                 state
                     .world_mut()
                     .move_to_zone(card, Zone::Play)
@@ -659,7 +663,7 @@ pub fn apply_event(
                     player,
                     weapon: card,
                 });
-                // 武器战吼（连击感知）：装备后解析，如毁灭之刃
+                // Weapon battlecry (combo-aware): resolved after equipping, e.g. Perdition's Blade
                 let weapon_effect = if combo_active {
                     state
                         .world()
@@ -673,13 +677,13 @@ pub fn apply_event(
                     trigger::resolve_effect(state, queue, card, player, effect, None);
                 }
             } else {
-                // 卡牌从手牌移到战场
+                // Move the card from hand to the battlefield
                 state
                     .world_mut()
                     .move_to_zone(card, Zone::Play)
                     .map_err(|_| EngineError::EntityGone(card))?;
             }
-            // 过载触发器：打出带过载的牌时，触发友方随从的过载效果（无羁元素）
+            // Overload trigger: when a card with overload is played, trigger overload effects of friendly minions (Unbound Elemental)
             if state.world().overload(card).is_some() {
                 let overload_triggers: Vec<(Entity, crate::core::effect::CardEffect)> = state
                     .world()
@@ -697,11 +701,11 @@ pub fn apply_event(
             }
         }
         Event::MinionSummoned { player, minion } => {
-            // 召唤失调：非冲锋随从本回合不能攻击
+            // Summoning sickness: minions without charge cannot attack this turn
             if state.world().charge(minion).is_none() {
                 state.world_mut().set_attacks_used(minion, AttacksUsed(1));
             }
-            // 检查战吼组件（支持连击）
+            // Check battlecry component (combo-aware)
             let combo_active = state.player(player).cards_played_this_turn > 1;
             let chosen_effect = if combo_active {
                 state
@@ -715,12 +719,12 @@ pub fn apply_event(
             if let Some(effect) = chosen_effect {
                 trigger::resolve_effect(state, queue, minion, player, effect, None);
             }
-            // 检查召唤触发（友方随从被召唤时，场上其他随从的 summon_trigger）
+            // Check summon triggers (summon_trigger of other minions on the board when a friendly minion is summoned)
             let summon_triggers: Vec<(Entity, crate::core::effect::CardEffect)> = state
                 .world()
                 .iter_summon_trigger()
                 .filter(|(e, _)| {
-                    *e != minion  // 不包括自身
+                    *e != minion  // Exclude the minion itself
                         && state.world().zone(*e) == Some(Zone::Play)
                         && state.world().is_alive(*e)
                         && state.world().player(*e) == Some(player)
@@ -732,12 +736,12 @@ pub fn apply_event(
             }
         }
         Event::AttackDeclared { attacker, .. } => {
-            // 冻结检查：被冻结的角色不能攻击
+            // Freeze check: frozen characters cannot attack
             if state.world().freeze(attacker).is_some() {
                 return Err(EngineError::InvalidTarget);
             }
 
-            // 先读取攻击者类型和武器信息（只读 borrow）
+            // Read attacker type and weapon info first (read-only borrow)
             let is_hero = state.world().card_type(attacker) == Some(CardType::Hero);
             let attacker_player = state.world().player(attacker);
             let weapon_info: Option<(PlayerId, Entity)> = if is_hero {
@@ -746,20 +750,20 @@ pub fn apply_event(
                 None
             };
 
-            // 标记攻击者已使用过攻击次数
+            // Mark the attacker as having used an attack
             {
                 let world = state.world_mut();
                 let used = world.attacks_used(attacker).unwrap_or(AttacksUsed(0));
                 world.set_attacks_used(attacker, AttacksUsed(used.0 + 1));
             }
 
-            // 武器耐久减 1
+            // Decrement weapon durability by 1
             if let Some((player, weapon)) = weapon_info {
                 let dur = state.world().durability(weapon).unwrap_or(Durability(0));
                 let new_dur = Durability(dur.0 - 1);
                 state.world_mut().set_durability(weapon, new_dur);
                 if new_dur.0 <= 0 {
-                    // 武器摧毁
+                    // Destroy the weapon
                     let inner = state.make_mut();
                     inner.players[player.index()].weapon = None;
                     queue.push(Event::WeaponDestroyed { player, weapon });
@@ -772,14 +776,16 @@ pub fn apply_event(
             attacker_damage,
             retaliation_immune,
         } => {
-            // 攻击伤害入队（数值在入队时已确定）
+            // Enqueue the attack damage (the value was fixed at enqueue time)
             queue.push(Event::DamageDealt {
                 source: attacker,
                 target: defender,
                 amount: attacker_damage,
             });
-            // 防御方反击：按结算时的当前状态计算攻击力 — 攻击被奥秘
-            // 重定向后，新防御者的反击自动生效，无需逐个卡牌特殊处理。
+            // Defender retaliation: attack is computed from the current state
+            // at resolution time — after an attack is redirected by a secret,
+            // the new defender's retaliation applies automatically, without
+            // per-card special handling.
             if !retaliation_immune && state.world().card_type(defender) == Some(CardType::Minion) {
                 let atk = state
                     .world()
@@ -799,21 +805,21 @@ pub fn apply_event(
             amount,
             source,
         } => {
-            // 统一伤害管线：免疫 → 圣盾 → 护甲 → 生命值 → 死亡检查
-            // 免疫：伤害被完全忽略（攻击仍被消耗）
+            // Unified damage pipeline: immune → divine shield → armor → health → death check
+            // Immune: damage is completely ignored (the attack is still consumed)
             if state.world().immune(target).is_some() {
                 return Ok(());
             }
-            // 圣盾吸收：如果目标有圣盾，移除圣盾，伤害归零
+            // Divine shield absorbs: if the target has a divine shield, remove it and zero the damage
             if state.world().divine_shield(target).is_some() {
                 state.world_mut().remove_divine_shield(target);
                 return Ok(());
             }
 
-            // 获取目标的卡牌类型
+            // Get the target's card type
             let card_type = state.world().card_type(target);
 
-            // 英雄先扣护甲，剩余伤害穿透到生命值
+            // Heroes lose armor first; remaining damage leaks through to health
             if card_type == Some(CardType::Hero) {
                 let target_player = state.world().player(target);
                 if let Some(pid) = target_player {
@@ -824,10 +830,10 @@ pub fn apply_event(
                         let inner = state.make_mut();
                         inner.players[pid.index()].armor -= absorbed;
                         if remaining <= 0 {
-                            // 伤害全部被护甲吸收
+                            // All damage absorbed by armor
                             return Ok(());
                         }
-                        // 剩余伤害继续穿透到生命值
+                        // Remaining damage continues through to health
                         let current_health = state.world().health(target);
                         let Some(hp) = current_health else {
                             return Ok(());
@@ -840,21 +846,21 @@ pub fn apply_event(
                 }
             }
 
-            // 无护甲或非英雄：直接扣生命值
+            // No armor or non-hero: deduct health directly
             let current_health = state.world().health(target);
             let Some(hp) = current_health else {
-                // 目标不存在（已死或已移除），跳过
+                // Target does not exist (dead or removed); skip
                 return Ok(());
             };
             let mut new_hp = Health(hp.0 - amount);
-            // 剧毒：带剧毒的来源对随从造成伤害时直接将其消灭（圣盾判定已优先返回）
+            // Poison: a poisonous source destroys minions it damages (divine shield already handled above)
             if state.world().poison(source).is_some()
                 && card_type == Some(CardType::Minion)
                 && amount > 0
             {
                 new_hp = Health(0);
             }
-            // 命令怒吼：本回合随从生命值不能低于 1
+            // Commanding Shout: minions' health cannot drop below 1 this turn
             if card_type == Some(CardType::Minion)
                 && state
                     .world()
@@ -869,29 +875,29 @@ pub fn apply_event(
                 new_hp = Health(new_hp.0.max(min_hp));
             }
 
-            // 通过 CoW 修改状态
+            // Mutate state via CoW
             state.world_mut().set_health(target, new_hp);
 
-            // 死亡检查（使用有效生命值考虑光环加成）
+            // Death check (using effective health to account for aura bonuses)
             queue_death_events(state, queue, target, card_type);
         }
         Event::MinionDied { minion } => {
-            // 先检查亡语效果（实体还在战场上）
+            // Check the deathrattle effect first (the entity is still on the board)
             let deathrattle_effect = state.world().deathrattle(minion);
             let owner = state.world().player(minion);
 
-            // 如果是亡语效果，入队（之后处理，保持当前实体状态）
+            // If there is a deathrattle effect, enqueue it (processed later, preserving the current entity state)
             if let (Some(dr), Some(owner)) = (deathrattle_effect, owner) {
                 trigger::resolve_effect(state, queue, minion, owner, dr.0, None);
             }
 
-            // 检查死亡触发（其他友方随从的 death_trigger）
+            // Check death triggers (death_trigger of other friendly minions)
             if let Some(owner) = owner {
                 let death_triggers: Vec<(Entity, crate::core::effect::CardEffect)> = state
                     .world()
                     .iter_death_trigger()
                     .filter(|(e, _)| {
-                        *e != minion  // 不包括死亡的随从自身
+                        *e != minion  // Exclude the dead minion itself
                             && state.world().zone(*e) == Some(Zone::Play)
                             && state.world().is_alive(*e)
                             && state.world().player(*e) == Some(owner)
@@ -903,22 +909,22 @@ pub fn apply_event(
                 }
             }
 
-            // 随从移到坟墓场（保留实体和组件，用于回放和 Phase 2+ 的坟场效果）
+            // Move the minion to the graveyard (entity and components kept for replay and Phase 2+ graveyard effects)
             state
                 .world_mut()
                 .move_to_zone(minion, Zone::Graveyard)
                 .map_err(|_| EngineError::EntityGone(minion))?;
-            // 记录死亡用于复活效果
+            // Record the death for resurrection effects
             if let Some(owner) = owner {
                 let inner = state.make_mut();
                 inner.players[owner.index()].died_this_turn.push(minion);
             }
         }
         Event::CardDrawn { .. } => {
-            // 通知事件 — 卡牌已在 draw_card 中移到手牌
+            // Notification event — the card was already moved to hand in draw_card
         }
         Event::HeroPowerActivated { player, hero } => {
-            // 扣除法力
+            // Deduct mana
             let cost = state
                 .world()
                 .hero_power(hero)
@@ -929,27 +935,27 @@ pub fn apply_event(
                 let p = &mut inner.players[player.index()];
                 p.current_mana = (p.current_mana - cost).max(0);
             }
-            // 标记已使用
+            // Mark as used
             state
                 .world_mut()
                 .set_hero_power_used(hero, HeroPowerUsed(true));
-            // 解析英雄技能效果
+            // Resolve the hero power effect
             if let Some(hp_def) = state.world().hero_power(hero) {
                 let effect = hp_def.effect;
                 trigger::resolve_effect(state, queue, hero, player, effect, None);
             }
         }
         Event::WeaponEquipped { .. } => {
-            // 通知事件 — 武器已在 resolve_equip_weapon 中创建
+            // Notification event — the weapon was already created in resolve_equip_weapon
         }
         Event::WeaponDestroyed { .. } => {
-            // 通知事件 — 武器已在 AttackDeclared 或 equip 时移除
+            // Notification event — the weapon was already removed in AttackDeclared or on equip
         }
         Event::SecretRevealed { .. } => {
-            // 通知事件 — 奥秘效果通过 trigger 系统解析
+            // Notification event — the secret effect is resolved through the trigger system
         }
         Event::SpellCast { player, spell: _ } => {
-            // 法术触发效果 — 检查场上所有友方随从的 spell_trigger 组件
+            // Spell trigger effects — check the spell_trigger component of all friendly minions on the board
             let spell_triggers: Vec<(Entity, crate::core::effect::CardEffect)> = state
                 .world()
                 .iter_spell_trigger()
@@ -979,7 +985,7 @@ mod tests {
     use crate::core::state::GameState;
     use crate::core::zone::Zone;
 
-    /// 辅助函数：创建一个带有完整组件的随从在战场上的状态
+    /// Helper: create a fully-componented minion on the battlefield
     fn add_minion_to_board(state: &mut GameState, player: PlayerId, atk: i32, hp: i32) -> Entity {
         let world = state.world_mut();
         let e = world.spawn();
@@ -994,7 +1000,7 @@ mod tests {
         e
     }
 
-    /// 辅助函数：添加随从到手牌
+    /// Helper: add a minion to hand
     fn add_minion_to_hand(state: &mut GameState, player: PlayerId, atk: i32, hp: i32) -> Entity {
         let world = state.world_mut();
         let e = world.spawn();
@@ -1006,7 +1012,7 @@ mod tests {
         world.set_attacks_used(e, AttacksUsed(0));
         world.set_zone(e, Zone::Hand);
         world.zones_mut().insert(Zone::Hand, player, e);
-        // 设置足够的法力用于测试
+        // Give enough mana for testing
         state.make_mut().players[player.index()].current_mana = 10;
         e
     }
@@ -1031,7 +1037,7 @@ mod tests {
     fn validate_play_card_not_in_hand() {
         let mut state = GameState::new();
         let card = add_minion_to_board(&mut state, PlayerId::Player1, 2, 3);
-        // 在战场上，不在手牌
+        // On the battlefield, not in hand
         let result = validate(&state, Action::PlayCard { card, target: None });
         assert_eq!(result, Err(EngineError::CardNotInHand));
     }
@@ -1039,7 +1045,7 @@ mod tests {
     #[test]
     fn validate_play_card_board_full() {
         let mut state = GameState::new();
-        // 填满 7 个随从
+        // Fill the board with 7 minions
         for _ in 0..7 {
             add_minion_to_board(&mut state, PlayerId::Player1, 1, 1);
         }
@@ -1088,7 +1094,7 @@ mod tests {
     #[test]
     fn validate_stale_entity() {
         let state = GameState::new();
-        let entity = Entity::new(999, 0); // 不存在的实体
+        let entity = Entity::new(999, 0); // Non-existent entity
         let result = validate(
             &state,
             Action::PlayCard {
@@ -1108,12 +1114,12 @@ mod tests {
         let mut queue = EventQueue::new();
         enqueue(&state, Action::Attack { attacker, defender }, &mut queue).unwrap();
 
-        // 处理所有事件
+        // Process all events
         while let Some(event) = queue.pop_front() {
             apply_event(&mut state, event, &mut queue).unwrap();
         }
 
-        // defender 受到 3 伤害: 3 → 0, 死亡
+        // defender takes 3 damage: 3 → 0, dies
         assert_eq!(
             state.world().health(defender),
             Some(Health(0)),
@@ -1125,7 +1131,7 @@ mod tests {
             "defender should be dead in graveyard"
         );
 
-        // attacker 受到 2 伤害: 5 → 3, 存活
+        // attacker takes 2 damage: 5 → 3, survives
         assert_eq!(
             state.world().health(attacker),
             Some(Health(3)),
@@ -1160,7 +1166,7 @@ mod tests {
         }
 
         assert_eq!(state.world().health(hero), Some(Health(25)));
-        // 攻击者不应对英雄受到伤害（英雄不还手）
+        // The attacker should not take damage from the hero (heroes do not retaliate)
         assert_eq!(state.world().health(attacker), Some(Health(3)));
     }
 
@@ -1195,7 +1201,7 @@ mod tests {
 
     #[test]
     fn attacker_dies_still_deals_damage() {
-        // 攻击者在交易中死亡，但伤害仍然造成（同时结算）
+        // The attacker dies in the trade, but damage is still dealt (simultaneous resolution)
         let mut state = GameState::new();
         let attacker = add_minion_to_board(&mut state, PlayerId::Player1, 4, 1);
         let defender = add_minion_to_board(&mut state, PlayerId::Player2, 5, 10);
@@ -1207,12 +1213,12 @@ mod tests {
             apply_event(&mut state, event, &mut queue).unwrap();
         }
 
-        // defender 受到 4 伤害: 10 → 6
+        // defender takes 4 damage: 10 → 6
         assert_eq!(state.world().health(defender), Some(Health(6)));
-        // attacker 受到 5 伤害: 1 → -4 → 死亡
+        // attacker takes 5 damage: 1 → -4 → dies
         assert_eq!(state.world().health(attacker), Some(Health(-4)));
         assert_eq!(state.world().zone(attacker), Some(Zone::Graveyard));
-        assert_eq!(state.world().zone(defender), Some(Zone::Play)); // defender 存活
+        assert_eq!(state.world().zone(defender), Some(Zone::Play)); // defender survives
     }
 
     #[test]
@@ -1226,7 +1232,7 @@ mod tests {
             player: PlayerId::Player1,
         });
 
-        // 应用事件
+        // Apply events
         while let Some(event) = queue.pop_front() {
             apply_event(&mut state, event, &mut queue).unwrap();
         }

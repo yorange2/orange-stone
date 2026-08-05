@@ -1,4 +1,4 @@
-//! 核心抽象：Entity、Component、GameState、Zone、Action、Event、Effect
+//! Core abstractions: Entity, Component, GameState, Zone, Action, Event, Effect
 
 pub mod action;
 pub mod component;

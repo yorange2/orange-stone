@@ -1,11 +1,11 @@
-//! 怀旧系列 — 术士 (Warlock)。
+//! Classic set — Warlock.
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
 use crate::core::component::CardType;
 use crate::core::effect::{CardEffect, EffectTarget};
 
-// 怀旧系列 — 术士 (Warlock)
+// Classic set — Warlock
 // ============================================================
 
 pub const SOULFIRE: CardDef = CardDef {
@@ -359,7 +359,7 @@ pub const BLOOD_FURY: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// 术士补全
+// Warlock additions
 pub const DREAD_INFERNAL: CardDef = CardDef {
     id: "WARLOCK_011",
     name: "Dread Infernal",
@@ -425,7 +425,7 @@ pub const PIT_LORD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 恶魔猎犬 — 战吼：随机丢弃一张手牌
+/// Felstalker — Battlecry: discard a random card from your hand
 pub const FELSTALKER: CardDef = CardDef {
     id: "WARLOCK_016",
     name: "Felstalker",
@@ -456,7 +456,7 @@ pub const FELSTALKER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 灵魂虹吸 — 消灭一个随从，为你的英雄恢复3点生命值
+/// Siphon Soul — destroy a minion, restore 3 Health to your hero
 pub const SIPHON_SOUL: CardDef = CardDef {
     id: "WARLOCK_017",
     name: "Siphon Soul",
@@ -490,7 +490,7 @@ pub const SIPHON_SOUL: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 暗影烈焰 — 消灭一个友方随从，对所有敌方随从造成等同于其攻击力的伤害
+/// Shadowflame — destroy a friendly minion, deal damage equal to its Attack to all enemy minions
 pub const SHADOWFLAME: CardDef = CardDef {
     id: "WARLOCK_018",
     name: "Shadowflame",
@@ -523,7 +523,7 @@ pub const SHADOWFLAME: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 恶魔卫士 — 战吼：摧毁一颗你的法力水晶
+/// Felguard — Battlecry: destroy one of your mana crystals
 pub const FELGUARD: CardDef = CardDef {
     id: "WARLOCK_019",
     name: "Felguard",
@@ -554,7 +554,7 @@ pub const FELGUARD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 感知恶魔 — 从你的牌库中抽两张恶魔牌（简化：抽1张牌）
+/// Sense Demons — draw two Demons from your deck (simplified: draw 1 card)
 pub const SENSE_DEMONS: CardDef = CardDef {
     id: "WARLOCK_020",
     name: "Sense Demons",
@@ -585,7 +585,7 @@ pub const SENSE_DEMONS: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 恶魔之火 — 对一个随从造成2点伤害；如果是友方恶魔，改为获得+2/+2（简化：造成2点伤害）
+/// Demonfire — deal 2 damage to a minion; if it is a friendly Demon, give it +2/+2 instead (simplified: deal 2 damage)
 pub const DEMONFIRE: CardDef = CardDef {
     id: "WARLOCK_021",
     name: "Demonfire",
@@ -619,7 +619,7 @@ pub const DEMONFIRE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 虚空恐魔 — 战吼：消灭相邻的随从并获得其攻击力和生命值
+/// Void Terror — Battlecry: destroy adjacent minions and gain their Attack and Health
 pub const VOID_TERROR: CardDef = CardDef {
     id: "WARLOCK_022",
     name: "Void Terror",
@@ -651,10 +651,10 @@ pub const VOID_TERROR: CardDef = CardDef {
 };
 
 // ============================================================
-// Tier 1 补全 — 术士（docs/classic-cards-roadmap.md）
+// Tier 1 additions — Warlock (docs/classic-cards-roadmap.md)
 // ============================================================
 
-/// 破城者 — 嘲讽；你的其他恶魔获得+1攻击力（简化：仅嘲讽，恶魔光环未实现）
+/// Siegebreaker — Taunt; your other Demons have +1 Attack (simplified: Taunt only; Demon aura not implemented)
 pub const SIEGEBREAKER: CardDef = CardDef {
     id: "WARLOCK_T01",
     name: "Siegebreaker",
@@ -685,10 +685,10 @@ pub const SIEGEBREAKER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 召唤传送门
+// Tier 2 additions — Summoning Portal
 // ============================================================
 
-/// 召唤传送门 — 你的随从费用减少 (2) 点，但不能少于 (1) 点。
+/// Summoning Portal — your minions cost (2) less, but not less than (1).
 pub const SUMMONING_PORTAL: CardDef = CardDef {
     id: "WARLOCK_023",
     name: "Summoning Portal",
@@ -722,10 +722,10 @@ pub const SUMMONING_PORTAL: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 腐蚀术
+// Tier 2 additions — Corruption
 // ============================================================
 
-/// 腐蚀术 — 选择一个敌方随从。在你的回合开始时将其消灭。
+/// Corruption — choose an enemy minion. Destroy it at the start of your turn.
 pub const CORRUPTION: CardDef = CardDef {
     id: "WARLOCK_024",
     name: "Corruption",
@@ -756,10 +756,10 @@ pub const CORRUPTION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 3 补全 — 随机恶魔
+// Tier 3 additions — random Demons
 // ============================================================
 
-/// 虚空呼唤 — 将一张随机恶魔置入你的手牌。
+/// Call of the Void — add a random Demon to your hand.
 pub const CALL_OF_THE_VOID: CardDef = CardDef {
     id: "WARLOCK_025",
     name: "Call of the Void",
@@ -792,7 +792,7 @@ pub const CALL_OF_THE_VOID: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 厄运降临 — 对一个角色造成 2 点伤害。若其死亡，则召唤一个随机恶魔。
+/// Bane of Doom — deal 2 damage to a character. If it dies, summon a random Demon.
 pub const BANE_OF_DOOM: CardDef = CardDef {
     id: "WARLOCK_026",
     name: "Bane of Doom",

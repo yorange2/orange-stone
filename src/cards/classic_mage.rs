@@ -1,4 +1,4 @@
-//! 怀旧系列 — 法师 (Mage)。
+//! Classic set — Mage.
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
@@ -6,7 +6,7 @@ use crate::core::component::{CardType, SecretTrigger};
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::vanilla;
 
-// 怀旧系列 — 法师 (Mage)
+// Classic set — Mage
 // ============================================================
 
 pub const ARCANE_MISSILES: CardDef = CardDef {
@@ -451,7 +451,7 @@ pub const BLIZZARD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 冰锥术 — 冻结一个随从和相邻的随从（简化：冻结一个随机敌方随从）
+/// Cone of Cold — Freeze a minion and its neighbors (simplified: freeze one random enemy minion)
 pub const CONE_OF_COLD: CardDef = CardDef {
     id: "MAGE_016",
     name: "Cone of Cold",
@@ -484,7 +484,7 @@ pub const CONE_OF_COLD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// 法师补全
+// Mage additions
 pub const ARCANE_EXPLOSION: CardDef = CardDef {
     id: "MAGE_015",
     name: "Arcane Explosion",
@@ -518,7 +518,7 @@ pub const ARCANE_EXPLOSION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 玛瑙巫师 — 每当你施放一个法术，获得+1攻击力
+/// Mana Wyrm — whenever you cast a spell, gain +1 Attack
 pub const MANA_WYRM: CardDef = CardDef {
     id: "MAGE_016",
     name: "Mana Wyrm",
@@ -553,7 +553,7 @@ pub const MANA_WYRM: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 镜像 — 召唤两个0/2嘲讽随从
+/// Mirror Image — summon two 0/2 minions with Taunt
 pub const MIRROR_IMAGE_MINION: CardDef = CardDef {
     id: "MAGE_017t",
     name: "Mirror Image",
@@ -584,7 +584,7 @@ pub const MIRROR_IMAGE_MINION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 以太秘法师 — 在你的回合结束时，如果你控制一个奥秘，获得+2/+2（简化：回合结束获得+2/+2）
+/// Ethereal Arcanist — at end of turn, if you control a Secret, gain +2/+2 (simplified: +2/+2 at end of turn)
 pub const ETHEREAL_ARCANIST: CardDef = CardDef {
     id: "MAGE_017",
     name: "Ethereal Arcanist",
@@ -619,7 +619,7 @@ pub const ETHEREAL_ARCANIST: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 蒸发 — 奥秘：当一个敌方随从攻击你的英雄时，消灭它
+/// Vaporize — Secret: when an enemy minion attacks your hero, destroy it
 pub const VAPORIZE: CardDef = CardDef {
     id: "MAGE_018",
     name: "Vaporize",
@@ -650,10 +650,10 @@ pub const VAPORIZE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 法术扭曲者（奥秘）
+// Tier 2 additions — Spellbender (Secret)
 // ============================================================
 
-/// 法术扭曲者 — 奥秘：当敌方对一个随从施放法术时，改为以 1/3 随从为新目标。
+/// Spellbender — Secret: when an enemy casts a spell on a minion, retarget it to a 1/3 minion instead.
 pub const SPELLBENDER: CardDef = CardDef {
     id: "MAGE_019",
     name: "Spellbender",
@@ -684,13 +684,13 @@ pub const SPELLBENDER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 法术扭曲者 token — 1/3
+/// Spellbender token — 1/3
 pub const SPELLBENDER_TOKEN: CardDef = vanilla!("MAGE_019t", "Spellbender", 1, 1, 3);
 
-// Tier 2 补全 — 费用减免
+// Tier 2 additions — cost reduction
 // ============================================================
 
-/// 巫师学徒 — 你的法术费用减少 (1) 点。
+/// Sorcerer's Apprentice — your spells cost (1) less.
 pub const SORCERERS_APPRENTICE: CardDef = CardDef {
     id: "MAGE_020",
     name: "Sorcerer's Apprentice",
@@ -724,7 +724,7 @@ pub const SORCERERS_APPRENTICE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 肯瑞托法师 — 战吼：你的下一个奥秘费用为 (0)。
+/// Kirin Tor Mage — Battlecry: your next Secret costs (0).
 pub const KIRIN_TOR_MAGE: CardDef = CardDef {
     id: "MAGE_021",
     name: "Kirin Tor Mage",
@@ -755,10 +755,10 @@ pub const KIRIN_TOR_MAGE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 冰刺
+// Tier 2 additions — Icicle
 // ============================================================
 
-/// 冰刺 — 冻结一个随从；若其已被冻结，则改为造成 2 点伤害。
+/// Icicle — Freeze a minion; if it is already Frozen, deal 2 damage to it instead.
 pub const ICICLE: CardDef = CardDef {
     id: "MAGE_022",
     name: "Icicle",
@@ -789,10 +789,10 @@ pub const ICICLE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 3 补全 — 随机法师法术/安东尼达斯
+// Tier 3 additions — random Mage spells / Antonidas
 // ============================================================
 
-/// 奥术智慧宝典 — 将一张随机法师法术置入你的手牌。
+/// Tome of Intellect — add a random Mage spell to your hand.
 pub const TOME_OF_INTELLECT: CardDef = CardDef {
     id: "MAGE_023",
     name: "Tome of Intellect",
@@ -825,7 +825,7 @@ pub const TOME_OF_INTELLECT: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 大法师安东尼达斯 — 每当你施放法术时，将一张火球术置入你的手牌。
+/// Archmage Antonidas — whenever you cast a spell, add a Fireball to your hand.
 pub const ARCHMAGE_ANTONIDAS: CardDef = CardDef {
     id: "MAGE_024",
     name: "Archmage Antonidas",

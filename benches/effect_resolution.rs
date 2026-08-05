@@ -19,9 +19,9 @@ use orange_stone::core::zone::Zone;
 use orange_stone::engine::game::GameEngine;
 use orange_stone::sim::game::GameBuilder;
 
-/// 构建一个光环密集的战场模板：
-/// P1: 4 个光环源（突袭队长、暴风城勇士、恐狼前锋、巫师学徒）+ 3 个白板
-/// P2: 7 个白板；双方手牌各 2 张带光环的牌（非活跃光环源）
+/// Builds an aura-heavy board template:
+/// P1: 4 aura sources (Raid Leader, Stormwind Champion, Dire Wolf Alpha, Sorcerer's Apprentice) + 3 vanilla minions
+/// P2: 7 vanilla minions; both players hold 2 aura cards in hand (inactive aura sources)
 fn aura_board_template() -> GameState {
     let mut b = GameBuilder::new();
     b.set_mana(PlayerId::Player1, 10, 10);
@@ -40,7 +40,7 @@ fn aura_board_template() -> GameState {
     b.build()
 }
 
-/// 全战场有效属性查询（模拟 bot 决策时的全盘扫描）。
+/// Full-board effective stat queries (simulating a bot's full-board scan during decision making).
 fn bench_effective_stats(c: &mut Criterion) {
     let template = aura_board_template();
     c.bench_function("effective_stats/aura_board_14_minions", |b| {
@@ -67,12 +67,12 @@ fn bench_effective_stats(c: &mut Criterion) {
     });
 }
 
-/// 连续打出 5 张随从牌（含 3 张光环牌），走完整的事件循环。
+/// Plays 5 minion cards in a row (including 3 aura cards), going through the full event loop.
 fn bench_play_minions(c: &mut Criterion) {
     let engine = GameEngine::new();
     let mut template = GameBuilder::new();
     template.set_mana(PlayerId::Player1, 10, 10);
-    // 全部 2 费卡牌，5 张合计 10 费（2 张恐狼前锋 + 巫师学徒 + 2 张白板）
+    // All 2-cost cards, 5 cards totaling 10 mana (2x Dire Wolf Alpha + Sorcerer's Apprentice + 2 vanilla)
     template.add_minion_to_hand(PlayerId::Player1, &DIRE_WOLF_ALPHA);
     template.add_minion_to_hand(PlayerId::Player1, &SORCERERS_APPRENTICE);
     template.add_minion_to_hand(PlayerId::Player1, &BLOODFEN_RAPTOR);
@@ -100,7 +100,7 @@ fn bench_play_minions(c: &mut Criterion) {
     });
 }
 
-/// 一轮 7 次随从交换攻击（双方各 7 个随从，含伤害结算与死亡检查）。
+/// One round of 7 minion trades (7 minions per side, including damage resolution and death checks).
 fn bench_attack_round(c: &mut Criterion) {
     let engine = GameEngine::new();
     let mut template = GameBuilder::new();

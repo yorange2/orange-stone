@@ -1,28 +1,28 @@
-//! 奖励函数 — 可配置的单步奖励与终局奖励。
+//! Reward functions — configurable per-step rewards and terminal rewards.
 //!
-//! 默认配置是稀疏的胜/负奖励（`win`/`loss`）；可开启密集整形
-//! （敌方英雄伤害、击杀随从、己方随从损失），加速学习。
+//! The default configuration is sparse win/loss rewards (`win`/`loss`); dense shaping can be enabled
+//! (enemy hero damage, minion kills, own minion losses) to speed up learning.
 
 use crate::core::player::PlayerId;
 use crate::core::state::{GameState, Phase};
 use crate::core::zone::Zone;
 
-/// 奖励配置 — 各分量的权重。
+/// Reward configuration — weights for each component.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RewardConfig {
-    /// 获胜奖励
+    /// Win reward
     pub win: f32,
-    /// 失败惩罚
+    /// Loss penalty
     pub loss: f32,
-    /// 平局奖励
+    /// Draw reward
     pub draw: f32,
-    /// 敌方英雄每损失 1 点生命值的奖励（0 表示关闭密集奖励）
+    /// Reward per point of enemy hero health lost (0 disables dense rewards)
     pub enemy_hero_damage: f32,
-    /// 敌方每死亡 1 个随从的奖励
+    /// Reward per enemy minion killed
     pub enemy_minion_kill: f32,
-    /// 己方每死亡 1 个随从的惩罚
+    /// Penalty per own minion that dies
     pub own_minion_loss: f32,
-    /// 非法动作惩罚
+    /// Invalid action penalty
     pub invalid_action: f32,
 }
 
@@ -40,7 +40,7 @@ impl Default for RewardConfig {
     }
 }
 
-/// 终局奖励 — 根据胜者与视角玩家计算。
+/// Terminal reward — computed from the winner and the perspective player.
 #[must_use]
 pub fn terminal_reward(
     config: &RewardConfig,
@@ -54,7 +54,7 @@ pub fn terminal_reward(
     }
 }
 
-/// 计算游戏结束时的最终奖励。
+/// Computes the final reward when the game ends.
 #[must_use]
 pub fn final_reward(config: &RewardConfig, state: &GameState, perspective: PlayerId) -> f32 {
     match state.phase() {
@@ -63,7 +63,7 @@ pub fn final_reward(config: &RewardConfig, state: &GameState, perspective: Playe
     }
 }
 
-/// 统计 `zone` 中属于 `player` 的实体数量（按 CardId 去重计数，用于击杀检测）。
+/// Counts entities in `zone` belonging to `player` (deduplicated by CardId, used for kill detection).
 fn count_in_zone(state: &GameState, zone: Zone, player: PlayerId) -> usize {
     state
         .world()
@@ -73,14 +73,14 @@ fn count_in_zone(state: &GameState, zone: Zone, player: PlayerId) -> usize {
         .count()
 }
 
-/// 单步奖励 — 根据状态变化计算（不含终局奖励）。
+/// Per-step reward — computed from the state change (excluding terminal reward).
 ///
-/// `before`/`after` 是动作前后的状态。奖励分量：
-/// - 敌方英雄生命值损失 × `enemy_hero_damage`
-/// - 进入敌方坟墓场的随从数 × `enemy_minion_kill`
-/// - 进入己方坟墓场的随从数 × `own_minion_loss`
+/// `before`/`after` are the states before and after the action. Reward components:
+/// - Enemy hero health lost × `enemy_hero_damage`
+/// - Number of minions that entered the enemy graveyard × `enemy_minion_kill`
+/// - Number of minions that entered the friendly graveyard × `own_minion_loss`
 ///
-/// 注意：坟场中的卡牌实体保留 `PlayerId` 组件，可据此归属。
+/// Note: card entities in the graveyard keep their `PlayerId` component, which allows attribution.
 #[must_use]
 pub fn step_reward(
     config: &RewardConfig,
@@ -90,7 +90,7 @@ pub fn step_reward(
 ) -> f32 {
     let enemy = perspective.opponent();
 
-    // 敌方英雄生命损失
+    // Enemy hero health lost
     let before_enemy_hp = before
         .world()
         .health(before.player(enemy).hero)
@@ -101,7 +101,7 @@ pub fn step_reward(
         .map_or(0, |h| h.0);
     let hero_damage = (before_enemy_hp - after_enemy_hp).max(0) as f32;
 
-    // 本步新死亡的随从：坟场数量差（按归属玩家）
+    // Minions newly killed this step: graveyard count difference (by owner)
     let enemy_deaths = (count_in_zone(after, Zone::Graveyard, enemy)
         - count_in_zone(before, Zone::Graveyard, enemy)) as f32;
     let own_deaths = (count_in_zone(after, Zone::Graveyard, perspective)
@@ -143,12 +143,12 @@ mod tests {
         };
         let engine = GameEngine::new();
         let mut builder = GameBuilder::new();
-        // 敌方一个 1 HP 随从；我方一个 30 攻随从
+        // Enemy has a 1 HP minion; we have a 30-attack minion
         let attacker = builder.add_custom_minion_to_board(PlayerId::Player1, 30, 10, 5);
         let victim = builder.add_custom_minion_to_board(PlayerId::Player2, 1, 1, 1);
         let mut state = builder.build();
 
-        // 攻击：击杀 1 随从 + 0 英雄伤害
+        // Attack: 1 minion kill + 0 hero damage
         let before = state.clone();
         engine
             .apply(
@@ -162,8 +162,8 @@ mod tests {
         let r = step_reward(&cfg, &before, &state, PlayerId::Player1);
         assert!((r - 0.5).abs() < 1e-6, "kill reward only: {r}");
 
-        // 攻击英雄：30 伤害（英雄 30 HP 直接死亡 → 终局）
-        // 用新对局测试英雄伤害分量（生命 25）
+        // Attack the hero: 30 damage (hero at 30 HP dies immediately → game over)
+        // Use a fresh game to test the hero damage component (25 HP)
         let mut builder = GameBuilder::new();
         builder.hero_health(PlayerId::Player2, 25);
         let attacker2 = builder.add_custom_minion_to_board(PlayerId::Player1, 3, 3, 3);

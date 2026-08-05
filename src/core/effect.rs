@@ -1,372 +1,372 @@
-//! 卡牌效果定义 — 编译时常量的 CardEffect 和 EffectTarget。
+//! Card effect definitions — compile-time constant CardEffect and EffectTarget.
 //!
-//! Phase 2 支持的卡牌效果：伤害、抽牌、召唤、buff。
-//! 效果作为 `Copy` 枚举常量存储在 `CardDef` 和 `Battlecry`/`Deathrattle` 组件中。
+//! Phase 2 card effects: damage, card draw, summon, buff.
+//! Effects are stored as `Copy` enum constants in `CardDef` and the `Battlecry`/`Deathrattle` components.
 use serde::{Deserialize, Serialize};
 
-/// 效果目标选择器。
+/// Effect target selector.
 ///
-/// 执行效果时，引擎根据此枚举选择目标实体。
+/// When an effect is executed, the engine selects target entities based on this enum.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EffectTarget {
-    /// 随机敌方角色（英雄或随从）
+    /// A random enemy character (hero or minion)
     AnyEnemy,
-    /// 随机敌方随从
+    /// A random enemy minion
     AnyEnemyMinion,
-    /// 所有敌方随从
+    /// All enemy minions
     AllEnemyMinions,
-    /// 所有敌方角色（敌方英雄 + 所有敌方随从）
+    /// All enemy characters (enemy hero + all enemy minions)
     AllEnemies,
-    /// 敌方英雄
+    /// The enemy hero
     EnemyHero,
-    /// 自身（buff 类效果）
+    /// Self (buff-type effects)
     Self_,
-    /// 所有友方随从
+    /// All friendly minions
     AllFriendlyMinions,
-    /// 所有随从（不分敌我）
+    /// All minions (friend or foe)
     AllMinions,
-    /// 所有角色（英雄+随从，不分敌我）
+    /// All characters (heroes + minions, friend or foe)
     AllCharacters,
-    /// 友方英雄
+    /// The friendly hero
     FriendlyHero,
-    /// 受伤的敌方随从
+    /// A damaged enemy minion
     DamagedEnemyMinion,
-    /// 随机友方随从
+    /// A random friendly minion
     FriendlyMinion,
-    /// 随机敌方嘲讽随从
+    /// A random enemy Taunt minion
     TauntEnemyMinion,
 }
 
-/// 卡牌效果 — 触发时执行的动作。
+/// Card effect — an action executed when triggered.
 ///
-/// 实现 `Copy` 以作为组件存储。
+/// Implements `Copy` so it can be stored as a component.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 pub enum CardEffect {
-    /// 造成 N 点伤害（DealDamage）
+    /// Deal N damage
     DealDamage {
-        /// 伤害数值
+        /// Damage amount
         amount: i32,
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 抽 N 张牌
+    /// Draw N cards
     DrawCard {
-        /// 抽牌数量
+        /// Number of cards to draw
         count: u32,
     },
-    /// 召唤一个随从
+    /// Summon a minion
     SummonMinion {
-        /// 要召唤的卡牌 ID
+        /// Card ID to summon
         card_id: &'static str,
     },
-    /// 获得 +N/+M (buff 自身或友方)
+    /// Grant +N/+M (buff self or a friendly minion)
     GainStats {
-        /// 攻击力增量
+        /// Attack increase
         attack: i32,
-        /// 生命值增量
+        /// Health increase
         health: i32,
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 装备武器
+    /// Equip a weapon
     EquipWeapon {
-        /// 要装备的武器卡牌 ID
+        /// Weapon card ID to equip
         card_id: &'static str,
     },
-    /// 获得护甲
+    /// Gain armor
     GainArmor {
-        /// 护甲值
+        /// Armor amount
         amount: i32,
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 将一个随从移回手牌
+    /// Return a minion to hand
     ReturnToHand {
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 增加随从的法力消耗（冰冻陷阱效果）
+    /// Increase a minion's mana cost (Freezing Trap effect)
     IncreaseCost {
-        /// 法力消耗增量
+        /// Mana cost increase
         amount: i32,
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 将一个随从移回手牌并使其法力消耗增加（冰冻陷阱完整效果）
+    /// Return a minion to hand and increase its mana cost (full Freezing Trap effect)
     ReturnToHandAndIncreaseCost {
-        /// 法力消耗增量
+        /// Mana cost increase
         amount: i32,
     },
-    /// 消灭随从（暗言术：灭、刺杀）
+    /// Destroy a minion (Shadow Word: Death, Assassinate)
     DestroyMinion {
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 沉默随从 — 移除所有效果组件
+    /// Silence a minion — remove all effect components
     SilenceMinion {
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 设置攻击力为固定值
+    /// Set attack to a fixed value
     SetAttack {
-        /// 目标攻击力
+        /// Target attack value
         attack: i32,
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 恢复生命值
+    /// Restore health
     RestoreHealth {
-        /// 恢复量
+        /// Amount to restore
         amount: i32,
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 冻结角色
+    /// Freeze a character
     FreezeCharacter {
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 获得空法力水晶
+    /// Gain empty mana crystals
     GainManaCrystal {
-        /// 获得数量
+        /// Number to gain
         count: i32,
     },
-    /// 摧毁敌方武器
+    /// Destroy the enemy weapon
     DestroyWeapon,
-    /// 给英雄增加临时攻击力和可选护甲（本回合有效，回合结束时清除攻击力加成）
+    /// Give the hero temporary attack and optional armor (effective this turn; attack bonus cleared at end of turn)
     GainHeroAttack {
-        /// 攻击力加成
+        /// Attack bonus
         attack: i32,
-        /// 护甲加成（0 表示不加护甲）
+        /// Armor bonus (0 means no armor)
         armor: i32,
     },
-    /// 对目标造成等于英雄攻击力的伤害
+    /// Deal damage equal to the hero's attack to the target
     DealHeroAttackDamage {
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 将一个随从的生命值恢复到满
+    /// Fully restore a minion's health
     FullHeal {
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 给一个随从增加风怒
+    /// Grant a minion Windfury
     GrantWindfury {
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 给一个随从增加冲锋和可选的攻击力
+    /// Grant a minion Charge and optional attack
     GrantCharge {
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
-        /// 额外攻击力（0 表示不加攻击力）
+        /// Extra attack (0 means no attack bonus)
         attack_bonus: i32,
     },
-    /// 双倍一个随从的攻击力
+    /// Double a minion's attack
     DoubleAttack {
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 双倍一个随从的生命值
+    /// Double a minion's health
     DoubleHealth {
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 给友方武器增加攻击力和耐久度
+    /// Increase a friendly weapon's attack and durability
     BuffWeapon {
-        /// 攻击力增量
+        /// Attack increase
         attack: i32,
-        /// 耐久度增量
+        /// Durability increase
         durability: i32,
     },
-    /// 随机丢弃一张手牌
+    /// Discard a random card from hand
     DiscardRandomCard,
-    /// 对目标造成等于友方英雄护甲值的伤害
+    /// Deal damage equal to the friendly hero's armor to the target
     DealArmorDamage {
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 摧毁敌方武器并抽等于其耐久度的牌数
+    /// Destroy the enemy weapon and draw cards equal to its durability
     DestroyWeaponAndDraw,
-    /// 返回所有随从到各自拥有者手牌
+    /// Return all minions to their owners' hands
     ReturnAllToHand,
-    /// 将随从的攻击力设为等于其当前生命值
+    /// Set a minion's attack equal to its current health
     SetAttackToHealth {
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 消灭所有随从，除随机一个之外
+    /// Destroy all minions except one random one
     DestroyAllExceptOne,
-    /// 消灭一个随从并为己方英雄恢复生命值
+    /// Destroy a minion and restore health to the friendly hero
     DestroyAndHeal {
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
-        /// 恢复量
+        /// Amount to restore
         heal: i32,
     },
-    /// 消灭一个友方随从，对其攻击力数值造成AOE伤害
+    /// Destroy a friendly minion and deal AOE damage equal to its attack
     DestroyAndAOE {
-        /// 目标：所有敌方随从 / 所有敌方角色
+        /// Target: all enemy minions / all enemy characters
         target: EffectTarget,
     },
-    /// 对两个随机敌方随从造成伤害
+    /// Deal damage to two random enemy minions
     DealDamageToTwo {
-        /// 伤害数值
+        /// Damage amount
         amount: i32,
     },
-    /// 造成伤害 + 抽牌
+    /// Deal damage + draw cards
     DealDamageAndDraw {
-        /// 伤害数值
+        /// Damage amount
         damage: i32,
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
-        /// 抽牌数量
+        /// Number of cards to draw
         draw: u32,
     },
-    /// 对一个随从造成伤害并获得攻击力
+    /// Deal damage to a minion and gain attack
     DamageAndGainAttack {
-        /// 伤害数值
+        /// Damage amount
         damage: i32,
-        /// 攻击力加成
+        /// Attack bonus
         attack_bonus: i32,
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 消灭一个友方随从并获得其攻击力和生命值
+    /// Destroy a friendly minion and gain its attack and health
     DestroyAdjacent {
-        /// 是否获得属性值
+        /// Whether to gain the stats
         gain_stats: bool,
     },
-    /// 摧毁一颗法力水晶
+    /// Destroy a mana crystal
     DestroyManaCrystal,
-    /// 给对手手牌中添加卡牌
+    /// Add cards to the opponent's hand
     GiveCardsToOpponent {
-        /// 要添加的卡牌数量
+        /// Number of cards to add
         count: u32,
     },
-    /// 复活一个本回合死亡的友方随从，生命值为1
+    /// Resurrect a friendly minion that died this turn with 1 health
     ResurrectMinion,
-    /// 复制一个随机友方随从的攻击力和生命值
+    /// Copy a random friendly minion's attack and health
     CopyMinionStats,
-    /// 给敌方随从-2攻击力（本回合有效）
+    /// Give an enemy minion -2 attack (effective this turn)
     TempDebuff {
-        /// 攻击力减少量
+        /// Attack reduction
         attack_reduction: i32,
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 将受到的反伤反射给攻击者（奥秘效果）
+    /// Reflect damage taken back to the attacker (secret effect)
     ReflectDamage,
-    /// 对目标造成伤害，并在连击时将施放者移回手牌（头部爆裂）
+    /// Deal damage to the target and return the caster to hand on combo (Headcrack)
     DealDamageAndReturnToHand {
-        /// 伤害数值
+        /// Damage amount
         amount: i32,
-        /// 目标选择方式
+        /// Target selection
         target: EffectTarget,
     },
-    /// 将一个友方随从移回手牌并使其费用减少（暗影步）
+    /// Return a friendly minion to hand and reduce its cost (Shadowstep)
     ReturnFriendlyToHandAndReduceCost {
-        /// 费用减少量
+        /// Cost reduction
         amount: i32,
     },
-    /// 对目标相邻的随从造成等于其攻击力的伤害（背叛）
+    /// Deal damage equal to the target's attack to its adjacent minions (Betrayal)
     AdjacentDamage,
-    /// 摧毁己方武器并对所有敌人造成等于其攻击力的伤害（剑刃乱舞）
+    /// Destroy your weapon and deal damage equal to its attack to all enemies (Blade Flurry)
     DestroyWeaponAndDealAttackToEnemies,
-    /// 使一个友方随从获得潜行（伪装大师）
+    /// Grant a friendly minion Stealth (Master of Disguise)
     GrantStealth,
-    /// 召唤多个随从（毒蛇陷阱的三条蛇、塞纳留斯的双树人）
+    /// Summon multiple minions (Snake Trap's three snakes, Cenarius's two treants)
     SummonMultipleMinions {
-        /// 要召唤的卡牌 ID
+        /// Card ID to summon
         card_id: &'static str,
-        /// 召唤数量
+        /// Summon count
         count: u32,
     },
-    /// 对刚被打出的敌方随从造成伤害（狙击 — 由 secret.rs 处理，需要事件上下文）
+    /// Deal damage to the enemy minion just played (Snipe — handled by secret.rs, needs event context)
     DamagePlayedMinion {
-        /// 伤害数值
+        /// Damage amount
         amount: i32,
     },
-    /// 将攻击重定向到另一个随机角色（误导 — 由 secret.rs 处理）
+    /// Redirect the attack to another random character (Misdirection — handled by secret.rs)
     RedirectAttackToRandomCharacter,
-    /// 召唤一个随从作为攻击的新目标（崇高牺牲 — 由 secret.rs 处理）
+    /// Summon a minion as the attack's new target (Noble Sacrifice — handled by secret.rs)
     SummonAndRedirectAttack {
-        /// 要召唤的防御者卡牌 ID
+        /// Defender card ID to summon
         card_id: &'static str,
     },
-    /// 召唤 1/3 法术扭曲者并重定向法术伤害（法术扭曲者 — 由 secret.rs 处理）
+    /// Summon a 1/3 Spellbender and redirect spell damage (Spellbender — handled by secret.rs)
     SummonSpellbender,
-    /// 你的下一个奥秘费用为 (0)（肯瑞托法师）
+    /// Your next secret costs (0) (Kirin Tor Mage)
     NextSecretCostsZero,
-    /// 抽一张牌并使其费用减少（视界术）
+    /// Draw a card and reduce its cost (Far Sight)
     DrawCardAndReduceCost {
-        /// 费用减少量
+        /// Cost reduction
         amount: i32,
     },
-    /// 使所有友方随从获得"亡语：召唤指定随从"（丛林之魂）
+    /// Grant all friendly minions "Deathrattle: summon the specified minion" (Soul of the Forest)
     GrantDeathrattleAll {
-        /// 亡语要召唤的卡牌 ID
+        /// Card ID to summon on deathrattle
         card_id: &'static str,
     },
-    /// 将指定卡牌置入对手手牌（穆克拉的香蕉）
+    /// Add the specified card to the opponent's hand (King Mukla's Banana)
     GiveCardToOpponent {
-        /// 要给予的卡牌 ID
+        /// Card ID to give
         card_id: &'static str,
-        /// 数量
+        /// Count
         count: u32,
     },
-    /// 冻结一个随从；若其已被冻结，则改为造成伤害（冰刺）
+    /// Freeze a minion; if it is already frozen, deal damage instead (Ice Lance)
     FreezeOrDamage {
-        /// 伤害数值
+        /// Damage amount
         amount: i32,
     },
-    /// 消灭一个随从并获得其生命值（娜塔莉·塞林）
+    /// Destroy a minion and gain its health (Natalie Seline)
     DestroyAndGainHealth,
-    /// 使一个友方随从获得攻击力加成和免疫，直到回合结束（狂野怒火）
+    /// Grant a friendly minion an attack bonus and Immune until end of turn (Bestial Wrath)
     GrantAttackAndImmune {
-        /// 攻击力加成
+        /// Attack bonus
         attack: i32,
     },
-    /// 临时控制一个敌方随从直到回合结束（暗影狂乱，攻击力 ≤ 3）
+    /// Temporarily take control of an enemy minion until end of turn (Shadow Madness, attack ≤ 3)
     TakeControlUntilEndOfTurn,
-    /// 永久控制一个敌方随从（精神控制）
+    /// Permanently take control of an enemy minion (Mind Control)
     TakeControl,
-    /// 腐蚀一个敌方随从 — 在你的回合开始时将其消灭（腐蚀术）
+    /// Corrupt an enemy minion — destroy it at the start of your turn (Corruption)
     Corrupt,
-    /// 本回合随从生命值不能低于 1（命令怒吼）
+    /// Minions cannot drop below 1 health this turn (Commanding Shout)
     MinHealthUntilEndOfTurn,
-    /// 将目标随从变形为两个备选随从之一（工匠大师欧沃斯巴克）
+    /// Transform the target minion into one of two alternatives (Tinkmaster Overspark)
     TransformToRandom {
-        /// 备选卡牌 A（5/5 暴龙）
+        /// Alternative card A (5/5 devilsaur)
         card_a: &'static str,
-        /// 备选卡牌 B（1/1 松鼠）
+        /// Alternative card B (1/1 squirrel)
         card_b: &'static str,
     },
-    /// 将一张随机卡牌置入你的手牌（Tier 3 随机生成）
+    /// Add a random card to your hand (Tier 3 random generation)
     AddRandomCardToHand {
-        /// 卡池类型
+        /// Pool type
         pool: RandomPool,
     },
-    /// 召唤一个随机随从（动物伙伴/贫瘠之地驯马师）
+    /// Summon a random minion (Animal Companion/Barrens Stablehand)
     SummonRandomMinion {
-        /// 卡池类型
+        /// Pool type
         pool: RandomPool,
     },
-    /// 将指定卡牌置入你的手牌（大法师安东尼达斯的火球术）
+    /// Add the specified card to your hand (Archmage Antonidas's Fireball)
     AddCardToHand {
-        /// 卡牌 ID
+        /// Card ID
         card_id: &'static str,
     },
-    /// 造成伤害；若目标死亡，则召唤一个随机随从（厄运降临）
+    /// Deal damage; if the target dies, summon a random minion (Bane of Doom)
     DealDamageAndSummonIfKilled {
-        /// 伤害数值
+        /// Damage amount
         amount: i32,
-        /// 死亡后召唤的卡池
+        /// Pool summoned after the target dies
         pool: RandomPool,
     },
 }
 
-/// CardEffect 的反序列化镜像（拥有所有字段，无 &'static str 引用）。
+/// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
 #[derive(serde::Deserialize)]
 enum CardEffectDe {
     DealDamage {
@@ -559,7 +559,7 @@ enum CardEffectDe {
 impl<'de> serde::Deserialize<'de> for CardEffect {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let de = CardEffectDe::deserialize(d)?;
-        // 卡牌 ID 全部来自静态卡牌库 — 反序列化时解析回 &'static str
+        // All card IDs come from the static card library — resolve back to &'static str on deserialization
         let intern = |s: String| -> Result<&'static str, D::Error> {
             crate::cards::def::card_by_id(&s)
                 .map(|def| def.id)
@@ -733,26 +733,26 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
     }
 }
 
-/// 随机卡池类型 — Tier 3 随机生成。
+/// Random pool type — Tier 3 random generation.
 ///
-/// 满足卡池封闭性：所有抽样池都是 Classic 池的过滤子集
-/// （见 `src/cards/pool.rs`）。
+/// Satisfies pool closure: every sampling pool is a filtered subset of the Classic pool
+/// (see `src/cards/pool.rs`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RandomPool {
-    /// 随机传说随从（光明之翼）
+    /// A random Legendary minion (Brightwing)
     Legendary,
-    /// 随机野兽（贫瘠之地驯马师）
+    /// A random Beast (Barrens Stablehand)
     Beast,
-    /// 随机法师法术（奥术智慧宝典）
+    /// A random Mage spell (Tome of Intellect)
     MageSpell,
-    /// 随机暗影法术（萨维斯）
+    /// A random shadow spell (Xavius)
     ShadowSpell,
-    /// 随机恶魔（虚空呼唤/厄运降临）
+    /// A random Demon (Voidcaller/Bane of Doom)
     Demon,
-    /// 另一职业的随机卡牌（偷窃 — 简化为非盗贼卡牌）
+    /// A random card of another class (Pilfer — simplified to non-Rogue cards)
     OtherClass,
-    /// 随机梦境卡（伊瑟拉）
+    /// A random Dream card (Ysera)
     Dream,
-    /// 随机动物伙伴（霍弗/雷欧克/米莎）
+    /// A random Animal Companion (Huffer/Leokk/Misha)
     Companion,
 }

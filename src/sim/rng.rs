@@ -1,15 +1,15 @@
-//! 可复现的随机数生成器 — xorshift64 实现。
+//! Reproducible random number generator — xorshift64 implementation.
 //!
-//! 用于保证游戏的确定性：给定相同的 seed 和相同的操作序列，
-//! 所有随机调用产生完全一致的结果。
-//! 记录每次随机调用的类型和结果，用于回放验证。
+//! Guarantees game determinism: with the same seed and the same sequence of
+//! operations, every random call produces identical results.
+//! Records the type and result of every random call for replay verification.
 //!
-//! # 示例
+//! # Example
 //!
 //! ```rust
 //! use orange_stone::sim::rng::GameRng;
 //!
-//! // 相同 seed 产生相同的随机序列
+//! // Same seed produces the same random sequence
 //! let mut rng1 = GameRng::new(42);
 //! let mut rng2 = GameRng::new(42);
 //! let seq1: Vec<u32> = (0..5).map(|_| rng1.next_u32()).collect();
@@ -18,48 +18,48 @@
 //! ```
 use serde::{Deserialize, Serialize};
 
-/// 随机调用记录 — 用于回放验证。
+/// Record of a random call — used for replay verification.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RngCall {
-    /// next_u32 调用
+    /// A `next_u32` call
     NextU32 {
-        /// 调用时 RNG 的内部状态
+        /// Internal RNG state at call time
         state_before: u64,
-        /// 返回的结果
+        /// The returned result
         result: u32,
     },
-    /// next_usize 调用
+    /// A `next_usize` call
     NextUsize {
-        /// 调用时 RNG 的内部状态
+        /// Internal RNG state at call time
         state_before: u64,
-        /// 传入的 max 参数
+        /// The `max` argument passed in
         max: usize,
-        /// 返回的结果
+        /// The returned result
         result: usize,
     },
 }
 
-/// 可复现的随机数生成器。
+/// Reproducible random number generator.
 ///
-/// 基于 xorshift64 算法，状态为一个 `u64`。
-/// 记录每次随机调用，用于回放验证。
+/// Based on the xorshift64 algorithm, with the state stored in a single `u64`.
+/// Records every random call for replay verification.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameRng {
-    /// 当前内部状态
+    /// Current internal state
     state: u64,
-    /// 初始 seed
+    /// Initial seed
     seed: u64,
-    /// 所有随机调用的记录（用于回放）
+    /// Record of all random calls (for replay)
     pub calls: Vec<RngCall>,
 }
 
 impl GameRng {
-    /// 使用给定的 seed 创建新的随机数生成器。
+    /// Creates a new random number generator with the given seed.
     ///
-    /// seed 不能为 0（xorshift 要求非零状态）。
+    /// The seed must not be 0 (xorshift requires a non-zero state).
     #[must_use]
     pub fn new(seed: u64) -> Self {
-        // xorshift 要求非零状态
+        // xorshift requires a non-zero state
         let state = if seed == 0 {
             0xDEAD_BEEF_CAFE_BABE
         } else {
@@ -72,15 +72,15 @@ impl GameRng {
         }
     }
 
-    /// 返回初始化时的 seed。
+    /// Returns the seed used at initialization.
     #[must_use]
     pub fn seed(&self) -> u64 {
         self.seed
     }
 
-    /// 生成下一个 `u32` 随机数。
+    /// Generates the next `u32` random number.
     ///
-    /// 使用 xorshift64 算法。
+    /// Uses the xorshift64 algorithm.
     pub fn next_u32(&mut self) -> u32 {
         let state_before = self.state;
         // xorshift64
@@ -97,22 +97,22 @@ impl GameRng {
         result
     }
 
-    /// 生成范围 `[0, max)` 内的随机 `usize`。
+    /// Generates a random `usize` in the range `[0, max)`.
     ///
     /// # Panics
     ///
-    /// 如果 `max == 0`。
+    /// If `max == 0`.
     pub fn next_usize(&mut self, max: usize) -> usize {
         assert!(max > 0, "max must be > 0, got {max}");
         let state_before = self.state;
-        // 使用 rejection sampling 避免 bias
+        // Use rejection sampling to avoid bias
         let mask = u32::MAX;
         let limit = mask - (mask % max as u32);
         loop {
             let val = self.next_u32();
             if val < limit {
                 let result = (val as usize) % max;
-                // 覆盖 next_u32 的自动记录（我们想要更精确的 RngCall）
+                // Overwrite the automatic record from next_u32 (we want a more precise RngCall)
                 self.calls.pop();
                 self.calls.push(RngCall::NextUsize {
                     state_before,
@@ -124,7 +124,7 @@ impl GameRng {
         }
     }
 
-    /// 重置 RNG 到初始状态（用于回放）。
+    /// Resets the RNG to its initial state (for replay).
     pub fn reset(&mut self) {
         self.state = if self.seed == 0 {
             0xDEAD_BEEF_CAFE_BABE
@@ -134,7 +134,7 @@ impl GameRng {
         self.calls.clear();
     }
 
-    /// 返回本次 RNG 会话的调用次数。
+    /// Returns the number of calls in this RNG session.
     #[must_use]
     pub fn call_count(&self) -> usize {
         self.calls.len()
@@ -171,7 +171,7 @@ mod tests {
     fn zero_seed_is_handled() {
         let rng = GameRng::new(0);
         assert_eq!(rng.seed(), 0);
-        // 不应该 panic
+        // Should not panic
     }
 
     #[test]

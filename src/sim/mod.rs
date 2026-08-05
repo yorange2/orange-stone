@@ -1,4 +1,4 @@
-//! 模拟器模块 — 对局管理、AI 和测试辅助。
+//! Simulator module — game management, AI, and test helpers.
 
 pub mod batch;
 pub mod battle;

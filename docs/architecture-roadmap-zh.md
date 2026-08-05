@@ -96,10 +96,10 @@
 
 ### 里程碑 D — 规模
 
-- [ ] **D1** — 将 CoW 从整份 `Inner` 克隆升级为结构共享（分段 arena / 持久化向量），待实体数量证明其必要性。
-- [ ] **D2** — 用 `build.rs` 从官方 CardDefs JSON 生成 `CardDef` const（保留"卡牌即数据"红利，消灭手工劳动）。
-- [ ] **D3** — `GameState` 的 bincode/rkyv 序列化，用于分布式训练。
-- [ ] **D4** — 恢复注释语言纪律（英文），与 CLAUDE.md 一致。
+- [x] **D1** — 将 CoW 从整份 `Inner` 克隆升级为结构共享（分段 arena / 持久化向量），待实体数量证明其必要性。*(PR #44：`SparseSet` 分段页 + `Arc` 写时复制，克隆 O(1))*
+- [x] **D2** — 用 `build.rs` 从官方 CardDefs JSON 生成 `CardDef` const（保留"卡牌即数据"红利，消灭手工劳动）。*(PR #45：官方格式 JSON → 生成的静态卡牌常量，与手写库逐字段验证)*
+- [x] **D3** — `GameState` 的 bincode/rkyv 序列化，用于分布式训练。*(PR #43：serde + bincode `to_bytes`/`from_bytes`，`&'static str` 卡牌 ID 经静态库回注)*
+- [x] **D4** — 恢复注释语言纪律（英文），与 CLAUDE.md 一致。*(PR #46：全仓库注释英文化)*
 
 ---
 

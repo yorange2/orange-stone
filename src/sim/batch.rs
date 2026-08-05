@@ -1,8 +1,9 @@
-//! 批量模拟 — 并行推进多个对局实例（RL 批量推理的前置）。
+//! Batched simulation — advances multiple game instances in parallel (the basis for RL batched inference).
 //!
-//! RL 训练场景需要同时运行大量对局：每个 `GameState` 携带独立的 RNG，
-//! 在 rayon 线程池上并行推进，互不干扰。每个对局的结果与单线程运行时
-//! 完全一致（每局的 RNG 与动作序列决定结果，与线程调度无关）。
+//! RL training needs many games running at once: each `GameState` carries its own RNG,
+//! and games advance in parallel on a rayon thread pool without interfering with one
+//! another. Each game's result is identical to single-threaded execution (the per-game
+//! RNG and action sequence determine the outcome, independent of thread scheduling).
 
 use crate::core::player::PlayerId;
 use crate::core::state::{GameState, Phase};
@@ -10,18 +11,18 @@ use crate::engine::game::GameEngine;
 use crate::sim::battle::{BattleRunner, BotDelegate, BotType};
 use rayon::prelude::*;
 
-/// 单局批量模拟的结果。
+/// Outcome of a single game in a batch.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BatchOutcome {
-    /// 胜者（`None` 表示达到步数上限仍未分出胜负）
+    /// Winner (`None` means the step cap was reached without a victor)
     pub winner: Option<PlayerId>,
-    /// 实际执行的动作步数
+    /// Number of actions actually executed
     pub steps: u32,
-    /// 结束时的回合数
+    /// Turn number at the end
     pub turn: u32,
 }
 
-/// 批量模拟器 — 在多个对局上并行运行机器人驱动的自对弈。
+/// Batch simulator — runs bot-driven self-play across multiple games in parallel.
 #[derive(Debug, Clone, Copy)]
 pub struct BatchSimulator {
     bot_type: BotType,
@@ -30,9 +31,9 @@ pub struct BatchSimulator {
 }
 
 impl BatchSimulator {
-    /// 创建一个批量模拟器。
+    /// Creates a batch simulator.
     ///
-    /// `max_steps` — 每局的最大动作步数（防止死循环）。
+    /// `max_steps` — the maximum number of action steps per game (prevents infinite loops).
     #[must_use]
     pub fn new(bot_type: BotType, max_steps: u32) -> Self {
         Self {
@@ -42,10 +43,10 @@ impl BatchSimulator {
         }
     }
 
-    /// 并行推进所有对局，返回与输入顺序一致的结果列表。
+    /// Advances all games in parallel, returning results in input order.
     ///
-    /// 每个对局独立推进；`par_iter` 保持输出顺序，因此给定相同输入
-    /// 与每局 seed，结果完全可复现。
+    /// Each game advances independently; `par_iter` preserves output order, so given
+    /// the same inputs and per-game seeds, the results are fully reproducible.
     pub fn run(&self, games: Vec<GameState>) -> Vec<BatchOutcome> {
         games
             .into_par_iter()
@@ -53,10 +54,10 @@ impl BatchSimulator {
             .collect()
     }
 
-    /// 生成并并行运行 `count` 场完整对局。
+    /// Generates and runs `count` full games in parallel.
     ///
-    /// 每局使用独立种子（`seed + i`）生成随机牌组与对局 RNG，
-    /// 互不相关。返回按序号排序的结果。
+    /// Each game uses an independent seed (`seed + i`) for its random decks and game RNG,
+    /// so games are uncorrelated. Results are returned in index order.
     pub fn run_battles(&self, seed: u64, deck_size: usize, count: usize) -> Vec<BatchOutcome> {
         let states: Vec<GameState> = (0..count)
             .map(|i| {
@@ -67,7 +68,7 @@ impl BatchSimulator {
         self.run(states)
     }
 
-    /// 推进单个对局直到结束或达到步数上限。
+    /// Advances a single game until it ends or hits the step cap.
     fn run_one(&self, state: &mut GameState) -> BatchOutcome {
         let engine = GameEngine::new();
         let mut steps = 0u32;
@@ -77,7 +78,7 @@ impl BatchSimulator {
             }
             let actions = self.bot.decide_actions(state);
             if actions.is_empty() {
-                // 无合法动作（无牌可出、无可攻击目标）— 回合无法推进
+                // No legal actions (nothing playable, nothing to attack) — the turn cannot advance
                 break;
             }
             let mut applied = 0;
@@ -90,7 +91,7 @@ impl BatchSimulator {
                     break;
                 }
             }
-            // 本回合所有动作都被拒绝 → 状态不再变化，结束推进
+            // All actions this turn were rejected — the state no longer changes, so stop
             if applied == 0 {
                 break;
             }
@@ -120,7 +121,7 @@ mod tests {
         for (i, o) in outcomes.iter().enumerate() {
             assert!(o.steps > 0, "game {i} should make progress");
             assert!(o.turn >= 1);
-            // 最多 5000 步内必然结束或有胜者
+            // Must end or have a winner within at most 5000 steps
             if o.winner.is_none() {
                 assert_eq!(o.steps, 5000, "game {i} hit the step cap");
             }
@@ -137,7 +138,7 @@ mod tests {
 
     #[test]
     fn batch_states_are_independent() {
-        // 同一模板克隆出的对局互相隔离（CoW）：推进一批不影响模板
+        // Games cloned from the same template are isolated (CoW): advancing a batch does not affect the template
         let mut builder = GameBuilder::new();
         builder.add_minion_to_hand(
             crate::core::player::PlayerId::Player1,
@@ -150,7 +151,7 @@ mod tests {
         let outcomes = sim.run(games);
 
         assert_eq!(outcomes.len(), 3);
-        // 模板未被修改：手牌仍有一张牌，英雄 30 HP
+        // Template was not modified: the hand still has one card and the hero still has 30 HP
         let world = template.world();
         assert_eq!(
             world.health(template.player(PlayerId::Player1).hero),
