@@ -3237,4 +3237,129 @@ mod tests {
             "attacking breaks the attacker's stealth"
         );
     }
+
+    // ============================================================
+    // F4 — per-effect fidelity audit
+    // ============================================================
+
+    #[test]
+    fn single_target_destroy_hits_one_random_minion() {
+        // F4: Assassinate-style destroy with no explicit target destroys ONE
+        // random matching minion — never all of them.
+        use crate::cards::def::ASSASSINATE;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_hand(PlayerId::Player1, &ASSASSINATE);
+        builder.set_mana(PlayerId::Player1, 10, 10);
+        builder.add_minion_to_board(PlayerId::Player2, &crate::cards::def::BLOODFEN_RAPTOR);
+        builder.add_minion_to_board(PlayerId::Player2, &crate::cards::def::BLOODFEN_RAPTOR);
+        builder.add_minion_to_board(PlayerId::Player2, &crate::cards::def::BLOODFEN_RAPTOR);
+        let mut state = builder.build();
+        let assassinate = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("assassinate in hand");
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: assassinate,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state
+                .world()
+                .zones()
+                .iter(Zone::Play, PlayerId::Player2)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .count(),
+            2,
+            "a single-target destroy removes exactly one minion"
+        );
+    }
+
+    #[test]
+    fn execute_destroys_one_damaged_minion() {
+        // F4: Execute (destroy a damaged enemy minion) hits exactly one damaged
+        // minion; undamaged minions are untouched.
+        use crate::cards::def::EXECUTE;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_hand(PlayerId::Player1, &EXECUTE);
+        builder.set_mana(PlayerId::Player1, 10, 10);
+        let damaged = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 4, 3);
+        builder.add_minion_to_board(PlayerId::Player2, &crate::cards::def::BLOODFEN_RAPTOR);
+        let mut state = builder.build();
+        state
+            .world_mut()
+            .set_damage(damaged, crate::core::component::Damage(1));
+        let execute = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("execute in hand");
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: execute,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state.world().zone(damaged),
+            Some(Zone::Graveyard),
+            "the damaged minion is destroyed"
+        );
+        let remaining = state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId::Player2)
+            .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+            .count();
+        assert_eq!(remaining, 1, "only the damaged minion is destroyed");
+    }
+
+    #[test]
+    fn aura_stacking_is_additive() {
+        // F4: multiple auras stack additively (two Stormwind Champions: +2/+2)
+        use crate::cards::def::STORMWIND_CHAMPION;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_board(PlayerId::Player1, &STORMWIND_CHAMPION);
+        builder.add_minion_to_board(PlayerId::Player1, &STORMWIND_CHAMPION);
+        builder.add_minion_to_board(PlayerId::Player1, &crate::cards::def::BLOODFEN_RAPTOR);
+        let state = builder.build();
+        let target = state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId::Player1)
+            .find(|&e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .is_some_and(|c| c.0 == "CLASSIC_001")
+            })
+            .expect("raptor on board");
+        assert_eq!(
+            state.world().effective_attack(target),
+            Some(Attack(5)),
+            "two champions grant +2/+2 (additive aura stacking)"
+        );
+        assert_eq!(
+            state.world().effective_health(target),
+            Some(Health(4)),
+            "two champions grant +2/+2 (additive aura stacking)"
+        );
+    }
 }
