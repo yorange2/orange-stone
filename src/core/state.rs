@@ -17,6 +17,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::core::component::{Attack, AttacksUsed, CardType, Cost, Health};
+use crate::core::entity::Entity;
 use crate::core::player::{Player, PlayerId};
 use crate::core::world::World;
 use crate::core::zone::Zone;
@@ -71,6 +72,12 @@ pub struct Inner {
     pub step: Step,
     /// The player whose turn it is
     pub active_player: PlayerId,
+    /// Minions marked dead (health ≤ 0) that still await the death step (roadmap G3).
+    /// They stay on the battlefield until processed, so healing can rescue them.
+    pub pending_deaths: Vec<Entity>,
+    /// The step interrupted by the death phase — the machine returns here when
+    /// the pending deaths are processed (roadmap G3).
+    pub return_step: Step,
     /// Random number generator (reproducible)
     pub rng: GameRng,
 }
@@ -135,6 +142,8 @@ impl GameState {
             turn: 1,
             step: Step::Main,
             active_player: PlayerId::Player1,
+            pending_deaths: Vec::new(),
+            return_step: Step::Main,
             rng: GameRng::new(12345),
         };
 
@@ -159,6 +168,12 @@ impl GameState {
     #[must_use]
     pub fn step(&self) -> Step {
         self.inner.step
+    }
+
+    /// Minions awaiting the death step (health ≤ 0, still on the battlefield).
+    #[must_use]
+    pub fn pending_deaths(&self) -> &[Entity] {
+        &self.inner.pending_deaths
     }
 
     /// Set the game phase.

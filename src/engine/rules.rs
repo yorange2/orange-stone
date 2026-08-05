@@ -394,9 +394,11 @@ pub fn enqueue(
 /// Death check — the last step of the damage pipeline (`DamageDealt`).
 ///
 /// When the target's effective health is ≤ 0: heroes enqueue a game-over
-/// (highest priority), minions enqueue `MinionDied`.
+/// (highest priority); minions are marked pending death (roadmap G3) — they
+/// stay on the battlefield until the death step processes them, so healing can
+/// rescue them before their death resolves.
 fn queue_death_events(
-    state: &GameState,
+    state: &mut GameState,
     queue: &mut EventQueue,
     target: Entity,
     card_type: Option<CardType>,
@@ -414,7 +416,8 @@ fn queue_death_events(
             }
         }
         Some(CardType::Minion) => {
-            queue.push(Event::MinionDied { minion: target });
+            let inner = state.make_mut();
+            inner.pending_deaths.push(target);
         }
         _ => {}
     }
@@ -835,12 +838,24 @@ pub fn apply_event(
             queue_death_events(state, queue, target, card_type);
         }
         Event::MinionDied { minion } => {
-            // Check the deathrattle effect first (the entity is still on the board)
-            let deathrattle_effect = state.world().deathrattle(minion);
+            // Death batching (roadmap G3): re-check the health — a minion healed
+            // above 0 before its death was processed survives (the event is a no-op).
+            let effective_hp = state.world().effective_health(minion);
+            if !effective_hp.is_some_and(|h| h.is_dead()) {
+                return Ok(());
+            }
             let owner = state.world().player(minion);
 
-            // If there is a deathrattle effect, enqueue it (processed later, preserving the current entity state)
-            if let (Some(dr), Some(owner)) = (deathrattle_effect, owner) {
+            // Move the minion to the graveyard FIRST (entity and components kept
+            // for replay and graveyard effects) — death triggers must see the
+            // dead minion already removed from the battlefield.
+            state
+                .world_mut()
+                .move_to_zone(minion, Zone::Graveyard)
+                .map_err(|_| EngineError::EntityGone(minion))?;
+
+            // Deathrattle effect (the entity is in the graveyard, as in HS)
+            if let (Some(dr), Some(owner)) = (state.world().deathrattle(minion), owner) {
                 trigger::resolve_effect(state, queue, minion, owner, dr.0, None);
             }
 
@@ -857,11 +872,6 @@ pub fn apply_event(
                 );
             }
 
-            // Move the minion to the graveyard (entity and components kept for replay and Phase 2+ graveyard effects)
-            state
-                .world_mut()
-                .move_to_zone(minion, Zone::Graveyard)
-                .map_err(|_| EngineError::EntityGone(minion))?;
             // Record the death for resurrection effects
             if let Some(owner) = owner {
                 let inner = state.make_mut();
@@ -929,10 +939,19 @@ pub fn apply_event(
 /// Steps are entered by state: the turn-start sequence runs StartTriggers →
 /// ManaRefill → DrawStep → Main (start-of-turn card effects fire before the
 /// mana refill and the draw); the end sequence runs EndTriggers → WrapUp →
-/// next player's TurnStarted. Returns `false` when the machine is waiting for
-/// player input (Main step with an empty queue) or the game is over — the
-/// engine loop should stop then.
+/// next player's TurnStarted. Pending deaths (roadmap G3) enter the death
+/// step from any boundary and return to the interrupted step afterwards.
+/// Returns `false` when the machine is waiting for player input (Main step
+/// with an empty queue) or the game is over — the engine loop should stop then.
 pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
+    // The death phase takes precedence at any step boundary (HS: deaths resolve
+    // before anything else proceeds). The interrupted step is saved so the
+    // machine returns to it after the pending deaths are processed.
+    if !state.pending_deaths().is_empty() && state.step() != Step::Death {
+        state.make_mut().return_step = state.step();
+        state.set_step(Step::Death);
+        return true;
+    }
     match state.step() {
         Step::GameOver { .. } => false,
         Step::StartTriggers => {
@@ -981,14 +1000,43 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
             true
         }
         Step::Death => {
-            // The death step's batch processing happens in the event loop
-            // (queued MinionDied events; Milestone G3 replaces them with marked
-            // pending deaths). Back to the main step.
-            state.set_step(Step::Main);
-            true
+            // Process the pending deaths (batch): enqueue MinionDied in play
+            // order, current player first. Stay in the death step while more
+            // deaths surface (deathrattles can kill); return to the interrupted
+            // step when the batch drains.
+            if process_pending_deaths(state, queue) {
+                true
+            } else {
+                let return_step = state.make_mut().return_step;
+                state.set_step(return_step);
+                true
+            }
         }
         Step::Main => false,
     }
+}
+
+/// Enqueues `MinionDied` for all pending deaths, in play order with the current
+/// player's minions first (HS death-phase resolution order). Returns whether
+/// any death was enqueued.
+///
+/// The `MinionDied` handler re-checks health, so a minion healed after being
+/// marked survives (roadmap G3).
+fn process_pending_deaths(state: &mut GameState, queue: &mut EventQueue) -> bool {
+    let active = state.active_player();
+    let inner = state.make_mut();
+    let pending = std::mem::take(&mut inner.pending_deaths);
+    let mut any = false;
+    for player in [active, active.opponent()] {
+        // Play order: the zone table holds the board in summon order
+        for entity in inner.world.zones().iter(Zone::Play, player) {
+            if pending.contains(&entity) {
+                queue.push(Event::MinionDied { minion: entity });
+                any = true;
+            }
+        }
+    }
+    any
 }
 
 /// Fires registered triggers for the given event (roadmap G2).
@@ -1251,13 +1299,10 @@ mod tests {
         let attacker = add_minion_to_board(&mut state, PlayerId::Player1, 3, 5);
         let defender = add_minion_to_board(&mut state, PlayerId::Player2, 2, 3);
 
-        let mut queue = EventQueue::new();
-        enqueue(&state, Action::Attack { attacker, defender }, &mut queue).unwrap();
-
-        // Process all events
-        while let Some(event) = queue.pop_front() {
-            apply_event(&mut state, event, &mut queue).unwrap();
-        }
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(&mut state, Action::Attack { attacker, defender })
+            .unwrap();
 
         // defender takes 3 damage: 3 → 0, dies
         assert_eq!(
@@ -1346,12 +1391,10 @@ mod tests {
         let attacker = add_minion_to_board(&mut state, PlayerId::Player1, 4, 1);
         let defender = add_minion_to_board(&mut state, PlayerId::Player2, 5, 10);
 
-        let mut queue = EventQueue::new();
-        enqueue(&state, Action::Attack { attacker, defender }, &mut queue).unwrap();
-
-        while let Some(event) = queue.pop_front() {
-            apply_event(&mut state, event, &mut queue).unwrap();
-        }
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(&mut state, Action::Attack { attacker, defender })
+            .unwrap();
 
         // defender takes 4 damage: 10 → 6
         assert_eq!(state.world().health(defender), Some(Health(6)));
@@ -1823,6 +1866,150 @@ mod tests {
             state.world().zones().len(Zone::Hand, PlayerId::Player1),
             0,
             "whenever triggers must fire before after triggers"
+        );
+    }
+
+    // ============================================================
+    // G3 — death batching
+    // ============================================================
+
+    /// Plays a custom P1 minion whose battlecry deals `amount` damage to all
+    /// enemy minions, returning the battlecry minion.
+    fn play_aoe_battlecry(state: &mut GameState, amount: i32) -> Entity {
+        use crate::core::component::Battlecry;
+        use crate::core::effect::CardEffect;
+        let aoe = {
+            let world = state.world_mut();
+            let e = world.spawn();
+            world.set_health(e, Health(2));
+            world.set_attack(e, Attack(1));
+            world.set_cost(e, crate::core::component::Cost(1));
+            world.set_card_type(e, CardType::Minion);
+            world.set_player(e, PlayerId::Player1);
+            world.set_attacks_used(e, AttacksUsed(0));
+            world.set_battlecry(
+                e,
+                Battlecry(CardEffect::DealDamage {
+                    amount,
+                    target: crate::core::effect::EffectTarget::AllEnemyMinions,
+                }),
+            );
+            world.set_zone(e, Zone::Hand);
+            world.zones_mut().insert(Zone::Hand, PlayerId::Player1, e);
+            e
+        };
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                state,
+                Action::PlayCard {
+                    card: aoe,
+                    target: None,
+                },
+            )
+            .unwrap();
+        aoe
+    }
+
+    #[test]
+    fn healed_pending_death_survives() {
+        // Death batching (G3): a minion marked dead stays on the battlefield
+        // until the death step processes it. B (played first, deathrattle heals
+        // all friendly minions) dies before A; its deathrattle heals A above 0,
+        // so A's death is re-checked and A survives.
+        use crate::core::component::Deathrattle;
+        use crate::core::effect::CardEffect;
+        let mut state = GameState::new();
+        // B (healer) is played first, A (victim) second — B's death processes first
+        let b = add_minion_to_board(&mut state, PlayerId::Player2, 0, 1);
+        state.world_mut().set_deathrattle(
+            b,
+            Deathrattle(CardEffect::RestoreHealth {
+                amount: 10,
+                target: crate::core::effect::EffectTarget::AllFriendlyMinions,
+            }),
+        );
+        let a = add_minion_to_board(&mut state, PlayerId::Player2, 0, 1);
+        // P1 plays an AOE battlecry dealing 1 damage to both
+        play_aoe_battlecry(&mut state, 1);
+
+        assert_eq!(
+            state.world().zone(a),
+            Some(Zone::Play),
+            "A must survive: healed above 0 before its death was processed"
+        );
+        // Damage dropped A to 0; the heal then restored 10
+        assert_eq!(state.world().health(a), Some(Health(10)));
+        assert_eq!(state.world().zone(b), Some(Zone::Graveyard));
+        assert_eq!(state.step(), Step::Main);
+    }
+
+    #[test]
+    fn deaths_process_in_play_order() {
+        // The death phase processes deaths in play order: A (played first,
+        // deathrattle draws) dies before B (deathrattle discards), so the drawn
+        // card is discarded — if B processed first, the hand would keep it.
+        use crate::core::component::Deathrattle;
+        use crate::core::effect::CardEffect;
+        let mut state = GameState::new();
+        let a = add_minion_to_board(&mut state, PlayerId::Player2, 0, 1);
+        state
+            .world_mut()
+            .set_deathrattle(a, Deathrattle(CardEffect::DrawCard { count: 1 }));
+        let b = add_minion_to_board(&mut state, PlayerId::Player2, 0, 1);
+        state
+            .world_mut()
+            .set_deathrattle(b, Deathrattle(CardEffect::DiscardRandomCard));
+        // P2's deck with one card for A's draw
+        {
+            let world = state.world_mut();
+            let e = world.spawn();
+            world.set_card_type(e, CardType::Minion);
+            world.set_cost(e, crate::core::component::Cost(0));
+            world.set_player(e, PlayerId::Player2);
+            world.set_zone(e, Zone::Deck);
+            world.zones_mut().insert(Zone::Deck, PlayerId::Player2, e);
+        }
+        play_aoe_battlecry(&mut state, 1);
+
+        assert_eq!(
+            state.world().zones().len(Zone::Hand, PlayerId::Player2),
+            0,
+            "deaths must process in play order: A's draw is discarded by B"
+        );
+        assert_eq!(state.world().zone(a), Some(Zone::Graveyard));
+        assert_eq!(state.world().zone(b), Some(Zone::Graveyard));
+    }
+
+    #[test]
+    fn deathrattle_resolves_after_minion_removed() {
+        // Death triggers see the dead minion already removed: a minion with a
+        // FriendlyMinionDied trigger on ITSELF does not fire (the dead minion is
+        // excluded), and the deathrattle resolves after the move to the graveyard.
+        use crate::core::component::Deathrattle;
+        use crate::core::effect::CardEffect;
+        let mut state = GameState::new();
+        let victim = add_minion_to_board(&mut state, PlayerId::Player2, 0, 1);
+        state.world_mut().set_deathrattle(
+            victim,
+            Deathrattle(CardEffect::SummonMinion {
+                card_id: "CLASSIC_001",
+            }),
+        );
+        let hand_before = state.world().zones().len(Zone::Hand, PlayerId::Player1);
+        let _ = hand_before;
+        play_aoe_battlecry(&mut state, 1);
+        // The deathrattle fired (a minion was summoned) — and the dead minion is gone
+        assert_eq!(state.world().zone(victim), Some(Zone::Graveyard));
+        assert_eq!(
+            state
+                .world()
+                .zones()
+                .iter(Zone::Play, PlayerId::Player2)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .count(),
+            1,
+            "deathrattle summon must resolve after the minion is removed"
         );
     }
 }

@@ -92,7 +92,7 @@
 
 - ✅ **已解决（G1，PR #52）** — 无游戏步骤状态机。现 `Step` 状态机（RS/SB GameStep 模拟，`src/core/state.rs`）：回合开始序列 StartTriggers → ManaRefill → DrawStep → Main；回合结束序列 EndTriggers → WrapUp → 对手 TurnStarted；死亡步骤在 Main 中出现待处理死亡时进入（G3 将改为标记待处理死亡）。`TurnStarted` 不再内联回满法力并抽牌 — 法力回填移入 ManaRefill 步骤、抽牌移入 DrawStep 步骤，回合开始类奥秘/触发（`OnFriendlyTurnStart`、`CardDef::start_turn_effect`）在抽牌*之前*触发；先手玩家第 1 回合免抽（`rules.rs` DrawStep 守卫 + 初始状态不经 DrawStep）；`TurnEnded` 只标记 EndTriggers — 回合结束效果先于收尾清理触发（临时增益在效果结算后才过期）；开局法力修正为先手 1 水晶。
 - ✅ **已解决（G2，PR #53）** — 触发检测原为即席组件扫描（稀疏集下标序）。现统一 `Trigger` 组件（`TriggerEvent` + `TriggerTiming`，RS `ITrigger` / SB `TriggerManager` 对应）：按上场顺序（区域表序）触发、当前玩家优先于对手、显式"每当"与"之后"时序、按区域校验有效性；`start_turn_effect` 已接入。新增受伤触发类：苦痛侍僧改为 `ThisMinionDamaged` 抽牌（移除亡语误建模），暴乱狂战士/铸甲师改为 `FriendlyMinionDamaged`（+1 攻击 / +1 护甲，补上 `GainArmor::FriendlyHero` 解析）。旧逐类触发组件（`EndTurnEffect`/`StartTurnEffect`/`SpellTrigger`/`DeathTrigger`/`SummonTrigger`/`OverloadTrigger`）退役，沉默/清除效果组件统一走 `remove_trigger`。
-- ❌ **未解决（G3）** — 无死亡分批。`MinionDied` 在伤害结算时逐条入队，处理器无条件移入坟场（`rules.rs:884-922`）— 在自身死亡被处理前被治疗/加血到 0 以上的随从无法存活；死亡触发的区域状态错误（"每当一个随从死亡"触发时，死者仍在场上）。
+- ✅ **已解决（G3，PR #54）** — 无死亡分批。现待处理死亡标记（`Inner::pending_deaths`，生命 ≤ 0 即"死亡"但仍在场上），死亡步骤在任意步骤边界优先进入（HS 死亡阶段语义），按上场顺序 + 当前玩家优先分批处理，处理完返回被中断的步骤（`return_step`）；`MinionDied` 处理时重新检查生命值（死亡前被治疗到 0 以上 → 存活）；先移入坟场再结算亡语与死亡触发（死亡触发看到死者已移除）。
 - ❌ **未解决（G4）** — 增益直接写入基础 Attack/Health（`trigger.rs:660`），费用修饰直接写入基础 Cost（`trigger.rs:414`）。无附魔层 → 沉默（只剥增益、保留基础值与伤害）、变形、复制（无面操纵者）、"直到回合结束"过期、跨区域增益保留均无法表达。
 - ❌ **未解决（G5）** — 费用为基础组件 + 即席光环减免（`effective_play_cost`，`rules.rs:121`）；无修饰栈（下限 0、"不能低于 X"、设为固定值、冻结费用）— 也是 F1 过载锁定的归宿（在法力回满步骤生效）。
 - ❌ **未解决（G6）** — 决策面仅有 `PlayCard { card, target }`：抉择走引擎随机（`rules.rs:604-620`），连击自动判定；无发现、换牌、对手抉择、召唤位置选择。
@@ -144,7 +144,7 @@
 
 - [x] **G1** — 游戏步骤状态机：仿照 RS/SB 的 `GameStep` 状态机建模炉石的结算步骤（回合开始触发 → 法力 → 抽牌 → 行动 → 回合结束触发 → 死亡阶段 → 收尾）；优先级事件队列退化为步骤*内部*的事件流，步骤由状态进入（有待处理死亡 → 进入死亡步骤）。修复回合开始/结束顺序、临时效果过期、首回合抽牌。*(PR #52：`Step` 状态机 + `advance_step`；死亡步骤事件级分批，G3 升级为标记式)*
 - [x] **G2** — 注册式触发器：以逐实体触发器注册（RS `ITrigger` / SB `TriggerManager`）取代即席 `iter_*_trigger` 扫描：按上场顺序触发、先手玩家优先、显式"每当"与"之后"时序、按区域校验有效性。接入 `start_turn_effect`（已声明但从未触发）；补充缺失的触发类（受伤触发 — 解锁苦痛侍僧、暴乱狂战士、铸甲师）。*(PR #53：统一 `Trigger` 组件 + `fire_triggers`)*
-- [ ] **G3** — 死亡分批：待处理死亡标记（生命 ≤ 0 即"死亡"但仍在场上）、死亡按上场顺序在同一个步骤内处理、`MinionDied` 在处理时重新检查生命值（在自身死亡被处理前被治疗/加血到 0 以上 → 存活）、死亡触发看到随从已被移除。
+- [x] **G3** — 死亡分批：待处理死亡标记（生命 ≤ 0 即"死亡"但仍在场上）、死亡按上场顺序在同一个步骤内处理、`MinionDied` 在处理时重新检查生命值（在自身死亡被处理前被治疗/加血到 0 以上 → 存活）、死亡触发看到随从已被移除。*(PR #54：`pending_deaths` + 死亡步骤优先进入/返回中断步骤)*
 - [ ] **G4** — 附魔层：数值变为基础值 + 附魔增量（+ 伤害）而非直接写组件；增益/减益/费用效果挂附魔，光环保持查询时计算。使沉默（只剥附魔）、变形、复制（无面操纵者）、"直到回合结束"过期正确。
 - [ ] **G5** — 费用管理器：费用 = 基础值 + 修饰栈，遵循炉石规则（下限 0、"不能低于 X"、设为固定值、冻结费用）；退役即席 `effective_play_cost` 组合。过载（F1）在法力回满步骤锁定法力。
 - [ ] **G6** — 抉择系统：在 `Action` 中暴露 `Choice` 对象（SB ChoiceType：Mulligan / General / HeroPower / TaskList），覆盖抉择、发现、对手抉择（生而平等式）、召唤位置、英雄技能目标。*(吸收 E3 与 F3。)*
