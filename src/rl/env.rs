@@ -129,6 +129,18 @@ impl GameEnv {
         encode_observation(&self.state, self.perspective)
     }
 
+    /// The underlying game state (read-only) — exposed for the structured views (M1-G3).
+    #[must_use]
+    pub fn game_state(&self) -> &GameState {
+        &self.state
+    }
+
+    /// The agent's fixed perspective player.
+    #[must_use]
+    pub fn perspective(&self) -> PlayerId {
+        self.perspective
+    }
+
     /// Observation length (fixed value).
     #[must_use]
     pub const fn obs_len() -> usize {
@@ -245,38 +257,81 @@ impl GameEnv {
     }
 }
 
-/// Enumerates all legal actions for the current acting player.
+/// Structured metadata for a legal action (roadmap M1-G3).
+///
+/// Parallels `Action` with the fields the Python side needs for feature
+/// engineering: action kind, the hand index of a played card, and the
+/// involved entity IDs (matching `EntityView::entity_id`).
+#[derive(Debug, Clone, Copy)]
+pub struct ActionInfo {
+    /// The engine action (executed via `GameEnv::step`)
+    pub action: Action,
+    /// Action kind: `"end_turn" | "play" | "attack" | "hero_power" | "choose"`
+    pub kind: &'static str,
+    /// Hand index of the card for `play`, else `-1`
+    pub card_index: i32,
+    /// Entity id: the card (`play`), the attacker (`attack`), the hero (`hero_power`), else `-1`
+    pub entity_id: i32,
+    /// Target entity id (play target / defender / hero power target), else `-1`
+    pub target_id: i32,
+}
+
+/// Enumerates all legal actions for the current acting player with structured metadata.
 ///
 /// Generates candidates (end turn, hero power, playing cards with explicit targets, all attack pairs),
 /// filters them with the engine's `validate`, ensuring consistency with `GameEngine::apply` legality.
 #[must_use]
-pub fn legal_actions(state: &GameState) -> Vec<Action> {
+pub fn legal_action_infos(state: &GameState) -> Vec<ActionInfo> {
     let player = state.active_player();
     let world = state.world();
-    let mut candidates: Vec<Action> = Vec::new();
+    let mut candidates: Vec<ActionInfo> = Vec::new();
 
     // End turn
-    candidates.push(Action::EndTurn);
+    candidates.push(ActionInfo {
+        action: Action::EndTurn,
+        kind: "end_turn",
+        card_index: -1,
+        entity_id: -1,
+        target_id: -1,
+    });
     // Hero power
     let hero = state.player(player).hero;
     if world.hero_power(hero).is_some() {
-        candidates.push(Action::HeroPower { hero, target: None });
+        candidates.push(ActionInfo {
+            action: Action::HeroPower { hero, target: None },
+            kind: "hero_power",
+            card_index: -1,
+            entity_id: hero.index as i32,
+            target_id: -1,
+        });
     }
     // Play cards (with explicit targets)
-    for card in world.zones().iter(Zone::Hand, player) {
+    for (hand_idx, card) in world.zones().iter(Zone::Hand, player).enumerate() {
         let targets = play_targets(state, card);
         if targets.is_empty() {
-            candidates.push(Action::PlayCard {
-                card,
-                target: None,
-                position: None,
+            candidates.push(ActionInfo {
+                action: Action::PlayCard {
+                    card,
+                    target: None,
+                    position: None,
+                },
+                kind: "play",
+                card_index: hand_idx as i32,
+                entity_id: card.index as i32,
+                target_id: -1,
             });
         } else {
             for t in targets {
-                candidates.push(Action::PlayCard {
-                    card,
-                    target: Some(t),
-                    position: None,
+                candidates.push(ActionInfo {
+                    action: Action::PlayCard {
+                        card,
+                        target: Some(t),
+                        position: None,
+                    },
+                    kind: "play",
+                    card_index: hand_idx as i32,
+                    entity_id: card.index as i32,
+                    target_id: t.index as i32,
                 });
             }
         }
@@ -284,14 +339,31 @@ pub fn legal_actions(state: &GameState) -> Vec<Action> {
     // All attack pairs (friendly battlefield characters → enemy battlefield characters)
     for attacker in world.zones().iter(Zone::Play, player) {
         for defender in world.zones().iter(Zone::Play, player.opponent()) {
-            candidates.push(Action::Attack { attacker, defender });
+            candidates.push(ActionInfo {
+                action: Action::Attack { attacker, defender },
+                kind: "attack",
+                card_index: -1,
+                entity_id: attacker.index as i32,
+                target_id: defender.index as i32,
+            });
         }
     }
 
     // Filter illegal candidates using engine validation
     candidates
         .into_iter()
-        .filter(|a| rules::validate(state, *a).is_ok())
+        .filter(|i| rules::validate(state, i.action).is_ok())
+        .collect()
+}
+
+/// Enumerates all legal actions for the current acting player.
+///
+/// Thin wrapper over [`legal_action_infos`] keeping the plain-action API.
+#[must_use]
+pub fn legal_actions(state: &GameState) -> Vec<Action> {
+    legal_action_infos(state)
+        .into_iter()
+        .map(|info| info.action)
         .collect()
 }
 

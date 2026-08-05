@@ -10,3 +10,4 @@
 pub mod env;
 pub mod obs;
 pub mod reward;
+pub mod views;

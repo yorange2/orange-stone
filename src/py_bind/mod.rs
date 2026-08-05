@@ -13,11 +13,14 @@
 //! The action space is the per-turn list of legal action indices (returned by `legal_actions()`);
 //! indices are stable within a turn; after `EndTurn`, the environment advances the opponent's turn automatically.
 
+mod views;
+
 use crate::core::player::PlayerId;
 use crate::rl::env::{EnvConfig, GameEnv};
 use crate::rl::obs::OBS_LEN;
 use crate::sim::battle::BotType;
 use pyo3::prelude::*;
+use views::{PyActionView, PyObservation};
 
 /// Python wrapper for the Gym-style environment.
 #[pyclass(name = "GameEnv")]
@@ -101,12 +104,33 @@ impl PyGameEnv {
             winner,
         )
     }
+
+    /// Structured observation (M1-G3): full view of heroes, mana, hands, boards.
+    fn structured_observation(&self) -> PyObservation {
+        PyObservation::from(&crate::rl::views::observation(
+            self.env.game_state(),
+            self.env.perspective(),
+        ))
+    }
+
+    /// Structured legal actions (M1-G3): same order as `legal_actions()`, each
+    /// with kind / card_index / entity_id / target_id / description.
+    fn structured_legal_actions(&self) -> Vec<PyActionView> {
+        crate::rl::views::action_views(self.env.game_state())
+            .iter()
+            .map(PyActionView::from)
+            .collect()
+    }
 }
 
 /// Entry point of the `orange_stone` extension module.
 #[pymodule]
 fn orange_stone(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyGameEnv>()?;
+    m.add_class::<views::PyEntityView>()?;
+    m.add_class::<views::PyPlayerView>()?;
+    m.add_class::<views::PyObservation>()?;
+    m.add_class::<views::PyActionView>()?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     Ok(())
 }
