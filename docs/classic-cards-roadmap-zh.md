@@ -23,37 +23,39 @@
 
 这些卡牌需要的所有效果（嘲讽、潜行、战吼、亡语、光环、武器、奥秘、抽牌）引擎均已支持。文档已把它们标为 ✅，因此实现它们同时也能修复文档漂移。
 
+> 注：尽管宣称"无需引擎改动"，有两张卡需要微小的效果补充（2026-08-05 添加）：`EffectTarget::AllEnemies`（所有敌方角色 — 爆炸陷阱）与 `CardEffect::ReturnToHandAndIncreaseCost`（冰冻陷阱）。两者均为 `src/core/effect.rs` 中的增量变体，解析逻辑在 `src/engine/trigger.rs`。
+
 ### `src/cards/classic_neutral.rs`（15 张）
 
-- [ ] **小精灵 (Wisp)** — 0 费 1/1，白板
-- [ ] **精灵弓箭手 (Elven Archer)** — **战吼：**造成 1 点伤害。
-- [ ] **闪金镇步兵 (Goldshire Footman)** — **嘲讽**
-- [ ] **新手工程师 (Novice Engineer)** — **战吼：**抽一张牌。
-- [ ] **淡水鳄 (River Crocolisk)** — 2/3 野兽，白板
-- [ ] **团队领袖 (Raid Leader)** — 光环：你的其他随从获得 +1 攻击力
-- [ ] **破碎残阳祭司 (Shattered Sun Cleric)** — **战吼：**使一个友方随从获得 +1/+1。
-- [ ] **冰风雪人 (Chillwind Yeti)** — 4/5，白板
-- [ ] **石拳食人魔 (Boulderfist Ogre)** — 6/7，白板
-- [ ] **暴风城勇士 (Stormwind Champion)** — 光环：你的其他随从获得 +1/+1
-- [ ] **作战傀儡 (War Golem)** — 7/7，白板
-- [ ] **恐狼前锋 (Dire Wolf Alpha)** — 光环：相邻随从获得 +1 攻击力
-- [ ] **战利品贮藏者 (Loot Hoarder)** — **亡语：**抽一张牌。
-- [ ] **荆棘谷猛虎 (Stranglethorn Tiger)** — **潜行**
-- [ ] **拉文霍德刺客 (Ravenholdt Assassin)** — **潜行**
+- [x] **小精灵 (Wisp)** — 0 费 1/1，白板
+- [x] **精灵弓箭手 (Elven Archer)** — **战吼：**造成 1 点伤害。
+- [x] **闪金镇步兵 (Goldshire Footman)** — **嘲讽**
+- [x] **新手工程师 (Novice Engineer)** — **战吼：**抽一张牌。
+- [x] **淡水鳄 (River Crocolisk)** — 2/3 野兽，白板
+- [x] **团队领袖 (Raid Leader)** — 光环：你的其他随从获得 +1 攻击力
+- [x] **破碎残阳祭司 (Shattered Sun Cleric)** — **战吼：**使一个友方随从获得 +1/+1。
+- [x] **冰风雪人 (Chillwind Yeti)** — 4/5，白板
+- [x] **石拳食人魔 (Boulderfist Ogre)** — 6/7，白板
+- [x] **暴风城勇士 (Stormwind Champion)** — 光环：你的其他随从获得 +1/+1
+- [x] **作战傀儡 (War Golem)** — 7/7，白板
+- [x] **恐狼前锋 (Dire Wolf Alpha)** — 光环：相邻随从获得 +1 攻击力
+- [x] **战利品贮藏者 (Loot Hoarder)** — **亡语：**抽一张牌。
+- [x] **荆棘谷猛虎 (Stranglethorn Tiger)** — **潜行**
+- [x] **拉文霍德刺客 (Ravenholdt Assassin)** — **潜行**
 
 ### `src/cards/classic_warrior.rs`（2 张）
 
-- [ ] **炽炎战斧 (Fiery War Axe)** — 武器 3/2
-- [ ] **奥金斧 (Arcanite Reaper)** — 武器 5/2
+- [x] **炽炎战斧 (Fiery War Axe)** — 武器 3/2
+- [x] **奥金斧 (Arcanite Reaper)** — 武器 5/2
 
 ### `src/cards/classic_hunter.rs`（2 张）
 
-- [ ] **爆炸陷阱 (Explosive Trap)** — **奥秘：**当一个随从攻击你的英雄时，对所有敌人造成 2 点伤害。
-- [ ] **冰冻陷阱 (Freezing Trap)** — **奥秘：**当一个敌方随从攻击时，将其移回拥有者的手牌，且费用增加 (2) 点。
+- [x] **爆炸陷阱 (Explosive Trap)** — **奥秘：**当一个随从攻击你的英雄时，对所有敌人造成 2 点伤害。
+- [x] **冰冻陷阱 (Freezing Trap)** — **奥秘：**当一个敌方随从攻击时，将其移回拥有者的手牌，且费用增加 (2) 点。
 
 ### `src/cards/classic_warlock.rs`（1 张）
 
-- [ ] **攻城恶魔 (Siegebreaker)** — **嘲讽**
+- [x] **攻城恶魔 (Siegebreaker)** — **嘲讽**
 
 ---
 

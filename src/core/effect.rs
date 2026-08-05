@@ -14,6 +14,8 @@ pub enum EffectTarget {
     AnyEnemyMinion,
     /// 所有敌方随从
     AllEnemyMinions,
+    /// 所有敌方角色（敌方英雄 + 所有敌方随从）
+    AllEnemies,
     /// 敌方英雄
     EnemyHero,
     /// 自身（buff 类效果）
@@ -88,6 +90,11 @@ pub enum CardEffect {
         amount: i32,
         /// 目标选择方式
         target: EffectTarget,
+    },
+    /// 将一个随从移回手牌并使其法力消耗增加（冰冻陷阱完整效果）
+    ReturnToHandAndIncreaseCost {
+        /// 法力消耗增量
+        amount: i32,
     },
     /// 消灭随从（暗言术：灭、刺杀）
     DestroyMinion {

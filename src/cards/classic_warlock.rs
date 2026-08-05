@@ -634,3 +634,38 @@ pub const VOID_TERROR: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// ============================================================
+// Tier 1 补全 — 术士（docs/classic-cards-roadmap.md）
+// ============================================================
+
+/// 破城者 — 嘲讽；你的其他恶魔获得+1攻击力（简化：仅嘲讽，恶魔光环未实现）
+pub const SIEGEBREAKER: CardDef = CardDef {
+    id: "WARLOCK_T01",
+    name: "Siegebreaker",
+    card_type: CardType::Minion,
+    cost: 7,
+    attack: 5,
+    health: 8,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

@@ -1373,3 +1373,393 @@ fn grant_charge_allows_immediate_attack() {
         Some(orange_stone::core::component::Attack(5))
     );
 }
+
+// ============================================================
+// Tier 1: 怀旧系列补全卡牌 (docs/classic-cards-roadmap.md)
+// ============================================================
+
+#[test]
+fn tier1_vanilla_neutrals_registered() {
+    use orange_stone::cards::def::card_by_id;
+
+    // 白板随从 + 潜行随从（简化：白板）
+    let checks = [
+        ("NEUTRAL_T01", "Wisp", 0, 1, 1),
+        ("NEUTRAL_T05", "River Crocolisk", 2, 2, 3),
+        ("NEUTRAL_T08", "Chillwind Yeti", 4, 4, 5),
+        ("NEUTRAL_T09", "Boulderfist Ogre", 6, 6, 7),
+        ("NEUTRAL_T11", "War Golem", 7, 7, 7),
+        ("NEUTRAL_T14", "Stranglethorn Tiger", 5, 5, 5),
+        ("NEUTRAL_T15", "Ravenholdt Assassin", 7, 7, 5),
+    ];
+    for (id, name, cost, atk, hp) in checks {
+        let card = card_by_id(id).unwrap_or_else(|| panic!("{name} ({id}) not registered"));
+        assert_eq!(card.name, name);
+        assert_eq!(card.cost, cost);
+        assert_eq!(card.attack, atk);
+        assert_eq!(card.health, hp);
+    }
+}
+
+#[test]
+fn elven_archer_battlecry_deals_one_damage() {
+    use orange_stone::cards::def::ELVEN_ARCHER;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &ELVEN_ARCHER);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 敌方只有英雄，1 点伤害必然打在英雄上
+    let enemy_hero = state.player(PlayerId::Player2).hero;
+    assert_eq!(
+        state.world().health(enemy_hero),
+        Some(orange_stone::core::component::Health(29))
+    );
+}
+
+#[test]
+fn goldshire_footman_and_siegebreaker_have_taunt() {
+    use orange_stone::cards::def::{GOLDSHIRE_FOOTMAN, SIEGEBREAKER};
+
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId::Player1, &GOLDSHIRE_FOOTMAN);
+    builder.add_minion_to_board(PlayerId::Player1, &SIEGEBREAKER);
+    let state = builder.build();
+
+    let minions: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId::Player1)
+        .filter(|&e| {
+            state
+                .world()
+                .card_type(e)
+                == Some(orange_stone::core::component::CardType::Minion)
+        })
+        .collect();
+    let footman = minions[0];
+    let siegebreaker = minions[1];
+
+    assert!(state.world().taunt(footman).is_some());
+    assert!(state.world().taunt(siegebreaker).is_some());
+    assert_eq!(
+        state.world().attack(siegebreaker),
+        Some(orange_stone::core::component::Attack(5))
+    );
+    assert_eq!(
+        state.world().health(siegebreaker),
+        Some(orange_stone::core::component::Health(8))
+    );
+}
+
+#[test]
+fn novice_engineer_battlecry_draws_card() {
+    use orange_stone::cards::def::NOVICE_ENGINEER;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &NOVICE_ENGINEER);
+    builder.add_minion_to_deck(PlayerId::Player1, &orange_stone::cards::def::WISP);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    let log = engine
+        .apply(&mut state, Action::PlayCard { card })
+        .unwrap();
+
+    assert!(log.iter().any(|e| matches!(e, Event::CardDrawn { .. })));
+    // 牌库中的 Wisp 应被抽到手牌
+    let hand_count = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .count();
+    assert_eq!(hand_count, 1);
+}
+
+#[test]
+fn raid_leader_buffs_other_friendly_minions() {
+    use orange_stone::cards::def::RAID_LEADER;
+
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId::Player1, &RAID_LEADER);
+    let ally = builder.add_custom_minion_to_board(PlayerId::Player1, 2, 3, 2);
+    let state = builder.build();
+
+    assert_eq!(
+        state.world().effective_attack(ally),
+        Some(orange_stone::core::component::Attack(3))
+    );
+}
+
+#[test]
+fn shattered_sun_cleric_buffs_friendly_minion() {
+    use orange_stone::cards::def::SHATTERED_SUN_CLERIC;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &SHATTERED_SUN_CLERIC);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 场上唯一的友方随从是祭司自己，战吼必加在它身上
+    assert_eq!(
+        state.world().attack(card),
+        Some(orange_stone::core::component::Attack(4))
+    );
+    assert_eq!(
+        state.world().health(card),
+        Some(orange_stone::core::component::Health(3))
+    );
+}
+
+#[test]
+fn stormwind_champion_buffs_allies_plus_one_plus_one() {
+    use orange_stone::cards::def::STORMWIND_CHAMPION;
+
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId::Player1, &STORMWIND_CHAMPION);
+    let ally = builder.add_custom_minion_to_board(PlayerId::Player1, 3, 4, 2);
+    let state = builder.build();
+
+    assert_eq!(
+        state.world().effective_attack(ally),
+        Some(orange_stone::core::component::Attack(4))
+    );
+    assert_eq!(
+        state.world().effective_health(ally),
+        Some(orange_stone::core::component::Health(5))
+    );
+}
+
+#[test]
+fn dire_wolf_alpha_buffs_adjacent_minions() {
+    use orange_stone::cards::def::DIRE_WOLF_ALPHA;
+
+    let mut builder = GameBuilder::new();
+    let left = builder.add_custom_minion_to_board(PlayerId::Player1, 1, 1, 1);
+    builder.add_minion_to_board(PlayerId::Player1, &DIRE_WOLF_ALPHA);
+    let right = builder.add_custom_minion_to_board(PlayerId::Player1, 1, 1, 1);
+    let state = builder.build();
+
+    let minions: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId::Player1)
+        .collect();
+    let wolf = minions[1];
+
+    assert_eq!(
+        state.world().effective_attack(left),
+        Some(orange_stone::core::component::Attack(2))
+    );
+    assert_eq!(
+        state.world().effective_attack(right),
+        Some(orange_stone::core::component::Attack(2))
+    );
+    // 狼自身不受自己光环影响
+    assert_eq!(
+        state.world().effective_attack(wolf),
+        Some(orange_stone::core::component::Attack(2))
+    );
+}
+
+#[test]
+fn loot_hoarder_deathrattle_draws_card() {
+    use orange_stone::cards::def::LOOT_HOARDER;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId::Player2);
+    builder.add_minion_to_board(PlayerId::Player1, &LOOT_HOARDER);
+    builder.add_minion_to_deck(PlayerId::Player1, &orange_stone::cards::def::WISP);
+    let attacker = builder.add_custom_minion_to_board(PlayerId::Player2, 5, 5, 5);
+    let mut state = builder.build();
+
+    let hoarder: Entity = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId::Player1)
+        .find(|&e| {
+            state
+                .world()
+                .card_type(e)
+                == Some(orange_stone::core::component::CardType::Minion)
+        })
+        .unwrap();
+
+    let log = engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: hoarder,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(state.world().zone(hoarder), Some(Zone::Graveyard));
+    assert!(log.iter().any(|e| matches!(e, Event::CardDrawn { .. })));
+}
+
+#[test]
+fn fiery_war_axe_and_arcanite_reaper_equip() {
+    use orange_stone::cards::def::{ARCANITE_REAPER, FIERY_WAR_AXE};
+
+    let mut builder = GameBuilder::new();
+    builder.equip_weapon(PlayerId::Player1, &FIERY_WAR_AXE);
+    builder.equip_weapon(PlayerId::Player1, &ARCANITE_REAPER);
+    let state = builder.build();
+
+    // 后装备的武器替换先装备的
+    let weapon = state.player(PlayerId::Player1).weapon.unwrap();
+    assert_eq!(
+        state.world().attack(weapon),
+        Some(orange_stone::core::component::Attack(5))
+    );
+    assert_eq!(
+        state.world().durability(weapon),
+        Some(orange_stone::core::component::Durability(2))
+    );
+}
+
+#[test]
+fn explosive_trap_deals_damage_to_all_enemies() {
+    use orange_stone::core::component::{CardType, Secret, SecretTrigger};
+    use orange_stone::core::effect::{CardEffect, EffectTarget};
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId::Player2);
+    let attacker = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 3, 2);
+    let mut state = builder.build();
+
+    // 在 Player1 的 SetAside 放置爆炸陷阱
+    {
+        let world = state.world_mut();
+        let secret_entity = world.spawn();
+        world.set_card_type(secret_entity, CardType::Spell);
+        world.set_player(secret_entity, PlayerId::Player1);
+        world.set_zone(secret_entity, Zone::SetAside);
+        world.set_secret(
+            secret_entity,
+            Secret {
+                trigger: SecretTrigger::WhenEnemyMinionAttacksHero,
+                effect: CardEffect::DealDamage {
+                    amount: 2,
+                    target: EffectTarget::AllEnemies,
+                },
+            },
+        );
+        world
+            .zones_mut()
+            .insert(Zone::SetAside, PlayerId::Player1, secret_entity);
+    }
+
+    let defender_hero = state.player(PlayerId::Player1).hero;
+
+    let log = engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: defender_hero,
+            },
+        )
+        .unwrap();
+
+    // 奥秘被揭示
+    assert!(log.iter().any(|e| matches!(e, Event::SecretRevealed { .. })));
+    // 敌方英雄受到 2 点伤害
+    let enemy_hero = state.player(PlayerId::Player2).hero;
+    assert_eq!(
+        state.world().health(enemy_hero),
+        Some(orange_stone::core::component::Health(28))
+    );
+    // 敌方随从受到 2 点伤害
+    assert_eq!(
+        state.world().health(attacker),
+        Some(orange_stone::core::component::Health(1))
+    );
+    // 攻击仍然结算：己方英雄受到攻击者的 2 点伤害（与炉石规则一致，陷阱不取消攻击）
+    assert_eq!(
+        state.world().health(defender_hero),
+        Some(orange_stone::core::component::Health(28))
+    );
+}
+
+#[test]
+fn freezing_trap_returns_attacker_to_hand_with_cost_increase() {
+    use orange_stone::core::component::{CardType, Cost, Secret, SecretTrigger};
+    use orange_stone::core::effect::CardEffect;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId::Player2);
+    let attacker = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 3, 3);
+    let mut state = builder.build();
+
+    // 在 Player1 的 SetAside 放置冰冻陷阱
+    {
+        let world = state.world_mut();
+        let secret_entity = world.spawn();
+        world.set_card_type(secret_entity, CardType::Spell);
+        world.set_player(secret_entity, PlayerId::Player1);
+        world.set_zone(secret_entity, Zone::SetAside);
+        world.set_secret(
+            secret_entity,
+            Secret {
+                trigger: SecretTrigger::WhenEnemyMinionAttacksHero,
+                effect: CardEffect::ReturnToHandAndIncreaseCost { amount: 2 },
+            },
+        );
+        world
+            .zones_mut()
+            .insert(Zone::SetAside, PlayerId::Player1, secret_entity);
+    }
+
+    let defender_hero = state.player(PlayerId::Player1).hero;
+
+    let log = engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: defender_hero,
+            },
+        )
+        .unwrap();
+
+    // 奥秘被揭示，攻击随从被移回其拥有者手牌
+    assert!(log.iter().any(|e| matches!(e, Event::SecretRevealed { .. })));
+    assert_eq!(state.world().zone(attacker), Some(Zone::Hand));
+    // 费用增加 (2)：3 -> 5
+    assert_eq!(state.world().cost(attacker), Some(Cost(5)));
+}
