@@ -43,9 +43,11 @@ impl GameBuilder {
         }
     }
 
-    /// Consumes the builder and returns the built `GameState`.
+    /// Consumes the builder and returns the built `GameState` (decks shuffled —
+    /// roadmap G7 opening).
     #[must_use]
-    pub fn build(self) -> GameState {
+    pub fn build(mut self) -> GameState {
+        self.state.shuffle_decks();
         self.state
     }
 

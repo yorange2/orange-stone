@@ -8,7 +8,7 @@ use super::classic_druid::*;
 use super::classic_hunter::*;
 use super::classic_legendary::*;
 use super::classic_mage::*;
-use super::classic_neutral::*;
+use super::classic_neutral::*; // includes THE_COIN (GAME_005)
 use super::classic_paladin::*;
 use super::classic_priest::*;
 use super::classic_rogue::*;
@@ -494,6 +494,7 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
 
 pub const ALL_CARDS: &[CardDef] = &[
     // Neutral
+    THE_COIN,
     BLOODFEN_RAPTOR,
     BLUEGILL_WARRIOR,
     ACIDIC_SWAMP_OOZE,

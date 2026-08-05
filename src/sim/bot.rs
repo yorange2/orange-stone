@@ -1149,6 +1149,7 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::RestoreHealth { amount, .. } => amount as f64 * 0.7,
         CardEffect::FreezeCharacter { .. } => 1.0,
         CardEffect::GainManaCrystal { count } => count as f64 * 2.0,
+        CardEffect::GainManaThisTurn { count } => count as f64 * 1.5,
         CardEffect::DestroyWeapon => 2.0,
         CardEffect::GainHeroAttack { attack, armor } => attack as f64 * 1.5 + armor as f64 * 0.5,
         CardEffect::DealHeroAttackDamage { .. } => 3.0,

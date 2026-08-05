@@ -111,6 +111,8 @@ pub struct Inner {
     pub return_step: Step,
     /// The choice awaiting resolution (roadmap G6), if any
     pub pending_choice: Option<PendingChoice>,
+    /// Whether each player already resolved their opening mulligan (roadmap G7)
+    pub mulliganed: [bool; 2],
     /// Monotonic counter for choice ids
     pub next_choice_id: u64,
     /// Random number generator (reproducible)
@@ -181,6 +183,7 @@ impl GameState {
             return_step: Step::Main,
             pending_choice: None,
             next_choice_id: 1,
+            mulliganed: [false, false],
             rng: GameRng::new(12345),
         };
 
@@ -238,6 +241,86 @@ impl GameState {
             pool,
         });
         id
+    }
+
+    /// Shuffles both players' decks with the embedded RNG (roadmap G7 —
+    /// deterministic: same seed → same order). Empty and single-card decks
+    /// are left untouched (no RNG consumption).
+    pub fn shuffle_decks(&mut self) {
+        for player in [PlayerId::Player1, PlayerId::Player2] {
+            let cards: Vec<Entity> = self.world().zones().iter(Zone::Deck, player).collect();
+            if cards.len() <= 1 {
+                continue;
+            }
+            // Fisher–Yates
+            let mut cards = cards;
+            for i in (1..cards.len()).rev() {
+                let j = self.rng_mut().next_usize(i + 1);
+                cards.swap(i, j);
+            }
+            // Rewrite the deck zone in the shuffled order
+            let world = self.world_mut();
+            for &card in &cards {
+                world.zones_mut().remove(Zone::Deck, player, card);
+            }
+            for &card in &cards {
+                world.zones_mut().insert(Zone::Deck, player, card);
+            }
+        }
+    }
+
+    /// The opening flow (roadmap G7): shuffles the decks, deals the starting
+    /// hands (3 cards to the first player, 4 + The Coin to the second), and
+    /// surfaces the first player's mulligan as a pending choice (roadmap G6).
+    ///
+    /// The mulligan options are "Keep all" plus one "Replace card N" per
+    /// starting card; resolving P1's mulligan surfaces P2's, and P2's finishes
+    /// the opening. `GameEngine::apply` resolves the mulligans with the default
+    /// (random) policy; `apply_choices` lets an agent decide.
+    pub fn begin_game(&mut self) {
+        self.shuffle_decks();
+        // Deal starting hands: 3 for the first player, 4 + coin for the second
+        for _ in 0..3 {
+            crate::engine::trigger::draw_card_no_queue(self, PlayerId::Player1);
+        }
+        for _ in 0..4 {
+            crate::engine::trigger::draw_card_no_queue(self, PlayerId::Player2);
+        }
+        // The second player's Coin
+        if let Some(coin) = crate::cards::def::card_by_id("GAME_005") {
+            crate::engine::trigger::add_card_to_hand(self, PlayerId::Player2, coin);
+        }
+        self.surface_mulligan(PlayerId::Player1);
+    }
+
+    /// Surfaces the player's mulligan as a pending choice, if not yet resolved.
+    /// The Coin is not mulliganable (HS).
+    pub(crate) fn surface_mulligan(&mut self, player: PlayerId) {
+        if self.make_mut().mulliganed[player.index()] {
+            return;
+        }
+        let hand: Vec<Entity> = self.world().zones().iter(Zone::Hand, player).collect();
+        let hero = self.player(player).hero;
+        let mut options = vec![String::from("Keep all cards")];
+        for card in &hand {
+            let is_coin = self
+                .world()
+                .card_id(*card)
+                .is_some_and(|c| c.0 == "GAME_005");
+            if is_coin {
+                continue;
+            }
+            let name = self
+                .world()
+                .card_id(*card)
+                .and_then(|c| crate::cards::def::card_by_id(c.0))
+                .map_or_else(
+                    || format!("card {}", card.index),
+                    |def| def.name.to_string(),
+                );
+            options.push(format!("Replace {name}"));
+        }
+        self.set_pending_choice(ChoiceKind::Mulligan, hero, options, Vec::new());
     }
 
     /// Set the game phase.
