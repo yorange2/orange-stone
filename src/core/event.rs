@@ -30,6 +30,8 @@ pub enum Event {
         player: PlayerId,
         /// 被打出的卡牌实体
         card: Entity,
+        /// 显式目标（`Action::PlayCard` 传入；`None` 时引擎随机选择）
+        target: Option<Entity>,
     },
     /// 随从被召唤到战场
     MinionSummoned {
@@ -367,35 +369,41 @@ mod tests {
         q.push(Event::CardPlayed {
             player: PlayerId::Player1,
             card: Entity::new(1, 0),
+            target: None,
         });
         q.push(Event::CardPlayed {
             player: PlayerId::Player1,
             card: Entity::new(2, 0),
+            target: None,
         });
         q.push(Event::CardPlayed {
             player: PlayerId::Player1,
             card: Entity::new(3, 0),
+            target: None,
         });
 
         assert_eq!(
             q.pop_front(),
             Some(Event::CardPlayed {
                 player: PlayerId::Player1,
-                card: Entity::new(1, 0)
+                card: Entity::new(1, 0),
+                target: None
             })
         );
         assert_eq!(
             q.pop_front(),
             Some(Event::CardPlayed {
                 player: PlayerId::Player1,
-                card: Entity::new(2, 0)
+                card: Entity::new(2, 0),
+                target: None
             })
         );
         assert_eq!(
             q.pop_front(),
             Some(Event::CardPlayed {
                 player: PlayerId::Player1,
-                card: Entity::new(3, 0)
+                card: Entity::new(3, 0),
+                target: None
             })
         );
     }

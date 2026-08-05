@@ -392,7 +392,7 @@ impl BattleRunner {
                 total_actions += 1;
 
                 // 追踪打出卡牌
-                if let Action::PlayCard { card } = action {
+                if let Action::PlayCard { card, target: None } = action {
                     if let Some(card_id) = get_card_id(state, *card) {
                         self.tracker.record_played(card_id);
                     }

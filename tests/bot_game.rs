@@ -233,7 +233,7 @@ fn two_bots_battle() {
 
         for (i, action) in actions.iter().enumerate() {
             let action_desc = match action {
-                Action::PlayCard { card } => {
+                Action::PlayCard { card, .. } => {
                     format!("打出 {}", entity_info(&state, *card))
                 }
                 Action::Attack { attacker, defender } => {
@@ -482,7 +482,7 @@ fn two_smart_bots_battle() {
 
         for (i, action) in actions.iter().enumerate() {
             let action_desc = match action {
-                Action::PlayCard { card } => {
+                Action::PlayCard { card, .. } => {
                     format!("打出 {}", entity_info(&state, *card))
                 }
                 Action::Attack { attacker, defender } => {

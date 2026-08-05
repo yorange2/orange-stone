@@ -94,7 +94,7 @@ impl GreedyBot {
 
         for (cost, card) in playable {
             if cost <= remaining_mana {
-                actions.push(Action::PlayCard { card });
+                actions.push(Action::PlayCard { card, target: None });
                 remaining_mana -= cost;
             }
         }
@@ -565,7 +565,7 @@ impl SmartBot {
                 }
             }
 
-            actions.push(Action::PlayCard { card });
+            actions.push(Action::PlayCard { card, target: None });
             remaining_mana -= cost;
         }
 
@@ -1405,7 +1405,7 @@ mod smart_bot_tests {
         // 应该有出牌动作
         assert!(actions.iter().any(|a| matches!(
             a,
-            Action::PlayCard { card } if *card == bluegill
+            Action::PlayCard { card, target: None } if *card == bluegill
         )));
 
         // 应该有攻击动作（冲锋随从可以攻击）

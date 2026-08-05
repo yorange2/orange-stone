@@ -93,7 +93,7 @@ fn matches_trigger(
         }
         SecretTrigger::WhenEnemySpellCast => {
             // 敌方施放法术（法术卡牌被打出）
-            matches!(event, Event::CardPlayed { player, card } if *player != owner && state.world().card_type(*card) == Some(CardType::Spell))
+            matches!(event, Event::CardPlayed { player, card, .. } if *player != owner && state.world().card_type(*card) == Some(CardType::Spell))
         }
         SecretTrigger::WhenEnemyMinionAttacksHero => {
             matches_enemy_minion_attacks_hero(event, state, owner)
@@ -187,7 +187,7 @@ fn resolve_secret_effect(
         CardEffect::SummonSpellbender => {
             resolve_spellbender(state, queue, event, player);
         }
-        _ => crate::engine::trigger::resolve_effect(state, queue, entity, player, effect),
+        _ => crate::engine::trigger::resolve_effect(state, queue, entity, player, effect, None),
     }
 }
 

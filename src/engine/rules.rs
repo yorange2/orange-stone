@@ -64,7 +64,7 @@ pub fn validate(state: &GameState, action: Action) -> Result<(), EngineError> {
     }
 
     match action {
-        Action::PlayCard { card } => validate_play_card(state, card),
+        Action::PlayCard { card, target: _ } => validate_play_card(state, card),
         Action::Attack { attacker, defender } => validate_attack(state, attacker, defender),
         Action::EndTurn => validate_end_turn(state),
         Action::HeroPower { hero } => validate_hero_power(state, hero),
@@ -327,9 +327,13 @@ pub fn enqueue(
     queue: &mut EventQueue,
 ) -> Result<(), EngineError> {
     match action {
-        Action::PlayCard { card } => {
+        Action::PlayCard { card, target } => {
             let player = state.active_player();
-            queue.push(Event::CardPlayed { player, card });
+            queue.push(Event::CardPlayed {
+                player,
+                card,
+                target,
+            });
             let card_type = state.world().card_type(card);
             if card_type == Some(CardType::Minion) {
                 queue.push(Event::MinionSummoned {
@@ -541,10 +545,14 @@ pub fn apply_event(
                 .map(|(e, ete)| (e, ete.0))
                 .collect();
             for (source, effect) in end_turn_effects {
-                trigger::resolve_effect(state, queue, source, player, effect);
+                trigger::resolve_effect(state, queue, source, player, effect, None);
             }
         }
-        Event::CardPlayed { player, card } => {
+        Event::CardPlayed {
+            player,
+            card,
+            target,
+        } => {
             // 扣除法力（使用有效费用：光环减免 + 肯瑞托法师的一次性免费奥秘）
             let cost = effective_play_cost(state, card, player);
             let card_type = state.world().card_type(card);
@@ -615,7 +623,7 @@ pub fn apply_event(
                         Some(crate::core::effect::CardEffect::DealDamageAndReturnToHand { .. })
                     );
                     if let Some(effect) = chosen_effect {
-                        trigger::resolve_effect(state, queue, card, player, effect);
+                        trigger::resolve_effect(state, queue, card, player, effect, target);
                     }
                     // 触发法术施放事件
                     queue.push(Event::SpellCast {
@@ -662,7 +670,7 @@ pub fn apply_event(
                     state.world().battlecry(card).map(|b| b.0)
                 };
                 if let Some(effect) = weapon_effect {
-                    trigger::resolve_effect(state, queue, card, player, effect);
+                    trigger::resolve_effect(state, queue, card, player, effect, None);
                 }
             } else {
                 // 卡牌从手牌移到战场
@@ -684,7 +692,7 @@ pub fn apply_event(
                     .map(|(e, ot)| (e, ot.0))
                     .collect();
                 for (source, effect) in overload_triggers {
-                    trigger::resolve_effect(state, queue, source, player, effect);
+                    trigger::resolve_effect(state, queue, source, player, effect, None);
                 }
             }
         }
@@ -705,7 +713,7 @@ pub fn apply_event(
                 state.world().battlecry(minion).map(|b| b.0)
             };
             if let Some(effect) = chosen_effect {
-                trigger::resolve_effect(state, queue, minion, player, effect);
+                trigger::resolve_effect(state, queue, minion, player, effect, None);
             }
             // 检查召唤触发（友方随从被召唤时，场上其他随从的 summon_trigger）
             let summon_triggers: Vec<(Entity, crate::core::effect::CardEffect)> = state
@@ -720,7 +728,7 @@ pub fn apply_event(
                 .map(|(e, st)| (e, st.0))
                 .collect();
             for (source, effect) in summon_triggers {
-                trigger::resolve_effect(state, queue, source, player, effect);
+                trigger::resolve_effect(state, queue, source, player, effect, None);
             }
         }
         Event::AttackDeclared { attacker, .. } => {
@@ -874,7 +882,7 @@ pub fn apply_event(
 
             // 如果是亡语效果，入队（之后处理，保持当前实体状态）
             if let (Some(dr), Some(owner)) = (deathrattle_effect, owner) {
-                trigger::resolve_effect(state, queue, minion, owner, dr.0);
+                trigger::resolve_effect(state, queue, minion, owner, dr.0, None);
             }
 
             // 检查死亡触发（其他友方随从的 death_trigger）
@@ -891,7 +899,7 @@ pub fn apply_event(
                     .map(|(e, dt)| (e, dt.0))
                     .collect();
                 for (source, effect) in death_triggers {
-                    trigger::resolve_effect(state, queue, source, owner, effect);
+                    trigger::resolve_effect(state, queue, source, owner, effect, None);
                 }
             }
 
@@ -928,7 +936,7 @@ pub fn apply_event(
             // 解析英雄技能效果
             if let Some(hp_def) = state.world().hero_power(hero) {
                 let effect = hp_def.effect;
-                trigger::resolve_effect(state, queue, hero, player, effect);
+                trigger::resolve_effect(state, queue, hero, player, effect, None);
             }
         }
         Event::WeaponEquipped { .. } => {
@@ -953,7 +961,7 @@ pub fn apply_event(
                 .map(|(e, st)| (e, st.0))
                 .collect();
             for (source, effect) in spell_triggers {
-                trigger::resolve_effect(state, queue, source, player, effect);
+                trigger::resolve_effect(state, queue, source, player, effect, None);
             }
         }
         Event::GameOver { winner } => {
@@ -1007,7 +1015,7 @@ mod tests {
     fn validate_play_card_legal() {
         let mut state = GameState::new();
         let card = add_minion_to_hand(&mut state, PlayerId::Player1, 2, 3);
-        let result = validate(&state, Action::PlayCard { card });
+        let result = validate(&state, Action::PlayCard { card, target: None });
         assert!(result.is_ok(), "valid play should succeed: {result:?}");
     }
 
@@ -1015,7 +1023,7 @@ mod tests {
     fn validate_play_card_not_your_card() {
         let mut state = GameState::new();
         let card = add_minion_to_hand(&mut state, PlayerId::Player2, 2, 3);
-        let result = validate(&state, Action::PlayCard { card });
+        let result = validate(&state, Action::PlayCard { card, target: None });
         assert_eq!(result, Err(EngineError::NotYourCard));
     }
 
@@ -1024,7 +1032,7 @@ mod tests {
         let mut state = GameState::new();
         let card = add_minion_to_board(&mut state, PlayerId::Player1, 2, 3);
         // 在战场上，不在手牌
-        let result = validate(&state, Action::PlayCard { card });
+        let result = validate(&state, Action::PlayCard { card, target: None });
         assert_eq!(result, Err(EngineError::CardNotInHand));
     }
 
@@ -1036,7 +1044,7 @@ mod tests {
             add_minion_to_board(&mut state, PlayerId::Player1, 1, 1);
         }
         let card = add_minion_to_hand(&mut state, PlayerId::Player1, 2, 3);
-        let result = validate(&state, Action::PlayCard { card });
+        let result = validate(&state, Action::PlayCard { card, target: None });
         assert_eq!(result, Err(EngineError::BoardFull));
     }
 
@@ -1081,7 +1089,13 @@ mod tests {
     fn validate_stale_entity() {
         let state = GameState::new();
         let entity = Entity::new(999, 0); // 不存在的实体
-        let result = validate(&state, Action::PlayCard { card: entity });
+        let result = validate(
+            &state,
+            Action::PlayCard {
+                card: entity,
+                target: None,
+            },
+        );
         assert_eq!(result, Err(EngineError::EntityGone(entity)));
     }
 

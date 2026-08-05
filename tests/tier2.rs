@@ -35,7 +35,9 @@ fn playing_secret_card_moves_to_setaside_with_secret_component() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 奥秘卡牌应进入 SetAside 区域，而不是坟墓场
     assert_eq!(state.world().zone(card), Some(Zone::SetAside));
@@ -70,7 +72,9 @@ fn played_secret_triggers_when_condition_met() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
     assert_eq!(state.world().zone(card), Some(Zone::SetAside));
 
     // 轮到 Player2 攻击
@@ -121,7 +125,9 @@ fn freezing_trap_playable_and_triggers() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 轮到 Player2 攻击
     state.set_active_player(PlayerId::Player2);
@@ -197,7 +203,9 @@ fn weapon_with_battlecry_resolves_on_play() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 武器已装备
     assert_eq!(state.player(PlayerId::Player1).weapon, Some(card));
@@ -237,7 +245,9 @@ fn headcrack_no_combo_goes_to_graveyard() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 非连击：造成 2 点伤害，进入坟墓场
     let enemy_hero = state.player(PlayerId::Player2).hero;
@@ -269,10 +279,22 @@ fn headcrack_combo_returns_to_hand() {
 
     // 先出一张牌激活连击
     engine
-        .apply(&mut state, Action::PlayCard { card: wisp })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: wisp,
+                target: None,
+            },
+        )
         .unwrap();
     engine
-        .apply(&mut state, Action::PlayCard { card: headcrack })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: headcrack,
+                target: None,
+            },
+        )
         .unwrap();
 
     // 连击：造成 2 点伤害，牌回到手牌
@@ -305,10 +327,22 @@ fn kidnapper_combo_returns_enemy_minion() {
     let kidnapper = hand[1];
 
     engine
-        .apply(&mut state, Action::PlayCard { card: wisp })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: wisp,
+                target: None,
+            },
+        )
         .unwrap();
     engine
-        .apply(&mut state, Action::PlayCard { card: kidnapper })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: kidnapper,
+                target: None,
+            },
+        )
         .unwrap();
 
     // 连击：敌方随从回到其拥有者的手牌
@@ -333,7 +367,9 @@ fn shadowstep_returns_friendly_and_reduces_cost() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 友方随从回到手牌，费用 3 → 1
     assert_eq!(state.world().zone(minion), Some(Zone::Hand));
@@ -368,7 +404,9 @@ fn betrayal_damages_adjacent_minions() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 中间的 5/5 被选中：两侧各受 5 点伤害
     assert_eq!(
@@ -405,7 +443,9 @@ fn blade_flurry_destroys_weapon_and_damages_all_enemies() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 武器被摧毁
     assert!(state.player(PlayerId::Player1).weapon.is_none());
@@ -508,7 +548,9 @@ fn perdition_blade_battlecry_on_play() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 武器已装备（2/2）
     assert_eq!(state.player(PlayerId::Player1).weapon, Some(card));
@@ -546,7 +588,9 @@ fn master_of_disguise_grants_stealth() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 友方随从获得潜行；伪装大师自身不获得（不能指定自己）
     assert!(state.world().stealth(ally).is_some());
@@ -588,7 +632,9 @@ fn resurrect_skipped_when_board_full() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 战场仍是 7 个随从（复活被跳过），尸体留在坟墓场
     let count = state
@@ -627,7 +673,9 @@ fn misdirection_redirects_attack_away_from_hero() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // Player2 攻击 Player1 英雄
     state.set_active_player(PlayerId::Player2);
@@ -687,7 +735,9 @@ fn noble_sacrifice_summons_defender_as_new_target() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // Player2 攻击 Player1 英雄 → 崇高牺牲召唤 2/1 防御者
     state.set_active_player(PlayerId::Player2);
@@ -754,13 +804,21 @@ fn snipe_damages_played_minion() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // Player2 打出一个 4/4 随从
     state.set_active_player(PlayerId::Player2);
     let played = builder_add_custom_hand(&mut state, PlayerId::Player2, 4, 4, 4);
     let log = engine
-        .apply(&mut state, Action::PlayCard { card: played })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: played,
+                target: None,
+            },
+        )
         .unwrap();
 
     assert!(
@@ -812,7 +870,9 @@ fn snake_trap_summons_three_snakes() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // Player2 攻击 Player1 的随从 → 随从受伤，召唤三条蛇
     state.set_active_player(PlayerId::Player2);
@@ -916,7 +976,9 @@ fn spellbender_redirects_spell_damage_to_itself() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // Player2 施放法术（目标为 Player1 的随从）
     state.set_active_player(PlayerId::Player2);
@@ -931,7 +993,13 @@ fn spellbender_redirects_spell_damage_to_itself() {
         );
     }
     let log = engine
-        .apply(&mut state, Action::PlayCard { card: spell })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+            },
+        )
         .unwrap();
 
     assert!(
@@ -987,7 +1055,9 @@ fn sorcerers_apprentice_reduces_spell_cost() {
     );
 
     // 3 法力即可打出
-    let log = engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    let log = engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
     assert!(
         log.iter().any(|e| matches!(e, Event::SpellCast { .. })),
         "fireball should be cast with discounted cost"
@@ -1046,14 +1116,26 @@ fn kirin_tor_mage_makes_next_secret_free() {
 
     // 打出肯瑞托法师（3 费）
     engine
-        .apply(&mut state, Action::PlayCard { card: ktm })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: ktm,
+                target: None,
+            },
+        )
         .unwrap();
     assert_eq!(state.player(PlayerId::Player1).current_mana, 7);
     assert!(state.player(PlayerId::Player1).next_secret_free);
 
     // 下一个奥秘免费
     engine
-        .apply(&mut state, Action::PlayCard { card: trap })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: trap,
+                target: None,
+            },
+        )
         .unwrap();
     // 法力未扣减
     assert_eq!(state.player(PlayerId::Player1).current_mana, 7);
@@ -1081,7 +1163,9 @@ fn far_sight_draws_card_with_reduced_cost() {
         .collect();
     let card = hand[0];
 
-    let log = engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    let log = engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
     assert!(log.iter().any(|e| matches!(e, Event::CardDrawn { .. })));
 
     // 抽到的奥术傀儡（4 费）费用减少 3 → 1
@@ -1119,7 +1203,9 @@ fn cenarius_choose_one_buffs_or_summons_treants() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 抉择随机：要么所有随从 +2/+2，要么召唤两个 2/2 树人
     let treants: Vec<Entity> = state
@@ -1184,7 +1270,9 @@ fn keeper_of_the_grove_choose_one_damage_or_silence() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 抉择随机：2 点伤害（打在嘲讽随从或敌方英雄）或沉默嘲讽随从
     let enemy_hero = state.player(PlayerId::Player2).hero;
@@ -1219,7 +1307,9 @@ fn soul_of_the_forest_grants_deathrattle_summoning_treant() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 友方随从获得亡语：召唤 2/2 树人
     let dr = state.world().deathrattle(ally);
@@ -1291,7 +1381,9 @@ fn king_mukla_gives_opponent_two_bananas() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 对手手牌中有 2 张香蕉
     let bananas: Vec<Entity> = state
@@ -1332,7 +1424,9 @@ fn bestial_wrath_grants_attack_and_immune_until_turn_end() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 获得 +2 攻击力和免疫
     let beast: Entity = state
@@ -1427,7 +1521,9 @@ fn icicle_freezes_unfrozen_minion() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 敌方唯一随从被冻结（未受伤）
     assert!(state.world().freeze(enemy).is_some());
@@ -1458,7 +1554,9 @@ fn icicle_damages_already_frozen_minion() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 已冻结 → 造成 2 点伤害
     assert_eq!(
@@ -1485,7 +1583,9 @@ fn natalie_seline_destroys_minion_and_gains_health() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 敌方 6 HP 随从被消灭，娜塔莉获得 6 点生命值（4/5 → 4/11）
     let enemy_dead = state
@@ -1525,7 +1625,9 @@ fn shadow_madness_takes_control_until_end_of_turn() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 敌方随从被控制（属于 Player1）
     assert_eq!(state.world().player(enemy_minion), Some(PlayerId::Player1));
@@ -1560,7 +1662,9 @@ fn shadow_madness_ignores_high_attack_minions() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 5 攻击随从不受暗影狂乱影响
     assert_eq!(state.world().player(enemy_minion), Some(PlayerId::Player2));
@@ -1584,7 +1688,9 @@ fn mind_control_permanently_steals_minion() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
     assert_eq!(state.world().player(enemy_minion), Some(PlayerId::Player1));
 
     // 回合结束后仍属于 Player1
@@ -1610,7 +1716,9 @@ fn corruption_destroys_minion_at_start_of_turn() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
     assert_eq!(state.world().zone(enemy_minion), Some(Zone::Play));
 
     // P1 结束 → P2 回合 → P2 结束 → P1 回合开始时被腐蚀的随从死亡
@@ -1638,7 +1746,9 @@ fn commanding_shout_prevents_minion_death() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
     assert_eq!(state.player(PlayerId::Player1).minion_min_health, 1);
 
     // 敌方 3 攻随从攻击 1/2 随从 → 生命值钳制在 1（不死）
@@ -1682,7 +1792,9 @@ fn unbound_elemental_gains_stats_when_overload_played() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 无羁元素获得 +1/+1（2/4 → 3/5）
     let elemental: Entity = state
@@ -1724,7 +1836,9 @@ fn tinkmaster_transforms_enemy_minion() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 敌方随从被变形为 5/5 暴龙或 1/1 松鼠
     let atk = state.world().attack(enemy_minion).unwrap().0;
@@ -1766,7 +1880,9 @@ fn brightwing_adds_random_legendary_to_hand() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 手牌中新增一张传说随从
     let gained: Vec<Entity> = state
@@ -1808,7 +1924,9 @@ fn xavius_end_turn_adds_shadow_spell() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 回合结束时生成一张暗影法术
     engine.apply(&mut state, Action::EndTurn).unwrap();
@@ -1847,7 +1965,9 @@ fn ysera_end_turn_adds_dream_card() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     engine.apply(&mut state, Action::EndTurn).unwrap();
     let hand: Vec<Entity> = state
@@ -1880,7 +2000,9 @@ fn barrens_stablehand_summons_random_beast() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 场上：驯马师 + 一个随机野兽
     let minions: Vec<Entity> = state
@@ -1921,7 +2043,9 @@ fn animal_companion_summons_one_of_three() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     let companions: Vec<Entity> = state
         .world()
@@ -1954,7 +2078,9 @@ fn tome_of_intellect_adds_mage_spell() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     let hand: Vec<Entity> = state
         .world()
@@ -1994,12 +2120,24 @@ fn antonidas_adds_fireball_on_spell_cast() {
     let antonidas = hand[0];
     let moonfire = hand[1];
     engine
-        .apply(&mut state, Action::PlayCard { card: antonidas })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: antonidas,
+                target: None,
+            },
+        )
         .unwrap();
 
     // 施放月光术 → 火球术入手
     engine
-        .apply(&mut state, Action::PlayCard { card: moonfire })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: moonfire,
+                target: None,
+            },
+        )
         .unwrap();
     let hand: Vec<Entity> = state
         .world()
@@ -2027,7 +2165,9 @@ fn pilfer_adds_non_rogue_card() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     let hand: Vec<Entity> = state
         .world()
@@ -2059,7 +2199,9 @@ fn call_of_the_void_adds_demon() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     let hand: Vec<Entity> = state
         .world()
@@ -2092,7 +2234,9 @@ fn bane_of_doom_damages_and_summons_demon_if_killed() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 随机目标：1/1 随从（死亡 → 召唤恶魔）或敌方英雄（仅受 2 点伤害）
     let enemy_hero = state.player(PlayerId::Player2).hero;
@@ -2144,7 +2288,13 @@ fn noble_sacrifice_attacker_takes_defender_retaliation() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     engine
-        .apply(&mut state, Action::PlayCard { card: hand[0] })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: None,
+            },
+        )
         .unwrap();
 
     // Player2 攻击 Player1 英雄 → 崇高牺牲召唤 2/1 防御者
