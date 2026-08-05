@@ -136,6 +136,15 @@ impl PyGameEnv {
             .map(PyActionView::from)
             .collect()
     }
+
+    /// Deep copy of the environment (M1-G5): independent state and RNG, so
+    /// search / rollback can branch from Python — the CoW `GameState` makes
+    /// this cheap.
+    fn clone(&self) -> Self {
+        Self {
+            env: self.env.clone(),
+        }
+    }
 }
 
 /// Entry point of the `orange_stone` extension module.

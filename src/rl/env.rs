@@ -715,4 +715,47 @@ mod tests {
         let r = env.step_indexed(actions.len() % actions.len().max(1));
         assert!(!r.done);
     }
+
+    // ============================================================
+    // M1-G5 — clone() for search / rollback
+    // ============================================================
+
+    #[test]
+    fn cloned_env_steps_independently() {
+        let mut env = GameEnv::new(
+            PlayerId::Player1,
+            EnvConfig::default_with(BotType::Greedy, 20),
+        );
+        env.reset(5);
+        let before = env.observation();
+        let mut cloned = env.clone();
+        assert_eq!(cloned.observation(), before, "clone starts identical");
+
+        // The clone advances (EndTurn + bot turn); the original is untouched
+        let r = cloned.step(Action::EndTurn);
+        assert!(!r.done);
+        assert_eq!(
+            env.observation(),
+            before,
+            "stepping the clone must not disturb the original"
+        );
+
+        // And the original stepping leaves the clone's state as it was
+        let cloned_obs = cloned.observation();
+        let _ = env.step(Action::EndTurn);
+        assert_eq!(
+            cloned.observation(),
+            cloned_obs,
+            "stepping the original must not disturb the clone"
+        );
+
+        // A fresh clone of the clone also diverges independently
+        let mut branch = cloned.clone();
+        let _ = branch.step_indexed(0);
+        assert_eq!(
+            cloned.observation(),
+            cloned_obs,
+            "branching off a clone must not disturb it"
+        );
+    }
 }
