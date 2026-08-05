@@ -1,7 +1,7 @@
-//! 组件定义 — ECS 中的数据类型。
+//! Component definitions — data types in the ECS.
 //!
-//! 每个组件都是一个 Copy 类型，存储在对应的 `SparseSet` 中。
-//! newtype 包装确保类型安全（不能用 Attack 替代 Health）。
+//! Every component is a Copy type stored in its corresponding `SparseSet`.
+//! The newtype wrappers ensure type safety (an Attack cannot be used as a Health).
 use serde::{Deserialize, Serialize};
 
 use std::ops::{Add, AddAssign, Sub, SubAssign};
@@ -33,9 +33,9 @@ macro_rules! impl_arith {
     };
 }
 
-/// 生命值组件。
+/// Health component.
 ///
-/// 当 Health ≤ 0 时，实体视为死亡（英雄死亡 → 游戏结束，随从死亡 → 移入坟墓场）。
+/// When Health ≤ 0 the entity is considered dead (hero death → game over, minion death → moved to the graveyard).
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize, Deserialize,
 )]
@@ -46,7 +46,7 @@ impl From<i32> for Health {
     }
 }
 impl Health {
-    /// 返回 `true` 如果生命值 ≤ 0（实体已死亡）。
+    /// Returns `true` if health ≤ 0 (the entity is dead).
     #[must_use]
     pub const fn is_dead(self) -> bool {
         self.0 <= 0
@@ -54,9 +54,9 @@ impl Health {
 }
 impl_arith!(Health);
 
-/// 攻击力组件。
+/// Attack component.
 ///
-/// 英雄和某些随从可以有 0 攻击力。
+/// Heroes and some minions can have 0 attack.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize, Deserialize,
 )]
@@ -68,9 +68,9 @@ impl From<i32> for Attack {
 }
 impl_arith!(Attack);
 
-/// 法力消耗组件。
+/// Mana cost component.
 ///
-/// Phase 1 中预留，暂不使用法力水晶系统。
+/// Reserved in Phase 1; the mana crystal system is not used yet.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize, Deserialize,
 )]
@@ -82,23 +82,23 @@ impl From<i32> for Cost {
 }
 impl_arith!(Cost);
 
-/// 卡牌类型。
+/// Card type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CardType {
-    /// 随从 — 可以站场、攻击和被攻击
+    /// Minion — can be on the board, attack, and be attacked
     Minion,
-    /// 英雄 — 每个玩家有一个，死亡则游戏结束
+    /// Hero — one per player; its death ends the game
     Hero,
-    /// 武器（Phase 2+）
+    /// Weapon (Phase 2+)
     Weapon,
-    /// 法术（Phase 2+）
+    /// Spell (Phase 2+)
     Spell,
 }
 
-/// 本回合已攻击次数。
+/// Number of attacks already used this turn.
 ///
-/// 每个随从/英雄每回合最多攻击 1 次（Phase 2+ 的风怒会增加到 2）。
-/// 回合开始时由 `TurnStarted` 事件重置为 0。
+/// Each minion/hero can attack at most once per turn (Windfury in Phase 2+ raises this to 2).
+/// Reset to 0 by the `TurnStarted` event at the start of a turn.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize, Deserialize,
 )]
@@ -109,40 +109,40 @@ impl From<u8> for AttacksUsed {
     }
 }
 impl AttacksUsed {
-    /// 返回 `true` 如果已耗尽本回合的攻击次数（默认 1 次）。
-    /// 传入 `max_attacks` 以支持风怒（2 次）。
+    /// Returns `true` if the attack budget for this turn is exhausted (1 by default).
+    /// Pass `max_attacks` to support Windfury (2 attacks).
     #[must_use]
     pub const fn is_exhausted_with(self, max_attacks: u8) -> bool {
         self.0 >= max_attacks
     }
 }
 
-/// 战吼组件 — 随从被召唤时触发。
+/// Battlecry component — triggered when a minion is summoned.
 ///
-/// `Battlecry` 在 `MinionSummoned` 事件处理时被检测，
-/// 触发效果通过 `CardEffect` 定义。
+/// `Battlecry` is detected while handling the `MinionSummoned` event;
+/// the triggered effect is defined by `CardEffect`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Battlecry(pub crate::core::effect::CardEffect);
 
-/// 亡语组件 — 随从死亡时触发。
+/// Deathrattle component — triggered when a minion dies.
 ///
-/// `Deathrattle` 在 `MinionDied` 事件处理时被检测（在移入坟墓场之前），
-/// 触发效果通过 `CardEffect` 定义。
+/// `Deathrattle` is detected while handling the `MinionDied` event (before moving to the graveyard);
+/// the triggered effect is defined by `CardEffect`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Deathrattle(pub crate::core::effect::CardEffect);
 
-/// 嘲讽组件 — 敌方必须优先攻击此随从。
+/// Taunt component — the enemy must attack this minion first.
 ///
-/// 如果敌方战场上有任何带 `Taunt` 的随从，
-/// 攻击者不能选择英雄或非嘲讽随从作为攻击目标。
-/// 多个嘲讽随从可以自由选择攻击哪个。
+/// If the enemy board has any minion with `Taunt`,
+/// the attacker cannot target heroes or non-Taunt minions.
+/// With multiple Taunt minions the attacker is free to choose which to attack.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Taunt;
 
-/// 武器耐久度 — 英雄攻击时消耗 1 点，归零时摧毁武器。
+/// Weapon durability — consumes 1 on each hero attack; destroys the weapon when it reaches 0.
 ///
-/// 耐久度在武器实体的 `Weapon` 组件中。英雄攻击宣言后，
-/// 武器耐久 -1；耐久降至 0 时，武器被摧毁。
+/// Durability lives in the weapon entity's `Weapon` component. After a hero attack is declared,
+/// weapon durability decreases by 1; when it reaches 0, the weapon is destroyed.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize, Deserialize,
 )]
@@ -154,10 +154,10 @@ impl From<i32> for Durability {
 }
 impl_arith!(Durability);
 
-/// 英雄护甲 — 吸收伤害，先于生命值扣除。
+/// Hero armor — absorbs damage before health is reduced.
 ///
-/// 英雄受到伤害时，先扣除护甲值。护甲降至 0 后，
-/// 剩余伤害由生命值承受。护甲不能为负。
+/// When a hero takes damage, armor is consumed first. After armor reaches 0,
+/// remaining damage is taken from health. Armor cannot go negative.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize, Deserialize,
 )]
@@ -169,136 +169,136 @@ impl From<i32> for Armor {
 }
 impl_arith!(Armor);
 
-/// 英雄技能定义 — 英雄可使用的主动技能。
+/// Hero power definition — an active ability the hero can use.
 ///
-/// 大多数英雄技能消耗 2 点法力，每回合限用一次。
-/// 效果通过 `CardEffect` 定义。
+/// Most hero powers cost 2 mana and are limited to once per turn.
+/// The effect is defined by `CardEffect`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct HeroPowerDef {
-    /// 法力消耗（通常为 2）
+    /// Mana cost (usually 2)
     pub cost: i32,
-    /// 技能效果
+    /// The effect
     pub effect: crate::core::effect::CardEffect,
 }
 
-/// 本回合是否已使用过英雄技能。
+/// Whether the hero power has been used this turn.
 ///
-/// 回合开始时重置为 `false`，使用英雄技能后设为 `true`。
-/// 使用 `bool` 而非次数计数器，因为英雄技能每回合只能使用一次。
+/// Reset to `false` at the start of a turn and set to `true` after using the hero power.
+/// A `bool` is used instead of a counter because the hero power can be used only once per turn.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct HeroPowerUsed(pub bool);
 
-/// 光环效果 — 持续影响符合条件实体的被动效果。
+/// Aura effect — a passive effect that continuously affects matching entities.
 ///
-/// 光环不修改实体的基础属性，而是在查询时动态叠加 buff。
-/// 光环源死亡或移出战场后，效果自动消失。
+/// Auras do not modify base attributes; instead they apply buffs dynamically at query time.
+/// When the aura source dies or leaves the battlefield, the effect disappears automatically.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Aura {
-    /// 光环效果类型
+    /// Aura effect kind
     pub effect: AuraEffect,
-    /// 影响范围
+    /// Target scope
     pub target: AuraTarget,
 }
 
-/// 光环效果类型。
+/// Aura effect kind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AuraEffect {
-    /// +N/+M 增益
+    /// +N/+M stat buff
     GainStats {
-        /// 攻击力增量
+        /// Attack increase
         attack: i32,
-        /// 生命值增量
+        /// Health increase
         health: i32,
     },
-    /// +N 攻击力
+    /// +N attack
     GainAttack(i32),
-    /// +N 生命值
+    /// +N health
     GainHealth(i32),
-    /// 法术费用减少（巫师学徒 — 手牌中的友方法术费用降低）
+    /// Spell cost reduction (Sorcerer's Apprentice — friendly spells in hand cost less)
     ReduceSpellCost(i32),
-    /// 随从费用减少（召唤传送门 — 手牌中的友方随从费用降低，且不低于下限）
+    /// Minion cost reduction (Summoning Portal — friendly minions in hand cost less, with a floor)
     ReduceMinionCost {
-        /// 费用减少量
+        /// Cost reduction
         amount: i32,
-        /// 费用下限
+        /// Cost floor
         min: i32,
     },
 }
 
-/// 光环影响范围。
+/// Aura target scope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AuraTarget {
-    /// 相邻随从（左右各一个）
+    /// Adjacent minions (one on each side)
     AdjacentMinions,
-    /// 其他友方随从（不含自身）
+    /// Other friendly minions (excluding itself)
     OtherFriendlyMinions,
-    /// 所有友方随从（含自身）
+    /// All friendly minions (including itself)
     AllFriendlyMinions,
-    /// 所有敌方随从
+    /// All enemy minions
     AllEnemyMinions,
 }
 
-/// 奥秘 — 面朝下挂载的被动触发法术。
+/// Secret — a face-down, passively triggered spell.
 ///
-/// 奥秘卡牌打出后进入 `SetAside` 区域（对对手隐藏）。
-/// 当触发条件满足时，奥秘被揭示并执行效果。
+/// After being played, a secret card enters the `SetAside` zone (hidden from the opponent).
+/// When its trigger condition is met, the secret is revealed and its effect executes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Secret {
-    /// 触发条件
+    /// Trigger condition
     pub trigger: SecretTrigger,
-    /// 触发后执行的效果
+    /// Effect executed after triggering
     pub effect: crate::core::effect::CardEffect,
 }
 
-/// 奥秘触发条件。
+/// Secret trigger condition.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SecretTrigger {
-    /// 己方角色（英雄或随从）被攻击后
+    /// After a friendly character (hero or minion) is attacked
     AfterFriendlyAttacked,
-    /// 敌方随从被打出后
+    /// After an enemy minion is played
     AfterEnemyMinionPlayed,
-    /// 敌方英雄攻击后
+    /// After the enemy hero attacks
     AfterEnemyHeroAttacks,
-    /// 己方回合开始时
+    /// At the start of the friendly turn
     OnFriendlyTurnStart,
-    /// 随从死亡后
+    /// After a minion dies
     AfterMinionDied,
-    /// 敌方施放法术后（Counter 类奥秘）
+    /// After the enemy casts a spell (Counterspell-type secrets)
     WhenEnemySpellCast,
-    /// 敌方随从攻击己方英雄时（蒸发类奥秘）
+    /// When an enemy minion attacks the friendly hero (Vaporize-type secrets)
     WhenEnemyMinionAttacksHero,
-    /// 敌方攻击己方英雄时（误导类奥秘 — 攻击者可为随从或英雄）
+    /// When the enemy attacks the friendly hero (Misdirection-type secrets — attacker may be a minion or hero)
     WhenEnemyAttacksHero,
-    /// 敌方攻击时（崇高牺牲类奥秘）
+    /// When the enemy attacks (Noble Sacrifice-type secrets)
     WhenEnemyAttacks,
-    /// 己方随从受到伤害时（毒蛇陷阱类奥秘）
+    /// When a friendly minion takes damage (Snake Trap-type secrets)
     WhenFriendlyMinionDamaged,
 }
 
-/// 圣盾 — 吸收一次伤害后消失。
+/// Divine Shield — absorbs one instance of damage, then disappears.
 ///
-/// 当带圣盾的角色受到伤害时，圣盾移除，伤害完全被吸收。
-/// 圣盾不叠加（一个实体只能有一个圣盾）。
+/// When a character with Divine Shield takes damage, the shield is removed and the damage is fully absorbed.
+/// Divine Shields do not stack (an entity can have at most one).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct DivineShield;
 
-/// 风怒 — 每回合可攻击 2 次。
+/// Windfury — can attack twice per turn.
 ///
-/// 拥有风怒的角色每回合最多攻击 2 次（而非默认的 1 次）。
-/// `AttacksUsed.is_exhausted()` 检查时需根据是否拥有风怒判断。
+/// A character with Windfury can attack up to 2 times per turn (instead of the default 1).
+/// The `AttacksUsed.is_exhausted()` check must account for whether Windfury is present.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Windfury;
 
-/// 冲锋 — 召唤当回合即可攻击。
+/// Charge — can attack on the turn it is summoned.
 ///
-/// 当随从被召唤时，如果有冲锋组件，则不标记为已攻击
-/// （即 `AttacksUsed` 保持为 0，允许立即攻击）。
+/// When a minion is summoned, if it has the Charge component it is not marked as having attacked
+/// (i.e. `AttacksUsed` stays 0, allowing an immediate attack).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Charge;
 
-/// 法术伤害加成 — 增加法术造成的伤害。
+/// Spell damage — increases the damage dealt by spells.
 ///
-/// 场上所有友方 `SpellDamage` 值累加，加到法术伤害上。
+/// All friendly `SpellDamage` values on the board are summed and added to spell damage.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize, Deserialize,
 )]
@@ -310,101 +310,101 @@ impl From<i32> for SpellDamage {
 }
 impl_arith!(SpellDamage);
 
-/// 冻结 — 角色被冻结，跳过下一次攻击机会。
+/// Freeze — the character is frozen and skips its next attack opportunity.
 ///
-/// 冻结的角色在回合开始时解冻（清除 Freeze 组件）。
-/// 如果在被冻结的回合，角色无法攻击。
+/// A frozen character thaws at the start of its turn (the Freeze component is removed).
+/// While frozen, the character cannot attack.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Freeze;
 
-/// 不能攻击 — 此随从不能主动发起攻击（如拉格纳罗斯、上古看守者）。
+/// Cannot attack — this minion cannot initiate attacks (e.g. Ragnaros, Ancient Watcher).
 ///
-/// `CantAttack` 在攻击验证中被检查。
-/// 与冻结不同：冻结是临时状态（回合开始清除），CantAttack 是永久属性。
+/// `CantAttack` is checked during attack validation.
+/// Unlike Freeze, which is a temporary state (cleared at turn start), CantAttack is permanent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct CantAttack;
 
-/// 回合结束效果 — 在每个回合结束时触发。
+/// End-of-turn effect — triggered at the end of every turn.
 ///
-/// 效果通过 `CardEffect` 定义，在 `TurnEnded` 事件处理时被检测。
+/// The effect is defined by `CardEffect` and detected while handling the `TurnEnded` event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct EndTurnEffect(pub crate::core::effect::CardEffect);
 
-/// 法术施放触发效果 — 当友方施放法术时触发。
+/// Spell-cast trigger effect — triggered when a friendly player casts a spell.
 ///
-/// 效果通过 `CardEffect` 定义，在 `SpellCast` 事件处理时被检测。
+/// The effect is defined by `CardEffect` and detected while handling the `SpellCast` event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SpellTrigger(pub crate::core::effect::CardEffect);
 
-/// 随从死亡触发效果 — 当友方随从死亡时触发。
+/// Minion-death trigger effect — triggered when a friendly minion dies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DeathTrigger(pub crate::core::effect::CardEffect);
 
-/// 随从召唤触发效果 — 当友方随从被召唤时触发。
+/// Minion-summon trigger effect — triggered when a friendly minion is summoned.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SummonTrigger(pub crate::core::effect::CardEffect);
 
-/// 抉择效果 — 德鲁伊抉择卡牌的备选效果。
+/// Choose One effect — alternative effects for Druid Choose One cards.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ChooseOneEffect(pub crate::core::effect::CardEffect);
 
-/// 连击效果 — 盗贼连击卡牌的替代效果。
+/// Combo effect — the alternative effect of Rogue Combo cards.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ComboEffect(pub crate::core::effect::CardEffect);
 
-/// 攻击力等于生命值 — 此随从的攻击力始终等于其当前生命值（光耀之子）。
+/// Attack equals health — this minion's attack always equals its current health (Lightspawn).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct AttackEqualsHealth;
 
-/// 临时攻击力减益 — 回合结束时清除。
+/// Temporary attack debuff — cleared at the end of the turn.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct TempAttackDebuff(pub i32);
 
-/// 卡牌 ID — 记录实体对应的原始卡牌定义 ID。
+/// Card ID — records the original card definition ID of the entity.
 ///
-/// 用于在运行时反查 `CardDef`（变形、奥秘挂载、随机卡池等场景）。
-/// 随从/武器/法术实体在创建（召唤、装备、构建）时设置。
+/// Used to look up `CardDef` at runtime (transform, secret mounting, random card pools, etc.).
+/// Set when minion/weapon/spell entities are created (summoned, equipped, built).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 pub struct CardId(pub &'static str);
 
 impl<'de> serde::Deserialize<'de> for CardId {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let s = String::deserialize(d)?;
-        // 卡牌 ID 全部来自静态卡牌库 — 反序列化时解析回 &'static str
+        // All card IDs come from the static card library — resolve back to &'static str on deserialization
         crate::cards::def::card_by_id(&s)
             .map(|def| CardId(def.id))
             .ok_or_else(|| serde::de::Error::custom(format!("unknown card id: {s}")))
     }
 }
 
-/// 剧毒 — 对随从造成的伤害直接将其消灭。
+/// Poison — damage dealt to a minion kills it outright.
 ///
-/// 带剧毒的角色对随从造成伤害时，目标生命值被直接归零（不经过正常伤害减免）。
-/// 圣盾仍能吸收剧毒伤害（圣盾判定优先）。
+/// When a Poison character deals damage to a minion, the target's health is set to 0 directly (bypassing normal damage reduction).
+/// Divine Shield still absorbs Poison damage (the Divine Shield check comes first).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Poison;
 
-/// 潜行 — 敌方不能攻击或指定此角色为单目标效果的目标。
+/// Stealth — the enemy cannot attack this character or target it with single-target effects.
 ///
-/// 潜行角色仍会受到 AOE（全体伤害）影响。潜行不是永久属性：
-/// 潜行角色攻击后潜行解除（本引擎简化为永久潜行，解除逻辑留待后续）。
+/// A Stealth character is still affected by AOE (all-enemy damage). Stealth is not permanent:
+/// it is removed when the character attacks (this engine simplifies it to permanent Stealth; removal logic is left for later).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Stealth;
 
-/// 免疫 — 此角色不会受到任何伤害。
+/// Immune — this character cannot take any damage.
 ///
-/// 带免疫的角色受到的伤害被完全忽略（攻击仍被消耗，武器耐久仍下降）。
-/// 免疫为临时状态（狂野怒火 — 直到回合结束），回合结束时清除。
+/// Damage taken by an Immune character is completely ignored (attacks are still consumed and weapon durability still drops).
+/// Immune is a temporary state (Bestial Wrath — until end of turn), cleared at the end of the turn.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Immune;
 
-/// 过载标记 — 打出此卡牌时触发友方随从的过载触发器（无羁元素）。
+/// Overload marker — triggers friendly minions' overload triggers when this card is played (Unbound Elemental).
 ///
-/// 本引擎不模拟过载的法力锁定，仅作为触发标记。
+/// This engine does not simulate overload's mana locking; it only serves as a trigger marker.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Overload;
 
-/// 过载触发效果 — 当友方打出带过载的卡牌时触发（无羁元素）。
+/// Overload trigger effect — triggered when a friendly player plays a card with overload (Unbound Elemental).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct OverloadTrigger(pub crate::core::effect::CardEffect);
 

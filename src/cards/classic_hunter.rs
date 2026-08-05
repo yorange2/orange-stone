@@ -1,4 +1,4 @@
-//! 怀旧系列 — 猎人 (Hunter)。
+//! Classic set — Hunter.
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
@@ -6,7 +6,7 @@ use crate::core::component::{AuraEffect, AuraTarget, CardType, SecretTrigger};
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::vanilla;
 
-// 怀旧系列 — 猎人 (Hunter)
+// Classic set — Hunter
 // ============================================================
 
 pub const ARCANE_SHOT: CardDef = CardDef {
@@ -298,7 +298,7 @@ pub const EXPLOSIVE_SHOT: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 多重射击 — 对两个随机敌方随从各造成3点伤害（简化：对一个随机敌方随从造成3点伤害）
+/// Multi-Shot — deal 3 damage to two random enemy minions (simplified: 3 damage to one random enemy minion)
 pub const MULTI_SHOT: CardDef = CardDef {
     id: "HUNTER_012",
     name: "Multi-Shot",
@@ -329,7 +329,7 @@ pub const MULTI_SHOT: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// 猎人补全
+// Hunter additions
 pub const TIMBER_WOLF: CardDef = CardDef {
     id: "HUNTER_010",
     name: "Timber Wolf",
@@ -389,7 +389,7 @@ pub const KING_KRUSH: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 食腐土狼 — 每当友方随从死亡，获得+2/+1
+/// Scavenging Hyena — whenever a friendly minion dies, gain +2/+1
 pub const SCAVENGING_HYENA: CardDef = CardDef {
     id: "HUNTER_013",
     name: "Scavenging Hyena",
@@ -424,7 +424,7 @@ pub const SCAVENGING_HYENA: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 饥饿的秃鹫 — 每当你召唤随从，抽一张牌
+/// Starving Buzzard — whenever you summon a minion, draw a card
 pub const STARVING_BUZZARD: CardDef = CardDef {
     id: "HUNTER_014",
     name: "Starving Buzzard",
@@ -455,7 +455,7 @@ pub const STARVING_BUZZARD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 驯兽师 — 战吼：使一个友方野兽获得+2/+2和嘲讽（简化：使友方随从+2/+2）
+/// Houndmaster — Battlecry: give a friendly Beast +2/+2 and Taunt (simplified: +2/+2 to a friendly minion)
 pub const HOUNDMASTER: CardDef = CardDef {
     id: "HUNTER_015",
     name: "Houndmaster",
@@ -490,7 +490,7 @@ pub const HOUNDMASTER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 苔原犀牛 — 你的野兽获得冲锋（简化：冲锋光环）
+/// Tundra Rhino — your Beasts have Charge (simplified: Charge aura)
 pub const TUNDRA_RHINO: CardDef = CardDef {
     id: "HUNTER_016",
     name: "Tundra Rhino",
@@ -521,7 +521,7 @@ pub const TUNDRA_RHINO: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 照明弹 — 消灭所有敌方奥秘，抽一张牌（简化：抽一张牌）
+/// Flare — destroy all enemy secrets, draw a card (simplified: draw a card)
 pub const FLARE: CardDef = CardDef {
     id: "HUNTER_017",
     name: "Flare",
@@ -553,10 +553,10 @@ pub const FLARE: CardDef = CardDef {
 };
 
 // ============================================================
-// Tier 1 补全 — 猎人（docs/classic-cards-roadmap.md）
+// Tier 1 additions — Hunter (docs/classic-cards-roadmap.md)
 // ============================================================
 
-/// 爆炸陷阱 — 奥秘：当你的英雄被攻击时，对所有敌人造成2点伤害
+/// Explosive Trap — Secret: when your hero is attacked, deal 2 damage to all enemies
 pub const EXPLOSIVE_TRAP: CardDef = CardDef {
     id: "HUNTER_T01",
     name: "Explosive Trap",
@@ -589,7 +589,7 @@ pub const EXPLOSIVE_TRAP: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 冰冻陷阱 — 奥秘：当一个敌方随从攻击时，将其移回其拥有者的手牌，并使其费用增加（2）
+/// Freezing Trap — Secret: when an enemy minion attacks, return it to its owner's hand and increase its cost by (2)
 pub const FREEZING_TRAP: CardDef = CardDef {
     id: "HUNTER_T02",
     name: "Freezing Trap",
@@ -620,10 +620,10 @@ pub const FREEZING_TRAP: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 奥秘（误导/毒蛇陷阱/狙击）
+// Tier 2 additions — secrets (Misdirection / Snake Trap / Snipe)
 // ============================================================
 
-/// 误导 — 奥秘：当敌方攻击你的英雄时，将其改为攻击另一个随机角色。
+/// Misdirection — Secret: when an enemy attacks your hero, redirect it to another random character.
 pub const MISDIRECTION: CardDef = CardDef {
     id: "HUNTER_018",
     name: "Misdirection",
@@ -654,7 +654,7 @@ pub const MISDIRECTION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 毒蛇陷阱 — 奥秘：当你的随从受到伤害时，召唤三条 1/1 蛇。
+/// Snake Trap — Secret: when one of your minions takes damage, summon three 1/1 Snakes.
 pub const SNAKE_TRAP: CardDef = CardDef {
     id: "HUNTER_019",
     name: "Snake Trap",
@@ -688,10 +688,10 @@ pub const SNAKE_TRAP: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 蛇（毒蛇陷阱 token）— 1/1 野兽
+/// Snake (Snake Trap token) — 1/1 Beast
 pub const SNAKE: CardDef = vanilla!("HUNTER_019t", "Snake", 1, 1, 1);
 
-/// 狙击 — 奥秘：当你的对手使用一张随从牌时，对其造成 4 点伤害。
+/// Snipe — Secret: when your opponent plays a minion, deal 4 damage to it.
 pub const SNIPE: CardDef = CardDef {
     id: "HUNTER_020",
     name: "Snipe",
@@ -722,14 +722,14 @@ pub const SNIPE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 免疫
+// Tier 2 additions — immunity
 // ============================================================
 
-/// 角斗士的长弓的卡牌 ID — 引擎据此判断英雄攻击时是否免疫。
+/// Gladiator's Longbow card ID — the engine uses it to check hero immunity while attacking.
 pub const GLADIATORS_LONGBOW_ID: &str = "HUNTER_022";
 
-/// 狂野怒火 — 使一个野兽获得 +2 攻击力和免疫，直到本回合结束。
-/// （本引擎简化为任意友方随从）
+/// Bestial Wrath — give a Beast +2 Attack and Immune until end of turn.
+/// (This engine simplifies it to any friendly minion)
 pub const BESTIAL_WRATH: CardDef = CardDef {
     id: "HUNTER_021",
     name: "Bestial Wrath",
@@ -760,7 +760,7 @@ pub const BESTIAL_WRATH: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 角斗士的长弓 — 武器 5/2；你的英雄在攻击时具有免疫。
+/// Gladiator's Longbow — Weapon 5/2; your hero is Immune while attacking.
 pub const GLADIATORS_LONGBOW: CardDef = CardDef {
     id: GLADIATORS_LONGBOW_ID,
     name: "Gladiator's Longbow",
@@ -791,10 +791,10 @@ pub const GLADIATORS_LONGBOW: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 3 补全 — 动物伙伴
+// Tier 3 additions — Animal Companion
 // ============================================================
 
-/// 动物伙伴 — 随机召唤一个 4/4 霍弗、4/2 雷欧克或 2/4 米莎。
+/// Animal Companion — randomly summon a 4/4 Huffer, 4/2 Leokk, or 2/4 Misha.
 pub const ANIMAL_COMPANION: CardDef = CardDef {
     id: "HUNTER_023",
     name: "Animal Companion",
@@ -827,13 +827,13 @@ pub const ANIMAL_COMPANION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 霍弗（动物伙伴 token）— 4/4
+/// Huffer (Animal Companion token) — 4/4
 pub const HUFFER: CardDef = vanilla!("HUNTER_023a", "Huffer", 3, 4, 4);
 
-/// 雷欧克（动物伙伴 token）— 4/2
+/// Leokk (Animal Companion token) — 4/2
 pub const LEOKK: CardDef = vanilla!("HUNTER_023b", "Leokk", 3, 4, 2);
 
-/// 米莎（动物伙伴 token）— 2/4 嘲讽
+/// Misha (Animal Companion token) — 2/4 Taunt
 pub const MISHA: CardDef = CardDef {
     id: "HUNTER_023c",
     name: "Misha",

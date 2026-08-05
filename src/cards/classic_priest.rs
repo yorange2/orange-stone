@@ -1,4 +1,4 @@
-//! 怀旧系列 — 牧师 (Priest)。
+//! Classic set — Priest.
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
@@ -6,7 +6,7 @@ use crate::core::component::CardType;
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::vanilla;
 
-// 怀旧系列 — 牧师 (Priest)
+// Classic set — Priest
 // ============================================================
 
 pub const HOLY_SMITE: CardDef = CardDef {
@@ -364,7 +364,7 @@ pub const PROPHET_VELEN: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// 牧师补全
+// Priest additions
 pub const SILENCE: CardDef = CardDef {
     id: "PRIEST_013",
     name: "Silence",
@@ -461,8 +461,8 @@ pub const TEMPLE_ENFORCER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// 补全 ⬜ Priest — Radiance、Kul Tiran Chaplain、Mass Dispel
-/// 圣光闪耀 — 为你的英雄恢复5点生命值
+// Complete Priest — Radiance, Kul Tiran Chaplain, Mass Dispel
+/// Radiance — restore 5 Health to your hero
 pub const RADIANCE: CardDef = CardDef {
     id: "PRIEST_016",
     name: "Radiance",
@@ -495,7 +495,7 @@ pub const RADIANCE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 库尔提拉斯牧师 — 战吼：使一个友方随从获得+2生命值（简化：buff自身）
+/// Kul Tiran Chaplain — Battlecry: give a friendly minion +2 Health (simplified: buff self)
 pub const KUL_TIRAN_CHAPLAIN: CardDef = CardDef {
     id: "PRIEST_017",
     name: "Kul Tiran Chaplain",
@@ -529,7 +529,7 @@ pub const KUL_TIRAN_CHAPLAIN: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 群体驱散 — 沉默所有敌方随从，抽一张牌（简化：随机沉默一个敌方随从）
+/// Mass Dispel — Silence all enemy minions, draw a card (simplified: Silence one random enemy minion)
 pub const MASS_DISPEL: CardDef = CardDef {
     id: "PRIEST_018",
     name: "Mass Dispel",
@@ -562,7 +562,7 @@ pub const MASS_DISPEL: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 神圣之灵 — 使一个随从的生命值翻倍
+/// Divine Spirit — double a minion's Health
 pub const DIVINE_SPIRIT: CardDef = CardDef {
     id: "PRIEST_016",
     name: "Divine Spirit",
@@ -595,7 +595,7 @@ pub const DIVINE_SPIRIT: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 心灵之火 — 使一个随从的攻击力等于其生命值
+/// Inner Fire — set a minion's Attack equal to its Health
 pub const INNER_FIRE: CardDef = CardDef {
     id: "PRIEST_017",
     name: "Inner Fire",
@@ -628,7 +628,7 @@ pub const INNER_FIRE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 光明之泉 — 在你的回合开始时，为一个受伤的友方角色恢复3点生命值（简化：回合结束恢复3点生命值）
+/// Lightwell — at start of your turn, restore 3 Health to a damaged friendly character (simplified: restore 3 Health at end of turn)
 pub const LIGHTWELL: CardDef = CardDef {
     id: "PRIEST_018",
     name: "Lightwell",
@@ -662,7 +662,7 @@ pub const LIGHTWELL: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 光耀之子 — 该随从的攻击力始终等于其生命值
+/// Lightspawn — this minion's Attack is always equal to its Health
 pub const LIGHTSPAWN: CardDef = CardDef {
     id: "PRIEST_019",
     name: "Lightspawn",
@@ -693,7 +693,7 @@ pub const LIGHTSPAWN: CardDef = CardDef {
     attack_equals_health: true,
 };
 
-/// 血色净化者 — 战吼：使一个敌方随从获得-2攻击力直到你的下个回合
+/// Scarlet Subjugator — Battlecry: give an enemy minion -2 Attack until your next turn
 pub const SCARLET_SUBJUGATOR: CardDef = CardDef {
     id: "PRIEST_020",
     name: "Scarlet Subjugator",
@@ -727,10 +727,10 @@ pub const SCARLET_SUBJUGATOR: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 娜塔莉·塞林
+// Tier 2 additions — Natalie Seline
 // ============================================================
 
-/// 娜塔莉·塞林 — 战吼：消灭一个随从并获得其生命值。
+/// Natalie Seline — Battlecry: destroy a minion and gain its Health.
 pub const NATALIE_SELINE: CardDef = CardDef {
     id: "PRIEST_021",
     name: "Natalie Seline",
@@ -761,10 +761,10 @@ pub const NATALIE_SELINE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 精神控制
+// Tier 2 additions — Mind Control
 // ============================================================
 
-/// 暗影狂乱 — 控制一个攻击力小于或等于 3 的敌方随从，直到回合结束。
+/// Shadow Madness — take control of an enemy minion with 3 or less Attack until end of turn.
 pub const SHADOW_MADNESS: CardDef = CardDef {
     id: "PRIEST_022",
     name: "Shadow Madness",
@@ -795,7 +795,7 @@ pub const SHADOW_MADNESS: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 精神控制 — 控制一个敌方随从。
+/// Mind Control — take control of an enemy minion.
 pub const MIND_CONTROL: CardDef = CardDef {
     id: "PRIEST_023",
     name: "Mind Control",

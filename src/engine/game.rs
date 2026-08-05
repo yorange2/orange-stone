@@ -1,12 +1,12 @@
-//! GameEngine — action→event→resolve 循环的编排层。
+//! GameEngine — the orchestration layer for the action→event→resolve loop.
 //!
-//! `GameEngine` 是一个无状态的单元结构体，负责：
-//! 1. 调用 `rules::validate` 检查合法性
-//! 2. 调用 `rules::enqueue` 生成初始事件
-//! 3. 循环调用 `rules::apply_event` 直到事件队列为空
-//! 4. 返回完整的事件日志（用于回放和调试）
+//! `GameEngine` is a stateless unit struct responsible for:
+//! 1. Calling `rules::validate` to check legality
+//! 2. Calling `rules::enqueue` to generate initial events
+//! 3. Looping `rules::apply_event` until the event queue is empty
+//! 4. Returning the full event log (for replay and debugging)
 //!
-//! # 示例
+//! # Example
 //!
 //! ```rust
 //! use orange_stone::engine::game::GameEngine;
@@ -25,38 +25,38 @@ use crate::core::state::GameState;
 use crate::engine::rules::{self, EngineError};
 use crate::engine::secret;
 
-/// 游戏引擎 — 无状态，纯逻辑编排。
+/// Game engine — stateless, pure logic orchestration.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct GameEngine;
 
 impl GameEngine {
-    /// 创建一个新的游戏引擎实例。
+    /// Creates a new game engine instance.
     #[must_use]
     pub const fn new() -> Self {
         Self
     }
 
-    /// 验证、入队并完全解析一个玩家动作。
+    /// Validates, enqueues, and fully resolves a player action.
     ///
-    /// 返回按解析顺序排列的完整事件日志（可用于回放）。
+    /// Returns the complete event log in resolution order (usable for replay).
     ///
-    /// # 错误
+    /// # Errors
     ///
-    /// 如果验证失败，返回 `EngineError`，状态**不会**被修改。
+    /// Returns `EngineError` if validation fails; the state is **not** modified.
     pub fn apply(&self, state: &mut GameState, action: Action) -> Result<Vec<Event>, EngineError> {
-        // 1. 验证（只读）
+        // 1. Validate (read-only)
         rules::validate(state, action)?;
 
-        // 2. Action → 初始事件
+        // 2. Action → initial events
         let mut queue = EventQueue::new();
         rules::enqueue(state, action, &mut queue)?;
 
-        // 3. 事件循环
+        // 3. Event loop
         let mut log = Vec::new();
         while let Some(event) = queue.pop_front() {
-            // 处理事件（修改状态 + 可能产生新事件）
+            // Apply the event (mutates state + may enqueue new events)
             rules::apply_event(state, event, &mut queue)?;
-            // 事件处理后检查奥秘触发
+            // Check secret triggers after applying the event
             secret::check_secrets(state, &mut queue, &event);
             log.push(event);
         }
@@ -123,12 +123,12 @@ mod tests {
             .apply(&mut state, Action::PlayCard { card, target: None })
             .unwrap();
 
-        // 应该产生 CardPlayed 和 MinionSummoned
+        // Should produce CardPlayed and MinionSummoned
         assert_eq!(log.len(), 2);
         assert!(matches!(log[0], Event::CardPlayed { .. }));
         assert!(matches!(log[1], Event::MinionSummoned { .. }));
 
-        // 卡牌应该在战场上
+        // The card should be on the battlefield
         assert_eq!(state.world().zone(card), Some(Zone::Play));
     }
 
@@ -150,7 +150,7 @@ mod tests {
         let engine = GameEngine::new();
         let mut state = GameState::new();
 
-        // 试图攻击一个不存在的实体
+        // Try to attack a non-existent entity
         let result = engine.apply(
             &mut state,
             Action::Attack {
@@ -160,7 +160,7 @@ mod tests {
         );
 
         assert!(result.is_err());
-        // 状态应该保持不变
+        // The state should be unchanged
         assert_eq!(state.turn(), 1);
         assert_eq!(state.phase(), crate::core::state::Phase::Main);
     }
@@ -182,7 +182,7 @@ mod tests {
             )
             .unwrap();
 
-        // 最后的 event 应该是 GameOver
+        // The last event should be GameOver
         let last_event = log.last().unwrap();
         assert!(matches!(last_event, Event::GameOver { .. }));
         assert_eq!(
@@ -210,7 +210,7 @@ mod tests {
             )
             .unwrap();
 
-        // 游戏已结束，下一步操作应该被拒绝
+        // The game is over; further actions should be rejected
         let result = engine.apply(&mut state, Action::EndTurn);
         assert_eq!(result, Err(EngineError::GameAlreadyOver));
     }
@@ -220,7 +220,7 @@ mod tests {
         let engine = GameEngine::new();
         let mut state = GameState::new();
         let hero = state.player(PlayerId::Player1).hero;
-        // 没有定义英雄技能，法力不足
+        // No hero power defined; not enough mana
         let result = engine.apply(&mut state, Action::HeroPower { hero });
         assert_eq!(result, Err(EngineError::NotEnoughMana));
     }

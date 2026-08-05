@@ -1,11 +1,11 @@
-//! 怀旧系列 — 潜行者 (Rogue)。
+//! Classic set — Rogue.
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
 use crate::core::component::CardType;
 use crate::core::effect::{CardEffect, EffectTarget};
 
-// 怀旧系列 — 潜行者 (Rogue)
+// Classic set — Rogue
 // ============================================================
 
 pub const BACKSTAB: CardDef = CardDef {
@@ -401,7 +401,7 @@ pub const EDWIN_VANCLEEF: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// 潜行者补全
+// Rogue additions
 pub const SINISTER_STRIKE: CardDef = CardDef {
     id: "ROGUE_013",
     name: "Sinister Strike",
@@ -493,7 +493,7 @@ pub const ASSASSINS_BLADE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 消失 — 将所有随从移回其拥有者的手牌
+/// Vanish — return all minions to their owner's hand
 pub const VANISH: CardDef = CardDef {
     id: "ROGUE_016",
     name: "Vanish",
@@ -524,10 +524,10 @@ pub const VANISH: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 连击/暗影步/背叛/剑刃乱舞/剧毒/潜行
+// Tier 2 additions — Combo / Shadowstep / Betrayal / Blade Flurry / Poison / Stealth
 // ============================================================
 
-/// 头部爆裂 — 对敌方英雄造成 2 点伤害。连击：将此牌移回你的手牌。
+/// Headcrack — deal 2 damage to the enemy hero. Combo: return this card to your hand.
 pub const HEADCRACK: CardDef = CardDef {
     id: "ROGUE_017",
     name: "Headcrack",
@@ -564,7 +564,7 @@ pub const HEADCRACK: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 绑架者 — 连击：将一个敌方随从移回其拥有者的手牌。
+/// Kidnapper — Combo: return an enemy minion to its owner's hand.
 pub const KIDNAPPER: CardDef = CardDef {
     id: "ROGUE_018",
     name: "Kidnapper",
@@ -597,7 +597,7 @@ pub const KIDNAPPER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 暗影步 — 将一个友方随从移回你的手牌，其费用减少 (2) 点。
+/// Shadowstep — return a friendly minion to your hand; it costs (2) less.
 pub const SHADOWSTEP: CardDef = CardDef {
     id: "ROGUE_019",
     name: "Shadowstep",
@@ -628,7 +628,7 @@ pub const SHADOWSTEP: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 背叛 — 对目标相邻的随从造成等同于其攻击力的伤害。
+/// Betrayal — deal damage equal to the target's Attack to its adjacent minions.
 pub const BETRAYAL: CardDef = CardDef {
     id: "ROGUE_020",
     name: "Betrayal",
@@ -659,7 +659,7 @@ pub const BETRAYAL: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 剑刃乱舞 — 摧毁你的武器，并对所有敌人造成等同于其攻击力的伤害。
+/// Blade Flurry — destroy your weapon and deal damage equal to its Attack to all enemies.
 pub const BLADE_FLURRY: CardDef = CardDef {
     id: "ROGUE_021",
     name: "Blade Flurry",
@@ -690,7 +690,7 @@ pub const BLADE_FLURRY: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 耐心的刺客 — 潜行、剧毒（关键词由 apply_card_keywords 应用）。
+/// Patient Assassin — Stealth, Poison (keywords applied by apply_card_keywords).
 pub const PATIENT_ASSASSIN: CardDef = CardDef {
     id: "ROGUE_022",
     name: "Patient Assassin",
@@ -721,7 +721,7 @@ pub const PATIENT_ASSASSIN: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 毁灭之刃 — 武器 2/2；战吼：造成 1 点伤害。
+/// Perdition's Blade — Weapon 2/2; Battlecry: deal 1 damage.
 pub const PERDITIONS_BLADE: CardDef = CardDef {
     id: "ROGUE_023",
     name: "Perdition's Blade",
@@ -755,7 +755,7 @@ pub const PERDITIONS_BLADE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 伪装大师 — 战吼：使一个友方随从获得潜行。
+/// Master of Disguise — Battlecry: give a friendly minion Stealth.
 pub const MASTER_OF_DISGUISE: CardDef = CardDef {
     id: "ROGUE_024",
     name: "Master of Disguise",
@@ -786,11 +786,11 @@ pub const MASTER_OF_DISGUISE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 3 补全 — 偷窃
+// Tier 3 additions — stealing
 // ============================================================
 
-/// 偷窃 — 将另一职业的一张随机卡牌置入你的手牌。
-/// （本引擎未建模职业，简化为随机非盗贼卡牌）
+/// Pilfer — add a random card from another class to your hand.
+/// (This engine does not model classes; simplified to a random non-Rogue card)
 pub const PILFER: CardDef = CardDef {
     id: "ROGUE_025",
     name: "Pilfer",

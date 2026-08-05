@@ -1,39 +1,39 @@
-//! Action — 玩家可以执行的操作。
+//! Action — operations a player can perform.
 //!
-//! 每个 Action 代表玩家在游戏中可以做出的一个决定。
-//! Action 提交给 `GameEngine::apply`，引擎负责验证和执行。
+//! Each Action represents a decision a player can make in the game.
+//! Actions are submitted to `GameEngine::apply`, which validates and executes them.
 
 use crate::core::entity::Entity;
 
-/// 玩家动作 — 游戏中的合法操作。
+/// A player action — a legal operation in the game.
 ///
-/// Phase 1 支持：出牌（白板随从）、攻击、结束回合。
-/// HeroPower 在 Phase 1 中返回 `EngineError::Unimplemented`。
+/// Phase 1 supports: playing cards (vanilla minions), attacking, and ending the turn.
+/// HeroPower returns `EngineError::Unimplemented` in Phase 1.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
-    /// 打出一张随从牌（从手牌到战场）。
+    /// Play a minion card (from hand to the battlefield).
     PlayCard {
-        /// 要打出的卡牌实体
+        /// The card entity to play
         card: Entity,
-        /// 显式目标（战吼/法术效果的目标角色）。
+        /// Explicit target (the character targeted by a battlecry/spell effect).
         ///
-        /// `Some(target)` 时效果将作用于该目标（若它在该效果允许的目标
-        /// 候选集内）；`None` 时由引擎随机选择（自对弈回退）。
-        /// 对多目标效果（AOE 等）忽略。
+        /// With `Some(target)` the effect applies to that target if it is in the
+        /// target set allowed by the effect; with `None` the engine chooses randomly
+        /// (self-play fallback). Ignored for multi-target effects (AOE, etc.).
         target: Option<Entity>,
     },
-    /// 用己方随从/英雄攻击敌方随从/英雄。
+    /// Attack an enemy minion/hero with your own minion/hero.
     Attack {
-        /// 攻击方实体
+        /// The attacking entity
         attacker: Entity,
-        /// 防御方实体（敌方随从或敌方英雄）
+        /// The defending entity (enemy minion or enemy hero)
         defender: Entity,
     },
-    /// 结束当前玩家的回合。
+    /// End the current player's turn.
     EndTurn,
-    /// 使用英雄技能（Phase 2+ 实现）。
+    /// Use the hero power (implemented in Phase 2+).
     HeroPower {
-        /// 使用技能的英雄实体
+        /// The hero entity using the power
         hero: Entity,
     },
 }

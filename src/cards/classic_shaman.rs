@@ -1,11 +1,11 @@
-//! 怀旧系列 — 萨满 (Shaman)。
+//! Classic set — Shaman.
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
 use crate::core::component::{AuraEffect, AuraTarget, CardType};
 use crate::core::effect::{CardEffect, EffectTarget};
 
-// 怀旧系列 — 萨满 (Shaman)
+// Classic set — Shaman
 // ============================================================
 
 pub const EARTH_SHOCK: CardDef = CardDef {
@@ -388,7 +388,7 @@ pub const ALAKIR_THE_WINDLORD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// 萨满补全
+// Shaman additions
 pub const TOTEMIC_MIGHT: CardDef = CardDef {
     id: "SHAMAN_013",
     name: "Totemic Might",
@@ -603,7 +603,7 @@ pub const EARTH_ELEMENTAL: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 风怒 — 使一个友方随从获得风怒
+/// Windfury — give a friendly minion Windfury
 pub const WINDFURY: CardDef = CardDef {
     id: "SHAMAN_016",
     name: "Windfury",
@@ -636,7 +636,7 @@ pub const WINDFURY: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 风语者 — 战吼：使一个友方随从获得风怒
+/// Windspeaker — Battlecry: give a friendly minion Windfury
 pub const WINDSPEAKER: CardDef = CardDef {
     id: "SHAMAN_017",
     name: "Windspeaker",
@@ -669,7 +669,7 @@ pub const WINDSPEAKER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 先祖治疗 — 为一个随从恢复所有生命值并使其获得嘲讽（简化：恢复生命+嘲讽）
+/// Ancestral Healing — restore a minion to full Health and give it Taunt (simplified: heal + Taunt)
 pub const ANCESTRAL_HEALING: CardDef = CardDef {
     id: "SHAMAN_018",
     name: "Ancestral Healing",
@@ -702,7 +702,7 @@ pub const ANCESTRAL_HEALING: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 先祖之魂 — 使一个随从获得"亡语：重新召唤该随从"
+/// Ancestral Spirit — give a minion "Deathrattle: resummon this minion"
 pub const ANCESTRAL_SPIRIT: CardDef = CardDef {
     id: "SHAMAN_019",
     name: "Ancestral Spirit",
@@ -733,10 +733,10 @@ pub const ANCESTRAL_SPIRIT: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 视界术
+// Tier 2 additions — Far Sight
 // ============================================================
 
-/// 视界术 — 抽一张牌，其费用减少 (3) 点。
+/// Far Sight — draw a card; it costs (3) less.
 pub const FAR_SIGHT: CardDef = CardDef {
     id: "SHAMAN_020",
     name: "Far Sight",
@@ -767,10 +767,10 @@ pub const FAR_SIGHT: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 无羁元素
+// Tier 2 additions — Unbound Elemental
 // ============================================================
 
-/// 无羁元素 — 每当你使用一张具有过载的牌时，获得 +1/+1。
+/// Unbound Elemental — whenever you play a card with Overload, gain +1/+1.
 pub const UNBOUND_ELEMENTAL: CardDef = CardDef {
     id: "SHAMAN_021",
     name: "Unbound Elemental",

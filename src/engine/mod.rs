@@ -1,4 +1,4 @@
-//! 规则引擎模块 — GameEngine 和相关类型。
+//! Rule engine module — GameEngine and related types.
 
 pub mod aura;
 pub mod game;

@@ -1,16 +1,16 @@
-//! # Orange Stone — 炉石传说模拟器
+//! # Orange Stone — Hearthstone simulator
 //!
-//! 用 Rust 编写的高性能炉石传说（Hearthstone）模拟器，专为强化学习训练而设计。
+//! A high-performance Hearthstone simulator written in Rust, designed specifically for reinforcement learning training.
 //!
-//! ## 架构
+//! ## Architecture
 //!
-//! - **ECS (Entity Component System)**：卡牌效果作为可组合的 Component
-//! - **不可变 GameState + Copy-on-Write**：低成本状态分支，MCTS 友好
-//! - **事件驱动规则引擎**：Action → Event → Trigger → 新 Action
+//! - **ECS (Entity Component System)**: card effects as composable Components
+//! - **Immutable GameState + Copy-on-Write**: low-cost state branching, MCTS friendly
+//! - **Event-driven rule engine**: Action → Event → Trigger → new Action
 //!
-//! ## Phase 3 (当前)
+//! ## Phase 3 (current)
 //!
-//! 完整规则：武器、英雄技能、光环、奥秘、复杂卡牌交互时序
+//! Full rules: weapons, hero powers, auras, secrets, complex card interaction sequencing
 
 #![warn(missing_docs)]
 #![deny(unsafe_code)]
@@ -21,6 +21,6 @@ pub mod engine;
 pub mod rl;
 pub mod sim;
 
-// Python 绑定（需 `py` feature）
+// Python bindings (requires the `py` feature)
 #[cfg(feature = "py")]
 pub mod py_bind;

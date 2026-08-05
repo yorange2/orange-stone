@@ -10,7 +10,7 @@ use orange_stone::core::entity::Entity;
 use orange_stone::core::event::{Event, EventQueue, Priority};
 use orange_stone::core::player::PlayerId;
 
-/// 混合优先级的"战斗结算"式事件流 — 每 3 个事件按 Highest/Normal/Lowest 分布。
+/// Mixed-priority "combat resolution" event stream — every 3 events cycle through Highest/Normal/Lowest.
 fn fill_mixed(queue: &mut EventQueue, n: usize) {
     for i in 0..n {
         let priority = match i % 3 {
@@ -29,7 +29,7 @@ fn fill_mixed(queue: &mut EventQueue, n: usize) {
     }
 }
 
-/// 全部 Normal 优先级的事件流（最简单的对局路径，如抽牌阶段）。
+/// All-Normal-priority event stream (the simplest game path, e.g. the draw phase).
 fn fill_normal(queue: &mut EventQueue, n: usize) {
     for i in 0..n {
         queue.push(Event::CardDrawn {

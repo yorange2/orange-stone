@@ -1,38 +1,38 @@
-//! 观察空间 — 将 `GameState` 张量化为固定长度的浮点向量。
+//! Observation space — tensorizes `GameState` into a fixed-length float vector.
 //!
-//! 观察从指定玩家的视角编码（归一化到 [0, 1]），布局固定、长度恒定，
-//! 便于直接送入神经网络。
+//! Observations are encoded from the perspective of the given player (normalized to [0, 1]),
+//! with a fixed layout and constant length, so they can be fed directly into a neural network.
 //!
-//! # 布局（`OBS_LEN` = 168）
+//! # Layout (`OBS_LEN` = 168)
 //!
-//! | 区间 | 内容 | 归一化 |
+//! | Range | Content | Normalization |
 //! |------|------|--------|
-//! | 0..3   | 己方英雄：生命、攻击、护甲 | /30, /15, /30 |
-//! | 3..5   | 己方法力：总水晶、当前水晶 | /10 |
-//! | 5..8   | 敌方英雄：生命、攻击、护甲 | /30, /15, /30 |
-//! | 8..10  | 牌库数量：己方、敌方 | /30 |
-//! | 10..70 | 己方手牌（最多 10 张）：每张 [费用, 攻击, 生命, 随从, 法术, 武器] | /10, /15, /30, 0/1 |
-//! | 70..119 | 己方战场（最多 7 个随从）：每个 [攻击, 生命, 嘲讽, 圣盾, 风怒, 冲锋, 潜行] | /15, /30, 0/1 |
-//! | 119..168 | 敌方战场（同上，7 个槽位） | |
+//! | 0..3   | Friendly hero: health, attack, armor | /30, /15, /30 |
+//! | 3..5   | Friendly mana: total crystals, current mana | /10 |
+//! | 5..8   | Enemy hero: health, attack, armor | /30, /15, /30 |
+//! | 8..10  | Deck counts: friendly, enemy | /30 |
+//! | 10..70 | Friendly hand (up to 10 cards): each [cost, attack, health, minion, spell, weapon] | /10, /15, /30, 0/1 |
+//! | 70..119 | Friendly board (up to 7 minions): each [attack, health, taunt, divine shield, windfury, charge, stealth] | /15, /30, 0/1 |
+//! | 119..168 | Enemy board (same as above, 7 slots) | |
 
 use crate::core::component::CardType;
 use crate::core::player::PlayerId;
 use crate::core::state::GameState;
 use crate::core::zone::Zone;
 
-/// 手牌上限（编码槽位数）
+/// Maximum hand size (number of encoding slots)
 pub const MAX_HAND: usize = 10;
-/// 战场随从上限（编码槽位数）
+/// Maximum board minions (number of encoding slots)
 pub const MAX_BOARD: usize = 7;
-/// 每张手牌的特征数
+/// Number of features per hand card
 pub const CARD_FEATURES: usize = 6;
-/// 每个随从的特征数
+/// Number of features per minion
 pub const MINION_FEATURES: usize = 7;
 
-/// 观察向量长度 — 固定值，供 Python 侧预分配。
+/// Observation vector length — fixed value, for preallocation on the Python side.
 pub const OBS_LEN: usize = 10 + MAX_HAND * CARD_FEATURES + 2 * MAX_BOARD * MINION_FEATURES;
 
-/// 归一化辅助：值除以分母并截断到 [0, 1]。
+/// Normalization helper: divides the value by the denominator and clamps to [0, 1].
 fn norm(value: i32, max: f32) -> f32 {
     (value as f32 / max).clamp(0.0, 1.0)
 }
@@ -41,7 +41,7 @@ fn normf(value: f32, max: f32) -> f32 {
     (value / max).clamp(0.0, 1.0)
 }
 
-/// 编码指定玩家的英雄观察块（生命、攻击、护甲）。
+/// Encodes the hero observation block for the given player (health, attack, armor).
 fn hero_block(state: &GameState, player: PlayerId, out: &mut Vec<f32>) {
     let hero = state.player(player).hero;
     let world = state.world();
@@ -53,25 +53,25 @@ fn hero_block(state: &GameState, player: PlayerId, out: &mut Vec<f32>) {
     out.push(norm(state.player(player).armor, 30.0));
 }
 
-/// 将游戏状态编码为固定长度的观察向量（`player` 的视角）。
+/// Encodes the game state into a fixed-length observation vector (`player`'s perspective).
 #[must_use]
 pub fn encode_observation(state: &GameState, player: PlayerId) -> Vec<f32> {
     let world = state.world();
     let enemy = player.opponent();
     let mut obs = Vec::with_capacity(OBS_LEN);
 
-    // 己方英雄 + 法力
+    // Friendly hero + mana
     hero_block(state, player, &mut obs);
     let p = state.player(player);
     obs.push(norm(p.mana_crystals, 10.0));
     obs.push(norm(p.current_mana, 10.0));
-    // 敌方英雄
+    // Enemy hero
     hero_block(state, enemy, &mut obs);
-    // 牌库数量
+    // Deck counts
     obs.push(norm(world.zones().len(Zone::Deck, player) as i32, 30.0));
     obs.push(norm(world.zones().len(Zone::Deck, enemy) as i32, 30.0));
 
-    // 手牌（按位置编码，空槽位为 0）
+    // Hand (encoded positionally, empty slots are 0)
     let hand: Vec<_> = world.zones().iter(Zone::Hand, player).collect();
     for i in 0..MAX_HAND {
         match hand.get(i) {
@@ -90,7 +90,7 @@ pub fn encode_observation(state: &GameState, player: PlayerId) -> Vec<f32> {
         }
     }
 
-    // 双方战场（按位置编码）
+    // Both boards (encoded positionally)
     for side in [player, enemy] {
         let board: Vec<_> = world
             .zones()
@@ -136,15 +136,15 @@ mod tests {
         let obs = encode_observation(&state, PlayerId::Player1);
         assert_eq!(obs.len(), OBS_LEN);
         assert_eq!(OBS_LEN, 168);
-        // 英雄 30 HP → 1.0，攻击 0 → 0.0
+        // Hero 30 HP → 1.0, attack 0 → 0.0
         assert_eq!(obs[0], 1.0);
         assert_eq!(obs[1], 0.0);
-        // 法力 0/0
+        // Mana 0/0
         assert_eq!(obs[3], 0.0);
         assert_eq!(obs[4], 0.0);
-        // 敌方英雄 30 HP
+        // Enemy hero 30 HP
         assert_eq!(obs[5], 1.0);
-        // 空手牌 / 空战场全为 0
+        // Empty hand / empty board are all 0
         assert!(obs[10..168].iter().all(|&v| v == 0.0));
     }
 
@@ -159,7 +159,7 @@ mod tests {
         let state = builder.build();
 
         let obs = encode_observation(&state, PlayerId::Player1);
-        // 手牌槽 0：BLOODFEN_RAPTOR 2 费 3/2 → [0.2, 0.2, 0.0667, 1, 0, 0]
+        // Hand slot 0: BLOODFEN_RAPTOR 2 cost 3/2 → [0.2, 0.2, 0.0667, 1, 0, 0]
         let hand0 = &obs[10..16];
         assert!((hand0[0] - 0.2).abs() < 1e-5, "cost 2/10: {}", hand0[0]);
         assert!(
@@ -176,7 +176,7 @@ mod tests {
         assert_eq!(hand0[4], 0.0);
         assert_eq!(hand0[5], 0.0);
 
-        // 己方战场槽 0（70 起）
+        // Friendly board slot 0 (starting at 70)
         let own0 = &obs[70..77];
         assert!(
             (own0[0] - 3.0 / 15.0).abs() < 1e-5,
@@ -189,7 +189,7 @@ mod tests {
             own0[1]
         );
 
-        // 敌方战场槽 0（119 起）
+        // Enemy board slot 0 (starting at 119)
         let enemy0 = &obs[119..126];
         assert!(
             (enemy0[0] - 3.0 / 15.0).abs() < 1e-5,
@@ -208,7 +208,7 @@ mod tests {
         let state = GameState::new();
         let obs1 = encode_observation(&state, PlayerId::Player1);
         let obs2 = encode_observation(&state, PlayerId::Player2);
-        // 视角互换后英雄块互换
+        // After swapping perspectives, the hero blocks are swapped
         assert_eq!(obs1[0..3], obs2[5..8]);
         assert_eq!(obs1[5..8], obs2[0..3]);
     }

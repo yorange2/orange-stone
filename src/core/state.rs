@@ -1,18 +1,18 @@
-//! GameState — 不可变游戏状态 + Copy-on-Write。
+//! GameState — immutable game state + Copy-on-Write.
 //!
-//! `GameState` 将实际的游戏数据包裹在 `Arc<Inner>` 中。
-//! Clone 是 O(1) 的引用计数增加，创建分支（如 MCTS 搜索）几乎零开销。
-//! 首次修改通过 `Arc::make_mut` 进行克隆（仅在引用被共享时），
-//! 未被共享时的修改则在原数据上进行。
+//! `GameState` wraps the actual game data in an `Arc<Inner>`.
+//! Cloning is an O(1) reference-count bump, so branching (e.g. MCTS search) is nearly free.
+//! The first mutation clones via `Arc::make_mut` (only when the reference is shared);
+//! when not shared, mutations happen in place.
 //!
-//! # 示例
+//! # Example
 //!
 //! ```rust
 //! use orange_stone::core::state::GameState;
 //!
 //! let mut parent = GameState::new();
 //! let mut branch = parent.clone();  // Arc refcount bump
-//! // 对 branch 修改时自动 CoW，parent 不受影响
+//! // Mutating branch triggers CoW automatically; parent is unaffected
 //! ```
 use serde::{Deserialize, Serialize};
 
@@ -23,61 +23,61 @@ use crate::core::zone::Zone;
 use crate::sim::rng::GameRng;
 use std::sync::Arc;
 
-/// 游戏阶段。
+/// Game phase.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Phase {
-    /// 主要阶段 — 玩家可以出牌、攻击、结束回合
+    /// Main phase — the player can play cards, attack, and end the turn
     Main,
-    /// 回合结束阶段（Phase 1 中仅作标记）
+    /// End phase (only a marker in Phase 1)
     End,
-    /// 游戏结束
+    /// Game over
     GameOver {
-        /// 获胜方
+        /// The winner
         winner: PlayerId,
     },
 }
 
-/// 游戏状态的内部数据 — 通过 `Arc` 共享。
+/// Internal data of the game state — shared via `Arc`.
 ///
-/// 包含完整的 World、玩家信息和游戏元数据。
+/// Contains the full World, player info, and game metadata.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Inner {
-    /// ECS World（实体和组件）
+    /// The ECS World (entities and components)
     pub world: World,
-    /// 两个玩家的状态
+    /// The two players' state
     pub players: [Player; 2],
-    /// 当前回合数（从 1 开始计数，每次 TurnStarted 递增）
+    /// Current turn number (counts from 1, incremented on each TurnStarted)
     pub turn: u32,
-    /// 当前游戏阶段
+    /// Current game phase
     pub phase: Phase,
-    /// 当前行动玩家
+    /// The player whose turn it is
     pub active_player: PlayerId,
-    /// 随机数生成器（可复现）
+    /// Random number generator (reproducible)
     pub rng: GameRng,
 }
 
-/// 不可变游戏状态，支持 Copy-on-Write。
+/// Immutable game state with Copy-on-Write support.
 ///
-/// Clone 是 O(1)。变异通过内部的 `Arc::make_mut` 触发 CoW：
-/// - 若仅有一个引用 → 原地修改
-/// - 若被多个引用共享 → 克隆 Inner 后再修改
+/// Clone is O(1). Mutation triggers CoW through the internal `Arc::make_mut`:
+/// - single reference → mutate in place
+/// - shared by multiple references → clone Inner, then mutate
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameState {
     inner: Arc<Inner>,
 }
 
 impl GameState {
-    /// 创建一个新的初始游戏状态。
+    /// Create a new initial game state.
     ///
-    /// 包含两个玩家及其英雄实体（30 HP, 0 Attack），每人法力水晶初始为 0。
-    /// 牌库初始为空（通过 GameBuilder 填充）。
-    /// 游戏从 Player1 的回合 1 开始，阶段为 Main。
-    /// RNG seed 固定为 12345。
+    /// Contains both players and their hero entities (30 HP, 0 Attack), with 0 mana crystals each.
+    /// The deck starts empty (filled via GameBuilder).
+    /// The game starts at Player1's turn 1, phase Main.
+    /// The RNG seed is fixed at 12345.
     #[must_use]
     pub fn new() -> Self {
         let mut world = World::new();
 
-        // 创建英雄实体
+        // Create hero entities
         let hero1 = world.spawn();
         world.set_health(hero1, Health(30));
         world.set_attack(hero1, Attack(0));
@@ -119,92 +119,92 @@ impl GameState {
         }
     }
 
-    /// 获取 World 的只读引用（共享访问，无开销）。
+    /// Get a read-only reference to the World (shared access, no overhead).
     #[must_use]
     pub fn world(&self) -> &World {
         &self.inner.world
     }
 
-    /// 获取指定玩家的状态。
+    /// Get the state of the given player.
     #[must_use]
     pub fn player(&self, id: PlayerId) -> &Player {
         &self.inner.players[id.index()]
     }
 
-    /// 获取当前游戏阶段。
+    /// Get the current game phase.
     #[must_use]
     pub fn phase(&self) -> Phase {
         self.inner.phase
     }
 
-    /// 设置游戏阶段。
-    /// 需要通过 `make_mut` 获取可变引用（由 `GameEngine` 或 `GameBuilder` 调用）。
+    /// Set the game phase.
+    /// Requires a mutable reference obtained via `make_mut` (called by `GameEngine` or `GameBuilder`).
     pub fn set_phase(&mut self, phase: Phase) {
         let inner = self.make_mut();
         inner.phase = phase;
     }
 
-    /// 获取当前行动玩家。
+    /// Get the current active player.
     #[must_use]
     pub fn active_player(&self) -> PlayerId {
         self.inner.active_player
     }
 
-    /// 设置当前行动玩家。
+    /// Set the current active player.
     pub fn set_active_player(&mut self, player: PlayerId) {
         self.make_mut().active_player = player;
     }
 
-    /// 获取当前回合数。
+    /// Get the current turn number.
     #[must_use]
     pub fn turn(&self) -> u32 {
         self.inner.turn
     }
 
-    /// 设置当前回合数。
+    /// Set the current turn number.
     pub fn set_turn(&mut self, turn: u32) {
         self.make_mut().turn = turn;
     }
 
-    /// 获取 RNG 的只读引用。
+    /// Get a read-only reference to the RNG.
     #[must_use]
     pub fn rng(&self) -> &GameRng {
         &self.inner.rng
     }
 
-    /// 获取 RNG 的可变引用（触发 CoW）。
+    /// Get a mutable reference to the RNG (triggers CoW).
     #[must_use]
     pub fn rng_mut(&mut self) -> &mut GameRng {
         &mut self.make_mut().rng
     }
 
-    /// 获取 Inner 的可变引用，触发 CoW。
+    /// Get a mutable reference to Inner, triggering CoW.
     ///
-    /// 如果 `Arc` 被共享（`strong_count > 1`），`Arc::make_mut` 会克隆
-    /// 整个 `Inner` 然后返回对克隆体的独占引用。
-    /// 如果只有一个引用，则直接返回原地数据。
+    /// If the `Arc` is shared (`strong_count > 1`), `Arc::make_mut` clones the entire
+    /// `Inner` and returns an exclusive reference to the clone.
+    /// If there is only one reference, the in-place data is returned directly.
     ///
-    /// 此方法是 CoW 的核心。调用者应注意：
-    /// - 在一次事件处理中将多个变更合并到一个 `make_mut` 调用下
-    /// - 先完成所有只读操作，再调用 `make_mut`（避免借用冲突）
+    /// This method is the core of CoW. Callers should:
+    /// - batch multiple changes for one event handling under a single `make_mut` call
+    /// - finish all read-only operations before calling `make_mut` (to avoid borrow conflicts)
     #[must_use]
     pub fn make_mut(&mut self) -> &mut Inner {
         Arc::make_mut(&mut self.inner)
     }
 
-    /// 获取 World 的可变引用（便捷方法，触发 CoW）。
+    /// Get a mutable reference to the World (convenience method, triggers CoW).
     pub fn world_mut(&mut self) -> &mut World {
         &mut self.make_mut().world
     }
 
-    /// 返回当前 Inner 的 Arc 引用计数（用于测试和调试）。
+    /// Returns the current Inner's Arc reference count (for tests and debugging).
     #[cfg(test)]
     #[must_use]
     fn ref_count(&self) -> usize {
         Arc::strong_count(&self.inner)
     }
 
-    /// 获取共享 Inner 的只读引用（用于内部比较和测试）。
+    /// Get a read-only reference to the shared Inner (for internal comparisons and tests).
     #[cfg(test)]
     fn inner_ref(&self) -> &Inner {
         &self.inner
@@ -218,15 +218,15 @@ impl Default for GameState {
 }
 
 impl GameState {
-    /// 序列化为紧凑二进制（bincode）— 分布式训练状态传输 / 检查点。
+    /// Serialize to compact binary (bincode) — state transfer / checkpoints for distributed training.
     ///
-    /// 反序列化后与原始状态完全等价（含 RNG 状态与事件日志），
-    /// 可继续推进对局并得到相同结果。
+    /// After deserialization the state is fully equivalent to the original (including the RNG state
+    /// and event log), and the game can continue with identical results.
     pub fn to_bytes(&self) -> Result<Vec<u8>, bincode::Error> {
         bincode::serialize(&self.inner)
     }
 
-    /// 从 bincode 字节反序列化恢复游戏状态。
+    /// Restore a game state by deserializing from bincode bytes.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, bincode::Error> {
         Ok(Self {
             inner: Arc::new(bincode::deserialize(bytes)?),
@@ -263,17 +263,17 @@ mod tests {
         let a = GameState::new();
         let mut b = a.clone();
 
-        // 两者共享同一个 Arc，refcount 都是 2
+        // Both share the same Arc; refcount is 2 for each
         assert_eq!(a.ref_count(), 2);
         assert_eq!(b.ref_count(), 2);
 
-        // 修改 b
+        // Mutate b
         b.set_turn(5);
         assert_eq!(b.turn(), 5);
-        // a 不受影响
+        // a is unaffected
         assert_eq!(a.turn(), 1);
 
-        // 再次修改 b
+        // Mutate b again
         b.set_turn(10);
         assert_eq!(b.turn(), 10);
     }
@@ -307,18 +307,18 @@ mod tests {
 
     #[test]
     fn second_mutation_no_reclone() {
-        // 独占引用时不应重复克隆
+        // With an exclusive reference there must be no re-clone
         let mut state = GameState::new();
         assert_eq!(state.ref_count(), 1);
 
-        // 第一次修改
+        // First mutation
         let inner_ptr_before: *const Inner = state.inner_ref();
         state.set_turn(2);
         let inner_ptr_after: *const Inner = state.inner_ref();
-        // 独占引用时，Arc::make_mut 不应该分配新的内存
+        // With an exclusive reference, Arc::make_mut must not allocate new memory
         assert_eq!(inner_ptr_before, inner_ptr_after);
 
-        // 第二次修改
+        // Second mutation
         state.set_turn(3);
         let inner_ptr_final: *const Inner = state.inner_ref();
         assert_eq!(inner_ptr_after, inner_ptr_final);
@@ -338,13 +338,13 @@ mod tests {
         let hero = state.player(PlayerId::Player1).hero;
         state.world_mut().set_health(hero, Health(20));
 
-        // 克隆快照
+        // Clone a snapshot
         let snapshot = state.clone();
 
-        // 继续修改原状态
+        // Keep mutating the original state
         state.world_mut().set_health(hero, Health(10));
 
-        // 快照不受影响
+        // The snapshot is unaffected
         assert_eq!(state.world().health(hero), Some(Health(10)));
         assert_eq!(snapshot.world().health(hero), Some(Health(20)));
     }
@@ -358,7 +358,7 @@ mod serialization_tests {
     use crate::engine::game::GameEngine;
     use crate::sim::game::GameBuilder;
 
-    /// 构建一个复杂状态：随从、光环、护甲、法力、武器。
+    /// Build a complex state: minions, auras, armor, mana, weapon.
     fn complex_state() -> GameState {
         use crate::cards::def::{BLOODFEN_RAPTOR, GLADIATORS_LONGBOW, STORMWIND_CHAMPION};
         let mut builder = GameBuilder::new();
@@ -379,11 +379,11 @@ mod serialization_tests {
         let bytes = state.to_bytes().expect("serialize");
         let restored = GameState::from_bytes(&bytes).expect("deserialize");
 
-        // 元数据
+        // Metadata
         assert_eq!(restored.turn(), state.turn());
         assert_eq!(restored.phase(), state.phase());
         assert_eq!(restored.active_player(), state.active_player());
-        // 玩家状态
+        // Player state
         for pid in [PlayerId::Player1, PlayerId::Player2] {
             let a = state.player(pid);
             let b = restored.player(pid);
@@ -392,21 +392,21 @@ mod serialization_tests {
             assert_eq!(a.armor, b.armor);
             assert_eq!(a.weapon.is_some(), b.weapon.is_some());
         }
-        // 世界状态：英雄血量、随从、光环
+        // World state: hero health, minions, auras
         let wa = state.world();
         let wb = restored.world();
         assert_eq!(
             wb.health(restored.player(PlayerId::Player1).hero),
             wa.health(state.player(PlayerId::Player1).hero)
         );
-        // 光环随从（暴风城勇士）仍在场且效果可查询
+        // The aura minion (Stormwind Champion) is still on the board and its effect is queryable
         let champion = wb
             .zones()
             .iter(Zone::Play, PlayerId::Player1)
             .find(|&e| wb.card_id(e).is_some_and(|c| c.0 == "NEUTRAL_T10"))
             .expect("champion on board");
         assert!(wb.aura(champion).is_some());
-        // 光环效果仍然生效（索引随状态序列化）
+        // The aura effect still applies (the index is serialized with the state)
         let raptor = wb
             .zones()
             .iter(Zone::Play, PlayerId::Player1)
@@ -420,7 +420,7 @@ mod serialization_tests {
 
     #[test]
     fn roundtrip_continues_identically() {
-        // 序列化后继续对局，与原状态产生完全一致的事件日志
+        // Continue the game after serialization; the event log must match the original state exactly
         let engine = GameEngine::new();
         let mut a = complex_state();
         let mut b = GameState::from_bytes(&a.to_bytes().unwrap()).unwrap();
@@ -464,7 +464,7 @@ mod serialization_tests {
     fn corrupted_bytes_rejected() {
         let state = complex_state();
         let mut bytes = state.to_bytes().unwrap();
-        // 破坏数据（第一个长度字段）
+        // Corrupt the data (the first length field)
         bytes[0] ^= 0xFF;
         assert!(
             GameState::from_bytes(&bytes).is_err(),
@@ -474,7 +474,7 @@ mod serialization_tests {
 
     #[test]
     fn rng_state_preserved() {
-        // 相同的后续随机调用序列
+        // Identical subsequent random call sequences
         let a = GameState::new();
         let b = GameState::from_bytes(&a.to_bytes().unwrap()).unwrap();
         let mut a = a;
@@ -498,7 +498,7 @@ mod cow_sharing_tests {
 
     #[test]
     fn game_state_clone_shares_world_pages() {
-        // 克隆 GameState 后，World 的组件页被 Arc 共享（结构性共享，非深拷贝）
+        // After cloning GameState, the World's component pages are shared via Arc (structural sharing, not deep copy)
         let mut builder = GameBuilder::new();
         for _ in 0..10 {
             builder.add_minion_to_board(PlayerId::Player1, &BLOODFEN_RAPTOR);
@@ -506,7 +506,7 @@ mod cow_sharing_tests {
         let a = builder.build();
         let mut b = a.clone();
 
-        // 双方共享 World 数据 — 修改 b 不影响 a（写时复制）
+        // Both share the World data — mutating b does not affect a (copy-on-write)
         let hero = b.player(PlayerId::Player1).hero;
         {
             let inner = b.make_mut();
@@ -518,7 +518,7 @@ mod cow_sharing_tests {
             "clone must not see the write"
         );
         assert_eq!(b.world().health(hero), Some(Health(20)));
-        // a 中 10 个随从完好
+        // a still has all 10 minions
         let minions: Vec<_> = a
             .world()
             .zones()

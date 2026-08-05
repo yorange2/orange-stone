@@ -1,20 +1,20 @@
-//! 一千轮机器人对战 — 大规模卡牌覆盖测试。
+//! 1000-battle bot matches — large-scale card coverage test.
 //!
-//! 使用随机牌组运行 1000 场 SmartBot vs SmartBot 对战，
-//! 追踪卡牌覆盖率、引擎错误和基本游戏不变量。
+//! Runs 1000 SmartBot vs SmartBot battles with random decks,
+//! tracking card coverage, engine errors, and basic game invariants.
 //!
-//! 运行方式：
+//! Run with:
 //! ```bash
 //! cargo test battle_1000 --release -- --nocapture
 //! ```
 //!
-//! 使用 `--release` 以获得合理的运行速度。
+//! Use `--release` for reasonable runtime.
 
 use orange_stone::sim::battle::{BattleRunner, BotType};
 
-/// 主测试：1000 轮机器人对战。
+/// Main test: 1000 bot battles.
 ///
-/// 可通过环境变量 `BATTLE_COUNT` 调整对局数量：
+/// The battle count can be adjusted via the `BATTLE_COUNT` environment variable:
 /// ```bash
 /// BATTLE_COUNT=100 cargo test battle_1000 --release -- --nocapture
 /// ```
@@ -56,7 +56,7 @@ fn run_1000_battles() {
     for i in 0..battle_count {
         let result = runner.run_battle(30);
 
-        // 进度报告
+        // Progress reporting
         let progress_pct = ((i + 1) * 100) / battle_count;
         if progress_pct > last_progress_pct || i < 5 || i >= battle_count - 1 {
             let elapsed = start_time.elapsed();
@@ -88,7 +88,7 @@ fn run_1000_battles() {
         }
     }
 
-    // ===== 统计输出 =====
+    // ===== Statistics output =====
     let elapsed = start_time.elapsed();
     let stats = &runner.stats;
     let tracker = &runner.tracker;
@@ -118,12 +118,12 @@ fn run_1000_battles() {
     );
     println!("╠══════════════════════════════════════════════════════════════╣");
 
-    // 引擎错误统计
+    // Engine error statistics
     let total_errors: usize = stats.all_errors.len();
     println!("║  引擎错误总数: {:<46}║", total_errors);
 
     if !stats.all_errors.is_empty() {
-        // 按错误类型分组
+        // Group by error type
         use std::collections::HashMap;
         let mut error_counts: HashMap<String, usize> = HashMap::new();
         for err in &stats.all_errors {
@@ -143,7 +143,7 @@ fn run_1000_battles() {
             println!("║    {count:>4}× {truncated:<46}║");
         }
 
-        // 显示一些具体错误上下文
+        // Show some concrete error context
         println!("╠══════════════════════════════════════════════════════════════╣");
         println!("║  前 10 个错误详情:                                          ║");
         for (i, err) in stats.all_errors.iter().take(10).enumerate() {
@@ -161,7 +161,7 @@ fn run_1000_battles() {
         }
     }
 
-    // 覆盖率详情
+    // Coverage details
     println!("╠══════════════════════════════════════════════════════════════╣");
     println!("║  卡牌覆盖详情:                                              ║");
 
@@ -193,7 +193,7 @@ fn run_1000_battles() {
         println!("║    {cnt}× {id} ({name})");
     }
 
-    // 回合数分布
+    // Turn count distribution
     println!("╠══════════════════════════════════════════════════════════════╣");
     println!("║  回合数分布 (Top 10):                                       ║");
     let mut turn_dist: Vec<_> = stats.turn_distribution.iter().collect();
@@ -205,15 +205,15 @@ fn run_1000_battles() {
 
     println!("╚══════════════════════════════════════════════════════════════╝");
 
-    // 断言: 不应有引擎错误
+    // Assert: no engine errors
     if total_errors > 0 {
         println!("\n⚠️  检测到 {total_errors} 个引擎错误！请检查上面的错误详情。");
-        // 对常见预期错误不 panic（如 HeroPowerAlreadyUsed 等机器人策略问题）
+        // Do not panic on common expected errors (e.g. HeroPowerAlreadyUsed, bot strategy issues)
         let unexpected_errors: Vec<_> = stats
             .all_errors
             .iter()
             .filter(|e| {
-                // 排除所有已知的机器人策略错误
+                // Exclude all known bot strategy errors
                 !e.error.contains("HeroPowerAlreadyUsed")
                     && !e.error.contains("NotEnoughMana")
                     && !e.error.contains("BoardFull")
@@ -238,7 +238,7 @@ fn run_1000_battles() {
         }
     }
 
-    // 断言: 覆盖率应 > 80%
+    // Assert: coverage should be > 80%
     let coverage_pct = covered as f64 / total as f64 * 100.0;
     assert!(
         coverage_pct > 80.0,
@@ -247,7 +247,7 @@ fn run_1000_battles() {
     println!("\n✅ 所有检查通过！");
 }
 
-/// 根据卡牌 ID 查找卡牌名称。
+/// Look up a card name by card ID.
 fn get_card_name(id: &str) -> &'static str {
     orange_stone::cards::sets::ALL_CARDS
         .iter()

@@ -1,43 +1,43 @@
-//! 区域（Zone）系统 — 卡牌在游戏中所处的位置。
+//! Zone system — where cards are located in the game.
 //!
-//! 炉石传说有 5 个区域：牌库 (Deck)、手牌 (Hand)、战场 (Play)、
-//! 坟墓场 (Graveyard)、暂离区 (SetAside)。
-//! 每个区域维护一个有序的实体列表（手牌和战场顺序有意义）。
+//! Hearthstone has 5 zones: Deck, Hand, Play,
+//! Graveyard, and SetAside.
+//! Each zone maintains an ordered entity list (order matters in hand and on the battlefield).
 use serde::{Deserialize, Serialize};
 
 use crate::core::player::PlayerId;
 
-/// 区域类型。
+/// Zone type.
 ///
-/// 实体在同一时刻只能在一个区域中。区域转移通过 `World::move_to_zone` 进行。
+/// An entity can be in only one zone at a time. Zone transfers go through `World::move_to_zone`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Zone {
-    /// 牌库 — 卡牌初始所在地，Phase 2+ 加入抽牌逻辑
+    /// Deck — where cards start; draw logic arrives in Phase 2+
     Deck,
-    /// 手牌 — 可以打出的区域
+    /// Hand — where playable cards are held
     Hand,
-    /// 战场 — 随从和英雄所在区域
+    /// Play — the zone where minions and heroes are
     Play,
-    /// 坟墓场 — 死亡随从/使用过的法术去的地方
+    /// Graveyard — where dead minions/used spells go
     Graveyard,
-    /// 暂离区 — 临时移出游戏的区域（Phase 2+ 用于奥秘等）
+    /// SetAside — temporarily removed from the game (used for secrets in Phase 2+)
     SetAside,
 }
 
-/// 区域移动错误。
+/// Zone move error.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ZoneError {
-    /// 实体已被销毁（generation 不匹配）
+    /// The entity has been destroyed (generation mismatch)
     EntityGone,
-    /// 缺少判断所属玩家所需的 PlayerId 组件
+    /// The PlayerId component needed to determine the owner is missing
     MissingPlayer,
-    /// 缺少当前 Zone 组件（不应出现，说明状态不一致）
+    /// The current Zone component is missing (should not happen; indicates inconsistent state)
     MissingZone,
 }
 
-/// 所有区域的实体列表。
+/// Entity lists for all zones.
 ///
-/// 牌库、手牌、战场、坟墓场是每个玩家独立维护的；暂离区是共享的。
+/// Deck, hand, play, and graveyard are maintained per player; SetAside is shared.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Zones {
     deck: [Vec<crate::core::entity::Entity>; 2],
@@ -48,7 +48,7 @@ pub struct Zones {
 }
 
 impl Zones {
-    /// 创建一个空的区域表。
+    /// Create an empty zone table.
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -60,7 +60,7 @@ impl Zones {
         }
     }
 
-    /// 获取某个区域的可变引用。
+    /// Get a mutable reference to a zone.
     fn vec_mut(&mut self, zone: Zone, player: PlayerId) -> &mut Vec<crate::core::entity::Entity> {
         match zone {
             Zone::Deck => &mut self.deck[player.index()],
@@ -71,7 +71,7 @@ impl Zones {
         }
     }
 
-    /// 获取某个区域的只读引用。
+    /// Get a read-only reference to a zone.
     fn vec_ref(&self, zone: Zone, player: PlayerId) -> &[crate::core::entity::Entity] {
         match zone {
             Zone::Deck => &self.deck[player.index()],
@@ -82,14 +82,14 @@ impl Zones {
         }
     }
 
-    /// 将一个实体插入到指定区域的末尾。
+    /// Insert an entity at the end of the given zone.
     pub fn insert(&mut self, zone: Zone, player: PlayerId, entity: crate::core::entity::Entity) {
         self.vec_mut(zone, player).push(entity);
     }
 
-    /// 从指定区域移除一个实体（保持顺序）。
+    /// Remove an entity from the given zone (preserving order).
     ///
-    /// 使用 `Vec::remove`（非 swap-remove）以保持手牌/战场顺序。
+    /// Uses `Vec::remove` (not swap-remove) to preserve hand/battlefield order.
     pub fn remove(&mut self, zone: Zone, player: PlayerId, entity: crate::core::entity::Entity) {
         let vec = self.vec_mut(zone, player);
         if let Some(pos) = vec.iter().position(|&e| e == entity) {
@@ -97,11 +97,11 @@ impl Zones {
         }
     }
 
-    /// 从所有区域尝试移除实体（用于 despawn）。
+    /// Try to remove an entity from all zones (used for despawn).
     ///
-    /// 返回 `true` 如果确实移除了该实体。
+    /// Returns `true` if the entity was actually removed.
     pub fn remove_from_all(&mut self, entity: crate::core::entity::Entity) -> bool {
-        // 使用索引避免借用检查器问题（不能在数组字面量中同时 borrow 多个可变引用）
+        // Use indices to avoid borrow-checker issues (multiple mutable borrows cannot coexist in one array literal)
         let mut removed = false;
         for player_idx in 0..2usize {
             if let Some(pos) = self.deck[player_idx].iter().position(|&e| e == entity) {
@@ -134,7 +134,7 @@ impl Zones {
         removed
     }
 
-    /// 遍历指定区域的所有实体（按顺序）。
+    /// Iterate over all entities in the given zone (in order).
     pub fn iter(
         &self,
         zone: Zone,
@@ -143,19 +143,19 @@ impl Zones {
         self.vec_ref(zone, player).iter().copied()
     }
 
-    /// 返回指定区域的实体数量。
+    /// Returns the number of entities in the given zone.
     #[must_use]
     pub fn len(&self, zone: Zone, player: PlayerId) -> usize {
         self.vec_ref(zone, player).len()
     }
 
-    /// 返回 `true` 如果指定的区域为空。
+    /// Returns `true` if the given zone is empty.
     #[must_use]
     pub fn is_empty(&self, zone: Zone, player: PlayerId) -> bool {
         self.len(zone, player) == 0
     }
 
-    /// 返回指定区域的所有实体（按顺序的拷贝）。
+    /// Returns all entities in the given zone (an ordered copy).
     #[must_use]
     pub fn entities(&self, zone: Zone, player: PlayerId) -> Vec<crate::core::entity::Entity> {
         self.vec_ref(zone, player).to_vec()

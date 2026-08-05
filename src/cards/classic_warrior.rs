@@ -1,4 +1,4 @@
-//! 怀旧系列 — 战士 (Warrior)。
+//! Classic set — Warrior.
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
@@ -6,7 +6,7 @@ use crate::core::component::CardType;
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::vanilla;
 
-// 怀旧系列 — 战士 (Warrior)
+// Classic set — Warrior
 // ============================================================
 
 pub const EXECUTE: CardDef = CardDef {
@@ -420,7 +420,7 @@ pub const ARMORSMITH: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// 战士补全
+// Warrior additions
 pub const INNER_RAGE: CardDef = CardDef {
     id: "WARRIOR_014",
     name: "Inner Rage",
@@ -489,7 +489,7 @@ pub const HEROIC_STRIKE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 冲锋 — 使一个友方随从获得+2攻击力和冲锋
+/// Charge — give a friendly minion +2 Attack and Charge
 pub const CHARGE_SPELL: CardDef = CardDef {
     id: "WARRIOR_016",
     name: "Charge",
@@ -523,7 +523,7 @@ pub const CHARGE_SPELL: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 盾牌猛击 — 对一个随从造成等同于你护甲值的伤害
+/// Shield Slam — deal damage to a minion equal to your Armor
 pub const SHIELD_SLAM: CardDef = CardDef {
     id: "WARRIOR_017",
     name: "Shield Slam",
@@ -556,7 +556,7 @@ pub const SHIELD_SLAM: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 升级！ — 如果你有武器，使其获得+1/+1；否则装备一把1/3的武器
+/// Upgrade! — if you have a weapon, give it +1/+1; otherwise equip a 1/3 weapon
 pub const UPGRADE: CardDef = CardDef {
     id: "WARRIOR_018",
     name: "Upgrade!",
@@ -590,7 +590,7 @@ pub const UPGRADE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 绝命乱斗 — 随机消灭所有随从，只留下一个
+/// Brawl — destroy all minions at random, leaving one
 pub const BRAWL: CardDef = CardDef {
     id: "WARRIOR_020",
     name: "Brawl",
@@ -621,7 +621,7 @@ pub const BRAWL: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 致死打击 — 造成4点伤害；如果你的生命值≤12，改为造成6点伤害（简化：造成4点伤害）
+/// Mortal Strike — deal 4 damage; if you have 12 or less Health, deal 6 instead (simplified: deal 4)
 pub const MORTAL_STRIKE: CardDef = CardDef {
     id: "WARRIOR_021",
     name: "Mortal Strike",
@@ -655,7 +655,7 @@ pub const MORTAL_STRIKE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 战斗怒火 — 每有一个受伤的友方角色，抽一张牌（简化：抽2张牌）
+/// Battle Rage — draw a card for each damaged friendly character (simplified: draw 2)
 pub const BATTLE_RAGE: CardDef = CardDef {
     id: "WARRIOR_022",
     name: "Battle Rage",
@@ -686,7 +686,7 @@ pub const BATTLE_RAGE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 狂暴 — 使一个受伤的随从获得+3/+3（简化：给友方随从+3/+3）
+/// Rampage — give a damaged minion +3/+3 (simplified: +3/+3 to a friendly minion)
 pub const RAMPAGE: CardDef = CardDef {
     id: "WARRIOR_023",
     name: "Rampage",
@@ -722,10 +722,10 @@ pub const RAMPAGE: CardDef = CardDef {
 };
 
 // ============================================================
-// Tier 1 补全 — 战士（docs/classic-cards-roadmap.md）
+// Tier 1 additions — Warrior (docs/classic-cards-roadmap.md)
 // ============================================================
 
-/// 炽炎战斧 — 武器 3/2
+/// Fiery War Axe — Weapon 3/2
 pub const FIERY_WAR_AXE: CardDef = CardDef {
     id: "WARRIOR_T01",
     name: "Fiery War Axe",
@@ -755,7 +755,7 @@ pub const FIERY_WAR_AXE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 奥金斧 — 武器 5/2
+/// Arcanite Reaper — Weapon 5/2
 pub const ARCANITE_REAPER: CardDef = CardDef {
     id: "WARRIOR_T02",
     name: "Arcanite Reaper",
@@ -786,10 +786,10 @@ pub const ARCANITE_REAPER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 命令怒吼
+// Tier 2 additions — Commanding Shout
 // ============================================================
 
-/// 命令怒吼 — 本回合中，你的随从生命值不能降到 1 点以下。
+/// Commanding Shout — this turn, your minions cannot drop below 1 Health.
 pub const COMMANDING_SHOUT: CardDef = CardDef {
     id: "WARRIOR_024",
     name: "Commanding Shout",

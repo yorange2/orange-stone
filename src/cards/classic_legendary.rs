@@ -1,4 +1,4 @@
-//! 怀旧系列 — 传奇卡牌 (Legendary)。
+//! Classic set — Legendary cards.
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
@@ -6,7 +6,7 @@ use crate::core::component::CardType;
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::vanilla;
 
-// 怀旧系列 — 传奇卡牌 (Legendary)
+// Classic set — Legendary cards
 // ============================================================
 
 pub const CAIRNE_BLOODHOOF: CardDef = CardDef {
@@ -394,7 +394,7 @@ pub const DEATHWING: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 绿皮船长 — 战吼：使你的武器获得+1/+1
+/// Captain Greenskin — Battlecry: give your weapon +1/+1
 pub const CAPTAIN_GREENSKIN: CardDef = CardDef {
     id: "LEGENDARY_018",
     name: "Captain Greenskin",
@@ -428,7 +428,7 @@ pub const CAPTAIN_GREENSKIN: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 哈里森·琼斯 — 战吼：摧毁对手的武器，并抽等同于其耐久度的牌
+/// Harrison Jones — Battlecry: destroy your opponent's weapon and draw cards equal to its durability
 pub const HARRISON_JONES: CardDef = CardDef {
     id: "LEGENDARY_019",
     name: "Harrison Jones",
@@ -459,7 +459,7 @@ pub const HARRISON_JONES: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 黑骑士 — 战吼：消灭一个具有嘲讽的敌方随从
+/// The Black Knight — Battlecry: destroy an enemy minion with Taunt
 pub const THE_BLACK_KNIGHT: CardDef = CardDef {
     id: "LEGENDARY_020",
     name: "The Black Knight",
@@ -492,7 +492,7 @@ pub const THE_BLACK_KNIGHT: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 米尔豪斯·法力风暴 — 2费4/4，战吼：敌方下回合法术费用为0（简化：无负面效果）
+/// Millhouse Manastorm — 2-cost 4/4, Battlecry: enemy spells cost 0 next turn (simplified: no drawback)
 pub const MILLHOUSE_MANASTORM: CardDef = CardDef {
     id: "LEGENDARY_021",
     name: "Millhouse Manastorm",
@@ -523,7 +523,7 @@ pub const MILLHOUSE_MANASTORM: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 纳特·帕格 — 在你的回合结束时，有50%几率抽一张牌（简化：回合结束抽一张牌）
+/// Nat Pagle — at the end of your turn, 50% chance to draw a card (simplified: draw at end of turn)
 pub const NAT_PAGLE: CardDef = CardDef {
     id: "LEGENDARY_022",
     name: "Nat Pagle",
@@ -554,7 +554,7 @@ pub const NAT_PAGLE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 高阶检察官怀特迈恩 — 战吼：召唤所有本回合死亡的友方随从
+/// High Inquisitor Whitemane — Battlecry: summon all friendly minions that died this turn
 pub const HIGH_INQUISITOR_WHITEMANE: CardDef = CardDef {
     id: "LEGENDARY_023",
     name: "High Inquisitor Whitemane",

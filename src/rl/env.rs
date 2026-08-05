@@ -1,12 +1,12 @@
-//! Gym 风格环境 — 单个 agent 与脚本化对手（bot）对弈。
+//! Gym-style environment — a single agent plays against a scripted opponent (bot).
 //!
-//! 环境状态机：
-//! - agent 在己方回合内可连续执行动作（`step`）
-//! - `EndTurn` 后对手回合由 bot 自动推进
-//! - 任一英雄死亡即终局（`done = true`，附带终局奖励）
+//! Environment state machine:
+//! - The agent can execute actions consecutively during its own turn (`step`)
+//! - After `EndTurn`, the opponent's turn is advanced automatically by the bot
+//! - The game ends when either hero dies (`done = true`, with terminal reward)
 //!
-//! 观察（`obs`）、奖励（`reward`）与动作空间（`legal_actions`）都是
-//! 固定/可枚举的，供 Python 绑定与 RL 训练直接使用。
+//! Observations (`obs`), rewards (`reward`), and the action space (`legal_actions`)
+//! are fixed/enumerable, usable directly from the Python bindings and RL training.
 
 use crate::core::action::Action;
 use crate::core::component::CardType;
@@ -20,23 +20,23 @@ use crate::rl::obs::{OBS_LEN, encode_observation};
 use crate::rl::reward::{self, RewardConfig};
 use crate::sim::battle::{BattleRunner, BotDelegate, BotType};
 
-/// 环境配置。
+/// Environment configuration.
 #[derive(Debug, Clone, Copy)]
 pub struct EnvConfig {
-    /// 每方牌组大小
+    /// Deck size per player
     pub deck_size: usize,
-    /// 初始手牌数
+    /// Initial hand size
     pub hand_size: usize,
-    /// 对手（bot）类型
+    /// Opponent (bot) type
     pub bot_type: BotType,
-    /// 单局最大动作步数（防止死循环）
+    /// Maximum action steps per game (prevents infinite loops)
     pub max_steps: u32,
-    /// 奖励配置
+    /// Reward configuration
     pub reward: RewardConfig,
 }
 
 impl EnvConfig {
-    /// 默认配置（30 张牌组、贪心对手、稀疏胜/负奖励）。
+    /// Default configuration (30-card deck, greedy opponent, sparse win/loss reward).
     #[must_use]
     pub fn default_with(bot_type: BotType, deck_size: usize) -> Self {
         Self {
@@ -49,20 +49,20 @@ impl EnvConfig {
     }
 }
 
-/// 单步结果。
+/// Result of a single step.
 #[derive(Debug, Clone)]
 pub struct StepResult {
-    /// 动作后的观察（agent 视角）
+    /// Observation after the action (from the agent's perspective)
     pub observation: Vec<f32>,
-    /// 本步奖励（含终局奖励）
+    /// Reward for this step (including terminal reward)
     pub reward: f32,
-    /// 对局是否结束
+    /// Whether the game has ended
     pub done: bool,
-    /// 胜者（`None` 表示未结束或平局）
+    /// Winner (`None` if the game is not over or it's a draw)
     pub winner: Option<PlayerId>,
 }
 
-/// Gym 风格环境 — agent 固定为 `perspective` 玩家。
+/// Gym-style environment — the agent is fixed as the `perspective` player.
 #[derive(Debug, Clone)]
 pub struct GameEnv {
     engine: GameEngine,
@@ -75,7 +75,7 @@ pub struct GameEnv {
 }
 
 impl GameEnv {
-    /// 创建一个新环境；`reset` 前不可用。
+    /// Creates a new environment; not usable until `reset`.
     #[must_use]
     pub fn new(perspective: PlayerId, config: EnvConfig) -> Self {
         Self {
@@ -89,43 +89,43 @@ impl GameEnv {
         }
     }
 
-    /// 重置环境：以 `seed` 生成全新对局（随机牌组），返回初始观察。
+    /// Resets the environment: generates a fresh game (random deck) with `seed`, returning the initial observation.
     pub fn reset(&mut self, seed: u64) -> Vec<f32> {
         let mut runner = BattleRunner::new(self.config.bot_type, seed);
         self.state = runner.create_game_state(self.config.deck_size);
-        // 初始手牌大小由 create_game_state 决定（固定 3），如需可配置在此调整
+        // Initial hand size is determined by create_game_state (fixed at 3); adjust here if configurability is needed
         self.steps = 0;
         self.done = false;
         self.observation()
     }
 
-    /// 当前观察（agent 视角）。
+    /// Current observation (agent's perspective).
     #[must_use]
     pub fn observation(&self) -> Vec<f32> {
         encode_observation(&self.state, self.perspective)
     }
 
-    /// 观察长度（固定值）。
+    /// Observation length (fixed value).
     #[must_use]
     pub const fn obs_len() -> usize {
         OBS_LEN
     }
 
-    /// 当前玩家的合法动作列表（完整枚举，含显式目标）。
+    /// Legal actions for the current player (full enumeration, including explicit targets).
     ///
-    /// 只应在 agent 的回合调用；对手回合由环境自动推进。
+    /// Should only be called during the agent's turn; the opponent's turn is advanced automatically by the environment.
     #[must_use]
     pub fn legal_actions(&self) -> Vec<Action> {
         legal_actions(&self.state)
     }
 
-    /// 按索引执行 `legal_actions()[idx]`（与 Python 绑定共用）。
+    /// Executes `legal_actions()[idx]` by index (shared with the Python bindings).
     pub fn step_indexed(&mut self, action_idx: usize) -> StepResult {
         let actions = self.legal_actions();
         match actions.get(action_idx) {
             Some(&action) => self.step(action),
             None => {
-                // 索引越界视为非法动作
+                // Out-of-bounds index is treated as an invalid action
                 let reward = self.config.reward.invalid_action;
                 StepResult {
                     observation: self.observation(),
@@ -137,7 +137,7 @@ impl GameEnv {
         }
     }
 
-    /// 执行一个动作并推进环境。
+    /// Executes an action and advances the environment.
     pub fn step(&mut self, action: Action) -> StepResult {
         if self.done {
             return StepResult {
@@ -158,19 +158,19 @@ impl GameEnv {
             self.config.reward.invalid_action
         };
 
-        // 终局检查
+        // Terminal check
         if matches!(self.state.phase(), Phase::GameOver { .. }) {
             self.done = true;
             reward += reward::final_reward(&self.config.reward, &self.state, self.perspective);
         } else if ok && matches!(action, Action::EndTurn) {
-            // 对手回合：bot 自动推进到回合结束或终局
+            // Opponent's turn: the bot advances automatically until turn end or game over
             self.run_bot_turn();
             if matches!(self.state.phase(), Phase::GameOver { .. }) {
                 self.done = true;
                 reward += reward::final_reward(&self.config.reward, &self.state, self.perspective);
             }
         } else if self.steps >= self.config.max_steps {
-            // 步数上限：平局结束
+            // Step limit reached: game ends in a draw
             self.done = true;
         }
 
@@ -182,14 +182,14 @@ impl GameEnv {
         }
     }
 
-    /// 对手回合 — 执行 bot 的动作直到结束回合或终局。
+    /// Opponent's turn — executes the bot's actions until turn end or game over.
     fn run_bot_turn(&mut self) {
         loop {
             if matches!(self.state.phase(), Phase::GameOver { .. }) {
                 break;
             }
             if self.state.active_player() == self.perspective {
-                // bot 回合结束，控制权交还 agent
+                // Bot's turn is over, control returns to the agent
                 break;
             }
             let actions = self.bot.decide_actions(&self.state);
@@ -212,7 +212,7 @@ impl GameEnv {
         }
     }
 
-    /// 当前胜者（未结束时为 `None`）。
+    /// Current winner (`None` if the game is not over).
     fn winner(&self) -> Option<PlayerId> {
         match self.state.phase() {
             Phase::GameOver { winner } => Some(winner),
@@ -221,24 +221,24 @@ impl GameEnv {
     }
 }
 
-/// 枚举当前行动玩家的全部合法动作。
+/// Enumerates all legal actions for the current acting player.
 ///
-/// 生成候选（结束回合、英雄技能、出牌含显式目标、全部攻击对），
-/// 用引擎的 `validate` 过滤，保证与 `GameEngine::apply` 的合法性一致。
+/// Generates candidates (end turn, hero power, playing cards with explicit targets, all attack pairs),
+/// filters them with the engine's `validate`, ensuring consistency with `GameEngine::apply` legality.
 #[must_use]
 pub fn legal_actions(state: &GameState) -> Vec<Action> {
     let player = state.active_player();
     let world = state.world();
     let mut candidates: Vec<Action> = Vec::new();
 
-    // 结束回合
+    // End turn
     candidates.push(Action::EndTurn);
-    // 英雄技能
+    // Hero power
     let hero = state.player(player).hero;
     if world.hero_power(hero).is_some() {
         candidates.push(Action::HeroPower { hero });
     }
-    // 出牌（带显式目标）
+    // Play cards (with explicit targets)
     for card in world.zones().iter(Zone::Hand, player) {
         let targets = play_targets(state, card);
         if targets.is_empty() {
@@ -252,21 +252,21 @@ pub fn legal_actions(state: &GameState) -> Vec<Action> {
             }
         }
     }
-    // 全部攻击对（己方战场角色 → 敌方战场角色）
+    // All attack pairs (friendly battlefield characters → enemy battlefield characters)
     for attacker in world.zones().iter(Zone::Play, player) {
         for defender in world.zones().iter(Zone::Play, player.opponent()) {
             candidates.push(Action::Attack { attacker, defender });
         }
     }
 
-    // 用引擎验证过滤非法候选
+    // Filter illegal candidates using engine validation
     candidates
         .into_iter()
         .filter(|a| rules::validate(state, *a).is_ok())
         .collect()
 }
 
-/// 手牌卡牌效果的合法目标列表（空 = 无目标卡牌）。
+/// Legal targets for a hand card's effect (empty = card without targets).
 fn play_targets(
     state: &GameState,
     card: crate::core::entity::Entity,
@@ -276,7 +276,7 @@ fn play_targets(
     let Some(battlecry) = state.world().battlecry(card) else {
         return Vec::new();
     };
-    // 从效果变体中提取 EffectTarget（法术与战吼共用 battlecry 槽位）
+    // Extract EffectTarget from the effect variant (spells and battlecries share the battlecry slot)
     let target = match battlecry.0 {
         CardEffect::DealDamage { target, .. } => target,
         CardEffect::DestroyMinion { target } => target,
@@ -303,7 +303,7 @@ fn play_targets(
     candidates_for_target(state, owner, target)
 }
 
-/// 按 `EffectTarget` 枚举候选实体。
+/// Enumerates candidate entities by `EffectTarget`.
 fn candidates_for_target(
     state: &GameState,
     owner: PlayerId,
@@ -347,7 +347,7 @@ fn candidates_for_target(
             .filter(|&e| world.taunt(e).is_some())
             .collect(),
         EffectTarget::Self_ => Vec::new(),
-        // AOE/无目标效果 — 无显式目标
+        // AOE/no-target effects — no explicit target
         _ => Vec::new(),
     }
 }
@@ -378,9 +378,9 @@ mod tests {
         env.reset(3);
         let actions = env.legal_actions();
         assert!(actions.contains(&Action::EndTurn));
-        // 初始手牌 3 张 — 有可打的牌（法力 0 时除外）
+        // Initial hand of 3 cards — there are playable cards (except when mana is 0)
         assert!(!actions.is_empty());
-        // 全部动作都能通过引擎验证
+        // All actions must pass engine validation
         for a in &actions {
             assert!(
                 rules::validate(&env.state, *a).is_ok(),
@@ -398,7 +398,7 @@ mod tests {
         env.reset(5);
         let result = env.step(Action::EndTurn);
         assert!(!result.done || result.winner.is_some());
-        // bot 回合后，控制权回到 agent（或终局）
+        // After the bot's turn, control returns to the agent (or game over)
         if !result.done {
             assert_eq!(env.state.active_player(), PlayerId::Player1);
         }
@@ -415,7 +415,7 @@ mod tests {
         loop {
             let actions = env.legal_actions();
             if actions.is_empty() {
-                // 无动作可做 — 强制结束回合推进
+                // No actions available — force end turn to advance
                 let r = env.step(Action::EndTurn);
                 assert!(!r.done);
             }
@@ -436,11 +436,11 @@ mod tests {
             EnvConfig::default_with(BotType::Greedy, 20),
         );
         env.reset(2);
-        // 直接改状态观察（测试用：通过 state 不可达，使用 step 造成的伤害）
-        // 这里验证：观察始终是 agent 视角的英雄在前
+        // Directly modifying state to observe (for testing: unreachable via state, use damage caused by step)
+        // Verify here: the observation always has the agent-perspective hero first
         let obs = env.observation();
         assert_eq!(obs[0], 1.0);
         assert_eq!(obs[5], 1.0);
-        let _ = Health(30); // 保持 Health 引用，避免未使用警告
+        let _ = Health(30); // keep the Health reference to avoid an unused warning
     }
 }

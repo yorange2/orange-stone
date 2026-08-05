@@ -1,16 +1,16 @@
-//! 战斗模拟 — 机器人对战、卡牌覆盖追踪与对局统计。
+//! Battle simulation — bot vs bot games, card coverage tracking, and game statistics.
 //!
-//! 提供完整的双人对战循环、随机牌组生成、卡牌覆盖率跟踪
-//! 以及对局结果统计，用于大规模自动化测试。
+//! Provides a full two-player game loop, random deck generation, card coverage
+//! tracking, and game result statistics for large-scale automated testing.
 //!
-//! # 示例
+//! # Example
 //!
 //! ```rust,ignore
 //! use orange_stone::sim::battle::{BattleRunner, CardTracker, BotType};
 //!
 //! let mut runner = BattleRunner::new(BotType::Greedy, 12345);
 //! let result = runner.run_battle(30);
-//! println!("胜者: {:?}", result.winner);
+//! println!("winner: {:?}", result.winner);
 //! ```
 
 use crate::cards::def::CardDef;
@@ -27,24 +27,24 @@ use crate::sim::rng::GameRng;
 use std::collections::HashMap;
 
 // ============================================================
-// 卡牌覆盖追踪
+// Card coverage tracking
 // ============================================================
 
-/// 追踪每张卡牌在对局中的使用情况。
+/// Tracks how often each card is used in games.
 #[derive(Debug, Clone)]
 pub struct CardTracker {
-    /// 每张卡牌被纳入牌组的次数
+    /// How many times each card was included in a deck
     pub deck_count: HashMap<&'static str, usize>,
-    /// 每张卡牌被打出的次数
+    /// How many times each card was played
     pub play_count: HashMap<&'static str, usize>,
-    /// 唯一卡牌总数
+    /// Total number of unique cards
     unique_count: usize,
 }
 
 impl CardTracker {
-    /// 创建新的卡牌追踪器，初始化所有 ALL_CARDS 中的卡牌。
+    /// Creates a new card tracker, initializing all cards from ALL_CARDS.
     pub fn new() -> Self {
-        // 去重
+        // Deduplicate
         let mut seen: HashMap<&'static str, &'static CardDef> = HashMap::new();
         for card in ALL_CARDS {
             seen.entry(card.id).or_insert(card);
@@ -63,35 +63,35 @@ impl CardTracker {
         }
     }
 
-    /// 返回唯一卡牌总数。
+    /// Returns the total number of unique cards.
     pub fn unique_cards(&self) -> usize {
         self.unique_count
     }
 
-    /// 标记一张卡牌被纳入牌组。
+    /// Records that a card was included in a deck.
     pub fn record_in_deck(&mut self, card: &CardDef) {
         *self.deck_count.entry(card.id).or_insert(0) += 1;
     }
 
-    /// 标记一批卡牌被纳入牌组。
+    /// Records that a batch of cards was included in a deck.
     pub fn record_deck(&mut self, cards: &[&CardDef]) {
         for card in cards {
             self.record_in_deck(card);
         }
     }
 
-    /// 标记一张卡牌被打出。
+    /// Records that a card was played.
     pub fn record_played(&mut self, card_id: &'static str) {
         *self.play_count.entry(card_id).or_insert(0) += 1;
     }
 
-    /// 检查卡牌覆盖率：返回 (已使用的卡牌数, 总数)。
+    /// Checks card coverage: returns (number of used cards, total).
     pub fn coverage(&self) -> (usize, usize) {
         let used = self.deck_count.values().filter(|&&c| c > 0).count();
         (used, self.unique_count)
     }
 
-    /// 返回最少被使用的卡牌及其次数。
+    /// Returns the least used cards and their counts.
     pub fn least_used(&self) -> Vec<(&'static str, usize)> {
         let min = self.deck_count.values().min().copied().unwrap_or(0);
         self.deck_count
@@ -101,7 +101,7 @@ impl CardTracker {
             .collect()
     }
 
-    /// 返回最多被使用的卡牌及其次数。
+    /// Returns the most used cards and their counts.
     pub fn most_used(&self) -> Vec<(&'static str, usize)> {
         let max = self.deck_count.values().max().copied().unwrap_or(0);
         self.deck_count
@@ -119,29 +119,29 @@ impl Default for CardTracker {
 }
 
 // ============================================================
-// 机器人委托 — 统一 GreedyBot 和 SmartBot 的接口
+// Bot delegation — a unified interface over GreedyBot and SmartBot
 // ============================================================
 
-/// 机器人类型枚举。
+/// Enum of bot types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BotType {
-    /// 贪心机器人
+    /// Greedy bot
     Greedy,
-    /// 智能机器人
+    /// Smart bot
     Smart,
 }
 
-/// 统一的机器人委托，消除 trait object 依赖。
+/// Unified bot delegation that avoids trait object dependencies.
 #[derive(Debug, Clone, Copy)]
 pub enum BotDelegate {
-    /// 贪心机器人变体
+    /// Greedy bot variant
     Greedy(GreedyBot),
-    /// 智能机器人变体
+    /// Smart bot variant
     Smart(SmartBot),
 }
 
 impl BotDelegate {
-    /// 从 BotType 创建对应的机器人委托。
+    /// Creates the bot delegate for the given BotType.
     pub fn new(bot_type: BotType) -> Self {
         match bot_type {
             BotType::Greedy => Self::Greedy(GreedyBot::new()),
@@ -149,7 +149,7 @@ impl BotDelegate {
         }
     }
 
-    /// 生成当前回合的动作序列。
+    /// Generates the action sequence for the current turn.
     pub fn decide_actions(&self, state: &GameState) -> Vec<Action> {
         match self {
             Self::Greedy(bot) => bot.decide_actions(state),
@@ -159,84 +159,84 @@ impl BotDelegate {
 }
 
 // ============================================================
-// 对局结果
+// Battle results
 // ============================================================
 
-/// 单场对局的结果摘要。
+/// Summary of a single battle.
 #[derive(Debug, Clone)]
 pub struct BattleResult {
-    /// 胜者（None 表示达到最大回合数限制）
+    /// Winner (None means the max turn limit was reached)
     pub winner: Option<PlayerId>,
-    /// 对局使用的回合数
+    /// Turns used by the battle
     pub turns: u32,
-    /// Player1 剩余生命值
+    /// Player1's remaining health
     pub p1_hp: i32,
-    /// Player2 剩余生命值
+    /// Player2's remaining health
     pub p2_hp: i32,
-    /// 动作总数
+    /// Total number of actions
     pub total_actions: usize,
-    /// 本局中发生的引擎错误（含上下文信息）
+    /// Engine errors that occurred in this battle (with context)
     pub errors: Vec<BattleError>,
-    /// 使用不同 seed 的回放检查（可选）
+    /// Replay check with a different seed (optional)
     pub end_phase: Phase,
 }
 
-/// 对局中的错误记录。
+/// An error record from a battle.
 #[derive(Debug, Clone)]
 pub struct BattleError {
-    /// 发生在哪个玩家的回合
+    /// Which player's turn it happened on
     pub player: PlayerId,
-    /// 回合数
+    /// Turn number
     pub turn: u32,
-    /// 错误信息
+    /// Error message
     pub error: String,
-    /// 触发错误的操作
+    /// The action that triggered the error
     pub action: String,
 }
 
 // ============================================================
-// 对局运行器
+// Battle runner
 // ============================================================
 
-/// 对局运行器 — 管理牌组生成、对局循环和统计。
+/// Battle runner — manages deck generation, the game loop, and statistics.
 #[derive(Debug)]
 pub struct BattleRunner {
-    /// 机器人类型
+    /// Bot type
     bot_type: BotType,
-    /// 随机数生成器
+    /// Random number generator
     rng: GameRng,
-    /// 卡牌追踪器
+    /// Card tracker
     pub tracker: CardTracker,
-    /// 对局统计
+    /// Battle statistics
     pub stats: BattleStats,
 }
 
-/// 累加的对局统计。
+/// Accumulated battle statistics.
 #[derive(Debug, Clone, Default)]
 pub struct BattleStats {
-    /// 已完成对局数
+    /// Number of completed battles
     pub games_played: usize,
-    /// Player1 获胜次数
+    /// Player1 wins
     pub p1_wins: usize,
-    /// Player2 获胜次数
+    /// Player2 wins
     pub p2_wins: usize,
-    /// 达到回合上限的次数
+    /// Number of times the turn limit was reached
     pub turn_limit_hits: usize,
-    /// 累计动作总数
+    /// Total actions across all battles
     pub total_actions: usize,
-    /// 累计回合总数
+    /// Total turns across all battles
     pub total_turns: u64,
-    /// 记录的所有引擎错误
+    /// All engine errors recorded
     pub all_errors: Vec<BattleError>,
-    /// 每次对局的回合数分布
+    /// Distribution of turns per battle
     pub turn_distribution: HashMap<u32, usize>,
 }
 
 impl BattleRunner {
-    /// 创建新的对局运行器。
+    /// Creates a new battle runner.
     ///
-    /// `bot_type` — 双方使用的机器人类型。
-    /// `seed` — 主 RNG seed（每局会在此 seed 上偏移）。
+    /// `bot_type` — the bot type used by both sides.
+    /// `seed` — the master RNG seed (each battle is offset from this seed).
     pub fn new(bot_type: BotType, seed: u64) -> Self {
         Self {
             bot_type,
@@ -246,40 +246,40 @@ impl BattleRunner {
         }
     }
 
-    /// 运行一场对局。
+    /// Runs a single battle.
     ///
-    /// 自动生成随机牌组，执行双人对战循环，更新追踪器和统计。
-    /// `deck_size` — 每个玩家的牌组大小（通常为 30）。
-    /// `max_turns` — 回合数上限（防止无限循环）。
-    /// `hand_size` — 初始手牌数（默认 3）。
+    /// Automatically generates random decks, runs the two-player loop, and updates the tracker and stats.
+    /// `deck_size` — the deck size for each player (usually 30).
+    /// `max_turns` — the turn limit (prevents infinite loops).
+    /// `hand_size` — the initial hand size (default 3).
     pub fn run_battle(&mut self, deck_size: usize) -> BattleResult {
-        // 构建初始对局（牌组 + 种子）
+        // Build the initial game (decks + seed)
         let mut state = self.create_game_state(deck_size);
 
-        // 运行对局
+        // Run the battle
         self.run_game_loop(&mut state, 60)
     }
 
-    /// 生成随机牌组并构建初始 `GameState`（供单局与批量模拟共用）。
+    /// Generates random decks and builds an initial `GameState` (shared by single and batched simulation).
     ///
-    /// 每次调用消耗一个牌组种子和一个对局种子，因此对同一个
-    /// `BattleRunner`（相同初始 seed）连续调用会产生不同的对局。
+    /// Each call consumes one deck seed and one game seed, so consecutive calls
+    /// on the same `BattleRunner` (same initial seed) produce different battles.
     pub fn create_game_state(&mut self, deck_size: usize) -> GameState {
-        // 生成牌组
+        // Generate decks
         let (p1_deck, p2_deck) = self.generate_random_decks(deck_size);
         self.tracker.record_deck(&p1_deck);
         self.tracker.record_deck(&p2_deck);
 
-        // 构建初始对局
+        // Build the initial game
         let mut state = self.build_game_state(&p1_deck, &p2_deck, 3);
 
-        // 记录本局种子（用于复现）
+        // Record this battle's seed (for reproduction)
         let game_seed = self.rng.next_u32() as u64;
         state.make_mut().rng = GameRng::new(game_seed);
         state
     }
 
-    /// 生成两个随机牌组（每个 player 的牌组内不重复）。
+    /// Generates two random decks (no duplicates within each player's deck).
     fn generate_random_decks(
         &mut self,
         deck_size: usize,
@@ -287,26 +287,26 @@ impl BattleRunner {
         let unique_cards: Vec<&CardDef> = ALL_CARDS.iter().collect();
         let total = unique_cards.len();
 
-        // Fisher-Yates 洗牌
+        // Fisher-Yates shuffle
         let mut indices: Vec<usize> = (0..total).collect();
         for i in (1..total).rev() {
             let j = self.rng.next_usize(i + 1);
             indices.swap(i, j);
         }
 
-        // 优先选择使用次数较少的卡牌：
-        // 对每个位置，在洗牌后的几个候选中选使用次数最少的
+        // Prefer cards that have been used less:
+        // for each slot, pick the least-used card among a few shuffled candidates
         let pick_card =
             |rng: &mut GameRng, tracker: &CardTracker, used: &mut Vec<bool>| -> &'static CardDef {
-                // 在未使用的卡牌中，随机选几个，挑使用次数最少的
+                // Among unused cards, sample a few and pick the least used
                 let candidates: Vec<usize> =
                     (0..total).filter(|&idx| !used[indices[idx]]).collect();
                 if candidates.is_empty() {
-                    // 去重卡牌全部用了，允许复用
+                    // All unique cards are used up — allow reuse
                     let pick = rng.next_usize(total);
                     return unique_cards[pick];
                 }
-                // 取 5 个候选，选 deck_count 最少的
+                // Take up to 5 candidates and pick the one with the lowest deck_count
                 let n = (candidates.len()).min(5);
                 let start = rng.next_usize(candidates.len());
                 let mut best: Option<(usize, &'static str)> = None;
@@ -319,7 +319,7 @@ impl BattleRunner {
                     }
                 }
                 let card_id = best.unwrap().1;
-                // 找到对应卡牌
+                // Find the matching card
                 let idx = (0..total)
                     .find(|&i| unique_cards[indices[i]].id == card_id)
                     .unwrap();
@@ -341,7 +341,7 @@ impl BattleRunner {
         (deck1, deck2)
     }
 
-    /// 构建初始 GameState — 牌库、初始手牌和初始法力。
+    /// Builds the initial GameState — deck, opening hand, and starting mana.
     fn build_game_state(
         &mut self,
         deck1: &[&'static CardDef],
@@ -349,7 +349,7 @@ impl BattleRunner {
         hand_size: usize,
     ) -> GameState {
         let mut builder = GameBuilder::new();
-        // 牌库
+        // Deck
         for card in deck1 {
             builder.add_minion_to_deck(PlayerId::Player1, card);
         }
@@ -360,7 +360,7 @@ impl BattleRunner {
         builder.set_mana(PlayerId::Player2, 0, 0);
         let mut state = builder.build();
 
-        // 初始手牌
+        // Opening hand
         for &pid in &[PlayerId::Player1, PlayerId::Player2] {
             let deck_count = state.world().zones().len(Zone::Deck, pid);
             let draw_count = hand_size.min(deck_count);
@@ -376,7 +376,7 @@ impl BattleRunner {
         state
     }
 
-    /// 运行完整的对局循环。
+    /// Runs the full battle loop.
     fn run_game_loop(&mut self, state: &mut GameState, max_turns: u32) -> BattleResult {
         let engine = GameEngine::new();
         let bot = BotDelegate::new(self.bot_type);
@@ -401,7 +401,7 @@ impl BattleRunner {
             for action in &actions {
                 total_actions += 1;
 
-                // 追踪打出卡牌
+                // Track played cards
                 if let Action::PlayCard { card, target: None } = action {
                     if let Some(card_id) = get_card_id(state, *card) {
                         self.tracker.record_played(card_id);
@@ -410,7 +410,7 @@ impl BattleRunner {
 
                 match engine.apply(state, *action) {
                     Ok(_events) => {
-                        // 检查基本不变量
+                        // Check basic invariants
                         if let Some(err) = check_invariants(state, active, state.turn()) {
                             errors.push(err);
                         }
@@ -425,7 +425,7 @@ impl BattleRunner {
                     }
                 }
 
-                // 游戏结束后跳出
+                // Break out once the game is over
                 if matches!(state.phase(), Phase::GameOver { .. }) {
                     break;
                 }
@@ -452,7 +452,7 @@ impl BattleRunner {
             .map(|h| h.0)
             .unwrap_or(0);
 
-        // 更新统计
+        // Update statistics
         self.stats.games_played += 1;
         self.stats.total_actions += total_actions;
         self.stats.total_turns += u64::from(state.turn());
@@ -482,13 +482,13 @@ impl BattleRunner {
 }
 
 // ============================================================
-// 辅助函数
+// Helper functions
 // ============================================================
 
-/// 获取实体的卡牌 ID（从 hand/deck 阶段记录的 entity）。
+/// Gets the card ID for an entity (for entities recorded during the hand/deck phase).
 ///
-/// 当前实现：遍历 ALL_CARDS 根据 cost/attack/health 近似匹配。
-/// 注意：这是一个启发式匹配，有多个卡牌同身材时可能不准确。
+/// Current implementation: scans ALL_CARDS and matches approximately by cost/attack/health.
+/// Note: this is a heuristic match and may be inaccurate when several cards share the same stats.
 fn get_card_id(state: &GameState, entity: crate::core::entity::Entity) -> Option<&'static str> {
     let world = state.world();
     let cost = world.cost(entity)?;
@@ -496,7 +496,7 @@ fn get_card_id(state: &GameState, entity: crate::core::entity::Entity) -> Option
     let hp = world.health(entity).unwrap_or_default();
     let ct = world.card_type(entity)?;
 
-    // 精确匹配
+    // Exact match
     ALL_CARDS
         .iter()
         .find(|c| {
@@ -508,11 +508,11 @@ fn get_card_id(state: &GameState, entity: crate::core::entity::Entity) -> Option
         .map(|c| c.id)
 }
 
-/// 检查基本游戏不变量，发现异常则返回错误。
+/// Checks basic game invariants, returning an error if something is wrong.
 fn check_invariants(state: &GameState, _player: PlayerId, _turn: u32) -> Option<BattleError> {
     let world = state.world();
 
-    // 检查英雄不死于非伤害
+    // Check that the hero did not die from non-damage effects
     for &pid in &[PlayerId::Player1, PlayerId::Player2] {
         let hero = state.player(pid).hero;
         if let Some(hp) = world.health(hero) {
@@ -527,7 +527,7 @@ fn check_invariants(state: &GameState, _player: PlayerId, _turn: u32) -> Option<
         }
     }
 
-    // 检查场上随从数量
+    // Check the minion count on the board
     for &pid in &[PlayerId::Player1, PlayerId::Player2] {
         let count = world
             .zones()
@@ -544,7 +544,7 @@ fn check_invariants(state: &GameState, _player: PlayerId, _turn: u32) -> Option<
         }
     }
 
-    // 检查法力值
+    // Check mana values
     for &pid in &[PlayerId::Player1, PlayerId::Player2] {
         let p = state.player(pid);
         if p.current_mana < 0 || p.current_mana > 10 {

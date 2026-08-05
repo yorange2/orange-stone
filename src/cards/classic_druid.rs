@@ -1,4 +1,4 @@
-//! 怀旧系列 — 德鲁伊 (Druid)。
+//! Classic set — Druid.
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
@@ -7,7 +7,7 @@ use crate::core::effect::{CardEffect, EffectTarget};
 use crate::vanilla;
 
 // ============================================================
-// 怀旧系列 — 德鲁伊 (Druid)
+// Classic set — Druid
 // ============================================================
 
 pub const INNERVATE: CardDef = CardDef {
@@ -32,7 +32,7 @@ pub const INNERVATE: CardDef = CardDef {
     spell_effect: None,
     end_turn_effect: None,
     start_turn_effect: None,
-    // 效果: 获得2法力水晶 (在 trigger 中处理)
+    // Effect: gain 2 mana crystals (handled in trigger)
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
@@ -297,7 +297,7 @@ pub const ANCIENT_OF_WAR: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// 怀旧系列 — 更多职业卡牌
+// Classic set — more class cards
 // ============================================================
 
 pub const SAVAGE_ROAR: CardDef = CardDef {
@@ -334,7 +334,7 @@ pub const SAVAGE_ROAR: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// 德鲁伊补全
+// Druid additions
 pub const MOONFIRE: CardDef = CardDef {
     id: "DRUID_011",
     name: "Moonfire",
@@ -458,7 +458,7 @@ pub const IRONBARK_PROTECTOR: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// 补全德鲁伊 Force of Nature
+// Complete Druid: Force of Nature
 pub const FORCE_OF_NATURE: CardDef = CardDef {
     id: "DRUID_015",
     name: "Force of Nature",
@@ -520,7 +520,7 @@ pub const TREANT: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 野性赐福 — 使你的随从获得+2/+2和嘲讽（简化：仅+2/+2）
+/// Gift of the Wild — give your minions +2/+2 and Taunt (simplified: +2/+2 only)
 pub const GIFT_OF_THE_WILD: CardDef = CardDef {
     id: "DRUID_016",
     name: "Gift of the Wild",
@@ -555,7 +555,7 @@ pub const GIFT_OF_THE_WILD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 撕咬 — 使你的英雄获得+4攻击力本回合，获得4点护甲
+/// Bite — give your hero +4 Attack this turn and 4 Armor
 pub const BITE: CardDef = CardDef {
     id: "DRUID_017",
     name: "Bite",
@@ -589,7 +589,7 @@ pub const BITE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 野蛮之击 — 对一个随从造成等同于你英雄攻击力的伤害
+/// Savagery — deal damage to a minion equal to your hero's Attack
 pub const SAVAGERY: CardDef = CardDef {
     id: "DRUID_018",
     name: "Savagery",
@@ -622,7 +622,7 @@ pub const SAVAGERY: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 野性之力 — 抉择：使你的随从获得+1/+1；或召唤一个3/2的猎豹
+/// Power of the Wild — Choose One: give your minions +1/+1; or summon a 3/2 Panther
 pub const POWER_OF_THE_WILD: CardDef = CardDef {
     id: "DRUID_019",
     name: "Power of the Wild",
@@ -659,10 +659,10 @@ pub const POWER_OF_THE_WILD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 猎豹（野性之力token）— 3/2
+/// Panther (Power of the Wild token) — 3/2
 pub const PANTHER: CardDef = vanilla!("DRUID_019t", "Panther", 1, 3, 2);
 
-/// 自然印记 — 抉择：使一个随从获得+4攻击力；或+4生命值和嘲讽
+/// Mark of Nature — Choose One: give a minion +4 Attack; or +4 Health and Taunt
 pub const MARK_OF_NATURE: CardDef = CardDef {
     id: "DRUID_020",
     name: "Mark of Nature",
@@ -701,7 +701,7 @@ pub const MARK_OF_NATURE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 滋养 — 抉择：获得2颗法力水晶；或抽3张牌
+/// Nourish — Choose One: gain 2 mana crystals; or draw 3 cards
 pub const NOURISH: CardDef = CardDef {
     id: "DRUID_021",
     name: "Nourish",
@@ -732,7 +732,7 @@ pub const NOURISH: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 星落 — 抉择：对一个随从造成5点伤害；或对所有敌方随从造成2点伤害
+/// Starfall — Choose One: deal 5 damage to a minion; or 2 damage to all enemy minions
 pub const STARFALL: CardDef = CardDef {
     id: "DRUID_022",
     name: "Starfall",
@@ -769,10 +769,10 @@ pub const STARFALL: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 抉择/亡语授予
+// Tier 2 additions — Choose One / deathrattle granting
 // ============================================================
 
-/// 塞纳留斯 — 抉择：使你的随从获得 +2/+2；或召唤两个 2/2 树人。
+/// Cenarius — Choose One: give your minions +2/+2; or summon two 2/2 Treants.
 pub const CENARIUS: CardDef = CardDef {
     id: "DRUID_023",
     name: "Cenarius",
@@ -810,10 +810,10 @@ pub const CENARIUS: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 树人（塞纳留斯/丛林之魂 token）— 2/2
+/// Treant (Cenarius / Soul of the Forest token) — 2/2
 pub const CENARIUS_TREANT: CardDef = vanilla!("DRUID_023t", "Treant", 1, 2, 2);
 
-/// 丛林守护者 — 抉择：造成 2 点伤害；或沉默一个随从。
+/// Keeper of the Grove — Choose One: deal 2 damage; or Silence a minion.
 pub const KEEPER_OF_THE_GROVE: CardDef = CardDef {
     id: "DRUID_024",
     name: "Keeper of the Grove",
@@ -849,7 +849,7 @@ pub const KEEPER_OF_THE_GROVE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 丛林之魂 — 使你的随从获得"亡语：召唤一个 2/2 树人"。
+/// Soul of the Forest — give your minions "Deathrattle: summon a 2/2 Treant".
 pub const SOUL_OF_THE_FOREST: CardDef = CardDef {
     id: "DRUID_025",
     name: "Soul of the Forest",

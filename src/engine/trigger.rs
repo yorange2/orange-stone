@@ -1,16 +1,17 @@
-//! Trigger 效果解析器 — 将 CardEffect 转化为事件入队。
+//! Trigger effect resolver — converts CardEffect into enqueued events.
 //!
-//! 当规则引擎检测到 Battlecry/Deathrattle 组件时，
-//! 调用此模块的函数将效果解析为具体的游戏事件并入队。
+//! When the rule engine detects a Battlecry/Deathrattle component, it calls
+//! this module's functions to resolve the effect into concrete game events
+//! and enqueue them.
 //!
-//! # 目标选择
+//! # Target selection
 //!
-//! 效果的目标通过 `EffectTarget` 枚举指定：
-//! - `AnyEnemy` → 随机敌方英雄或随从
-//! - `AnyEnemyMinion` → 随机敌方随从
-//! - `EnemyHero` → 敌方英雄
-//! - `Self_` → 效果来源实体自身
-//! - `AllEnemyMinions` → 所有敌方随从
+//! Effect targets are specified via the `EffectTarget` enum:
+//! - `AnyEnemy` → random enemy hero or minion
+//! - `AnyEnemyMinion` → random enemy minion
+//! - `EnemyHero` → enemy hero
+//! - `Self_` → the effect source entity itself
+//! - `AllEnemyMinions` → all enemy minions
 
 use crate::core::component::{
     Attack, AttacksUsed, CardId, CardType, Cost, Deathrattle, Durability, Freeze, Health, Immune,
@@ -24,10 +25,12 @@ use crate::core::state::GameState;
 use crate::core::zone::Zone;
 use crate::sim::rng::GameRng;
 
-/// 从候选列表中按显式目标优先、否则随机选择一个目标。
+/// Selects a target from the candidate list, preferring the explicit target
+/// and falling back to a random choice.
 ///
-/// 显式目标不在候选集中时回退到随机选择（保持自对弈的确定性：
-/// 给定相同状态与动作序列，结果可复现）。
+/// Falls back to a random selection when the explicit target is not in the
+/// candidate set (preserving self-play determinism: given the same state and
+/// action sequence, the result is reproducible).
 fn select_target(
     explicit: Option<Entity>,
     candidates: Vec<Entity>,
@@ -40,12 +43,13 @@ fn select_target(
     }
 }
 
-/// 将 CardEffect 解析为游戏事件并入队。
+/// Resolves a CardEffect into game events and enqueues them.
 ///
-/// `source` 是效果来源实体（拥有该效果的随从）。
-/// `owner` 是来源实体的所属玩家。
-/// `explicit_target` 是玩家指定的目标（`Action::PlayCard` 传入）；
-/// `None` 时由引擎随机选择（`select_target` 回退）。
+/// `source` is the effect source entity (the minion owning the effect).
+/// `owner` is the player owning the source entity.
+/// `explicit_target` is the target specified by the player (passed from
+/// `Action::PlayCard`); when `None`, the engine chooses randomly
+/// (`select_target` fallback).
 pub fn resolve_effect(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -199,7 +203,7 @@ pub fn resolve_effect(
             target,
         } => {
             resolve_deal_damage(state, queue, source, owner, damage, target, explicit_target);
-            // 给目标随从增加攻击力（简化：随机友方随从）
+            // Give the target minion an attack bonus (simplified: random friendly minion)
             let minions = collect_friendly_minions(state, owner);
             if !minions.is_empty() {
                 let idx = state.rng_mut().next_usize(minions.len());
@@ -210,7 +214,7 @@ pub fn resolve_effect(
             }
         }
         CardEffect::DestroyAdjacent { gain_stats: _ } => {
-            // 简化实现 — 随机消灭一个友方随从并获得其属性
+            // Simplified implementation — destroy a random friendly minion and gain its stats
             let friendly = collect_friendly_minions(state, owner);
             if friendly.is_empty() {
                 return;
@@ -219,13 +223,13 @@ pub fn resolve_effect(
             let sacrifice = friendly[idx];
             let atk = state.world().attack(sacrifice).unwrap_or(Attack(0));
             let hp = state.world().health(sacrifice).unwrap_or(Health(0));
-            // 消灭牺牲品
+            // Destroy the sacrifice
             queue.push(Event::DamageDealt {
                 source,
                 target: sacrifice,
                 amount: hp.0.max(1),
             });
-            // 给source随从增加属性
+            // Add the stats to the source minion
             let cur_atk = state.world().attack(source).unwrap_or(Attack(0));
             let cur_hp = state.world().health(source).unwrap_or(Health(0));
             state
@@ -248,7 +252,7 @@ pub fn resolve_effect(
             draw_card(state, queue, enemy);
         }
         CardEffect::ResurrectMinion => {
-            // 战场已满时无法复活
+            // Cannot resurrect when the board is full
             let board_count = state
                 .world()
                 .zones()
@@ -261,7 +265,7 @@ pub fn resolve_effect(
             let inner = state.make_mut();
             let died = &mut inner.players[owner.index()].died_this_turn;
             if let Some(entity) = died.pop() {
-                // 复活：将随从从坟场移回战场，生命值设为1
+                // Resurrect: move the minion from the graveyard back to the battlefield with 1 health
                 let world = &mut inner.world;
                 if world.zone(entity) == Some(Zone::Graveyard) {
                     let _ = world.move_to_zone(entity, Zone::Play);
@@ -300,10 +304,10 @@ pub fn resolve_effect(
             );
         }
         CardEffect::ReflectDamage => {
-            // 已由奥秘系统的 WhenHeroDamaged 触发器处理
+            // Already handled by the secret system's WhenHeroDamaged trigger
         }
         CardEffect::DealDamageAndReturnToHand { amount, target } => {
-            // 伤害立即结算；"移回手牌"由 rules.rs 的 CardPlayed 处理
+            // Damage is resolved immediately; "return to hand" is handled by rules.rs's CardPlayed
             resolve_deal_damage(state, queue, source, owner, amount, target, explicit_target);
         }
         CardEffect::ReturnFriendlyToHandAndReduceCost { amount } => {
@@ -323,13 +327,13 @@ pub fn resolve_effect(
                 let _ = resolve_summon(state, queue, source, owner, card_id);
             }
         }
-        // 以下奥秘专属效果由 secret.rs 的 resolve_secret_effect 处理（需要事件上下文）
+        // The following secret-only effects are handled by secret.rs's resolve_secret_effect (they need event context)
         CardEffect::DamagePlayedMinion { .. }
         | CardEffect::RedirectAttackToRandomCharacter
         | CardEffect::SummonAndRedirectAttack { .. }
         | CardEffect::SummonSpellbender => {}
         CardEffect::NextSecretCostsZero => {
-            // 肯瑞托法师：下一个奥秘费用为 0
+            // Kirin Tor Mage: the next secret costs 0
             let inner = state.make_mut();
             inner.players[owner.index()].next_secret_free = true;
         }
@@ -350,7 +354,7 @@ pub fn resolve_effect(
                 let Some(card_def) = crate::cards::def::card_by_id(card_id) else {
                     return;
                 };
-                // 新建实体并直接放入对手手牌（新实体没有 Zone 组件，不能走 move_to_zone）
+                // Create a new entity directly into the opponent's hand (a new entity has no Zone component, so move_to_zone cannot be used)
                 let world = state.world_mut();
                 let e = crate::cards::spawn_card_from_def(world, enemy, card_def);
                 world.set_zone(e, Zone::Hand);
@@ -406,7 +410,7 @@ pub fn resolve_effect(
     }
 }
 
-/// 从牌库随机抽一张牌到手中，可附带费用减少（视界术）。
+/// Draws a random card from the deck into hand, optionally with a cost reduction (Farsight).
 fn draw_card_with_reduction(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -415,11 +419,11 @@ fn draw_card_with_reduction(
 ) {
     let deck_len = state.world().zones().len(Zone::Deck, player);
     if deck_len == 0 {
-        // 牌库空，不抽牌（疲劳 Phase 3+）
+        // Deck empty; no draw (fatigue in Phase 3+)
         return;
     }
 
-    // 从牌库随机选一张
+    // Pick a random card from the deck
     let idx = state.rng_mut().next_usize(deck_len);
     let card = state
         .world()
@@ -428,13 +432,13 @@ fn draw_card_with_reduction(
         .nth(idx)
         .expect("deck card should exist");
 
-    // 移到手牌
+    // Move to hand
     state
         .world_mut()
         .move_to_zone(card, Zone::Hand)
         .expect("card should be movable to hand");
 
-    // 费用减少（不高于基础费用的部分保留）
+    // Cost reduction (kept above the base cost)
     if cost_reduction > 0 {
         let world = state.world_mut();
         let cur = world.cost(card).unwrap_or(Cost(0));
@@ -444,7 +448,7 @@ fn draw_card_with_reduction(
     queue.push(Event::CardDrawn { player, card });
 }
 
-/// 从牌库随机抽一张牌到手中。
+/// Draws a random card from the deck into hand.
 pub fn draw_card(state: &mut GameState, queue: &mut EventQueue, player: PlayerId) {
     draw_card_with_reduction(state, queue, player, 0);
 }
@@ -527,7 +531,7 @@ fn resolve_deal_damage(
         }
     };
 
-    // 显式目标优先，否则随机选择
+    // Explicit target first, otherwise random selection
     let Some(target_entity) = select_target(explicit, enemies, state.rng_mut()) else {
         return;
     };
@@ -539,10 +543,11 @@ fn resolve_deal_damage(
     });
 }
 
-/// 解析召唤随从效果。
+/// Resolves a summon-minion effect.
 ///
-/// 返回被召唤的随从实体；战场已满或卡牌不存在时返回 `None`。
-/// `pub(crate)` 供奥秘系统（崇高牺牲/法术扭曲者）获取新召唤的实体。
+/// Returns the summoned minion entity, or `None` when the board is full or
+/// the card does not exist. `pub(crate)` so the secret system (Noble
+/// Sacrifice / Spellbender) can obtain the newly summoned entity.
 pub(crate) fn resolve_summon(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -550,10 +555,10 @@ pub(crate) fn resolve_summon(
     owner: PlayerId,
     card_id: &str,
 ) -> Option<Entity> {
-    // 查找卡牌定义
+    // Look up the card definition
     let card_def = crate::cards::def::card_by_id(card_id)?;
 
-    // 检查战场上限
+    // Check the board size limit
     let board_count = state
         .world()
         .zones()
@@ -564,7 +569,7 @@ pub(crate) fn resolve_summon(
         return None;
     }
 
-    // 创建随从实体并放到战场
+    // Create the minion entity and place it on the battlefield
     let e = {
         let world = state.world_mut();
         let e = world.spawn();
@@ -577,7 +582,7 @@ pub(crate) fn resolve_summon(
         world.set_attacks_used(e, crate::core::component::AttacksUsed(0));
         world.set_zone(e, Zone::Play);
         world.zones_mut().insert(Zone::Play, owner, e);
-        // 设置光环、战吼、亡语、嘲讽（如果有）
+        // Set aura, battlecry, deathrattle, taunt (if any)
         if let Some((aura_effect, aura_target)) = card_def.aura {
             world.set_aura(
                 e,
@@ -596,7 +601,7 @@ pub(crate) fn resolve_summon(
         if card_def.taunt {
             world.set_taunt(e, crate::core::component::Taunt);
         }
-        // 设置圣盾/风怒/冲锋/法伤/不能攻击/回合结束效果
+        // Set divine shield / windfury / charge / spell damage / cant-attack / end-of-turn effect
         if card_def.divine_shield {
             world.set_divine_shield(e, crate::core::component::DivineShield);
         }
@@ -636,12 +641,12 @@ pub(crate) fn resolve_summon(
         if card_def.attack_equals_health {
             world.set_attack_equals_health(e, crate::core::component::AttackEqualsHealth);
         }
-        // 特殊关键词（剧毒/潜行等）：按卡牌 ID 在 cards 层集中映射
+        // Special keywords (poison/stealth, etc.): mapped centrally by card ID in the cards layer
         crate::cards::apply_card_keywords(world, e, card_def);
         e
     };
 
-    // 入队 MinionSummoned 事件（触发战吼等效果）
+    // Enqueue the MinionSummoned event (triggers battlecry and similar effects)
     queue.push(Event::MinionSummoned {
         player: owner,
         minion: e,
@@ -649,8 +654,8 @@ pub(crate) fn resolve_summon(
     Some(e)
 }
 
-/// 解析 buff 效果。
-// 8 个参数（状态、队列、来源、拥有者、攻击、生命、目标、显式目标）— 解析器约定风格。
+/// Resolves a buff effect.
+// 8 parameters (state, queue, source, owner, attack, health, target, explicit) — resolver convention style.
 #[allow(clippy::too_many_arguments)]
 fn resolve_gain_stats(
     state: &mut GameState,
@@ -695,7 +700,7 @@ fn resolve_gain_stats(
     }
 }
 
-/// 装备武器。
+/// Equips a weapon.
 fn resolve_equip_weapon(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -706,7 +711,7 @@ fn resolve_equip_weapon(
         return;
     };
 
-    // 如果已有武器，先摧毁旧武器
+    // If a weapon is already equipped, destroy the old one first
     let old_weapon = state.player(owner).weapon;
     if let Some(w) = old_weapon {
         queue.push(Event::WeaponDestroyed {
@@ -715,7 +720,7 @@ fn resolve_equip_weapon(
         });
     }
 
-    // 创建武器实体并更新 Player
+    // Create the weapon entity and update the Player
     let inner = state.make_mut();
     let weapon = inner.world.spawn();
     inner.world.set_card_id(weapon, CardId(card_def.id));
@@ -736,7 +741,7 @@ fn resolve_equip_weapon(
     });
 }
 
-/// 获得护甲。
+/// Gains armor.
 fn resolve_gain_armor(
     state: &mut GameState,
     owner: PlayerId,
@@ -754,12 +759,12 @@ fn resolve_gain_armor(
             inner.players[owner.opponent().index()].armor += amount;
         }
         _ => {
-            // 其他目标暂不支持
+            // Other targets not yet supported
         }
     }
 }
 
-/// 将随从移回手牌。
+/// Returns a minion to hand.
 fn resolve_return_to_hand(
     state: &mut GameState,
     _queue: &mut EventQueue,
@@ -782,11 +787,11 @@ fn resolve_return_to_hand(
         return;
     };
 
-    // 移到手牌
+    // Move to hand
     let _ = state.world_mut().move_to_zone(target_entity, Zone::Hand);
 }
 
-/// 将一个随机敌方随从移回手牌并增加其法力消耗（冰冻陷阱完整效果）。
+/// Returns a random enemy minion to hand and increases its mana cost (full Freezing Trap effect).
 fn resolve_return_to_hand_and_increase_cost(
     state: &mut GameState,
     _queue: &mut EventQueue,
@@ -807,7 +812,7 @@ fn resolve_return_to_hand_and_increase_cost(
     world.set_cost(target_entity, Cost(cur_cost.0 + amount));
 }
 
-/// 增加随从的法力消耗（如冰冻陷阱效果）。
+/// Increases a minion's mana cost (e.g. Freezing Trap effect).
 fn resolve_increase_cost(
     state: &mut GameState,
     owner: PlayerId,
@@ -835,7 +840,7 @@ fn resolve_increase_cost(
     world.set_cost(target_entity, Cost(cur_cost.0 + amount));
 }
 
-/// 消灭随从 — 造成等于当前生命值的伤害来确保击杀。
+/// Destroys a minion — deals damage equal to its current health to guarantee the kill.
 fn resolve_destroy_minion(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -887,7 +892,7 @@ fn resolve_destroy_minion(
         }
         _ => return,
     };
-    // 显式目标：只消灭指定的随从
+    // Explicit target: destroy only the specified minion
     if let Some(t) = explicit.filter(|t| minions.contains(t)) {
         let hp = state.world().health(t).unwrap_or(Health(1));
         queue.push(Event::DamageDealt {
@@ -907,7 +912,7 @@ fn resolve_destroy_minion(
     }
 }
 
-/// 沉默随从 — 移除所有效果组件。
+/// Silences a minion — removes all effect components.
 fn resolve_silence(
     state: &mut GameState,
     owner: PlayerId,
@@ -923,7 +928,7 @@ fn resolve_silence(
         }
         _ => return,
     };
-    // 显式目标：只沉默指定的随从
+    // Explicit target: silence only the specified minion
     if let Some(t) = explicit.filter(|t| minions.contains(t)) {
         let world = state.world_mut();
         world.remove_taunt(t);
@@ -949,7 +954,7 @@ fn resolve_silence(
     }
 }
 
-/// 设置攻击力。
+/// Sets attack.
 fn resolve_set_attack(
     state: &mut GameState,
     owner: PlayerId,
@@ -967,7 +972,7 @@ fn resolve_set_attack(
     state.world_mut().set_attack(m, Attack(attack));
 }
 
-/// 恢复生命值。
+/// Restores health.
 fn resolve_restore_health(
     state: &mut GameState,
     owner: PlayerId,
@@ -1002,7 +1007,7 @@ fn resolve_restore_health(
     }
 }
 
-/// 冻结角色。
+/// Freezes a character.
 fn resolve_freeze(
     state: &mut GameState,
     owner: PlayerId,
@@ -1020,7 +1025,7 @@ fn resolve_freeze(
         }
         _ => return,
     };
-    // 显式目标：只冻结指定的角色
+    // Explicit target: freeze only the specified character
     if let Some(t) = explicit.filter(|t| targets.contains(t)) {
         state.world_mut().set_freeze(t, Freeze);
         return;
@@ -1030,21 +1035,21 @@ fn resolve_freeze(
     }
 }
 
-/// 给英雄增加临时攻击力和可选护甲。
+/// Gives the hero temporary attack and optional armor.
 fn resolve_gain_hero_attack(state: &mut GameState, owner: PlayerId, attack: i32, armor: i32) {
     let hero = state.player(owner).hero;
     let inner = state.make_mut();
-    // 增加临时攻击力
+    // Add temporary attack
     inner.players[owner.index()].temp_attack_bonus += attack;
     let cur_atk = inner.world.attack(hero).unwrap_or(Attack(0));
     inner.world.set_attack(hero, Attack(cur_atk.0 + attack));
-    // 增加护甲
+    // Add armor
     if armor > 0 {
         inner.players[owner.index()].armor += armor;
     }
 }
 
-/// 对目标造成等于英雄攻击力的伤害。
+/// Deals damage to a target equal to the hero's attack.
 fn resolve_deal_hero_attack_damage(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -1073,7 +1078,7 @@ fn resolve_deal_hero_attack_damage(
     });
 }
 
-/// 将随从的生命值恢复到满（最大生命值）。
+/// Restores a minion to full health (maximum health).
 fn resolve_full_heal(
     state: &mut GameState,
     owner: PlayerId,
@@ -1088,23 +1093,24 @@ fn resolve_full_heal(
     let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
         return;
     };
-    // 获取最大生命值（基于初始定义，这里简化为设为30或使用current max）
-    // 简化方案：从基础生命值恢复（使用 max_health 如果存在，否则设为当前值）
+    // Get max health (based on the original definition; simplified here to 30 or the current max)
+    // Simplified approach: heal from current health (use max_health if present, otherwise keep the current value)
     let world = state.world_mut();
     if world.health(m).is_some() {
-        // 简化：恢复到卡牌定义值。由于无法获取原始定义，设为当前生命值
-        // 实际应通过 card_id 查找原始定义
-        // 在这里我们使用一个辅助方法：将生命值设为最大值（在实体创建时保存的）
-        // 简化实现：设为 30（英雄上限）或保持当前值
-        // 真正的实现需要保存 max_health 组件
+        // Simplified: restore to the card definition value. Since the original
+        // definition is not available, set the current health
+        // Actually the original definition should be looked up via card_id
+        // Here we use a helper approach: set health to the max (saved at entity creation)
+        // Simplified implementation: set to 30 (hero cap) or keep the current value
+        // A real implementation would need a max_health component
         let cur = world.health(m).unwrap_or(Health(0));
-        // 对于随从，我们假设最大生命值 >= 当前值，设为较大值
-        // 简化：使用 cur + 一个合理buffer
+        // For minions, assume max health >= current health; set to the larger value
+        // Simplified: use cur + a reasonable buffer
         world.set_health(m, Health((cur.0 + 10).min(30)));
     }
 }
 
-/// 给随从增加风怒。
+/// Grants a minion windfury.
 fn resolve_grant_windfury(
     state: &mut GameState,
     owner: PlayerId,
@@ -1123,7 +1129,7 @@ fn resolve_grant_windfury(
         .set_windfury(m, crate::core::component::Windfury);
 }
 
-/// 给随从增加冲锋和可选攻击力加成。
+/// Grants a minion charge and an optional attack bonus.
 fn resolve_grant_charge(
     state: &mut GameState,
     owner: PlayerId,
@@ -1140,7 +1146,7 @@ fn resolve_grant_charge(
     };
     let world = state.world_mut();
     world.set_charge(m, crate::core::component::Charge);
-    // 重置攻击次数，允许立即攻击
+    // Reset the attack count to allow attacking immediately
     world.set_attacks_used(m, crate::core::component::AttacksUsed(0));
     if attack_bonus > 0 {
         let cur_atk = world.attack(m).unwrap_or(Attack(0));
@@ -1148,7 +1154,7 @@ fn resolve_grant_charge(
     }
 }
 
-/// 双倍随从的攻击力。
+/// Doubles a minion's attack.
 fn resolve_double_attack(
     state: &mut GameState,
     owner: PlayerId,
@@ -1167,7 +1173,7 @@ fn resolve_double_attack(
     world.set_attack(m, Attack(cur_atk.0 * 2));
 }
 
-/// 双倍随从的生命值。
+/// Doubles a minion's health.
 fn resolve_double_health(
     state: &mut GameState,
     owner: PlayerId,
@@ -1186,7 +1192,7 @@ fn resolve_double_health(
     world.set_health(m, Health((cur_hp.0 * 2).min(30)));
 }
 
-/// 给友方英雄的武器增加攻击力和耐久度。
+/// Increases the friendly hero's weapon attack and durability.
 fn resolve_buff_weapon(state: &mut GameState, owner: PlayerId, attack: i32, durability: i32) {
     let weapon = state.player(owner).weapon;
     if let Some(w) = weapon {
@@ -1202,7 +1208,7 @@ fn resolve_buff_weapon(state: &mut GameState, owner: PlayerId, attack: i32, dura
     }
 }
 
-/// 随机丢弃一张手牌。
+/// Discards a random card from hand.
 fn resolve_discard_random(state: &mut GameState, owner: PlayerId) {
     let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, owner).collect();
     if hand.is_empty() {
@@ -1213,7 +1219,7 @@ fn resolve_discard_random(state: &mut GameState, owner: PlayerId) {
     let _ = state.world_mut().move_to_zone(card, Zone::Graveyard);
 }
 
-/// 对目标造成等于英雄护甲值的伤害。
+/// Deals damage to a target equal to the hero's armor.
 fn resolve_deal_armor_damage(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -1241,7 +1247,7 @@ fn resolve_deal_armor_damage(
     });
 }
 
-/// 摧毁敌方武器并抽等于其耐久度的牌数。
+/// Destroys the enemy weapon and draws cards equal to its durability.
 fn resolve_destroy_weapon_and_draw(state: &mut GameState, queue: &mut EventQueue, owner: PlayerId) {
     let enemy = owner.opponent();
     let weapon = state.player(enemy).weapon;
@@ -1259,7 +1265,7 @@ fn resolve_destroy_weapon_and_draw(state: &mut GameState, queue: &mut EventQueue
     }
 }
 
-/// 对两个随机敌方随从造成伤害。
+/// Deals damage to two random enemy minions.
 fn resolve_deal_damage_to_two(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -1271,7 +1277,7 @@ fn resolve_deal_damage_to_two(
     if enemies.is_empty() {
         return;
     }
-    // 随机选两个（可能同一个被选两次如果敌方只有1个随从）
+    // Pick two at random (the same minion can be picked twice if the enemy has only 1 minion)
     for _ in 0..2 {
         if enemies.is_empty() {
             break;
@@ -1287,7 +1293,7 @@ fn resolve_deal_damage_to_two(
     }
 }
 
-/// 返回所有随从到各自拥有者手牌。
+/// Returns all minions to their owners' hands.
 fn resolve_return_all_to_hand(state: &mut GameState, owner: PlayerId) {
     let all_minions: Vec<Entity> = [owner, owner.opponent()]
         .iter()
@@ -1305,7 +1311,7 @@ fn resolve_return_all_to_hand(state: &mut GameState, owner: PlayerId) {
     }
 }
 
-/// 将随从的攻击力设为等于其当前生命值。
+/// Sets a minion's attack equal to its current health.
 fn resolve_set_attack_to_health(
     state: &mut GameState,
     owner: PlayerId,
@@ -1324,7 +1330,7 @@ fn resolve_set_attack_to_health(
     world.set_attack(m, Attack(hp.0));
 }
 
-/// 消灭所有随从，除随机一个之外。
+/// Destroys all minions except one random survivor.
 fn resolve_destroy_all_except_one(state: &mut GameState, queue: &mut EventQueue, owner: PlayerId) {
     let enemy = owner.opponent();
     let mut all_minions: Vec<Entity> = [owner, enemy]
@@ -1341,7 +1347,7 @@ fn resolve_destroy_all_except_one(state: &mut GameState, queue: &mut EventQueue,
     if all_minions.is_empty() {
         return;
     }
-    // 随机选一个幸存者，消灭其余
+    // Pick a random survivor and destroy the rest
     let survivor_idx = state.rng_mut().next_usize(all_minions.len());
     let survivor = all_minions.remove(survivor_idx);
     for &m in &all_minions {
@@ -1354,7 +1360,7 @@ fn resolve_destroy_all_except_one(state: &mut GameState, queue: &mut EventQueue,
     }
 }
 
-/// 消灭一个随从并为英雄恢复生命值。
+/// Destroys a minion and restores health to the hero.
 fn resolve_destroy_and_heal(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -1383,7 +1389,7 @@ fn resolve_destroy_and_heal(
         .set_health(hero, Health((cur.0 + heal).min(30)));
 }
 
-/// 消灭一个友方随从并对其攻击力造成AOE伤害。
+/// Destroys a friendly minion and deals AOE damage equal to its attack.
 fn resolve_destroy_and_aoe(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -1391,7 +1397,7 @@ fn resolve_destroy_and_aoe(
     source: Entity,
     target: EffectTarget,
 ) {
-    // 先收集友方随从，随机选一个
+    // Collect friendly minions and pick one at random
     let friendly = collect_friendly_minions(state, owner);
     if friendly.is_empty() {
         return;
@@ -1399,14 +1405,14 @@ fn resolve_destroy_and_aoe(
     let idx = state.rng_mut().next_usize(friendly.len());
     let sacrifice = friendly[idx];
     let atk = state.world().attack(sacrifice).unwrap_or(Attack(0)).0;
-    // 消灭牺牲品
+    // Destroy the sacrifice
     let hp = state.world().health(sacrifice).unwrap_or(Health(1));
     queue.push(Event::DamageDealt {
         source,
         target: sacrifice,
         amount: hp.0.max(1),
     });
-    // 对所有敌方随从造成等于其攻击力的伤害
+    // Deal damage equal to its attack to all enemy minions
     let _enemy = owner.opponent();
     let targets: Vec<Entity> = match target {
         EffectTarget::AllEnemyMinions => collect_all_enemy_minions(state, owner),
@@ -1421,7 +1427,7 @@ fn resolve_destroy_and_aoe(
     }
 }
 
-/// 将一个友方随从移回手牌并使其费用减少（暗影步）。
+/// Returns a friendly minion to hand and reduces its cost (Shadowstep).
 fn resolve_return_friendly_reduce_cost(state: &mut GameState, owner: PlayerId, amount: i32) {
     let minions = collect_friendly_minions(state, owner);
     if minions.is_empty() {
@@ -1435,9 +1441,10 @@ fn resolve_return_friendly_reduce_cost(state: &mut GameState, owner: PlayerId, a
     world.set_cost(target, Cost((cur.0 - amount).max(0)));
 }
 
-/// 对目标相邻的随从造成等于其攻击力的伤害（背叛）。
+/// Deals damage equal to the target's attack to its adjacent minions (Betrayal).
 ///
-/// 目标为随机敌方随从；伤害其左右相邻的随从（同一战场位置差为 1）。
+/// The target is a random enemy minion; its left and right neighbors on the
+/// same board (position difference of 1) take the damage.
 fn resolve_adjacent_damage(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -1458,7 +1465,7 @@ fn resolve_adjacent_damage(
     if atk <= 0 {
         return;
     }
-    // 找到目标在敌方战场上的位置，取其左右相邻随从
+    // Find the target's position on the enemy board and take its left/right neighbors
     let enemy = owner.opponent();
     let board: Vec<Entity> = state
         .world()
@@ -1469,7 +1476,7 @@ fn resolve_adjacent_damage(
     let Some(pos) = board.iter().position(|&e| e == target) else {
         return;
     };
-    // 左邻（pos 为 0 时 wrapping_sub 得到 None）
+    // Left neighbor (wrapping_sub yields None when pos is 0)
     if let Some(&left) = board.get(pos.wrapping_sub(1)) {
         queue.push(Event::DamageDealt {
             source,
@@ -1486,7 +1493,7 @@ fn resolve_adjacent_damage(
     }
 }
 
-/// 摧毁己方武器并对所有敌人造成等于其攻击力的伤害（剑刃乱舞）。
+/// Destroys own weapon and deals damage equal to its attack to all enemies (Blade Flurry).
 fn resolve_destroy_weapon_deal_attack(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -1516,7 +1523,7 @@ fn resolve_destroy_weapon_deal_attack(
     }
 }
 
-/// 冻结一个随从；若其已被冻结，则改为造成伤害（冰刺）。
+/// Freezes a minion; if already frozen, deals damage instead (Icicle).
 fn resolve_freeze_or_damage(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -1540,7 +1547,7 @@ fn resolve_freeze_or_damage(
     }
 }
 
-/// 消灭一个随从并获得其生命值（娜塔莉·塞林）。
+/// Destroys a minion and gains its health (Natalie Seline).
 fn resolve_destroy_and_gain_health(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -1554,19 +1561,19 @@ fn resolve_destroy_and_gain_health(
     let idx = state.rng_mut().next_usize(minions.len());
     let target = minions[idx];
     let hp = state.world().health(target).unwrap_or(Health(0)).0;
-    // 消灭目标
+    // Destroy the target
     queue.push(Event::DamageDealt {
         source: target,
         target,
         amount: hp.max(1),
     });
-    // 源随从（娜塔莉）获得目标的生命值
+    // The source minion (Natalie) gains the target's health
     let world = state.world_mut();
     let cur = world.health(source).unwrap_or(Health(0));
     world.set_health(source, Health(cur.0 + hp.max(1)));
 }
 
-/// 使一个友方随从获得攻击力加成和免疫，直到回合结束（狂野怒火）。
+/// Grants a friendly minion an attack bonus and immunity until end of turn (Bestial Wrath).
 fn resolve_grant_attack_and_immune(state: &mut GameState, owner: PlayerId, attack: i32) {
     let minions = collect_friendly_minions(state, owner);
     if minions.is_empty() {
@@ -1580,9 +1587,10 @@ fn resolve_grant_attack_and_immune(state: &mut GameState, owner: PlayerId, attac
     world.set_immune(target, Immune);
 }
 
-/// 控制一个敌方随从（暗影狂乱：临时直到回合结束；精神控制：永久）。
+/// Takes control of an enemy minion (Shadow Madness: temporary until end of
+/// turn; Mind Control: permanent).
 ///
-/// 暗影狂乱只选择攻击力 ≤ 3 的随从。
+/// Shadow Madness only targets minions with attack ≤ 3.
 fn resolve_take_control(state: &mut GameState, owner: PlayerId, until_end_of_turn: bool) {
     let minions: Vec<Entity> = collect_enemy_minions(state, owner)
         .into_iter()
@@ -1605,9 +1613,11 @@ fn resolve_take_control(state: &mut GameState, owner: PlayerId, until_end_of_tur
     }
 }
 
-/// 将随从的控制权转移给新玩家（改变玩家组件并移动战场区域）。
+/// Transfers control of a minion to a new player (changes the player
+/// component and moves it within the battlefield zone).
 ///
-/// 若接收方战场已满（7 个随从），转移被跳过（简化：不消灭）。
+/// If the recipient's board is full (7 minions), the transfer is skipped
+/// (simplified: no destruction).
 pub(crate) fn transfer_minion(state: &mut GameState, entity: Entity, to: PlayerId) {
     let Some(from) = state.world().player(entity) else {
         return;
@@ -1615,7 +1625,7 @@ pub(crate) fn transfer_minion(state: &mut GameState, entity: Entity, to: PlayerI
     if from == to {
         return;
     }
-    // 战场上限检查（精神控制/暗影狂乱不能把随从塞进已满的战场）
+    // Board size check (Mind Control / Shadow Madness cannot squeeze a minion into a full board)
     let board_count = state
         .world()
         .zones()
@@ -1631,7 +1641,7 @@ pub(crate) fn transfer_minion(state: &mut GameState, entity: Entity, to: PlayerI
     inner.world.set_player(entity, to);
 }
 
-/// 腐蚀一个敌方随从 — 在你的回合开始时将其消灭（腐蚀术）。
+/// Corrupts an enemy minion — destroyed at the start of your turn (Corruption).
 fn resolve_corrupt(state: &mut GameState, owner: PlayerId) {
     let minions = collect_enemy_minions(state, owner);
     if minions.is_empty() {
@@ -1643,7 +1653,7 @@ fn resolve_corrupt(state: &mut GameState, owner: PlayerId) {
     inner.players[owner.index()].corrupted.push(target);
 }
 
-/// 将目标随从变形为两个备选随从之一（工匠大师欧沃斯巴克）。
+/// Transforms the target minion into one of two alternative minions (Tinkmaster Overspark).
 fn resolve_transform(state: &mut GameState, owner: PlayerId, card_a: &str, card_b: &str) {
     let minions = collect_enemy_minions(state, owner);
     if minions.is_empty() {
@@ -1659,7 +1669,7 @@ fn resolve_transform(state: &mut GameState, owner: PlayerId, card_a: &str, card_
     let Some(def) = crate::cards::def::card_by_id(pick) else {
         return;
     };
-    // 重置实体：清除所有效果组件，套用新卡牌的属性
+    // Reset the entity: clear all effect components and apply the new card's stats
     let world = state.world_mut();
     crate::cards::clear_minion_effects(world, target);
     world.set_attack(target, Attack(def.attack));
@@ -1669,7 +1679,7 @@ fn resolve_transform(state: &mut GameState, owner: PlayerId, card_a: &str, card_
     world.set_attacks_used(target, AttacksUsed(0));
 }
 
-/// 将卡牌实体加入手牌（新建实体，用于随机生成/安东尼达斯）。
+/// Adds a card entity to hand (creates a new entity; used for random generation / Antonidas).
 fn add_card_to_hand(
     state: &mut GameState,
     player: PlayerId,
@@ -1681,9 +1691,10 @@ fn add_card_to_hand(
     world.zones_mut().insert(Zone::Hand, player, e);
 }
 
-/// 造成伤害；若目标死亡，则召唤一个随机随从（厄运降临）。
+/// Deals damage; if the target dies, summons a random minion (Bane of Doom).
 ///
-/// 死亡预判基于当前生命值/圣盾（简化：忽略护甲等后续结算细节）。
+/// Death prediction is based on current health / divine shield (simplified:
+/// ignores armor and other later-resolution details).
 fn resolve_damage_and_summon_if_killed(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -1703,7 +1714,7 @@ fn resolve_damage_and_summon_if_killed(
         target,
         amount,
     });
-    // 预判死亡：无圣盾且生命值不足以承受伤害
+    // Predict death: no divine shield and health cannot absorb the damage
     let will_die = state.world().divine_shield(target).is_none()
         && state
             .world()
@@ -1716,7 +1727,7 @@ fn resolve_damage_and_summon_if_killed(
     }
 }
 
-/// 使一个友方随从获得潜行（伪装大师，不能指定自身）。
+/// Grants a friendly minion stealth (Master of Disguise; cannot target itself).
 fn resolve_grant_stealth(state: &mut GameState, source: Entity, owner: PlayerId) {
     let minions: Vec<Entity> = collect_friendly_minions(state, owner)
         .into_iter()
@@ -1730,17 +1741,18 @@ fn resolve_grant_stealth(state: &mut GameState, source: Entity, owner: PlayerId)
 }
 
 // ============================================================
-// 辅助函数
+// Helper functions
 // ============================================================
 
-/// 收集敌方所有角色（英雄 + 随从），排除潜行随从。
+/// Collects all enemy characters (hero + minions), excluding stealthed minions.
 ///
-/// 潜行角色不能被单目标效果指定，但仍受 AOE 影响。
+/// Stealthed characters cannot be targeted by single-target effects but are
+/// still affected by AOE.
 fn collect_enemy_characters(state: &GameState, owner: PlayerId) -> Vec<Entity> {
     collect_enemy_characters_impl(state, owner, false)
 }
 
-/// 收集敌方所有角色（英雄 + 随从，含潜行）— 用于 AOE 效果。
+/// Collects all enemy characters (hero + minions, including stealthed) — for AOE effects.
 fn collect_all_enemy_characters(state: &GameState, owner: PlayerId) -> Vec<Entity> {
     collect_enemy_characters_impl(state, owner, true)
 }
@@ -1760,23 +1772,23 @@ fn collect_enemy_characters_impl(
             if ct != Some(CardType::Minion) && ct != Some(CardType::Hero) {
                 return false;
             }
-            // 单目标选择排除潜行；AOE（include_stealth）包含潜行
+            // Single-target selection excludes stealth; AOE (include_stealth) includes it
             !(!include_stealth && state.world().stealth(e).is_some())
         })
         .collect();
     chars.push(state.player(enemy).hero);
-    // 去重
+    // Deduplicate
     chars.sort_by_key(|e| (e.index, e.generation));
     chars.dedup();
     chars
 }
 
-/// 收集敌方所有随从，排除潜行随从。
+/// Collects all enemy minions, excluding stealthed minions.
 fn collect_enemy_minions(state: &GameState, owner: PlayerId) -> Vec<Entity> {
     collect_enemy_minions_impl(state, owner, false)
 }
 
-/// 收集敌方所有随从（含潜行）— 用于 AOE 效果。
+/// Collects all enemy minions (including stealthed) — for AOE effects.
 fn collect_all_enemy_minions(state: &GameState, owner: PlayerId) -> Vec<Entity> {
     collect_enemy_minions_impl(state, owner, true)
 }
@@ -1798,7 +1810,7 @@ fn collect_enemy_minions_impl(
         .collect()
 }
 
-/// 收集友方所有随从。
+/// Collects all friendly minions.
 fn collect_friendly_minions(state: &GameState, owner: PlayerId) -> Vec<Entity> {
     state
         .world()

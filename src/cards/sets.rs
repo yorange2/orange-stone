@@ -1,9 +1,9 @@
-//! 卡牌列表 — 按职业分组的卡牌集合，以及 ALL_CARDS。
+//! Card lists — card collections grouped by class, plus ALL_CARDS.
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
 
-// 直接从各模块导入卡牌常量（避免通过 def.rs 形成循环引用）
+// Import card constants directly from each module (avoiding circular references through def.rs)
 use super::classic_druid::*;
 use super::classic_hunter::*;
 use super::classic_legendary::*;
@@ -16,10 +16,10 @@ use super::classic_shaman::*;
 use super::classic_warlock::*;
 use super::classic_warrior::*;
 // ============================================================
-// 卡牌列表
+// Card lists
 // ============================================================
 
-// 怀旧系列按职业分组
+// Classic set grouped by class
 pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     BLOODFEN_RAPTOR,
     BLUEGILL_WARRIOR,
@@ -98,10 +98,10 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     FEN_CREEPER,
     PRIESTESS_OF_ELUNE,
     SOUTHSHORE_CAPTAIN,
-    // ⬜ 补全
+    // Incomplete additions
     COLDLIGHT_SEER,
     MURLOC_WARLEADER,
-    // 🔧 简化补全
+    // Simplified additions
     GURUBASHI_BERSERKER,
     SOUTHSHORE_DECKHAND,
     WORGEN_INFILTRATOR,
@@ -145,7 +145,7 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     VIOLET_APPRENTICE,
     FACELESS_MANIPULATOR,
     FACELESS_MANIPULATOR,
-    // Tier 1 补全
+    // Tier 1 additions
     WISP,
     ELVEN_ARCHER,
     GOLDSHIRE_FOOTMAN,
@@ -161,13 +161,13 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     LOOT_HOARDER,
     STRANGLETHORN_TIGER,
     RAVENHOLDT_ASSASSIN,
-    // Tier 2 补全
+    // Tier 2 additions
     KING_MUKLA,
     BANANA,
     TINKMASTER_OVERSPARK,
     DEVILSAUR,
     SQUIRREL,
-    // Tier 3 补全
+    // Tier 3 additions
     BRIGHTWING,
     NOZDORMU,
     XAVIUS,
@@ -233,7 +233,7 @@ pub const DRUID_CLASSIC: &[CardDef] = &[
     MARK_OF_NATURE,
     NOURISH,
     STARFALL,
-    // Tier 2 补全
+    // Tier 2 additions
     CENARIUS,
     CENARIUS_TREANT,
     KEEPER_OF_THE_GROVE,
@@ -259,17 +259,17 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     HOUNDMASTER,
     TUNDRA_RHINO,
     FLARE,
-    // Tier 1 补全
+    // Tier 1 additions
     EXPLOSIVE_TRAP,
     FREEZING_TRAP,
-    // Tier 2 补全
+    // Tier 2 additions
     MISDIRECTION,
     SNAKE_TRAP,
     SNAKE,
     SNIPE,
     BESTIAL_WRATH,
     GLADIATORS_LONGBOW,
-    // Tier 3 补全
+    // Tier 3 additions
     ANIMAL_COMPANION,
     HUFFER,
     LEOKK,
@@ -298,13 +298,13 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     ETHEREAL_ARCANIST,
     VAPORIZE,
     VAPORIZE,
-    // Tier 2 补全
+    // Tier 2 additions
     SPELLBENDER,
     SPELLBENDER_TOKEN,
     SORCERERS_APPRENTICE,
     KIRIN_TOR_MAGE,
     ICICLE,
-    // Tier 3 补全
+    // Tier 3 additions
     TOME_OF_INTELLECT,
     ARCHMAGE_ANTONIDAS,
 ];
@@ -335,7 +335,7 @@ pub const PALADIN_CLASSIC: &[CardDef] = &[
     BLESSING_OF_WISDOM,
     EYE_FOR_AN_EYE,
     REDEMPTION,
-    // Tier 2 补全
+    // Tier 2 additions
     NOBLE_SACRIFICE,
     DEFENDER,
 ];
@@ -364,7 +364,7 @@ pub const PRIEST_CLASSIC: &[CardDef] = &[
     LIGHTSPAWN,
     SCARLET_SUBJUGATOR,
     LIGHTWELL,
-    // Tier 2 补全
+    // Tier 2 additions
     NATALIE_SELINE,
     SHADOW_MADNESS,
     MIND_CONTROL,
@@ -387,7 +387,7 @@ pub const ROGUE_CLASSIC: &[CardDef] = &[
     SHIV,
     VANISH,
     ASSASSINS_BLADE,
-    // Tier 2 补全
+    // Tier 2 additions
     HEADCRACK,
     KIDNAPPER,
     SHADOWSTEP,
@@ -396,7 +396,7 @@ pub const ROGUE_CLASSIC: &[CardDef] = &[
     PATIENT_ASSASSIN,
     PERDITIONS_BLADE,
     MASTER_OF_DISGUISE,
-    // Tier 3 补全
+    // Tier 3 additions
     PILFER,
 ];
 
@@ -425,7 +425,7 @@ pub const SHAMAN_CLASSIC: &[CardDef] = &[
     ANCESTRAL_HEALING,
     ANCESTRAL_SPIRIT,
     ANCESTRAL_SPIRIT,
-    // Tier 2 补全
+    // Tier 2 additions
     FAR_SIGHT,
     UNBOUND_ELEMENTAL,
 ];
@@ -451,12 +451,12 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     SENSE_DEMONS,
     DEMONFIRE,
     VOID_TERROR,
-    // Tier 1 补全
+    // Tier 1 additions
     SIEGEBREAKER,
-    // Tier 2 补全
+    // Tier 2 additions
     SUMMONING_PORTAL,
     CORRUPTION,
-    // Tier 3 补全
+    // Tier 3 additions
     CALL_OF_THE_VOID,
     BANE_OF_DOOM,
 ];
@@ -485,10 +485,10 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
     MORTAL_STRIKE,
     BATTLE_RAGE,
     RAMPAGE,
-    // Tier 1 补全
+    // Tier 1 additions
     FIERY_WAR_AXE,
     ARCANITE_REAPER,
-    // Tier 2 补全
+    // Tier 2 additions
     COMMANDING_SHOUT,
 ];
 
@@ -785,7 +785,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     THE_BLACK_KNIGHT,
     MILLHOUSE_MANASTORM,
     NAT_PAGLE,
-    // ⬜ 补全
+    // Incomplete additions
     GIFT_OF_THE_WILD,
     MULTI_SHOT,
     CONE_OF_COLD,
@@ -805,7 +805,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     MARK_OF_NATURE,
     NOURISH,
     STARFALL,
-    // 🔧 简化补全
+    // Simplified additions
     GURUBASHI_BERSERKER,
     SOUTHSHORE_DECKHAND,
     WORGEN_INFILTRATOR,
@@ -849,7 +849,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     VIOLET_APPRENTICE,
     FACELESS_MANIPULATOR,
     FACELESS_MANIPULATOR,
-    // Tier 1 补全
+    // Tier 1 additions
     WISP,
     ELVEN_ARCHER,
     GOLDSHIRE_FOOTMAN,
@@ -870,7 +870,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     SIEGEBREAKER,
     FIERY_WAR_AXE,
     ARCANITE_REAPER,
-    // Tier 2 奥秘
+    // Tier 2 secrets
     MISDIRECTION,
     SNAKE_TRAP,
     SNAKE,
@@ -879,24 +879,24 @@ pub const ALL_CARDS: &[CardDef] = &[
     SPELLBENDER_TOKEN,
     NOBLE_SACRIFICE,
     DEFENDER,
-    // Tier 2 费用减免
+    // Tier 2 cost reduction
     SORCERERS_APPRENTICE,
     KIRIN_TOR_MAGE,
     FAR_SIGHT,
     SUMMONING_PORTAL,
-    // Tier 2 德鲁伊
+    // Tier 2 Druid
     CENARIUS,
     CENARIUS_TREANT,
     KEEPER_OF_THE_GROVE,
     SOUL_OF_THE_FOREST,
     KING_MUKLA,
     BANANA,
-    // Tier 2 免疫
+    // Tier 2 immunity
     BESTIAL_WRATH,
     GLADIATORS_LONGBOW,
     ICICLE,
     NATALIE_SELINE,
-    // Tier 2 控制/变形
+    // Tier 2 control/transform
     SHADOW_MADNESS,
     MIND_CONTROL,
     CORRUPTION,
@@ -905,7 +905,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     TINKMASTER_OVERSPARK,
     DEVILSAUR,
     SQUIRREL,
-    // Tier 3 随机卡池
+    // Tier 3 random pools
     BRIGHTWING,
     NOZDORMU,
     XAVIUS,

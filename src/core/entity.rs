@@ -1,29 +1,29 @@
-//! 代际索引（Generational Index）— 安全的实体引用。
+//! Generational Index — safe entity references.
 //!
-//! `Entity` 由 `index`（槽位地址）和 `generation`（代际版本号）组成。
-//! 当实体被销毁时，其槽位的 generation 递增，使得任何持有旧 handle 的代码
-//! 在访问时被拒绝，避免悬垂引用和 ABA 问题。
+//! `Entity` consists of `index` (slot address) and `generation` (generation version number).
+//! When an entity is destroyed, its slot's generation increments, so any code holding an old
+//! handle is rejected on access, preventing dangling references and ABA problems.
 use serde::{Deserialize, Serialize};
 
-/// 实体句柄 — 指向 World 中某个实体槽位的安全引用。
+/// Entity handle — a safe reference to a slot in the World.
 ///
-/// # 生命周期
+/// # Lifecycle
 ///
 /// ```text
 /// spawn    → Entity { index: 0, generation: 0 }
-/// despawn  → 槽位 generation 变为 1，旧 Entity 失效
-/// spawn    → Entity { index: 0, generation: 1 }（槽位复用）
+/// despawn  → the slot's generation becomes 1, old Entity handles are invalidated
+/// spawn    → Entity { index: 0, generation: 1 } (slot reused)
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Entity {
-    /// 在实体数组中的槽位索引
+    /// Slot index in the entity array
     pub index: u32,
-    /// 当前槽位的代际版本号，用于检测过期引用
+    /// Generation version of the current slot, used to detect stale references
     pub generation: u32,
 }
 
 impl Entity {
-    /// 创建一个新的 Entity handle。
+    /// Create a new Entity handle.
     #[must_use]
     pub const fn new(index: u32, generation: u32) -> Self {
         Self { index, generation }

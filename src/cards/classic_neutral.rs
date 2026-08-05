@@ -1,4 +1,4 @@
-//! 怀旧系列 — 中立随从。
+//! Classic set — neutral minions.
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
@@ -7,7 +7,7 @@ use crate::core::effect::{CardEffect, EffectTarget, RandomPool};
 use crate::vanilla;
 
 // ============================================================
-// 怀旧系列 — 中立随从
+// Classic set — neutral minions
 // ============================================================
 
 pub const BLOODFEN_RAPTOR: CardDef = vanilla!("CLASSIC_001", "Bloodfen Raptor", 2, 3, 2);
@@ -513,7 +513,7 @@ pub const AMANI_BERSERKER: CardDef = vanilla!("CLASSIC_018", "Amani Berserker", 
 
 pub const FAERIE_DRAGON: CardDef = vanilla!("CLASSIC_019", "Faerie Dragon", 2, 3, 2);
 // ============================================================
-// 怀旧系列 — 更多中立随从 (2)
+// Classic set — more neutral minions (2)
 // ============================================================
 
 pub const ABUSIVE_SERGEANT: CardDef = CardDef {
@@ -1276,9 +1276,9 @@ pub const MOLTEN_GIANT: CardDef = vanilla!("NEUTRAL_027", "Molten Giant", 20, 8,
 pub const MOUNTAIN_GIANT: CardDef = vanilla!("NEUTRAL_028", "Mountain Giant", 12, 8, 8);
 
 // ============================================================
-// 补全卡牌 — 中立
+// Completed cards — Neutral
 // ============================================================
-// 中立 Basic 补全
+// Neutral Basic additions
 pub const GRIMSCALE_ORACLE: CardDef = CardDef {
     id: "NEUTRAL_B01",
     name: "Grimscale Oracle",
@@ -1984,8 +1984,8 @@ pub const SOUTHSHORE_CAPTAIN: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// 补全 ⬜ Neutral — Coldlight Seer、Murloc Warleader
-/// 寒光先知 — 战吼：使所有其他鱼人获得+2生命值（简化：使所有友方随从获得+2生命值）
+// Complete Neutral — Coldlight Seer, Murloc Warleader
+/// Coldlight Seer — Battlecry: give all other Murlocs +2 Health (simplified: all friendly minions)
 pub const COLDLIGHT_SEER: CardDef = CardDef {
     id: "NEUTRAL_R01",
     name: "Coldlight Seer",
@@ -2019,7 +2019,7 @@ pub const COLDLIGHT_SEER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 鱼人领军 — 你的其他鱼人获得+2/+1（简化：你的其他友方随从获得+2/+1）
+/// Murloc Warleader — your other Murlocs have +2/+1 (simplified: your other friendly minions)
 pub const MURLOC_WARLEADER: CardDef = CardDef {
     id: "NEUTRAL_E02",
     name: "Murloc Warleader",
@@ -2057,15 +2057,15 @@ pub const MURLOC_WARLEADER: CardDef = CardDef {
 };
 
 // ============================================================
-// 怀旧系列 — 🔧 卡牌简化版（效果需要新引擎支持，简化为白板或部分效果）
+// Classic set — simplified cards (effects need new engine support; simplified to vanilla or partial effects)
 // ============================================================
 
-// 中立 Basic — 无法完全实现的随从
-/// 古拉巴什狂暴者 — 每当受到伤害获得+3攻击力（Enrage简化：白板）
+// Neutral Basic — minions not fully implementable
+/// Gurubashi Berserker — gains +3 Attack whenever damaged (Enrage simplified: vanilla)
 pub const GURUBASHI_BERSERKER: CardDef = vanilla!("NEUTRAL_B19", "Gurubashi Berserker", 5, 2, 8);
 
-// 中立 Common — 简化版
-/// 南海船工 — 装备武器时获得冲锋（简化：始终有冲锋）
+// Neutral Common — simplified
+/// Southsea Deckhand — has Charge while you have a weapon (simplified: always has Charge)
 pub const SOUTHSHORE_DECKHAND: CardDef = CardDef {
     id: "NEUTRAL_C07",
     name: "Southsea Deckhand",
@@ -2095,13 +2095,13 @@ pub const SOUTHSHORE_DECKHAND: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 狼人渗透者 — 潜行（简化：白板）
+/// Worgen Infiltrator — Stealth (simplified: vanilla)
 pub const WORGEN_INFILTRATOR: CardDef = vanilla!("NEUTRAL_C08", "Worgen Infiltrator", 1, 2, 1);
-/// 血帆袭击者 — 战吼：获得等同于武器攻击力的攻击力（简化：白板）
+/// Bloodsail Raider — Battlecry: gain Attack equal to your weapon's Attack (simplified: vanilla)
 pub const BLOODSAIL_RAIDER: CardDef = vanilla!("NEUTRAL_C09", "Bloodsail Raider", 2, 2, 3);
-/// 丛林猎豹 — 潜行（简化：白板）
+/// Jungle Panther — Stealth (simplified: vanilla)
 pub const JUNGLE_PANTHER: CardDef = vanilla!("NEUTRAL_C10", "Jungle Panther", 3, 4, 2);
-/// 牛头人战士 — 嘲讽，激怒：+3攻击力（简化：仅嘲讽）
+/// Tauren Warrior — Taunt, Enrage: +3 Attack (simplified: Taunt only)
 pub const TAUREN_WARRIOR: CardDef = CardDef {
     id: "NEUTRAL_C11",
     name: "Tauren Warrior",
@@ -2131,9 +2131,9 @@ pub const TAUREN_WARRIOR: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 食尸鬼 — 每当一个随从死亡，获得+1攻击力（简化：白板）
+/// Flesheating Ghoul — gains +1 Attack whenever a minion dies (simplified: vanilla)
 pub const FLESHEATING_GHOUL: CardDef = vanilla!("NEUTRAL_C12", "Flesheating Ghoul", 3, 3, 3);
-/// 恐怖海盗 — 嘲讽，费用随武器减（简化：仅嘲讽）
+/// Dread Corsair — Taunt, cost reduced by your weapon (simplified: Taunt only)
 pub const DREAD_CORSAIR: CardDef = CardDef {
     id: "NEUTRAL_C13",
     name: "Dread Corsair",
@@ -2163,23 +2163,23 @@ pub const DREAD_CORSAIR: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 风险投资公司雇佣兵 — 你的随从费用增加（3）（简化：白板）
+/// Venture Co. Mercenary — your minions cost (3) more (simplified: vanilla)
 pub const VENTURE_CO_MERCENARY: CardDef = vanilla!("NEUTRAL_C14", "Venture Co. Mercenary", 5, 7, 6);
-/// 恶毒铁匠 — 激怒：你的武器获得+2攻击力（简化：白板）
+/// Spiteful Smith — Enrage: your weapon gains +2 Attack (simplified: vanilla)
 pub const SPITEFUL_SMITH: CardDef = vanilla!("NEUTRAL_C15", "Spiteful Smith", 5, 4, 6);
 
-// 中立 Rare — 简化版
-/// 愤怒的小鸡 — 激怒：+5攻击力（简化：白板）
+// Neutral Rare — simplified
+/// Angry Chicken — Enrage: +5 Attack (simplified: vanilla)
 pub const ANGRY_CHICKEN: CardDef = vanilla!("NEUTRAL_R02", "Angry Chicken", 1, 1, 1);
-/// 血帆海盗 — 战吼：移除对手武器1点耐久（简化：白板）
+/// Bloodsail Corsair — Battlecry: remove 1 durability from the opponent's weapon (simplified: vanilla)
 pub const BLOODSAIL_CORSAIR: CardDef = vanilla!("NEUTRAL_R03", "Bloodsail Corsair", 1, 1, 2);
-/// 光耀之子 — 每当角色被治疗，获得+2攻击力（简化：白板）
+/// Lightwarden — gains +2 Attack whenever a character is healed (simplified: vanilla)
 pub const LIGHTWARDEN: CardDef = vanilla!("NEUTRAL_R04", "Lightwarden", 1, 1, 2);
-/// 鱼人招潮者 — 每当你召唤鱼人，获得+1攻击力（简化：白板）
+/// Murloc Tidecaller — gains +1 Attack whenever you summon a Murloc (simplified: vanilla)
 pub const MURLOC_TIDECALLER: CardDef = vanilla!("NEUTRAL_R05", "Murloc Tidecaller", 1, 1, 2);
-/// 奥秘守护者 — 每当奥秘被打出，获得+1/+1（简化：白板）
+/// Secretkeeper — gains +1/+1 whenever a Secret is played (simplified: vanilla)
 pub const SECRETKEEPER: CardDef = vanilla!("NEUTRAL_R06", "Secretkeeper", 1, 1, 2);
-/// 上古看守者 — 无法攻击（cant_attack 引擎已支持）
+/// Ancient Watcher — cannot attack (cant_attack supported by the engine)
 pub const ANCIENT_WATCHER: CardDef = CardDef {
     id: "NEUTRAL_R07",
     name: "Ancient Watcher",
@@ -2209,19 +2209,19 @@ pub const ANCIENT_WATCHER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 疯狂炼金师 — 战吼：交换随从的攻击力和生命值（简化：白板）
+/// Crazed Alchemist — Battlecry: swap a minion's Attack and Health (simplified: vanilla)
 pub const CRAZED_ALCHEMIST: CardDef = vanilla!("NEUTRAL_R08", "Crazed Alchemist", 2, 2, 2);
-/// 飞刀杂耍者 — 召唤随从后造成1点随机伤害（简化：白板）
+/// Knife Juggler — deal 1 random damage after summoning a minion (simplified: vanilla)
 pub const KNIFE_JUGGLER: CardDef = vanilla!("NEUTRAL_R09", "Knife Juggler", 2, 3, 2);
-/// 魔瘾者 — 施放法术后本回合+2攻击力（简化：白板）
+/// Mana Addict — +2 Attack this turn after casting a spell (simplified: vanilla)
 pub const MANA_ADDICT: CardDef = vanilla!("NEUTRAL_R10", "Mana Addict", 2, 1, 3);
-/// 日怒保卫者 — 战吼：使相邻随从获得嘲讽（简化：白板）
+/// Sunfury Protector — Battlecry: give adjacent minions Taunt (simplified: vanilla)
 pub const SUNFURY_PROTECTOR: CardDef = vanilla!("NEUTRAL_R11", "Sunfury Protector", 2, 2, 3);
-/// 狂野炎术师 — 施放法术后造成1点AOE（简化：白板）
+/// Wild Pyromancer — deal 1 AOE damage after casting a spell (simplified: vanilla)
 pub const WILD_PYROMANCER: CardDef = vanilla!("NEUTRAL_R12", "Wild Pyromancer", 2, 3, 2);
-/// 报警机器人 — 回合开始时交换手牌随从（简化：白板）
+/// Alarm-o-Bot — swap a hand minion at start of turn (simplified: vanilla)
 pub const ALARM_O_BOT: CardDef = vanilla!("NEUTRAL_R13", "Alarm-o-Bot", 3, 0, 3);
-/// 奥术傀儡 — 冲锋，战吼给对手法力水晶（简化：仅冲锋）
+/// Arcane Golem — Charge, Battlecry gives the opponent a mana crystal (simplified: Charge only)
 pub const ARCANE_GOLEM: CardDef = CardDef {
     id: "NEUTRAL_R14",
     name: "Arcane Golem",
@@ -2251,47 +2251,47 @@ pub const ARCANE_GOLEM: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 攻城车 — 回合开始时造成2点随机伤害（简化：白板）
+/// Demolisher — deal 2 random damage at start of turn (simplified: vanilla)
 pub const DEMOLISHER: CardDef = vanilla!("NEUTRAL_R15", "Demolisher", 3, 1, 4);
-/// 帝王眼镜蛇 — 毒蛇（消灭任何受此伤害的随从）（简化：白板）
+/// Emperor Cobra — Poison (destroy any minion damaged by it) (simplified: vanilla)
 pub const EMPEROR_COBRA: CardDef = vanilla!("NEUTRAL_R16", "Emperor Cobra", 3, 2, 3);
-/// 任务达人 — 每当你打出一张牌，获得+1/+1（简化：白板）
+/// Questing Adventurer — gains +1/+1 whenever you play a card (simplified: vanilla)
 pub const QUESTING_ADVENTURER: CardDef = vanilla!("NEUTRAL_R17", "Questing Adventurer", 3, 2, 2);
-/// 年迈的法师 — 战吼：使相邻随从获得法术伤害+1（简化：白板）
+/// Ancient Mage — Battlecry: give adjacent minions Spell Damage +1 (simplified: vanilla)
 pub const ANCIENT_MAGE: CardDef = vanilla!("NEUTRAL_R18", "Ancient Mage", 4, 2, 5);
-/// 暮光幼龙 — 战吼：每有一张手牌获得+1生命值（简化：白板）
+/// Twilight Drake — Battlecry: +1 Health per card in hand (simplified: vanilla)
 pub const TWILIGHT_DRAKE: CardDef = vanilla!("NEUTRAL_R19", "Twilight Drake", 4, 4, 1);
-/// 狂奔科多兽 — 战吼：消灭攻击力≤2的随机敌方随从（简化：白板）
+/// Stampeding Kodo — Battlecry: destroy a random enemy minion with 2 or less Attack (simplified: vanilla)
 pub const STAMPEDING_KODO: CardDef = vanilla!("NEUTRAL_R20", "Stampeding Kodo", 5, 3, 5);
 
-// 中立 Epic — 简化版
-/// 鱼人杀手蟹 — 战吼：消灭鱼人并获得+2/+2（简化：白板）
+// Neutral Epic — simplified
+/// Hungry Crab — Battlecry: destroy a Murloc and gain +2/+2 (simplified: vanilla)
 pub const HUNGRY_CRAB: CardDef = vanilla!("NEUTRAL_E03", "Hungry Crab", 1, 1, 2);
-/// 末日预言者 — 回合开始时消灭所有随从（简化：白板）
+/// Doomsayer — destroy all minions at start of turn (simplified: vanilla)
 pub const DOOMSAYER: CardDef = vanilla!("NEUTRAL_E04", "Doomsayer", 2, 0, 7);
-/// 血骑士 — 战吼：吸收所有圣盾并获得+3/+3（简化：白板）
+/// Blood Knight — Battlecry: absorb all Divine Shields and gain +3/+3 (simplified: vanilla)
 pub const BLOOD_KNIGHT: CardDef = vanilla!("NEUTRAL_E05", "Blood Knight", 3, 3, 3);
-/// 王牌猎人 — 战吼：消灭攻击力≥7的随从（简化：白板）
+/// Big Game Hunter — Battlecry: destroy a minion with 7 or more Attack (simplified: vanilla)
 pub const BIG_GAME_HUNTER: CardDef = vanilla!("NEUTRAL_E06", "Big Game Hunter", 5, 4, 2);
-/// 年轻的女祭司 — 回合结束时给随机友方随从+1生命值（简化：白板）
+/// Young Priestess — give a random friendly minion +1 Health at end of turn (simplified: vanilla)
 pub const YOUNG_PRIESTESS: CardDef = vanilla!("NEUTRAL_R21", "Young Priestess", 1, 2, 1);
-/// 法力怨魂 — 所有随从费用增加（1）（简化：白板）
+/// Mana Wraith — all minions cost (1) more (simplified: vanilla)
 pub const MANA_WRAITH: CardDef = vanilla!("NEUTRAL_R22", "Mana Wraith", 2, 2, 2);
-/// 铸剑大师 — 回合结束时给随机友方随从+1攻击力（简化：白板）
+/// Master Swordsmith — give a random friendly minion +1 Attack at end of turn (simplified: vanilla)
 pub const MASTER_SWORDSMITH: CardDef = vanilla!("NEUTRAL_R23", "Master Swordsmith", 2, 1, 3);
-/// 小个子召唤师 — 每回合第一张随从费用减（1）（简化：白板）
+/// Pint-Sized Summoner — the first minion each turn costs (1) less (simplified: vanilla)
 pub const PINT_SIZED_SUMMONER: CardDef = vanilla!("NEUTRAL_R24", "Pint-Sized Summoner", 2, 2, 2);
-/// 军情七处渗透者 — 战吼：摧毁随机敌方奥秘（简化：白板）
+/// SI:7 Infiltrator — Battlecry: destroy a random enemy Secret (simplified: vanilla)
 pub const SI7_INFILTRATOR: CardDef = vanilla!("NEUTRAL_R25", "SI:7 Infiltrator", 4, 5, 4);
-/// 奥秘吞噬者 — 战吼：摧毁所有敌方奥秘并获得+1/+1（简化：白板）
+/// Eater of Secrets — Battlecry: destroy all enemy Secrets and gain +1/+1 (simplified: vanilla)
 pub const EATER_OF_SECRETS: CardDef = vanilla!("NEUTRAL_R26", "Eater of Secrets", 4, 2, 4);
 
 // ============================================================
 
-/// 紫罗兰教师 — 每当你施放一个法术，召唤一个1/1的紫罗兰学徒
+/// Violet Teacher — whenever you cast a spell, summon a 1/1 Violet Apprentice
 pub const VIOLET_APPRENTICE: CardDef = vanilla!("CLASSIC_VT", "Violet Apprentice", 1, 1, 1);
 
-/// 奥术吞噬者 — 每当你施放一个法术，获得+2/+2
+/// Arcane Devourer — whenever you cast a spell, gain +2/+2
 pub const ARCANE_DEVOURER: CardDef = CardDef {
     id: "CLASSIC_AD",
     name: "Arcane Devourer",
@@ -2326,7 +2326,7 @@ pub const ARCANE_DEVOURER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 无面操纵者 — 战吼：选择一个随从，成为它的复制
+/// Faceless Manipulator — Battlecry: choose a minion and become a copy of it
 pub const FACELESS_MANIPULATOR: CardDef = CardDef {
     id: "CLASSIC_FM",
     name: "Faceless Manipulator",
@@ -2358,12 +2358,12 @@ pub const FACELESS_MANIPULATOR: CardDef = CardDef {
 };
 
 // ============================================================
-// Tier 1 补全 — 中立（docs/classic-cards-roadmap.md）
+// Tier 1 additions — Neutral (docs/classic-cards-roadmap.md)
 // ============================================================
 
-/// 小精灵 — 白板
+/// Wisp — vanilla
 pub const WISP: CardDef = vanilla!("NEUTRAL_T01", "Wisp", 0, 1, 1);
-/// 精灵弓箭手 — 战吼：造成1点伤害
+/// Elven Archer — Battlecry: deal 1 damage
 pub const ELVEN_ARCHER: CardDef = CardDef {
     id: "NEUTRAL_T02",
     name: "Elven Archer",
@@ -2396,7 +2396,7 @@ pub const ELVEN_ARCHER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 闪金镇步兵 — 嘲讽
+/// Goldshire Footman — Taunt
 pub const GOLDSHIRE_FOOTMAN: CardDef = CardDef {
     id: "NEUTRAL_T03",
     name: "Goldshire Footman",
@@ -2426,7 +2426,7 @@ pub const GOLDSHIRE_FOOTMAN: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 工程师学徒 — 战吼：抽一张牌
+/// Novice Engineer — Battlecry: draw a card
 pub const NOVICE_ENGINEER: CardDef = CardDef {
     id: "NEUTRAL_T04",
     name: "Novice Engineer",
@@ -2456,9 +2456,9 @@ pub const NOVICE_ENGINEER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 淡水鳄 — 白板
+/// River Crocolisk — vanilla
 pub const RIVER_CROCOLISK: CardDef = vanilla!("NEUTRAL_T05", "River Crocolisk", 2, 2, 3);
-/// 团队领袖 — 你的其他随从获得+1攻击力
+/// Raid Leader — your other minions have +1 Attack
 pub const RAID_LEADER: CardDef = CardDef {
     id: "NEUTRAL_T06",
     name: "Raid Leader",
@@ -2488,7 +2488,7 @@ pub const RAID_LEADER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 破碎残阳祭司 — 战吼：使一个友方随从获得+1/+1
+/// Shattered Sun Cleric — Battlecry: give a friendly minion +1/+1
 pub const SHATTERED_SUN_CLERIC: CardDef = CardDef {
     id: "NEUTRAL_T07",
     name: "Shattered Sun Cleric",
@@ -2522,11 +2522,11 @@ pub const SHATTERED_SUN_CLERIC: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 冰风雪人 — 白板
+/// Chillwind Yeti — vanilla
 pub const CHILLWIND_YETI: CardDef = vanilla!("NEUTRAL_T08", "Chillwind Yeti", 4, 4, 5);
-/// 石拳食人魔 — 白板
+/// Boulderfist Ogre — vanilla
 pub const BOULDERFIST_OGRE: CardDef = vanilla!("NEUTRAL_T09", "Boulderfist Ogre", 6, 6, 7);
-/// 暴风城勇士 — 你的其他随从获得+1/+1
+/// Stormwind Champion — your other minions have +1/+1
 pub const STORMWIND_CHAMPION: CardDef = CardDef {
     id: "NEUTRAL_T10",
     name: "Stormwind Champion",
@@ -2562,9 +2562,9 @@ pub const STORMWIND_CHAMPION: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 作战傀儡 — 白板
+/// War Golem — vanilla
 pub const WAR_GOLEM: CardDef = vanilla!("NEUTRAL_T11", "War Golem", 7, 7, 7);
-/// 恐狼前锋 — 相邻的随从获得+1攻击力
+/// Dire Wolf Alpha — adjacent minions have +1 Attack
 pub const DIRE_WOLF_ALPHA: CardDef = CardDef {
     id: "NEUTRAL_T12",
     name: "Dire Wolf Alpha",
@@ -2594,7 +2594,7 @@ pub const DIRE_WOLF_ALPHA: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 战利品贮藏者 — 亡语：抽一张牌
+/// Loot Hoarder — Deathrattle: draw a card
 pub const LOOT_HOARDER: CardDef = CardDef {
     id: "NEUTRAL_T13",
     name: "Loot Hoarder",
@@ -2624,15 +2624,15 @@ pub const LOOT_HOARDER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// 荆棘谷猛虎 — 潜行（简化：白板，引擎暂未实现潜行）
+/// Stranglethorn Tiger — Stealth (simplified: vanilla; engine does not implement Stealth yet)
 pub const STRANGLETHORN_TIGER: CardDef = vanilla!("NEUTRAL_T14", "Stranglethorn Tiger", 5, 5, 5);
-/// 拉文霍德刺客 — 潜行（简化：白板，引擎暂未实现潜行）
+/// Ravenholdt Assassin — Stealth (simplified: vanilla; engine does not implement Stealth yet)
 pub const RAVENHOLDT_ASSASSIN: CardDef = vanilla!("NEUTRAL_T15", "Ravenholdt Assassin", 7, 7, 5);
 
-// Tier 2 补全 — 穆克拉
+// Tier 2 additions — King Mukla
 // ============================================================
 
-/// 穆克拉 — 战吼：给你的对手 2 张香蕉。
+/// King Mukla — Battlecry: give your opponent 2 Bananas.
 pub const KING_MUKLA: CardDef = CardDef {
     id: "NEUTRAL_T16",
     name: "King Mukla",
@@ -2666,7 +2666,7 @@ pub const KING_MUKLA: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 香蕉（穆克拉 token）— 使一个随从获得 +1/+1。
+/// Banana (King Mukla token) — give a minion +1/+1.
 pub const BANANA: CardDef = CardDef {
     id: "NEUTRAL_T16t",
     name: "Banana",
@@ -2701,10 +2701,10 @@ pub const BANANA: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Tier 2 补全 — 工匠大师欧沃斯巴克
+// Tier 2 additions — Tinkmaster Overspark
 // ============================================================
 
-/// 工匠大师欧沃斯巴克 — 战吼：将一个随从随机变形为 5/5 暴龙或 1/1 松鼠。
+/// Tinkmaster Overspark — Battlecry: transform a minion into a random 5/5 Devilsaur or 1/1 Squirrel.
 pub const TINKMASTER_OVERSPARK: CardDef = CardDef {
     id: "NEUTRAL_T17",
     name: "Tinkmaster Overspark",
@@ -2738,16 +2738,16 @@ pub const TINKMASTER_OVERSPARK: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 暴龙（工匠大师 token）— 5/5
+/// Devilsaur (Tinkmaster token) — 5/5
 pub const DEVILSAUR: CardDef = vanilla!("NEUTRAL_T17a", "Devilsaur", 5, 5, 5);
 
-/// 松鼠（工匠大师 token）— 1/1
+/// Squirrel (Tinkmaster token) — 1/1
 pub const SQUIRREL: CardDef = vanilla!("NEUTRAL_T17b", "Squirrel", 1, 1, 1);
 
-// Tier 3 补全 — 随机卡池
+// Tier 3 additions — random pools
 // ============================================================
 
-/// 光明之翼 — 战吼：将一张随机传说随从置入你的手牌。
+/// Brightwing — Battlecry: add a random Legendary minion to your hand.
 pub const BRIGHTWING: CardDef = CardDef {
     id: "NEUTRAL_T18",
     name: "Brightwing",
@@ -2780,10 +2780,10 @@ pub const BRIGHTWING: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 诺兹多姆 — 8/8（回合时限在模拟器中无意义，按普通随从实现）。
+/// Nozdormu — 8/8 (turn timer is meaningless in a simulator; implemented as a plain minion).
 pub const NOZDORMU: CardDef = vanilla!("NEUTRAL_T19", "Nozdormu", 9, 8, 8);
 
-/// 萨维斯 — 在你的回合结束时，将一张随机暗影法术置入你的手牌。
+/// Xavius — at the end of your turn, add a random Shadow spell to your hand.
 pub const XAVIUS: CardDef = CardDef {
     id: "NEUTRAL_T20",
     name: "Xavius",
@@ -2816,7 +2816,7 @@ pub const XAVIUS: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 伊瑟拉 — 在你的回合结束时，抽一张梦境卡。
+/// Ysera — at the end of your turn, add a Dream card to your hand.
 pub const YSERA: CardDef = CardDef {
     id: "NEUTRAL_T21",
     name: "Ysera",
@@ -2849,13 +2849,13 @@ pub const YSERA: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 翡翠幼龙（梦境卡）— 4/7
+/// Emerald Drake (Dream card) — 4/7
 pub const EMERALD_DRAKE: CardDef = vanilla!("NEUTRAL_T21a", "Emerald Drake", 4, 4, 7);
 
-/// 欢笑的姐妹（梦境卡）— 3/5
+/// Laughing Sister (Dream card) — 3/5
 pub const LAUGHING_SISTER: CardDef = vanilla!("NEUTRAL_T21b", "Laughing Sister", 3, 3, 5);
 
-/// 梦境（梦境卡）— 将一个随从移回其拥有者的手牌。
+/// Dream (Dream card) — return a minion to its owner's hand.
 pub const DREAM: CardDef = CardDef {
     id: "NEUTRAL_T21c",
     name: "Dream",
@@ -2888,7 +2888,7 @@ pub const DREAM: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 噩梦（梦境卡）— 使一个随从获得 +5/+5。
+/// Nightmare (Dream card) — give a minion +5/+5.
 pub const NIGHTMARE: CardDef = CardDef {
     id: "NEUTRAL_T21d",
     name: "Nightmare",
@@ -2923,7 +2923,7 @@ pub const NIGHTMARE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 伊瑟拉的觉醒（梦境卡）— 对所有角色造成 5 点伤害（简化：含伊瑟拉自身）。
+/// Ysera Awakens (Dream card) — deal 5 damage to all characters (simplified: includes Ysera herself).
 pub const YSERA_AWAKENS: CardDef = CardDef {
     id: "NEUTRAL_T21e",
     name: "Ysera Awakens",
@@ -2957,7 +2957,7 @@ pub const YSERA_AWAKENS: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// 贫瘠之地驯马师 — 战吼：召唤一个随机野兽。
+/// Barrens Stablehand — Battlecry: summon a random Beast.
 pub const BARRENS_STABLEHAND: CardDef = CardDef {
     id: "NEUTRAL_T22",
     name: "Barrens Stablehand",
