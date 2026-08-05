@@ -18,4 +18,9 @@
 pub mod cards;
 pub mod core;
 pub mod engine;
+pub mod rl;
 pub mod sim;
+
+// Python 绑定（需 `py` feature）
+#[cfg(feature = "py")]
+pub mod py_bind;

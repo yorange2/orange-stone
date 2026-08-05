@@ -88,11 +88,11 @@ One-sentence comparison: RosettaStone and SabberStone are **fidelity-first simul
 
 ### Milestone C — RL environment prep (Phase 4 in CLAUDE.md)
 
-- [ ] **C1** — Extend `Action::PlayCard` with an optional target (engine falls back to random when absent), unblocking faithful decision spaces.
-- [ ] **C2** — PyO3 bindings (`py_bind/`) + gym-like environment (`rl/env.rs`).
-- [ ] **C3** — Observation space tensorization (`rl/obs.rs`).
-- [ ] **C4** — Reward function configuration (`rl/reward.rs`).
-- [ ] **C5** — Batch simulation API over many `GameState`s (rayon).
+- [x] **C1** — Extend `Action::PlayCard` with an optional target (engine falls back to random when absent), unblocking faithful decision spaces. *(PR #40: `select_target` explicit-first, threaded through 20+ single-target resolvers)*
+- [x] **C2** — PyO3 bindings (`py_bind/`) + gym-like environment (`rl/env.rs`). *(PR #42: `GameEnv` reset/step/legal_actions; `py`-feature-gated `GameEnv` class, wheel smoke-tested via maturin)*
+- [x] **C3** — Observation space tensorization (`rl/obs.rs`). *(PR #42: fixed 168-dim observation)*
+- [x] **C4** — Reward function configuration (`rl/reward.rs`). *(PR #42: sparse win/loss + dense shaping components)*
+- [x] **C5** — Batch simulation API over many `GameState`s (rayon). *(PR #41: `BatchSimulator`)*
 
 ### Milestone D — Scale
 
