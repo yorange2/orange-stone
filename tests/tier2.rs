@@ -957,3 +957,142 @@ fn spellbender_redirects_spell_damage_to_itself() {
         Some(orange_stone::core::component::Health(3))
     );
 }
+
+// ============================================================
+// Stage 4 费用减免批次
+// ============================================================
+
+#[test]
+fn sorcerers_apprentice_reduces_spell_cost() {
+    use orange_stone::cards::def::{FIREBALL, SORCERERS_APPRENTICE};
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId::Player1, &SORCERERS_APPRENTICE);
+    builder.add_minion_to_hand(PlayerId::Player1, &FIREBALL);
+    // 火球术 4 费，学徒减免 1 → 3 费；只给 3 法力
+    builder.set_mana(PlayerId::Player1, 3, 3);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+    // 有效费用为 3
+    assert_eq!(
+        state.world().effective_cost(card),
+        Some(orange_stone::core::component::Cost(3))
+    );
+
+    // 3 法力即可打出
+    let log = engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    assert!(
+        log.iter().any(|e| matches!(e, Event::SpellCast { .. })),
+        "fireball should be cast with discounted cost"
+    );
+    // 法力扣减 3（不是 4）
+    assert_eq!(state.player(PlayerId::Player1).current_mana, 0);
+}
+
+#[test]
+fn summoning_portal_reduces_minion_cost_min_one() {
+    use orange_stone::cards::def::{BOULDERFIST_OGRE, SUMMONING_PORTAL, WISP};
+
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId::Player1, &SUMMONING_PORTAL);
+    builder.add_minion_to_hand(PlayerId::Player1, &BOULDERFIST_OGRE);
+    builder.add_minion_to_hand(PlayerId::Player1, &WISP);
+    let state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let ogre = hand[0];
+    let wisp = hand[1];
+
+    // 6 费食人魔 → 4 费；0 费小精灵 → 至少 1 费
+    assert_eq!(
+        state.world().effective_cost(ogre),
+        Some(orange_stone::core::component::Cost(4))
+    );
+    assert_eq!(
+        state.world().effective_cost(wisp),
+        Some(orange_stone::core::component::Cost(1))
+    );
+}
+
+#[test]
+fn kirin_tor_mage_makes_next_secret_free() {
+    use orange_stone::cards::def::{EXPLOSIVE_TRAP, KIRIN_TOR_MAGE};
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &KIRIN_TOR_MAGE);
+    builder.add_minion_to_hand(PlayerId::Player1, &EXPLOSIVE_TRAP);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let ktm = hand[0];
+    let trap = hand[1];
+
+    // 打出肯瑞托法师（3 费）
+    engine
+        .apply(&mut state, Action::PlayCard { card: ktm })
+        .unwrap();
+    assert_eq!(state.player(PlayerId::Player1).current_mana, 7);
+    assert!(state.player(PlayerId::Player1).next_secret_free);
+
+    // 下一个奥秘免费
+    engine
+        .apply(&mut state, Action::PlayCard { card: trap })
+        .unwrap();
+    // 法力未扣减
+    assert_eq!(state.player(PlayerId::Player1).current_mana, 7);
+    // 一次性效果已消耗
+    assert!(!state.player(PlayerId::Player1).next_secret_free);
+    // 奥秘已挂载到 SetAside
+    assert_eq!(state.world().zone(trap), Some(Zone::SetAside));
+}
+
+#[test]
+fn far_sight_draws_card_with_reduced_cost() {
+    use orange_stone::cards::def::{FAR_SIGHT, OGRE_MAGI};
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &FAR_SIGHT);
+    builder.add_minion_to_deck(PlayerId::Player1, &OGRE_MAGI);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    let log = engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    assert!(log.iter().any(|e| matches!(e, Event::CardDrawn { .. })));
+
+    // 抽到的奥术傀儡（4 费）费用减少 3 → 1
+    let drawn: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    assert_eq!(drawn.len(), 1);
+    assert_eq!(
+        state.world().cost(drawn[0]),
+        Some(orange_stone::core::component::Cost(1))
+    );
+}

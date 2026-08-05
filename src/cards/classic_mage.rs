@@ -686,3 +686,71 @@ pub const SPELLBENDER: CardDef = CardDef {
 
 /// 法术扭曲者 token — 1/3
 pub const SPELLBENDER_TOKEN: CardDef = vanilla!("MAGE_019t", "Spellbender", 1, 1, 3);
+
+// Tier 2 补全 — 费用减免
+// ============================================================
+
+/// 巫师学徒 — 你的法术费用减少 (1) 点。
+pub const SORCERERS_APPRENTICE: CardDef = CardDef {
+    id: "MAGE_020",
+    name: "Sorcerer's Apprentice",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 3,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: Some((
+        crate::core::component::AuraEffect::ReduceSpellCost(1),
+        crate::core::component::AuraTarget::AllFriendlyMinions,
+    )),
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 肯瑞托法师 — 战吼：你的下一个奥秘费用为 (0)。
+pub const KIRIN_TOR_MAGE: CardDef = CardDef {
+    id: "MAGE_021",
+    name: "Kirin Tor Mage",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 4,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::NextSecretCostsZero),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

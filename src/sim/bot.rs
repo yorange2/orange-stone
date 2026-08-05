@@ -81,9 +81,9 @@ impl GreedyBot {
                 (ct == Some(CardType::Minion)
                     || ct == Some(CardType::Weapon)
                     || ct == Some(CardType::Spell))
-                    && world.cost(e).is_some_and(|c| c.0 <= current_mana)
+                    && world.effective_cost(e).is_some_and(|c| c.0 <= current_mana)
             })
-            .map(|e| (world.cost(e).unwrap().0, e))
+            .map(|e| (world.effective_cost(e).unwrap().0, e))
             .collect();
 
         // 费用从低到高排序（贪心：先打便宜的，以便可能多打一张）
@@ -521,7 +521,7 @@ impl SmartBot {
                 (ct == Some(CardType::Minion)
                     || ct == Some(CardType::Weapon)
                     || ct == Some(CardType::Spell))
-                    && world.cost(e).is_some_and(|c| c.0 <= current_mana)
+                    && world.effective_cost(e).is_some_and(|c| c.0 <= current_mana)
             })
             .map(|e| (self.evaluate_card(state, player, e), e))
             .collect();
@@ -536,7 +536,7 @@ impl SmartBot {
         let mut remaining_mana = current_mana;
 
         for (_score, card) in candidates {
-            let cost = world.cost(card).map(|c| c.0).unwrap_or(0);
+            let cost = world.effective_cost(card).map(|c| c.0).unwrap_or(0);
             if cost > remaining_mana {
                 continue;
             }
@@ -588,7 +588,7 @@ impl SmartBot {
         let world = state.world();
         let atk = world.attack(card).map(|a| a.0).unwrap_or(0) as f64;
         let hp = world.health(card).map(|h| h.0).unwrap_or(0) as f64;
-        let cost = world.cost(card).map(|c| c.0).unwrap_or(1).max(1) as f64;
+        let cost = world.effective_cost(card).map(|c| c.0).unwrap_or(1).max(1) as f64;
 
         // 身材效率：相对于白板标准 (cost*2+1) 的偏差
         let vanilla_standard = cost * 2.0 + 1.0;
@@ -1182,6 +1182,8 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::RedirectAttackToRandomCharacter => 3.0,
         CardEffect::SummonAndRedirectAttack { .. } => 3.0,
         CardEffect::SummonSpellbender => 2.0,
+        CardEffect::NextSecretCostsZero => 2.0,
+        CardEffect::DrawCardAndReduceCost { amount } => 3.0 + amount as f64 * 0.5,
     }
 }
 

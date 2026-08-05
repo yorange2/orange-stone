@@ -59,6 +59,8 @@ pub struct Player {
     pub cards_played_this_turn: u32,
     /// 本回合死亡的友方随从（用于复活效果）
     pub died_this_turn: Vec<crate::core::entity::Entity>,
+    /// 下一个奥秘费用为 0（肯瑞托法师，一次性）
+    pub next_secret_free: bool,
 }
 
 impl Player {
@@ -75,6 +77,7 @@ impl Player {
             temp_attack_bonus: 0,
             cards_played_this_turn: 0,
             died_this_turn: Vec::new(),
+            next_secret_free: false,
         }
     }
 }

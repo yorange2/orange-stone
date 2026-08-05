@@ -201,6 +201,15 @@ pub enum AuraEffect {
     GainAttack(i32),
     /// +N 生命值
     GainHealth(i32),
+    /// 法术费用减少（巫师学徒 — 手牌中的友方法术费用降低）
+    ReduceSpellCost(i32),
+    /// 随从费用减少（召唤传送门 — 手牌中的友方随从费用降低，且不低于下限）
+    ReduceMinionCost {
+        /// 费用减少量
+        amount: i32,
+        /// 费用下限
+        min: i32,
+    },
 }
 
 /// 光环影响范围。
