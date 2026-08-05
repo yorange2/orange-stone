@@ -272,31 +272,6 @@ impl EventQueue {
         }
         false
     }
-
-    /// Redirect all `DamageDealt` events satisfying the predicate to `new_target`.
-    ///
-    /// The predicate receives the event's source and target. Used by secrets that need to
-    /// redirect in bulk by source, such as Spellbender (spell damage is enqueued against the
-    /// source spell during effect resolution; secrets intercept it here uniformly).
-    /// Returns the number of redirects.
-    pub fn redirect_damages(
-        &mut self,
-        predicate: impl Fn(Entity, Entity) -> bool,
-        new_target: Entity,
-    ) -> usize {
-        let mut count = 0;
-        for bucket in &mut self.buckets {
-            for event in bucket {
-                if let Event::DamageDealt { source, target, .. } = event {
-                    if predicate(*source, *target) {
-                        *target = new_target;
-                        count += 1;
-                    }
-                }
-            }
-        }
-        count
-    }
 }
 
 #[cfg(test)]

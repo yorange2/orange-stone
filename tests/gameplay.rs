@@ -1034,10 +1034,10 @@ fn secret_triggers_on_enemy_hero_attack() {
             secret_entity,
             Secret {
                 trigger: SecretTrigger::AfterEnemyHeroAttacks,
-                effect: CardEffect::DealDamage {
+                effect: Some(CardEffect::DealDamage {
                     amount: 2,
                     target: EffectTarget::AllEnemyMinions,
-                },
+                }),
             },
         );
         world
@@ -1143,10 +1143,10 @@ fn multiple_secrets_trigger_in_order() {
             s1,
             Secret {
                 trigger: SecretTrigger::AfterEnemyHeroAttacks,
-                effect: CardEffect::DealDamage {
+                effect: Some(CardEffect::DealDamage {
                     amount: 1,
                     target: EffectTarget::AnyEnemy,
-                },
+                }),
             },
         );
         world
@@ -1161,10 +1161,10 @@ fn multiple_secrets_trigger_in_order() {
             s2,
             Secret {
                 trigger: SecretTrigger::AfterEnemyHeroAttacks,
-                effect: CardEffect::GainArmor {
+                effect: Some(CardEffect::GainArmor {
                     amount: 5,
                     target: EffectTarget::Self_,
-                },
+                }),
             },
         );
         world
@@ -1796,10 +1796,10 @@ fn explosive_trap_deals_damage_to_all_enemies() {
             secret_entity,
             Secret {
                 trigger: SecretTrigger::WhenEnemyMinionAttacksHero,
-                effect: CardEffect::DealDamage {
+                effect: Some(CardEffect::DealDamage {
                     amount: 2,
                     target: EffectTarget::AllEnemies,
-                },
+                }),
             },
         );
         world
@@ -1864,7 +1864,7 @@ fn freezing_trap_returns_attacker_to_hand_with_cost_increase() {
             secret_entity,
             Secret {
                 trigger: SecretTrigger::WhenEnemyMinionAttacksHero,
-                effect: CardEffect::ReturnToHandAndIncreaseCost { amount: 2 },
+                effect: Some(CardEffect::ReturnToHandAndIncreaseCost { amount: 2 }),
             },
         );
         world
