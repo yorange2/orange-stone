@@ -1096,3 +1096,214 @@ fn far_sight_draws_card_with_reduced_cost() {
         Some(orange_stone::core::component::Cost(1))
     );
 }
+
+// ============================================================
+// Stage 5 德鲁伊批次
+// ============================================================
+
+#[test]
+fn cenarius_choose_one_buffs_or_summons_treants() {
+    use orange_stone::cards::def::{CENARIUS, CENARIUS_TREANT};
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &CENARIUS);
+    let ally = builder.add_custom_minion_to_board(PlayerId::Player1, 2, 3, 2);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 抉择随机：要么所有随从 +2/+2，要么召唤两个 2/2 树人
+    let treants: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId::Player1)
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == CENARIUS_TREANT.id)
+        })
+        .collect();
+    if !treants.is_empty() {
+        assert_eq!(treants.len(), 2, "buff branch: two treants expected");
+        for t in &treants {
+            assert_eq!(
+                state.world().attack(*t),
+                Some(orange_stone::core::component::Attack(2))
+            );
+            assert_eq!(
+                state.world().health(*t),
+                Some(orange_stone::core::component::Health(2))
+            );
+        }
+    } else {
+        // +2/+2 分支：友方随从 2/3 → 4/5
+        assert_eq!(
+            state.world().attack(ally),
+            Some(orange_stone::core::component::Attack(4))
+        );
+        assert_eq!(
+            state.world().health(ally),
+            Some(orange_stone::core::component::Health(5))
+        );
+    }
+}
+
+#[test]
+fn keeper_of_the_grove_choose_one_damage_or_silence() {
+    use orange_stone::cards::def::{GOLDSHIRE_FOOTMAN, KEEPER_OF_THE_GROVE};
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &KEEPER_OF_THE_GROVE);
+    builder.add_minion_to_board(PlayerId::Player2, &GOLDSHIRE_FOOTMAN);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    // 找到嘲讽随从（闪金镇步兵）
+    let footman: Entity = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId::Player2)
+        .find(|&e| state.world().taunt(e).is_some())
+        .expect("precondition: goldshire footman has taunt");
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 抉择随机：2 点伤害（打在嘲讽随从或敌方英雄）或沉默嘲讽随从
+    let enemy_hero = state.player(PlayerId::Player2).hero;
+    let footman_hp = state.world().health(footman).unwrap().0;
+    let hero_hp = state.world().health(enemy_hero).unwrap().0;
+    if state.world().taunt(footman).is_none() {
+        // 沉默分支：嘲讽被移除
+    } else {
+        // 伤害分支：嘲讽随从（1/2，受 2 伤死亡）或英雄受到 2 点伤害
+        assert!(
+            footman_hp <= 0 || hero_hp == 28,
+            "damage branch should hit the footman (1/2) or the enemy hero, got footman={footman_hp} hero={hero_hp}"
+        );
+    }
+}
+
+#[test]
+fn soul_of_the_forest_grants_deathrattle_summoning_treant() {
+    use orange_stone::cards::def::{CENARIUS_TREANT, SOUL_OF_THE_FOREST};
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &SOUL_OF_THE_FOREST);
+    let ally = builder.add_custom_minion_to_board(PlayerId::Player1, 2, 2, 2);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 友方随从获得亡语：召唤 2/2 树人
+    let dr = state.world().deathrattle(ally);
+    assert!(
+        matches!(
+            dr,
+            Some(orange_stone::core::component::Deathrattle(
+                orange_stone::core::effect::CardEffect::SummonMinion {
+                    card_id: "DRUID_023t"
+                }
+            ))
+        ),
+        "ally should have deathrattle summoning a treant"
+    );
+
+    // 杀掉友方随从 → 亡语召唤树人
+    let attacker = builder_add_custom_hand(&mut state, PlayerId::Player1, 0, 0, 0);
+    // 直接用伤害事件杀死：通过攻击
+    state.set_active_player(PlayerId::Player2);
+    let enemy_attacker = builder_add_custom_hand(&mut state, PlayerId::Player2, 5, 5, 5);
+    {
+        let world = state.world_mut();
+        world.set_zone(enemy_attacker, Zone::Play);
+        world
+            .zones_mut()
+            .insert(Zone::Play, PlayerId::Player2, enemy_attacker);
+    }
+    let _ = attacker;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy_attacker,
+                defender: ally,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(state.world().zone(ally), Some(Zone::Graveyard));
+    // 亡语召唤了 2/2 树人
+    let treants: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId::Player1)
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == CENARIUS_TREANT.id)
+        })
+        .collect();
+    assert_eq!(treants.len(), 1, "deathrattle should summon one treant");
+}
+
+#[test]
+fn king_mukla_gives_opponent_two_bananas() {
+    use orange_stone::cards::def::KING_MUKLA;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &KING_MUKLA);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 对手手牌中有 2 张香蕉
+    let bananas: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player2)
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "NEUTRAL_T16t")
+        })
+        .collect();
+    assert_eq!(bananas.len(), 2, "opponent should receive two bananas");
+}

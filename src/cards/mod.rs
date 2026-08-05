@@ -18,8 +18,11 @@ pub mod classic_warrior;
 pub mod def;
 pub mod sets;
 
-use crate::core::component::{Poison, Stealth};
+use crate::core::component::{
+    Attack, AttacksUsed, Aura, CardId, Cost, Deathrattle, Durability, Health, Poison, Stealth,
+};
 use crate::core::entity::Entity;
+use crate::core::player::PlayerId;
 use crate::core::world::World;
 use def::CardDef;
 
@@ -34,4 +37,96 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         world.set_poison(entity, Poison);
         world.set_stealth(entity, Stealth);
     }
+}
+
+/// 根据 `CardDef` 在指定玩家名下创建一个卡牌实体（不设置区域）。
+///
+/// 供 `GameBuilder` 与效果系统（如穆克拉的香蕉、随机卡池）共用，
+/// 保证手牌/牌库中的卡牌实体携带完整的组件（战吼/亡语/关键词等）。
+pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &CardDef) -> Entity {
+    let e = world.spawn();
+    world.set_card_id(e, CardId(card.id));
+    world.set_health(e, Health(card.health));
+    world.set_attack(e, Attack(card.attack));
+    world.set_cost(e, Cost(card.cost));
+    world.set_card_type(e, card.card_type);
+    world.set_player(e, player);
+    world.set_attacks_used(e, AttacksUsed(0));
+    // 设置武器耐久（如果是武器牌）
+    if card.card_type == crate::core::component::CardType::Weapon && card.durability > 0 {
+        world.set_durability(e, Durability(card.durability));
+    }
+    // 设置圣盾/风怒/冲锋/法伤
+    if card.divine_shield {
+        world.set_divine_shield(e, crate::core::component::DivineShield);
+    }
+    if card.windfury {
+        world.set_windfury(e, crate::core::component::Windfury);
+    }
+    if card.charge {
+        world.set_charge(e, crate::core::component::Charge);
+    }
+    if card.spell_damage != 0 {
+        world.set_spell_damage(e, crate::core::component::SpellDamage(card.spell_damage));
+    }
+    // 设置光环（如果有）
+    if let Some((aura_effect, aura_target)) = card.aura {
+        world.set_aura(
+            e,
+            Aura {
+                effect: aura_effect,
+                target: aura_target,
+            },
+        );
+    }
+    // 设置战吼/亡语（已有字段）
+    if let Some(bc) = card.battlecry {
+        world.set_battlecry(e, crate::core::component::Battlecry(bc));
+    }
+    if let Some(dr) = card.deathrattle {
+        world.set_deathrattle(e, Deathrattle(dr));
+    }
+    // 设置嘲讽
+    if card.taunt {
+        world.set_taunt(e, crate::core::component::Taunt);
+    }
+    // 设置不能攻击
+    if card.cant_attack {
+        world.set_cant_attack(e, crate::core::component::CantAttack);
+    }
+    // 设置回合结束效果
+    if let Some(ete) = card.end_turn_effect {
+        world.set_end_turn_effect(e, crate::core::component::EndTurnEffect(ete));
+    }
+    // 法术牌效果存储在 battlecry 组件中（打出时由引擎解析）
+    if let Some(se) = card.spell_effect {
+        world.set_battlecry(e, crate::core::component::Battlecry(se));
+    }
+    // 法术触发效果
+    if let Some(st) = card.spell_trigger {
+        world.set_spell_trigger(e, crate::core::component::SpellTrigger(st));
+    }
+    // 死亡触发效果
+    if let Some(dt) = card.death_trigger {
+        world.set_death_trigger(e, crate::core::component::DeathTrigger(dt));
+    }
+    // 召唤触发效果
+    if let Some(st) = card.summon_trigger {
+        world.set_summon_trigger(e, crate::core::component::SummonTrigger(st));
+    }
+    // 抉择效果
+    if let Some(ce) = card.choose_one_effect {
+        world.set_choose_one_effect(e, crate::core::component::ChooseOneEffect(ce));
+    }
+    // 连击效果
+    if let Some(cb) = card.combo_effect {
+        world.set_combo_effect(e, crate::core::component::ComboEffect(cb));
+    }
+    // 攻击力等于生命值
+    if card.attack_equals_health {
+        world.set_attack_equals_health(e, crate::core::component::AttackEqualsHealth);
+    }
+    // 特殊关键词（剧毒/潜行等）
+    apply_card_keywords(world, e, card);
+    e
 }

@@ -768,3 +768,116 @@ pub const STARFALL: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// Tier 2 补全 — 抉择/亡语授予
+// ============================================================
+
+/// 塞纳留斯 — 抉择：使你的随从获得 +2/+2；或召唤两个 2/2 树人。
+pub const CENARIUS: CardDef = CardDef {
+    id: "DRUID_023",
+    name: "Cenarius",
+    card_type: CardType::Minion,
+    cost: 9,
+    attack: 5,
+    health: 8,
+    durability: 0,
+    battlecry: Some(CardEffect::GainStats {
+        attack: 2,
+        health: 2,
+        target: EffectTarget::AllFriendlyMinions,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: Some(CardEffect::SummonMultipleMinions {
+        card_id: "DRUID_023t",
+        count: 2,
+    }),
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 树人（塞纳留斯/丛林之魂 token）— 2/2
+pub const CENARIUS_TREANT: CardDef = vanilla!("DRUID_023t", "Treant", 1, 2, 2);
+
+/// 丛林守护者 — 抉择：造成 2 点伤害；或沉默一个随从。
+pub const KEEPER_OF_THE_GROVE: CardDef = CardDef {
+    id: "DRUID_024",
+    name: "Keeper of the Grove",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 2,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AnyEnemy,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: Some(CardEffect::SilenceMinion {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 丛林之魂 — 使你的随从获得"亡语：召唤一个 2/2 树人"。
+pub const SOUL_OF_THE_FOREST: CardDef = CardDef {
+    id: "DRUID_025",
+    name: "Soul of the Forest",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::GrantDeathrattleAll {
+        card_id: "DRUID_023t",
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

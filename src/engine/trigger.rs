@@ -13,7 +13,7 @@
 //! - `AllEnemyMinions` → 所有敌方随从
 
 use crate::core::component::{
-    Attack, AttacksUsed, CardId, CardType, Cost, Durability, Freeze, Health, Stealth,
+    Attack, AttacksUsed, CardId, CardType, Cost, Deathrattle, Durability, Freeze, Health, Stealth,
 };
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
@@ -307,6 +307,27 @@ pub fn resolve_effect(
         }
         CardEffect::DrawCardAndReduceCost { amount } => {
             draw_card_with_reduction(state, queue, owner, amount);
+        }
+        CardEffect::GrantDeathrattleAll { card_id } => {
+            let minions = collect_friendly_minions(state, owner);
+            let dr = Deathrattle(CardEffect::SummonMinion { card_id });
+            let world = state.world_mut();
+            for m in &minions {
+                world.set_deathrattle(*m, dr);
+            }
+        }
+        CardEffect::GiveCardToOpponent { card_id, count } => {
+            let enemy = owner.opponent();
+            for _ in 0..count {
+                let Some(card_def) = crate::cards::def::card_by_id(card_id) else {
+                    return;
+                };
+                // 新建实体并直接放入对手手牌（新实体没有 Zone 组件，不能走 move_to_zone）
+                let world = state.world_mut();
+                let e = crate::cards::spawn_card_from_def(world, enemy, card_def);
+                world.set_zone(e, Zone::Hand);
+                world.zones_mut().insert(Zone::Hand, enemy, e);
+            }
         }
     }
 }
