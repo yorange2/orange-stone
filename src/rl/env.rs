@@ -27,8 +27,10 @@ use crate::sim::battle::{BattleRunner, BotDelegate, BotType};
 pub struct EnvConfig {
     /// Deck size per player (random deck generation)
     pub deck_size: usize,
-    /// Initial hand size
+    /// Initial hand size (first player; M1-G6)
     pub hand_size: usize,
+    /// Second player draws one extra card + The Coin (official opening; M1-G6)
+    pub second_player_coin: bool,
     /// Opponent (bot) type
     pub bot_type: BotType,
     /// Maximum action steps per game (prevents infinite loops)
@@ -46,6 +48,7 @@ impl EnvConfig {
         Self {
             deck_size,
             hand_size: 3,
+            second_player_coin: false,
             bot_type,
             max_steps: 5000,
             reward: RewardConfig::default(),
@@ -57,6 +60,15 @@ impl EnvConfig {
     #[must_use]
     pub fn with_fixed_deck(mut self, deck: Vec<&'static str>) -> Self {
         self.deck = Some(deck);
+        self
+    }
+
+    /// Sets the opening shape: `hand_size` cards to the first player; with
+    /// `coin` the second player draws one extra and gets The Coin.
+    #[must_use]
+    pub fn with_opening(mut self, hand_size: usize, coin: bool) -> Self {
+        self.hand_size = hand_size;
+        self.second_player_coin = coin;
         self
     }
 }
@@ -115,11 +127,19 @@ impl GameEnv {
                     deck.len(),
                     "all deck card IDs must resolve (validated at construction)"
                 );
-                runner.create_game_state_with_decks(&cards, &cards)
+                runner.create_game_state_with_decks(
+                    &cards,
+                    &cards,
+                    self.config.hand_size,
+                    self.config.second_player_coin,
+                )
             }
-            None => runner.create_game_state(self.config.deck_size),
+            None => runner.create_game_state(
+                self.config.deck_size,
+                self.config.hand_size,
+                self.config.second_player_coin,
+            ),
         };
-        // Initial hand size is determined by create_game_state (fixed at 3); adjust here if configurability is needed
         self.steps = 0;
         self.done = false;
         self.observation()
@@ -757,5 +777,73 @@ mod tests {
             cloned_obs,
             "branching off a clone must not disturb it"
         );
+    }
+
+    // ============================================================
+    // M1-G6 — configurable opening (hand size + second-player coin)
+    // ============================================================
+
+    fn hand_size_of(env: &GameEnv, pid: PlayerId) -> usize {
+        env.state.world().zones().len(Zone::Hand, pid)
+    }
+
+    #[test]
+    fn default_opening_is_three_and_three_no_coin() {
+        let mut env = GameEnv::new(
+            PlayerId::Player1,
+            EnvConfig::default_with(BotType::None, 20),
+        );
+        env.reset(1);
+        assert_eq!(hand_size_of(&env, PlayerId::Player1), 3);
+        assert_eq!(hand_size_of(&env, PlayerId::Player2), 3);
+    }
+
+    #[test]
+    fn custom_hand_size_applies_to_both_players() {
+        let mut env = GameEnv::new(
+            PlayerId::Player1,
+            EnvConfig::default_with(BotType::None, 20).with_opening(4, false),
+        );
+        env.reset(2);
+        assert_eq!(hand_size_of(&env, PlayerId::Player1), 4);
+        assert_eq!(hand_size_of(&env, PlayerId::Player2), 4);
+    }
+
+    #[test]
+    fn second_player_coin_adds_extra_card_and_coin() {
+        let mut env = GameEnv::new(
+            PlayerId::Player1,
+            EnvConfig::default_with(BotType::None, 20).with_opening(3, true),
+        );
+        env.reset(3);
+        assert_eq!(hand_size_of(&env, PlayerId::Player1), 3);
+        // Official second-player shape: hand_size + 1 draw + The Coin
+        assert_eq!(hand_size_of(&env, PlayerId::Player2), 5);
+        let has_coin = env
+            .state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player2)
+            .any(|e| {
+                env.state
+                    .world()
+                    .card_id(e)
+                    .is_some_and(|c| c.0 == "GAME_005")
+            });
+        assert!(has_coin, "the second player must hold The Coin (GAME_005)");
+    }
+
+    #[test]
+    fn opening_config_is_deterministic() {
+        let make = |seed: u64| {
+            let mut env = GameEnv::new(
+                PlayerId::Player1,
+                EnvConfig::default_with(BotType::None, 20).with_opening(4, true),
+            );
+            env.reset(seed);
+            env.observation()
+        };
+        assert_eq!(make(9), make(9), "same seed + same opening → identical");
+        assert_ne!(make(9), make(10), "different seed → different game");
     }
 }

@@ -261,7 +261,7 @@ impl BattleRunner {
     /// `hand_size` — the initial hand size (default 3).
     pub fn run_battle(&mut self, deck_size: usize) -> BattleResult {
         // Build the initial game (decks + seed)
-        let mut state = self.create_game_state(deck_size);
+        let mut state = self.create_game_state(deck_size, 3, false);
 
         // Run the battle
         self.run_game_loop(&mut state, 60)
@@ -271,9 +271,15 @@ impl BattleRunner {
     ///
     /// Each call consumes one deck seed and one game seed, so consecutive calls
     /// on the same `BattleRunner` (same initial seed) produce different battles.
-    pub fn create_game_state(&mut self, deck_size: usize) -> GameState {
+    /// `hand_size`/`second_player_coin` shape the opening (roadmap M1-G6).
+    pub fn create_game_state(
+        &mut self,
+        deck_size: usize,
+        hand_size: usize,
+        second_player_coin: bool,
+    ) -> GameState {
         let (p1_deck, p2_deck) = self.generate_random_decks(deck_size);
-        self.create_game_state_with_decks(&p1_deck, &p2_deck)
+        self.create_game_state_with_decks(&p1_deck, &p2_deck, hand_size, second_player_coin)
     }
 
     /// Builds an initial `GameState` from explicit decks (roadmap M1-G2).
@@ -281,16 +287,22 @@ impl BattleRunner {
     /// Used by the RL environment for fixed-pool mirror matchups; the decks are
     /// recorded in the tracker and shuffled by the builder (deterministic per seed).
     /// The game RNG is reseeded from the runner's RNG, keeping per-battle reproducibility.
+    ///
+    /// `hand_size` — cards dealt to the first player (roadmap M1-G6); with
+    /// `second_player_coin` the second player draws one extra card and gets
+    /// The Coin (the official opening shape).
     pub fn create_game_state_with_decks(
         &mut self,
         deck1: &[&'static CardDef],
         deck2: &[&'static CardDef],
+        hand_size: usize,
+        second_player_coin: bool,
     ) -> GameState {
         self.tracker.record_deck(deck1);
         self.tracker.record_deck(deck2);
 
         // Build the initial game
-        let mut state = self.build_game_state(deck1, deck2, 3);
+        let mut state = self.build_game_state(deck1, deck2, hand_size, second_player_coin);
 
         // Record this battle's seed (for reproduction)
         let game_seed = self.rng.next_u32() as u64;
@@ -365,11 +377,16 @@ impl BattleRunner {
     /// The state RNG is seeded from the runner's RNG, so the deck shuffle and
     /// opening hands differ per seed. This matters for explicit decks (M1-G2):
     /// with a fixed deck the deck content alone no longer varies the opening.
+    ///
+    /// Opening shape (roadmap M1-G6): the first player draws `hand_size`;
+    /// with `second_player_coin` the second player draws `hand_size + 1` and
+    /// receives The Coin as an extra hand card (official second-player shape).
     fn build_game_state(
         &mut self,
         deck1: &[&'static CardDef],
         deck2: &[&'static CardDef],
         hand_size: usize,
+        second_player_coin: bool,
     ) -> GameState {
         let opening_seed = self.rng.next_u32() as u64;
         let mut builder = GameBuilder::new();
@@ -381,16 +398,24 @@ impl BattleRunner {
         for card in deck2 {
             builder.add_minion_to_deck(PlayerId::Player2, card);
         }
+        // The Coin joins the second player's hand before the deal (it is not
+        // part of the deck, so the shuffle never touches it)
+        if second_player_coin {
+            builder.add_minion_to_hand(PlayerId::Player2, &crate::cards::def::THE_COIN);
+        }
         builder.set_mana(PlayerId::Player1, 0, 0);
         builder.set_mana(PlayerId::Player2, 0, 0);
         let mut state = builder.build();
 
         // Opening hand — draw from the *current* deck length (the deck shrinks
         // with every draw, so an index into the original length can miss).
-        for &pid in &[PlayerId::Player1, PlayerId::Player2] {
+        let p2_bonus = if second_player_coin { 1 } else { 0 };
+        for (pid, draw_count) in [
+            (PlayerId::Player1, hand_size),
+            (PlayerId::Player2, hand_size + p2_bonus),
+        ] {
             let deck_count = state.world().zones().len(Zone::Deck, pid);
-            let draw_count = hand_size.min(deck_count);
-            for _ in 0..draw_count {
+            for _ in 0..draw_count.min(deck_count) {
                 let current = state.world().zones().len(Zone::Deck, pid);
                 if current == 0 {
                     break;

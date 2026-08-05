@@ -62,7 +62,7 @@ impl BatchSimulator {
         let states: Vec<GameState> = (0..count)
             .map(|i| {
                 let mut runner = BattleRunner::new(self.bot_type, seed.wrapping_add(i as u64));
-                runner.create_game_state(deck_size)
+                runner.create_game_state(deck_size, 3, false)
             })
             .collect();
         self.run(states)
