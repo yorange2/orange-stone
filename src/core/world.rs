@@ -13,7 +13,7 @@ use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
     Charge, ChooseOneEffect, ComboEffect, Cost, CostModifier, CostModifierKind, Damage,
     Deathrattle, DivineShield, Durability, Enchantment, Freeze, Health, HeroPowerDef,
-    HeroPowerUsed, Immune, Overload, Poison, Secret, SpellDamage, Stealth, Taunt, Trigger,
+    Elusive, HeroPowerUsed, Immune, Overload, Poison, Secret, SpellDamage, Stealth, Taunt, Trigger,
     Windfury,
 };
 use crate::core::entity::Entity;
@@ -149,6 +149,8 @@ pub struct World {
     poison: SparseSet<Poison>,
     /// Stealth component storage (stealth)
     stealth: SparseSet<Stealth>,
+    /// Elusive component storage (elusive; M5)
+    elusive: SparseSet<Elusive>,
     /// Immune component storage (immune)
     immune: SparseSet<Immune>,
     /// Overload component storage (overload marker)
@@ -262,6 +264,7 @@ impl World {
             card_id: SparseSet::new(),
             poison: SparseSet::new(),
             stealth: SparseSet::new(),
+            elusive: SparseSet::new(),
             immune: SparseSet::new(),
             overload: SparseSet::new(),
             zones: Zones::new(),
@@ -333,6 +336,7 @@ impl World {
         self.card_id.remove(entity);
         self.poison.remove(entity);
         self.stealth.remove(entity);
+        self.elusive.remove(entity);
         self.immune.remove(entity);
         self.overload.remove(entity);
         // Bump the generation
@@ -764,6 +768,14 @@ impl World {
         set_stealth,
         remove_stealth,
         iter_stealth
+    );
+    component_accessors!(
+        elusive,
+        Elusive,
+        elusive,
+        set_elusive,
+        remove_elusive,
+        iter_elusive
     );
     component_accessors!(
         immune,

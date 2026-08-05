@@ -39,6 +39,8 @@ pub struct EntityView {
     pub divine_shield: bool,
     /// Stealth keyword
     pub stealth: bool,
+    /// Elusive keyword (M5) — cannot be targeted by spells/hero powers
+    pub elusive: bool,
     /// Windfury keyword
     pub windfury: bool,
     /// Charge keyword
@@ -147,6 +149,7 @@ pub fn entity_view(state: &GameState, entity: Entity, is_hand: bool) -> EntityVi
         taunt: world.taunt(entity).is_some(),
         divine_shield: world.divine_shield(entity).is_some(),
         stealth: world.stealth(entity).is_some(),
+        elusive: world.elusive(entity).is_some(),
         windfury: world.windfury(entity).is_some(),
         charge: world.charge(entity).is_some(),
         frozen: world.freeze(entity).is_some(),

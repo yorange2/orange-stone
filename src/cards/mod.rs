@@ -218,6 +218,10 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
     if card.stealth {
         world.set_stealth(e, crate::core::component::Stealth);
     }
+    // Set Elusive (roadmap M5: cannot be targeted by spells/hero powers)
+    if card.elusive {
+        world.set_elusive(e, crate::core::component::Elusive);
+    }
     // Set Taunt
     if card.taunt {
         world.set_taunt(e, crate::core::component::Taunt);
