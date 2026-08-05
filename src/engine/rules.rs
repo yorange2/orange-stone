@@ -9,8 +9,8 @@
 
 use crate::core::action::Action;
 use crate::core::component::{
-    Attack, AttacksUsed, CardType, Cost, Durability, EnchantmentExpiry, Health, HeroPowerUsed,
-    Secret, TriggerEvent, TriggerTiming,
+    Attack, AttacksUsed, CardType, Durability, EnchantmentExpiry, Health, HeroPowerUsed, Secret,
+    TriggerEvent, TriggerTiming,
 };
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue, Priority};
@@ -101,8 +101,8 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
         return Err(EngineError::CardNotInHand);
     }
 
-    // Check mana (using effective cost: aura reduction + Kirin Tor Mage's one-time free secret)
-    let cost = effective_play_cost(state, card, active);
+    // Check mana (single cost composition — roadmap G5)
+    let cost = crate::engine::cost::play_cost(state, card, active);
     if cost.0 > state.player(active).current_mana {
         return Err(EngineError::NotEnoughMana);
     }
@@ -116,21 +116,6 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
     }
 
     Ok(())
-}
-
-/// Computes the effective cost of playing a card: base cost - aura reduction;
-/// secret cards additionally benefit from Kirin Tor Mage's one-time free discount.
-fn effective_play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
-    let mut cost = state.world().effective_cost(card).unwrap_or_default();
-    let is_secret = state
-        .world()
-        .card_id(card)
-        .and_then(|cid| crate::cards::def::card_by_id(cid.0))
-        .is_some_and(|def| def.secret.is_some());
-    if is_secret && state.player(player).next_secret_free {
-        cost = Cost(0);
-    }
-    cost
 }
 
 /// Validates an attack action.
@@ -498,8 +483,8 @@ pub fn apply_event(
             card,
             target,
         } => {
-            // Deduct mana (using effective cost: aura reduction + Kirin Tor Mage's one-time free secret)
-            let cost = effective_play_cost(state, card, player);
+            // Deduct mana (single cost composition — roadmap G5)
+            let cost = crate::engine::cost::play_cost(state, card, player);
             let card_type = state.world().card_type(card);
             {
                 let inner = state.make_mut();
@@ -982,7 +967,9 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
             true
         }
         Step::ManaRefill => {
-            // Mana crystal growth and refill (overload mana locks apply here in F1)
+            // Mana crystal growth and refill. The overload mana lock (roadmap
+            // F1) applies HERE: after the refill, mana locked by overload cards
+            // played last turn is subtracted from current_mana.
             let active = state.active_player();
             let inner = state.make_mut();
             let p = &mut inner.players[active.index()];
@@ -1181,7 +1168,8 @@ fn wrap_up_turn(state: &mut GameState) {
 mod tests {
     use super::*;
     use crate::core::component::{
-        Attack, CardType, Damage, Enchantment, EnchantmentExpiry, Health, Trigger,
+        Attack, CardType, Cost, CostModifier, CostModifierKind, Damage, Enchantment,
+        EnchantmentExpiry, Health, Trigger,
     };
     use crate::core::entity::Entity;
     use crate::core::state::GameState;
@@ -2248,6 +2236,121 @@ mod tests {
             state.world().effective_cost(minion),
             Some(crate::core::component::Cost(0)),
             "Shadowstep's cost reduction persists in hand (3 − 2)"
+        );
+    }
+
+    // ============================================================
+    // G5 — cost manager
+    // ============================================================
+
+    #[test]
+    fn cost_modifier_stack_set_and_floor() {
+        // G5: the cost stack composes base + enchantment deltas, then applies
+        // set-to-value and floor modifiers.
+        let mut state = GameState::new();
+        let card = add_minion_to_hand(&mut state, PlayerId::Player1, 2, 3); // cost 3
+        assert_eq!(state.world().effective_cost(card), Some(Cost(3)));
+        // −2 enchantment → 1
+        state.world_mut().add_enchantment(
+            card,
+            Enchantment {
+                attack: 0,
+                health: 0,
+                cost: -2,
+                expiry: EnchantmentExpiry::Permanent,
+            },
+        );
+        assert_eq!(state.world().effective_cost(card), Some(Cost(1)));
+        // Min(3) floor raises it back to 3
+        state.world_mut().add_cost_modifier(
+            card,
+            CostModifier {
+                kind: CostModifierKind::Min(3),
+            },
+        );
+        assert_eq!(state.world().effective_cost(card), Some(Cost(3)));
+        // Set(5) overrides the composed value
+        state.world_mut().add_cost_modifier(
+            card,
+            CostModifier {
+                kind: CostModifierKind::Set(5),
+            },
+        );
+        assert_eq!(state.world().effective_cost(card), Some(Cost(5)));
+        // Removing the stack restores the enchantment-composed cost
+        state.world_mut().remove_cost_modifiers(card);
+        assert_eq!(state.world().effective_cost(card), Some(Cost(1)));
+    }
+
+    #[test]
+    fn cost_cannot_go_below_zero() {
+        let mut state = GameState::new();
+        let card = add_minion_to_hand(&mut state, PlayerId::Player1, 2, 3); // cost 3
+        state.world_mut().add_enchantment(
+            card,
+            Enchantment {
+                attack: 0,
+                health: 0,
+                cost: -10,
+                expiry: EnchantmentExpiry::Permanent,
+            },
+        );
+        assert_eq!(
+            state.world().effective_cost(card),
+            Some(Cost(0)),
+            "costs cannot go below 0"
+        );
+    }
+
+    #[test]
+    fn play_cost_composes_player_level_modifiers() {
+        // G5: cost::play_cost is the single composition — Kirin Tor Mage's
+        // one-time free secret applies at the player level.
+        use crate::cards::def::EXPLOSIVE_TRAP;
+        use crate::cards::def::KIRIN_TOR_MAGE;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_hand(PlayerId::Player1, &EXPLOSIVE_TRAP);
+        builder.add_minion_to_hand(PlayerId::Player1, &KIRIN_TOR_MAGE);
+        builder.set_mana(PlayerId::Player1, 10, 10);
+        let mut state = builder.build();
+        let trap = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .find(|&e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .is_some_and(|c| c.0 == "HUNTER_T01")
+            })
+            .expect("trap in hand");
+        assert_eq!(
+            crate::engine::cost::play_cost(&state, trap, PlayerId::Player1),
+            Cost(2)
+        );
+        // Kirin Tor's one-time free secret (played first)
+        let kirin = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "MAGE_021"))
+            .expect("kirin in hand");
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: kirin,
+                    target: None,
+                },
+            )
+            .unwrap();
+        assert!(state.player(PlayerId::Player1).next_secret_free);
+        assert_eq!(
+            crate::engine::cost::play_cost(&state, trap, PlayerId::Player1),
+            Cost(0),
+            "the next secret costs 0"
         );
     }
 }

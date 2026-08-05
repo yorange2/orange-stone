@@ -11,9 +11,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
-    Charge, ChooseOneEffect, ComboEffect, Cost, Damage, Deathrattle, DivineShield, Durability,
-    Enchantment, Freeze, Health, HeroPowerDef, HeroPowerUsed, Immune, Overload, Poison, Secret,
-    SpellDamage, Stealth, Taunt, Trigger, Windfury,
+    Charge, ChooseOneEffect, ComboEffect, Cost, CostModifier, CostModifierKind, Damage,
+    Deathrattle, DivineShield, Durability, Enchantment, Freeze, Health, HeroPowerDef,
+    HeroPowerUsed, Immune, Overload, Poison, Secret, SpellDamage, Stealth, Taunt, Trigger,
+    Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -138,6 +139,8 @@ pub struct World {
     attack_equals_health: SparseSet<AttackEqualsHealth>,
     /// Enchantment component storage — stat modifiers (roadmap G4)
     enchantments: SparseSet<Vec<Enchantment>>,
+    /// Cost modifier storage — set/floor cost modifiers (roadmap G5)
+    cost_modifier: SparseSet<Vec<CostModifier>>,
     /// Damage component storage — accumulated damage (roadmap G4)
     damage: SparseSet<Damage>,
     /// CardId component storage (original card definition ID)
@@ -255,6 +258,7 @@ impl World {
             attack_equals_health: SparseSet::new(),
             enchantments: SparseSet::new(),
             damage: SparseSet::new(),
+            cost_modifier: SparseSet::new(),
             card_id: SparseSet::new(),
             poison: SparseSet::new(),
             stealth: SparseSet::new(),
@@ -325,6 +329,7 @@ impl World {
         self.attack_equals_health.remove(entity);
         self.enchantments.remove(entity);
         self.damage.remove(entity);
+        self.cost_modifier.remove(entity);
         self.card_id.remove(entity);
         self.poison.remove(entity);
         self.stealth.remove(entity);
@@ -698,6 +703,24 @@ impl World {
         self.enchantments.remove(entity);
     }
 
+    /// Get the cost modifiers on an entity (roadmap G5).
+    #[must_use]
+    pub fn cost_modifiers(&self, entity: Entity) -> Option<&[CostModifier]> {
+        self.cost_modifier.get_ref(entity).map(Vec::as_slice)
+    }
+
+    /// Attach a cost modifier to an entity.
+    pub fn add_cost_modifier(&mut self, entity: Entity, modifier: CostModifier) {
+        let mut list = self.cost_modifier.get(entity).unwrap_or_default();
+        list.push(modifier);
+        self.cost_modifier.insert(entity, list);
+    }
+
+    /// Remove all cost modifiers from an entity.
+    pub fn remove_cost_modifiers(&mut self, entity: Entity) {
+        self.cost_modifier.remove(entity);
+    }
+
     /// Iterate all entities with enchantments.
     pub fn iter_enchantments(&self) -> impl Iterator<Item = (Entity, &Vec<Enchantment>)> {
         self.enchantments.iter()
@@ -851,10 +874,19 @@ impl World {
 
         // Cost auras only affect the aura owner's own hand
         // Enchantment cost deltas (roadmap G4) — cost modifiers persist across zones
-        let base = base.0
+        let mut cost = base.0
             + self
                 .enchantments(entity)
                 .map_or(0, |l| l.iter().map(|e| e.cost).sum::<i32>());
+
+        // Cost modifier stack (roadmap G5): set-to-value overrides the composed
+        // value; floor modifiers raise it.
+        for modifier in self.cost_modifiers(entity).into_iter().flatten() {
+            match modifier.kind {
+                CostModifierKind::Set(value) => cost = value,
+                CostModifierKind::Min(floor) => cost = cost.max(floor),
+            }
+        }
 
         let mut reduction = 0i32;
         let mut min_cost = 0i32;
@@ -872,7 +904,8 @@ impl World {
                 _ => {}
             }
         }
-        Some(Cost((base - reduction).max(min_cost)))
+        // The cost can never go below 0 (and never below the aura's min floor)
+        Some(Cost((cost - reduction).max(min_cost.max(0))))
     }
 }
 

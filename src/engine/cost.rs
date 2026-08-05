@@ -1,0 +1,30 @@
+//! Cost manager — the single composition point for card play costs (roadmap G5).
+//!
+//! The modifier stack lives in `World::effective_cost`: base + enchantment
+//! deltas, then set-to-value / floor modifiers, then hand-only aura
+//! reductions, floored at 0. This module adds the player-level modifiers that
+//! the World cannot see (Kirin Tor Mage's one-time free secret) and is the
+//! ONLY place a play cost is composed — validation, mana deduction, and bots
+//! all read from here.
+
+use crate::core::component::Cost;
+use crate::core::entity::Entity;
+use crate::core::player::PlayerId;
+use crate::core::state::GameState;
+
+/// The cost of playing `card` for `player`: the entity cost stack plus
+/// player-level modifiers (e.g. Kirin Tor Mage's one-time free secret).
+#[must_use]
+pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
+    let mut cost = state.world().effective_cost(card).unwrap_or_default();
+    // Kirin Tor Mage: the next secret costs 0 (one-time, consumed on play)
+    let is_secret = state
+        .world()
+        .card_id(card)
+        .and_then(|cid| crate::cards::def::card_by_id(cid.0))
+        .is_some_and(|def| def.secret.is_some());
+    if is_secret && state.player(player).next_secret_free {
+        cost = Cost(0);
+    }
+    cost
+}

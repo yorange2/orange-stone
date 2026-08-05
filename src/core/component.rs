@@ -418,6 +418,24 @@ pub struct Enchantment {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Damage(pub i32);
 
+/// Cost modifier kind — the non-delta classes of the cost stack (roadmap G5).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum CostModifierKind {
+    /// Set the cost to a fixed value (overrides composed base + deltas)
+    Set(i32),
+    /// The cost cannot go below this floor
+    Min(i32),
+}
+
+/// A cost modifier on an entity (roadmap G5) — set-to-value and floor classes
+/// of the modifier stack. No classic card uses them yet; the engine supports
+/// them so cost effects compose.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct CostModifier {
+    /// The modifier kind
+    pub kind: CostModifierKind,
+}
+
 /// Card ID — records the original card definition ID of the entity.
 ///
 /// Used to look up `CardDef` at runtime (transform, secret mounting, random card pools, etc.).
