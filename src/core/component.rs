@@ -324,32 +324,54 @@ pub struct Freeze;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct CantAttack;
 
-/// End-of-turn effect — triggered at the end of every turn.
+/// Trigger event class — what a registered trigger responds to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum TriggerEvent {
+    /// A friendly minion is summoned
+    FriendlyMinionSummoned,
+    /// A friendly minion dies
+    FriendlyMinionDied,
+    /// A friendly player casts a spell
+    FriendlySpellCast,
+    /// A friendly player plays a card with Overload
+    FriendlyOverloadPlayed,
+    /// This minion takes damage (Acolyte of Pain)
+    ThisMinionDamaged,
+    /// A friendly minion takes damage (Frothing Berserker, Armorsmith)
+    FriendlyMinionDamaged,
+    /// At the start of the owner's turn
+    TurnStart,
+    /// At the end of the owner's turn
+    TurnEnd,
+}
+
+/// Trigger timing — Hearthstone's "whenever" / "after" classification.
 ///
-/// The effect is defined by `CardEffect` and detected while handling the `TurnEnded` event.
+/// "Whenever" triggers fire as the event is processed; "after" triggers fire
+/// after all "whenever" triggers of the event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct EndTurnEffect(pub crate::core::effect::CardEffect);
+pub enum TriggerTiming {
+    /// Fires as the event is processed
+    Whenever,
+    /// Fires after all "whenever" triggers
+    After,
+}
 
-/// Start-of-turn effect — triggered at the start of every turn
-/// (`CardDef::start_turn_effect`, wired into the engine in roadmap G1).
+/// A registered trigger — the per-entity trigger registration of roadmap G2
+/// (RS `ITrigger` / SB `TriggerManager` analogue).
 ///
-/// Fires in the StartTriggers step, before the mana refill and the draw.
+/// Replaces the ad-hoc per-class trigger components: an entity registers its
+/// triggers with this component, and the engine fires them in play order with
+/// current-player precedence.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct StartTurnEffect(pub crate::core::effect::CardEffect);
-
-/// Spell-cast trigger effect — triggered when a friendly player casts a spell.
-///
-/// The effect is defined by `CardEffect` and detected while handling the `SpellCast` event.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct SpellTrigger(pub crate::core::effect::CardEffect);
-
-/// Minion-death trigger effect — triggered when a friendly minion dies.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct DeathTrigger(pub crate::core::effect::CardEffect);
-
-/// Minion-summon trigger effect — triggered when a friendly minion is summoned.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct SummonTrigger(pub crate::core::effect::CardEffect);
+pub struct Trigger {
+    /// The event class this trigger responds to
+    pub event: TriggerEvent,
+    /// "Whenever" or "after" timing
+    pub timing: TriggerTiming,
+    /// The effect resolved when the trigger fires
+    pub effect: crate::core::effect::CardEffect,
+}
 
 /// Choose One effect — alternative effects for Druid Choose One cards.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -410,10 +432,6 @@ pub struct Immune;
 /// This engine does not simulate overload's mana locking; it only serves as a trigger marker.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Overload;
-
-/// Overload trigger effect — triggered when a friendly player plays a card with overload (Unbound Elemental).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct OverloadTrigger(pub crate::core::effect::CardEffect);
 
 #[cfg(test)]
 mod tests {

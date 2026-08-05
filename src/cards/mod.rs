@@ -21,8 +21,8 @@ pub mod pool;
 pub mod sets;
 
 use crate::core::component::{
-    Attack, AttacksUsed, Aura, CardId, Cost, Deathrattle, Durability, Health, Overload,
-    OverloadTrigger, Poison, Stealth,
+    Attack, AttacksUsed, Aura, CardId, Cost, Deathrattle, Durability, Health, Overload, Poison,
+    Stealth, Trigger, TriggerEvent, TriggerTiming,
 };
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
@@ -51,13 +51,57 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
     }
     if card_def.id == "SHAMAN_021" {
         // Unbound Elemental — gain +1/+1 whenever you play a card with Overload
-        world.set_overload_trigger(
+        world.set_trigger(
             entity,
-            OverloadTrigger(CardEffect::GainStats {
-                attack: 1,
-                health: 1,
-                target: EffectTarget::Self_,
-            }),
+            Trigger {
+                event: TriggerEvent::FriendlyOverloadPlayed,
+                timing: TriggerTiming::Whenever,
+                effect: CardEffect::GainStats {
+                    attack: 1,
+                    health: 1,
+                    target: EffectTarget::Self_,
+                },
+            },
+        );
+    }
+    if card_def.id == "NEUTRAL_004" {
+        // Acolyte of Pain — whenever this minion takes damage, draw a card
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::ThisMinionDamaged,
+                timing: TriggerTiming::Whenever,
+                effect: CardEffect::DrawCard { count: 1 },
+            },
+        );
+    }
+    if card_def.id == "WARRIOR_007" {
+        // Frothing Berserker — whenever a friendly minion takes damage, gain +1 attack
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionDamaged,
+                timing: TriggerTiming::Whenever,
+                effect: CardEffect::GainStats {
+                    attack: 1,
+                    health: 0,
+                    target: EffectTarget::Self_,
+                },
+            },
+        );
+    }
+    if card_def.id == "WARRIOR_013" {
+        // Armorsmith — whenever a friendly minion takes damage, gain 1 armor
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionDamaged,
+                timing: TriggerTiming::Whenever,
+                effect: CardEffect::GainArmor {
+                    amount: 1,
+                    target: EffectTarget::FriendlyHero,
+                },
+            },
         );
     }
     if card_def.id == "ROGUE_022" {
@@ -81,10 +125,7 @@ pub(crate) fn clear_minion_effects(world: &mut World, entity: Entity) {
     world.remove_charge(entity);
     world.remove_spell_damage(entity);
     world.remove_cant_attack(entity);
-    world.remove_end_turn_effect(entity);
-    world.remove_spell_trigger(entity);
-    world.remove_death_trigger(entity);
-    world.remove_summon_trigger(entity);
+    world.remove_trigger(entity);
     world.remove_choose_one_effect(entity);
     world.remove_combo_effect(entity);
     world.remove_attack_equals_health(entity);
@@ -94,7 +135,6 @@ pub(crate) fn clear_minion_effects(world: &mut World, entity: Entity) {
     world.remove_immune(entity);
     world.remove_freeze(entity);
     world.remove_overload(entity);
-    world.remove_overload_trigger(entity);
 }
 
 /// Creates a card entity from a `CardDef` under the given player (zone not set).
@@ -152,25 +192,61 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
     if card.cant_attack {
         world.set_cant_attack(e, crate::core::component::CantAttack);
     }
-    // Set end-of-turn effect
+    // Register triggers (roadmap G2): CardDef trigger fields map to the unified
+    // Trigger component, fired in play order with current-player precedence.
     if let Some(ete) = card.end_turn_effect {
-        world.set_end_turn_effect(e, crate::core::component::EndTurnEffect(ete));
+        world.set_trigger(
+            e,
+            Trigger {
+                event: TriggerEvent::TurnEnd,
+                timing: TriggerTiming::Whenever,
+                effect: ete,
+            },
+        );
+    }
+    if let Some(ste) = card.start_turn_effect {
+        world.set_trigger(
+            e,
+            Trigger {
+                event: TriggerEvent::TurnStart,
+                timing: TriggerTiming::Whenever,
+                effect: ste,
+            },
+        );
     }
     // Spell card effects are stored in the battlecry component (resolved by the engine when played)
     if let Some(se) = card.spell_effect {
         world.set_battlecry(e, crate::core::component::Battlecry(se));
     }
-    // Spell-trigger effect
     if let Some(st) = card.spell_trigger {
-        world.set_spell_trigger(e, crate::core::component::SpellTrigger(st));
+        world.set_trigger(
+            e,
+            Trigger {
+                event: TriggerEvent::FriendlySpellCast,
+                timing: TriggerTiming::Whenever,
+                effect: st,
+            },
+        );
     }
-    // Death-trigger effect
     if let Some(dt) = card.death_trigger {
-        world.set_death_trigger(e, crate::core::component::DeathTrigger(dt));
+        world.set_trigger(
+            e,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionDied,
+                timing: TriggerTiming::Whenever,
+                effect: dt,
+            },
+        );
     }
-    // Summon-trigger effect
     if let Some(st) = card.summon_trigger {
-        world.set_summon_trigger(e, crate::core::component::SummonTrigger(st));
+        world.set_trigger(
+            e,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionSummoned,
+                timing: TriggerTiming::Whenever,
+                effect: st,
+            },
+        );
     }
     // Choose One effect
     if let Some(ce) = card.choose_one_effect {

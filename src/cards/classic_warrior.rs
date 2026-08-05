@@ -395,10 +395,9 @@ pub const ARMORSMITH: CardDef = CardDef {
     attack: 1,
     health: 4,
     durability: 0,
-    battlecry: Some(CardEffect::GainArmor {
-        amount: 1,
-        target: EffectTarget::Self_,
-    }),
+    // Armor gain is a damage trigger, not a battlecry (roadmap G2) — registered
+    // by ID in cards/mod.rs apply_card_keywords.
+    battlecry: None,
     deathrattle: None,
     taunt: false,
     hero_power: None,
