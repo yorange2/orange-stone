@@ -619,3 +619,105 @@ pub const FREEZING_TRAP: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// Tier 2 补全 — 奥秘（误导/毒蛇陷阱/狙击）
+// ============================================================
+
+/// 误导 — 奥秘：当敌方攻击你的英雄时，将其改为攻击另一个随机角色。
+pub const MISDIRECTION: CardDef = CardDef {
+    id: "HUNTER_018",
+    name: "Misdirection",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::RedirectAttackToRandomCharacter),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: Some(SecretTrigger::WhenEnemyAttacksHero),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 毒蛇陷阱 — 奥秘：当你的随从受到伤害时，召唤三条 1/1 蛇。
+pub const SNAKE_TRAP: CardDef = CardDef {
+    id: "HUNTER_019",
+    name: "Snake Trap",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::SummonMultipleMinions {
+        card_id: "HUNTER_019t",
+        count: 3,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: Some(SecretTrigger::WhenFriendlyMinionDamaged),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 蛇（毒蛇陷阱 token）— 1/1 野兽
+pub const SNAKE: CardDef = vanilla!("HUNTER_019t", "Snake", 1, 1, 1);
+
+/// 狙击 — 奥秘：当你的对手使用一张随从牌时，对其造成 4 点伤害。
+pub const SNIPE: CardDef = CardDef {
+    id: "HUNTER_020",
+    name: "Snipe",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::DamagePlayedMinion { amount: 4 }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: Some(SecretTrigger::AfterEnemyMinionPlayed),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

@@ -43,7 +43,7 @@ pub fn resolve_effect(
             }
         }
         CardEffect::SummonMinion { card_id } => {
-            resolve_summon(state, queue, source, owner, card_id);
+            let _ = resolve_summon(state, queue, source, owner, card_id);
         }
         CardEffect::GainStats {
             attack,
@@ -290,6 +290,16 @@ pub fn resolve_effect(
         CardEffect::GrantStealth => {
             resolve_grant_stealth(state, source, owner);
         }
+        CardEffect::SummonMultipleMinions { card_id, count } => {
+            for _ in 0..count {
+                let _ = resolve_summon(state, queue, source, owner, card_id);
+            }
+        }
+        // 以下奥秘专属效果由 secret.rs 的 resolve_secret_effect 处理（需要事件上下文）
+        CardEffect::DamagePlayedMinion { .. }
+        | CardEffect::RedirectAttackToRandomCharacter
+        | CardEffect::SummonAndRedirectAttack { .. }
+        | CardEffect::SummonSpellbender => {}
     }
 }
 
@@ -412,17 +422,18 @@ fn resolve_deal_damage(
 }
 
 /// 解析召唤随从效果。
-fn resolve_summon(
+///
+/// 返回被召唤的随从实体；战场已满或卡牌不存在时返回 `None`。
+/// `pub(crate)` 供奥秘系统（崇高牺牲/法术扭曲者）获取新召唤的实体。
+pub(crate) fn resolve_summon(
     state: &mut GameState,
     queue: &mut EventQueue,
     _source: Entity,
     owner: PlayerId,
     card_id: &str,
-) {
+) -> Option<Entity> {
     // 查找卡牌定义
-    let Some(card_def) = crate::cards::def::card_by_id(card_id) else {
-        return;
-    };
+    let card_def = crate::cards::def::card_by_id(card_id)?;
 
     // 检查战场上限
     let board_count = state
@@ -432,7 +443,7 @@ fn resolve_summon(
         .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
         .count();
     if board_count >= crate::engine::rules::MAX_BOARD_SIZE {
-        return;
+        return None;
     }
 
     // 创建随从实体并放到战场
@@ -517,6 +528,7 @@ fn resolve_summon(
         player: owner,
         minion: e,
     });
+    Some(e)
 }
 
 /// 解析 buff 效果。

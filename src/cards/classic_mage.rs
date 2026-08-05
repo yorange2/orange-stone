@@ -4,6 +4,7 @@
 use crate::cards::def::CardDef;
 use crate::core::component::{CardType, SecretTrigger};
 use crate::core::effect::{CardEffect, EffectTarget};
+use crate::vanilla;
 
 // 怀旧系列 — 法师 (Mage)
 // ============================================================
@@ -648,3 +649,40 @@ pub const VAPORIZE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// Tier 2 补全 — 法术扭曲者（奥秘）
+// ============================================================
+
+/// 法术扭曲者 — 奥秘：当敌方对一个随从施放法术时，改为以 1/3 随从为新目标。
+pub const SPELLBENDER: CardDef = CardDef {
+    id: "MAGE_019",
+    name: "Spellbender",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::SummonSpellbender),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: Some(SecretTrigger::WhenEnemySpellCast),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 法术扭曲者 token — 1/3
+pub const SPELLBENDER_TOKEN: CardDef = vanilla!("MAGE_019t", "Spellbender", 1, 1, 3);
