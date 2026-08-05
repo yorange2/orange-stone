@@ -1744,3 +1744,380 @@ fn tinkmaster_transforms_enemy_minion() {
     // 效果组件被清除（无战吼/嘲讽等）
     assert!(state.world().battlecry(enemy_minion).is_none());
 }
+
+// ============================================================
+// Stage 8 Tier 3 随机卡池批次
+// ============================================================
+
+#[test]
+fn brightwing_adds_random_legendary_to_hand() {
+    use orange_stone::cards::def::BRIGHTWING;
+    use orange_stone::cards::sets::LEGENDARY_CLASSIC;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &BRIGHTWING);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 手牌中新增一张传说随从
+    let gained: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    assert_eq!(gained.len(), 1);
+    let id = state.world().card_id(gained[0]).unwrap().0;
+    assert!(
+        LEGENDARY_CLASSIC.iter().any(|l| l.id == id),
+        "added card {id} should be a classic legendary"
+    );
+}
+
+#[test]
+fn nozdormu_is_vanilla_8_8() {
+    use orange_stone::cards::def::NOZDORMU;
+
+    assert_eq!(NOZDORMU.cost, 9);
+    assert_eq!(NOZDORMU.attack, 8);
+    assert_eq!(NOZDORMU.health, 8);
+    assert!(NOZDORMU.battlecry.is_none());
+}
+
+#[test]
+fn xavius_end_turn_adds_shadow_spell() {
+    use orange_stone::cards::def::XAVIUS;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &XAVIUS);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 回合结束时生成一张暗影法术
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    assert_eq!(hand.len(), 1, "one shadow spell should be added");
+    let name = state
+        .world()
+        .card_id(hand[0])
+        .and_then(|c| orange_stone::cards::def::card_by_id(c.0))
+        .map(|d| d.name)
+        .unwrap();
+    assert!(
+        name.contains("Shadow"),
+        "added card should be a shadow spell, got {name}"
+    );
+}
+
+#[test]
+fn ysera_end_turn_adds_dream_card() {
+    use orange_stone::cards::def::YSERA;
+    use orange_stone::cards::pool::DREAM_POOL;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &YSERA);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    assert_eq!(hand.len(), 1, "one dream card should be added");
+    let id = state.world().card_id(hand[0]).unwrap().0;
+    assert!(
+        DREAM_POOL.contains(&id),
+        "added card {id} should be a dream card"
+    );
+}
+
+#[test]
+fn barrens_stablehand_summons_random_beast() {
+    use orange_stone::cards::def::BARRENS_STABLEHAND;
+    use orange_stone::cards::pool::BEAST_POOL;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &BARRENS_STABLEHAND);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 场上：驯马师 + 一个随机野兽
+    let minions: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId::Player1)
+        .filter(|&e| {
+            state.world().card_type(e) == Some(orange_stone::core::component::CardType::Minion)
+        })
+        .collect();
+    assert_eq!(minions.len(), 2, "stablehand + one beast expected");
+    let beast = minions
+        .iter()
+        .find(|&&e| e != card)
+        .copied()
+        .expect("beast should exist");
+    let beast_id = state.world().card_id(beast).unwrap().0;
+    assert!(
+        BEAST_POOL.contains(&beast_id),
+        "summoned minion {beast_id} should be a beast"
+    );
+}
+
+#[test]
+fn animal_companion_summons_one_of_three() {
+    use orange_stone::cards::def::ANIMAL_COMPANION;
+    use orange_stone::cards::pool::COMPANION_POOL;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &ANIMAL_COMPANION);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    let companions: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId::Player1)
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| COMPANION_POOL.contains(&c.0))
+        })
+        .collect();
+    assert_eq!(companions.len(), 1, "exactly one companion expected");
+}
+
+#[test]
+fn tome_of_intellect_adds_mage_spell() {
+    use orange_stone::cards::def::TOME_OF_INTELLECT;
+    use orange_stone::cards::sets::MAGE_CLASSIC;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &TOME_OF_INTELLECT);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    assert_eq!(hand.len(), 1);
+    let id = state.world().card_id(hand[0]).unwrap().0;
+    let def = orange_stone::cards::def::card_by_id(id).unwrap();
+    assert_eq!(
+        def.card_type,
+        orange_stone::core::component::CardType::Spell,
+        "added card should be a spell"
+    );
+    assert!(
+        MAGE_CLASSIC.iter().any(|m| m.id == id),
+        "added card {id} should be a mage spell"
+    );
+}
+
+#[test]
+fn antonidas_adds_fireball_on_spell_cast() {
+    use orange_stone::cards::def::{ARCHMAGE_ANTONIDAS, MOONFIRE};
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &ARCHMAGE_ANTONIDAS);
+    builder.add_minion_to_hand(PlayerId::Player1, &MOONFIRE);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let antonidas = hand[0];
+    let moonfire = hand[1];
+    engine
+        .apply(&mut state, Action::PlayCard { card: antonidas })
+        .unwrap();
+
+    // 施放月光术 → 火球术入手
+    engine
+        .apply(&mut state, Action::PlayCard { card: moonfire })
+        .unwrap();
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    assert_eq!(hand.len(), 1, "one fireball should be added");
+    assert_eq!(state.world().card_id(hand[0]).unwrap().0, "MAGE_005");
+}
+
+#[test]
+fn pilfer_adds_non_rogue_card() {
+    use orange_stone::cards::def::PILFER;
+    use orange_stone::cards::sets::ROGUE_CLASSIC;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &PILFER);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    assert_eq!(hand.len(), 1);
+    let id = state.world().card_id(hand[0]).unwrap().0;
+    assert!(
+        !ROGUE_CLASSIC.iter().any(|r| r.id == id),
+        "pilfered card {id} should not be a rogue card"
+    );
+}
+
+#[test]
+fn call_of_the_void_adds_demon() {
+    use orange_stone::cards::def::CALL_OF_THE_VOID;
+    use orange_stone::cards::pool::DEMON_POOL;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &CALL_OF_THE_VOID);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    assert_eq!(hand.len(), 1);
+    let id = state.world().card_id(hand[0]).unwrap().0;
+    assert!(
+        DEMON_POOL.contains(&id),
+        "added card {id} should be a demon"
+    );
+}
+
+#[test]
+fn bane_of_doom_damages_and_summons_demon_if_killed() {
+    use orange_stone::cards::def::BANE_OF_DOOM;
+    use orange_stone::cards::pool::DEMON_POOL;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &BANE_OF_DOOM);
+    let enemy_minion = builder.add_custom_minion_to_board(PlayerId::Player2, 1, 1, 1);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 随机目标：1/1 随从（死亡 → 召唤恶魔）或敌方英雄（仅受 2 点伤害）
+    let enemy_hero = state.player(PlayerId::Player2).hero;
+    let minion_dead = state.world().zone(enemy_minion) == Some(Zone::Graveyard);
+    let hero_hp = state.world().health(enemy_hero).unwrap().0;
+    if minion_dead {
+        // 随从死亡 → 召唤一个随机恶魔（恶魔可能死于自身战吼的简化实现，如烈焰小鬼）
+        let demons: Vec<Entity> = [Zone::Play, Zone::Graveyard]
+            .iter()
+            .flat_map(|&z| state.world().zones().iter(z, PlayerId::Player1))
+            .filter(|&e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .is_some_and(|c| DEMON_POOL.contains(&c.0))
+            })
+            .collect();
+        assert_eq!(
+            demons.len(),
+            1,
+            "a demon should be summoned after the kill (may die to its own battlecry)"
+        );
+    } else {
+        // 打到英雄：英雄受 2 点伤害，无召唤
+        assert_eq!(hero_hp, 28, "enemy hero should take 2 damage");
+        assert_eq!(state.world().zone(enemy_minion), Some(Zone::Play));
+    }
+}

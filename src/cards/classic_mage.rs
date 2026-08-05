@@ -788,3 +788,72 @@ pub const ICICLE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// Tier 3 补全 — 随机法师法术/安东尼达斯
+// ============================================================
+
+/// 奥术智慧宝典 — 将一张随机法师法术置入你的手牌。
+pub const TOME_OF_INTELLECT: CardDef = CardDef {
+    id: "MAGE_023",
+    name: "Tome of Intellect",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::AddRandomCardToHand {
+        pool: crate::core::effect::RandomPool::MageSpell,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 大法师安东尼达斯 — 每当你施放法术时，将一张火球术置入你的手牌。
+pub const ARCHMAGE_ANTONIDAS: CardDef = CardDef {
+    id: "MAGE_024",
+    name: "Archmage Antonidas",
+    card_type: CardType::Minion,
+    cost: 7,
+    attack: 5,
+    health: 7,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: Some(CardEffect::AddCardToHand {
+        card_id: "MAGE_005",
+    }),
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

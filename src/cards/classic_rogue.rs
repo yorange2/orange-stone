@@ -785,3 +785,40 @@ pub const MASTER_OF_DISGUISE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// Tier 3 补全 — 偷窃
+// ============================================================
+
+/// 偷窃 — 将另一职业的一张随机卡牌置入你的手牌。
+/// （本引擎未建模职业，简化为随机非盗贼卡牌）
+pub const PILFER: CardDef = CardDef {
+    id: "ROGUE_025",
+    name: "Pilfer",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::AddRandomCardToHand {
+        pool: crate::core::effect::RandomPool::OtherClass,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

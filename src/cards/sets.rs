@@ -167,6 +167,17 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     TINKMASTER_OVERSPARK,
     DEVILSAUR,
     SQUIRREL,
+    // Tier 3 补全
+    BRIGHTWING,
+    NOZDORMU,
+    XAVIUS,
+    YSERA,
+    EMERALD_DRAKE,
+    LAUGHING_SISTER,
+    DREAM,
+    NIGHTMARE,
+    YSERA_AWAKENS,
+    BARRENS_STABLEHAND,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -258,6 +269,11 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     SNIPE,
     BESTIAL_WRATH,
     GLADIATORS_LONGBOW,
+    // Tier 3 补全
+    ANIMAL_COMPANION,
+    HUFFER,
+    LEOKK,
+    MISHA,
 ];
 
 pub const MAGE_CLASSIC: &[CardDef] = &[
@@ -288,6 +304,9 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     SORCERERS_APPRENTICE,
     KIRIN_TOR_MAGE,
     ICICLE,
+    // Tier 3 补全
+    TOME_OF_INTELLECT,
+    ARCHMAGE_ANTONIDAS,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -377,6 +396,8 @@ pub const ROGUE_CLASSIC: &[CardDef] = &[
     PATIENT_ASSASSIN,
     PERDITIONS_BLADE,
     MASTER_OF_DISGUISE,
+    // Tier 3 补全
+    PILFER,
 ];
 
 pub const SHAMAN_CLASSIC: &[CardDef] = &[
@@ -435,6 +456,9 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     // Tier 2 补全
     SUMMONING_PORTAL,
     CORRUPTION,
+    // Tier 3 补全
+    CALL_OF_THE_VOID,
+    BANE_OF_DOOM,
 ];
 
 pub const WARRIOR_CLASSIC: &[CardDef] = &[
@@ -881,4 +905,24 @@ pub const ALL_CARDS: &[CardDef] = &[
     TINKMASTER_OVERSPARK,
     DEVILSAUR,
     SQUIRREL,
+    // Tier 3 随机卡池
+    BRIGHTWING,
+    NOZDORMU,
+    XAVIUS,
+    YSERA,
+    EMERALD_DRAKE,
+    LAUGHING_SISTER,
+    DREAM,
+    NIGHTMARE,
+    YSERA_AWAKENS,
+    BARRENS_STABLEHAND,
+    ANIMAL_COMPANION,
+    HUFFER,
+    LEOKK,
+    MISHA,
+    TOME_OF_INTELLECT,
+    ARCHMAGE_ANTONIDAS,
+    PILFER,
+    CALL_OF_THE_VOID,
+    BANE_OF_DOOM,
 ];

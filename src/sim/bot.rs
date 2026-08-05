@@ -1194,6 +1194,10 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::Corrupt => 2.0,
         CardEffect::MinHealthUntilEndOfTurn => 2.0,
         CardEffect::TransformToRandom { .. } => 4.0,
+        CardEffect::AddRandomCardToHand { .. } => 3.0,
+        CardEffect::SummonRandomMinion { .. } => 3.0,
+        CardEffect::AddCardToHand { .. } => 3.0,
+        CardEffect::DealDamageAndSummonIfKilled { amount, .. } => amount as f64 * 1.2 + 3.0,
     }
 }
 

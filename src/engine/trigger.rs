@@ -355,6 +355,27 @@ pub fn resolve_effect(
         CardEffect::TransformToRandom { card_a, card_b } => {
             resolve_transform(state, owner, card_a, card_b);
         }
+        CardEffect::AddRandomCardToHand { pool } => {
+            let Some(card_def) = crate::cards::pool::random_card(state.rng_mut(), pool) else {
+                return;
+            };
+            add_card_to_hand(state, owner, card_def);
+        }
+        CardEffect::SummonRandomMinion { pool } => {
+            let Some(card_def) = crate::cards::pool::random_card(state.rng_mut(), pool) else {
+                return;
+            };
+            let _ = resolve_summon(state, queue, source, owner, card_def.id);
+        }
+        CardEffect::AddCardToHand { card_id } => {
+            let Some(card_def) = crate::cards::def::card_by_id(card_id) else {
+                return;
+            };
+            add_card_to_hand(state, owner, card_def);
+        }
+        CardEffect::DealDamageAndSummonIfKilled { amount, pool } => {
+            resolve_damage_and_summon_if_killed(state, queue, source, owner, amount, pool);
+        }
     }
 }
 
@@ -1553,6 +1574,53 @@ fn resolve_transform(state: &mut GameState, owner: PlayerId, card_a: &str, card_
     world.set_cost(target, Cost(def.cost));
     world.set_card_id(target, CardId(def.id));
     world.set_attacks_used(target, AttacksUsed(0));
+}
+
+/// 将卡牌实体加入手牌（新建实体，用于随机生成/安东尼达斯）。
+fn add_card_to_hand(
+    state: &mut GameState,
+    player: PlayerId,
+    card_def: &crate::cards::def::CardDef,
+) {
+    let world = state.world_mut();
+    let e = crate::cards::spawn_card_from_def(world, player, card_def);
+    world.set_zone(e, Zone::Hand);
+    world.zones_mut().insert(Zone::Hand, player, e);
+}
+
+/// 造成伤害；若目标死亡，则召唤一个随机随从（厄运降临）。
+///
+/// 死亡预判基于当前生命值/圣盾（简化：忽略护甲等后续结算细节）。
+fn resolve_damage_and_summon_if_killed(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+    amount: i32,
+    pool: crate::core::effect::RandomPool,
+) {
+    let enemies = collect_enemy_characters(state, owner);
+    if enemies.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(enemies.len());
+    let target = enemies[idx];
+    queue.push(Event::DamageDealt {
+        source,
+        target,
+        amount,
+    });
+    // 预判死亡：无圣盾且生命值不足以承受伤害
+    let will_die = state.world().divine_shield(target).is_none()
+        && state
+            .world()
+            .health(target)
+            .is_some_and(|h| h.0 - amount <= 0);
+    if will_die {
+        if let Some(card_def) = crate::cards::pool::random_card(state.rng_mut(), pool) {
+            let _ = resolve_summon(state, queue, source, owner, card_def.id);
+        }
+    }
 }
 
 /// 使一个友方随从获得潜行（伪装大师，不能指定自身）。

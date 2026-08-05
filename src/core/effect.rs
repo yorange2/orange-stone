@@ -341,4 +341,50 @@ pub enum CardEffect {
         /// 备选卡牌 B（1/1 松鼠）
         card_b: &'static str,
     },
+    /// 将一张随机卡牌置入你的手牌（Tier 3 随机生成）
+    AddRandomCardToHand {
+        /// 卡池类型
+        pool: RandomPool,
+    },
+    /// 召唤一个随机随从（动物伙伴/贫瘠之地驯马师）
+    SummonRandomMinion {
+        /// 卡池类型
+        pool: RandomPool,
+    },
+    /// 将指定卡牌置入你的手牌（大法师安东尼达斯的火球术）
+    AddCardToHand {
+        /// 卡牌 ID
+        card_id: &'static str,
+    },
+    /// 造成伤害；若目标死亡，则召唤一个随机随从（厄运降临）
+    DealDamageAndSummonIfKilled {
+        /// 伤害数值
+        amount: i32,
+        /// 死亡后召唤的卡池
+        pool: RandomPool,
+    },
+}
+
+/// 随机卡池类型 — Tier 3 随机生成。
+///
+/// 满足卡池封闭性：所有抽样池都是 Classic 池的过滤子集
+/// （见 `src/cards/pool.rs`）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RandomPool {
+    /// 随机传说随从（光明之翼）
+    Legendary,
+    /// 随机野兽（贫瘠之地驯马师）
+    Beast,
+    /// 随机法师法术（奥术智慧宝典）
+    MageSpell,
+    /// 随机暗影法术（萨维斯）
+    ShadowSpell,
+    /// 随机恶魔（虚空呼唤/厄运降临）
+    Demon,
+    /// 另一职业的随机卡牌（偷窃 — 简化为非盗贼卡牌）
+    OtherClass,
+    /// 随机梦境卡（伊瑟拉）
+    Dream,
+    /// 随机动物伙伴（霍弗/雷欧克/米莎）
+    Companion,
 }
