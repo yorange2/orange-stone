@@ -18,7 +18,7 @@ use crate::cards::sets::ALL_CARDS;
 use crate::core::action::Action;
 use crate::core::component::CardType;
 use crate::core::player::PlayerId;
-use crate::core::state::{GameState, Phase};
+use crate::core::state::{GameState, Step};
 use crate::core::zone::Zone;
 use crate::engine::game::GameEngine;
 use crate::sim::bot::{GreedyBot, SmartBot};
@@ -178,7 +178,7 @@ pub struct BattleResult {
     /// Engine errors that occurred in this battle (with context)
     pub errors: Vec<BattleError>,
     /// Replay check with a different seed (optional)
-    pub end_phase: Phase,
+    pub end_step: Step,
 }
 
 /// An error record from a battle.
@@ -391,7 +391,7 @@ impl BattleRunner {
                 break;
             }
 
-            if matches!(state.phase(), Phase::GameOver { .. }) {
+            if matches!(state.step(), Step::GameOver { .. }) {
                 break;
             }
 
@@ -426,18 +426,18 @@ impl BattleRunner {
                 }
 
                 // Break out once the game is over
-                if matches!(state.phase(), Phase::GameOver { .. }) {
+                if matches!(state.step(), Step::GameOver { .. }) {
                     break;
                 }
             }
 
-            if matches!(state.phase(), Phase::GameOver { .. }) {
+            if matches!(state.step(), Step::GameOver { .. }) {
                 break;
             }
         }
 
-        let winner = match state.phase() {
-            Phase::GameOver { winner } => Some(winner),
+        let winner = match state.step() {
+            Step::GameOver { winner } => Some(winner),
             _ => None,
         };
 
@@ -476,7 +476,7 @@ impl BattleRunner {
             p2_hp,
             total_actions,
             errors,
-            end_phase: state.phase(),
+            end_step: state.step(),
         }
     }
 }

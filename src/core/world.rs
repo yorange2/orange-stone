@@ -13,8 +13,8 @@ use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
     Charge, ChooseOneEffect, ComboEffect, Cost, DeathTrigger, Deathrattle, DivineShield,
     Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Immune, Overload,
-    OverloadTrigger, Poison, Secret, SpellDamage, SpellTrigger, Stealth, SummonTrigger, Taunt,
-    TempAttackDebuff, Windfury,
+    OverloadTrigger, Poison, Secret, SpellDamage, SpellTrigger, StartTurnEffect, Stealth,
+    SummonTrigger, Taunt, TempAttackDebuff, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -131,6 +131,7 @@ pub struct World {
     cant_attack: SparseSet<CantAttack>,
     /// EndTurnEffect component storage (end-of-turn effects)
     end_turn_effect: SparseSet<EndTurnEffect>,
+    start_turn_effect: SparseSet<StartTurnEffect>,
     /// SpellTrigger component storage (spell trigger effects)
     spell_trigger: SparseSet<SpellTrigger>,
     /// DeathTrigger component storage (minion death trigger effects)
@@ -257,6 +258,7 @@ impl World {
             freeze: SparseSet::new(),
             cant_attack: SparseSet::new(),
             end_turn_effect: SparseSet::new(),
+            start_turn_effect: SparseSet::new(),
             spell_trigger: SparseSet::new(),
             death_trigger: SparseSet::new(),
             summon_trigger: SparseSet::new(),
@@ -638,6 +640,14 @@ impl World {
         set_end_turn_effect,
         remove_end_turn_effect,
         iter_end_turn_effect
+    );
+    component_accessors!(
+        start_turn_effect,
+        StartTurnEffect,
+        start_turn_effect,
+        set_start_turn_effect,
+        remove_start_turn_effect,
+        iter_start_turn_effect
     );
     component_accessors!(
         spell_trigger,

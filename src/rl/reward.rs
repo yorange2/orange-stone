@@ -4,7 +4,7 @@
 //! (enemy hero damage, minion kills, own minion losses) to speed up learning.
 
 use crate::core::player::PlayerId;
-use crate::core::state::{GameState, Phase};
+use crate::core::state::{GameState, Step};
 use crate::core::zone::Zone;
 
 /// Reward configuration — weights for each component.
@@ -57,8 +57,8 @@ pub fn terminal_reward(
 /// Computes the final reward when the game ends.
 #[must_use]
 pub fn final_reward(config: &RewardConfig, state: &GameState, perspective: PlayerId) -> f32 {
-    match state.phase() {
-        Phase::GameOver { winner } => terminal_reward(config, Some(winner), perspective),
+    match state.step() {
+        Step::GameOver { winner } => terminal_reward(config, Some(winner), perspective),
         _ => config.draw,
     }
 }

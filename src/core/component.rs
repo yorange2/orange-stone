@@ -330,6 +330,13 @@ pub struct CantAttack;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct EndTurnEffect(pub crate::core::effect::CardEffect);
 
+/// Start-of-turn effect — triggered at the start of every turn
+/// (`CardDef::start_turn_effect`, wired into the engine in roadmap G1).
+///
+/// Fires in the StartTriggers step, before the mana refill and the draw.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct StartTurnEffect(pub crate::core::effect::CardEffect);
+
 /// Spell-cast trigger effect — triggered when a friendly player casts a spell.
 ///
 /// The effect is defined by `CardEffect` and detected while handling the `SpellCast` event.

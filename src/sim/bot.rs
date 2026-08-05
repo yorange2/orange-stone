@@ -42,7 +42,7 @@ impl GreedyBot {
     /// An empty `Vec` means the game is over.
     pub fn decide_actions(&self, state: &GameState) -> Vec<Action> {
         // Return no actions once the game is over
-        if matches!(state.phase(), crate::core::state::Phase::GameOver { .. }) {
+        if matches!(state.step(), crate::core::state::Step::GameOver { .. }) {
             return vec![];
         }
 
@@ -392,7 +392,7 @@ mod tests {
     #[test]
     fn bot_returns_empty_for_game_over() {
         let mut builder = GameBuilder::new();
-        builder.phase(crate::core::state::Phase::GameOver {
+        builder.step(crate::core::state::Step::GameOver {
             winner: PlayerId::Player1,
         });
         let state = builder.build();
@@ -465,7 +465,7 @@ impl SmartBot {
     /// Returns all actions to execute in the current turn.
     /// An empty `Vec` means the game is over.
     pub fn decide_actions(&self, state: &GameState) -> Vec<Action> {
-        if matches!(state.phase(), crate::core::state::Phase::GameOver { .. }) {
+        if matches!(state.step(), crate::core::state::Step::GameOver { .. }) {
             return vec![];
         }
 
@@ -1245,7 +1245,7 @@ mod smart_bot_tests {
     #[test]
     fn smart_bot_returns_empty_for_game_over() {
         let mut builder = GameBuilder::new();
-        builder.phase(crate::core::state::Phase::GameOver {
+        builder.step(crate::core::state::Step::GameOver {
             winner: PlayerId::Player1,
         });
         let state = builder.build();

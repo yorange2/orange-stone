@@ -12,7 +12,7 @@ use crate::core::action::Action;
 use crate::core::component::CardType;
 use crate::core::effect::EffectTarget;
 use crate::core::player::PlayerId;
-use crate::core::state::{GameState, Phase};
+use crate::core::state::{GameState, Step};
 use crate::core::zone::Zone;
 use crate::engine::game::GameEngine;
 use crate::engine::rules;
@@ -159,13 +159,13 @@ impl GameEnv {
         };
 
         // Terminal check
-        if matches!(self.state.phase(), Phase::GameOver { .. }) {
+        if matches!(self.state.step(), Step::GameOver { .. }) {
             self.done = true;
             reward += reward::final_reward(&self.config.reward, &self.state, self.perspective);
         } else if ok && matches!(action, Action::EndTurn) {
             // Opponent's turn: the bot advances automatically until turn end or game over
             self.run_bot_turn();
-            if matches!(self.state.phase(), Phase::GameOver { .. }) {
+            if matches!(self.state.step(), Step::GameOver { .. }) {
                 self.done = true;
                 reward += reward::final_reward(&self.config.reward, &self.state, self.perspective);
             }
@@ -185,7 +185,7 @@ impl GameEnv {
     /// Opponent's turn — executes the bot's actions until turn end or game over.
     fn run_bot_turn(&mut self) {
         loop {
-            if matches!(self.state.phase(), Phase::GameOver { .. }) {
+            if matches!(self.state.step(), Step::GameOver { .. }) {
                 break;
             }
             if self.state.active_player() == self.perspective {
@@ -202,7 +202,7 @@ impl GameEnv {
                     self.steps += 1;
                     applied += 1;
                 }
-                if matches!(self.state.phase(), Phase::GameOver { .. }) {
+                if matches!(self.state.step(), Step::GameOver { .. }) {
                     break;
                 }
             }
@@ -214,8 +214,8 @@ impl GameEnv {
 
     /// Current winner (`None` if the game is not over).
     fn winner(&self) -> Option<PlayerId> {
-        match self.state.phase() {
-            Phase::GameOver { winner } => Some(winner),
+        match self.state.step() {
+            Step::GameOver { winner } => Some(winner),
             _ => None,
         }
     }

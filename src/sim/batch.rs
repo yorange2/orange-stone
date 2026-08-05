@@ -6,7 +6,7 @@
 //! RNG and action sequence determine the outcome, independent of thread scheduling).
 
 use crate::core::player::PlayerId;
-use crate::core::state::{GameState, Phase};
+use crate::core::state::{GameState, Step};
 use crate::engine::game::GameEngine;
 use crate::sim::battle::{BattleRunner, BotDelegate, BotType};
 use rayon::prelude::*;
@@ -73,7 +73,7 @@ impl BatchSimulator {
         let engine = GameEngine::new();
         let mut steps = 0u32;
         loop {
-            if steps >= self.max_steps || matches!(state.phase(), Phase::GameOver { .. }) {
+            if steps >= self.max_steps || matches!(state.step(), Step::GameOver { .. }) {
                 break;
             }
             let actions = self.bot.decide_actions(state);
@@ -87,7 +87,7 @@ impl BatchSimulator {
                     steps += 1;
                     applied += 1;
                 }
-                if matches!(state.phase(), Phase::GameOver { .. }) {
+                if matches!(state.step(), Step::GameOver { .. }) {
                     break;
                 }
             }
@@ -96,8 +96,8 @@ impl BatchSimulator {
                 break;
             }
         }
-        let winner = match state.phase() {
-            Phase::GameOver { winner } => Some(winner),
+        let winner = match state.step() {
+            Step::GameOver { winner } => Some(winner),
             _ => None,
         };
         BatchOutcome {

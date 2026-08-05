@@ -139,9 +139,9 @@ mod tests {
         // Hero 30 HP → 1.0, attack 0 → 0.0
         assert_eq!(obs[0], 1.0);
         assert_eq!(obs[1], 0.0);
-        // Mana 0/0
-        assert_eq!(obs[3], 0.0);
-        assert_eq!(obs[4], 0.0);
+        // Mana 1/1 — the first player's opening turn starts with 1 crystal (G1)
+        assert_eq!(obs[3], 0.1);
+        assert_eq!(obs[4], 0.1);
         // Enemy hero 30 HP
         assert_eq!(obs[5], 1.0);
         // Empty hand / empty board are all 0
