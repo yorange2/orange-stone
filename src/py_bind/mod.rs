@@ -123,6 +123,15 @@ impl PyGameEnv {
         OBS_LEN
     }
 
+    /// All card IDs in the full classic pool (M5 deck building).
+    #[staticmethod]
+    fn all_card_ids() -> Vec<String> {
+        crate::cards::sets::ALL_CARDS
+            .iter()
+            .map(|c| c.id.to_string())
+            .collect()
+    }
+
     /// Resets the environment, returning the initial observation.
     ///
     /// Releases the GIL while the engine works (M4): the engine is pure Rust

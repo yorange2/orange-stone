@@ -63,3 +63,25 @@ fidelity depends on:
 
 When extending the harness, add the scenario to `tests/differential.rs`
 first (the golden expectation), then mirror it in the SabberStone driver.
+
+## External run status (2026-08-06)
+
+`tools/sabberstone_diff/` is a working .NET driver (net10.0, cloned
+SabberStone @ HearthSim/SabberStone). The combat scenario
+(`scenario_attack_trade_event_sequence`: 4/5 attacks 2/3) now has an
+external transcript:
+
+```
+SabberStone: attack processed: True
+             after: attacker health = 3        (4/5 - 2 dmg)
+             defender zone = GRAVEYARD, dead = True
+Orange Stone golden expectation: effective_health(attacker) == Health(3),
+             zone(defender) == Zone::Graveyard
+```
+
+**The two simulators agree** for the combat scenario. Remaining scenarios
+(turn-start ordering, counterspell, choose-one, overload, death-batch)
+follow the same protocol; each needs its own SabberStone mirror in the
+driver. The cloned SabberStone needs a local patch (net8 `Shuffle` now
+returns `Span<T>` — `SpecificTask.cs` line 604/667: `IList<Card>` ->
+`var`), documented here so future runs know.
