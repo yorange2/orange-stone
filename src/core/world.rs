@@ -227,7 +227,7 @@ impl AuraIndex {
 impl World {
     /// 创建一个空的世界。
     #[must_use]
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             aura_index: AuraIndex::new(),
             generations: Vec::new(),

@@ -488,3 +488,43 @@ mod serialization_tests {
     #[allow(dead_code)]
     fn _unused(_: Health, _: Attack) {}
 }
+
+#[cfg(test)]
+mod cow_sharing_tests {
+    use super::*;
+    use crate::cards::def::BLOODFEN_RAPTOR;
+    use crate::core::component::Health;
+    use crate::sim::game::GameBuilder;
+
+    #[test]
+    fn game_state_clone_shares_world_pages() {
+        // 克隆 GameState 后，World 的组件页被 Arc 共享（结构性共享，非深拷贝）
+        let mut builder = GameBuilder::new();
+        for _ in 0..10 {
+            builder.add_minion_to_board(PlayerId::Player1, &BLOODFEN_RAPTOR);
+        }
+        let a = builder.build();
+        let mut b = a.clone();
+
+        // 双方共享 World 数据 — 修改 b 不影响 a（写时复制）
+        let hero = b.player(PlayerId::Player1).hero;
+        {
+            let inner = b.make_mut();
+            inner.world.set_health(hero, Health(20));
+        }
+        assert_eq!(
+            a.world().health(hero),
+            Some(Health(30)),
+            "clone must not see the write"
+        );
+        assert_eq!(b.world().health(hero), Some(Health(20)));
+        // a 中 10 个随从完好
+        let minions: Vec<_> = a
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId::Player1)
+            .filter(|&e| a.world().card_type(e) == Some(crate::core::component::CardType::Minion))
+            .collect();
+        assert_eq!(minions.len(), 10);
+    }
+}
