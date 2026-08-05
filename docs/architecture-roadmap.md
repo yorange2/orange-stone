@@ -6,7 +6,11 @@
 
 ## TL;DR
 
-The architecture is the right shape for its goal (RL training): typed ECS + generational indices, CoW game state, deterministic event loop, zero-card-code data-driven effects. Compared with RosettaStone/SabberStone the deliberate trade-offs are justified. The real gaps are two: **P0 hot-path data structures** (O(n) event queue, full aura scans) and **P1 design debt** (whole-state CoW copies, secrets implemented by rewriting pending queue events instead of a unified damage pipeline).
+The architecture is the right shape for its goal: typed ECS + generational indices, CoW game state, deterministic event loop, zero-card-code data-driven effects.
+
+**Fidelity policy (2026-08-05): absolute fidelity to Hearthstone is a hard requirement.** Every card effect, sequencing rule, and targeting rule must match real Hearthstone semantics; RL-training ergonomics (determinism, replay, cheap cloning, tensorized I/O) are engineering properties of the same engine, not a license to simplify game rules. The previously "deliberate" simplifications (Overload mana lock, permanent Stealth, Choose One auto-random, single-target destroy hitting all matches, …) are now fidelity debt tracked in Milestone F.
+
+Status: milestones A–D (hot path, damage pipeline, RL prep, scale) are complete (PRs #35–#46). Remaining work: Milestone E (engineering debt) and Milestone F (fidelity).
 
 | Priority | Item | Where | Effort |
 |----------|------|-------|--------|
@@ -18,6 +22,8 @@ The architecture is the right shape for its goal (RL training): typed ECS + gene
 | P2 | No player target choice in `Action` — spell/battlecry targets are engine-random | `src/core/action.rs:13` | Large |
 | P2 | `py_bind/` and `rl/` do not exist yet; CLAUDE.md module diagram is stale | — | Large |
 | P2 | Card database is ~400 hand-written consts; consider `build.rs` generation from official JSON | `src/cards/` | Medium |
+
+> Status of every item above is annotated in §2 (resolved via PRs #35–#46; the rest are tracked in Milestones E and F).
 | P2 | Code comments are Chinese, violating CLAUDE.md's own "English comments" rule | whole repo | Small |
 
 ---
@@ -25,6 +31,10 @@ The architecture is the right shape for its goal (RL training): typed ECS + gene
 ## 1. Position: why this architecture differs from RosettaStone / SabberStone
 
 One-sentence comparison: RosettaStone and SabberStone are **fidelity-first simulators** (full target choice, full trigger sequencing, official JSON card data + per-card power scripts); Orange Stone is an **RL training environment first** (deterministic replay, no player choice, data-only cards, cheap state cloning).
+
+### Fidelity policy — absolute fidelity is a hard requirement
+
+**Orange Stone must be absolutely faithful to Hearthstone.** Card effects, trigger/sequencing rules, targeting rules, and resource mechanics must match the real game — the fidelity-first posture of RosettaStone/SabberStone is the correctness bar, and RL ergonomics (determinism, replay, cheap cloning, tensorized I/O) are engineering properties of the same engine rather than a license to simplify rules. Every documented simplification is therefore **debt**, not a trade-off: it is tracked in Milestone F and must be eliminated. The enforcement mechanism is differential validation against SabberStone/RosettaStone outcomes (F5) plus a per-effect fidelity audit (F4).
 
 | Dimension | Orange Stone | RosettaStone | SabberStone |
 |-----------|-------------|--------------|-------------|
@@ -65,7 +75,7 @@ One-sentence comparison: RosettaStone and SabberStone are **fidelity-first simul
 
 - ✅ **RESOLVED (C1, PR #40)** — `Action::PlayCard { card }` had no target (`src/core/action.rs:13`); every `EffectTarget` was engine-random. Now `PlayCard { card, target }` with `select_target` (explicit-first, random fallback), threaded through 20+ single-target resolvers — the agent can choose face vs board.
 - ❌ **OPEN (E3)** — Choose One auto-random, Combo auto-detected — `src/engine/rules.rs` (choose one via RNG; combo from `cards_played_this_turn`). No player decision surface.
-- 📌 **INTENTIONAL** — Documented simplifications: Overload is only a trigger marker, not mana lock (`src/core/component.rs`); Stealth is permanent (`src/core/component.rs`). These must stay documented so validation against real Hearthstone doesn't trip on them.
+- ❌ **OPEN (F1, F2)** — Documented simplifications, now fidelity debt: Overload is only a trigger marker, not mana lock (`src/core/component.rs`); Stealth is permanent and its "cannot be targeted by single-target effects" claim is not enforced in target resolution (`src/core/component.rs`, `src/engine/rules.rs:229`). Per the fidelity policy these must be implemented, not merely documented.
 - ✅ **RESOLVED (C2/C3/C4, PR #42)** — `py_bind/` and `rl/` did not exist; the CLAUDE.md module diagram (Phase 4 target) was ahead of the code. Now `rl/` (env, obs, reward) + PyO3 `GameEnv` (`py` feature, abi3) exist and the wheel is smoke-tested; `sim/battle.rs` + `sim/bot.rs` remain the self-play precursor.
 - ⚠️ **PARTIAL (D2, PR #45)** — Card database was ~400 hand-written `const CardDef`s with no mechanical link to official data. The `build.rs` generation pipeline now exists (official-format JSON → static card consts, verified against the hand-written db), but the repo carries only a 4-card sample — the full official DB is not vendored yet (see E4).
 - ✅ **RESOLVED (D4, PR #46)** — Code comments were Chinese while CLAUDE.md requires English. Whole-repo translation done (~2,100 comment lines); verified code-byte-identical via a comment-strip diff.
@@ -107,6 +117,14 @@ One-sentence comparison: RosettaStone and SabberStone are **fidelity-first simul
 - [ ] **E2** — Retire the last queue-mutation primitive `redirect_damages` (B2 leftover): route Spellbender through the damage pipeline (e.g. damage-source interception at `DamageDealt`) instead of rewriting pending spell-damage events.
 - [ ] **E3** — Choose One / Combo decision surface (P2): expose the choice in `Action` so the agent decides instead of engine-random / auto-detected combo.
 - [ ] **E4** — Complete D2: vendor the full official CardDefs JSON and regenerate the static card consts (hand-written effect fields stay on top of the generated statics).
+
+### Milestone F — Absolute fidelity (hard requirement)
+
+- [ ] **F1** — Overload mana lock: implement real Hearthstone semantics (per-card overload amounts lock the owner's mana on the next turn) instead of the trigger-only marker.
+- [ ] **F2** — Stealth full fidelity: remove Stealth when the character attacks, and exclude stealthed characters from single-target effects (currently only attacks are blocked).
+- [ ] **F3** — Choose One player choice: expose the choice in `Action` (engine-random selection is not faithful).
+- [ ] **F4** — Fidelity audit: systematic per-`CardEffect` pass against real Hearthstone semantics; fix known divergences (e.g. single-target destroy currently destroys *all* matching enemies; damaged-enemy destroy likewise; verify target sets, damage sequencing, aura stacking).
+- [ ] **F5** — Differential validation: conformance tests comparing game outcomes / event sequences against SabberStone (and/or RosettaStone) as reference implementations, so fidelity regressions are caught mechanically.
 
 ---
 
