@@ -16,7 +16,7 @@ use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue, Priority};
 use crate::core::player::PlayerId;
 use crate::core::small_list::SmallList;
-use crate::core::state::{GameState, Step};
+use crate::core::state::{ChoiceKind, GameState, Step};
 use crate::core::zone::Zone;
 use crate::engine::trigger;
 
@@ -49,6 +49,10 @@ pub enum EngineError {
     MustAttackTaunt,
     /// Hero power already used this turn
     HeroPowerAlreadyUsed,
+    /// No choice is pending (roadmap G6)
+    NoPendingChoice,
+    /// The choice id does not match the pending choice, or the option is out of range
+    InvalidChoice,
     /// Feature not yet implemented (Phase 2+)
     Unimplemented,
 }
@@ -66,11 +70,29 @@ pub fn validate(state: &GameState, action: Action) -> Result<(), EngineError> {
     }
 
     match action {
-        Action::PlayCard { card, target: _ } => validate_play_card(state, card),
+        Action::PlayCard {
+            card,
+            target: _,
+            position: _,
+        } => validate_play_card(state, card),
         Action::Attack { attacker, defender } => validate_attack(state, attacker, defender),
         Action::EndTurn => validate_end_turn(state),
-        Action::HeroPower { hero } => validate_hero_power(state, hero),
+        Action::HeroPower { hero, target: _ } => validate_hero_power(state, hero),
+        Action::Choose { choice_id, option } => validate_choose(state, choice_id, option),
     }
+}
+
+/// Validates a choice resolution (roadmap G6): a choice must be pending and
+/// the id/option must match.
+fn validate_choose(state: &GameState, choice_id: u64, option: u8) -> Result<(), EngineError> {
+    let pending = state.pending_choice().ok_or(EngineError::NoPendingChoice)?;
+    if pending.id != choice_id {
+        return Err(EngineError::InvalidChoice);
+    }
+    if option as usize >= pending.options.len() {
+        return Err(EngineError::InvalidChoice);
+    }
+    Ok(())
 }
 
 /// Validates a play-card action.
@@ -318,12 +340,17 @@ pub fn enqueue(
     queue: &mut EventQueue,
 ) -> Result<(), EngineError> {
     match action {
-        Action::PlayCard { card, target } => {
+        Action::PlayCard {
+            card,
+            target,
+            position,
+        } => {
             let player = state.active_player();
             queue.push(Event::CardPlayed {
                 player,
                 card,
                 target,
+                position,
             });
             let card_type = state.world().card_type(card);
             if card_type == Some(CardType::Minion) {
@@ -365,12 +392,16 @@ pub fn enqueue(
             let active = state.active_player();
             queue.push(Event::TurnEnded { player: active });
         }
-        Action::HeroPower { hero } => {
+        Action::HeroPower { hero, target } => {
             let active = state.active_player();
             queue.push(Event::HeroPowerActivated {
                 player: active,
                 hero,
+                target,
             });
+        }
+        Action::Choose { choice_id, option } => {
+            queue.push(Event::ChoiceResolved { choice_id, option });
         }
     }
     Ok(())
@@ -482,6 +513,7 @@ pub fn apply_event(
             player,
             card,
             target,
+            position,
         } => {
             // Deduct mana (single cost composition — roadmap G5)
             let cost = crate::engine::cost::play_cost(state, card, player);
@@ -520,8 +552,20 @@ pub fn apply_event(
                         player,
                         spell: card,
                     });
+                } else if state.world().choose_one_effect(card).is_some() && !combo_active {
+                    // Choose One spell (roadmap G6): the branch choice surfaces
+                    // as a pending choice; the effect, the SpellCast event, and
+                    // the graveyard move resolve in ChoiceResolved. The default
+                    // policy (GameEngine::apply) resolves it randomly via the
+                    // embedded RNG, preserving the historical behavior.
+                    state.set_pending_choice(
+                        ChoiceKind::ChooseOne,
+                        card,
+                        vec![String::from("First option"), String::from("Second option")],
+                        Vec::new(),
+                    );
                 } else {
-                    // Spell card: resolve the effect (with choose-one random pick and combo), then move to the graveyard
+                    // Spell card: resolve the effect (combo-aware), then move to the graveyard
                     let chosen_effect = if combo_active {
                         // Combo: prefer combo_effect
                         state
@@ -529,23 +573,6 @@ pub fn apply_event(
                             .combo_effect(card)
                             .map(|c| c.0)
                             .or_else(|| state.world().battlecry(card).map(|b| b.0))
-                    } else if state.world().choose_one_effect(card).is_some() {
-                        // Choose one: pick randomly
-                        let has_main = state.world().battlecry(card).is_some();
-                        let has_alt = state.world().choose_one_effect(card).is_some();
-                        if has_main && has_alt {
-                            if state.rng_mut().next_usize(2) == 0 {
-                                state.world().battlecry(card).map(|b| b.0)
-                            } else {
-                                state.world().choose_one_effect(card).map(|c| c.0)
-                            }
-                        } else {
-                            state
-                                .world()
-                                .battlecry(card)
-                                .map(|b| b.0)
-                                .or_else(|| state.world().choose_one_effect(card).map(|c| c.0))
-                        }
                     } else {
                         state.world().battlecry(card).map(|b| b.0)
                     };
@@ -605,11 +632,30 @@ pub fn apply_event(
                     trigger::resolve_effect(state, queue, card, player, effect, None);
                 }
             } else {
-                // Move the card from hand to the battlefield
+                // Move the card from hand to the battlefield (summon position,
+                // roadmap G6 — 0 = leftmost)
                 state
                     .world_mut()
                     .move_to_zone(card, Zone::Play)
                     .map_err(|_| EngineError::EntityGone(card))?;
+                if let Some(position) = position {
+                    let world = state.world_mut();
+                    world.zones_mut().remove(Zone::Play, player, card);
+                    world
+                        .zones_mut()
+                        .insert_at(Zone::Play, player, card, position as usize);
+                }
+                // Choose One minions (Cenarius, Keeper of the Grove): the branch
+                // choice surfaces as a pending choice — MinionSummoned skips the
+                // battlecry and ChoiceResolved resolves the chosen branch (G6).
+                if state.world().choose_one_effect(card).is_some() {
+                    state.set_pending_choice(
+                        ChoiceKind::ChooseOne,
+                        card,
+                        vec![String::from("First option"), String::from("Second option")],
+                        Vec::new(),
+                    );
+                }
             }
             // Overload triggers: when a card with overload is played, registered
             // FriendlyOverloadPlayed triggers fire (Unbound Elemental)
@@ -629,19 +675,22 @@ pub fn apply_event(
             if state.world().charge(minion).is_none() {
                 state.world_mut().set_attacks_used(minion, AttacksUsed(1));
             }
-            // Check battlecry component (combo-aware)
-            let combo_active = state.player(player).cards_played_this_turn > 1;
-            let chosen_effect = if combo_active {
-                state
-                    .world()
-                    .combo_effect(minion)
-                    .map(|c| c.0)
-                    .or_else(|| state.world().battlecry(minion).map(|b| b.0))
-            } else {
-                state.world().battlecry(minion).map(|b| b.0)
-            };
-            if let Some(effect) = chosen_effect {
-                trigger::resolve_effect(state, queue, minion, player, effect, None);
+            // Check battlecry component (combo-aware). Choose One minions
+            // resolve their branch through the choice system (roadmap G6).
+            if state.world().choose_one_effect(minion).is_none() {
+                let combo_active = state.player(player).cards_played_this_turn > 1;
+                let chosen_effect = if combo_active {
+                    state
+                        .world()
+                        .combo_effect(minion)
+                        .map(|c| c.0)
+                        .or_else(|| state.world().battlecry(minion).map(|b| b.0))
+                } else {
+                    state.world().battlecry(minion).map(|b| b.0)
+                };
+                if let Some(effect) = chosen_effect {
+                    trigger::resolve_effect(state, queue, minion, player, effect, None);
+                }
             }
             // Summon triggers: registered FriendlyMinionSummoned triggers fire in
             // play order (the summoned minion itself is excluded)
@@ -885,7 +934,11 @@ pub fn apply_event(
         Event::CardDrawn { .. } => {
             // Notification event — the card was already moved to hand in draw_card
         }
-        Event::HeroPowerActivated { player, hero } => {
+        Event::HeroPowerActivated {
+            player,
+            hero,
+            target,
+        } => {
             // Deduct mana
             let cost = state
                 .world()
@@ -901,10 +954,10 @@ pub fn apply_event(
             state
                 .world_mut()
                 .set_hero_power_used(hero, HeroPowerUsed(true));
-            // Resolve the hero power effect
+            // Resolve the hero power effect (explicit target, roadmap G6)
             if let Some(hp_def) = state.world().hero_power(hero) {
                 let effect = hp_def.effect;
-                trigger::resolve_effect(state, queue, hero, player, effect, None);
+                trigger::resolve_effect(state, queue, hero, player, effect, target);
             }
         }
         Event::WeaponEquipped { .. } => {
@@ -926,6 +979,63 @@ pub fn apply_event(
                 None,
                 None,
             );
+        }
+        Event::ChoiceResolved { choice_id, option } => {
+            // Resolve the pending choice (roadmap G6). The choice was validated
+            // and the pending entry is consumed here.
+            let inner = state.make_mut();
+            let Some(pending) = inner.pending_choice.take() else {
+                return Ok(());
+            };
+            if pending.id != choice_id {
+                inner.pending_choice = Some(pending);
+                return Err(EngineError::InvalidChoice);
+            }
+            match pending.kind {
+                ChoiceKind::ChooseOne => {
+                    let card = pending.card;
+                    let player = state.world().player(card).unwrap_or(state.active_player());
+                    let card_type = state.world().card_type(card);
+                    let chosen_effect = if option == 0 {
+                        state.world().battlecry(card).map(|b| b.0)
+                    } else {
+                        state.world().choose_one_effect(card).map(|c| c.0)
+                    };
+                    let returns_to_hand = matches!(
+                        chosen_effect,
+                        Some(crate::core::effect::CardEffect::DealDamageAndReturnToHand { .. })
+                    );
+                    if let Some(effect) = chosen_effect {
+                        trigger::resolve_effect(state, queue, card, player, effect, None);
+                    }
+                    if card_type == Some(CardType::Spell) {
+                        // Spells: the SpellCast event and graveyard move complete
+                        // the play that was deferred when the choice surfaced.
+                        queue.push(Event::SpellCast {
+                            player,
+                            spell: card,
+                        });
+                        if !returns_to_hand {
+                            let _ = state.world_mut().move_to_zone(card, Zone::Graveyard);
+                        }
+                    }
+                }
+                ChoiceKind::Discover => {
+                    // Add the picked pool card to the owner's hand
+                    if let Some(card_id) = pending.pool.get(option as usize) {
+                        if let Some(card_def) = crate::cards::def::card_by_id(card_id) {
+                            let player = state
+                                .world()
+                                .player(pending.card)
+                                .unwrap_or(state.active_player());
+                            trigger::add_card_to_hand(state, player, card_def);
+                        }
+                    }
+                }
+                ChoiceKind::Mulligan => {
+                    // Mulligan resolution lands with G7 (opening flow)
+                }
+            }
         }
         Event::GameOver { winner } => {
             state.set_step(Step::GameOver { winner });
@@ -1211,7 +1321,14 @@ mod tests {
     fn validate_play_card_legal() {
         let mut state = GameState::new();
         let card = add_minion_to_hand(&mut state, PlayerId::Player1, 2, 3);
-        let result = validate(&state, Action::PlayCard { card, target: None });
+        let result = validate(
+            &state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        );
         assert!(result.is_ok(), "valid play should succeed: {result:?}");
     }
 
@@ -1219,7 +1336,14 @@ mod tests {
     fn validate_play_card_not_your_card() {
         let mut state = GameState::new();
         let card = add_minion_to_hand(&mut state, PlayerId::Player2, 2, 3);
-        let result = validate(&state, Action::PlayCard { card, target: None });
+        let result = validate(
+            &state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        );
         assert_eq!(result, Err(EngineError::NotYourCard));
     }
 
@@ -1228,7 +1352,14 @@ mod tests {
         let mut state = GameState::new();
         let card = add_minion_to_board(&mut state, PlayerId::Player1, 2, 3);
         // On the battlefield, not in hand
-        let result = validate(&state, Action::PlayCard { card, target: None });
+        let result = validate(
+            &state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        );
         assert_eq!(result, Err(EngineError::CardNotInHand));
     }
 
@@ -1240,7 +1371,14 @@ mod tests {
             add_minion_to_board(&mut state, PlayerId::Player1, 1, 1);
         }
         let card = add_minion_to_hand(&mut state, PlayerId::Player1, 2, 3);
-        let result = validate(&state, Action::PlayCard { card, target: None });
+        let result = validate(
+            &state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        );
         assert_eq!(result, Err(EngineError::BoardFull));
     }
 
@@ -1290,6 +1428,7 @@ mod tests {
             Action::PlayCard {
                 card: entity,
                 target: None,
+                position: None,
             },
         );
         assert_eq!(result, Err(EngineError::EntityGone(entity)));
@@ -1805,6 +1944,7 @@ mod tests {
                 Action::PlayCard {
                     card: hand_minion,
                     target: None,
+                    position: None,
                 },
             )
             .unwrap();
@@ -1857,6 +1997,7 @@ mod tests {
                 Action::PlayCard {
                     card: hand_minion,
                     target: None,
+                    position: None,
                 },
             )
             .unwrap();
@@ -1904,6 +2045,7 @@ mod tests {
                 Action::PlayCard {
                     card: aoe,
                     target: None,
+                    position: None,
                 },
             )
             .unwrap();
@@ -2044,6 +2186,7 @@ mod tests {
                 Action::PlayCard {
                     card: e,
                     target: None,
+                    position: None,
                 },
             )
             .unwrap();
@@ -2218,6 +2361,7 @@ mod tests {
                 Action::PlayCard {
                     card: shadowstep,
                     target: Some(minion),
+                    position: None,
                 },
             )
             .unwrap();
@@ -2343,6 +2487,7 @@ mod tests {
                 Action::PlayCard {
                     card: kirin,
                     target: None,
+                    position: None,
                 },
             )
             .unwrap();
@@ -2351,6 +2496,227 @@ mod tests {
             crate::engine::cost::play_cost(&state, trap, PlayerId::Player1),
             Cost(0),
             "the next secret costs 0"
+        );
+    }
+
+    // ============================================================
+    // G6 — choice system
+    // ============================================================
+
+    #[test]
+    fn choose_one_choice_surfaces_and_resolves_branch() {
+        // G6: a Choose One card surfaces a pending choice via apply_choices;
+        // Action::Choose resolves the chosen branch.
+        use crate::cards::def::CENARIUS;
+        use crate::engine::game::Resolution;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_hand(PlayerId::Player1, &CENARIUS);
+        builder.set_mana(PlayerId::Player1, 10, 10);
+        let mut state = builder.build();
+        let cenarius = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("cenarius in hand");
+        let engine = crate::engine::game::GameEngine::new();
+        let resolution = engine
+            .apply_choices(
+                &mut state,
+                Action::PlayCard {
+                    card: cenarius,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        let Resolution::NeedsChoice { choice } = resolution else {
+            panic!("a choose-one card must surface a choice");
+        };
+        assert_eq!(choice.kind, ChoiceKind::ChooseOne);
+        assert_eq!(choice.card, cenarius);
+        assert_eq!(choice.options.len(), 2);
+        // Resolve the second branch (summon two treants)
+        let resolution = engine
+            .apply_choices(
+                &mut state,
+                Action::Choose {
+                    choice_id: choice.id,
+                    option: 1,
+                },
+            )
+            .unwrap();
+        assert!(matches!(resolution, Resolution::Done(_)));
+        let minions: SmallList<Entity> = state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId::Player1)
+            .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+            .collect();
+        assert_eq!(
+            minions.len(),
+            3,
+            "the second branch summons two treants next to Cenarius"
+        );
+    }
+
+    #[test]
+    fn choose_one_invalid_choice_rejected() {
+        use crate::cards::def::CENARIUS;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_hand(PlayerId::Player1, &CENARIUS);
+        builder.set_mana(PlayerId::Player1, 10, 10);
+        let mut state = builder.build();
+        let cenarius = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("cenarius in hand");
+        let engine = crate::engine::game::GameEngine::new();
+        let _ = engine
+            .apply_choices(
+                &mut state,
+                Action::PlayCard {
+                    card: cenarius,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        // A stale choice id is rejected
+        let err = engine
+            .apply_choices(
+                &mut state,
+                Action::Choose {
+                    choice_id: 999,
+                    option: 0,
+                },
+            )
+            .unwrap_err();
+        assert_eq!(err, EngineError::InvalidChoice);
+    }
+
+    #[test]
+    fn discover_choice_picks_a_pool_card() {
+        // G6: an AddRandomCardToHand effect surfaces a Discover choice with the
+        // pool as options; the chosen card is added to hand.
+        use crate::engine::game::Resolution;
+        let mut state = GameState::new();
+        let source = add_minion_to_board(&mut state, PlayerId::Player1, 2, 2);
+        let dream_pool = crate::cards::pool::pool_cards(crate::core::effect::RandomPool::Dream);
+        assert!(!dream_pool.is_empty());
+        let chosen = dream_pool[0];
+        // Simulate the discover flow: set the pending choice as the resolver would
+        let choice_id = state.set_pending_choice(
+            ChoiceKind::Discover,
+            source,
+            dream_pool
+                .iter()
+                .map(|c| format!("{} ({})", c.name, c.id))
+                .collect(),
+            dream_pool.iter().map(|c| c.id.to_string()).collect(),
+        );
+        let engine = crate::engine::game::GameEngine::new();
+        let resolution = engine
+            .apply_choices(
+                &mut state,
+                Action::Choose {
+                    choice_id,
+                    option: 0,
+                },
+            )
+            .unwrap();
+        assert!(matches!(resolution, Resolution::Done(_)));
+        let hand: SmallList<Entity> = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .collect();
+        assert_eq!(hand.len(), 1);
+        assert_eq!(
+            state.world().card_id(hand[0]),
+            Some(crate::core::component::CardId(chosen.id)),
+            "the chosen pool card is added to hand"
+        );
+    }
+
+    #[test]
+    fn summon_position_places_minion() {
+        // G6: PlayCard's position picks the board slot (0 = leftmost)
+        use crate::cards::def::BLOODFEN_RAPTOR;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_board(PlayerId::Player1, &BLOODFEN_RAPTOR);
+        builder.add_minion_to_hand(PlayerId::Player1, &BLOODFEN_RAPTOR);
+        builder.set_mana(PlayerId::Player1, 10, 10);
+        let mut state = builder.build();
+        let existing = state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId::Player1)
+            .next()
+            .expect("board minion");
+        let card = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("hand minion");
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card,
+                    target: None,
+                    position: Some(0),
+                },
+            )
+            .unwrap();
+        let order: SmallList<Entity> = state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId::Player1)
+            .collect();
+        assert_eq!(order[0], card, "position 0 places the minion leftmost");
+        assert_eq!(order[1], existing);
+    }
+
+    #[test]
+    fn hero_power_explicit_target() {
+        // G6: Action::HeroPower carries an explicit target (engine-random otherwise)
+        use crate::core::effect::CardEffect;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.set_hero_power(
+            PlayerId::Player1,
+            2,
+            CardEffect::DealDamage {
+                amount: 2,
+                target: crate::core::effect::EffectTarget::AnyEnemy,
+            },
+        );
+        builder.set_mana(PlayerId::Player1, 10, 10);
+        let mut state = builder.build();
+        let hero = state.player(PlayerId::Player1).hero;
+        let enemy_minion = add_minion_to_board(&mut state, PlayerId::Player2, 2, 4);
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                &mut state,
+                Action::HeroPower {
+                    hero,
+                    target: Some(enemy_minion),
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state.world().effective_health(enemy_minion),
+            Some(Health(2)),
+            "the explicit hero power target takes the damage"
         );
     }
 }

@@ -24,6 +24,37 @@ use crate::core::zone::Zone;
 use crate::sim::rng::GameRng;
 use std::sync::Arc;
 
+/// Choice kind (roadmap G6) — the SB ChoiceType analogue.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChoiceKind {
+    /// Choose One — pick one of the card's branches
+    ChooseOne,
+    /// Discover — pick a card from a pool (SB TaskList)
+    Discover,
+    /// Mulligan — replace starting-hand cards (roadmap G7)
+    Mulligan,
+}
+
+/// A choice the engine needs resolved (roadmap G6).
+///
+/// The engine pauses resolution when a choice is pending and surfaces it via
+/// `GameEngine::apply_choices`; the player resolves it with `Action::Choose`.
+/// The default policy (plain `GameEngine::apply`) resolves pending choices
+/// randomly via the embedded RNG, preserving determinism for self-play.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PendingChoice {
+    /// Opaque id — the player echoes it back in `Action::Choose`
+    pub id: u64,
+    /// The choice kind
+    pub kind: ChoiceKind,
+    /// The entity the choice is about (the card being played / the discover source)
+    pub card: Entity,
+    /// Option labels (agent-facing)
+    pub options: Vec<String>,
+    /// The discover pool's card IDs, when `kind == Discover`
+    pub pool: Vec<String>,
+}
+
 /// Game resolution step — the GameStep state machine (RS/SB analogue, roadmap G1).
 ///
 /// Events process within the current step; when the event queue drains,
@@ -78,6 +109,10 @@ pub struct Inner {
     /// The step interrupted by the death phase — the machine returns here when
     /// the pending deaths are processed (roadmap G3).
     pub return_step: Step,
+    /// The choice awaiting resolution (roadmap G6), if any
+    pub pending_choice: Option<PendingChoice>,
+    /// Monotonic counter for choice ids
+    pub next_choice_id: u64,
     /// Random number generator (reproducible)
     pub rng: GameRng,
 }
@@ -144,6 +179,8 @@ impl GameState {
             active_player: PlayerId::Player1,
             pending_deaths: Vec::new(),
             return_step: Step::Main,
+            pending_choice: None,
+            next_choice_id: 1,
             rng: GameRng::new(12345),
         };
 
@@ -174,6 +211,33 @@ impl GameState {
     #[must_use]
     pub fn pending_deaths(&self) -> &[Entity] {
         &self.inner.pending_deaths
+    }
+
+    /// The choice awaiting resolution (roadmap G6), if any.
+    #[must_use]
+    pub fn pending_choice(&self) -> Option<&PendingChoice> {
+        self.inner.pending_choice.as_ref()
+    }
+
+    /// Creates a pending choice and returns its id.
+    pub fn set_pending_choice(
+        &mut self,
+        kind: ChoiceKind,
+        card: Entity,
+        options: Vec<String>,
+        pool: Vec<String>,
+    ) -> u64 {
+        let inner = self.make_mut();
+        let id = inner.next_choice_id;
+        inner.next_choice_id += 1;
+        inner.pending_choice = Some(PendingChoice {
+            id,
+            kind,
+            card,
+            options,
+            pool,
+        });
+        id
     }
 
     /// Set the game phase.

@@ -402,7 +402,12 @@ impl BattleRunner {
                 total_actions += 1;
 
                 // Track played cards
-                if let Action::PlayCard { card, target: None } = action {
+                if let Action::PlayCard {
+                    card,
+                    target: None,
+                    position: None,
+                } = action
+                {
                     if let Some(card_id) = get_card_id(state, *card) {
                         self.tracker.record_played(card_id);
                     }

@@ -62,6 +62,73 @@ pub(crate) fn random_from_pool(pool: &[&str], rng: &mut GameRng) -> Option<&'sta
     card_by_id(pool[idx])
 }
 
+/// The full card list of a pool, in a deterministic order (roadmap G6 — the
+/// option list for Discover choices). Filtered pools compute the list at call
+/// time.
+pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
+    match pool {
+        RandomPool::Beast => BEAST_POOL.iter().filter_map(|id| card_by_id(id)).collect(),
+        RandomPool::Demon => DEMON_POOL.iter().filter_map(|id| card_by_id(id)).collect(),
+        RandomPool::Dream => DREAM_POOL.iter().filter_map(|id| card_by_id(id)).collect(),
+        RandomPool::Companion => COMPANION_POOL
+            .iter()
+            .filter_map(|id| card_by_id(id))
+            .collect(),
+        RandomPool::Legendary => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Minion
+                    && crate::cards::sets::LEGENDARY_CLASSIC
+                        .iter()
+                        .any(|l| l.id == c.id)
+            })
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
+        RandomPool::MageSpell => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Spell
+                    && crate::cards::sets::MAGE_CLASSIC
+                        .iter()
+                        .any(|m| m.id == c.id)
+            })
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
+        RandomPool::ShadowSpell => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| c.card_type == CardType::Spell && c.name.contains("Shadow"))
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
+        RandomPool::OtherClass => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| {
+                // Pilfer: a random card from another class — simplified to any non-Rogue card
+                !crate::cards::sets::ROGUE_CLASSIC
+                    .iter()
+                    .any(|r| r.id == c.id)
+            })
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
+    }
+}
+
+/// Resolves a card id reference to its static definition.
+fn card_by_id_ref(card: &CardDef) -> Option<&'static CardDef> {
+    card_by_id(card.id)
+}
+
 /// Draws a random card definition by pool type.
 pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'static CardDef> {
     match pool {

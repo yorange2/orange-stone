@@ -87,6 +87,19 @@ impl Zones {
         self.vec_mut(zone, player).push(entity);
     }
 
+    /// Insert an entity at a position within the zone (clamped to the ends).
+    pub fn insert_at(
+        &mut self,
+        zone: Zone,
+        player: PlayerId,
+        entity: crate::core::entity::Entity,
+        position: usize,
+    ) {
+        let vec = self.vec_mut(zone, player);
+        let position = position.min(vec.len());
+        vec.insert(position, entity);
+    }
+
     /// Remove an entity from the given zone (preserving order).
     ///
     /// Uses `Vec::remove` (not swap-remove) to preserve hand/battlefield order.
