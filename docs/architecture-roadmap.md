@@ -1,7 +1,8 @@
 # Architecture Roadmap — Findings & Priorities
 
 > Last updated: 2026-08-05
-> Records the findings of the architecture review (2026-08-05) — Orange Stone vs RosettaStone (C++) and SabberStone (C#) — and the prioritized work items derived from it.
+> Records the findings of the architecture review — Orange Stone vs RosettaStone (C++) and SabberStone (C#) — and the prioritized work items derived from it.
+> Review I (2026-08-05): hot-path + scope findings (Milestones A–F). Review II (2026-08-05): fidelity architecture — the sequencing and stat-modifier model vs RS/SB (Milestone G).
 > Companion document: [architecture-roadmap-zh.md](architecture-roadmap-zh.md)
 
 ## TL;DR
@@ -10,7 +11,9 @@ The architecture is the right shape for its goal: typed ECS + generational indic
 
 **Fidelity policy (2026-08-05): absolute fidelity to Hearthstone is a hard requirement.** Every card effect, sequencing rule, and targeting rule must match real Hearthstone semantics; RL-training ergonomics (determinism, replay, cheap cloning, tensorized I/O) are engineering properties of the same engine, not a license to simplify game rules. The previously "deliberate" simplifications (Overload mana lock, permanent Stealth, Choose One auto-random, single-target destroy hitting all matches, …) are now fidelity debt tracked in Milestone F.
 
-Status: milestones A–D (hot path, damage pipeline, RL prep, scale) are complete (PRs #35–#46). Remaining work: Milestone E (engineering debt) and Milestone F (fidelity).
+Status: milestones A–D (hot path, damage pipeline, RL prep, scale) are complete (PRs #35–#46). Remaining work: Milestone E (engineering debt), Milestone G (fidelity engine architecture), and Milestone F (card-level fidelity — blocked on G).
+
+**Review II conclusion (2026-08-05):** the flat priority event queue + ad-hoc component scans + direct stat writes cannot express Hearthstone's resolution semantics. RS/SB reach fidelity through a **GameStep state machine** (start-triggers → mana → draw → action → end-triggers → death phase → wrap-up), **registered triggers** with play-order / player-precedence rules, a **death-phase batch model**, and an **enchantment layer** for stat/cost modifiers. Milestone G adds those primitives; Milestone F then audits cards against them.
 
 | Priority | Item | Where | Effort |
 |----------|------|-------|--------|
@@ -43,8 +46,11 @@ One-sentence comparison: RosettaStone and SabberStone are **fidelity-first simul
 | State model | `Arc` Copy-on-Write, O(1) clone | Single mutable state per game | Single mutable state + GC |
 | Card implementation | **Pure data**: `CardDef` consts + closed `CardEffect` enum, zero per-card code | JSON + C++ power classes | JSON + C# power classes |
 | Trigger system | Ad-hoc component checks inside `apply_event` | Registered trigger table + chain | TriggerManager + TaskQueue + GameStep machine |
+| Resolution model | Flat priority event queue + per-event handler | GameStep state machine (Main/Death/Final steps) | GameStep state machine (BeginStep … FinalWrapUp) |
 | Auras | Computed at query time (always consistent) | Aura manager + enchantments | AuraManager + EnchantmentManager |
-| Targeting | None — engine picks targets randomly | Full player choice | Full player choice |
+| Stat/cost modifiers | Direct writes into base components (no enchantment layer) | Enchantment objects on GameTag values | EnchantmentInfo + EnchantmentManager |
+| Targeting | Explicit-first `select_target` + random fallback (PR #40) | Full player choice | Full player choice |
+| Game setup & choices | No mulligan/coin; deck draws random index | Choice system (Mulligan/General/HeroPower/TaskList) | Choice + ChoiceManager (MULLIGAN/GENERAL/HERO_POWER/TASK_LIST) |
 | Randomness | `GameRng` embedded in `GameState`, reproducible | Per-game RNG, not replay-designed | Seeded `System.Random` |
 | RL tooling | Battle runner + bots + card coverage tracker | — | — |
 
@@ -80,6 +86,20 @@ One-sentence comparison: RosettaStone and SabberStone are **fidelity-first simul
 - ⚠️ **PARTIAL (D2, PR #45)** — Card database was ~400 hand-written `const CardDef`s with no mechanical link to official data. The `build.rs` generation pipeline now exists (official-format JSON → static card consts, verified against the hand-written db), but the repo carries only a 4-card sample — the full official DB is not vendored yet (see E4).
 - ✅ **RESOLVED (D4, PR #46)** — Code comments were Chinese while CLAUDE.md requires English. Whole-repo translation done (~2,100 comment lines); verified code-byte-identical via a comment-strip diff.
 
+### Fidelity architecture — sequencing & modifier model (review II, 2026-08-05)
+
+Review II compares the engine's *resolution machinery* against RS/SB. The flat event queue + ad-hoc component scans + direct component writes cannot express Hearthstone's sequencing; each item is tracked in Milestone G.
+
+- ❌ **OPEN (G1)** — No game-step machine. `TurnStarted` refills mana and draws inside its handler (`src/engine/rules.rs:430-485`), so start-of-turn secrets/triggers fire *after* the draw; the first player draws on turn 1 (`rules.rs:484`); `CardDef::start_turn_effect` is declared but never wired into the engine; `TurnEnded` clears temporary buffs *before* firing end-of-turn triggers (`rules.rs:486-551`). HS order (start triggers → mana → draw; end triggers → wrap-up cleanup) requires the RS/SB GameStep model.
+- ❌ **OPEN (G2)** — Trigger detection is ad-hoc component scans ordered by sparse-set index (spawn order), not play order; no player-precedence rule, no "whenever" vs "after" classes. Missing trigger classes are unrepresentable: Acolyte of Pain is mis-modeled as a Deathrattle (`src/cards/classic_neutral.rs:618`), Frothing Berserker / Armorsmith are vanilla — their "whenever … takes damage" effects have no mechanism.
+- ❌ **OPEN (G3)** — No death-phase batching. `MinionDied` is enqueued per-death at damage time and the handler moves the minion to the graveyard unconditionally (`rules.rs:884-922`), so a minion healed/buffed above 0 before its death is processed cannot survive; death-trigger zone state is wrong (the "dead" minion is still on board when "whenever a minion dies" fires).
+- ❌ **OPEN (G4)** — Buffs write directly into base Attack/Health (`trigger.rs:660`), cost modifiers into base Cost (`trigger.rs:414`). No enchantment layer → Silence (strip buffs, keep base + damage), transform, copy (Faceless), "until end of turn" expiry, and buff persistence across zone moves are unrepresentable.
+- ❌ **OPEN (G5)** — Cost is base component + ad-hoc aura reduction (`effective_play_cost`, `rules.rs:121`); no modifier stack (floor 0, "cannot cost less than", set-to, frozen cost) — also the missing home for the F1 Overload lock (it applies at the mana-refill step).
+- ❌ **OPEN (G6)** — No choice surface beyond `PlayCard { card, target }`: Choose One is engine-random (`rules.rs:604-620`), Combo auto-detected; no Discover, mulligan, opponent-choice, or summon-position choice.
+- ❌ **OPEN (G7)** — No game setup: `GameState::new` starts with empty decks; the draw picks a *random* deck card (`trigger.rs:427`) instead of the top of an ordered deck; no coin, no mulligan, no turn-1 draw skip.
+- ❌ **OPEN (G8)** — Secrets match events post-hoc (`secret.rs:26`): `WhenEnemySpellCast` fires *after* the spell's effect already resolved inside `CardPlayed`, so counter-type secrets cannot preempt; keeps the E2 `redirect_damages` queue-mutation alive.
+- ❌ **OPEN (G9)** — Play targets are only membership-checked against the candidate set at resolve time with a random fallback (`trigger.rs:34`); exact HS re-validation/fizzle rules missing; Stealth's "cannot be targeted" clause unenforced (`rules.rs:229`).
+
 ---
 
 ## 3. Roadmap
@@ -114,17 +134,33 @@ One-sentence comparison: RosettaStone and SabberStone are **fidelity-first simul
 ### Milestone E — Remaining debt (follow-ups)
 
 - [ ] **E1** — Kill the per-event allocation churn (P1): replace the borrow-checker `Vec` collects in `rules.rs`/`trigger.rs` with borrowing splits, small-vector reuse, or arena allocation on the hot path.
-- [ ] **E2** — Retire the last queue-mutation primitive `redirect_damages` (B2 leftover): route Spellbender through the damage pipeline (e.g. damage-source interception at `DamageDealt`) instead of rewriting pending spell-damage events.
-- [ ] **E3** — Choose One / Combo decision surface (P2): expose the choice in `Action` so the agent decides instead of engine-random / auto-detected combo.
+- [ ] **E2** — Retire the last queue-mutation primitive `redirect_damages` (B2 leftover): route Spellbender through the damage pipeline (e.g. damage-source interception at `DamageDealt`) instead of rewriting pending spell-damage events. *(⏩ subsumed by G8: step-boundary interception replaces queue mutation)*
+- [ ] **E3** — Choose One / Combo decision surface (P2): expose the choice in `Action` so the agent decides instead of engine-random / auto-detected combo. *(⏩ superseded by G6: the Choice system covers it)*
 - [ ] **E4** — Complete D2: vendor the full official CardDefs JSON and regenerate the static card consts (hand-written effect fields stay on top of the generated statics).
+
+### Milestone G — Fidelity engine architecture (prerequisite for F)
+
+Review II conclusion: these primitives are how RS/SB reach fidelity — the GameStep machine, registered triggers, death-phase batching, and the enchantment layer. F's card-level fixes are only meaningful on top of them; do G before F4/F5.
+
+- [ ] **G1** — Game-step machine: model HS resolution steps (start triggers → mana → draw → action → end triggers → death phase → wrap-up) after the RS/SB `GameStep` machine; the priority event queue becomes the event stream *within* a step, and steps are entered from state (pending deaths → death step). Fixes turn-start/end ordering, temp-effect expiry, first-turn draw.
+- [ ] **G2** — Registered triggers: replace the ad-hoc `iter_*_trigger` scans with per-entity trigger registration (RS `ITrigger` / SB `TriggerManager`): fire in play order, active player first, explicit "whenever" vs "after" timing, zone-scoped validity. Wire `start_turn_effect` (declared but never triggered); add the missing trigger classes (take-damage triggers — unblocks Acolyte of Pain, Frothing Berserker, Armorsmith).
+- [ ] **G3** — Death-phase batching: pending-death marking (health ≤ 0 = dead but still on board), deaths processed in play order within one step, `MinionDied` re-checks health at processing time (healed/buffed above 0 before its death is processed → survives), death triggers see the minion already removed.
+- [ ] **G4** — Enchantment layer: stats become base + enchantment deltas (+ damage) instead of direct component writes; buff/debuff/cost effects attach enchantments, auras stay query-time. Enables correct Silence (strips enchantments only), transform, copy (Faceless), and "until end of turn" expiry.
+- [ ] **G5** — Cost manager: cost = base + modifier stack with HS rules (floor 0, "cannot cost less than", set-to, frozen cost); retire the ad-hoc `effective_play_cost` combination. Overload (F1) locks mana at the mana-refill step.
+- [ ] **G6** — Choice system: a `Choice` object surfaced in `Action` (SB ChoiceType: Mulligan / General / HeroPower / TaskList) covering Choose One, Discover, opponent-choice (Brawl-style), summon position, hero-power targets. *(Absorbs E3 and F3.)*
+- [ ] **G7** — Game setup: shuffle at game start, initial hands (3 / 4 + Coin), mulligan, ordered deck with top-card draw (retire the random-index draw), first player skips the turn-1 draw.
+- [ ] **G8** — Secret interception: secrets fire at step boundaries — counter-type (Counterspell, Spellbender) *before* effect resolution, after-type at the current points. Retires `redirect_damages` (E2).
+- [ ] **G9** — Target legality at resolution: re-validate play targets at resolve time per HS rules (Stealth gained, target removed, "cannot be targeted"); exact re-pick/fizzle semantics; enforce Stealth's single-target exclusion (the targeting half of F2).
 
 ### Milestone F — Absolute fidelity (hard requirement)
 
-- [ ] **F1** — Overload mana lock: implement real Hearthstone semantics (per-card overload amounts lock the owner's mana on the next turn) instead of the trigger-only marker.
-- [ ] **F2** — Stealth full fidelity: remove Stealth when the character attacks, and exclude stealthed characters from single-target effects (currently only attacks are blocked).
-- [ ] **F3** — Choose One player choice: expose the choice in `Action` (engine-random selection is not faithful).
-- [ ] **F4** — Fidelity audit: systematic per-`CardEffect` pass against real Hearthstone semantics; fix known divergences (e.g. single-target destroy currently destroys *all* matching enemies; damaged-enemy destroy likewise; verify target sets, damage sequencing, aura stacking).
-- [ ] **F5** — Differential validation: conformance tests comparing game outcomes / event sequences against SabberStone (and/or RosettaStone) as reference implementations, so fidelity regressions are caught mechanically.
+Card-level fixes; the engine primitives they depend on land in Milestone G.
+
+- [ ] **F1** — Overload mana lock: implement real Hearthstone semantics (per-card overload amounts lock the owner's mana on the next turn) instead of the trigger-only marker. *(unblocked by G1/G5: the lock applies at the mana-refill step)*
+- [ ] **F2** — Stealth full fidelity: remove Stealth when the character attacks, and exclude stealthed characters from single-target effects (currently only attacks are blocked). *(targeting half lands with G9)*
+- [ ] **F3** — Choose One player choice: expose the choice in `Action` (engine-random selection is not faithful). *(⏩ superseded by G6)*
+- [ ] **F4** — Fidelity audit: systematic per-`CardEffect` pass against real Hearthstone semantics; fix known divergences (e.g. single-target destroy currently destroys *all* matching enemies; damaged-enemy destroy likewise; verify target sets, damage sequencing, aura stacking). *(blocked by G2–G5: per-effect fixes are only meaningful once the sequencing/enchantment primitives exist)*
+- [ ] **F5** — Differential validation: conformance tests comparing game outcomes / event sequences against SabberStone (and/or RosettaStone) as reference implementations, so fidelity regressions are caught mechanically. *(depends on G1–G9: differential runs compare step-level sequencing)*
 
 ---
 
