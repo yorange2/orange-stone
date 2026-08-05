@@ -15,6 +15,12 @@ pub enum Action {
     PlayCard {
         /// 要打出的卡牌实体
         card: Entity,
+        /// 显式目标（战吼/法术效果的目标角色）。
+        ///
+        /// `Some(target)` 时效果将作用于该目标（若它在该效果允许的目标
+        /// 候选集内）；`None` 时由引擎随机选择（自对弈回退）。
+        /// 对多目标效果（AOE 等）忽略。
+        target: Option<Entity>,
     },
     /// 用己方随从/英雄攻击敌方随从/英雄。
     Attack {

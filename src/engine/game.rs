@@ -119,7 +119,9 @@ mod tests {
         let mut state = GameState::new();
         let card = add_minion_to_hand(&mut state, PlayerId::Player1, 2, 3);
 
-        let log = engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+        let log = engine
+            .apply(&mut state, Action::PlayCard { card, target: None })
+            .unwrap();
 
         // 应该产生 CardPlayed 和 MinionSummoned
         assert_eq!(log.len(), 2);

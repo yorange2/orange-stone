@@ -10,6 +10,7 @@
 
 use orange_stone::cards::def::{BLOODFEN_RAPTOR, MURLOC_RAIDER, OGRE_MAGI};
 use orange_stone::core::action::Action;
+use orange_stone::core::component::Health;
 use orange_stone::core::entity::Entity;
 use orange_stone::core::event::Event;
 use orange_stone::core::player::PlayerId;
@@ -38,7 +39,9 @@ fn play_minion_moves_from_hand_to_board() {
         .collect();
     let card = hand[0];
 
-    let log = engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    let log = engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 检查事件
     assert_eq!(log.len(), 2);
@@ -69,7 +72,7 @@ fn not_enough_mana_rejected() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    let result = engine.apply(&mut state, Action::PlayCard { card });
+    let result = engine.apply(&mut state, Action::PlayCard { card, target: None });
     assert_eq!(result, Err(EngineError::NotEnoughMana));
 }
 
@@ -92,7 +95,7 @@ fn play_card_when_board_has_7_minions_fails() {
         .collect();
     let card = hand[0];
 
-    let result = engine.apply(&mut state, Action::PlayCard { card });
+    let result = engine.apply(&mut state, Action::PlayCard { card, target: None });
     assert_eq!(result, Err(EngineError::BoardFull));
 }
 
@@ -111,7 +114,7 @@ fn play_card_not_your_turn() {
         .collect();
     let card = hand[0];
 
-    let result = engine.apply(&mut state, Action::PlayCard { card });
+    let result = engine.apply(&mut state, Action::PlayCard { card, target: None });
     assert_eq!(result, Err(EngineError::NotYourCard));
 }
 
@@ -404,18 +407,42 @@ fn same_actions_produce_identical_results() {
 
     // 执行相同的操作序列
     let log1 = engine
-        .apply(&mut state1, Action::PlayCard { card: card1a })
+        .apply(
+            &mut state1,
+            Action::PlayCard {
+                card: card1a,
+                target: None,
+            },
+        )
         .unwrap();
     let log2 = engine
-        .apply(&mut state2, Action::PlayCard { card: card1b })
+        .apply(
+            &mut state2,
+            Action::PlayCard {
+                card: card1b,
+                target: None,
+            },
+        )
         .unwrap();
     assert_eq!(log1, log2);
 
     let log1 = engine
-        .apply(&mut state1, Action::PlayCard { card: card2a })
+        .apply(
+            &mut state1,
+            Action::PlayCard {
+                card: card2a,
+                target: None,
+            },
+        )
         .unwrap();
     let log2 = engine
-        .apply(&mut state2, Action::PlayCard { card: card2b })
+        .apply(
+            &mut state2,
+            Action::PlayCard {
+                card: card2b,
+                target: None,
+            },
+        )
         .unwrap();
     assert_eq!(log1, log2);
 
@@ -466,7 +493,13 @@ fn full_game_scenario() {
 
     // Turn 1: Player1 打出 Yeti (4/5)
     let log = engine
-        .apply(&mut state, Action::PlayCard { card: yeti })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: yeti,
+                target: None,
+            },
+        )
         .unwrap();
     assert!(log.iter().any(|e| matches!(e, Event::CardPlayed { .. })));
     assert!(
@@ -476,7 +509,13 @@ fn full_game_scenario() {
 
     // Player1 打出 Crocolisk (2/3)
     let log = engine
-        .apply(&mut state, Action::PlayCard { card: croc })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: croc,
+                target: None,
+            },
+        )
         .unwrap();
     assert_eq!(log.len(), 2);
 
@@ -1173,7 +1212,9 @@ fn heroic_strike_gives_hero_attack_this_turn() {
     let card = hand[0];
 
     // 打出 Heroic Strike
-    let log = engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    let log = engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 检查事件
     assert!(log.iter().any(|e| matches!(e, Event::CardPlayed { .. })));
@@ -1218,7 +1259,9 @@ fn hero_with_temp_attack_can_attack() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 现在英雄有 4 攻击力，可以攻击（无需武器）
     let _log = engine
@@ -1261,7 +1304,9 @@ fn grant_windfury_gives_minion_windfury() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 随从应获得风怒
     assert!(state.world().windfury(minion).is_some());
@@ -1287,7 +1332,9 @@ fn double_attack_doubles_minion_attack() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 随从攻击力应从 4 翻倍到 8
     assert_eq!(
@@ -1314,7 +1361,9 @@ fn double_health_doubles_minion_health() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 随从生命值应从 6 翻倍到 12 (上限 30)
     assert_eq!(
@@ -1346,7 +1395,9 @@ fn grant_charge_allows_immediate_attack() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 随从应获得冲锋
     assert!(state.world().charge(minion).is_some());
@@ -1406,7 +1457,9 @@ fn elven_archer_battlecry_deals_one_damage() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 敌方只有英雄，1 点伤害必然打在英雄上
     let enemy_hero = state.player(PlayerId::Player2).hero;
@@ -1466,7 +1519,9 @@ fn novice_engineer_battlecry_draws_card() {
         .collect();
     let card = hand[0];
 
-    let log = engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    let log = engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     assert!(log.iter().any(|e| matches!(e, Event::CardDrawn { .. })));
     // 牌库中的 Wisp 应被抽到手牌
@@ -1510,7 +1565,9 @@ fn shattered_sun_cleric_buffs_friendly_minion() {
         .collect();
     let card = hand[0];
 
-    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    engine
+        .apply(&mut state, Action::PlayCard { card, target: None })
+        .unwrap();
 
     // 场上唯一的友方随从是祭司自己，战吼必加在它身上
     assert_eq!(
@@ -1748,4 +1805,162 @@ fn freezing_trap_returns_attacker_to_hand_with_cost_increase() {
     assert_eq!(state.world().zone(attacker), Some(Zone::Hand));
     // 费用增加 (2)：3 -> 5
     assert_eq!(state.world().cost(attacker), Some(Cost(5)));
+}
+
+// ============================================================
+// C1 — explicit play targets
+// ============================================================
+
+/// 显式目标：法术伤害精确命中指定角色（脸 vs 随从的决策面）。
+#[test]
+fn spell_with_explicit_target_hits_that_target() {
+    use orange_stone::cards::def::FROSTBOLT;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &FROSTBOLT);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let minion_a = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 5, 3);
+    let minion_b = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 5, 3);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let enemy_hero = state.player(PlayerId::Player2).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: Some(enemy_hero),
+            },
+        )
+        .unwrap();
+
+    assert_eq!(
+        state.world().health(enemy_hero),
+        Some(Health(27)),
+        "explicit target hero should take exactly 3"
+    );
+    assert_eq!(
+        state.world().health(minion_a),
+        Some(Health(5)),
+        "untargeted minion untouched"
+    );
+    assert_eq!(
+        state.world().health(minion_b),
+        Some(Health(5)),
+        "untargeted minion untouched"
+    );
+}
+
+/// 无显式目标：回退为引擎随机选择（总伤害不变）。
+#[test]
+fn spell_without_target_falls_back_to_random() {
+    use orange_stone::cards::def::FROSTBOLT;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &FROSTBOLT);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let minion = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 5, 3);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let enemy_hero = state.player(PlayerId::Player2).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: None,
+            },
+        )
+        .unwrap();
+
+    let dmg_hero = 30 - state.world().health(enemy_hero).unwrap().0;
+    let dmg_minion = 5 - state.world().health(minion).unwrap().0;
+    assert_eq!(dmg_hero + dmg_minion, 3, "exactly 3 damage lands somewhere");
+    assert!(dmg_hero == 3 || dmg_minion == 3);
+}
+
+/// 显式目标不在候选集中（如己方随从）→ 回退为随机选择。
+#[test]
+fn invalid_explicit_target_falls_back_to_random() {
+    use orange_stone::cards::def::FROSTBOLT;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &FROSTBOLT);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let own_minion = builder.add_custom_minion_to_board(PlayerId::Player1, 2, 5, 3);
+    let enemy_minion = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 5, 3);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    // 己方随从不是"敌方角色"候选 — 回退随机，己方随从不应受伤
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: Some(own_minion),
+            },
+        )
+        .unwrap();
+
+    assert_eq!(
+        state.world().health(own_minion),
+        Some(Health(5)),
+        "own minion never damaged"
+    );
+    let enemy_hero = state.player(PlayerId::Player2).hero;
+    let dmg = 30 - state.world().health(enemy_hero).unwrap().0 + 5
+        - state.world().health(enemy_minion).unwrap().0;
+    assert_eq!(dmg, 3, "3 damage lands on an enemy");
+}
+
+/// 战吼伤害：显式目标精确命中。
+#[test]
+fn battlecry_with_explicit_target_hits_that_target() {
+    use orange_stone::cards::def::IRONFORGE_RIFLEMAN;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &IRONFORGE_RIFLEMAN);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let minion_a = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 5, 3);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: Some(minion_a),
+            },
+        )
+        .unwrap();
+
+    assert_eq!(
+        state.world().health(minion_a),
+        Some(Health(4)),
+        "battlecry should hit the explicit target"
+    );
 }

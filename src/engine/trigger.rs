@@ -22,21 +22,41 @@ use crate::core::event::{Event, EventQueue};
 use crate::core::player::PlayerId;
 use crate::core::state::GameState;
 use crate::core::zone::Zone;
+use crate::sim::rng::GameRng;
+
+/// 从候选列表中按显式目标优先、否则随机选择一个目标。
+///
+/// 显式目标不在候选集中时回退到随机选择（保持自对弈的确定性：
+/// 给定相同状态与动作序列，结果可复现）。
+fn select_target(
+    explicit: Option<Entity>,
+    candidates: Vec<Entity>,
+    rng: &mut GameRng,
+) -> Option<Entity> {
+    match explicit {
+        Some(t) if candidates.contains(&t) => Some(t),
+        _ if candidates.is_empty() => None,
+        _ => Some(candidates[rng.next_usize(candidates.len())]),
+    }
+}
 
 /// 将 CardEffect 解析为游戏事件并入队。
 ///
 /// `source` 是效果来源实体（拥有该效果的随从）。
 /// `owner` 是来源实体的所属玩家。
+/// `explicit_target` 是玩家指定的目标（`Action::PlayCard` 传入）；
+/// `None` 时由引擎随机选择（`select_target` 回退）。
 pub fn resolve_effect(
     state: &mut GameState,
     queue: &mut EventQueue,
     source: Entity,
     owner: PlayerId,
     effect: CardEffect,
+    explicit_target: Option<Entity>,
 ) {
     match effect {
         CardEffect::DealDamage { amount, target } => {
-            resolve_deal_damage(state, queue, source, owner, amount, target);
+            resolve_deal_damage(state, queue, source, owner, amount, target, explicit_target);
         }
         CardEffect::DrawCard { count } => {
             for _ in 0..count {
@@ -51,37 +71,46 @@ pub fn resolve_effect(
             health,
             target,
         } => {
-            resolve_gain_stats(state, queue, source, owner, attack, health, target);
+            resolve_gain_stats(
+                state,
+                queue,
+                source,
+                owner,
+                attack,
+                health,
+                target,
+                explicit_target,
+            );
         }
         CardEffect::EquipWeapon { card_id } => {
             resolve_equip_weapon(state, queue, owner, card_id);
         }
         CardEffect::GainArmor { amount, target } => {
-            resolve_gain_armor(state, owner, amount, target);
+            resolve_gain_armor(state, owner, amount, target, explicit_target);
         }
         CardEffect::ReturnToHand { target } => {
-            resolve_return_to_hand(state, queue, owner, target);
+            resolve_return_to_hand(state, queue, owner, target, explicit_target);
         }
         CardEffect::IncreaseCost { amount, target } => {
-            resolve_increase_cost(state, owner, amount, target);
+            resolve_increase_cost(state, owner, amount, target, explicit_target);
         }
         CardEffect::ReturnToHandAndIncreaseCost { amount } => {
             resolve_return_to_hand_and_increase_cost(state, queue, owner, amount);
         }
         CardEffect::DestroyMinion { target } => {
-            resolve_destroy_minion(state, queue, owner, target);
+            resolve_destroy_minion(state, queue, owner, target, explicit_target);
         }
         CardEffect::SilenceMinion { target } => {
-            resolve_silence(state, owner, target);
+            resolve_silence(state, owner, target, explicit_target);
         }
         CardEffect::SetAttack { attack, target } => {
-            resolve_set_attack(state, owner, attack, target);
+            resolve_set_attack(state, owner, attack, target, explicit_target);
         }
         CardEffect::RestoreHealth { amount, target } => {
             resolve_restore_health(state, owner, amount, target);
         }
         CardEffect::FreezeCharacter { target } => {
-            resolve_freeze(state, owner, target);
+            resolve_freeze(state, owner, target, explicit_target);
         }
         CardEffect::GainManaCrystal { count } => {
             let inner = state.make_mut();
@@ -104,25 +133,25 @@ pub fn resolve_effect(
             resolve_gain_hero_attack(state, owner, attack, armor);
         }
         CardEffect::DealHeroAttackDamage { target } => {
-            resolve_deal_hero_attack_damage(state, queue, source, owner, target);
+            resolve_deal_hero_attack_damage(state, queue, source, owner, target, explicit_target);
         }
         CardEffect::FullHeal { target } => {
-            resolve_full_heal(state, owner, target);
+            resolve_full_heal(state, owner, target, explicit_target);
         }
         CardEffect::GrantWindfury { target } => {
-            resolve_grant_windfury(state, owner, target);
+            resolve_grant_windfury(state, owner, target, explicit_target);
         }
         CardEffect::GrantCharge {
             target,
             attack_bonus,
         } => {
-            resolve_grant_charge(state, owner, target, attack_bonus);
+            resolve_grant_charge(state, owner, target, attack_bonus, explicit_target);
         }
         CardEffect::DoubleAttack { target } => {
-            resolve_double_attack(state, owner, target);
+            resolve_double_attack(state, owner, target, explicit_target);
         }
         CardEffect::DoubleHealth { target } => {
-            resolve_double_health(state, owner, target);
+            resolve_double_health(state, owner, target, explicit_target);
         }
         CardEffect::BuffWeapon { attack, durability } => {
             resolve_buff_weapon(state, owner, attack, durability);
@@ -131,7 +160,7 @@ pub fn resolve_effect(
             resolve_discard_random(state, owner);
         }
         CardEffect::DealArmorDamage { target } => {
-            resolve_deal_armor_damage(state, queue, source, owner, target);
+            resolve_deal_armor_damage(state, queue, source, owner, target, explicit_target);
         }
         CardEffect::DestroyWeaponAndDraw => {
             resolve_destroy_weapon_and_draw(state, queue, owner);
@@ -140,13 +169,13 @@ pub fn resolve_effect(
             resolve_return_all_to_hand(state, owner);
         }
         CardEffect::SetAttackToHealth { target } => {
-            resolve_set_attack_to_health(state, owner, target);
+            resolve_set_attack_to_health(state, owner, target, explicit_target);
         }
         CardEffect::DestroyAllExceptOne => {
             resolve_destroy_all_except_one(state, queue, owner);
         }
         CardEffect::DestroyAndHeal { target, heal } => {
-            resolve_destroy_and_heal(state, queue, owner, target, heal);
+            resolve_destroy_and_heal(state, queue, owner, target, heal, explicit_target);
         }
         CardEffect::DestroyAndAOE { target } => {
             resolve_destroy_and_aoe(state, queue, owner, source, target);
@@ -159,7 +188,7 @@ pub fn resolve_effect(
             target,
             draw,
         } => {
-            resolve_deal_damage(state, queue, source, owner, damage, target);
+            resolve_deal_damage(state, queue, source, owner, damage, target, explicit_target);
             for _ in 0..draw {
                 draw_card(state, queue, owner);
             }
@@ -169,7 +198,7 @@ pub fn resolve_effect(
             attack_bonus,
             target,
         } => {
-            resolve_deal_damage(state, queue, source, owner, damage, target);
+            resolve_deal_damage(state, queue, source, owner, damage, target, explicit_target);
             // 给目标随从增加攻击力（简化：随机友方随从）
             let minions = collect_friendly_minions(state, owner);
             if !minions.is_empty() {
@@ -262,11 +291,9 @@ pub fn resolve_effect(
                 EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
                 _ => return,
             };
-            if enemies.is_empty() {
+            let Some(enemy) = select_target(explicit_target, enemies, state.rng_mut()) else {
                 return;
-            }
-            let idx = state.rng_mut().next_usize(enemies.len());
-            let enemy = enemies[idx];
+            };
             state.world_mut().set_temp_attack_debuff(
                 enemy,
                 crate::core::component::TempAttackDebuff(attack_reduction),
@@ -277,7 +304,7 @@ pub fn resolve_effect(
         }
         CardEffect::DealDamageAndReturnToHand { amount, target } => {
             // 伤害立即结算；"移回手牌"由 rules.rs 的 CardPlayed 处理
-            resolve_deal_damage(state, queue, source, owner, amount, target);
+            resolve_deal_damage(state, queue, source, owner, amount, target, explicit_target);
         }
         CardEffect::ReturnFriendlyToHandAndReduceCost { amount } => {
             resolve_return_friendly_reduce_cost(state, owner, amount);
@@ -331,7 +358,7 @@ pub fn resolve_effect(
             }
         }
         CardEffect::FreezeOrDamage { amount } => {
-            resolve_freeze_or_damage(state, queue, source, owner, amount);
+            resolve_freeze_or_damage(state, queue, source, owner, amount, explicit_target);
         }
         CardEffect::DestroyAndGainHealth => {
             resolve_destroy_and_gain_health(state, queue, source, owner);
@@ -429,6 +456,7 @@ fn resolve_deal_damage(
     owner: PlayerId,
     amount: i32,
     target: EffectTarget,
+    explicit: Option<Entity>,
 ) {
     let enemies = match target {
         EffectTarget::AnyEnemy => collect_enemy_characters(state, owner),
@@ -499,13 +527,10 @@ fn resolve_deal_damage(
         }
     };
 
-    if enemies.is_empty() {
+    // 显式目标优先，否则随机选择
+    let Some(target_entity) = select_target(explicit, enemies, state.rng_mut()) else {
         return;
-    }
-
-    // 随机选择一个目标
-    let idx = state.rng_mut().next_usize(enemies.len());
-    let target_entity = enemies[idx];
+    };
 
     queue.push(Event::DamageDealt {
         source,
@@ -625,6 +650,8 @@ pub(crate) fn resolve_summon(
 }
 
 /// 解析 buff 效果。
+// 8 个参数（状态、队列、来源、拥有者、攻击、生命、目标、显式目标）— 解析器约定风格。
+#[allow(clippy::too_many_arguments)]
 fn resolve_gain_stats(
     state: &mut GameState,
     _queue: &mut EventQueue,
@@ -633,6 +660,7 @@ fn resolve_gain_stats(
     attack: i32,
     health: i32,
     target: EffectTarget,
+    explicit: Option<Entity>,
 ) {
     match target {
         EffectTarget::Self_ => {
@@ -654,12 +682,10 @@ fn resolve_gain_stats(
         }
         EffectTarget::FriendlyMinion => {
             let minions = collect_friendly_minions(state, owner);
-            if minions.is_empty() {
+            let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
                 return;
-            }
-            let idx = state.rng_mut().next_usize(minions.len());
+            };
             let world = state.world_mut();
-            let m = minions[idx];
             let cur_atk = world.attack(m).unwrap_or(Attack(0));
             let cur_hp = world.health(m).unwrap_or(Health(0));
             world.set_attack(m, Attack(cur_atk.0 + attack));
@@ -711,7 +737,13 @@ fn resolve_equip_weapon(
 }
 
 /// 获得护甲。
-fn resolve_gain_armor(state: &mut GameState, owner: PlayerId, amount: i32, target: EffectTarget) {
+fn resolve_gain_armor(
+    state: &mut GameState,
+    owner: PlayerId,
+    amount: i32,
+    target: EffectTarget,
+    _explicit: Option<Entity>,
+) {
     match target {
         EffectTarget::Self_ => {
             let inner = state.make_mut();
@@ -733,6 +765,7 @@ fn resolve_return_to_hand(
     _queue: &mut EventQueue,
     owner: PlayerId,
     target: EffectTarget,
+    explicit: Option<Entity>,
 ) {
     let _enemy = owner.opponent();
     let minions = match target {
@@ -745,8 +778,9 @@ fn resolve_return_to_hand(
         return;
     }
 
-    let idx = state.rng_mut().next_usize(minions.len());
-    let target_entity = minions[idx];
+    let Some(target_entity) = select_target(explicit, minions, state.rng_mut()) else {
+        return;
+    };
 
     // 移到手牌
     let _ = state.world_mut().move_to_zone(target_entity, Zone::Hand);
@@ -779,6 +813,7 @@ fn resolve_increase_cost(
     owner: PlayerId,
     amount: i32,
     target: EffectTarget,
+    explicit: Option<Entity>,
 ) {
     let _enemy = owner.opponent();
     let minions = match target {
@@ -791,8 +826,9 @@ fn resolve_increase_cost(
         return;
     }
 
-    let idx = state.rng_mut().next_usize(minions.len());
-    let target_entity = minions[idx];
+    let Some(target_entity) = select_target(explicit, minions, state.rng_mut()) else {
+        return;
+    };
 
     let world = state.world_mut();
     let cur_cost = world.cost(target_entity).unwrap_or(Cost(0));
@@ -805,6 +841,7 @@ fn resolve_destroy_minion(
     queue: &mut EventQueue,
     owner: PlayerId,
     target: EffectTarget,
+    explicit: Option<Entity>,
 ) {
     let minions: Vec<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
@@ -850,6 +887,16 @@ fn resolve_destroy_minion(
         }
         _ => return,
     };
+    // 显式目标：只消灭指定的随从
+    if let Some(t) = explicit.filter(|t| minions.contains(t)) {
+        let hp = state.world().health(t).unwrap_or(Health(1));
+        queue.push(Event::DamageDealt {
+            source: t,
+            target: t,
+            amount: hp.0.max(1),
+        });
+        return;
+    }
     for &m in &minions {
         let hp = state.world().health(m).unwrap_or(Health(1));
         queue.push(Event::DamageDealt {
@@ -861,7 +908,12 @@ fn resolve_destroy_minion(
 }
 
 /// 沉默随从 — 移除所有效果组件。
-fn resolve_silence(state: &mut GameState, owner: PlayerId, target: EffectTarget) {
+fn resolve_silence(
+    state: &mut GameState,
+    owner: PlayerId,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+) {
     let minions: Vec<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
         EffectTarget::AllMinions => {
@@ -871,6 +923,19 @@ fn resolve_silence(state: &mut GameState, owner: PlayerId, target: EffectTarget)
         }
         _ => return,
     };
+    // 显式目标：只沉默指定的随从
+    if let Some(t) = explicit.filter(|t| minions.contains(t)) {
+        let world = state.world_mut();
+        world.remove_taunt(t);
+        world.remove_battlecry(t);
+        world.remove_deathrattle(t);
+        world.remove_aura(t);
+        world.remove_divine_shield(t);
+        world.remove_windfury(t);
+        world.remove_charge(t);
+        world.remove_spell_damage(t);
+        return;
+    }
     for &m in &minions {
         let world = state.world_mut();
         world.remove_taunt(m);
@@ -885,16 +950,21 @@ fn resolve_silence(state: &mut GameState, owner: PlayerId, target: EffectTarget)
 }
 
 /// 设置攻击力。
-fn resolve_set_attack(state: &mut GameState, owner: PlayerId, attack: i32, target: EffectTarget) {
+fn resolve_set_attack(
+    state: &mut GameState,
+    owner: PlayerId,
+    attack: i32,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+) {
     let minions: Vec<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
         _ => return,
     };
-    if minions.is_empty() {
+    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
-    state.world_mut().set_attack(minions[idx], Attack(attack));
+    };
+    state.world_mut().set_attack(m, Attack(attack));
 }
 
 /// 恢复生命值。
@@ -933,7 +1003,12 @@ fn resolve_restore_health(
 }
 
 /// 冻结角色。
-fn resolve_freeze(state: &mut GameState, owner: PlayerId, target: EffectTarget) {
+fn resolve_freeze(
+    state: &mut GameState,
+    owner: PlayerId,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+) {
     let targets: Vec<Entity> = match target {
         EffectTarget::AnyEnemy => collect_enemy_characters(state, owner),
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
@@ -945,6 +1020,11 @@ fn resolve_freeze(state: &mut GameState, owner: PlayerId, target: EffectTarget) 
         }
         _ => return,
     };
+    // 显式目标：只冻结指定的角色
+    if let Some(t) = explicit.filter(|t| targets.contains(t)) {
+        state.world_mut().set_freeze(t, Freeze);
+        return;
+    }
     for &t in &targets {
         state.world_mut().set_freeze(t, Freeze);
     }
@@ -971,6 +1051,7 @@ fn resolve_deal_hero_attack_damage(
     source: Entity,
     owner: PlayerId,
     target: EffectTarget,
+    explicit: Option<Entity>,
 ) {
     let hero = state.player(owner).hero;
     let hero_atk = state.world().effective_attack(hero).unwrap_or(Attack(0)).0;
@@ -982,29 +1063,31 @@ fn resolve_deal_hero_attack_damage(
         EffectTarget::AnyEnemy => collect_enemy_characters(state, owner),
         _ => return,
     };
-    if minions.is_empty() {
+    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
+    };
     queue.push(Event::DamageDealt {
         source,
-        target: minions[idx],
+        target: m,
         amount: hero_atk,
     });
 }
 
 /// 将随从的生命值恢复到满（最大生命值）。
-fn resolve_full_heal(state: &mut GameState, owner: PlayerId, target: EffectTarget) {
+fn resolve_full_heal(
+    state: &mut GameState,
+    owner: PlayerId,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+) {
     let minions: Vec<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         _ => return,
     };
-    if minions.is_empty() {
+    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
-    let m = minions[idx];
+    };
     // 获取最大生命值（基于初始定义，这里简化为设为30或使用current max）
     // 简化方案：从基础生命值恢复（使用 max_health 如果存在，否则设为当前值）
     let world = state.world_mut();
@@ -1022,18 +1105,22 @@ fn resolve_full_heal(state: &mut GameState, owner: PlayerId, target: EffectTarge
 }
 
 /// 给随从增加风怒。
-fn resolve_grant_windfury(state: &mut GameState, owner: PlayerId, target: EffectTarget) {
+fn resolve_grant_windfury(
+    state: &mut GameState,
+    owner: PlayerId,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+) {
     let minions: Vec<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         _ => return,
     };
-    if minions.is_empty() {
+    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
+    };
     state
         .world_mut()
-        .set_windfury(minions[idx], crate::core::component::Windfury);
+        .set_windfury(m, crate::core::component::Windfury);
 }
 
 /// 给随从增加冲锋和可选攻击力加成。
@@ -1042,17 +1129,16 @@ fn resolve_grant_charge(
     owner: PlayerId,
     target: EffectTarget,
     attack_bonus: i32,
+    explicit: Option<Entity>,
 ) {
     let minions: Vec<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         _ => return,
     };
-    if minions.is_empty() {
+    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
+    };
     let world = state.world_mut();
-    let m = minions[idx];
     world.set_charge(m, crate::core::component::Charge);
     // 重置攻击次数，允许立即攻击
     world.set_attacks_used(m, crate::core::component::AttacksUsed(0));
@@ -1063,33 +1149,39 @@ fn resolve_grant_charge(
 }
 
 /// 双倍随从的攻击力。
-fn resolve_double_attack(state: &mut GameState, owner: PlayerId, target: EffectTarget) {
+fn resolve_double_attack(
+    state: &mut GameState,
+    owner: PlayerId,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+) {
     let minions: Vec<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         _ => return,
     };
-    if minions.is_empty() {
+    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
+    };
     let world = state.world_mut();
-    let m = minions[idx];
     let cur_atk = world.attack(m).unwrap_or(Attack(0));
     world.set_attack(m, Attack(cur_atk.0 * 2));
 }
 
 /// 双倍随从的生命值。
-fn resolve_double_health(state: &mut GameState, owner: PlayerId, target: EffectTarget) {
+fn resolve_double_health(
+    state: &mut GameState,
+    owner: PlayerId,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+) {
     let minions: Vec<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         _ => return,
     };
-    if minions.is_empty() {
+    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
+    };
     let world = state.world_mut();
-    let m = minions[idx];
     let cur_hp = world.health(m).unwrap_or(Health(0));
     world.set_health(m, Health((cur_hp.0 * 2).min(30)));
 }
@@ -1128,6 +1220,7 @@ fn resolve_deal_armor_damage(
     source: Entity,
     owner: PlayerId,
     target: EffectTarget,
+    explicit: Option<Entity>,
 ) {
     let armor = state.player(owner).armor;
     if armor <= 0 {
@@ -1138,13 +1231,12 @@ fn resolve_deal_armor_damage(
         EffectTarget::AnyEnemy => collect_enemy_characters(state, owner),
         _ => return,
     };
-    if minions.is_empty() {
+    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
+    };
     queue.push(Event::DamageDealt {
         source,
-        target: minions[idx],
+        target: m,
         amount: armor,
     });
 }
@@ -1214,17 +1306,20 @@ fn resolve_return_all_to_hand(state: &mut GameState, owner: PlayerId) {
 }
 
 /// 将随从的攻击力设为等于其当前生命值。
-fn resolve_set_attack_to_health(state: &mut GameState, owner: PlayerId, target: EffectTarget) {
+fn resolve_set_attack_to_health(
+    state: &mut GameState,
+    owner: PlayerId,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+) {
     let minions: Vec<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         _ => return,
     };
-    if minions.is_empty() {
+    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
+    };
     let world = state.world_mut();
-    let m = minions[idx];
     let hp = world.health(m).unwrap_or(Health(0));
     world.set_attack(m, Attack(hp.0));
 }
@@ -1266,16 +1361,15 @@ fn resolve_destroy_and_heal(
     owner: PlayerId,
     target: EffectTarget,
     heal: i32,
+    explicit: Option<Entity>,
 ) {
     let minions: Vec<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
         _ => return,
     };
-    if minions.is_empty() {
+    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
-    let m = minions[idx];
+    };
     let hp = state.world().health(m).unwrap_or(Health(1));
     queue.push(Event::DamageDealt {
         source: m,
@@ -1429,13 +1523,12 @@ fn resolve_freeze_or_damage(
     source: Entity,
     owner: PlayerId,
     amount: i32,
+    explicit: Option<Entity>,
 ) {
     let minions = collect_enemy_minions(state, owner);
-    if minions.is_empty() {
+    let Some(target) = select_target(explicit, minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
-    let target = minions[idx];
+    };
     if state.world().freeze(target).is_some() {
         queue.push(Event::DamageDealt {
             source,
