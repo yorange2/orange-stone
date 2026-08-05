@@ -1033,7 +1033,33 @@ pub fn apply_event(
                     }
                 }
                 ChoiceKind::Mulligan => {
-                    // Mulligan resolution lands with G7 (opening flow)
+                    // Opening mulligan (roadmap G7): "Keep all" (option 0) or
+                    // replace the chosen starting card — the card returns to the
+                    // deck, the deck is reshuffled, and a new card is drawn from
+                    // the top. The Coin is not mulliganable.
+                    let owner = state
+                        .world()
+                        .player(pending.card)
+                        .unwrap_or(state.active_player());
+                    if option > 0 {
+                        let mulliganable: SmallList<Entity> = state
+                            .world()
+                            .zones()
+                            .iter(Zone::Hand, owner)
+                            .filter(|&e| state.world().card_id(e).is_none_or(|c| c.0 != "GAME_005"))
+                            .collect();
+                        if let Some(card) = mulliganable.get((option - 1) as usize).copied() {
+                            let _ = state.world_mut().move_to_zone(card, Zone::Deck);
+                            state.shuffle_decks();
+                            crate::engine::trigger::draw_card_no_queue(state, owner);
+                        }
+                    }
+                    state.make_mut().mulliganed[owner.index()] = true;
+                    // Surface the opponent's mulligan, or finish the opening
+                    let next = owner.opponent();
+                    if !state.make_mut().mulliganed[next.index()] {
+                        state.surface_mulligan(next);
+                    }
                 }
             }
         }
@@ -2717,6 +2743,161 @@ mod tests {
             state.world().effective_health(enemy_minion),
             Some(Health(2)),
             "the explicit hero power target takes the damage"
+        );
+    }
+
+    // ============================================================
+    // G7 — opening flow
+    // ============================================================
+
+    /// Spawns a deck card with a known identity for the player (no shuffle).
+    fn add_raw_deck_card(state: &mut GameState, player: PlayerId, card_id: &'static str) -> Entity {
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_card_id(e, crate::core::component::CardId(card_id));
+        world.set_card_type(e, CardType::Minion);
+        world.set_attack(e, Attack(1));
+        world.set_health(e, Health(1));
+        world.set_cost(e, crate::core::component::Cost(1));
+        world.set_player(e, player);
+        world.set_zone(e, Zone::Deck);
+        world.zones_mut().insert(Zone::Deck, player, e);
+        e
+    }
+
+    #[test]
+    fn top_draw_uses_deck_order() {
+        // G7: draws take the top card of the ordered deck (the random element
+        // moved to the game-start shuffle).
+        let mut state = GameState::new();
+        add_raw_deck_card(&mut state, PlayerId::Player2, "NEUTRAL_001");
+        add_raw_deck_card(&mut state, PlayerId::Player2, "NEUTRAL_002");
+        let engine = crate::engine::game::GameEngine::new();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        // P2 drew the top card (first spawned)
+        let hand: SmallList<Entity> = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player2)
+            .collect();
+        assert_eq!(hand.len(), 1);
+        assert_eq!(
+            state.world().card_id(hand[0]),
+            Some(crate::core::component::CardId("NEUTRAL_001"))
+        );
+    }
+
+    #[test]
+    fn begin_game_deals_starting_hands_and_coin() {
+        // G7: 3 cards to the first player, 4 + The Coin to the second
+        use crate::cards::def::BLOODFEN_RAPTOR;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        for _ in 0..10 {
+            builder.add_minion_to_deck(PlayerId::Player1, &BLOODFEN_RAPTOR);
+            builder.add_minion_to_deck(PlayerId::Player2, &BLOODFEN_RAPTOR);
+        }
+        let mut state = builder.build();
+        assert!(state.pending_choice().is_none());
+        state.begin_game();
+        assert_eq!(state.world().zones().len(Zone::Hand, PlayerId::Player1), 3);
+        assert_eq!(state.world().zones().len(Zone::Hand, PlayerId::Player2), 5);
+        let coin = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player2)
+            .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "GAME_005"));
+        assert!(coin.is_some(), "the second player gets The Coin");
+        // P1's mulligan surfaces as a pending choice
+        let choice = state.pending_choice().expect("mulligan pending");
+        assert_eq!(choice.kind, ChoiceKind::Mulligan);
+        assert_eq!(choice.options.len(), 4, "3 replace options + keep all");
+    }
+
+    #[test]
+    fn mulligan_replaces_a_card() {
+        // G7: resolving the mulligan replaces the chosen card — the hand keeps
+        // its size and the replaced card returns to the deck.
+        use crate::cards::def::BLOODFEN_RAPTOR;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        for _ in 0..10 {
+            builder.add_minion_to_deck(PlayerId::Player1, &BLOODFEN_RAPTOR);
+            builder.add_minion_to_deck(PlayerId::Player2, &BLOODFEN_RAPTOR);
+        }
+        let mut state = builder.build();
+        state.begin_game();
+        let choice_id = state.pending_choice().expect("mulligan").id;
+        let replaced = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("starting card");
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply_choices(
+                &mut state,
+                Action::Choose {
+                    choice_id,
+                    option: 1, // replace the first starting card
+                },
+            )
+            .unwrap();
+        // Hand size unchanged; the replaced card went back to the deck
+        assert_eq!(state.world().zones().len(Zone::Hand, PlayerId::Player1), 3);
+        assert_eq!(state.world().zone(replaced), Some(Zone::Deck));
+        // P2's mulligan surfaces next
+        assert_eq!(
+            state.pending_choice().map(|c| c.kind),
+            Some(ChoiceKind::Mulligan)
+        );
+        // Resolve P2's mulligan (keep all) — the opening finishes
+        let choice_id = state.pending_choice().expect("mulligan").id;
+        engine
+            .apply_choices(
+                &mut state,
+                Action::Choose {
+                    choice_id,
+                    option: 0,
+                },
+            )
+            .unwrap();
+        assert!(state.pending_choice().is_none(), "opening complete");
+        assert_eq!(state.step(), Step::Main);
+    }
+
+    #[test]
+    fn coin_gives_mana_this_turn_only() {
+        // G7: The Coin adds +1 mana this turn without a permanent crystal
+        use crate::cards::def::THE_COIN;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_hand(PlayerId::Player1, &THE_COIN);
+        builder.set_mana(PlayerId::Player1, 1, 1);
+        let mut state = builder.build();
+        let coin = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("coin in hand");
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: coin,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(state.player(PlayerId::Player1).current_mana, 2);
+        assert_eq!(
+            state.player(PlayerId::Player1).mana_crystals,
+            1,
+            "the coin does not add a permanent crystal"
         );
     }
 }

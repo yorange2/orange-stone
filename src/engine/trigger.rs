@@ -123,6 +123,12 @@ pub fn resolve_effect(
             p.mana_crystals = (p.mana_crystals + count).min(10);
             p.current_mana = (p.current_mana + count).min(10);
         }
+        CardEffect::GainManaThisTurn { count } => {
+            // The Coin: +1 mana this turn only (no permanent crystal)
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            p.current_mana = (p.current_mana + count).min(10);
+        }
         CardEffect::DestroyWeapon => {
             let enemy = owner.opponent();
             if let Some(weapon) = state.player(enemy).weapon {
@@ -474,32 +480,28 @@ pub fn resolve_effect(
 }
 
 /// Draws a random card from the deck into hand, optionally with a cost reduction (Farsight).
+/// Draws the top card of the ordered deck (roadmap G7 — the deck is shuffled
+/// at game start, so the top draw is the random pick), without enqueueing a
+/// CardDrawn event. Returns the drawn card, or `None` when the deck is empty
+/// (fatigue in Phase 3+).
+pub(crate) fn draw_card_no_queue(state: &mut GameState, player: PlayerId) -> Option<Entity> {
+    let card = state.world().zones().iter(Zone::Deck, player).next()?;
+    state
+        .world_mut()
+        .move_to_zone(card, Zone::Hand)
+        .expect("card should be movable to hand");
+    Some(card)
+}
+
 fn draw_card_with_reduction(
     state: &mut GameState,
     queue: &mut EventQueue,
     player: PlayerId,
     cost_reduction: i32,
 ) {
-    let deck_len = state.world().zones().len(Zone::Deck, player);
-    if deck_len == 0 {
-        // Deck empty; no draw (fatigue in Phase 3+)
+    let Some(card) = draw_card_no_queue(state, player) else {
         return;
-    }
-
-    // Pick a random card from the deck
-    let idx = state.rng_mut().next_usize(deck_len);
-    let card = state
-        .world()
-        .zones()
-        .iter(Zone::Deck, player)
-        .nth(idx)
-        .expect("deck card should exist");
-
-    // Move to hand
-    state
-        .world_mut()
-        .move_to_zone(card, Zone::Hand)
-        .expect("card should be movable to hand");
+    };
 
     // Cost reduction (kept above the base cost) — a cost enchantment (roadmap G4)
     if cost_reduction > 0 {

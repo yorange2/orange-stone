@@ -131,6 +131,11 @@ pub enum CardEffect {
         /// Number to gain
         count: i32,
     },
+    /// Gain mana this turn only (The Coin) — does not add a permanent crystal
+    GainManaThisTurn {
+        /// Mana to gain this turn
+        count: i32,
+    },
     /// Destroy the enemy weapon
     DestroyWeapon,
     /// Give the hero temporary attack and optional armor (effective this turn; attack bonus cleared at end of turn)
@@ -421,6 +426,9 @@ enum CardEffectDe {
     GainManaCrystal {
         count: i32,
     },
+    GainManaThisTurn {
+        count: i32,
+    },
     DestroyWeapon,
     GainHeroAttack {
         attack: i32,
@@ -601,6 +609,7 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             }
             CardEffectDe::FreezeCharacter { target } => CardEffect::FreezeCharacter { target },
             CardEffectDe::GainManaCrystal { count } => CardEffect::GainManaCrystal { count },
+            CardEffectDe::GainManaThisTurn { count } => CardEffect::GainManaThisTurn { count },
             CardEffectDe::DestroyWeapon => CardEffect::DestroyWeapon,
             CardEffectDe::GainHeroAttack { attack, armor } => {
                 CardEffect::GainHeroAttack { attack, armor }
