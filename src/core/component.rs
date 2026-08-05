@@ -373,6 +373,16 @@ pub struct Stealth;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Immune;
 
+/// 过载标记 — 打出此卡牌时触发友方随从的过载触发器（无羁元素）。
+///
+/// 本引擎不模拟过载的法力锁定，仅作为触发标记。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Overload;
+
+/// 过载触发效果 — 当友方打出带过载的卡牌时触发（无羁元素）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct OverloadTrigger(pub crate::core::effect::CardEffect);
+
 #[cfg(test)]
 mod tests {
     use super::*;

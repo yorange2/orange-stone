@@ -326,4 +326,19 @@ pub enum CardEffect {
         /// 攻击力加成
         attack: i32,
     },
+    /// 临时控制一个敌方随从直到回合结束（暗影狂乱，攻击力 ≤ 3）
+    TakeControlUntilEndOfTurn,
+    /// 永久控制一个敌方随从（精神控制）
+    TakeControl,
+    /// 腐蚀一个敌方随从 — 在你的回合开始时将其消灭（腐蚀术）
+    Corrupt,
+    /// 本回合随从生命值不能低于 1（命令怒吼）
+    MinHealthUntilEndOfTurn,
+    /// 将目标随从变形为两个备选随从之一（工匠大师欧沃斯巴克）
+    TransformToRandom {
+        /// 备选卡牌 A（5/5 暴龙）
+        card_a: &'static str,
+        /// 备选卡牌 B（1/1 松鼠）
+        card_b: &'static str,
+    },
 }

@@ -785,3 +785,37 @@ pub const ARCANITE_REAPER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// Tier 2 补全 — 命令怒吼
+// ============================================================
+
+/// 命令怒吼 — 本回合中，你的随从生命值不能降到 1 点以下。
+pub const COMMANDING_SHOUT: CardDef = CardDef {
+    id: "WARRIOR_024",
+    name: "Commanding Shout",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::MinHealthUntilEndOfTurn),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
