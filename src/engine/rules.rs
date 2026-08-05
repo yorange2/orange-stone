@@ -14,6 +14,7 @@ use crate::core::component::{
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue, Priority};
 use crate::core::player::PlayerId;
+use crate::core::small_list::SmallList;
 use crate::core::state::{GameState, Phase};
 use crate::core::zone::Zone;
 use crate::engine::trigger;
@@ -429,10 +430,9 @@ pub fn apply_event(
     match event {
         Event::TurnStarted { player } => {
             // Corruption: destroy corrupted minions at the start of your turn
-            let corrupted: Vec<Entity> = state.make_mut().players[player.index()]
-                .corrupted
-                .drain(..)
-                .collect();
+            // (mem::take swaps in an empty Vec — zero allocation, unlike drain().collect())
+            let inner = state.make_mut();
+            let corrupted = std::mem::take(&mut inner.players[player.index()].corrupted);
             for entity in corrupted {
                 if !state.world().is_alive(entity)
                     || state.world().card_type(entity) != Some(CardType::Minion)
@@ -447,11 +447,13 @@ pub fn apply_event(
                 });
             }
 
-            // First collect entities whose attack counts need resetting (requires a read-only borrow)
-            let player_entities: Vec<Entity> = state
+            // First collect entities whose attack counts need resetting (requires a read-only
+            // borrow). Only board characters hold attack state, so restrict to Zone::Play —
+            // this also bounds the list (hero + up to 7 minions + weapon) for the stack buffer.
+            let player_entities: SmallList<Entity> = state
                 .world()
                 .iter_player()
-                .filter(|(_, pid)| **pid == player)
+                .filter(|(e, pid)| **pid == player && state.world().zone(*e) == Some(Zone::Play))
                 .map(|(e, _)| e)
                 .collect();
             let new_turn = state.turn() + 1;
@@ -459,12 +461,12 @@ pub fn apply_event(
             // Then perform all modifications step by step
             {
                 let world = state.world_mut();
-                for entity in &player_entities {
-                    world.set_attacks_used(*entity, AttacksUsed(0));
+                for &entity in player_entities.iter() {
+                    world.set_attacks_used(entity, AttacksUsed(0));
                     // Reset the hero-power-used flag
-                    world.set_hero_power_used(*entity, HeroPowerUsed(false));
+                    world.set_hero_power_used(entity, HeroPowerUsed(false));
                     // Clear freeze
-                    world.remove_freeze(*entity);
+                    world.remove_freeze(entity);
                 }
             }
             state.set_active_player(player);
@@ -504,27 +506,27 @@ pub fn apply_event(
                 let inner = state.make_mut();
                 let p = &mut inner.players[player.index()];
                 p.died_this_turn.clear();
-                // Clear temporary attack debuffs on all entities
-                let debuff_entities: Vec<Entity> = inner
+                // Clear temporary attack debuffs on all entities (stack-buffered snapshot)
+                let debuff_entities: SmallList<Entity> = inner
                     .world
                     .iter_temp_attack_debuff()
                     .map(|(e, _)| e)
                     .collect();
-                for e in debuff_entities {
+                for &e in debuff_entities.iter() {
                     inner.world.remove_temp_attack_debuff(e);
                 }
                 // Clear temporary immunity on all entities (Bestial Wrath — until end of turn)
-                let immune_entities: Vec<Entity> =
+                let immune_entities: SmallList<Entity> =
                     inner.world.iter_immune().map(|(e, _)| e).collect();
-                for e in immune_entities {
+                for &e in immune_entities.iter() {
                     inner.world.remove_immune(e);
                 }
             }
             // Return temporarily controlled minions (Shadow Madness — until end of turn)
-            let controlled: Vec<(Entity, PlayerId)> = state.make_mut().players[player.index()]
-                .controlled_this_turn
-                .drain(..)
-                .collect();
+            // (mem::take — zero allocation)
+            let inner = state.make_mut();
+            let controlled =
+                std::mem::take(&mut inner.players[player.index()].controlled_this_turn);
             for (entity, original_owner) in controlled {
                 if state.world().is_alive(entity) {
                     trigger::transfer_minion(state, entity, original_owner);
@@ -536,7 +538,7 @@ pub fn apply_event(
                 inner.players[player.index()].minion_min_health = 0;
             }
             // Trigger end-of-turn effects (collect first, then process one by one)
-            let end_turn_effects: Vec<(Entity, crate::core::effect::CardEffect)> = state
+            let end_turn_effects: SmallList<(Entity, crate::core::effect::CardEffect), 8> = state
                 .world()
                 .iter_end_turn_effect()
                 .filter(|(e, _)| {
@@ -685,16 +687,17 @@ pub fn apply_event(
             }
             // Overload trigger: when a card with overload is played, trigger overload effects of friendly minions (Unbound Elemental)
             if state.world().overload(card).is_some() {
-                let overload_triggers: Vec<(Entity, crate::core::effect::CardEffect)> = state
-                    .world()
-                    .iter_overload_trigger()
-                    .filter(|(e, _)| {
-                        state.world().zone(*e) == Some(Zone::Play)
-                            && state.world().is_alive(*e)
-                            && state.world().player(*e) == Some(player)
-                    })
-                    .map(|(e, ot)| (e, ot.0))
-                    .collect();
+                let overload_triggers: SmallList<(Entity, crate::core::effect::CardEffect), 8> =
+                    state
+                        .world()
+                        .iter_overload_trigger()
+                        .filter(|(e, _)| {
+                            state.world().zone(*e) == Some(Zone::Play)
+                                && state.world().is_alive(*e)
+                                && state.world().player(*e) == Some(player)
+                        })
+                        .map(|(e, ot)| (e, ot.0))
+                        .collect();
                 for (source, effect) in overload_triggers {
                     trigger::resolve_effect(state, queue, source, player, effect, None);
                 }
@@ -720,7 +723,7 @@ pub fn apply_event(
                 trigger::resolve_effect(state, queue, minion, player, effect, None);
             }
             // Check summon triggers (summon_trigger of other minions on the board when a friendly minion is summoned)
-            let summon_triggers: Vec<(Entity, crate::core::effect::CardEffect)> = state
+            let summon_triggers: SmallList<(Entity, crate::core::effect::CardEffect), 8> = state
                 .world()
                 .iter_summon_trigger()
                 .filter(|(e, _)| {
@@ -893,7 +896,7 @@ pub fn apply_event(
 
             // Check death triggers (death_trigger of other friendly minions)
             if let Some(owner) = owner {
-                let death_triggers: Vec<(Entity, crate::core::effect::CardEffect)> = state
+                let death_triggers: SmallList<(Entity, crate::core::effect::CardEffect), 8> = state
                     .world()
                     .iter_death_trigger()
                     .filter(|(e, _)| {
@@ -956,7 +959,7 @@ pub fn apply_event(
         }
         Event::SpellCast { player, spell: _ } => {
             // Spell trigger effects — check the spell_trigger component of all friendly minions on the board
-            let spell_triggers: Vec<(Entity, crate::core::effect::CardEffect)> = state
+            let spell_triggers: SmallList<(Entity, crate::core::effect::CardEffect), 8> = state
                 .world()
                 .iter_spell_trigger()
                 .filter(|(e, _)| {

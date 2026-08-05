@@ -11,7 +11,7 @@ The architecture is the right shape for its goal: typed ECS + generational indic
 
 **Fidelity policy (2026-08-05): absolute fidelity to Hearthstone is a hard requirement.** Every card effect, sequencing rule, and targeting rule must match real Hearthstone semantics; RL-training ergonomics (determinism, replay, cheap cloning, tensorized I/O) are engineering properties of the same engine, not a license to simplify game rules. The previously "deliberate" simplifications (Overload mana lock, permanent Stealth, Choose One auto-random, single-target destroy hitting all matches, …) are now fidelity debt tracked in Milestone F.
 
-Status: milestones A–D (hot path, damage pipeline, RL prep, scale) are complete (PRs #35–#46). Remaining work: Milestone E (engineering debt), Milestone G (fidelity engine architecture), and Milestone F (card-level fidelity — blocked on G).
+Status: milestones A–D (hot path, damage pipeline, RL prep, scale) are complete (PRs #35–#46). Milestone E is complete (PR #51: E1 allocation churn — the E2/E3 items are subsumed by Milestone G; E4 remains an input-data task). Remaining work: Milestone G (fidelity engine architecture) and Milestone F (card-level fidelity — blocked on G).
 
 **Review II conclusion (2026-08-05):** the flat priority event queue + ad-hoc component scans + direct stat writes cannot express Hearthstone's resolution semantics. RS/SB reach fidelity through a **GameStep state machine** (start-triggers → mana → draw → action → end-triggers → death phase → wrap-up), **registered triggers** with play-order / player-precedence rules, a **death-phase batch model**, and an **enchantment layer** for stat/cost modifiers. Milestone G adds those primitives; Milestone F then audits cards against them.
 
@@ -74,7 +74,7 @@ One-sentence comparison: RosettaStone and SabberStone are **fidelity-first simul
 ### P1 — Design debt
 
 - ✅ **RESOLVED (D1, PR #44)** — CoW was a whole-`Inner` deep copy (`src/core/state.rs:190`): `Arc::make_mut` cloned every sparse set + zone table. Now `SparseSet` is a segmented arena (fixed-size pages, `Arc`-shared page table and pages): clone is O(1), first write copies only the touched page — structural sharing as CLAUDE.md claimed.
-- ❌ **OPEN (E1)** — Allocation churn in event handlers: nearly every `apply_event` branch collects `Vec<Entity>` to satisfy the borrow checker before mutating (`src/engine/rules.rs`, `src/engine/trigger.rs` throughout). Deterministic and correct, but allocates per event.
+- ✅ **RESOLVED (E1, PR #51)** — Allocation churn in event handlers: nearly every `apply_event` branch collected `Vec<Entity>` to satisfy the borrow checker before mutating (`src/engine/rules.rs`, `src/engine/trigger.rs` throughout). Now the hot path is allocation-free: the drain-style collects use `std::mem::take` (reuses the existing buffer), and the scan-then-mutate snapshot lists use `SmallList` (`src/core/small_list.rs`) — a stack-array list with heap spill — covering all event-handler, trigger, secret, and aura target/trigger lists (bounded by board size in practice). `select_target` takes a slice view; attack resets at turn start are restricted to `Zone::Play` (only board characters hold attack state).
 - ✅ **RESOLVED (B2, PR #39)** — Secrets rewrote the pending event queue: attack damage + retaliation were pre-queued in `enqueue`, and redirect secrets mutated queued events via `redirect_damage` / `replace_damage` / `redirect_damages` (`src/core/event.rs:192-253`). Attacks now resolve through a single `ResolveAttack` pipeline event with fresh-state retaliation; `redirect_damage` / `replace_damage` deleted, Misdirection/Noble Sacrifice use the uniform `redirect_attack` primitive. ⚠️ One leftover: `redirect_damages` survives for Spellbender (spell-source redirect) — see E2.
 
 ### P2 — Scope / fidelity gaps (mostly deliberate)
@@ -133,7 +133,7 @@ Review II compares the engine's *resolution machinery* against RS/SB. The flat e
 
 ### Milestone E — Remaining debt (follow-ups)
 
-- [ ] **E1** — Kill the per-event allocation churn (P1): replace the borrow-checker `Vec` collects in `rules.rs`/`trigger.rs` with borrowing splits, small-vector reuse, or arena allocation on the hot path.
+- [x] **E1** — Kill the per-event allocation churn (P1): replace the borrow-checker `Vec` collects in `rules.rs`/`trigger.rs` with borrowing splits, small-vector reuse, or arena allocation on the hot path. *(PR #51: `mem::take` for drain sites + `SmallList` stack-buffer lists)*
 - [ ] **E2** — Retire the last queue-mutation primitive `redirect_damages` (B2 leftover): route Spellbender through the damage pipeline (e.g. damage-source interception at `DamageDealt`) instead of rewriting pending spell-damage events. *(⏩ subsumed by G8: step-boundary interception replaces queue mutation)*
 - [ ] **E3** — Choose One / Combo decision surface (P2): expose the choice in `Action` so the agent decides instead of engine-random / auto-detected combo. *(⏩ superseded by G6: the Choice system covers it)*
 - [ ] **E4** — Complete D2: vendor the full official CardDefs JSON and regenerate the static card consts (hand-written effect fields stay on top of the generated statics).

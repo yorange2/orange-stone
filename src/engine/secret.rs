@@ -16,6 +16,7 @@ use crate::core::effect::CardEffect;
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue};
 use crate::core::player::PlayerId;
+use crate::core::small_list::SmallList;
 use crate::core::state::GameState;
 use crate::core::zone::Zone;
 
@@ -210,22 +211,17 @@ fn resolve_misdirection(
         return;
     };
     let hero = state.player(owner).hero;
-    // Collect all characters of both players (heroes + minions, including stealthed), excluding own hero
-    let mut candidates: Vec<Entity> = [owner, owner.opponent()]
+    // Collect all characters of both players (heroes + minions, including
+    // stealthed), excluding own hero — stack-buffered list, no allocation.
+    let candidates: SmallList<Entity> = [owner, owner.opponent()]
         .iter()
         .flat_map(|&pid| {
-            state
-                .world()
-                .zones()
-                .iter(Zone::Play, pid)
-                .filter(|&e| {
-                    let ct = state.world().card_type(e);
-                    ct == Some(CardType::Minion) || ct == Some(CardType::Hero)
-                })
-                .collect::<Vec<_>>()
+            state.world().zones().iter(Zone::Play, pid).filter(|&e| {
+                let ct = state.world().card_type(e);
+                (ct == Some(CardType::Minion) || ct == Some(CardType::Hero)) && e != hero
+            })
         })
         .collect();
-    candidates.retain(|&e| e != hero);
     if candidates.is_empty() {
         return;
     }

@@ -21,6 +21,7 @@ use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue};
 use crate::core::player::PlayerId;
+use crate::core::small_list::SmallList;
 use crate::core::state::GameState;
 use crate::core::zone::Zone;
 use crate::sim::rng::GameRng;
@@ -33,11 +34,11 @@ use crate::sim::rng::GameRng;
 /// action sequence, the result is reproducible).
 fn select_target(
     explicit: Option<Entity>,
-    candidates: Vec<Entity>,
+    candidates: &SmallList<Entity>,
     rng: &mut GameRng,
 ) -> Option<Entity> {
     match explicit {
-        Some(t) if candidates.contains(&t) => Some(t),
+        Some(t) if candidates.iter().any(|&c| c == t) => Some(t),
         _ if candidates.is_empty() => None,
         _ => Some(candidates[rng.next_usize(candidates.len())]),
     }
@@ -295,7 +296,7 @@ pub fn resolve_effect(
                 EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
                 _ => return,
             };
-            let Some(enemy) = select_target(explicit_target, enemies, state.rng_mut()) else {
+            let Some(enemy) = select_target(explicit_target, &enemies, state.rng_mut()) else {
                 return;
             };
             state.world_mut().set_temp_attack_debuff(
@@ -467,7 +468,7 @@ fn resolve_deal_damage(
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
         EffectTarget::EnemyHero => {
             let hero = state.player(owner.opponent()).hero;
-            vec![hero]
+            [hero].into_iter().collect()
         }
         EffectTarget::AllEnemyMinions => {
             let minions = collect_all_enemy_minions(state, owner);
@@ -532,7 +533,7 @@ fn resolve_deal_damage(
     };
 
     // Explicit target first, otherwise random selection
-    let Some(target_entity) = select_target(explicit, enemies, state.rng_mut()) else {
+    let Some(target_entity) = select_target(explicit, &enemies, state.rng_mut()) else {
         return;
     };
 
@@ -676,7 +677,7 @@ fn resolve_gain_stats(
             world.set_health(source, Health(cur_hp.0 + health));
         }
         EffectTarget::AllFriendlyMinions => {
-            let minions: Vec<Entity> = collect_friendly_minions(state, owner);
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner);
             let world = state.world_mut();
             for minion in &minions {
                 let cur_atk = world.attack(*minion).unwrap_or(Attack(0));
@@ -687,7 +688,7 @@ fn resolve_gain_stats(
         }
         EffectTarget::FriendlyMinion => {
             let minions = collect_friendly_minions(state, owner);
-            let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
+            let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
                 return;
             };
             let world = state.world_mut();
@@ -783,7 +784,7 @@ fn resolve_return_to_hand(
         return;
     }
 
-    let Some(target_entity) = select_target(explicit, minions, state.rng_mut()) else {
+    let Some(target_entity) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
 
@@ -831,7 +832,7 @@ fn resolve_increase_cost(
         return;
     }
 
-    let Some(target_entity) = select_target(explicit, minions, state.rng_mut()) else {
+    let Some(target_entity) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
 
@@ -848,7 +849,7 @@ fn resolve_destroy_minion(
     target: EffectTarget,
     explicit: Option<Entity>,
 ) {
-    let minions: Vec<Entity> = match target {
+    let minions: SmallList<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
         EffectTarget::DamagedEnemyMinion => collect_enemy_minions(state, owner)
             .into_iter()
@@ -860,7 +861,7 @@ fn resolve_destroy_minion(
             })
             .collect(),
         EffectTarget::TauntEnemyMinion => {
-            let minions: Vec<Entity> = collect_enemy_minions(state, owner)
+            let minions: SmallList<Entity> = collect_enemy_minions(state, owner)
                 .into_iter()
                 .filter(|&e| state.world().taunt(e).is_some())
                 .collect();
@@ -919,7 +920,7 @@ fn resolve_silence(
     target: EffectTarget,
     explicit: Option<Entity>,
 ) {
-    let minions: Vec<Entity> = match target {
+    let minions: SmallList<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
         EffectTarget::AllMinions => {
             let mut all = collect_friendly_minions(state, owner);
@@ -962,11 +963,11 @@ fn resolve_set_attack(
     target: EffectTarget,
     explicit: Option<Entity>,
 ) {
-    let minions: Vec<Entity> = match target {
+    let minions: SmallList<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
         _ => return,
     };
-    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
+    let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
     state.world_mut().set_attack(m, Attack(attack));
@@ -1014,7 +1015,7 @@ fn resolve_freeze(
     target: EffectTarget,
     explicit: Option<Entity>,
 ) {
-    let targets: Vec<Entity> = match target {
+    let targets: SmallList<Entity> = match target {
         EffectTarget::AnyEnemy => collect_enemy_characters(state, owner),
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
         EffectTarget::AllEnemyMinions => collect_all_enemy_minions(state, owner),
@@ -1063,12 +1064,12 @@ fn resolve_deal_hero_attack_damage(
     if hero_atk <= 0 {
         return;
     }
-    let minions: Vec<Entity> = match target {
+    let minions: SmallList<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
         EffectTarget::AnyEnemy => collect_enemy_characters(state, owner),
         _ => return,
     };
-    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
+    let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
     queue.push(Event::DamageDealt {
@@ -1085,12 +1086,12 @@ fn resolve_full_heal(
     target: EffectTarget,
     explicit: Option<Entity>,
 ) {
-    let minions: Vec<Entity> = match target {
+    let minions: SmallList<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         _ => return,
     };
-    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
+    let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
     // Get max health (based on the original definition; simplified here to 30 or the current max)
@@ -1117,11 +1118,11 @@ fn resolve_grant_windfury(
     target: EffectTarget,
     explicit: Option<Entity>,
 ) {
-    let minions: Vec<Entity> = match target {
+    let minions: SmallList<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         _ => return,
     };
-    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
+    let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
     state
@@ -1137,11 +1138,11 @@ fn resolve_grant_charge(
     attack_bonus: i32,
     explicit: Option<Entity>,
 ) {
-    let minions: Vec<Entity> = match target {
+    let minions: SmallList<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         _ => return,
     };
-    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
+    let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
     let world = state.world_mut();
@@ -1161,11 +1162,11 @@ fn resolve_double_attack(
     target: EffectTarget,
     explicit: Option<Entity>,
 ) {
-    let minions: Vec<Entity> = match target {
+    let minions: SmallList<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         _ => return,
     };
-    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
+    let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
     let world = state.world_mut();
@@ -1180,11 +1181,11 @@ fn resolve_double_health(
     target: EffectTarget,
     explicit: Option<Entity>,
 ) {
-    let minions: Vec<Entity> = match target {
+    let minions: SmallList<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         _ => return,
     };
-    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
+    let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
     let world = state.world_mut();
@@ -1210,7 +1211,7 @@ fn resolve_buff_weapon(state: &mut GameState, owner: PlayerId, attack: i32, dura
 
 /// Discards a random card from hand.
 fn resolve_discard_random(state: &mut GameState, owner: PlayerId) {
-    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, owner).collect();
+    let hand: SmallList<Entity> = state.world().zones().iter(Zone::Hand, owner).collect();
     if hand.is_empty() {
         return;
     }
@@ -1232,12 +1233,12 @@ fn resolve_deal_armor_damage(
     if armor <= 0 {
         return;
     }
-    let minions: Vec<Entity> = match target {
+    let minions: SmallList<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
         EffectTarget::AnyEnemy => collect_enemy_characters(state, owner),
         _ => return,
     };
-    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
+    let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
     queue.push(Event::DamageDealt {
@@ -1295,7 +1296,7 @@ fn resolve_deal_damage_to_two(
 
 /// Returns all minions to their owners' hands.
 fn resolve_return_all_to_hand(state: &mut GameState, owner: PlayerId) {
-    let all_minions: Vec<Entity> = [owner, owner.opponent()]
+    let all_minions: SmallList<Entity> = [owner, owner.opponent()]
         .iter()
         .flat_map(|&pid| {
             state
@@ -1318,11 +1319,11 @@ fn resolve_set_attack_to_health(
     target: EffectTarget,
     explicit: Option<Entity>,
 ) {
-    let minions: Vec<Entity> = match target {
+    let minions: SmallList<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         _ => return,
     };
-    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
+    let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
     let world = state.world_mut();
@@ -1333,7 +1334,7 @@ fn resolve_set_attack_to_health(
 /// Destroys all minions except one random survivor.
 fn resolve_destroy_all_except_one(state: &mut GameState, queue: &mut EventQueue, owner: PlayerId) {
     let enemy = owner.opponent();
-    let mut all_minions: Vec<Entity> = [owner, enemy]
+    let mut all_minions: SmallList<Entity> = [owner, enemy]
         .iter()
         .flat_map(|&pid| {
             state
@@ -1369,11 +1370,11 @@ fn resolve_destroy_and_heal(
     heal: i32,
     explicit: Option<Entity>,
 ) {
-    let minions: Vec<Entity> = match target {
+    let minions: SmallList<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
         _ => return,
     };
-    let Some(m) = select_target(explicit, minions, state.rng_mut()) else {
+    let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
     let hp = state.world().health(m).unwrap_or(Health(1));
@@ -1414,7 +1415,7 @@ fn resolve_destroy_and_aoe(
     });
     // Deal damage equal to its attack to all enemy minions
     let _enemy = owner.opponent();
-    let targets: Vec<Entity> = match target {
+    let targets: SmallList<Entity> = match target {
         EffectTarget::AllEnemyMinions => collect_all_enemy_minions(state, owner),
         _ => return,
     };
@@ -1467,7 +1468,7 @@ fn resolve_adjacent_damage(
     }
     // Find the target's position on the enemy board and take its left/right neighbors
     let enemy = owner.opponent();
-    let board: Vec<Entity> = state
+    let board: SmallList<Entity> = state
         .world()
         .zones()
         .iter(Zone::Play, enemy)
@@ -1533,7 +1534,7 @@ fn resolve_freeze_or_damage(
     explicit: Option<Entity>,
 ) {
     let minions = collect_enemy_minions(state, owner);
-    let Some(target) = select_target(explicit, minions, state.rng_mut()) else {
+    let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
     if state.world().freeze(target).is_some() {
@@ -1592,7 +1593,7 @@ fn resolve_grant_attack_and_immune(state: &mut GameState, owner: PlayerId, attac
 ///
 /// Shadow Madness only targets minions with attack ≤ 3.
 fn resolve_take_control(state: &mut GameState, owner: PlayerId, until_end_of_turn: bool) {
-    let minions: Vec<Entity> = collect_enemy_minions(state, owner)
+    let minions: SmallList<Entity> = collect_enemy_minions(state, owner)
         .into_iter()
         .filter(|&e| {
             !until_end_of_turn || state.world().effective_attack(e).unwrap_or(Attack(0)).0 <= 3
@@ -1729,7 +1730,7 @@ fn resolve_damage_and_summon_if_killed(
 
 /// Grants a friendly minion stealth (Master of Disguise; cannot target itself).
 fn resolve_grant_stealth(state: &mut GameState, source: Entity, owner: PlayerId) {
-    let minions: Vec<Entity> = collect_friendly_minions(state, owner)
+    let minions: SmallList<Entity> = collect_friendly_minions(state, owner)
         .into_iter()
         .filter(|&e| e != source)
         .collect();
@@ -1747,13 +1748,14 @@ fn resolve_grant_stealth(state: &mut GameState, source: Entity, owner: PlayerId)
 /// Collects all enemy characters (hero + minions), excluding stealthed minions.
 ///
 /// Stealthed characters cannot be targeted by single-target effects but are
-/// still affected by AOE.
-fn collect_enemy_characters(state: &GameState, owner: PlayerId) -> Vec<Entity> {
+/// still affected by AOE. Returns a stack-buffered list (no heap allocation
+/// for boards of at most 7 minions + hero).
+fn collect_enemy_characters(state: &GameState, owner: PlayerId) -> SmallList<Entity> {
     collect_enemy_characters_impl(state, owner, false)
 }
 
 /// Collects all enemy characters (hero + minions, including stealthed) — for AOE effects.
-fn collect_all_enemy_characters(state: &GameState, owner: PlayerId) -> Vec<Entity> {
+fn collect_all_enemy_characters(state: &GameState, owner: PlayerId) -> SmallList<Entity> {
     collect_enemy_characters_impl(state, owner, true)
 }
 
@@ -1761,9 +1763,9 @@ fn collect_enemy_characters_impl(
     state: &GameState,
     owner: PlayerId,
     include_stealth: bool,
-) -> Vec<Entity> {
+) -> SmallList<Entity> {
     let enemy = owner.opponent();
-    let mut chars: Vec<Entity> = state
+    let mut chars: SmallList<Entity> = state
         .world()
         .zones()
         .iter(Zone::Play, enemy)
@@ -1776,20 +1778,25 @@ fn collect_enemy_characters_impl(
             !(!include_stealth && state.world().stealth(e).is_some())
         })
         .collect();
-    chars.push(state.player(enemy).hero);
-    // Deduplicate
+    // The hero is normally in the zone list already; ensure it is present
+    // (defensive, e.g. for states built without the hero in the zone index).
+    let hero = state.player(enemy).hero;
+    if chars.iter().all(|&c| c != hero) {
+        chars.push(hero);
+    }
+    // Sort by (index, generation) — same order as the previous sort+dedup
+    // (no duplicates can remain: the zone list holds each entity once).
     chars.sort_by_key(|e| (e.index, e.generation));
-    chars.dedup();
     chars
 }
 
 /// Collects all enemy minions, excluding stealthed minions.
-fn collect_enemy_minions(state: &GameState, owner: PlayerId) -> Vec<Entity> {
+fn collect_enemy_minions(state: &GameState, owner: PlayerId) -> SmallList<Entity> {
     collect_enemy_minions_impl(state, owner, false)
 }
 
 /// Collects all enemy minions (including stealthed) — for AOE effects.
-fn collect_all_enemy_minions(state: &GameState, owner: PlayerId) -> Vec<Entity> {
+fn collect_all_enemy_minions(state: &GameState, owner: PlayerId) -> SmallList<Entity> {
     collect_enemy_minions_impl(state, owner, true)
 }
 
@@ -1797,7 +1804,7 @@ fn collect_enemy_minions_impl(
     state: &GameState,
     owner: PlayerId,
     include_stealth: bool,
-) -> Vec<Entity> {
+) -> SmallList<Entity> {
     let enemy = owner.opponent();
     state
         .world()
@@ -1811,7 +1818,7 @@ fn collect_enemy_minions_impl(
 }
 
 /// Collects all friendly minions.
-fn collect_friendly_minions(state: &GameState, owner: PlayerId) -> Vec<Entity> {
+fn collect_friendly_minions(state: &GameState, owner: PlayerId) -> SmallList<Entity> {
     state
         .world()
         .zones()
