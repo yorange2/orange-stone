@@ -72,13 +72,15 @@ impl GreedyBot {
         let world = state.world();
         let current_mana = state.player(player).current_mana;
 
-        // 收集所有可打出的牌（随从 + 武器）
+        // 收集所有可打出的牌（随从 + 武器 + 法术）
         let mut playable: Vec<(i32, Entity)> = world
             .zones()
             .iter(Zone::Hand, player)
             .filter(|&e| {
                 let ct = world.card_type(e);
-                (ct == Some(CardType::Minion) || ct == Some(CardType::Weapon))
+                (ct == Some(CardType::Minion)
+                    || ct == Some(CardType::Weapon)
+                    || ct == Some(CardType::Spell))
                     && world.cost(e).is_some_and(|c| c.0 <= current_mana)
             })
             .map(|e| (world.cost(e).unwrap().0, e))
@@ -515,13 +517,15 @@ impl SmartBot {
     ) -> (Vec<Action>, Vec<ProjectedAttacker>, Option<i32>, i32) {
         let world = state.world();
 
-        // 收集所有可打出的牌（随从 + 武器）及其评分
+        // 收集所有可打出的牌（随从 + 武器 + 法术）及其评分
         let mut candidates: Vec<(f64, Entity)> = world
             .zones()
             .iter(Zone::Hand, player)
             .filter(|&e| {
                 let ct = world.card_type(e);
-                (ct == Some(CardType::Minion) || ct == Some(CardType::Weapon))
+                (ct == Some(CardType::Minion)
+                    || ct == Some(CardType::Weapon)
+                    || ct == Some(CardType::Spell))
                     && world.cost(e).is_some_and(|c| c.0 <= current_mana)
             })
             .map(|e| (self.evaluate_card(state, player, e), e))
