@@ -6,16 +6,29 @@
 
 ## TL;DR
 
-**66 unique cards** from the Classic/Basic set are still unimplemented, in three tiers:
+**62 unique cards** from the Classic/Basic set are still unimplemented, in three tiers:
 
 | Tier | Count | What it is | New engine mechanics needed |
 |------|-------|-----------|-----------------------------|
 | 1 | 20 | Docs mark ✅ but missing from code — mostly vanilla/basic effects | None |
-| 2 | 30 | Genuinely not implemented, need new engine mechanics | Yes |
-| 3 | 16 | Deferred: random/discover/opponent interactions | Random card pool / generation framework |
+| 2 | 29 | Genuinely not implemented, need new engine mechanics | Yes |
+| 3 | 13 | Deferred: random card generation (subject to [pool closure](#pool-closure)) | Random card pool / generation framework |
 
 > Note: Tinkmaster Overspark appears as both 🔧 and ⏸️ in `classic-cards.md`; it is counted once here (Tier 3).
 > Note: the numbers in this roadmap are verified against `src/cards/` as of 2026-08-05. The statuses in `classic-cards.md` are known to be stale in both directions (see [Milestone 0](#milestone-0--doc-reconciliation)).
+
+---
+
+## Pool Closure
+
+The Classic pool must be **closed**: no card implemented under this roadmap may generate or introduce cards from outside the Classic set.
+
+- **Allowed:** random sampling from `ALL_CARDS` (entirely Classic) with class/tribe/rarity filters — e.g. "a random Beast" samples only from Classic Beasts.
+- **Allowed:** fixed token pools defined inside the Classic implementation (Dream Cards, Animal Companion's companions, Bananas, Devilsaur/Squirrel, Fireball, Treants, Snakes, …) — they are part of the pool itself.
+- **Not allowed:** any mechanism that could reach outside the pool. For this reason, the following opponent-copy cards are **removed from this roadmap**:
+  - Mind Vision, Thoughtsteal, Mindgames (copy from the opponent's hand/deck — they would leak outside the pool if other sets are ever supported)
+  - Lorewalker Cho (copies a spell the opponent cast)
+- The [random card pool framework](#mechanic-checklist) must enforce this constraint: every sampling pool is a filtered subset of the Classic pool.
 
 ---
 
@@ -59,14 +72,13 @@ Every effect these cards need (Taunt, Stealth, Battlecry, Deathrattle, auras, we
 
 ---
 
-## Tier 2 — Need new engine mechanics (30)
+## Tier 2 — Need new engine mechanics (29)
 
 Organized by class (= by implementation file). Each entry notes the mechanic(s) it requires — build shared mechanics first (see [Mechanic checklist](#mechanic-checklist)).
 
-### `src/cards/classic_neutral.rs` (2)
+### `src/cards/classic_neutral.rs` (1)
 
-- [ ] **Lorewalker Cho** — When a player casts a spell, put a copy into the other player's hand. *(spell-cast event → copy card to hand)*
-- [ ] **King Mukla** — **Battlecry:** Give your opponent 2 Bananas. *(card generation into opponent's hand; needs Bananas token)*
+- [ ] **King Mukla** — **Battlecry:** Give your opponent 2 Bananas. *(card generation into opponent's hand; Bananas is an in-pool Classic token — closure-compliant)*
 
 ### `src/cards/classic_druid.rs` (3)
 
@@ -125,43 +137,40 @@ Organized by class (= by implementation file). Each entry notes the mechanic(s) 
 
 ---
 
-## Tier 3 — Deferred: random / discover / opponent interactions (16)
+## Tier 3 — Deferred: random card generation (13)
 
-These need a random card pool or card-generation framework. The runtime registry (`ALL_CARDS` in `src/cards/sets.rs`) is the natural base for sampling, but class filtering and token pools (Bananas, Dream Cards, Demons, Beasts) need to be defined first.
+These need a random card pool or card-generation framework, subject to [pool closure](#pool-closure): every sampling pool is a filtered subset of `ALL_CARDS` (the runtime registry in `src/cards/sets.rs`), and tokens (Bananas, Dream Cards, Devilsaur/Squirrel, companions, …) are defined as part of the Classic pool.
 
 ### `src/cards/classic_neutral.rs` (6)
 
-- [ ] **Brightwing** — **Battlecry:** Add a random Legendary minion to your hand.
+- [ ] **Brightwing** — **Battlecry:** Add a random Legendary minion to your hand. *(sample from the Classic pool with a legendary-rarity filter)*
 - [ ] **Nozdormu** — 15-second turn timer. *(suggest: implement as a plain 8/8 with a comment — timer is meaningless in sim)*
-- [ ] **Xavius** — At the end of your turn, add a random Shadow spell to your hand.
-- [ ] **Ysera** — At the end of your turn, draw a Dream Card. *(needs the Dream Card pool)*
-- [ ] **Barrens Stablehand** — **Battlecry:** Summon a random Beast. *(needs a random Beast pool)*
-- [ ] **Tinkmaster Overspark** — **Battlecry:** Transform a minion into a 5/5 Devilsaur or a 1/1 Squirrel at random. *(transform + random choice; needs Transform mechanic first — from Tier 2)*
+- [ ] **Xavius** — At the end of your turn, add a random Shadow spell to your hand. *(sample from the Classic pool with a shadow filter)*
+- [ ] **Ysera** — At the end of your turn, draw a Dream Card. *(Dream Cards are an in-pool token set — closure-compliant)*
+- [ ] **Barrens Stablehand** — **Battlecry:** Summon a random Beast. *(sample from the Classic pool with a beast-tribe filter)*
+- [ ] **Tinkmaster Overspark** — **Battlecry:** Transform a minion into a 5/5 Devilsaur or a 1/1 Squirrel at random. *(transform + random choice; Devilsaur/Squirrel are fixed in-pool tokens; needs Transform mechanic first — from Tier 2)*
 
 ### `src/cards/classic_hunter.rs` (1)
 
-- [ ] **Animal Companion** — Summon a random 4/4 Carcass, 4/2 Leokk, or 2/4 Misha. *(random among fixed companions — easy once random summon exists)*
+- [ ] **Animal Companion** — Summon a random 4/4 Carcass, 4/2 Leokk, or 2/4 Misha. *(the three companions are fixed in-pool tokens — closure-compliant; easy once random summon exists)*
 
 ### `src/cards/classic_mage.rs` (2)
 
-- [ ] **Tome of Intellect** — Add a random Mage spell to your hand.
-- [ ] **Archmage Antonidas** — Whenever you cast a spell, add a Fireball to your hand.
+- [ ] **Tome of Intellect** — Add a random Mage spell to your hand. *(sample from the Classic pool with a mage-class filter)*
+- [ ] **Archmage Antonidas** — Whenever you cast a spell, add a Fireball to your hand. *(Fireball is a Classic card — fixed generation, closure-compliant)*
 
-### `src/cards/classic_priest.rs` (4)
+### `src/cards/classic_priest.rs` (1)
 
-- [ ] **Mind Vision** — Copy a random card from your opponent's hand to yours.
-- [ ] **Thoughtsteal** — Copy 2 random cards from your opponent's deck.
-- [ ] **Mindgames** — Summon a copy of a random minion from your opponent's deck.
 - [ ] **Mind Control** — Take control of an enemy minion. *(not actually random — it is in this tier because permanent mind control needs the mechanic from Shadow Madness; implement right after it)*
 
 ### `src/cards/classic_rogue.rs` (1)
 
-- [ ] **Pilfer** — Add a random card from another class to your hand. *(needs cross-class sampling)*
+- [ ] **Pilfer** — Add a random card from another class to your hand. *(sample from the Classic pool with a class filter)*
 
 ### `src/cards/classic_warlock.rs` (2)
 
-- [ ] **Call of the Void** — Add a random Demon to your hand. *(needs a Demon pool)*
-- [ ] **Bane of Doom** — Deal 2 damage to a character. If it dies, summon a random Demon. *(damage + conditional random summon)*
+- [ ] **Call of the Void** — Add a random Demon to your hand. *(sample from the Classic pool with a demon-tribe filter)*
+- [ ] **Bane of Doom** — Deal 2 damage to a character. If it dies, summon a random Demon. *(damage + conditional random summon; Demon pool as above)*
 
 ---
 
@@ -184,8 +193,8 @@ Engine features to build before/while implementing Tier 2 & 3. Roughly ordered b
 - [ ] **Delayed start-of-turn destroy** — unlocks: Corruption
 - [ ] **Minimum-health effect** — unlocks: Commanding Shout
 - [ ] **Overload trigger** — unlocks: Unbound Elemental
-- [ ] **Spell-cast → card-to-hand** — unlocks: Lorewalker Cho, Archmage Antonidas, Tome of Intellect
-- [ ] **Random card pool framework** (class/rarity/type filtering + token pools) — unlocks: all of Tier 3
+- [ ] **Spell-cast → card-to-hand** — unlocks: Archmage Antonidas, Tome of Intellect
+- [ ] **Random card pool framework** (class/rarity/type filtering + token pools; **must satisfy [pool closure](#pool-closure)** — sampling pools are Classic subsets, tokens defined in-pool) — unlocks: all of Tier 3
 
 ---
 
@@ -205,13 +214,13 @@ Engine features to build before/while implementing Tier 2 & 3. Roughly ordered b
 
 No engine changes. Pure `CardDef` additions, one commit per class file.
 
-### Milestone 2 — Tier 2: 30 mechanic cards
+### Milestone 2 — Tier 2: 29 mechanic cards
 
 Build the [mechanic checklist](#mechanic-checklist) items in order, then implement the cards each one unlocks. Group commits by mechanic, not by class, where practical.
 
-### Milestone 3 — Tier 3: 16 random/generation cards
+### Milestone 3 — Tier 3: 13 random/generation cards
 
-Needs the random card pool framework. Nozdormu can be done any time as a plain 8/8.
+Needs the random card pool framework, subject to [pool closure](#pool-closure). Nozdormu can be done any time as a plain 8/8.
 
 ---
 
