@@ -274,4 +274,25 @@ pub enum CardEffect {
     DestroyWeaponAndDealAttackToEnemies,
     /// 使一个友方随从获得潜行（伪装大师）
     GrantStealth,
+    /// 召唤多个随从（毒蛇陷阱的三条蛇、塞纳留斯的双树人）
+    SummonMultipleMinions {
+        /// 要召唤的卡牌 ID
+        card_id: &'static str,
+        /// 召唤数量
+        count: u32,
+    },
+    /// 对刚被打出的敌方随从造成伤害（狙击 — 由 secret.rs 处理，需要事件上下文）
+    DamagePlayedMinion {
+        /// 伤害数值
+        amount: i32,
+    },
+    /// 将攻击重定向到另一个随机角色（误导 — 由 secret.rs 处理）
+    RedirectAttackToRandomCharacter,
+    /// 召唤一个随从作为攻击的新目标（崇高牺牲 — 由 secret.rs 处理）
+    SummonAndRedirectAttack {
+        /// 要召唤的防御者卡牌 ID
+        card_id: &'static str,
+    },
+    /// 召唤 1/3 法术扭曲者并重定向法术伤害（法术扭曲者 — 由 secret.rs 处理）
+    SummonSpellbender,
 }

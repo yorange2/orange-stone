@@ -245,6 +245,12 @@ pub enum SecretTrigger {
     WhenEnemySpellCast,
     /// 敌方随从攻击己方英雄时（蒸发类奥秘）
     WhenEnemyMinionAttacksHero,
+    /// 敌方攻击己方英雄时（误导类奥秘 — 攻击者可为随从或英雄）
+    WhenEnemyAttacksHero,
+    /// 敌方攻击时（崇高牺牲类奥秘）
+    WhenEnemyAttacks,
+    /// 己方随从受到伤害时（毒蛇陷阱类奥秘）
+    WhenFriendlyMinionDamaged,
 }
 
 /// 圣盾 — 吸收一次伤害后消失。

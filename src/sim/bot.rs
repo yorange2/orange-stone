@@ -1177,6 +1177,11 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::AdjacentDamage => 3.0,
         CardEffect::DestroyWeaponAndDealAttackToEnemies => 4.0,
         CardEffect::GrantStealth => 2.0,
+        CardEffect::SummonMultipleMinions { count, .. } => count as f64 * 2.0,
+        CardEffect::DamagePlayedMinion { amount } => amount as f64 * 1.2,
+        CardEffect::RedirectAttackToRandomCharacter => 3.0,
+        CardEffect::SummonAndRedirectAttack { .. } => 3.0,
+        CardEffect::SummonSpellbender => 2.0,
     }
 }
 

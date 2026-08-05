@@ -184,6 +184,73 @@ impl EventQueue {
             .map(|(_, e)| e)
             .collect()
     }
+
+    /// 重定向队列中第一个匹配 `DamageDealt { source, target }` 事件的目标。
+    ///
+    /// 用于攻击/法术重定向（误导、崇高牺牲等奥秘）：事件已在队列中，
+    /// 修改其目标使后续结算命中新目标。返回是否找到并重定向。
+    pub fn redirect_damage(
+        &mut self,
+        source: Entity,
+        old_target: Entity,
+        new_target: Entity,
+    ) -> bool {
+        for (_, event) in &mut self.items {
+            if let Event::DamageDealt {
+                source: s,
+                target: t,
+                ..
+            } = event
+            {
+                if *s == source && *t == old_target {
+                    *t = new_target;
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    /// 替换队列中第一个匹配 `DamageDealt { source, target }` 的事件。
+    ///
+    /// 用于攻击重定向后的反击结算（崇高牺牲：防御者的反击替换原防御者反击）。
+    pub fn replace_damage(&mut self, source: Entity, target: Entity, replacement: Event) -> bool {
+        for (_, event) in &mut self.items {
+            if let Event::DamageDealt {
+                source: s,
+                target: t,
+                ..
+            } = *event
+            {
+                if s == source && t == target {
+                    *event = replacement;
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    /// 将所有满足谓词的 `DamageDealt` 事件重定向到 `new_target`。
+    ///
+    /// 谓词接收事件的 source 和 target。用于法术扭曲者等需要按来源
+    /// 批量重定向的奥秘。返回重定向的数量。
+    pub fn redirect_damages(
+        &mut self,
+        predicate: impl Fn(Entity, Entity) -> bool,
+        new_target: Entity,
+    ) -> usize {
+        let mut count = 0;
+        for (_, event) in &mut self.items {
+            if let Event::DamageDealt { source, target, .. } = event {
+                if predicate(*source, *target) {
+                    *target = new_target;
+                    count += 1;
+                }
+            }
+        }
+        count
+    }
 }
 
 #[cfg(test)]

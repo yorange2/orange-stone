@@ -240,6 +240,11 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     // Tier 1 补全
     EXPLOSIVE_TRAP,
     FREEZING_TRAP,
+    // Tier 2 补全
+    MISDIRECTION,
+    SNAKE_TRAP,
+    SNAKE,
+    SNIPE,
 ];
 
 pub const MAGE_CLASSIC: &[CardDef] = &[
@@ -264,6 +269,9 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     ETHEREAL_ARCANIST,
     VAPORIZE,
     VAPORIZE,
+    // Tier 2 补全
+    SPELLBENDER,
+    SPELLBENDER_TOKEN,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -292,6 +300,9 @@ pub const PALADIN_CLASSIC: &[CardDef] = &[
     BLESSING_OF_WISDOM,
     EYE_FOR_AN_EYE,
     REDEMPTION,
+    // Tier 2 补全
+    NOBLE_SACRIFICE,
+    DEFENDER,
 ];
 
 pub const PRIEST_CLASSIC: &[CardDef] = &[
@@ -807,4 +818,13 @@ pub const ALL_CARDS: &[CardDef] = &[
     SIEGEBREAKER,
     FIERY_WAR_AXE,
     ARCANITE_REAPER,
+    // Tier 2 奥秘
+    MISDIRECTION,
+    SNAKE_TRAP,
+    SNAKE,
+    SNIPE,
+    SPELLBENDER,
+    SPELLBENDER_TOKEN,
+    NOBLE_SACRIFICE,
+    DEFENDER,
 ];
