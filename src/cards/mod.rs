@@ -36,18 +36,21 @@ use def::CardDef;
 /// instead they are mapped here centrally by card ID. Called when summoning minions
 /// (`trigger::resolve_summon`) and building cards (`GameBuilder::spawn_minion`).
 pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &CardDef) {
-    // Shaman cards with Overload (mana lock not simulated; used only as a trigger marker)
-    if matches!(
-        card_def.id,
-        "SHAMAN_002"
-            | "SHAMAN_006"
-            | "SHAMAN_009"
-            | "SHAMAN_015"
-            | "SHAMAN_016"
-            | "SHAMAN_017"
-            | "SHAMAN_019"
-    ) {
-        world.set_overload(entity, Overload);
+    // Shaman cards with Overload — the amount locks mana on the owner's next
+    // turn (roadmap F1): Lightning Bolt 1, Feral Spirit 2, Forked Lightning 2,
+    // Lightning Storm 2, Totem Golem 1, Lava Burst 2, Earth Elemental 3.
+    let overload_amount = match card_def.id {
+        "SHAMAN_002" => Some(1), // Lightning Bolt
+        "SHAMAN_006" => Some(2), // Feral Spirit
+        "SHAMAN_009" => Some(2), // Forked Lightning
+        "SHAMAN_015" => Some(2), // Lightning Storm
+        "SHAMAN_016" => Some(1), // Totem Golem
+        "SHAMAN_017" => Some(2), // Lava Burst
+        "SHAMAN_019" => Some(3), // Earth Elemental
+        _ => None,
+    };
+    if let Some(amount) = overload_amount {
+        world.set_overload(entity, Overload(amount));
     }
     if card_def.id == "SHAMAN_021" {
         // Unbound Elemental — gain +1/+1 whenever you play a card with Overload

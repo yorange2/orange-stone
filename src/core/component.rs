@@ -475,11 +475,11 @@ pub struct Stealth;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Immune;
 
-/// Overload marker — triggers friendly minions' overload triggers when this card is played (Unbound Elemental).
-///
-/// This engine does not simulate overload's mana locking; it only serves as a trigger marker.
+/// Overload amount — the mana locked on the owner's next turn (roadmap F1).
+/// Also triggers friendly minions' overload triggers when the card is played
+/// (Unbound Elemental).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
-pub struct Overload;
+pub struct Overload(pub i32);
 
 #[cfg(test)]
 mod tests {
