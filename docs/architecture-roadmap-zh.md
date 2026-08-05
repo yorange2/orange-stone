@@ -76,9 +76,9 @@
 
 ### 里程碑 A — 热路径（小改动，先做）
 
-- [ ] **A1** — `EventQueue`：用 O(1) 出队（队头索引或 `VecDeque`）替换 `Vec::remove(0)` / insert，保持同优先级内稳定 FIFO。
-- [ ] **A2** — 光环索引：按（所属玩家、目标类型）分组活跃光环，使 `effective_attack/health/cost` 不再重扫全集。
-- [ ] **A3** — 为事件循环与效果解析添加 criterion 基准测试，使 A1/A2 可量化。
+- [x] **A1** — `EventQueue`：用 O(1) 出队（队头索引或 `VecDeque`）替换 `Vec::remove(0)` / insert，保持同优先级内稳定 FIFO。*(PR #35：按优先级分桶的 `VecDeque`)*
+- [x] **A2** — 光环索引：按（所属玩家、目标类型）分组活跃光环，使 `effective_attack/health/cost` 不再重扫全集。*(PR #36：`AuraIndex` 按（拥有者、效果种类）分桶，增量维护)*
+- [x] **A3** — 为事件循环与效果解析添加 criterion 基准测试，使 A1/A2 可量化。*(PR #37：`benches/event_queue.rs` + `benches/effect_resolution.rs`)*
 
 ### 里程碑 B — 伤害管线统一（设计工作）
 

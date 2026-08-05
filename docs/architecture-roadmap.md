@@ -76,9 +76,9 @@ One-sentence comparison: RosettaStone and SabberStone are **fidelity-first simul
 
 ### Milestone A — Hot path (small, do first)
 
-- [ ] **A1** — `EventQueue`: replace `Vec::remove(0)` / insert with an O(1) pop (head index or `VecDeque`), preserving stable FIFO within priority.
-- [ ] **A2** — Aura indexing: group active auras by (owner, target class) so `effective_attack/health/cost` do not rescan the whole set.
-- [ ] **A3** — Add criterion benchmarks for the event loop and effect resolution to make A1/A2 measurable.
+- [x] **A1** — `EventQueue`: replace `Vec::remove(0)` / insert with an O(1) pop (head index or `VecDeque`), preserving stable FIFO within priority. *(PR #35: per-priority `VecDeque` buckets)*
+- [x] **A2** — Aura indexing: group active auras by (owner, target class) so `effective_attack/health/cost` do not rescan the whole set. *(PR #36: `AuraIndex` bucketed by (owner, effect kind), incrementally maintained)*
+- [x] **A3** — Add criterion benchmarks for the event loop and effect resolution to make A1/A2 measurable. *(PR #37: `benches/event_queue.rs` + `benches/effect_resolution.rs`)*
 
 ### Milestone B — Damage pipeline unification (design work)
 
