@@ -78,6 +78,8 @@ macro_rules! component_accessors {
 /// - 10 个组件稀疏集 + Zones 表
 #[derive(Debug, Clone)]
 pub struct World {
+    /// 活跃光环源索引（见 [`AuraIndex`]）— 由所有相关变异方法增量维护。
+    aura_index: AuraIndex,
     /// 每个槽位的代际版本号，用于检测过期 Entity handle
     generations: Vec<u32>,
     /// 可复用的空闲槽位索引
@@ -93,7 +95,7 @@ pub struct World {
     /// Zone 组件存储（实体的当前位置）
     zone_comp: SparseSet<Zone>,
     /// PlayerId 组件存储
-    player: SparseSet<PlayerId>,
+    player_comp: SparseSet<PlayerId>,
     /// AttacksUsed 组件存储
     attacks_used: SparseSet<AttacksUsed>,
     /// Battlecry 组件存储
@@ -158,11 +160,75 @@ pub struct World {
     zones: Zones,
 }
 
+/// 光环源索引 — 将存活的战场光环源按（拥有者, 效果种类）分桶。
+///
+/// 光环适用性取决于源的三个易变属性（存活、在战场、拥有者）以及效果种类。
+/// 每次查询都扫描全部 `Aura` 组件是 O(实体数 × 光环数)；此索引将每个查询
+/// 限制到可能影响它的分桶。
+///
+/// 索引由 `World` 的相关变异方法增量维护（`set_aura`/`remove_aura`/
+/// `set_zone`/`set_player`/`despawn`），查询路径是纯只读，无锁。
+///
+/// 注意：索引只信任 `zone` 组件（与查询语义一致），不信任 `Zones` 表，
+/// 因此 `zones_mut()` 直接操作区域表不会造成索引与查询不一致。
+#[derive(Debug, Clone, PartialEq)]
+struct AuraIndex {
+    /// 影响攻击力的光环源（按拥有者分桶）
+    attack: [Vec<(Entity, Aura)>; 2],
+    /// 影响生命值的光环源（按拥有者分桶）
+    health: [Vec<(Entity, Aura)>; 2],
+    /// 减少费用的光环源（按拥有者分桶）
+    cost: [Vec<(Entity, Aura)>; 2],
+}
+
+impl AuraIndex {
+    /// 创建一个空索引。
+    #[must_use]
+    const fn new() -> Self {
+        Self {
+            attack: [const { Vec::new() }, const { Vec::new() }],
+            health: [const { Vec::new() }, const { Vec::new() }],
+            cost: [const { Vec::new() }, const { Vec::new() }],
+        }
+    }
+
+    /// 从所有分桶中移除实体。
+    fn remove_entity(&mut self, entity: Entity) {
+        for player in 0..PlayerId::COUNT {
+            self.attack[player].retain(|(e, _)| *e != entity);
+            self.health[player].retain(|(e, _)| *e != entity);
+            self.cost[player].retain(|(e, _)| *e != entity);
+        }
+    }
+
+    /// 按效果种类将实体加入对应分桶。
+    fn add_entity(&mut self, entity: Entity, aura: Aura, owner: PlayerId) {
+        use crate::core::component::AuraEffect;
+        let oi = owner.index();
+        match aura.effect {
+            AuraEffect::GainStats { attack, health } => {
+                if attack != 0 {
+                    self.attack[oi].push((entity, aura));
+                }
+                if health != 0 {
+                    self.health[oi].push((entity, aura));
+                }
+            }
+            AuraEffect::GainAttack(_) => self.attack[oi].push((entity, aura)),
+            AuraEffect::GainHealth(_) => self.health[oi].push((entity, aura)),
+            AuraEffect::ReduceSpellCost(_) | AuraEffect::ReduceMinionCost { .. } => {
+                self.cost[oi].push((entity, aura))
+            }
+        }
+    }
+}
+
 impl World {
     /// 创建一个空的世界。
     #[must_use]
     pub const fn new() -> Self {
         Self {
+            aura_index: AuraIndex::new(),
             generations: Vec::new(),
             free_list: Vec::new(),
             health: SparseSet::new(),
@@ -170,7 +236,7 @@ impl World {
             cost: SparseSet::new(),
             card_type: SparseSet::new(),
             zone_comp: SparseSet::new(),
-            player: SparseSet::new(),
+            player_comp: SparseSet::new(),
             attacks_used: SparseSet::new(),
             battlecry: SparseSet::new(),
             deathrattle: SparseSet::new(),
@@ -243,7 +309,7 @@ impl World {
         self.cost.remove(entity);
         self.card_type.remove(entity);
         self.zone_comp.remove(entity);
-        self.player.remove(entity);
+        self.player_comp.remove(entity);
         self.attacks_used.remove(entity);
         self.battlecry.remove(entity);
         self.deathrattle.remove(entity);
@@ -252,7 +318,7 @@ impl World {
         self.armor.remove(entity);
         self.hero_power.remove(entity);
         self.hero_power_used.remove(entity);
-        self.aura.remove(entity);
+        self.remove_aura(entity);
         self.secret.remove(entity);
         self.divine_shield.remove(entity);
         self.windfury.remove(entity);
@@ -316,6 +382,9 @@ impl World {
     ///
     /// ⚠️ 直接操作 Zones 表需要同时更新 Zone 组件，否则状态不一致。
     /// 优先使用 `move_to_zone`。
+    ///
+    /// 光环索引只信任 `Zone` 组件（与查询语义一致），不信任此表，
+    /// 因此直接操作区域表不会造成索引与查询不一致。
     pub fn zones_mut(&mut self) -> &mut Zones {
         &mut self.zones
     }
@@ -346,15 +415,79 @@ impl World {
         remove_card_type,
         iter_card_type
     );
-    component_accessors!(zone_comp, Zone, zone, set_zone, remove_zone, iter_zone);
-    component_accessors!(
-        player,
-        PlayerId,
-        player,
-        set_player,
-        remove_player,
-        iter_player
-    );
+    /// 获取实体的 `Zone` 组件。
+    #[must_use]
+    pub fn zone(&self, entity: Entity) -> Option<Zone> {
+        self.zone_comp.get(entity)
+    }
+
+    /// 设置实体的 `Zone` 组件（可能改变光环适用性，增量维护索引）。
+    pub fn set_zone(&mut self, entity: Entity, value: impl Into<Zone>) {
+        let value = value.into();
+        // 光环源进出战场会改变其"活跃"状态，需要同步索引
+        if self.aura.contains(entity) {
+            let was_active = self.zone(entity) == Some(Zone::Play);
+            let now_active = value == Zone::Play;
+            if was_active && !now_active {
+                self.aura_index.remove_entity(entity);
+            } else if !was_active && now_active {
+                if let (Some(aura), Some(player)) = (self.aura.get(entity), self.player(entity)) {
+                    self.aura_index.add_entity(entity, aura, player);
+                }
+            }
+        }
+        self.zone_comp.insert(entity, value);
+    }
+
+    /// 移除实体的 `Zone` 组件（使光环索引失去该实体的活跃状态信息）。
+    pub fn remove_zone(&mut self, entity: Entity) -> Option<Zone> {
+        let removed = self.zone_comp.remove(entity);
+        if removed.is_some() && self.aura.contains(entity) {
+            self.aura_index.remove_entity(entity);
+        }
+        removed
+    }
+
+    /// 遍历所有拥有 `Zone` 组件的实体。
+    pub fn iter_zone(&self) -> impl Iterator<Item = (Entity, &Zone)> {
+        self.zone_comp.iter()
+    }
+
+    /// 获取实体的 `PlayerId` 组件。
+    #[must_use]
+    pub fn player(&self, entity: Entity) -> Option<PlayerId> {
+        self.player_comp.get(entity)
+    }
+
+    /// 设置实体的 `PlayerId` 组件（拥有者变化改变光环分桶，增量维护索引）。
+    pub fn set_player(&mut self, entity: Entity, value: impl Into<PlayerId>) {
+        let value = value.into();
+        // 活跃光环源换边：先从原分桶移除，再按新拥有者重新加入
+        if self.aura.contains(entity) && self.zone(entity) == Some(Zone::Play) {
+            self.aura_index.remove_entity(entity);
+        }
+        self.player_comp.insert(entity, value);
+        if let Some(aura) = self.aura.get(entity) {
+            if self.zone(entity) == Some(Zone::Play) {
+                self.aura_index.add_entity(entity, aura, value);
+            }
+        }
+    }
+
+    /// 移除实体的 `PlayerId` 组件（使光环索引失去该实体的活跃状态信息）。
+    pub fn remove_player(&mut self, entity: Entity) -> Option<PlayerId> {
+        let removed = self.player_comp.remove(entity);
+        if removed.is_some() && self.aura.contains(entity) && self.zone(entity) == Some(Zone::Play)
+        {
+            self.aura_index.remove_entity(entity);
+        }
+        removed
+    }
+
+    /// 遍历所有拥有 `PlayerId` 组件的实体。
+    pub fn iter_player(&self) -> impl Iterator<Item = (Entity, &PlayerId)> {
+        self.player_comp.iter()
+    }
     component_accessors!(
         attacks_used,
         AttacksUsed,
@@ -405,7 +538,40 @@ impl World {
         remove_hero_power_used,
         iter_hero_power_used
     );
-    component_accessors!(aura, Aura, aura, set_aura, remove_aura, iter_aura);
+    /// 获取实体的 `Aura` 组件。
+    #[must_use]
+    pub fn aura(&self, entity: Entity) -> Option<Aura> {
+        self.aura.get(entity)
+    }
+
+    /// 设置实体的 `Aura` 组件（光环源集合可能变化，增量维护索引）。
+    pub fn set_aura(&mut self, entity: Entity, value: impl Into<Aura>) {
+        let value = value.into();
+        // 活跃光环源更新效果：先从索引移除，再按新值重新加入
+        if self.aura.contains(entity) && self.zone(entity) == Some(Zone::Play) {
+            self.aura_index.remove_entity(entity);
+        }
+        self.aura.insert(entity, value);
+        if let Some(player) = self.player(entity) {
+            if self.zone(entity) == Some(Zone::Play) {
+                self.aura_index.add_entity(entity, value, player);
+            }
+        }
+    }
+
+    /// 移除实体的 `Aura` 组件（从索引中移除该光环源）。
+    pub fn remove_aura(&mut self, entity: Entity) -> Option<Aura> {
+        let removed = self.aura.remove(entity);
+        if removed.is_some() {
+            self.aura_index.remove_entity(entity);
+        }
+        removed
+    }
+
+    /// 遍历所有拥有 `Aura` 组件的实体。
+    pub fn iter_aura(&self) -> impl Iterator<Item = (Entity, &Aura)> {
+        self.aura.iter()
+    }
     component_accessors!(
         secret,
         Secret,
@@ -603,30 +769,20 @@ impl World {
 
     /// 获取实体的有效攻击力（基础攻击力 + 所有光环加成）。
     ///
-    /// 遍历场上所有带 `Aura` 组件的存活实体，检查当前实体是否在光环范围内，
-    /// 累积叠加所有匹配光环的攻击力加成。
+    /// 通过光环源索引只扫描可能影响攻击力的光环（己方与敌方的攻击桶），
+    /// 而不是遍历全部 `Aura` 组件。
     #[must_use]
     pub fn effective_attack(&self, entity: Entity) -> Option<Attack> {
         let base = self.attack(entity)?;
         let player = self.player(entity)?;
 
         let mut bonus = 0i32;
-        for (aura_entity, aura) in self.iter_aura() {
-            // 跳过不存活的光环源
-            if !self.is_alive(aura_entity) {
-                continue;
-            }
-            // 光环源必须在战场上
-            if self.zone(aura_entity) != Some(crate::core::zone::Zone::Play) {
-                continue;
-            }
-            let aura_player = match self.player(aura_entity) {
-                Some(p) => p,
-                None => continue,
-            };
-
-            if aura_applies_to(aura, aura_entity, aura_player, entity, player, self) {
-                bonus += aura_attack_bonus(aura.effect);
+        // 己方光环影响己方随从，敌方光环通过 AllEnemyMinions 影响己方随从
+        for owner in [player, player.opponent()] {
+            for (source, aura) in &self.aura_index.attack[owner.index()] {
+                if aura_applies_to(aura, *source, owner, entity, player, self) {
+                    bonus += aura_attack_bonus(aura.effect);
+                }
             }
         }
 
@@ -635,27 +791,18 @@ impl World {
 
     /// 获取实体的有效生命值（基础生命值 + 所有光环加成）。
     ///
-    /// 遍历场上所有带 `Aura` 组件的存活实体，累积叠加匹配光环的生命值加成。
+    /// 通过光环源索引只扫描可能影响生命值的光环（己方与敌方的生命桶）。
     #[must_use]
     pub fn effective_health(&self, entity: Entity) -> Option<Health> {
         let base = self.health(entity)?;
         let player = self.player(entity)?;
 
         let mut bonus = 0i32;
-        for (aura_entity, aura) in self.iter_aura() {
-            if !self.is_alive(aura_entity) {
-                continue;
-            }
-            if self.zone(aura_entity) != Some(crate::core::zone::Zone::Play) {
-                continue;
-            }
-            let aura_player = match self.player(aura_entity) {
-                Some(p) => p,
-                None => continue,
-            };
-
-            if aura_applies_to(aura, aura_entity, aura_player, entity, player, self) {
-                bonus += aura_health_bonus(aura.effect);
+        for owner in [player, player.opponent()] {
+            for (source, aura) in &self.aura_index.health[owner.index()] {
+                if aura_applies_to(aura, *source, owner, entity, player, self) {
+                    bonus += aura_health_bonus(aura.effect);
+                }
             }
         }
 
@@ -664,7 +811,7 @@ impl World {
 
     /// 获取实体的有效法力消耗（基础费用 - 费用减免光环）。
     ///
-    /// 遍历场上所有存活的光环源，累加匹配的费用减免：
+    /// 通过光环源索引只扫描己方的费用桶：
     /// - `ReduceSpellCost` 作用于手牌中的友方法术（巫师学徒）
     /// - `ReduceMinionCost` 作用于手牌中的友方随从，且不低于费用下限
     ///   （召唤传送门 — 至少 1 费）
@@ -675,21 +822,12 @@ impl World {
         let base = self.cost(entity)?;
         let player = self.player(entity)?;
         let card_type = self.card_type(entity)?;
-        let in_hand = self.zone(entity) == Some(crate::core::zone::Zone::Hand);
+        let in_hand = self.zone(entity) == Some(Zone::Hand);
 
+        // 费用光环只影响光环拥有者自己的手牌
         let mut reduction = 0i32;
         let mut min_cost = 0i32;
-        for (aura_entity, aura) in self.iter_aura() {
-            if !self.is_alive(aura_entity) {
-                continue;
-            }
-            if self.zone(aura_entity) != Some(crate::core::zone::Zone::Play) {
-                continue;
-            }
-            // 费用光环只影响光环拥有者自己的手牌
-            if self.player(aura_entity) != Some(player) {
-                continue;
-            }
+        for (_, aura) in &self.aura_index.cost[player.index()] {
             match aura.effect {
                 AuraEffect::ReduceSpellCost(amount) if in_hand && card_type == CardType::Spell => {
                     reduction += amount;
@@ -799,6 +937,367 @@ const fn aura_health_bonus(effect: crate::core::component::AuraEffect) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::component::{AuraEffect, AuraTarget, CardType};
+
+    /// 生成一个位于战场的随从。
+    fn spawn_play_minion(world: &mut World, player: PlayerId, attack: i32, health: i32) -> Entity {
+        let e = world.spawn();
+        world.set_card_type(e, CardType::Minion);
+        world.set_attack(e, Attack(attack));
+        world.set_health(e, Health(health));
+        world.set_cost(e, Cost(0));
+        world.set_player(e, player);
+        world.set_zone(e, Zone::Play);
+        world.zones_mut().insert(Zone::Play, player, e);
+        e
+    }
+
+    /// 生成一个位于战场的光环源。
+    fn spawn_play_aura(
+        world: &mut World,
+        player: PlayerId,
+        effect: AuraEffect,
+        target: AuraTarget,
+    ) -> Entity {
+        let e = spawn_play_minion(world, player, 1, 1);
+        world.set_aura(e, Aura { effect, target });
+        e
+    }
+
+    /// 从权威数据（光环组件集 + 存活/战场/拥有者检查）暴力重建索引，
+    /// 用于验证增量维护与"重建"语义完全一致。
+    fn brute_force_aura_index(world: &World) -> AuraIndex {
+        let mut idx = AuraIndex {
+            attack: [Vec::new(), Vec::new()],
+            health: [Vec::new(), Vec::new()],
+            cost: [Vec::new(), Vec::new()],
+        };
+        for (source, aura) in world.iter_aura() {
+            if !world.is_alive(source) || world.zone(source) != Some(Zone::Play) {
+                continue;
+            }
+            let Some(owner) = world.player(source) else {
+                continue;
+            };
+            let oi = owner.index();
+            match aura.effect {
+                AuraEffect::GainStats { attack, health } => {
+                    if attack != 0 {
+                        idx.attack[oi].push((source, *aura));
+                    }
+                    if health != 0 {
+                        idx.health[oi].push((source, *aura));
+                    }
+                }
+                AuraEffect::GainAttack(_) => idx.attack[oi].push((source, *aura)),
+                AuraEffect::GainHealth(_) => idx.health[oi].push((source, *aura)),
+                AuraEffect::ReduceSpellCost(_) | AuraEffect::ReduceMinionCost { .. } => {
+                    idx.cost[oi].push((source, *aura))
+                }
+            }
+        }
+        idx
+    }
+
+    /// 断言增量维护的索引与暴力重建结果一致（忽略桶内顺序）。
+    fn assert_index_matches(world: &World) {
+        let mut actual = world.aura_index.clone();
+        let mut expected = brute_force_aura_index(world);
+        for player in 0..PlayerId::COUNT {
+            actual.attack[player].sort_by_key(|(e, _)| e.index);
+            actual.health[player].sort_by_key(|(e, _)| e.index);
+            actual.cost[player].sort_by_key(|(e, _)| e.index);
+            expected.attack[player].sort_by_key(|(e, _)| e.index);
+            expected.health[player].sort_by_key(|(e, _)| e.index);
+            expected.cost[player].sort_by_key(|(e, _)| e.index);
+        }
+        assert_eq!(
+            actual, expected,
+            "aura index diverged from brute-force rebuild"
+        );
+    }
+
+    #[test]
+    fn aura_index_stays_consistent_through_mutations() {
+        let mut world = World::new();
+        let attack_aura = Aura {
+            effect: AuraEffect::GainAttack(1),
+            target: AuraTarget::AllFriendlyMinions,
+        };
+
+        // 手牌中的光环卡（有 Aura 组件但不活跃）
+        let hand_aura = world.spawn();
+        world.set_card_type(hand_aura, CardType::Minion);
+        world.set_attack(hand_aura, Attack(1));
+        world.set_health(hand_aura, Health(1));
+        world.set_cost(hand_aura, Cost(0));
+        world.set_player(hand_aura, PlayerId::Player1);
+        world.set_zone(hand_aura, Zone::Hand);
+        world
+            .zones_mut()
+            .insert(Zone::Hand, PlayerId::Player1, hand_aura);
+        world.set_aura(hand_aura, attack_aura);
+        assert_index_matches(&world);
+
+        // 召唤到战场 → 变为活跃
+        world.move_to_zone(hand_aura, Zone::Play).unwrap();
+        assert_index_matches(&world);
+
+        // 活跃时更新光环值
+        world.set_aura(
+            hand_aura,
+            Aura {
+                effect: AuraEffect::GainAttack(2),
+                target: AuraTarget::AllFriendlyMinions,
+            },
+        );
+        assert_index_matches(&world);
+
+        // 精神控制：换边
+        world.set_player(hand_aura, PlayerId::Player2);
+        assert_index_matches(&world);
+
+        // 光环值覆盖为 GainStats（进两个桶）
+        world.set_aura(
+            hand_aura,
+            Aura {
+                effect: AuraEffect::GainStats {
+                    attack: 1,
+                    health: 1,
+                },
+                target: AuraTarget::AllFriendlyMinions,
+            },
+        );
+        assert_index_matches(&world);
+
+        // 移除光环
+        world.remove_aura(hand_aura);
+        assert_index_matches(&world);
+
+        // 重新挂光环，然后击杀（离开战场）
+        world.set_aura(hand_aura, attack_aura);
+        assert_index_matches(&world);
+        world.move_to_zone(hand_aura, Zone::Graveyard).unwrap();
+        assert_index_matches(&world);
+
+        // 费用光环源 + 销毁
+        let cost_aura = spawn_play_aura(
+            &mut world,
+            PlayerId::Player1,
+            AuraEffect::ReduceSpellCost(1),
+            AuraTarget::AllFriendlyMinions,
+        );
+        assert_index_matches(&world);
+        world.despawn(cost_aura);
+        assert_index_matches(&world);
+    }
+
+    #[test]
+    fn aura_index_friendly_buff() {
+        let mut world = World::new();
+        let source = spawn_play_aura(
+            &mut world,
+            PlayerId::Player1,
+            AuraEffect::GainAttack(1),
+            AuraTarget::AllFriendlyMinions,
+        );
+        let target = spawn_play_minion(&mut world, PlayerId::Player1, 2, 3);
+
+        assert_eq!(world.effective_attack(target), Some(Attack(3)));
+        assert_eq!(world.effective_attack(source), Some(Attack(2)));
+        // 生命值不受攻击光环影响
+        assert_eq!(world.effective_health(target), Some(Health(3)));
+    }
+
+    #[test]
+    fn aura_in_hand_does_not_apply() {
+        let mut world = World::new();
+        let e = world.spawn();
+        world.set_card_type(e, CardType::Minion);
+        world.set_attack(e, Attack(1));
+        world.set_health(e, Health(1));
+        world.set_cost(e, Cost(0));
+        world.set_player(e, PlayerId::Player1);
+        world.set_zone(e, Zone::Hand);
+        world.zones_mut().insert(Zone::Hand, PlayerId::Player1, e);
+        world.set_aura(
+            e,
+            Aura {
+                effect: AuraEffect::GainAttack(1),
+                target: AuraTarget::AllFriendlyMinions,
+            },
+        );
+
+        let target = spawn_play_minion(&mut world, PlayerId::Player1, 2, 3);
+        assert_eq!(world.effective_attack(target), Some(Attack(2)));
+    }
+
+    #[test]
+    fn aura_removed_invalidates_cache() {
+        let mut world = World::new();
+        let source = spawn_play_aura(
+            &mut world,
+            PlayerId::Player1,
+            AuraEffect::GainAttack(1),
+            AuraTarget::AllFriendlyMinions,
+        );
+        let target = spawn_play_minion(&mut world, PlayerId::Player1, 2, 3);
+        assert_eq!(world.effective_attack(target), Some(Attack(3)));
+
+        world.remove_aura(source);
+        assert_eq!(world.effective_attack(target), Some(Attack(2)));
+    }
+
+    #[test]
+    fn aura_source_leaves_play_invalidates_cache() {
+        let mut world = World::new();
+        let source = spawn_play_aura(
+            &mut world,
+            PlayerId::Player1,
+            AuraEffect::GainAttack(1),
+            AuraTarget::AllFriendlyMinions,
+        );
+        let target = spawn_play_minion(&mut world, PlayerId::Player1, 2, 3);
+        assert_eq!(world.effective_attack(target), Some(Attack(3)));
+
+        world.move_to_zone(source, Zone::Graveyard).unwrap();
+        assert_eq!(world.effective_attack(target), Some(Attack(2)));
+    }
+
+    #[test]
+    fn enemy_aura_applies_only_to_enemy_minions() {
+        let mut world = World::new();
+        spawn_play_aura(
+            &mut world,
+            PlayerId::Player2,
+            AuraEffect::GainAttack(1),
+            AuraTarget::AllEnemyMinions,
+        );
+        let p1_minion = spawn_play_minion(&mut world, PlayerId::Player1, 2, 3);
+        let p2_minion = spawn_play_minion(&mut world, PlayerId::Player2, 2, 3);
+
+        // P2 的光环攻击 P1 的随从（P2 的敌人）
+        assert_eq!(world.effective_attack(p1_minion), Some(Attack(3)));
+        // 不影响 P2 自己的随从
+        assert_eq!(world.effective_attack(p2_minion), Some(Attack(2)));
+    }
+
+    #[test]
+    fn gain_stats_buckets_both() {
+        let mut world = World::new();
+        spawn_play_aura(
+            &mut world,
+            PlayerId::Player1,
+            AuraEffect::GainStats {
+                attack: 1,
+                health: 2,
+            },
+            AuraTarget::AllFriendlyMinions,
+        );
+        let target = spawn_play_minion(&mut world, PlayerId::Player1, 2, 3);
+
+        assert_eq!(world.effective_attack(target), Some(Attack(3)));
+        assert_eq!(world.effective_health(target), Some(Health(5)));
+    }
+
+    #[test]
+    fn cost_reduction_aura_scoped_to_own_hand() {
+        let mut world = World::new();
+        let source = spawn_play_aura(
+            &mut world,
+            PlayerId::Player1,
+            AuraEffect::ReduceSpellCost(1),
+            AuraTarget::AllFriendlyMinions,
+        );
+        // P1 手牌中的法术
+        let spell = world.spawn();
+        world.set_card_type(spell, CardType::Spell);
+        world.set_cost(spell, Cost(2));
+        world.set_player(spell, PlayerId::Player1);
+        world.set_zone(spell, Zone::Hand);
+        world
+            .zones_mut()
+            .insert(Zone::Hand, PlayerId::Player1, spell);
+        // P1 手牌中的随从
+        let minion = world.spawn();
+        world.set_card_type(minion, CardType::Minion);
+        world.set_cost(minion, Cost(2));
+        world.set_player(minion, PlayerId::Player1);
+        world.set_zone(minion, Zone::Hand);
+        world
+            .zones_mut()
+            .insert(Zone::Hand, PlayerId::Player1, minion);
+        // P2 手牌中的法术（不应被 P1 的光环影响）
+        let enemy_spell = world.spawn();
+        world.set_card_type(enemy_spell, CardType::Spell);
+        world.set_cost(enemy_spell, Cost(2));
+        world.set_player(enemy_spell, PlayerId::Player2);
+        world.set_zone(enemy_spell, Zone::Hand);
+        world
+            .zones_mut()
+            .insert(Zone::Hand, PlayerId::Player2, enemy_spell);
+
+        assert_eq!(world.effective_cost(spell), Some(Cost(1)));
+        assert_eq!(world.effective_cost(minion), Some(Cost(2)));
+        assert_eq!(world.effective_cost(enemy_spell), Some(Cost(2)));
+        // 光环源本身在战场，费用不减免
+        assert_eq!(world.effective_cost(source), Some(Cost(0)));
+    }
+
+    #[test]
+    fn minion_cost_floor_enforced() {
+        let mut world = World::new();
+        spawn_play_aura(
+            &mut world,
+            PlayerId::Player1,
+            AuraEffect::ReduceMinionCost { amount: 2, min: 1 },
+            AuraTarget::AllFriendlyMinions,
+        );
+        let minion = world.spawn();
+        world.set_card_type(minion, CardType::Minion);
+        world.set_cost(minion, Cost(1));
+        world.set_player(minion, PlayerId::Player1);
+        world.set_zone(minion, Zone::Hand);
+        world
+            .zones_mut()
+            .insert(Zone::Hand, PlayerId::Player1, minion);
+
+        // 1 费减 2 且下限 1 → 1 费
+        assert_eq!(world.effective_cost(minion), Some(Cost(1)));
+    }
+
+    #[test]
+    fn player_change_rebuckets_aura() {
+        let mut world = World::new();
+        let source = spawn_play_aura(
+            &mut world,
+            PlayerId::Player1,
+            AuraEffect::GainAttack(1),
+            AuraTarget::OtherFriendlyMinions,
+        );
+        let target = spawn_play_minion(&mut world, PlayerId::Player1, 2, 3);
+        assert_eq!(world.effective_attack(target), Some(Attack(3)));
+
+        // 精神控制：source 转移到 P2，不再是 P1 的友方随从
+        world.set_player(source, PlayerId::Player2);
+        assert_eq!(world.effective_attack(target), Some(Attack(2)));
+    }
+
+    #[test]
+    fn aura_source_despawn_invalidates_cache() {
+        let mut world = World::new();
+        let source = spawn_play_aura(
+            &mut world,
+            PlayerId::Player1,
+            AuraEffect::GainAttack(1),
+            AuraTarget::AllFriendlyMinions,
+        );
+        let target = spawn_play_minion(&mut world, PlayerId::Player1, 2, 3);
+        assert_eq!(world.effective_attack(target), Some(Attack(3)));
+
+        world.despawn(source);
+        assert_eq!(world.effective_attack(target), Some(Attack(2)));
+    }
 
     #[test]
     fn spawn_entity() {
