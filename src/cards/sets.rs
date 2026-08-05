@@ -253,6 +253,8 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     SNAKE_TRAP,
     SNAKE,
     SNIPE,
+    BESTIAL_WRATH,
+    GLADIATORS_LONGBOW,
 ];
 
 pub const MAGE_CLASSIC: &[CardDef] = &[
@@ -282,6 +284,7 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     SPELLBENDER_TOKEN,
     SORCERERS_APPRENTICE,
     KIRIN_TOR_MAGE,
+    ICICLE,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -339,6 +342,8 @@ pub const PRIEST_CLASSIC: &[CardDef] = &[
     LIGHTSPAWN,
     SCARLET_SUBJUGATOR,
     LIGHTWELL,
+    // Tier 2 补全
+    NATALIE_SELINE,
 ];
 
 pub const ROGUE_CLASSIC: &[CardDef] = &[
@@ -853,4 +858,9 @@ pub const ALL_CARDS: &[CardDef] = &[
     SOUL_OF_THE_FOREST,
     KING_MUKLA,
     BANANA,
+    // Tier 2 免疫
+    BESTIAL_WRATH,
+    GLADIATORS_LONGBOW,
+    ICICLE,
+    NATALIE_SELINE,
 ];

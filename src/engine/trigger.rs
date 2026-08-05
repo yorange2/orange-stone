@@ -13,7 +13,8 @@
 //! - `AllEnemyMinions` → 所有敌方随从
 
 use crate::core::component::{
-    Attack, AttacksUsed, CardId, CardType, Cost, Deathrattle, Durability, Freeze, Health, Stealth,
+    Attack, AttacksUsed, CardId, CardType, Cost, Deathrattle, Durability, Freeze, Health, Immune,
+    Stealth,
 };
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
@@ -328,6 +329,15 @@ pub fn resolve_effect(
                 world.set_zone(e, Zone::Hand);
                 world.zones_mut().insert(Zone::Hand, enemy, e);
             }
+        }
+        CardEffect::FreezeOrDamage { amount } => {
+            resolve_freeze_or_damage(state, queue, source, owner, amount);
+        }
+        CardEffect::DestroyAndGainHealth => {
+            resolve_destroy_and_gain_health(state, queue, source, owner);
+        }
+        CardEffect::GrantAttackAndImmune { attack } => {
+            resolve_grant_attack_and_immune(state, owner, attack);
         }
     }
 }
@@ -1373,6 +1383,71 @@ fn resolve_destroy_weapon_deal_attack(
             });
         }
     }
+}
+
+/// 冻结一个随从；若其已被冻结，则改为造成伤害（冰刺）。
+fn resolve_freeze_or_damage(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+    amount: i32,
+) {
+    let minions = collect_enemy_minions(state, owner);
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let target = minions[idx];
+    if state.world().freeze(target).is_some() {
+        queue.push(Event::DamageDealt {
+            source,
+            target,
+            amount,
+        });
+    } else {
+        state.world_mut().set_freeze(target, Freeze);
+    }
+}
+
+/// 消灭一个随从并获得其生命值（娜塔莉·塞林）。
+fn resolve_destroy_and_gain_health(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+) {
+    let minions = collect_enemy_minions(state, owner);
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let target = minions[idx];
+    let hp = state.world().health(target).unwrap_or(Health(0)).0;
+    // 消灭目标
+    queue.push(Event::DamageDealt {
+        source: target,
+        target,
+        amount: hp.max(1),
+    });
+    // 源随从（娜塔莉）获得目标的生命值
+    let world = state.world_mut();
+    let cur = world.health(source).unwrap_or(Health(0));
+    world.set_health(source, Health(cur.0 + hp.max(1)));
+}
+
+/// 使一个友方随从获得攻击力加成和免疫，直到回合结束（狂野怒火）。
+fn resolve_grant_attack_and_immune(state: &mut GameState, owner: PlayerId, attack: i32) {
+    let minions = collect_friendly_minions(state, owner);
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let target = minions[idx];
+    let world = state.world_mut();
+    let cur = world.attack(target).unwrap_or(Attack(0));
+    world.set_attack(target, Attack(cur.0 + attack));
+    world.set_immune(target, Immune);
 }
 
 /// 使一个友方随从获得潜行（伪装大师，不能指定自身）。

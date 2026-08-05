@@ -1307,3 +1307,198 @@ fn king_mukla_gives_opponent_two_bananas() {
         .collect();
     assert_eq!(bananas.len(), 2, "opponent should receive two bananas");
 }
+
+// ============================================================
+// Stage 6 免疫批次
+// ============================================================
+
+#[test]
+fn bestial_wrath_grants_attack_and_immune_until_turn_end() {
+    use orange_stone::cards::def::{BESTIAL_WRATH, WISP};
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &BESTIAL_WRATH);
+    // 场上唯一随从（小精灵）→ 必然成为目标
+    builder.add_minion_to_board(PlayerId::Player1, &WISP);
+    let attacker = builder.add_custom_minion_to_board(PlayerId::Player2, 3, 3, 3);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 获得 +2 攻击力和免疫
+    let beast: Entity = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId::Player1)
+        .find(|&e| {
+            state.world().card_type(e) == Some(orange_stone::core::component::CardType::Minion)
+        })
+        .unwrap();
+    assert_eq!(
+        state.world().attack(beast),
+        Some(orange_stone::core::component::Attack(3))
+    );
+    assert!(state.world().immune(beast).is_some());
+
+    // 敌方攻击它：免疫忽略伤害（攻击者不反击它，它也不死）
+    state.set_active_player(PlayerId::Player2);
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: beast,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().health(beast),
+        Some(orange_stone::core::component::Health(1)),
+        "immune minion should not take damage"
+    );
+
+    // 回合结束 → 免疫清除
+    state.set_active_player(PlayerId::Player1);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert!(
+        state.world().immune(beast).is_none(),
+        "immune should expire at end of turn"
+    );
+}
+
+#[test]
+fn gladiators_longbow_hero_immune_while_attacking() {
+    use orange_stone::cards::def::GLADIATORS_LONGBOW;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.equip_weapon(PlayerId::Player1, &GLADIATORS_LONGBOW);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let defender = builder.add_custom_minion_to_board(PlayerId::Player2, 4, 5, 4);
+    let mut state = builder.build();
+
+    let hero = state.player(PlayerId::Player1).hero;
+
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender,
+            },
+        )
+        .unwrap();
+
+    // 英雄受到 0 伤害（免疫），防御者受到 5 点伤害
+    assert_eq!(
+        state.world().health(hero),
+        Some(orange_stone::core::component::Health(30))
+    );
+    assert_eq!(
+        state.world().health(defender),
+        Some(orange_stone::core::component::Health(0))
+    );
+}
+
+#[test]
+fn icicle_freezes_unfrozen_minion() {
+    use orange_stone::cards::def::ICICLE;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &ICICLE);
+    let enemy = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 3, 2);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 敌方唯一随从被冻结（未受伤）
+    assert!(state.world().freeze(enemy).is_some());
+    assert_eq!(
+        state.world().health(enemy),
+        Some(orange_stone::core::component::Health(3))
+    );
+}
+
+#[test]
+fn icicle_damages_already_frozen_minion() {
+    use orange_stone::cards::def::ICICLE;
+    use orange_stone::core::component::Freeze;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &ICICLE);
+    let enemy = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 3, 2);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+    // 预冻结
+    state.world_mut().set_freeze(enemy, Freeze);
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 已冻结 → 造成 2 点伤害
+    assert_eq!(
+        state.world().health(enemy),
+        Some(orange_stone::core::component::Health(1))
+    );
+}
+
+#[test]
+fn natalie_seline_destroys_minion_and_gains_health() {
+    use orange_stone::cards::def::NATALIE_SELINE;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &NATALIE_SELINE);
+    builder.add_custom_minion_to_board(PlayerId::Player2, 1, 6, 1);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 敌方 6 HP 随从被消灭，娜塔莉获得 6 点生命值（4/5 → 4/11）
+    let enemy_dead = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId::Player2)
+        .filter(|&e| {
+            state.world().card_type(e) == Some(orange_stone::core::component::CardType::Minion)
+        })
+        .count();
+    assert_eq!(enemy_dead, 0, "enemy minion should be destroyed");
+    assert_eq!(
+        state.world().health(card),
+        Some(orange_stone::core::component::Health(11))
+    );
+}

@@ -314,4 +314,16 @@ pub enum CardEffect {
         /// 数量
         count: u32,
     },
+    /// 冻结一个随从；若其已被冻结，则改为造成伤害（冰刺）
+    FreezeOrDamage {
+        /// 伤害数值
+        amount: i32,
+    },
+    /// 消灭一个随从并获得其生命值（娜塔莉·塞林）
+    DestroyAndGainHealth,
+    /// 使一个友方随从获得攻击力加成和免疫，直到回合结束（狂野怒火）
+    GrantAttackAndImmune {
+        /// 攻击力加成
+        attack: i32,
+    },
 }

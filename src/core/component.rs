@@ -366,6 +366,13 @@ pub struct Poison;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Stealth;
 
+/// 免疫 — 此角色不会受到任何伤害。
+///
+/// 带免疫的角色受到的伤害被完全忽略（攻击仍被消耗，武器耐久仍下降）。
+/// 免疫为临时状态（狂野怒火 — 直到回合结束），回合结束时清除。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Immune;
+
 #[cfg(test)]
 mod tests {
     use super::*;

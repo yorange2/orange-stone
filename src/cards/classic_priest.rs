@@ -726,3 +726,37 @@ pub const SCARLET_SUBJUGATOR: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// Tier 2 补全 — 娜塔莉·塞林
+// ============================================================
+
+/// 娜塔莉·塞林 — 战吼：消灭一个随从并获得其生命值。
+pub const NATALIE_SELINE: CardDef = CardDef {
+    id: "PRIEST_021",
+    name: "Natalie Seline",
+    card_type: CardType::Minion,
+    cost: 5,
+    attack: 4,
+    health: 5,
+    durability: 0,
+    battlecry: Some(CardEffect::DestroyAndGainHealth),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

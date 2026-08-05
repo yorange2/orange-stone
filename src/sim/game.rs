@@ -164,6 +164,7 @@ impl GameBuilder {
         let inner = self.state.make_mut();
         let world = &mut inner.world;
         let weapon = world.spawn();
+        world.set_card_id(weapon, crate::core::component::CardId(card.id));
         world.set_attack(weapon, Attack(card.attack));
         world.set_durability(weapon, Durability(card.durability));
         world.set_cost(weapon, Cost(card.cost));

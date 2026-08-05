@@ -348,8 +348,16 @@ pub fn enqueue(
                 target: defender,
                 amount: attacker_total_atk,
             });
-            // 如果防御者是随从，它也会反击
-            if world.card_type(defender) == Some(CardType::Minion) {
+            // 如果防御者是随从，它也会反击（角斗士的长弓：英雄攻击时免疫，不反击）
+            let hero_immune_attacking = world.card_type(attacker) == Some(CardType::Hero)
+                && world.player(attacker).is_some_and(|pid| {
+                    state.player(pid).weapon.is_some_and(|w| {
+                        world.card_id(w).is_some_and(|c| {
+                            c.0 == crate::cards::classic_hunter::GLADIATORS_LONGBOW_ID
+                        })
+                    })
+                });
+            if world.card_type(defender) == Some(CardType::Minion) && !hero_immune_attacking {
                 let defender_atk = world.effective_attack(defender).unwrap_or(Attack(0));
                 if defender_atk.0 > 0 {
                     queue.push(Event::DamageDealt {
@@ -457,6 +465,12 @@ pub fn apply_event(
                     .collect();
                 for e in debuff_entities {
                     inner.world.remove_temp_attack_debuff(e);
+                }
+                // 清除所有实体的临时免疫（狂野怒火 — 直到回合结束）
+                let immune_entities: Vec<Entity> =
+                    inner.world.iter_immune().map(|(e, _)| e).collect();
+                for e in immune_entities {
+                    inner.world.remove_immune(e);
                 }
             }
             // 触发回合结束效果（先收集再逐个处理）
@@ -677,6 +691,10 @@ pub fn apply_event(
             amount,
             source,
         } => {
+            // 免疫：伤害被完全忽略（攻击仍被消耗）
+            if state.world().immune(target).is_some() {
+                return Ok(());
+            }
             // 圣盾吸收：如果目标有圣盾，移除圣盾，伤害归零
             if state.world().divine_shield(target).is_some() {
                 state.world_mut().remove_divine_shield(target);
