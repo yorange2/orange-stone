@@ -42,8 +42,12 @@ impl PyGameEnv {
     /// `hand_size` / `second_player_coin` (optional, M1-G6) shape the opening:
     /// the first player draws `hand_size`; with the coin the second player
     /// draws `hand_size + 1` and gets The Coin.
+    ///
+    /// `terminal_reward` (optional, M1-G7): `"sparse"` (default, win +1 / loss
+    /// −1 / draw 0) or `"health_scaled"` (simplified-hearthstone style: loss
+    /// penalty scales with the winner's remaining health, 0..−1).
     #[new]
-    #[pyo3(signature = (seed, perspective=0, deck_size=30, deck=None, bot="greedy", hand_size=3, second_player_coin=false))]
+    #[pyo3(signature = (seed, perspective=0, deck_size=30, deck=None, bot="greedy", hand_size=3, second_player_coin=false, terminal_reward="sparse"))]
     fn new(
         seed: u64,
         perspective: u8,
@@ -52,6 +56,7 @@ impl PyGameEnv {
         bot: &str,
         hand_size: usize,
         second_player_coin: bool,
+        terminal_reward: &str,
     ) -> PyResult<Self> {
         let perspective = match perspective {
             0 => PlayerId::Player1,
@@ -67,8 +72,18 @@ impl PyGameEnv {
                 )));
             }
         };
+        let terminal = match terminal_reward {
+            "sparse" => crate::rl::reward::TerminalReward::Sparse,
+            "health_scaled" => crate::rl::reward::TerminalReward::ScaledByWinnerHealth,
+            other => {
+                return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                    "unknown terminal_reward: {other} (expected sparse | health_scaled)"
+                )));
+            }
+        };
         let mut config = EnvConfig::default_with(bot_type, deck_size)
             .with_opening(hand_size, second_player_coin);
+        config.reward.terminal = terminal;
         if let Some(ids) = deck {
             let mut resolved = Vec::with_capacity(ids.len());
             for id in &ids {
