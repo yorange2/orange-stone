@@ -553,6 +553,29 @@ mod tests {
     }
 
     #[test]
+    fn first_player_turn_one_has_one_mana_in_battle_path() {
+        // Regression (M3): build_game_state used to reset Player1 to 0/0 mana,
+        // clobbering the turn-1 crystal that GameState::new() provides — the
+        // first player stayed a full crystal behind for the whole game, which
+        // collapsed first-seat RL training. HS official: 1 crystal on turn 1.
+        let mut env = GameEnv::new(
+            PlayerId::Player1,
+            EnvConfig::default_with(BotType::Greedy, 20),
+        );
+        env.reset(7);
+        assert_eq!(env.state.player(PlayerId::Player1).mana_crystals, 1);
+        assert_eq!(env.state.player(PlayerId::Player1).current_mana, 1);
+        assert_eq!(env.state.player(PlayerId::Player2).mana_crystals, 0);
+        assert_eq!(env.state.player(PlayerId::Player2).current_mana, 0);
+        // With 1 mana the opening hand must be playable (0/1-cost cards exist)
+        let actions = env.legal_actions();
+        assert!(
+            actions.iter().any(|a| matches!(a, Action::PlayCard { .. })),
+            "turn-1 play actions must exist with 1 mana"
+        );
+    }
+
+    #[test]
     fn env_observation_reflects_hero_health() {
         let mut env = GameEnv::new(
             PlayerId::Player1,

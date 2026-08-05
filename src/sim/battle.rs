@@ -403,7 +403,10 @@ impl BattleRunner {
         if second_player_coin {
             builder.add_minion_to_hand(PlayerId::Player2, &crate::cards::def::THE_COIN);
         }
-        builder.set_mana(PlayerId::Player1, 0, 0);
+        // Mana: GameState::new() already gives Player1 the turn-1 crystal (1/1,
+        // HS official); Player2 starts at 0/0 and gets its crystal on its first
+        // ManaRefill. Do NOT reset P1 to 0/0 — that clobbers the turn-1 crystal
+        // and leaves the first player a full crystal behind for the whole game.
         builder.set_mana(PlayerId::Player2, 0, 0);
         let mut state = builder.build();
 
