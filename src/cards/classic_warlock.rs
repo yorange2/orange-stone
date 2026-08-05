@@ -684,3 +684,40 @@ pub const SIEGEBREAKER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// Tier 2 补全 — 召唤传送门
+// ============================================================
+
+/// 召唤传送门 — 你的随从费用减少 (2) 点，但不能少于 (1) 点。
+pub const SUMMONING_PORTAL: CardDef = CardDef {
+    id: "WARLOCK_023",
+    name: "Summoning Portal",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 0,
+    health: 4,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: Some((
+        crate::core::component::AuraEffect::ReduceMinionCost { amount: 2, min: 1 },
+        crate::core::component::AuraTarget::AllFriendlyMinions,
+    )),
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

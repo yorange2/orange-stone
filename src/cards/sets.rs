@@ -272,6 +272,8 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     // Tier 2 补全
     SPELLBENDER,
     SPELLBENDER_TOKEN,
+    SORCERERS_APPRENTICE,
+    KIRIN_TOR_MAGE,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -384,6 +386,8 @@ pub const SHAMAN_CLASSIC: &[CardDef] = &[
     ANCESTRAL_HEALING,
     ANCESTRAL_SPIRIT,
     ANCESTRAL_SPIRIT,
+    // Tier 2 补全
+    FAR_SIGHT,
 ];
 
 pub const WARLOCK_CLASSIC: &[CardDef] = &[
@@ -409,6 +413,8 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     VOID_TERROR,
     // Tier 1 补全
     SIEGEBREAKER,
+    // Tier 2 补全
+    SUMMONING_PORTAL,
 ];
 
 pub const WARRIOR_CLASSIC: &[CardDef] = &[
@@ -827,4 +833,9 @@ pub const ALL_CARDS: &[CardDef] = &[
     SPELLBENDER_TOKEN,
     NOBLE_SACRIFICE,
     DEFENDER,
+    // Tier 2 费用减免
+    SORCERERS_APPRENTICE,
+    KIRIN_TOR_MAGE,
+    FAR_SIGHT,
+    SUMMONING_PORTAL,
 ];

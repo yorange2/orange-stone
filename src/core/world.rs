@@ -624,6 +624,50 @@ impl World {
 
         Some(Health(base.0 + bonus))
     }
+
+    /// 获取实体的有效法力消耗（基础费用 - 费用减免光环）。
+    ///
+    /// 遍历场上所有存活的光环源，累加匹配的费用减免：
+    /// - `ReduceSpellCost` 作用于手牌中的友方法术（巫师学徒）
+    /// - `ReduceMinionCost` 作用于手牌中的友方随从，且不低于费用下限
+    ///   （召唤传送门 — 至少 1 费）
+    #[must_use]
+    pub fn effective_cost(&self, entity: Entity) -> Option<Cost> {
+        use crate::core::component::AuraEffect;
+
+        let base = self.cost(entity)?;
+        let player = self.player(entity)?;
+        let card_type = self.card_type(entity)?;
+        let in_hand = self.zone(entity) == Some(crate::core::zone::Zone::Hand);
+
+        let mut reduction = 0i32;
+        let mut min_cost = 0i32;
+        for (aura_entity, aura) in self.iter_aura() {
+            if !self.is_alive(aura_entity) {
+                continue;
+            }
+            if self.zone(aura_entity) != Some(crate::core::zone::Zone::Play) {
+                continue;
+            }
+            // 费用光环只影响光环拥有者自己的手牌
+            if self.player(aura_entity) != Some(player) {
+                continue;
+            }
+            match aura.effect {
+                AuraEffect::ReduceSpellCost(amount) if in_hand && card_type == CardType::Spell => {
+                    reduction += amount;
+                }
+                AuraEffect::ReduceMinionCost { amount, min }
+                    if in_hand && card_type == CardType::Minion =>
+                {
+                    reduction += amount;
+                    min_cost = min_cost.max(min);
+                }
+                _ => {}
+            }
+        }
+        Some(Cost((base.0 - reduction).max(min_cost)))
+    }
 }
 
 impl Default for World {
@@ -698,6 +742,8 @@ const fn aura_attack_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::GainStats { attack, .. } => attack,
         AuraEffect::GainAttack(a) => a,
         AuraEffect::GainHealth(_) => 0,
+        AuraEffect::ReduceSpellCost(_) => 0,
+        AuraEffect::ReduceMinionCost { .. } => 0,
     }
 }
 
@@ -708,6 +754,8 @@ const fn aura_health_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::GainStats { health, .. } => health,
         AuraEffect::GainAttack(_) => 0,
         AuraEffect::GainHealth(h) => h,
+        AuraEffect::ReduceSpellCost(_) => 0,
+        AuraEffect::ReduceMinionCost { .. } => 0,
     }
 }
 

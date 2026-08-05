@@ -133,6 +133,8 @@ const fn aura_attack_value(effect: AuraEffect) -> i32 {
         AuraEffect::GainStats { attack, .. } => attack,
         AuraEffect::GainAttack(a) => a,
         AuraEffect::GainHealth(_) => 0,
+        AuraEffect::ReduceSpellCost(_) => 0,
+        AuraEffect::ReduceMinionCost { .. } => 0,
     }
 }
 
@@ -142,5 +144,7 @@ const fn aura_health_value(effect: AuraEffect) -> i32 {
         AuraEffect::GainStats { health, .. } => health,
         AuraEffect::GainAttack(_) => 0,
         AuraEffect::GainHealth(h) => h,
+        AuraEffect::ReduceSpellCost(_) => 0,
+        AuraEffect::ReduceMinionCost { .. } => 0,
     }
 }

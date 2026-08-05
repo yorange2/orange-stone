@@ -300,11 +300,24 @@ pub fn resolve_effect(
         | CardEffect::RedirectAttackToRandomCharacter
         | CardEffect::SummonAndRedirectAttack { .. }
         | CardEffect::SummonSpellbender => {}
+        CardEffect::NextSecretCostsZero => {
+            // 肯瑞托法师：下一个奥秘费用为 0
+            let inner = state.make_mut();
+            inner.players[owner.index()].next_secret_free = true;
+        }
+        CardEffect::DrawCardAndReduceCost { amount } => {
+            draw_card_with_reduction(state, queue, owner, amount);
+        }
     }
 }
 
-/// 从牌库随机抽一张牌到手中。
-pub fn draw_card(state: &mut GameState, queue: &mut EventQueue, player: PlayerId) {
+/// 从牌库随机抽一张牌到手中，可附带费用减少（视界术）。
+fn draw_card_with_reduction(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    player: PlayerId,
+    cost_reduction: i32,
+) {
     let deck_len = state.world().zones().len(Zone::Deck, player);
     if deck_len == 0 {
         // 牌库空，不抽牌（疲劳 Phase 3+）
@@ -326,7 +339,19 @@ pub fn draw_card(state: &mut GameState, queue: &mut EventQueue, player: PlayerId
         .move_to_zone(card, Zone::Hand)
         .expect("card should be movable to hand");
 
+    // 费用减少（不高于基础费用的部分保留）
+    if cost_reduction > 0 {
+        let world = state.world_mut();
+        let cur = world.cost(card).unwrap_or(Cost(0));
+        world.set_cost(card, Cost((cur.0 - cost_reduction).max(0)));
+    }
+
     queue.push(Event::CardDrawn { player, card });
+}
+
+/// 从牌库随机抽一张牌到手中。
+pub fn draw_card(state: &mut GameState, queue: &mut EventQueue, player: PlayerId) {
+    draw_card_with_reduction(state, queue, player, 0);
 }
 
 fn resolve_deal_damage(

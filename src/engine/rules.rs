@@ -9,7 +9,7 @@
 
 use crate::core::action::Action;
 use crate::core::component::{
-    Attack, AttacksUsed, CardType, Durability, Health, HeroPowerUsed, Secret,
+    Attack, AttacksUsed, CardType, Cost, Durability, Health, HeroPowerUsed, Secret,
 };
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue, Priority};
@@ -99,8 +99,8 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
         return Err(EngineError::CardNotInHand);
     }
 
-    // 检查法力
-    let cost = world.cost(card).unwrap_or_default();
+    // 检查法力（使用有效费用：光环减免 + 肯瑞托法师的一次性免费奥秘）
+    let cost = effective_play_cost(state, card, active);
     if cost.0 > state.player(active).current_mana {
         return Err(EngineError::NotEnoughMana);
     }
@@ -114,6 +114,21 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
     }
 
     Ok(())
+}
+
+/// 计算打出卡牌的实际费用：基础费用 - 光环减免；
+/// 奥秘卡牌额外享受肯瑞托法师的一次性免费。
+fn effective_play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
+    let mut cost = state.world().effective_cost(card).unwrap_or_default();
+    let is_secret = state
+        .world()
+        .card_id(card)
+        .and_then(|cid| crate::cards::def::card_by_id(cid.0))
+        .is_some_and(|def| def.secret.is_some());
+    if is_secret && state.player(player).next_secret_free {
+        cost = Cost(0);
+    }
+    cost
 }
 
 /// 验证攻击操作。
@@ -460,8 +475,8 @@ pub fn apply_event(
             }
         }
         Event::CardPlayed { player, card } => {
-            // 扣除法力
-            let cost = state.world().cost(card).unwrap_or_default();
+            // 扣除法力（使用有效费用：光环减免 + 肯瑞托法师的一次性免费奥秘）
+            let cost = effective_play_cost(state, card, player);
             let card_type = state.world().card_type(card);
             {
                 let inner = state.make_mut();
@@ -480,8 +495,11 @@ pub fn apply_event(
                     .and_then(|cid| crate::cards::def::card_by_id(cid.0))
                     .and_then(|def| def.secret);
                 if let Some(trigger) = secret_trigger {
-                    if let Some(effect) = state.world().battlecry(card).map(|b| b.0) {
-                        let inner = state.make_mut();
+                    // 肯瑞托法师的一次性免费奥秘被消耗
+                    let secret_effect = state.world().battlecry(card).map(|b| b.0);
+                    let inner = state.make_mut();
+                    inner.players[player.index()].next_secret_free = false;
+                    if let Some(effect) = secret_effect {
                         inner.world.set_secret(card, Secret { trigger, effect });
                     }
                     state

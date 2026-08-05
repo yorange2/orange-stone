@@ -295,4 +295,11 @@ pub enum CardEffect {
     },
     /// 召唤 1/3 法术扭曲者并重定向法术伤害（法术扭曲者 — 由 secret.rs 处理）
     SummonSpellbender,
+    /// 你的下一个奥秘费用为 (0)（肯瑞托法师）
+    NextSecretCostsZero,
+    /// 抽一张牌并使其费用减少（视界术）
+    DrawCardAndReduceCost {
+        /// 费用减少量
+        amount: i32,
+    },
 }
