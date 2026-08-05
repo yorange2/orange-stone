@@ -60,6 +60,48 @@ pub struct PyEntityView {
     /// Hand cards only: affordable with the owner's current mana
     #[pyo3(get)]
     pub playable: bool,
+    /// Card type: 0=Minion, 1=Spell, 2=Weapon, 3=Hero (M5 card text)
+    #[pyo3(get)]
+    pub card_type: i32,
+    /// Has a battlecry (spell effects also live in this slot)
+    #[pyo3(get)]
+    pub has_battlecry: bool,
+    /// Has a deathrattle
+    #[pyo3(get)]
+    pub has_deathrattle: bool,
+    /// Has an aura
+    #[pyo3(get)]
+    pub has_aura: bool,
+    /// Has a trigger
+    #[pyo3(get)]
+    pub has_trigger: bool,
+    /// Battlecry/spell magnitudes (M5 card text)
+    #[pyo3(get)]
+    pub bc_damage: i32,
+    #[pyo3(get)]
+    pub bc_draw: i32,
+    #[pyo3(get)]
+    pub bc_summon: i32,
+    #[pyo3(get)]
+    pub bc_buff: i32,
+    #[pyo3(get)]
+    pub bc_heal: i32,
+    #[pyo3(get)]
+    pub bc_freeze: i32,
+    #[pyo3(get)]
+    pub bc_destroy: i32,
+    /// Deathrattle magnitudes
+    #[pyo3(get)]
+    pub dr_damage: i32,
+    #[pyo3(get)]
+    pub dr_draw: i32,
+    #[pyo3(get)]
+    pub dr_summon: i32,
+    /// Aura magnitudes
+    #[pyo3(get)]
+    pub aura_attack: i32,
+    #[pyo3(get)]
+    pub aura_health: i32,
 }
 
 impl From<&rviews::EntityView> for PyEntityView {
@@ -80,6 +122,23 @@ impl From<&rviews::EntityView> for PyEntityView {
             charge: v.charge,
             frozen: v.frozen,
             playable: v.playable,
+            card_type: v.card_type,
+            has_battlecry: v.has_battlecry,
+            has_deathrattle: v.has_deathrattle,
+            has_aura: v.has_aura,
+            has_trigger: v.has_trigger,
+            bc_damage: v.bc_damage,
+            bc_draw: v.bc_draw,
+            bc_summon: v.bc_summon,
+            bc_buff: v.bc_buff,
+            bc_heal: v.bc_heal,
+            bc_freeze: v.bc_freeze,
+            bc_destroy: v.bc_destroy,
+            dr_damage: v.dr_damage,
+            dr_draw: v.dr_draw,
+            dr_summon: v.dr_summon,
+            aura_attack: v.aura_attack,
+            aura_health: v.aura_health,
         }
     }
 }
