@@ -12,6 +12,8 @@ A high-performance Hearthstone simulator written in Rust, purpose-built for Rein
 
 Existing Hearthstone simulators ([RosettaStone](https://github.com/utilForever/RosettaStone), [SabberStone](https://github.com/HearthSim/SabberStone)) focus on game replay and AI-vs-AI matches. Orange Stone has a different goal — it's designed for **massively parallel simulation**, targeting:
 
+> **Fidelity is a hard requirement**: every card effect, sequencing rule, and targeting rule must match real Hearthstone semantics, with RosettaStone/SabberStone as the correctness reference (see the conformance roadmap, Milestone F). The ergonomics below are engineering properties of the same faithful engine — not a license to simplify game rules.
+
 - Simulating tens of thousands of games per step to collect experience for RL training
 - Deterministic state replay for experience replay and debugging
 - Seamless integration with the Python ML ecosystem (PyTorch, JAX, RLlib)
