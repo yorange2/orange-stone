@@ -1,0 +1,36 @@
+[
+  {
+    "id": "CLASSIC_001",
+    "name": "Bloodfen Raptor",
+    "cost": 2,
+    "attack": 3,
+    "health": 2,
+    "type": "MINION"
+  },
+  {
+    "id": "NEUTRAL_B02",
+    "name": "Murloc Raider",
+    "cost": 1,
+    "attack": 2,
+    "health": 1,
+    "type": "MINION"
+  },
+  {
+    "id": "NEUTRAL_013",
+    "name": "Ogre Magi",
+    "cost": 4,
+    "attack": 4,
+    "health": 4,
+    "type": "MINION",
+    "mechanics": ["SPELLPOWER"]
+  },
+  {
+    "id": "CLASSIC_014",
+    "name": "Sunwalker",
+    "cost": 6,
+    "attack": 4,
+    "health": 5,
+    "type": "MINION",
+    "mechanics": ["TAUNT", "DIVINE_SHIELD"]
+  }
+]

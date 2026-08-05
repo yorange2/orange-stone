@@ -16,6 +16,7 @@ pub mod classic_shaman;
 pub mod classic_warlock;
 pub mod classic_warrior;
 pub mod def;
+pub mod generated;
 pub mod pool;
 pub mod sets;
 
@@ -186,4 +187,62 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
     // 特殊关键词（剧毒/潜行等）
     apply_card_keywords(world, e, card);
     e
+}
+
+#[cfg(test)]
+mod generated_tests {
+    use super::def::{CardDef, card_by_id};
+    use crate::cards::generated;
+
+    /// 生成的卡牌常量必须与手写常量逐字段一致（静态可表示的部分）。
+    #[test]
+    fn generated_cards_match_handwritten() {
+        assert!(
+            !generated::GENERATED_IDS.is_empty(),
+            "generated registry must be non-empty"
+        );
+        for id in generated::GENERATED_IDS {
+            let generated: CardDef = match find_generated(id) {
+                Some(c) => c,
+                None => panic!("generated const for {id} missing"),
+            };
+            let handwritten = card_by_id(id).unwrap_or_else(|| panic!("handwritten {id} missing"));
+            // 静态字段完全一致；效果字段（战吼/亡语等）在生成代码中恒为 None，
+            // 因此只对"静态可表示"的卡牌断言整体相等
+            assert_eq!(generated.id, handwritten.id);
+            assert_eq!(generated.name, handwritten.name);
+            assert_eq!(generated.card_type, handwritten.card_type);
+            assert_eq!(generated.cost, handwritten.cost);
+            assert_eq!(generated.attack, handwritten.attack);
+            assert_eq!(generated.health, handwritten.health);
+            assert_eq!(generated.durability, handwritten.durability);
+            assert_eq!(generated.taunt, handwritten.taunt);
+            assert_eq!(generated.divine_shield, handwritten.divine_shield);
+            assert_eq!(generated.windfury, handwritten.windfury);
+            assert_eq!(generated.charge, handwritten.charge);
+            assert_eq!(generated.spell_damage, handwritten.spell_damage);
+        }
+    }
+
+    /// 纯静态卡牌（无任何效果字段）应整体相等。
+    #[test]
+    fn vanilla_generated_cards_fully_equal() {
+        use crate::cards::def::BLOODFEN_RAPTOR;
+        assert_eq!(
+            find_generated("CLASSIC_001").unwrap(),
+            BLOODFEN_RAPTOR,
+            "vanilla card must be exactly equal"
+        );
+    }
+
+    fn find_generated(id: &str) -> Option<CardDef> {
+        // 通过注册表与命名规则定位生成的常量
+        match id {
+            "CLASSIC_001" => Some(generated::CLASSIC_001),
+            "NEUTRAL_B02" => Some(generated::NEUTRAL_B02),
+            "NEUTRAL_013" => Some(generated::NEUTRAL_013),
+            "CLASSIC_014" => Some(generated::CLASSIC_014),
+            _ => None,
+        }
+    }
 }
