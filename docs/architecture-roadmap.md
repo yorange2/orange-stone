@@ -52,23 +52,23 @@ One-sentence comparison: RosettaStone and SabberStone are **fidelity-first simul
 
 ### P0 — Hot-path data structures
 
-- **Event queue is O(n) per operation** — `src/core/event.rs:161` (`pop_front` uses `Vec::remove(0)`) and `:149` (`push_with_priority` scans + inserts). The event loop is the absolute hot path of the engine; replace with `VecDeque` or a head-indexed implementation (with the same stable-FIFO-within-priority semantics).
-- **Aura resolution scans all auras on every query** — `effective_attack` / `effective_health` / `effective_cost` (`src/core/world.rs:609, 640, 672`) each iterate every live aura component. O(entities × auras) per query on the hot path (attack validation, damage resolution, play validation). Correct by construction, but should be indexed (e.g. grouped by owner player + target type) once self-play volume grows.
+- ✅ **RESOLVED (A1, PR #35)** — The event queue was O(n) per operation (`src/core/event.rs:161` `pop_front` used `Vec::remove(0)`; `:149` `push_with_priority` scanned + inserted). Now three per-priority `VecDeque` buckets: O(1) push/pop, stable FIFO within priority preserved.
+- ✅ **RESOLVED (A2, PR #36)** — `effective_attack` / `effective_health` / `effective_cost` (`src/core/world.rs`) each iterated every live aura component — O(entities × auras) per query. Now `AuraIndex` buckets active sources by (owner, effect kind), maintained incrementally by the aura/zone/player mutators; queries scan only the relevant buckets, lock-free, `World` stays `Send + Sync`.
 
 ### P1 — Design debt
 
-- **CoW is a whole-state deep copy** — `Arc::make_mut` clones the entire `Inner` (all sparse sets + zone tables) on first write after a shared clone (`src/core/state.rs:190`). CLAUDE.md claims "shared unchanged parts" (persistent data structure); that is not yet true. Fine at current entity counts; this is the first thing to upgrade for MCTS-style branching.
-- **Allocation churn in event handlers** — nearly every `apply_event` branch collects `Vec<Entity>` to satisfy the borrow checker before mutating (`src/engine/rules.rs` throughout). Deterministic and correct, but allocates per event.
-- **Secrets rewrite the pending event queue** — attack resolution (attacker damage + retaliation) is pre-queued in `enqueue` (`src/engine/rules.rs:341-369`), and redirect-type secrets (Misdirection, Noble Sacrifice, Spellbender, …) mutate queued events via `EventQueue::redirect_damage` / `replace_damage` / `redirect_damages` (`src/core/event.rs:192-253`). This is the least elegant corner of the engine: each new redirect-type card requires special-casing in `src/engine/secret.rs` instead of plugging into a uniform damage-resolution pipeline.
+- ✅ **RESOLVED (D1, PR #44)** — CoW was a whole-`Inner` deep copy (`src/core/state.rs:190`): `Arc::make_mut` cloned every sparse set + zone table. Now `SparseSet` is a segmented arena (fixed-size pages, `Arc`-shared page table and pages): clone is O(1), first write copies only the touched page — structural sharing as CLAUDE.md claimed.
+- ❌ **OPEN (E1)** — Allocation churn in event handlers: nearly every `apply_event` branch collects `Vec<Entity>` to satisfy the borrow checker before mutating (`src/engine/rules.rs`, `src/engine/trigger.rs` throughout). Deterministic and correct, but allocates per event.
+- ✅ **RESOLVED (B2, PR #39)** — Secrets rewrote the pending event queue: attack damage + retaliation were pre-queued in `enqueue`, and redirect secrets mutated queued events via `redirect_damage` / `replace_damage` / `redirect_damages` (`src/core/event.rs:192-253`). Attacks now resolve through a single `ResolveAttack` pipeline event with fresh-state retaliation; `redirect_damage` / `replace_damage` deleted, Misdirection/Noble Sacrifice use the uniform `redirect_attack` primitive. ⚠️ One leftover: `redirect_damages` survives for Spellbender (spell-source redirect) — see E2.
 
 ### P2 — Scope / fidelity gaps (mostly deliberate)
 
-- **No player target choice** — `Action::PlayCard { card }` has no target parameter (`src/core/action.rs:13`); every `EffectTarget` is resolved randomly by the engine. Fine for random self-play, but the agent can never learn to choose *what* to hit (face vs board). Needed before the RL environment is faithful.
-- **Choose One auto-random, Combo auto-detected** — `src/engine/rules.rs:570-586` (choose one via RNG) and `:536` (combo from `cards_played_this_turn`). No player decision surface.
-- **Documented simplifications** — Overload is only a trigger marker, not mana lock (`src/core/component.rs:380`); Stealth is permanent (`src/core/component.rs:365`). These must stay documented so validation against real Hearthstone doesn't trip on them.
-- **`py_bind/` and `rl/` don't exist** — the CLAUDE.md module diagram (Phase 4 target) is ahead of the code. The current `sim/battle.rs` + `sim/bot.rs` are the RL-testing precursor.
-- **Card database is hand-written** — ~400 `const CardDef`s across `src/cards/`. Type-checked and fast, but every new set is manual labor and has no mechanical link to official card data.
-- **Comment language drift** — code comments are Chinese while CLAUDE.md requires English comments.
+- ✅ **RESOLVED (C1, PR #40)** — `Action::PlayCard { card }` had no target (`src/core/action.rs:13`); every `EffectTarget` was engine-random. Now `PlayCard { card, target }` with `select_target` (explicit-first, random fallback), threaded through 20+ single-target resolvers — the agent can choose face vs board.
+- ❌ **OPEN (E3)** — Choose One auto-random, Combo auto-detected — `src/engine/rules.rs` (choose one via RNG; combo from `cards_played_this_turn`). No player decision surface.
+- 📌 **INTENTIONAL** — Documented simplifications: Overload is only a trigger marker, not mana lock (`src/core/component.rs`); Stealth is permanent (`src/core/component.rs`). These must stay documented so validation against real Hearthstone doesn't trip on them.
+- ✅ **RESOLVED (C2/C3/C4, PR #42)** — `py_bind/` and `rl/` did not exist; the CLAUDE.md module diagram (Phase 4 target) was ahead of the code. Now `rl/` (env, obs, reward) + PyO3 `GameEnv` (`py` feature, abi3) exist and the wheel is smoke-tested; `sim/battle.rs` + `sim/bot.rs` remain the self-play precursor.
+- ⚠️ **PARTIAL (D2, PR #45)** — Card database was ~400 hand-written `const CardDef`s with no mechanical link to official data. The `build.rs` generation pipeline now exists (official-format JSON → static card consts, verified against the hand-written db), but the repo carries only a 4-card sample — the full official DB is not vendored yet (see E4).
+- ✅ **RESOLVED (D4, PR #46)** — Code comments were Chinese while CLAUDE.md requires English. Whole-repo translation done (~2,100 comment lines); verified code-byte-identical via a comment-strip diff.
 
 ---
 
@@ -100,6 +100,13 @@ One-sentence comparison: RosettaStone and SabberStone are **fidelity-first simul
 - [x] **D2** — `build.rs` generation of `CardDef` consts from official CardDefs JSON (keeps "cards as data" while removing manual labor). *(PR #45: official-format JSON → generated static card consts, verified field-by-field against the hand-written db)*
 - [x] **D3** — bincode/rkyv serialization of `GameState` for distributed training. *(PR #43: serde + bincode `to_bytes`/`from_bytes`; `&'static str` card ids re-interned via the static db)*
 - [x] **D4** — Restore comment-language discipline (English) to match CLAUDE.md. *(PR #46: whole-repo comment translation)*
+
+### Milestone E — Remaining debt (follow-ups)
+
+- [ ] **E1** — Kill the per-event allocation churn (P1): replace the borrow-checker `Vec` collects in `rules.rs`/`trigger.rs` with borrowing splits, small-vector reuse, or arena allocation on the hot path.
+- [ ] **E2** — Retire the last queue-mutation primitive `redirect_damages` (B2 leftover): route Spellbender through the damage pipeline (e.g. damage-source interception at `DamageDealt`) instead of rewriting pending spell-damage events.
+- [ ] **E3** — Choose One / Combo decision surface (P2): expose the choice in `Action` so the agent decides instead of engine-random / auto-detected combo.
+- [ ] **E4** — Complete D2: vendor the full official CardDefs JSON and regenerate the static card consts (hand-written effect fields stay on top of the generated statics).
 
 ---
 

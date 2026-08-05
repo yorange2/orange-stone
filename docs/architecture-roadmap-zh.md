@@ -52,23 +52,23 @@
 
 ### P0 — 热路径数据结构
 
-- **事件队列每次操作 O(n)** — `src/core/event.rs:161`（`pop_front` 用 `Vec::remove(0)`）与 `:149`（`push_with_priority` 扫描后插入）。事件循环是引擎的绝对热路径；应改为 `VecDeque` 或带队头索引的实现（保持同优先级内稳定 FIFO 语义）。
-- **光环解析每次查询全量扫描** — `effective_attack` / `effective_health` / `effective_cost`（`src/core/world.rs:609, 640, 672`）各自遍历所有存活光环组件。热路径（攻击验证、伤害结算、出牌验证）上 O(实体数 × 光环数)。结构上永远正确，但自对弈量上来后应做索引（例如按所属玩家 + 目标类型分组）。
+- ✅ **已解决（A1，PR #35）** — 事件队列原为每次操作 O(n)（`src/core/event.rs:161` 的 `pop_front` 用 `Vec::remove(0)`；`:149` 的 `push_with_priority` 扫描后插入）。现为三个按优先级分桶的 `VecDeque`：O(1) 入队/出队，同优先级内稳定 FIFO 保持不变。
+- ✅ **已解决（A2，PR #36）** — `effective_attack` / `effective_health` / `effective_cost`（`src/core/world.rs`）原各自遍历所有存活光环组件 — 每次查询 O(实体数 × 光环数)。现为 `AuraIndex`：按（拥有者、效果种类）分桶活跃光环源，由光环/区域/玩家相关变异方法增量维护；查询只扫相关分桶，无锁，`World` 保持 `Send + Sync`。
 
 ### P1 — 设计债
 
-- **CoW 是整份状态深拷贝** — 共享 clone 后首次修改，`Arc::make_mut` 克隆整个 `Inner`（全部稀疏集 + 区域表）（`src/core/state.rs:190`）。CLAUDE.md 声称"共享不变部分"（持久化数据结构），目前并不成立。在当前的实体数量下没问题；要做 MCTS 式分支时这是第一个要升级的点。
-- **事件处理器中的分配抖动** — 几乎每个 `apply_event` 分支都先 collect `Vec<Entity>` 以满足借用检查再修改（`src/engine/rules.rs` 通篇）。确定且正确，但每个事件都分配。
-- **奥秘改写待处理事件队列** — 攻击结算（攻方伤害 + 反击）在 `enqueue` 中预排（`src/engine/rules.rs:341-369`），重定向类奥秘（误导、崇高牺牲、法术扭曲者等）通过 `EventQueue::redirect_damage` / `replace_damage` / `redirect_damages`（`src/core/event.rs:192-253`）改写已入队的事件。这是引擎中最不优雅的角落：每张新的重定向类卡牌都需要在 `src/engine/secret.rs` 中特判，而不是接入统一的伤害结算管线。
+- ✅ **已解决（D1，PR #44）** — CoW 原为整份 `Inner` 深拷贝（`src/core/state.rs:190`）：`Arc::make_mut` 克隆全部稀疏集 + 区域表。现 `SparseSet` 为分段竞技场（定长页，页表与页均 `Arc` 共享）：克隆 O(1)，首次写入只复制所触页 — 结构共享已兑现 CLAUDE.md 的声明。
+- ❌ **未解决（E1）** — 事件处理器中的分配抖动：几乎每个 `apply_event` 分支都先 collect `Vec<Entity>` 以满足借用检查再修改（`src/engine/rules.rs`、`src/engine/trigger.rs` 通篇）。确定且正确，但每个事件都分配。
+- ✅ **已解决（B2，PR #39）** — 奥秘原会改写待处理事件队列：攻击伤害 + 反击在 `enqueue` 预排，重定向类奥秘通过 `redirect_damage` / `replace_damage` / `redirect_damages`（`src/core/event.rs:192-253`）改写已入队事件。现攻击经统一 `ResolveAttack` 管线事件结算（反击按当前状态计算）；`redirect_damage` / `replace_damage` 已删除，误导/崇高牺牲使用统一 `redirect_attack` 原语。⚠️ 一个遗留：`redirect_damages` 仍为法术扭曲者保留（法术来源重定向）— 见 E2。
 
 ### P2 — 范围/保真度缺口（多为刻意取舍）
 
-- **无玩家目标选择** — `Action::PlayCard { card }` 没有目标参数（`src/core/action.rs:13`）；所有 `EffectTarget` 由引擎随机解析。对随机自对弈足够，但 agent 永远学不会选择"打脸还是解场"。在 RL 环境保真之前需要补齐。
-- **抉择自动随机、连击自动判定** — `src/engine/rules.rs:570-586`（抉择走 RNG）与 `:536`（连击由 `cards_played_this_turn` 判定）。无玩家决策面。
-- **已记录的简化** — 过载只是触发标记而非法力锁定（`src/core/component.rs:380`）；潜行为永久潜行（`src/core/component.rs:365`）。必须持续记录，以免与真实炉石做对局验证时踩坑。
-- **`py_bind/` 与 `rl/` 不存在** — CLAUDE.md 模块图（Phase 4 目标）领先于代码。当前 `sim/battle.rs` + `sim/bot.rs` 是 RL 测试的前置基建。
-- **卡牌数据库为手写** — `src/cards/` 下约 400 个 `const CardDef`。类型检查完备、速度飞快，但每个新系列都是手工劳动，且与官方卡牌数据没有机制性关联。
-- **注释语言漂移** — 代码注释为中文，而 CLAUDE.md 要求英文注释。
+- ✅ **已解决（C1，PR #40）** — `Action::PlayCard { card }` 原无目标参数（`src/core/action.rs:13`），所有 `EffectTarget` 由引擎随机解析。现为 `PlayCard { card, target }` + `select_target`（显式目标优先、随机回退），接入 20+ 单目标解析器 — agent 可以学"打脸还是解场"。
+- ❌ **未解决（E3）** — 抉择自动随机、连击自动判定 — `src/engine/rules.rs`（抉择走 RNG；连击由 `cards_played_this_turn` 判定）。无玩家决策面。
+- 📌 **刻意保留** — 已记录的简化：过载只是触发标记而非法力锁定（`src/core/component.rs`）；潜行为永久潜行（`src/core/component.rs`）。必须持续记录，以免与真实炉石做对局验证时踩坑。
+- ✅ **已解决（C2/C3/C4，PR #42）** — `py_bind/` 与 `rl/` 原不存在，CLAUDE.md 模块图（Phase 4 目标）领先于代码。现 `rl/`（环境、观察、奖励）+ PyO3 `GameEnv`（`py` feature，abi3）已就位且 wheel 实测通过；`sim/battle.rs` + `sim/bot.rs` 仍为自对弈前置基建。
+- ⚠️ **部分解决（D2，PR #45）** — 卡牌数据库原为约 400 个手写 `const CardDef`，与官方数据无机制性关联。`build.rs` 生成管线已就绪（官方格式 JSON → 静态卡牌常量，与手写库逐字段验证），但仓库只携带 4 张样例卡 — 完整官方数据库尚未入库（见 E4）。
+- ✅ **已解决（D4，PR #46）** — 代码注释原为中文，而 CLAUDE.md 要求英文。全仓库英文化完成（约 2100 行注释）；以注释剥离 diff 验证代码逐字节未动。
 
 ---
 
@@ -100,6 +100,13 @@
 - [x] **D2** — 用 `build.rs` 从官方 CardDefs JSON 生成 `CardDef` const（保留"卡牌即数据"红利，消灭手工劳动）。*(PR #45：官方格式 JSON → 生成的静态卡牌常量，与手写库逐字段验证)*
 - [x] **D3** — `GameState` 的 bincode/rkyv 序列化，用于分布式训练。*(PR #43：serde + bincode `to_bytes`/`from_bytes`，`&'static str` 卡牌 ID 经静态库回注)*
 - [x] **D4** — 恢复注释语言纪律（英文），与 CLAUDE.md 一致。*(PR #46：全仓库注释英文化)*
+
+### 里程碑 E — 剩余欠债（后续工作）
+
+- [ ] **E1** — 消除逐事件分配抖动（P1）：用借用拆分、小型 Vec 复用或竞技场分配替代 `rules.rs`/`trigger.rs` 中为满足借用检查的 `Vec` collect。
+- [ ] **E2** — 退役最后一个队列改写原语 `redirect_damages`（B2 遗留）：让法术扭曲者接入伤害管线（例如在 `DamageDealt` 处做伤害来源拦截），而非改写待结算的法术伤害事件。
+- [ ] **E3** — 抉择/连击决策面（P2）：在 `Action` 中暴露抉择，让 agent 决策而非引擎随机 / 自动判定连击。
+- [ ] **E4** — 完成 D2：将完整官方 CardDefs JSON 入库并重新生成静态卡牌常量（手写效果字段叠加在生成的静态属性之上）。
 
 ---
 
