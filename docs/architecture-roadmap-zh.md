@@ -98,7 +98,7 @@
 - ✅ **已解决（G6，PR #57）** — 决策面原仅有 `PlayCard { card, target }`，抉择走引擎随机。现抉择系统：`GameEngine::apply_choices` 返回 `Resolution::{Done, NeedsChoice}`，暂停时把 `PendingChoice`（`ChoiceKind`：ChooseOne / Discover / Mulligan，含选项标签与 Discover 卡池）交给玩家，`Action::Choose { choice_id, option }` 继续结算；`GameEngine::apply` 为默认策略（随机 — RNG 确定性保持，bot/自对弈不变）。抉择（法术与随从，如塞纳留斯/丛林守护者）、发现（`AddRandomCardToHand` 卡池即选项）、召唤位置（`PlayCard.position`，0=最左）、英雄技能目标（`HeroPower.target`）全部解锁；`Event::ChoiceResolved` 承载选择结算。
 - ✅ **已解决（G7，PR #58）** — 原无开局流程：`GameState::new` 空牌库开局、抽牌取随机下标。现开局流程：`GameBuilder::build` 洗牌（Fisher–Yates，种子确定）；抽牌改为有序牌库**牌顶抽牌**（退役随机下标）；`GameState::begin_game` 发起手（先手 3 张、后手 4 张 + 硬币），并以 G6 协议挂出换牌抉择（`ChoiceKind::Mulligan` — 换回牌库、重洗、再抽牌顶；硬币不可换），先手玩家第 1 回合免抽（G1 已就位）；新增硬币卡 `THE_COIN`（`GainManaThisTurn` — 本回合 +1 法力，不增加永久水晶）。
 - ✅ **已解决（G8，PR #59）** — 奥秘原事后匹配事件（`secret.rs:26`）：`WhenEnemySpellCast` 在法术效果结算*之后*才触发，反制类奥秘无法抢先。现出牌边界拦截（`secret::intercept_counter_secrets`）：法术反制在效果结算前否定法术（顺带修复法术反制从未注册 `Secret` 组件、完全不触发的 bug — `Secret::effect` 改为可选）；法术扭曲者先召唤 1/3 标记并把法术单体效果重定向到它（AOE 不受影响，符合炉石）；退役 `redirect_damages` 队列改写（E2）。
-- ❌ **未解决（G9）** — 出牌目标仅在校验时做候选集成员检查，非法时随机回退（`trigger.rs:34`）；炉石精确的重新校验/空发规则缺失；潜行的"不能成为单目标"条款未落实（`rules.rs:229`）。
+- ✅ **已解决（G9，PR #60）** — 出牌目标原仅在校验时做候选集成员检查，非法时随机回退（`trigger.rs:34`）。现结算时重新校验（`select_target`）：显式目标在结算时已不在合法候选集（新获潜行、目标被移除、不能被指定）→ 效果**空发**（不随机回退 — 炉石语义）；无显式目标时仍按结算时状态随机选择。潜行的单目标排除落实（F2 目标侧）：隐身随从不可被显式指定，指定即空发。
 
 ---
 
@@ -150,7 +150,7 @@
 - [x] **G6** — 抉择系统：在 `Action` 中暴露 `Choice` 对象（SB ChoiceType：Mulligan / General / HeroPower / TaskList），覆盖抉择、发现、对手抉择（生而平等式）、召唤位置、英雄技能目标。*(吸收 E3 与 F3。)* *(PR #57：`apply_choices` 暂停协议 + `PendingChoice`/`Action::Choose`；Mulligan 类由 G7 使用)*
 - [x] **G7** — 开局流程：对局开始洗牌、起手（3 / 4 张 + 硬币）、换牌、有序牌库 + 牌顶抽牌（退役随机下标抽牌）、先手玩家首回合免抽。*(PR #58：build 洗牌 + 牌顶抽牌 + `begin_game` 起手/硬币/换牌抉择)*
 - [x] **G8** — 奥秘拦截：奥秘在步骤边界触发 — 反制类（法术反制、法术扭曲者）在效果结算*之前*，后置类保持现有触发点。退役 `redirect_damages`（E2）。*(PR #59：出牌边界拦截 + `Secret::effect` 可选化)*
-- [ ] **G9** — 结算时的目标合法性：按炉石规则在结算时重新校验出牌目标（新获潜行、目标被移除、"不能被指定"）；精确的重新选择/空发语义；落实潜行的单目标排除（F2 的目标侧）。
+- [x] **G9** — 结算时的目标合法性：按炉石规则在结算时重新校验出牌目标（新获潜行、目标被移除、"不能被指定"）；精确的重新选择/空发语义；落实潜行的单目标排除（F2 的目标侧）。*(PR #60：`select_target` 空发语义)*
 
 ### 里程碑 F — 绝对保真（硬性要求）
 

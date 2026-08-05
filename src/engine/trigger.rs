@@ -37,10 +37,19 @@ fn select_target(
     candidates: &SmallList<Entity>,
     rng: &mut GameRng,
 ) -> Option<Entity> {
+    // Hearthstone's re-validation semantics (roadmap G9): an explicit target
+    // that is no longer in the legal candidate set at resolution time (gained
+    // stealth, left play, became untargetable) makes the effect **fizzle** —
+    // it does NOT fall back to a random target. With no explicit target, the
+    // effect picks randomly at resolution (self-play).
     match explicit {
+        // Explicit target still legal → hit it
         Some(t) if candidates.iter().any(|&c| c == t) => Some(t),
-        _ if candidates.is_empty() => None,
-        _ => Some(candidates[rng.next_usize(candidates.len())]),
+        // Explicit target provided but no longer legal → the effect fizzles
+        Some(_) => None,
+        // No explicit target → random pick at resolution
+        None if candidates.is_empty() => None,
+        None => Some(candidates[rng.next_usize(candidates.len())]),
     }
 }
 
