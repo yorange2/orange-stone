@@ -15,7 +15,7 @@ use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue, Priority};
 use crate::core::player::PlayerId;
 use crate::core::small_list::SmallList;
-use crate::core::state::{GameState, Phase};
+use crate::core::state::{GameState, Step};
 use crate::core::zone::Zone;
 use crate::engine::trigger;
 
@@ -60,7 +60,7 @@ pub const MAX_BOARD_SIZE: usize = 7;
 /// Returns `Ok(())` or `Err(EngineError)`.
 pub fn validate(state: &GameState, action: Action) -> Result<(), EngineError> {
     // Reject all actions once the game is over
-    if matches!(state.phase(), Phase::GameOver { .. }) {
+    if matches!(state.step(), Step::GameOver { .. }) {
         return Err(EngineError::GameAlreadyOver);
     }
 
@@ -142,7 +142,7 @@ fn validate_attack(
     let active = state.active_player();
 
     // Check phase
-    if state.phase() != Phase::Main {
+    if state.step() != Step::Main {
         return Err(EngineError::InvalidTarget);
     }
 
@@ -237,7 +237,7 @@ fn validate_attack(
 
 /// Validates an end-turn action.
 fn validate_end_turn(state: &GameState) -> Result<(), EngineError> {
-    if state.phase() != Phase::Main {
+    if state.step() != Step::Main {
         return Err(EngineError::NotYourTurn);
     }
     Ok(())
@@ -263,7 +263,7 @@ fn validate_hero_power(state: &GameState, hero: Entity) -> Result<(), EngineErro
     }
 
     // Phase check
-    if state.phase() != Phase::Main {
+    if state.step() != Step::Main {
         return Err(EngineError::NotYourTurn);
     }
 
@@ -369,10 +369,11 @@ pub fn enqueue(
             });
         }
         Action::EndTurn => {
+            // Only the TurnEnded event is enqueued here: the step machine runs
+            // the end sequence (EndTriggers → WrapUp) and enqueues the next
+            // player's TurnStarted itself at the wrap-up boundary.
             let active = state.active_player();
-            let opponent = active.opponent();
             queue.push(Event::TurnEnded { player: active });
-            queue.push(Event::TurnStarted { player: opponent });
         }
         Action::HeroPower { hero } => {
             let active = state.active_player();
@@ -471,86 +472,18 @@ pub fn apply_event(
             }
             state.set_active_player(player);
             state.set_turn(new_turn);
-            state.set_phase(Phase::Main);
-
-            // Mana crystal growth and refill
-            {
-                let inner = state.make_mut();
-                let p = &mut inner.players[player.index()];
-                p.mana_crystals = (p.mana_crystals + 1).min(10);
-                p.current_mana = p.mana_crystals;
-                p.cards_played_this_turn = 0;
-            }
-
-            // Draw a card
-            trigger::draw_card(state, queue, player);
+            // Enter the start-of-turn sequence. The mana refill and the draw are
+            // NOT done here: the step machine runs StartTriggers (start-of-turn
+            // secrets already fired on this event via check_secrets, start-turn
+            // card effects fire next) → ManaRefill → DrawStep → Main, so that
+            // start-of-turn triggers resolve before the refill and the draw.
+            state.set_step(Step::StartTriggers);
         }
-        Event::TurnEnded { player } => {
-            state.set_phase(Phase::End);
-            // Clear temporary attack bonus
-            {
-                let inner = state.make_mut();
-                let p = &mut inner.players[player.index()];
-                let hero = p.hero;
-                let bonus = p.temp_attack_bonus;
-                if bonus > 0 {
-                    let cur_atk = inner.world.attack(hero).unwrap_or(Attack(0));
-                    inner
-                        .world
-                        .set_attack(hero, Attack((cur_atk.0 - bonus).max(0)));
-                    p.temp_attack_bonus = 0;
-                }
-            }
-            // Clear temporary attack debuffs and death records
-            {
-                let inner = state.make_mut();
-                let p = &mut inner.players[player.index()];
-                p.died_this_turn.clear();
-                // Clear temporary attack debuffs on all entities (stack-buffered snapshot)
-                let debuff_entities: SmallList<Entity> = inner
-                    .world
-                    .iter_temp_attack_debuff()
-                    .map(|(e, _)| e)
-                    .collect();
-                for &e in debuff_entities.iter() {
-                    inner.world.remove_temp_attack_debuff(e);
-                }
-                // Clear temporary immunity on all entities (Bestial Wrath — until end of turn)
-                let immune_entities: SmallList<Entity> =
-                    inner.world.iter_immune().map(|(e, _)| e).collect();
-                for &e in immune_entities.iter() {
-                    inner.world.remove_immune(e);
-                }
-            }
-            // Return temporarily controlled minions (Shadow Madness — until end of turn)
-            // (mem::take — zero allocation)
-            let inner = state.make_mut();
-            let controlled =
-                std::mem::take(&mut inner.players[player.index()].controlled_this_turn);
-            for (entity, original_owner) in controlled {
-                if state.world().is_alive(entity) {
-                    trigger::transfer_minion(state, entity, original_owner);
-                }
-            }
-            // Clear the commanding-shout minimum health effect (until end of turn)
-            {
-                let inner = state.make_mut();
-                inner.players[player.index()].minion_min_health = 0;
-            }
-            // Trigger end-of-turn effects (collect first, then process one by one)
-            let end_turn_effects: SmallList<(Entity, crate::core::effect::CardEffect), 8> = state
-                .world()
-                .iter_end_turn_effect()
-                .filter(|(e, _)| {
-                    state.world().zone(*e) == Some(Zone::Play)
-                        && state.world().is_alive(*e)
-                        && state.world().player(*e) == Some(player)
-                })
-                .map(|(e, ete)| (e, ete.0))
-                .collect();
-            for (source, effect) in end_turn_effects {
-                trigger::resolve_effect(state, queue, source, player, effect, None);
-            }
+        Event::TurnEnded { player: _ } => {
+            // End-of-turn effects fire in the EndTriggers step — before the
+            // wrap-up cleanup — so effects resolve at full strength and deaths
+            // they cause are processed before "until end of turn" buffs expire.
+            state.set_step(Step::EndTriggers);
         }
         Event::CardPlayed {
             player,
@@ -974,10 +907,171 @@ pub fn apply_event(
             }
         }
         Event::GameOver { winner } => {
-            state.set_phase(Phase::GameOver { winner });
+            state.set_step(Step::GameOver { winner });
         }
     }
     Ok(())
+}
+
+// ============================================================
+// Step state machine (roadmap G1)
+// ============================================================
+
+/// Advances the step state machine at an event-queue boundary.
+///
+/// Steps are entered by state: the turn-start sequence runs StartTriggers →
+/// ManaRefill → DrawStep → Main (start-of-turn card effects fire before the
+/// mana refill and the draw); the end sequence runs EndTriggers → WrapUp →
+/// next player's TurnStarted. Returns `false` when the machine is waiting for
+/// player input (Main step with an empty queue) or the game is over — the
+/// engine loop should stop then.
+pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
+    match state.step() {
+        Step::GameOver { .. } => false,
+        Step::StartTriggers => {
+            // "At the start of your turn" card effects (CardDef::start_turn_effect)
+            fire_start_turn_effects(state, queue);
+            state.set_step(Step::ManaRefill);
+            true
+        }
+        Step::ManaRefill => {
+            // Mana crystal growth and refill (overload mana locks apply here in F1)
+            let active = state.active_player();
+            let inner = state.make_mut();
+            let p = &mut inner.players[active.index()];
+            p.mana_crystals = (p.mana_crystals + 1).min(10);
+            p.current_mana = p.mana_crystals;
+            p.cards_played_this_turn = 0;
+            state.set_step(Step::DrawStep);
+            true
+        }
+        Step::DrawStep => {
+            // The first player does not draw on turn 1 (the initial state never
+            // runs a DrawStep for it; the guard covers constructed states too).
+            let active = state.active_player();
+            if !(state.turn() == 1 && active == PlayerId::Player1) {
+                trigger::draw_card(state, queue, active);
+            }
+            state.set_step(Step::Main);
+            true
+        }
+        Step::EndTriggers => {
+            // End-of-turn effects fire before the wrap-up cleanup
+            fire_end_turn_effects(state, queue);
+            state.set_step(Step::WrapUp);
+            true
+        }
+        Step::WrapUp => {
+            // Expire "until end of turn" effects, then start the opponent's turn
+            wrap_up_turn(state);
+            queue.push(Event::TurnStarted {
+                player: state.active_player().opponent(),
+            });
+            state.set_step(Step::StartTriggers);
+            true
+        }
+        Step::Death => {
+            // The death step's batch processing happens in the event loop
+            // (queued MinionDied events; Milestone G3 replaces them with marked
+            // pending deaths). Back to the main step.
+            state.set_step(Step::Main);
+            true
+        }
+        Step::Main => false,
+    }
+}
+
+/// Fires "at the start of your turn" effects (`CardDef::start_turn_effect`).
+fn fire_start_turn_effects(state: &mut GameState, queue: &mut EventQueue) {
+    let player = state.active_player();
+    let start_turn_effects: SmallList<(Entity, crate::core::effect::CardEffect), 8> = state
+        .world()
+        .iter_start_turn_effect()
+        .filter(|(e, _)| {
+            state.world().zone(*e) == Some(Zone::Play)
+                && state.world().is_alive(*e)
+                && state.world().player(*e) == Some(player)
+        })
+        .map(|(e, ste)| (e, ste.0))
+        .collect();
+    for (source, effect) in start_turn_effects {
+        trigger::resolve_effect(state, queue, source, player, effect, None);
+    }
+}
+
+/// Fires "at the end of your turn" effects (`CardDef::end_turn_effect`).
+fn fire_end_turn_effects(state: &mut GameState, queue: &mut EventQueue) {
+    let player = state.active_player();
+    let end_turn_effects: SmallList<(Entity, crate::core::effect::CardEffect), 8> = state
+        .world()
+        .iter_end_turn_effect()
+        .filter(|(e, _)| {
+            state.world().zone(*e) == Some(Zone::Play)
+                && state.world().is_alive(*e)
+                && state.world().player(*e) == Some(player)
+        })
+        .map(|(e, ete)| (e, ete.0))
+        .collect();
+    for (source, effect) in end_turn_effects {
+        trigger::resolve_effect(state, queue, source, player, effect, None);
+    }
+}
+
+/// Turn wrap-up: expires "until end of turn" effects and clears per-turn state.
+///
+/// Runs after the EndTriggers step so that end-of-turn effects resolve at full
+/// strength and deaths they cause are processed before buffs expire.
+fn wrap_up_turn(state: &mut GameState) {
+    let player = state.active_player();
+    // Clear temporary attack bonus
+    {
+        let inner = state.make_mut();
+        let p = &mut inner.players[player.index()];
+        let hero = p.hero;
+        let bonus = p.temp_attack_bonus;
+        if bonus > 0 {
+            let cur_atk = inner.world.attack(hero).unwrap_or(Attack(0));
+            inner
+                .world
+                .set_attack(hero, Attack((cur_atk.0 - bonus).max(0)));
+            p.temp_attack_bonus = 0;
+        }
+    }
+    // Clear temporary attack debuffs and death records
+    {
+        let inner = state.make_mut();
+        let p = &mut inner.players[player.index()];
+        p.died_this_turn.clear();
+        // Clear temporary attack debuffs on all entities (stack-buffered snapshot)
+        let debuff_entities: SmallList<Entity> = inner
+            .world
+            .iter_temp_attack_debuff()
+            .map(|(e, _)| e)
+            .collect();
+        for &e in debuff_entities.iter() {
+            inner.world.remove_temp_attack_debuff(e);
+        }
+        // Clear temporary immunity on all entities (Bestial Wrath — until end of turn)
+        let immune_entities: SmallList<Entity> =
+            inner.world.iter_immune().map(|(e, _)| e).collect();
+        for &e in immune_entities.iter() {
+            inner.world.remove_immune(e);
+        }
+    }
+    // Return temporarily controlled minions (Shadow Madness — until end of turn)
+    // (mem::take — zero allocation)
+    let inner = state.make_mut();
+    let controlled = std::mem::take(&mut inner.players[player.index()].controlled_this_turn);
+    for (entity, original_owner) in controlled {
+        if state.world().is_alive(entity) {
+            trigger::transfer_minion(state, entity, original_owner);
+        }
+    }
+    // Clear the commanding-shout minimum health effect (until end of turn)
+    {
+        let inner = state.make_mut();
+        inner.players[player.index()].minion_min_health = 0;
+    }
 }
 
 #[cfg(test)]
@@ -1195,8 +1289,8 @@ mod tests {
         }
 
         assert_eq!(
-            state.phase(),
-            Phase::GameOver {
+            state.step(),
+            Step::GameOver {
                 winner: PlayerId::Player1
             }
         );
@@ -1241,5 +1335,184 @@ mod tests {
         }
 
         assert_eq!(state.world().attacks_used(minion), Some(AttacksUsed(0)));
+    }
+
+    // ============================================================
+    // G1 — step state machine
+    // ============================================================
+
+    #[test]
+    fn first_player_turn_one_has_one_mana() {
+        // The first player's opening turn starts with 1 mana crystal (their
+        // turn-1 refill is built into GameState::new).
+        let state = GameState::new();
+        assert_eq!(state.player(PlayerId::Player1).mana_crystals, 1);
+        assert_eq!(state.player(PlayerId::Player1).current_mana, 1);
+        assert_eq!(state.player(PlayerId::Player2).mana_crystals, 0);
+    }
+
+    #[test]
+    fn mana_refill_runs_on_turn_start() {
+        // Player2's turn 1 (turn counter 2) goes through the ManaRefill step: 0 → 1.
+        let mut state = GameState::new();
+        let engine = crate::engine::game::GameEngine::new();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        assert_eq!(state.player(PlayerId::Player2).mana_crystals, 1);
+        assert_eq!(state.player(PlayerId::Player2).current_mana, 1);
+        // The machine returns to Main, waiting for input
+        assert_eq!(state.step(), Step::Main);
+    }
+
+    #[test]
+    fn first_player_does_not_draw_on_turn_one() {
+        // The first player does not draw on turn 1; the second player draws on
+        // their first turn; the first player draws from turn 2 on.
+        use crate::cards::def::BLOODFEN_RAPTOR;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_deck(PlayerId::Player1, &BLOODFEN_RAPTOR);
+        builder.add_minion_to_deck(PlayerId::Player2, &BLOODFEN_RAPTOR);
+        let mut state = builder.build();
+        let engine = crate::engine::game::GameEngine::new();
+
+        // End Player1's opening turn: Player2 draws, Player1's deck is untouched
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        assert_eq!(
+            state.world().zones().len(Zone::Deck, PlayerId::Player1),
+            1,
+            "first player must not draw on turn 1"
+        );
+        assert_eq!(state.world().zones().len(Zone::Deck, PlayerId::Player2), 0);
+
+        // End Player2's turn: Player1 draws on turn 2
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        assert_eq!(state.world().zones().len(Zone::Deck, PlayerId::Player1), 0);
+        assert_eq!(state.world().zones().len(Zone::Hand, PlayerId::Player1), 1);
+    }
+
+    #[test]
+    fn start_of_turn_effect_fires_before_draw() {
+        // A start-of-turn effect (CardDef::start_turn_effect, wired in G1)
+        // resolves in the StartTriggers step — before the mana refill and the
+        // turn's draw both happened afterwards.
+        let mut state = GameState::new();
+        let minion = add_minion_to_board(&mut state, PlayerId::Player2, 1, 2);
+        state.world_mut().set_start_turn_effect(
+            minion,
+            crate::core::component::StartTurnEffect(crate::core::effect::CardEffect::GainStats {
+                attack: 1,
+                health: 1,
+                target: crate::core::effect::EffectTarget::Self_,
+            }),
+        );
+        let engine = crate::engine::game::GameEngine::new();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        // The start effect resolved
+        assert_eq!(state.world().attack(minion), Some(Attack(2)));
+        assert_eq!(state.world().health(minion), Some(Health(3)));
+    }
+
+    #[test]
+    fn end_of_turn_effect_fires_before_wrap_up() {
+        // End-of-turn effects must resolve at full strength, before "until end
+        // of turn" buffs expire. The hero has a temporary attack bonus of 5 and
+        // an end-of-turn effect dealing the hero's attack as damage: the enemy
+        // minion must take the full 5 (if wrap-up ran first, it would take 0).
+        let mut state = GameState::new();
+        // Heroic-Strike-style temporary bonus: attack 5 + temp bonus 5
+        {
+            let inner = state.make_mut();
+            let p = &mut inner.players[0];
+            p.temp_attack_bonus = 5;
+            inner.world.set_attack(p.hero, Attack(5));
+        }
+        let hero = state.player(PlayerId::Player1).hero;
+        state.world_mut().set_end_turn_effect(
+            hero,
+            crate::core::component::EndTurnEffect(
+                crate::core::effect::CardEffect::DealHeroAttackDamage {
+                    target: crate::core::effect::EffectTarget::AnyEnemy,
+                },
+            ),
+        );
+        let enemy_minion = add_minion_to_board(&mut state, PlayerId::Player2, 1, 2);
+        let engine = crate::engine::game::GameEngine::new();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+
+        // The effect fired with the full attack (5 damage kills the 2-HP minion)
+        assert_eq!(
+            state.world().zone(enemy_minion),
+            Some(Zone::Graveyard),
+            "end-of-turn effect must resolve before the temporary buff expires"
+        );
+        // The temp bonus expired afterwards
+        assert_eq!(state.player(PlayerId::Player1).temp_attack_bonus, 0);
+        assert_eq!(
+            state.world().attack(hero),
+            Some(Attack(0)),
+            "temporary attack bonus must expire at wrap-up"
+        );
+    }
+
+    #[test]
+    fn turn_start_secret_fires_before_draw() {
+        // A start-of-turn secret (OnFriendlyTurnStart) fires when the
+        // TurnStarted event is processed — before the ManaRefill and DrawStep.
+        // Its discard effect must run against the empty hand, leaving exactly
+        // the turn's drawn card (if the draw happened first, the discard would
+        // remove it).
+        use crate::cards::def::BLOODFEN_RAPTOR;
+        use crate::core::component::{CardId, Secret, SecretTrigger};
+        use crate::core::effect::CardEffect;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_deck(PlayerId::Player2, &BLOODFEN_RAPTOR);
+        let mut state = builder.build();
+        // A Player2 secret that discards a random card on their turn start
+        let secret_entity = {
+            let world = state.world_mut();
+            let e = world.spawn();
+            world.set_card_id(e, CardId("CLASSIC_001"));
+            world.set_card_type(e, CardType::Spell);
+            world.set_cost(e, crate::core::component::Cost(0));
+            world.set_player(e, PlayerId::Player2);
+            world.set_secret(
+                e,
+                Secret {
+                    trigger: SecretTrigger::OnFriendlyTurnStart,
+                    effect: CardEffect::DiscardRandomCard,
+                },
+            );
+            world.set_zone(e, Zone::SetAside);
+            world
+                .zones_mut()
+                .insert(Zone::SetAside, PlayerId::Player2, e);
+            e
+        };
+        let engine = crate::engine::game::GameEngine::new();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+
+        // The secret fired (revealed) and the draw still happened afterwards
+        assert_eq!(state.world().zone(secret_entity), Some(Zone::Graveyard));
+        assert_eq!(
+            state.world().zones().len(Zone::Hand, PlayerId::Player2),
+            1,
+            "turn-start secret must fire before the draw"
+        );
+    }
+
+    #[test]
+    fn death_step_processes_kills_and_returns_to_main() {
+        // Combat deaths surface while in the Main step: the machine enters the
+        // Death step, batch-processes the MinionDied events, and returns to Main.
+        let mut state = GameState::new();
+        let attacker = add_minion_to_board(&mut state, PlayerId::Player1, 4, 5);
+        let defender = add_minion_to_board(&mut state, PlayerId::Player2, 1, 2);
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(&mut state, Action::Attack { attacker, defender })
+            .unwrap();
+        assert_eq!(state.world().zone(defender), Some(Zone::Graveyard));
+        assert_eq!(state.step(), Step::Main);
     }
 }

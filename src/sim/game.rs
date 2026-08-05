@@ -10,7 +10,7 @@ use crate::core::component::{
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
-use crate::core::state::{GameState, Phase};
+use crate::core::state::{GameState, Step};
 use crate::core::zone::Zone;
 
 /// Game builder — used to create custom game states.
@@ -62,8 +62,8 @@ impl GameBuilder {
     }
 
     /// Sets the game phase.
-    pub fn phase(&mut self, phase: Phase) -> &mut Self {
-        self.state.set_phase(phase);
+    pub fn step(&mut self, step: Step) -> &mut Self {
+        self.state.set_step(step);
         self
     }
 

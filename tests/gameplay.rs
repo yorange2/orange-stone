@@ -14,7 +14,7 @@ use orange_stone::core::component::Health;
 use orange_stone::core::entity::Entity;
 use orange_stone::core::event::Event;
 use orange_stone::core::player::PlayerId;
-use orange_stone::core::state::{GameState, Phase};
+use orange_stone::core::state::{GameState, Step};
 use orange_stone::core::zone::Zone;
 use orange_stone::engine::game::GameEngine;
 use orange_stone::engine::rules::EngineError;
@@ -236,8 +236,8 @@ fn hero_death_ends_game() {
         .unwrap();
 
     assert_eq!(
-        state.phase(),
-        Phase::GameOver {
+        state.step(),
+        Step::GameOver {
             winner: PlayerId::Player1
         }
     );
@@ -353,7 +353,7 @@ fn end_turn_switches_active_player() {
 
     assert_eq!(state.active_player(), PlayerId::Player2);
     assert_eq!(state.turn(), 2);
-    assert_eq!(state.phase(), Phase::Main);
+    assert_eq!(state.step(), Step::Main);
     assert!(log.iter().any(|e| matches!(e, Event::TurnEnded { .. })));
     assert!(log.iter().any(|e| matches!(e, Event::TurnStarted { .. })));
 }

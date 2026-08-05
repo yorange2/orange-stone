@@ -10,7 +10,7 @@ use orange_stone::cards::def::{
 use orange_stone::core::action::Action;
 use orange_stone::core::component::{CardType, Health};
 use orange_stone::core::player::PlayerId;
-use orange_stone::core::state::Phase;
+use orange_stone::core::state::Step;
 use orange_stone::core::zone::Zone;
 use orange_stone::engine::game::GameEngine;
 use orange_stone::sim::bot::{GreedyBot, SmartBot};
@@ -56,7 +56,7 @@ fn print_board(state: &orange_stone::core::state::GameState) {
         "回合 {} | {} 的回合 | 阶段: {:?}",
         state.turn(),
         player_name(active),
-        state.phase()
+        state.step()
     );
 
     for &pid in &[PlayerId::Player1, PlayerId::Player2] {
@@ -217,7 +217,7 @@ fn two_bots_battle() {
             break;
         }
 
-        if matches!(state.phase(), Phase::GameOver { .. }) {
+        if matches!(state.step(), Step::GameOver { .. }) {
             break;
         }
 
@@ -344,7 +344,7 @@ fn two_bots_battle() {
                         println!("{evt_str}");
                     }
                     // Stop processing once the game is over
-                    if matches!(state.phase(), Phase::GameOver { .. }) {
+                    if matches!(state.step(), Step::GameOver { .. }) {
                         break;
                     }
                 }
@@ -355,7 +355,7 @@ fn two_bots_battle() {
         }
 
         // Check whether the game is over
-        if matches!(state.phase(), Phase::GameOver { .. }) {
+        if matches!(state.step(), Step::GameOver { .. }) {
             break;
         }
     }
@@ -364,8 +364,8 @@ fn two_bots_battle() {
     println!("\n📊 === 对战结束 ===");
     print_board(&state);
 
-    match state.phase() {
-        Phase::GameOver { winner } => {
+    match state.step() {
+        Step::GameOver { winner } => {
             println!("\n🏆 胜者: {}!", player_name(winner));
             let loser = winner.opponent();
             let winner_hp = state.world().health(state.player(winner).hero);
@@ -466,7 +466,7 @@ fn two_smart_bots_battle() {
             break;
         }
 
-        if matches!(state.phase(), Phase::GameOver { .. }) {
+        if matches!(state.step(), Step::GameOver { .. }) {
             break;
         }
 
@@ -592,7 +592,7 @@ fn two_smart_bots_battle() {
                         };
                         println!("{evt_str}");
                     }
-                    if matches!(state.phase(), Phase::GameOver { .. }) {
+                    if matches!(state.step(), Step::GameOver { .. }) {
                         break;
                     }
                 }
@@ -602,7 +602,7 @@ fn two_smart_bots_battle() {
             }
         }
 
-        if matches!(state.phase(), Phase::GameOver { .. }) {
+        if matches!(state.step(), Step::GameOver { .. }) {
             break;
         }
     }
@@ -611,8 +611,8 @@ fn two_smart_bots_battle() {
     println!("\n📊 === SmartBot 对战结束 ===");
     print_board(&state);
 
-    match state.phase() {
-        Phase::GameOver { winner } => {
+    match state.step() {
+        Step::GameOver { winner } => {
             println!("\n🧠🏆 胜者: {}!", player_name(winner));
             let loser = winner.opponent();
             let winner_hp = state.world().health(state.player(winner).hero);

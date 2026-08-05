@@ -23,13 +23,32 @@ use crate::core::zone::Zone;
 use crate::sim::rng::GameRng;
 use std::sync::Arc;
 
-/// Game phase.
+/// Game resolution step — the GameStep state machine (RS/SB analogue, roadmap G1).
+///
+/// Events process within the current step; when the event queue drains,
+/// `rules::advance_step` moves the machine to the next step. The turn start
+/// sequence runs StartTriggers → ManaRefill → DrawStep → Main (start-of-turn
+/// secrets/triggers fire before the mana refill and the draw); the end
+/// sequence runs EndTriggers → WrapUp (end-of-turn effects resolve at full
+/// strength, then "until end of turn" effects expire). The Death step batch-
+/// processes pending deaths (Milestone G3 marks them; G1 enters it for queued
+/// `MinionDied` events).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Phase {
-    /// Main phase — the player can play cards, attack, and end the turn
+pub enum Step {
+    /// Start-of-turn triggers for the active player (fire before the mana refill and the draw)
+    StartTriggers,
+    /// Gain a mana crystal and refill mana (overload locks apply here, Milestone F1)
+    ManaRefill,
+    /// Draw the turn's card (the first player skips this on turn 1)
+    DrawStep,
+    /// Main step — the player can play cards, attack, and end the turn
     Main,
-    /// End phase (only a marker in Phase 1)
-    End,
+    /// End-of-turn triggers ("at the end of your turn" effects fire here)
+    EndTriggers,
+    /// Turn wrap-up: expire "until end of turn" effects and clear per-turn state
+    WrapUp,
+    /// Death step: batch-process pending deaths
+    Death,
     /// Game over
     GameOver {
         /// The winner
@@ -49,7 +68,7 @@ pub struct Inner {
     /// Current turn number (counts from 1, incremented on each TurnStarted)
     pub turn: u32,
     /// Current game phase
-    pub phase: Phase,
+    pub step: Step,
     /// The player whose turn it is
     pub active_player: PlayerId,
     /// Random number generator (reproducible)
@@ -69,9 +88,11 @@ pub struct GameState {
 impl GameState {
     /// Create a new initial game state.
     ///
-    /// Contains both players and their hero entities (30 HP, 0 Attack), with 0 mana crystals each.
+    /// Contains both players and their hero entities (30 HP, 0 Attack).
+    /// The first player starts their opening turn with 1 mana crystal; the
+    /// second player starts at 0 (their turn-1 refill runs via the step machine).
     /// The deck starts empty (filled via GameBuilder).
-    /// The game starts at Player1's turn 1, phase Main.
+    /// The game starts at Player1's turn 1, step Main.
     /// The RNG seed is fixed at 12345.
     #[must_use]
     pub fn new() -> Self {
@@ -105,11 +126,14 @@ impl GameState {
         let inner = Inner {
             world,
             players: [
-                Player::new(PlayerId::Player1, hero1, 0),
+                // The first player's opening turn starts with 1 mana crystal
+                // (their turn-1 refill; the step machine's ManaRefill step only
+                // runs for turns entered via a TurnStarted event).
+                Player::new(PlayerId::Player1, hero1, 1),
                 Player::new(PlayerId::Player2, hero2, 0),
             ],
             turn: 1,
-            phase: Phase::Main,
+            step: Step::Main,
             active_player: PlayerId::Player1,
             rng: GameRng::new(12345),
         };
@@ -133,15 +157,15 @@ impl GameState {
 
     /// Get the current game phase.
     #[must_use]
-    pub fn phase(&self) -> Phase {
-        self.inner.phase
+    pub fn step(&self) -> Step {
+        self.inner.step
     }
 
     /// Set the game phase.
     /// Requires a mutable reference obtained via `make_mut` (called by `GameEngine` or `GameBuilder`).
-    pub fn set_phase(&mut self, phase: Phase) {
+    pub fn set_step(&mut self, step: Step) {
         let inner = self.make_mut();
-        inner.phase = phase;
+        inner.step = step;
     }
 
     /// Get the current active player.
@@ -254,7 +278,7 @@ mod tests {
     fn new_state_initial_values() {
         let state = GameState::new();
         assert_eq!(state.turn(), 1);
-        assert_eq!(state.phase(), Phase::Main);
+        assert_eq!(state.step(), Step::Main);
         assert_eq!(state.active_player(), PlayerId::Player1);
     }
 
@@ -381,7 +405,7 @@ mod serialization_tests {
 
         // Metadata
         assert_eq!(restored.turn(), state.turn());
-        assert_eq!(restored.phase(), state.phase());
+        assert_eq!(restored.step(), state.step());
         assert_eq!(restored.active_player(), state.active_player());
         // Player state
         for pid in [PlayerId::Player1, PlayerId::Player2] {
