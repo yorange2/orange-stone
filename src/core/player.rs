@@ -61,6 +61,12 @@ pub struct Player {
     pub died_this_turn: Vec<crate::core::entity::Entity>,
     /// 下一个奥秘费用为 0（肯瑞托法师，一次性）
     pub next_secret_free: bool,
+    /// 被临时控制的敌方随从（实体，原拥有者）— 回合结束时归还（暗影狂乱）
+    pub controlled_this_turn: Vec<(crate::core::entity::Entity, PlayerId)>,
+    /// 被腐蚀的敌方随从 — 拥有者回合开始时消灭（腐蚀术）
+    pub corrupted: Vec<crate::core::entity::Entity>,
+    /// 本回合随从最低生命值（命令怒吼，0 表示无限制）
+    pub minion_min_health: i32,
 }
 
 impl Player {
@@ -78,6 +84,9 @@ impl Player {
             cards_played_this_turn: 0,
             died_this_turn: Vec::new(),
             next_secret_free: false,
+            controlled_this_turn: Vec::new(),
+            corrupted: Vec::new(),
+            minion_min_health: 0,
         }
     }
 }

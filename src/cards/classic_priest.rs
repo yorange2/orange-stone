@@ -760,3 +760,68 @@ pub const NATALIE_SELINE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// Tier 2 补全 — 精神控制
+// ============================================================
+
+/// 暗影狂乱 — 控制一个攻击力小于或等于 3 的敌方随从，直到回合结束。
+pub const SHADOW_MADNESS: CardDef = CardDef {
+    id: "PRIEST_022",
+    name: "Shadow Madness",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::TakeControlUntilEndOfTurn),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 精神控制 — 控制一个敌方随从。
+pub const MIND_CONTROL: CardDef = CardDef {
+    id: "PRIEST_023",
+    name: "Mind Control",
+    card_type: CardType::Spell,
+    cost: 10,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::TakeControl),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

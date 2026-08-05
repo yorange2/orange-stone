@@ -1502,3 +1502,245 @@ fn natalie_seline_destroys_minion_and_gains_health() {
         Some(orange_stone::core::component::Health(11))
     );
 }
+
+// ============================================================
+// Stage 7 控制/腐蚀/命令怒吼/过载/变形批次
+// ============================================================
+
+#[test]
+fn shadow_madness_takes_control_until_end_of_turn() {
+    use orange_stone::cards::def::SHADOW_MADNESS;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &SHADOW_MADNESS);
+    let enemy_minion = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 3, 2);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 敌方随从被控制（属于 Player1）
+    assert_eq!(state.world().player(enemy_minion), Some(PlayerId::Player1));
+    assert!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId::Player1)
+            .any(|e| e == enemy_minion)
+    );
+
+    // 回合结束 → 归还
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.world().player(enemy_minion), Some(PlayerId::Player2));
+}
+
+#[test]
+fn shadow_madness_ignores_high_attack_minions() {
+    use orange_stone::cards::def::SHADOW_MADNESS;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &SHADOW_MADNESS);
+    let enemy_minion = builder.add_custom_minion_to_board(PlayerId::Player2, 5, 5, 5);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 5 攻击随从不受暗影狂乱影响
+    assert_eq!(state.world().player(enemy_minion), Some(PlayerId::Player2));
+}
+
+#[test]
+fn mind_control_permanently_steals_minion() {
+    use orange_stone::cards::def::MIND_CONTROL;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &MIND_CONTROL);
+    let enemy_minion = builder.add_custom_minion_to_board(PlayerId::Player2, 5, 5, 5);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    assert_eq!(state.world().player(enemy_minion), Some(PlayerId::Player1));
+
+    // 回合结束后仍属于 Player1
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.world().player(enemy_minion), Some(PlayerId::Player1));
+}
+
+#[test]
+fn corruption_destroys_minion_at_start_of_turn() {
+    use orange_stone::cards::def::CORRUPTION;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &CORRUPTION);
+    let enemy_minion = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 3, 2);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    assert_eq!(state.world().zone(enemy_minion), Some(Zone::Play));
+
+    // P1 结束 → P2 回合 → P2 结束 → P1 回合开始时被腐蚀的随从死亡
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.world().zone(enemy_minion), Some(Zone::Graveyard));
+}
+
+#[test]
+fn commanding_shout_prevents_minion_death() {
+    use orange_stone::cards::def::COMMANDING_SHOUT;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &COMMANDING_SHOUT);
+    let ally = builder.add_custom_minion_to_board(PlayerId::Player1, 1, 2, 1);
+    let attacker = builder.add_custom_minion_to_board(PlayerId::Player2, 3, 3, 3);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+    assert_eq!(state.player(PlayerId::Player1).minion_min_health, 1);
+
+    // 敌方 3 攻随从攻击 1/2 随从 → 生命值钳制在 1（不死）
+    state.set_active_player(PlayerId::Player2);
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: ally,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().health(ally),
+        Some(orange_stone::core::component::Health(1))
+    );
+    assert_eq!(state.world().zone(ally), Some(Zone::Play));
+
+    // 回合结束后效果清除
+    state.set_active_player(PlayerId::Player1);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.player(PlayerId::Player1).minion_min_health, 0);
+}
+
+#[test]
+fn unbound_elemental_gains_stats_when_overload_played() {
+    use orange_stone::cards::def::{LIGHTNING_BOLT, UNBOUND_ELEMENTAL};
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &LIGHTNING_BOLT);
+    builder.add_minion_to_board(PlayerId::Player1, &UNBOUND_ELEMENTAL);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    // 打出带过载的闪电箭
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 无羁元素获得 +1/+1（2/4 → 3/5）
+    let elemental: Entity = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId::Player1)
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == UNBOUND_ELEMENTAL.id)
+        })
+        .unwrap();
+    assert_eq!(
+        state.world().attack(elemental),
+        Some(orange_stone::core::component::Attack(3))
+    );
+    assert_eq!(
+        state.world().health(elemental),
+        Some(orange_stone::core::component::Health(5))
+    );
+}
+
+#[test]
+fn tinkmaster_transforms_enemy_minion() {
+    use orange_stone::cards::def::TINKMASTER_OVERSPARK;
+
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId::Player1, &TINKMASTER_OVERSPARK);
+    let enemy_minion = builder.add_custom_minion_to_board(PlayerId::Player2, 4, 4, 4);
+    builder.set_mana(PlayerId::Player1, 10, 10);
+    let mut state = builder.build();
+
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId::Player1)
+        .collect();
+    let card = hand[0];
+
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
+
+    // 敌方随从被变形为 5/5 暴龙或 1/1 松鼠
+    let atk = state.world().attack(enemy_minion).unwrap().0;
+    let hp = state.world().health(enemy_minion).unwrap().0;
+    assert!(
+        (atk, hp) == (5, 5) || (atk, hp) == (1, 1),
+        "transformed stats should be 5/5 or 1/1, got {atk}/{hp}"
+    );
+    assert_eq!(
+        state.world().card_id(enemy_minion).unwrap().0,
+        if (atk, hp) == (5, 5) {
+            "NEUTRAL_T17a"
+        } else {
+            "NEUTRAL_T17b"
+        }
+    );
+    // 效果组件被清除（无战吼/嘲讽等）
+    assert!(state.world().battlecry(enemy_minion).is_none());
+}

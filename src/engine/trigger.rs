@@ -339,6 +339,22 @@ pub fn resolve_effect(
         CardEffect::GrantAttackAndImmune { attack } => {
             resolve_grant_attack_and_immune(state, owner, attack);
         }
+        CardEffect::TakeControlUntilEndOfTurn => {
+            resolve_take_control(state, owner, true);
+        }
+        CardEffect::TakeControl => {
+            resolve_take_control(state, owner, false);
+        }
+        CardEffect::Corrupt => {
+            resolve_corrupt(state, owner);
+        }
+        CardEffect::MinHealthUntilEndOfTurn => {
+            let inner = state.make_mut();
+            inner.players[owner.index()].minion_min_health = 1;
+        }
+        CardEffect::TransformToRandom { card_a, card_b } => {
+            resolve_transform(state, owner, card_a, card_b);
+        }
     }
 }
 
@@ -1448,6 +1464,95 @@ fn resolve_grant_attack_and_immune(state: &mut GameState, owner: PlayerId, attac
     let cur = world.attack(target).unwrap_or(Attack(0));
     world.set_attack(target, Attack(cur.0 + attack));
     world.set_immune(target, Immune);
+}
+
+/// 控制一个敌方随从（暗影狂乱：临时直到回合结束；精神控制：永久）。
+///
+/// 暗影狂乱只选择攻击力 ≤ 3 的随从。
+fn resolve_take_control(state: &mut GameState, owner: PlayerId, until_end_of_turn: bool) {
+    let minions: Vec<Entity> = collect_enemy_minions(state, owner)
+        .into_iter()
+        .filter(|&e| {
+            !until_end_of_turn || state.world().effective_attack(e).unwrap_or(Attack(0)).0 <= 3
+        })
+        .collect();
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let target = minions[idx];
+    let original_owner = state.world().player(target).unwrap_or(owner.opponent());
+    transfer_minion(state, target, owner);
+    if until_end_of_turn {
+        let inner = state.make_mut();
+        inner.players[owner.index()]
+            .controlled_this_turn
+            .push((target, original_owner));
+    }
+}
+
+/// 将随从的控制权转移给新玩家（改变玩家组件并移动战场区域）。
+///
+/// 若接收方战场已满（7 个随从），转移被跳过（简化：不消灭）。
+pub(crate) fn transfer_minion(state: &mut GameState, entity: Entity, to: PlayerId) {
+    let Some(from) = state.world().player(entity) else {
+        return;
+    };
+    if from == to {
+        return;
+    }
+    // 战场上限检查（精神控制/暗影狂乱不能把随从塞进已满的战场）
+    let board_count = state
+        .world()
+        .zones()
+        .iter(Zone::Play, to)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    if board_count >= crate::engine::rules::MAX_BOARD_SIZE {
+        return;
+    }
+    let inner = state.make_mut();
+    inner.world.zones_mut().remove(Zone::Play, from, entity);
+    inner.world.zones_mut().insert(Zone::Play, to, entity);
+    inner.world.set_player(entity, to);
+}
+
+/// 腐蚀一个敌方随从 — 在你的回合开始时将其消灭（腐蚀术）。
+fn resolve_corrupt(state: &mut GameState, owner: PlayerId) {
+    let minions = collect_enemy_minions(state, owner);
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let target = minions[idx];
+    let inner = state.make_mut();
+    inner.players[owner.index()].corrupted.push(target);
+}
+
+/// 将目标随从变形为两个备选随从之一（工匠大师欧沃斯巴克）。
+fn resolve_transform(state: &mut GameState, owner: PlayerId, card_a: &str, card_b: &str) {
+    let minions = collect_enemy_minions(state, owner);
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let target = minions[idx];
+    let pick = if state.rng_mut().next_usize(2) == 0 {
+        card_a
+    } else {
+        card_b
+    };
+    let Some(def) = crate::cards::def::card_by_id(pick) else {
+        return;
+    };
+    // 重置实体：清除所有效果组件，套用新卡牌的属性
+    let world = state.world_mut();
+    crate::cards::clear_minion_effects(world, target);
+    world.set_attack(target, Attack(def.attack));
+    world.set_health(target, Health(def.health));
+    world.set_cost(target, Cost(def.cost));
+    world.set_card_id(target, CardId(def.id));
+    world.set_attacks_used(target, AttacksUsed(0));
 }
 
 /// 使一个友方随从获得潜行（伪装大师，不能指定自身）。

@@ -400,6 +400,25 @@ pub fn apply_event(
 ) -> Result<(), EngineError> {
     match event {
         Event::TurnStarted { player } => {
+            // 腐蚀术：在你的回合开始时消灭被腐蚀的随从
+            let corrupted: Vec<Entity> = state.make_mut().players[player.index()]
+                .corrupted
+                .drain(..)
+                .collect();
+            for entity in corrupted {
+                if !state.world().is_alive(entity)
+                    || state.world().card_type(entity) != Some(CardType::Minion)
+                {
+                    continue;
+                }
+                let hp = state.world().health(entity).unwrap_or(Health(1));
+                queue.push(Event::DamageDealt {
+                    source: entity,
+                    target: entity,
+                    amount: hp.0.max(1),
+                });
+            }
+
             // 先收集需要重置攻击次数的实体（需要只读 borrow）
             let player_entities: Vec<Entity> = state
                 .world()
@@ -472,6 +491,21 @@ pub fn apply_event(
                 for e in immune_entities {
                     inner.world.remove_immune(e);
                 }
+            }
+            // 归还被临时控制的随从（暗影狂乱 — 直到回合结束）
+            let controlled: Vec<(Entity, PlayerId)> = state.make_mut().players[player.index()]
+                .controlled_this_turn
+                .drain(..)
+                .collect();
+            for (entity, original_owner) in controlled {
+                if state.world().is_alive(entity) {
+                    trigger::transfer_minion(state, entity, original_owner);
+                }
+            }
+            // 清除命令怒吼的最低生命值效果（直到回合结束）
+            {
+                let inner = state.make_mut();
+                inner.players[player.index()].minion_min_health = 0;
             }
             // 触发回合结束效果（先收集再逐个处理）
             let end_turn_effects: Vec<(Entity, crate::core::effect::CardEffect)> = state
@@ -615,6 +649,22 @@ pub fn apply_event(
                     .move_to_zone(card, Zone::Play)
                     .map_err(|_| EngineError::EntityGone(card))?;
             }
+            // 过载触发器：打出带过载的牌时，触发友方随从的过载效果（无羁元素）
+            if state.world().overload(card).is_some() {
+                let overload_triggers: Vec<(Entity, crate::core::effect::CardEffect)> = state
+                    .world()
+                    .iter_overload_trigger()
+                    .filter(|(e, _)| {
+                        state.world().zone(*e) == Some(Zone::Play)
+                            && state.world().is_alive(*e)
+                            && state.world().player(*e) == Some(player)
+                    })
+                    .map(|(e, ot)| (e, ot.0))
+                    .collect();
+                for (source, effect) in overload_triggers {
+                    trigger::resolve_effect(state, queue, source, player, effect);
+                }
+            }
         }
         Event::MinionSummoned { player, minion } => {
             // 召唤失调：非冲锋随从本回合不能攻击
@@ -749,6 +799,20 @@ pub fn apply_event(
                 && amount > 0
             {
                 new_hp = Health(0);
+            }
+            // 命令怒吼：本回合随从生命值不能低于 1
+            if card_type == Some(CardType::Minion)
+                && state
+                    .world()
+                    .player(target)
+                    .is_some_and(|pid| state.player(pid).minion_min_health > 0)
+            {
+                let min_hp = state
+                    .world()
+                    .player(target)
+                    .map(|pid| state.player(pid).minion_min_health)
+                    .unwrap_or(0);
+                new_hp = Health(new_hp.0.max(min_hp));
             }
 
             // 通过 CoW 修改状态

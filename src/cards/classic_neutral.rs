@@ -2700,3 +2700,46 @@ pub const BANANA: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// Tier 2 补全 — 工匠大师欧沃斯巴克
+// ============================================================
+
+/// 工匠大师欧沃斯巴克 — 战吼：将一个随从随机变形为 5/5 暴龙或 1/1 松鼠。
+pub const TINKMASTER_OVERSPARK: CardDef = CardDef {
+    id: "NEUTRAL_T17",
+    name: "Tinkmaster Overspark",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::TransformToRandom {
+        card_a: "NEUTRAL_T17a",
+        card_b: "NEUTRAL_T17b",
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 暴龙（工匠大师 token）— 5/5
+pub const DEVILSAUR: CardDef = vanilla!("NEUTRAL_T17a", "Devilsaur", 5, 5, 5);
+
+/// 松鼠（工匠大师 token）— 1/1
+pub const SQUIRREL: CardDef = vanilla!("NEUTRAL_T17b", "Squirrel", 1, 1, 1);

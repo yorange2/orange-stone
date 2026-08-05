@@ -164,6 +164,9 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     // Tier 2 补全
     KING_MUKLA,
     BANANA,
+    TINKMASTER_OVERSPARK,
+    DEVILSAUR,
+    SQUIRREL,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -344,6 +347,8 @@ pub const PRIEST_CLASSIC: &[CardDef] = &[
     LIGHTWELL,
     // Tier 2 补全
     NATALIE_SELINE,
+    SHADOW_MADNESS,
+    MIND_CONTROL,
 ];
 
 pub const ROGUE_CLASSIC: &[CardDef] = &[
@@ -401,6 +406,7 @@ pub const SHAMAN_CLASSIC: &[CardDef] = &[
     ANCESTRAL_SPIRIT,
     // Tier 2 补全
     FAR_SIGHT,
+    UNBOUND_ELEMENTAL,
 ];
 
 pub const WARLOCK_CLASSIC: &[CardDef] = &[
@@ -428,6 +434,7 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     SIEGEBREAKER,
     // Tier 2 补全
     SUMMONING_PORTAL,
+    CORRUPTION,
 ];
 
 pub const WARRIOR_CLASSIC: &[CardDef] = &[
@@ -457,6 +464,8 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
     // Tier 1 补全
     FIERY_WAR_AXE,
     ARCANITE_REAPER,
+    // Tier 2 补全
+    COMMANDING_SHOUT,
 ];
 
 pub const ALL_CARDS: &[CardDef] = &[
@@ -863,4 +872,13 @@ pub const ALL_CARDS: &[CardDef] = &[
     GLADIATORS_LONGBOW,
     ICICLE,
     NATALIE_SELINE,
+    // Tier 2 控制/变形
+    SHADOW_MADNESS,
+    MIND_CONTROL,
+    CORRUPTION,
+    COMMANDING_SHOUT,
+    UNBOUND_ELEMENTAL,
+    TINKMASTER_OVERSPARK,
+    DEVILSAUR,
+    SQUIRREL,
 ];

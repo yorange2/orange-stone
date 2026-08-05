@@ -766,3 +766,37 @@ pub const FAR_SIGHT: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// Tier 2 补全 — 无羁元素
+// ============================================================
+
+/// 无羁元素 — 每当你使用一张具有过载的牌时，获得 +1/+1。
+pub const UNBOUND_ELEMENTAL: CardDef = CardDef {
+    id: "SHAMAN_021",
+    name: "Unbound Elemental",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 2,
+    health: 4,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

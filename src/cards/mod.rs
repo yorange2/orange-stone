@@ -19,24 +19,80 @@ pub mod def;
 pub mod sets;
 
 use crate::core::component::{
-    Attack, AttacksUsed, Aura, CardId, Cost, Deathrattle, Durability, Health, Poison, Stealth,
+    Attack, AttacksUsed, Aura, CardId, Cost, Deathrattle, Durability, Health, Overload,
+    OverloadTrigger, Poison, Stealth,
 };
+use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
 use crate::core::world::World;
 use def::CardDef;
 
-/// 在实体上应用特殊关键词组件（剧毒、潜行等）。
+/// 在实体上应用特殊关键词组件（剧毒、潜行、过载等）。
 ///
 /// 这些关键词不新增 `CardDef` 字段（避免大面积结构体改动），
 /// 而是按卡牌 ID 在此集中映射。召唤随从（`trigger::resolve_summon`）
 /// 和构建卡牌（`GameBuilder::spawn_minion`）时调用。
 pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &CardDef) {
+    // 带过载的萨满卡牌（不模拟法力锁定，仅作为触发标记）
+    if matches!(
+        card_def.id,
+        "SHAMAN_002"
+            | "SHAMAN_006"
+            | "SHAMAN_009"
+            | "SHAMAN_015"
+            | "SHAMAN_016"
+            | "SHAMAN_017"
+            | "SHAMAN_019"
+    ) {
+        world.set_overload(entity, Overload);
+    }
+    if card_def.id == "SHAMAN_021" {
+        // 无羁元素 — 每当你使用一张带过载的牌时，获得 +1/+1
+        world.set_overload_trigger(
+            entity,
+            OverloadTrigger(CardEffect::GainStats {
+                attack: 1,
+                health: 1,
+                target: EffectTarget::Self_,
+            }),
+        );
+    }
     if card_def.id == "ROGUE_022" {
         // 耐心的刺客 — 潜行 + 剧毒
         world.set_poison(entity, Poison);
         world.set_stealth(entity, Stealth);
     }
+}
+
+/// 清除随从的所有效果组件（变形前重置实体）。
+///
+/// 保留生命值/攻击力/区域等基础组件，由调用方重新套用目标卡牌的属性。
+pub(crate) fn clear_minion_effects(world: &mut World, entity: Entity) {
+    world.remove_battlecry(entity);
+    world.remove_deathrattle(entity);
+    world.remove_taunt(entity);
+    world.remove_aura(entity);
+    world.remove_secret(entity);
+    world.remove_divine_shield(entity);
+    world.remove_windfury(entity);
+    world.remove_charge(entity);
+    world.remove_spell_damage(entity);
+    world.remove_cant_attack(entity);
+    world.remove_end_turn_effect(entity);
+    world.remove_spell_trigger(entity);
+    world.remove_death_trigger(entity);
+    world.remove_summon_trigger(entity);
+    world.remove_choose_one_effect(entity);
+    world.remove_combo_effect(entity);
+    world.remove_attack_equals_health(entity);
+    world.remove_temp_attack_debuff(entity);
+    world.remove_poison(entity);
+    world.remove_stealth(entity);
+    world.remove_immune(entity);
+    world.remove_freeze(entity);
+    world.remove_overload(entity);
+    world.remove_overload_trigger(entity);
 }
 
 /// 根据 `CardDef` 在指定玩家名下创建一个卡牌实体（不设置区域）。

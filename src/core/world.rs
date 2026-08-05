@@ -11,8 +11,9 @@
 use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
     Charge, ChooseOneEffect, ComboEffect, Cost, DeathTrigger, Deathrattle, DivineShield,
-    Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Immune, Poison, Secret,
-    SpellDamage, SpellTrigger, Stealth, SummonTrigger, Taunt, TempAttackDebuff, Windfury,
+    Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Immune, Overload,
+    OverloadTrigger, Poison, Secret, SpellDamage, SpellTrigger, Stealth, SummonTrigger, Taunt,
+    TempAttackDebuff, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -149,6 +150,10 @@ pub struct World {
     stealth: SparseSet<Stealth>,
     /// Immune 组件存储（免疫）
     immune: SparseSet<Immune>,
+    /// Overload 组件存储（过载标记）
+    overload: SparseSet<Overload>,
+    /// OverloadTrigger 组件存储（过载触发效果）
+    overload_trigger: SparseSet<OverloadTrigger>,
     /// 区域表 — 每个 Zone 的有序实体列表
     zones: Zones,
 }
@@ -194,6 +199,8 @@ impl World {
             poison: SparseSet::new(),
             stealth: SparseSet::new(),
             immune: SparseSet::new(),
+            overload: SparseSet::new(),
+            overload_trigger: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -265,6 +272,8 @@ impl World {
         self.poison.remove(entity);
         self.stealth.remove(entity);
         self.immune.remove(entity);
+        self.overload.remove(entity);
+        self.overload_trigger.remove(entity);
         // 提升 generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // 归还槽位
@@ -548,6 +557,22 @@ impl World {
         set_immune,
         remove_immune,
         iter_immune
+    );
+    component_accessors!(
+        overload,
+        Overload,
+        overload,
+        set_overload,
+        remove_overload,
+        iter_overload
+    );
+    component_accessors!(
+        overload_trigger,
+        OverloadTrigger,
+        overload_trigger,
+        set_overload_trigger,
+        remove_overload_trigger,
+        iter_overload_trigger
     );
 
     /// 获取实体每回合可攻击的最大次数。
