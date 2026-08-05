@@ -51,6 +51,12 @@ impl GameBuilder {
         self.state
     }
 
+    /// Raw mutable access to the in-progress state (for test setups that need
+    /// components without a dedicated builder method).
+    pub fn state_mut(&mut self) -> &mut GameState {
+        &mut self.state
+    }
+
     /// Sets the active player.
     pub fn active_player(&mut self, player: PlayerId) -> &mut Self {
         self.state.set_active_player(player);
