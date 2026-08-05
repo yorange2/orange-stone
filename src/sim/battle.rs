@@ -265,13 +265,25 @@ impl BattleRunner {
     /// Each call consumes one deck seed and one game seed, so consecutive calls
     /// on the same `BattleRunner` (same initial seed) produce different battles.
     pub fn create_game_state(&mut self, deck_size: usize) -> GameState {
-        // Generate decks
         let (p1_deck, p2_deck) = self.generate_random_decks(deck_size);
-        self.tracker.record_deck(&p1_deck);
-        self.tracker.record_deck(&p2_deck);
+        self.create_game_state_with_decks(&p1_deck, &p2_deck)
+    }
+
+    /// Builds an initial `GameState` from explicit decks (roadmap M1-G2).
+    ///
+    /// Used by the RL environment for fixed-pool mirror matchups; the decks are
+    /// recorded in the tracker and shuffled by the builder (deterministic per seed).
+    /// The game RNG is reseeded from the runner's RNG, keeping per-battle reproducibility.
+    pub fn create_game_state_with_decks(
+        &mut self,
+        deck1: &[&'static CardDef],
+        deck2: &[&'static CardDef],
+    ) -> GameState {
+        self.tracker.record_deck(deck1);
+        self.tracker.record_deck(deck2);
 
         // Build the initial game
-        let mut state = self.build_game_state(&p1_deck, &p2_deck, 3);
+        let mut state = self.build_game_state(deck1, deck2, 3);
 
         // Record this battle's seed (for reproduction)
         let game_seed = self.rng.next_u32() as u64;
@@ -342,13 +354,19 @@ impl BattleRunner {
     }
 
     /// Builds the initial GameState — deck, opening hand, and starting mana.
+    ///
+    /// The state RNG is seeded from the runner's RNG, so the deck shuffle and
+    /// opening hands differ per seed. This matters for explicit decks (M1-G2):
+    /// with a fixed deck the deck content alone no longer varies the opening.
     fn build_game_state(
         &mut self,
         deck1: &[&'static CardDef],
         deck2: &[&'static CardDef],
         hand_size: usize,
     ) -> GameState {
+        let opening_seed = self.rng.next_u32() as u64;
         let mut builder = GameBuilder::new();
+        builder.with_rng_seed(opening_seed);
         // Deck
         for card in deck1 {
             builder.add_minion_to_deck(PlayerId::Player1, card);
@@ -360,12 +378,17 @@ impl BattleRunner {
         builder.set_mana(PlayerId::Player2, 0, 0);
         let mut state = builder.build();
 
-        // Opening hand
+        // Opening hand — draw from the *current* deck length (the deck shrinks
+        // with every draw, so an index into the original length can miss).
         for &pid in &[PlayerId::Player1, PlayerId::Player2] {
             let deck_count = state.world().zones().len(Zone::Deck, pid);
             let draw_count = hand_size.min(deck_count);
             for _ in 0..draw_count {
-                let idx = state.rng_mut().next_usize(deck_count);
+                let current = state.world().zones().len(Zone::Deck, pid);
+                if current == 0 {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(current);
                 let Some(card) = state.world().zones().iter(Zone::Deck, pid).nth(idx) else {
                     continue;
                 };

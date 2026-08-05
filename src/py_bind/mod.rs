@@ -28,14 +28,34 @@ struct PyGameEnv {
 #[pymethods]
 impl PyGameEnv {
     /// Creates the environment. `perspective` is the agent's perspective (0 = first player, 1 = second player).
+    ///
+    /// `deck` (optional) is a list of card IDs used as a mirror deck for both players
+    /// (M1-G2); `None`/omitted generates random decks of `deck_size` cards.
     #[new]
-    #[pyo3(signature = (seed, perspective=0, deck_size=30))]
-    fn new(seed: u64, perspective: u8, deck_size: usize) -> PyResult<Self> {
+    #[pyo3(signature = (seed, perspective=0, deck_size=30, deck=None))]
+    fn new(
+        seed: u64,
+        perspective: u8,
+        deck_size: usize,
+        deck: Option<Vec<String>>,
+    ) -> PyResult<Self> {
         let perspective = match perspective {
             0 => PlayerId::Player1,
             _ => PlayerId::Player2,
         };
-        let config = EnvConfig::default_with(BotType::Greedy, deck_size);
+        let mut config = EnvConfig::default_with(BotType::Greedy, deck_size);
+        if let Some(ids) = deck {
+            let mut resolved = Vec::with_capacity(ids.len());
+            for id in &ids {
+                let Some(card) = crate::cards::card_by_id(id) else {
+                    return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                        "unknown card id: {id}"
+                    )));
+                };
+                resolved.push(card.id);
+            }
+            config = config.with_fixed_deck(resolved);
+        }
         let mut env = GameEnv::new(perspective, config);
         env.reset(seed);
         Ok(Self { env })
