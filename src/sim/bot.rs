@@ -95,7 +95,11 @@ impl GreedyBot {
 
         for (cost, card) in playable {
             if cost <= remaining_mana {
-                actions.push(Action::PlayCard { card, target: None });
+                actions.push(Action::PlayCard {
+                    card,
+                    target: None,
+                    position: None,
+                });
                 remaining_mana -= cost;
             }
         }
@@ -121,7 +125,7 @@ impl GreedyBot {
         // Check whether there is enough mana (hero power cost from the definition, or 2 by default)
         let cost = world.hero_power(hero).map(|hp| hp.cost).unwrap_or(2);
         if remaining_mana >= cost {
-            Some(Action::HeroPower { hero })
+            Some(Action::HeroPower { hero, target: None })
         } else {
             None
         }
@@ -566,7 +570,11 @@ impl SmartBot {
                 }
             }
 
-            actions.push(Action::PlayCard { card, target: None });
+            actions.push(Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            });
             remaining_mana -= cost;
         }
 
@@ -655,7 +663,7 @@ impl SmartBot {
         }
 
         // Mana is available and the hero power can be used — use it (2 damage, armor, etc. all have value)
-        Some(Action::HeroPower { hero })
+        Some(Action::HeroPower { hero, target: None })
     }
 
     // ============================================================
@@ -1409,7 +1417,11 @@ mod smart_bot_tests {
         // Should have a play action
         assert!(actions.iter().any(|a| matches!(
             a,
-            Action::PlayCard { card, target: None } if *card == bluegill
+            Action::PlayCard {
+                        card,
+                        target: None,
+                        position: None,
+                    } if *card == bluegill
         )));
 
         // Should have an attack action (charge minions can attack)

@@ -21,9 +21,22 @@
 
 use crate::core::action::Action;
 use crate::core::event::{Event, EventQueue};
-use crate::core::state::GameState;
+use crate::core::state::{GameState, PendingChoice};
 use crate::engine::rules::{self, EngineError};
 use crate::engine::secret;
+
+/// The outcome of an engine call (roadmap G6).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Resolution {
+    /// The action fully resolved; the event log is the replay record
+    Done(Vec<Event>),
+    /// The engine needs a player choice to continue — respond with
+    /// `Action::Choose { choice_id, option }`
+    NeedsChoice {
+        /// The pending choice
+        choice: PendingChoice,
+    },
+}
 
 /// Game engine — stateless, pure logic orchestration.
 #[derive(Debug, Default, Clone, Copy)]
@@ -36,14 +49,21 @@ impl GameEngine {
         Self
     }
 
-    /// Validates, enqueues, and fully resolves a player action.
+    /// Validates, enqueues, and resolves a player action, pausing when the
+    /// engine needs a player choice (roadmap G6).
     ///
-    /// Returns the complete event log in resolution order (usable for replay).
+    /// Returns `Resolution::Done(log)` when the action fully resolved, or
+    /// `Resolution::NeedsChoice` when a pending choice must be answered with
+    /// `Action::Choose` before resolution can continue.
     ///
     /// # Errors
     ///
     /// Returns `EngineError` if validation fails; the state is **not** modified.
-    pub fn apply(&self, state: &mut GameState, action: Action) -> Result<Vec<Event>, EngineError> {
+    pub fn apply_choices(
+        &self,
+        state: &mut GameState,
+        action: Action,
+    ) -> Result<Resolution, EngineError> {
         // 1. Validate (read-only)
         rules::validate(state, action)?;
 
@@ -56,6 +76,14 @@ impl GameEngine {
         // (turn-start sequence, end-of-turn sequence, wrap-up, death step).
         let mut log = Vec::new();
         loop {
+            // A pending choice pauses resolution — unless the choice's own
+            // resolution event is already in flight.
+            if let Some(choice) = state.pending_choice().cloned() {
+                let resolving = matches!(queue.front(), Some(Event::ChoiceResolved { .. }));
+                if !resolving {
+                    return Ok(Resolution::NeedsChoice { choice });
+                }
+            }
             if let Some(event) = queue.pop_front() {
                 // Apply the event (mutates state + may enqueue new events)
                 rules::apply_event(state, event, &mut queue)?;
@@ -68,7 +96,40 @@ impl GameEngine {
             }
         }
 
-        Ok(log)
+        Ok(Resolution::Done(log))
+    }
+
+    /// Validates, enqueues, and fully resolves a player action with the
+    /// default choice policy: pending choices resolve randomly via the
+    /// embedded RNG (deterministic — the RL/self-play API).
+    ///
+    /// Returns the complete event log in resolution order (usable for replay).
+    ///
+    /// # Errors
+    ///
+    /// Returns `EngineError` if validation fails; the state is **not** modified.
+    pub fn apply(&self, state: &mut GameState, action: Action) -> Result<Vec<Event>, EngineError> {
+        let mut log = Vec::new();
+        let mut resolution = self.apply_choices(state, action)?;
+        loop {
+            match resolution {
+                Resolution::Done(events) => {
+                    log.extend(events);
+                    return Ok(log);
+                }
+                Resolution::NeedsChoice { choice } => {
+                    // Default policy: random option (deterministic via the RNG)
+                    let option = state.rng_mut().next_usize(choice.options.len()) as u8;
+                    resolution = self.apply_choices(
+                        state,
+                        Action::Choose {
+                            choice_id: choice.id,
+                            option,
+                        },
+                    )?;
+                }
+            }
+        }
     }
 }
 
@@ -127,7 +188,14 @@ mod tests {
         let card = add_minion_to_hand(&mut state, PlayerId::Player1, 2, 3);
 
         let log = engine
-            .apply(&mut state, Action::PlayCard { card, target: None })
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card,
+                    target: None,
+                    position: None,
+                },
+            )
             .unwrap();
 
         // Should produce CardPlayed and MinionSummoned
@@ -228,7 +296,7 @@ mod tests {
         let mut state = GameState::new();
         let hero = state.player(PlayerId::Player1).hero;
         // No hero power defined; not enough mana
-        let result = engine.apply(&mut state, Action::HeroPower { hero });
+        let result = engine.apply(&mut state, Action::HeroPower { hero, target: None });
         assert_eq!(result, Err(EngineError::NotEnoughMana));
     }
 }

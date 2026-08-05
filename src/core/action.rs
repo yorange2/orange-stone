@@ -11,7 +11,7 @@ use crate::core::entity::Entity;
 /// HeroPower returns `EngineError::Unimplemented` in Phase 1.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
-    /// Play a minion card (from hand to the battlefield).
+    /// Play a card (from hand to the battlefield).
     PlayCard {
         /// The card entity to play
         card: Entity,
@@ -21,6 +21,10 @@ pub enum Action {
         /// target set allowed by the effect; with `None` the engine chooses randomly
         /// (self-play fallback). Ignored for multi-target effects (AOE, etc.).
         target: Option<Entity>,
+        /// Summon position on the board (0 = leftmost), when playing a minion.
+        ///
+        /// With `None` the minion is summoned at the rightmost position.
+        position: Option<u8>,
     },
     /// Attack an enemy minion/hero with your own minion/hero.
     Attack {
@@ -31,9 +35,19 @@ pub enum Action {
     },
     /// End the current player's turn.
     EndTurn,
-    /// Use the hero power (implemented in Phase 2+).
+    /// Use the hero power.
     HeroPower {
         /// The hero entity using the power
         hero: Entity,
+        /// Explicit hero power target (roadmap G6); `None` = engine random
+        target: Option<Entity>,
+    },
+    /// Resolve a pending choice (roadmap G6) — the choice surfaced by
+    /// `GameEngine::apply_choices` (Choose One branches, Discover picks, …).
+    Choose {
+        /// The pending choice's id (echoed back from the request)
+        choice_id: u64,
+        /// The chosen option index
+        option: u8,
     },
 }

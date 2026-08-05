@@ -9,6 +9,7 @@ use orange_stone::cards::def::{
 };
 use orange_stone::core::action::Action;
 use orange_stone::core::component::{CardType, Health};
+use orange_stone::core::event::Event;
 use orange_stone::core::player::PlayerId;
 use orange_stone::core::state::Step;
 use orange_stone::core::zone::Zone;
@@ -245,6 +246,7 @@ fn two_bots_battle() {
                 }
                 Action::EndTurn => "结束回合".to_string(),
                 Action::HeroPower { .. } => "使用英雄技能".to_string(),
+                Action::Choose { .. } => "抉择".to_string(),
             };
             println!("  [{}/{}] {}", i + 1, actions.len(), action_desc);
 
@@ -252,6 +254,7 @@ fn two_bots_battle() {
                 Ok(events) => {
                     for event in &events {
                         let evt_str = match event {
+                            Event::ChoiceResolved { .. } => "ChoiceResolved".to_string(),
                             orange_stone::core::event::Event::TurnStarted { player } => {
                                 format!("  ↪ 回合开始: {}", player_name(*player))
                             }
@@ -494,6 +497,7 @@ fn two_smart_bots_battle() {
                 }
                 Action::EndTurn => "结束回合".to_string(),
                 Action::HeroPower { .. } => "使用英雄技能".to_string(),
+                Action::Choose { .. } => "抉择".to_string(),
             };
             println!("  [{}/{}] {}", i + 1, actions.len(), action_desc);
 
@@ -501,6 +505,7 @@ fn two_smart_bots_battle() {
                 Ok(events) => {
                     for event in &events {
                         let evt_str = match event {
+                            Event::ChoiceResolved { .. } => "ChoiceResolved".to_string(),
                             orange_stone::core::event::Event::TurnStarted { player } => {
                                 format!("  ↪ 回合开始: {}", player_name(*player))
                             }

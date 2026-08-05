@@ -236,18 +236,23 @@ pub fn legal_actions(state: &GameState) -> Vec<Action> {
     // Hero power
     let hero = state.player(player).hero;
     if world.hero_power(hero).is_some() {
-        candidates.push(Action::HeroPower { hero });
+        candidates.push(Action::HeroPower { hero, target: None });
     }
     // Play cards (with explicit targets)
     for card in world.zones().iter(Zone::Hand, player) {
         let targets = play_targets(state, card);
         if targets.is_empty() {
-            candidates.push(Action::PlayCard { card, target: None });
+            candidates.push(Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            });
         } else {
             for t in targets {
                 candidates.push(Action::PlayCard {
                     card,
                     target: Some(t),
+                    position: None,
                 });
             }
         }

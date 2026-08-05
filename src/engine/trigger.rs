@@ -435,10 +435,25 @@ pub fn resolve_effect(
             resolve_transform(state, owner, card_a, card_b);
         }
         CardEffect::AddRandomCardToHand { pool } => {
-            let Some(card_def) = crate::cards::pool::random_card(state.rng_mut(), pool) else {
+            // Roadmap G6: the discover surfaces as a pending choice; the default
+            // policy (GameEngine::apply) picks randomly via the embedded RNG —
+            // the same distribution as the previous direct pick, preserving
+            // determinism.
+            let cards = crate::cards::pool::pool_cards(pool);
+            if cards.is_empty() {
                 return;
-            };
-            add_card_to_hand(state, owner, card_def);
+            }
+            let options = cards
+                .iter()
+                .map(|c| format!("{} ({})", c.name, c.id))
+                .collect();
+            let pool_ids = cards.iter().map(|c| c.id.to_string()).collect();
+            state.set_pending_choice(
+                crate::core::state::ChoiceKind::Discover,
+                source,
+                options,
+                pool_ids,
+            );
         }
         CardEffect::SummonRandomMinion { pool } => {
             let Some(card_def) = crate::cards::pool::random_card(state.rng_mut(), pool) else {
@@ -1820,7 +1835,7 @@ fn resolve_transform(state: &mut GameState, owner: PlayerId, card_a: &str, card_
 }
 
 /// Adds a card entity to hand (creates a new entity; used for random generation / Antonidas).
-fn add_card_to_hand(
+pub(crate) fn add_card_to_hand(
     state: &mut GameState,
     player: PlayerId,
     card_def: &crate::cards::def::CardDef,

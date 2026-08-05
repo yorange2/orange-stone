@@ -36,7 +36,14 @@ fn playing_secret_card_moves_to_setaside_with_secret_component() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Secret card should go to SetAside, not the graveyard
@@ -73,7 +80,14 @@ fn played_secret_triggers_when_condition_met() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
     assert_eq!(state.world().zone(card), Some(Zone::SetAside));
 
@@ -126,7 +140,14 @@ fn freezing_trap_playable_and_triggers() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Player2's turn to attack
@@ -204,7 +225,14 @@ fn weapon_with_battlecry_resolves_on_play() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Weapon is equipped
@@ -246,7 +274,14 @@ fn headcrack_no_combo_goes_to_graveyard() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // No combo: deals 2 damage, goes to the graveyard
@@ -284,6 +319,7 @@ fn headcrack_combo_returns_to_hand() {
             Action::PlayCard {
                 card: wisp,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -293,6 +329,7 @@ fn headcrack_combo_returns_to_hand() {
             Action::PlayCard {
                 card: headcrack,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -332,6 +369,7 @@ fn kidnapper_combo_returns_enemy_minion() {
             Action::PlayCard {
                 card: wisp,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -341,6 +379,7 @@ fn kidnapper_combo_returns_enemy_minion() {
             Action::PlayCard {
                 card: kidnapper,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -368,7 +407,14 @@ fn shadowstep_returns_friendly_and_reduces_cost() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Friendly minion returns to hand, cost 3 → 1
@@ -405,7 +451,14 @@ fn betrayal_damages_adjacent_minions() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // The middle 5/5 is chosen: each flank takes 5 damage and dies (damage
@@ -439,7 +492,14 @@ fn blade_flurry_destroys_weapon_and_damages_all_enemies() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Weapon is destroyed
@@ -544,7 +604,14 @@ fn perdition_blade_battlecry_on_play() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Weapon is equipped (2/2)
@@ -584,7 +651,14 @@ fn master_of_disguise_grants_stealth() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Friendly minion gains stealth; Master of Disguise itself does not (cannot target itself)
@@ -628,7 +702,14 @@ fn resurrect_skipped_when_board_full() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Board still has 7 minions (resurrect skipped); the corpse stays in the graveyard
@@ -669,7 +750,14 @@ fn misdirection_redirects_attack_away_from_hero() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Player2 attacks Player1's hero
@@ -733,7 +821,14 @@ fn noble_sacrifice_summons_defender_as_new_target() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Player2 attacks Player1's hero → Noble Sacrifice summons a 2/1 defender
@@ -802,7 +897,14 @@ fn snipe_damages_played_minion() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Player2 plays a 4/4 minion
@@ -814,6 +916,7 @@ fn snipe_damages_played_minion() {
             Action::PlayCard {
                 card: played,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -868,7 +971,14 @@ fn snake_trap_summons_three_snakes() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Player2 attacks Player1's minion → it takes damage, summoning three snakes
@@ -971,7 +1081,14 @@ fn spellbender_redirects_spell_damage_to_itself() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Player2 casts a spell (targeting Player1's minion)
@@ -992,6 +1109,7 @@ fn spellbender_redirects_spell_damage_to_itself() {
             Action::PlayCard {
                 card: spell,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -1050,7 +1168,14 @@ fn sorcerers_apprentice_reduces_spell_cost() {
 
     // Playable with 3 mana
     let log = engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
     assert!(
         log.iter().any(|e| matches!(e, Event::SpellCast { .. })),
@@ -1115,6 +1240,7 @@ fn kirin_tor_mage_makes_next_secret_free() {
             Action::PlayCard {
                 card: ktm,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -1128,6 +1254,7 @@ fn kirin_tor_mage_makes_next_secret_free() {
             Action::PlayCard {
                 card: trap,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -1158,7 +1285,14 @@ fn far_sight_draws_card_with_reduced_cost() {
     let card = hand[0];
 
     let log = engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
     assert!(log.iter().any(|e| matches!(e, Event::CardDrawn { .. })));
 
@@ -1198,7 +1332,14 @@ fn cenarius_choose_one_buffs_or_summons_treants() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Random choose-one: either all minions get +2/+2, or two 2/2 treants are summoned
@@ -1265,7 +1406,14 @@ fn keeper_of_the_grove_choose_one_damage_or_silence() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Random choose-one: 2 damage (on the taunt minion or the enemy hero) or silence the taunt minion
@@ -1302,7 +1450,14 @@ fn soul_of_the_forest_grants_deathrattle_summoning_treant() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Friendly minion gains a deathrattle: summon a 2/2 treant
@@ -1376,7 +1531,14 @@ fn king_mukla_gives_opponent_two_bananas() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Opponent has 2 bananas in hand
@@ -1419,7 +1581,14 @@ fn bestial_wrath_grants_attack_and_immune_until_turn_end() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Gains +2 attack and immunity
@@ -1513,7 +1682,14 @@ fn icicle_freezes_unfrozen_minion() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // The enemy's only minion is frozen (no damage)
@@ -1546,7 +1722,14 @@ fn icicle_damages_already_frozen_minion() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Already frozen → deals 2 damage
@@ -1575,7 +1758,14 @@ fn natalie_seline_destroys_minion_and_gains_health() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Enemy 6 HP minion is destroyed; Natalie gains 6 health (4/5 → 4/11)
@@ -1617,7 +1807,14 @@ fn shadow_madness_takes_control_until_end_of_turn() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Enemy minion is mind-controlled (belongs to Player1)
@@ -1654,7 +1851,14 @@ fn shadow_madness_ignores_high_attack_minions() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // A 5-attack minion is unaffected by Shadow Madness
@@ -1680,7 +1884,14 @@ fn mind_control_permanently_steals_minion() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
     assert_eq!(state.world().player(enemy_minion), Some(PlayerId::Player1));
 
@@ -1708,7 +1919,14 @@ fn corruption_destroys_minion_at_start_of_turn() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
     assert_eq!(state.world().zone(enemy_minion), Some(Zone::Play));
 
@@ -1738,7 +1956,14 @@ fn commanding_shout_prevents_minion_death() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
     assert_eq!(state.player(PlayerId::Player1).minion_min_health, 1);
 
@@ -1784,7 +2009,14 @@ fn unbound_elemental_gains_stats_when_overload_played() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Unbound Elemental gains +1/+1 (2/4 → 3/5)
@@ -1828,7 +2060,14 @@ fn tinkmaster_transforms_enemy_minion() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Enemy minion is transformed into a 5/5 Devilsaur or a 1/1 Squirrel
@@ -1872,7 +2111,14 @@ fn brightwing_adds_random_legendary_to_hand() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // A legendary minion is added to hand
@@ -1916,7 +2162,14 @@ fn xavius_end_turn_adds_shadow_spell() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Generates a shadow spell at end of turn
@@ -1957,7 +2210,14 @@ fn ysera_end_turn_adds_dream_card() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     engine.apply(&mut state, Action::EndTurn).unwrap();
@@ -1992,7 +2252,14 @@ fn barrens_stablehand_summons_random_beast() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Board: Stablehand + one random beast
@@ -2035,7 +2302,14 @@ fn animal_companion_summons_one_of_three() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     let companions: Vec<Entity> = state
@@ -2070,7 +2344,14 @@ fn tome_of_intellect_adds_mage_spell() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     let hand: Vec<Entity> = state
@@ -2116,6 +2397,7 @@ fn antonidas_adds_fireball_on_spell_cast() {
             Action::PlayCard {
                 card: antonidas,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -2127,6 +2409,7 @@ fn antonidas_adds_fireball_on_spell_cast() {
             Action::PlayCard {
                 card: moonfire,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -2157,7 +2440,14 @@ fn pilfer_adds_non_rogue_card() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     let hand: Vec<Entity> = state
@@ -2191,7 +2481,14 @@ fn call_of_the_void_adds_demon() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     let hand: Vec<Entity> = state
@@ -2226,7 +2523,14 @@ fn bane_of_doom_damages_and_summons_demon_if_killed() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Random target: the 1/1 minion (dies → summon a demon) or the enemy hero (only takes 2 damage)
@@ -2284,6 +2588,7 @@ fn noble_sacrifice_attacker_takes_defender_retaliation() {
             Action::PlayCard {
                 card: hand[0],
                 target: None,
+                position: None,
             },
         )
         .unwrap();

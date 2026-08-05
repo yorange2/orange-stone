@@ -40,7 +40,14 @@ fn play_minion_moves_from_hand_to_board() {
     let card = hand[0];
 
     let log = engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Check events
@@ -72,7 +79,14 @@ fn not_enough_mana_rejected() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    let result = engine.apply(&mut state, Action::PlayCard { card, target: None });
+    let result = engine.apply(
+        &mut state,
+        Action::PlayCard {
+            card,
+            target: None,
+            position: None,
+        },
+    );
     assert_eq!(result, Err(EngineError::NotEnoughMana));
 }
 
@@ -95,7 +109,14 @@ fn play_card_when_board_has_7_minions_fails() {
         .collect();
     let card = hand[0];
 
-    let result = engine.apply(&mut state, Action::PlayCard { card, target: None });
+    let result = engine.apply(
+        &mut state,
+        Action::PlayCard {
+            card,
+            target: None,
+            position: None,
+        },
+    );
     assert_eq!(result, Err(EngineError::BoardFull));
 }
 
@@ -114,7 +135,14 @@ fn play_card_not_your_turn() {
         .collect();
     let card = hand[0];
 
-    let result = engine.apply(&mut state, Action::PlayCard { card, target: None });
+    let result = engine.apply(
+        &mut state,
+        Action::PlayCard {
+            card,
+            target: None,
+            position: None,
+        },
+    );
     assert_eq!(result, Err(EngineError::NotYourCard));
 }
 
@@ -404,6 +432,7 @@ fn same_actions_produce_identical_results() {
             Action::PlayCard {
                 card: card1a,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -413,6 +442,7 @@ fn same_actions_produce_identical_results() {
             Action::PlayCard {
                 card: card1b,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -424,6 +454,7 @@ fn same_actions_produce_identical_results() {
             Action::PlayCard {
                 card: card2a,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -433,6 +464,7 @@ fn same_actions_produce_identical_results() {
             Action::PlayCard {
                 card: card2b,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -490,6 +522,7 @@ fn full_game_scenario() {
             Action::PlayCard {
                 card: yeti,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -506,6 +539,7 @@ fn full_game_scenario() {
             Action::PlayCard {
                 card: croc,
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -792,7 +826,7 @@ fn hero_power_use_once_per_turn() {
     let mut state = state;
     // First use: succeeds
     let log = engine
-        .apply(&mut state, Action::HeroPower { hero })
+        .apply(&mut state, Action::HeroPower { hero, target: None })
         .unwrap();
     assert!(
         log.iter()
@@ -802,7 +836,7 @@ fn hero_power_use_once_per_turn() {
     assert_eq!(state.player(PlayerId::Player1).current_mana, 8);
 
     // Second use: should fail (already used this turn)
-    let result = engine.apply(&mut state, Action::HeroPower { hero });
+    let result = engine.apply(&mut state, Action::HeroPower { hero, target: None });
     assert_eq!(result, Err(EngineError::HeroPowerAlreadyUsed));
 }
 
@@ -828,7 +862,7 @@ fn hero_power_resets_after_turn() {
     let mut state = state;
     // Use the hero power
     engine
-        .apply(&mut state, Action::HeroPower { hero })
+        .apply(&mut state, Action::HeroPower { hero, target: None })
         .unwrap();
     assert_eq!(
         state.world().hero_power_used(hero),
@@ -846,7 +880,7 @@ fn hero_power_resets_after_turn() {
         Some(orange_stone::core::component::HeroPowerUsed(false))
     );
     // Can be used again
-    let result = engine.apply(&mut state, Action::HeroPower { hero });
+    let result = engine.apply(&mut state, Action::HeroPower { hero, target: None });
     assert!(result.is_ok());
 }
 
@@ -1205,7 +1239,14 @@ fn heroic_strike_gives_hero_attack_this_turn() {
 
     // Play Heroic Strike
     let log = engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Check events
@@ -1250,7 +1291,14 @@ fn hero_with_temp_attack_can_attack() {
         .collect();
     let card = hand[0];
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Hero now has 4 attack and can attack (no weapon needed)
@@ -1295,7 +1343,14 @@ fn grant_windfury_gives_minion_windfury() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Minion should gain windfury
@@ -1323,7 +1378,14 @@ fn double_attack_doubles_minion_attack() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Minion attack should double from 4 to 8
@@ -1352,7 +1414,14 @@ fn double_health_doubles_minion_health() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Minion health should double from 6 to 12 (cap 30)
@@ -1386,7 +1455,14 @@ fn grant_charge_allows_immediate_attack() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Minion should gain charge
@@ -1448,7 +1524,14 @@ fn elven_archer_battlecry_deals_one_damage() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // Enemy has only the hero, so 1 damage must hit the hero
@@ -1510,7 +1593,14 @@ fn novice_engineer_battlecry_draws_card() {
     let card = hand[0];
 
     let log = engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     assert!(log.iter().any(|e| matches!(e, Event::CardDrawn { .. })));
@@ -1556,7 +1646,14 @@ fn shattered_sun_cleric_buffs_friendly_minion() {
     let card = hand[0];
 
     engine
-        .apply(&mut state, Action::PlayCard { card, target: None })
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
         .unwrap();
 
     // The cleric is the only friendly minion; the battlecry must buff itself
@@ -1826,6 +1923,7 @@ fn spell_with_explicit_target_hits_that_target() {
             Action::PlayCard {
                 card: hand[0],
                 target: Some(enemy_hero),
+                position: None,
             },
         )
         .unwrap();
@@ -1871,6 +1969,7 @@ fn spell_without_target_falls_back_to_random() {
             Action::PlayCard {
                 card: hand[0],
                 target: None,
+                position: None,
             },
         )
         .unwrap();
@@ -1906,6 +2005,7 @@ fn invalid_explicit_target_falls_back_to_random() {
             Action::PlayCard {
                 card: hand[0],
                 target: Some(own_minion),
+                position: None,
             },
         )
         .unwrap();
@@ -1944,6 +2044,7 @@ fn battlecry_with_explicit_target_hits_that_target() {
             Action::PlayCard {
                 card: hand[0],
                 target: Some(minion_a),
+                position: None,
             },
         )
         .unwrap();

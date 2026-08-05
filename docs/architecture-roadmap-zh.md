@@ -95,7 +95,7 @@
 - ✅ **已解决（G3，PR #54）** — 无死亡分批。现待处理死亡标记（`Inner::pending_deaths`，生命 ≤ 0 即"死亡"但仍在场上），死亡步骤在任意步骤边界优先进入（HS 死亡阶段语义），按上场顺序 + 当前玩家优先分批处理，处理完返回被中断的步骤（`return_step`）；`MinionDied` 处理时重新检查生命值（死亡前被治疗到 0 以上 → 存活）；先移入坟场再结算亡语与死亡触发（死亡触发看到死者已移除）。
 - ❌ **未解决（G4）** — 增益直接写入基础 Attack/Health（`trigger.rs:660`），费用修饰直接写入基础 Cost（`trigger.rs:414`）。无附魔层 → 沉默（只剥增益、保留基础值与伤害）、变形、复制（无面操纵者）、"直到回合结束"过期、跨区域增益保留均无法表达。
 - ✅ **已解决（G5，PR #56）** — 费用原为基础组件 + 即席光环减免（`effective_play_cost`，`rules.rs:121`，校验与扣费两处重复）。现单一费用组成 `engine::cost::play_cost`（校验、扣费、bot 共用）；`World::effective_cost` 为修饰栈：基础 + 附魔增量 → 设置类修饰（`CostModifier`：Set 设值 / Min 下限）→ 手牌光环减免 → 下限 0。`ManaRefill` 步骤已就位 F1 过载锁定的生效点。
-- ❌ **未解决（G6）** — 决策面仅有 `PlayCard { card, target }`：抉择走引擎随机（`rules.rs:604-620`），连击自动判定；无发现、换牌、对手抉择、召唤位置选择。
+- ✅ **已解决（G6，PR #57）** — 决策面原仅有 `PlayCard { card, target }`，抉择走引擎随机。现抉择系统：`GameEngine::apply_choices` 返回 `Resolution::{Done, NeedsChoice}`，暂停时把 `PendingChoice`（`ChoiceKind`：ChooseOne / Discover / Mulligan，含选项标签与 Discover 卡池）交给玩家，`Action::Choose { choice_id, option }` 继续结算；`GameEngine::apply` 为默认策略（随机 — RNG 确定性保持，bot/自对弈不变）。抉择（法术与随从，如塞纳留斯/丛林守护者）、发现（`AddRandomCardToHand` 卡池即选项）、召唤位置（`PlayCard.position`，0=最左）、英雄技能目标（`HeroPower.target`）全部解锁；`Event::ChoiceResolved` 承载选择结算。
 - ❌ **未解决（G7）** — 无开局流程：`GameState::new` 以空牌库开局；抽牌取*随机*牌库下标（`trigger.rs:427`）而非有序牌库的牌顶；无硬币、无换牌、无首回合免抽。
 - ❌ **未解决（G8）** — 奥秘事后匹配事件（`secret.rs:26`）：`WhenEnemySpellCast` 在法术效果已随 `CardPlayed` 结算*之后*才触发，反制类奥秘无法抢先；E2 的 `redirect_damages` 队列改写因此存活。
 - ❌ **未解决（G9）** — 出牌目标仅在校验时做候选集成员检查，非法时随机回退（`trigger.rs:34`）；炉石精确的重新校验/空发规则缺失；潜行的"不能成为单目标"条款未落实（`rules.rs:229`）。
@@ -147,7 +147,7 @@
 - [x] **G3** — 死亡分批：待处理死亡标记（生命 ≤ 0 即"死亡"但仍在场上）、死亡按上场顺序在同一个步骤内处理、`MinionDied` 在处理时重新检查生命值（在自身死亡被处理前被治疗/加血到 0 以上 → 存活）、死亡触发看到随从已被移除。*(PR #54：`pending_deaths` + 死亡步骤优先进入/返回中断步骤)*
 - [x] **G4** — 附魔层：数值变为基础值 + 附魔增量（+ 伤害）而非直接写组件；增益/减益/费用效果挂附魔，光环保持查询时计算。使沉默（只剥附魔）、变形、复制（无面操纵者）、"直到回合结束"过期正确。*(PR #55：`Enchantment` + `Damage` 组件；设置类修饰遗留至 G5)*
 - [x] **G5** — 费用管理器：费用 = 基础值 + 修饰栈，遵循炉石规则（下限 0、"不能低于 X"、设为固定值、冻结费用）；退役即席 `effective_play_cost` 组合。过载（F1）在法力回满步骤锁定法力。*(PR #56：`engine::cost::play_cost` + `CostModifier` 栈；冻结费用类与 F1 锁定由 F1 落地)*
-- [ ] **G6** — 抉择系统：在 `Action` 中暴露 `Choice` 对象（SB ChoiceType：Mulligan / General / HeroPower / TaskList），覆盖抉择、发现、对手抉择（生而平等式）、召唤位置、英雄技能目标。*(吸收 E3 与 F3。)*
+- [x] **G6** — 抉择系统：在 `Action` 中暴露 `Choice` 对象（SB ChoiceType：Mulligan / General / HeroPower / TaskList），覆盖抉择、发现、对手抉择（生而平等式）、召唤位置、英雄技能目标。*(吸收 E3 与 F3。)* *(PR #57：`apply_choices` 暂停协议 + `PendingChoice`/`Action::Choose`；Mulligan 类由 G7 使用)*
 - [ ] **G7** — 开局流程：对局开始洗牌、起手（3 / 4 张 + 硬币）、换牌、有序牌库 + 牌顶抽牌（退役随机下标抽牌）、先手玩家首回合免抽。
 - [ ] **G8** — 奥秘拦截：奥秘在步骤边界触发 — 反制类（法术反制、法术扭曲者）在效果结算*之前*，后置类保持现有触发点。退役 `redirect_damages`（E2）。
 - [ ] **G9** — 结算时的目标合法性：按炉石规则在结算时重新校验出牌目标（新获潜行、目标被移除、"不能被指定"）；精确的重新选择/空发语义；落实潜行的单目标排除（F2 的目标侧）。
