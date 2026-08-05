@@ -14,8 +14,8 @@
 //! - `AllEnemyMinions` → all enemy minions
 
 use crate::core::component::{
-    Attack, AttacksUsed, CardId, CardType, Cost, Deathrattle, Durability, Freeze, Health, Immune,
-    Stealth, Trigger, TriggerEvent, TriggerTiming,
+    Attack, AttacksUsed, CardId, CardType, Cost, Damage, Deathrattle, Durability, Enchantment,
+    EnchantmentExpiry, Freeze, Health, Immune, Stealth, Trigger, TriggerEvent, TriggerTiming,
 };
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
@@ -208,10 +208,15 @@ pub fn resolve_effect(
             let minions = collect_friendly_minions(state, owner);
             if !minions.is_empty() {
                 let idx = state.rng_mut().next_usize(minions.len());
-                let world = state.world_mut();
-                let m = minions[idx];
-                let cur = world.attack(m).unwrap_or(Attack(0));
-                world.set_attack(m, Attack(cur.0 + attack_bonus));
+                state.world_mut().add_enchantment(
+                    minions[idx],
+                    Enchantment {
+                        attack: attack_bonus,
+                        health: 0,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
             }
         }
         CardEffect::DestroyAdjacent { gain_stats: _ } => {
@@ -222,23 +227,30 @@ pub fn resolve_effect(
             }
             let idx = state.rng_mut().next_usize(friendly.len());
             let sacrifice = friendly[idx];
-            let atk = state.world().attack(sacrifice).unwrap_or(Attack(0));
-            let hp = state.world().health(sacrifice).unwrap_or(Health(0));
+            let atk = state
+                .world()
+                .effective_attack(sacrifice)
+                .unwrap_or(Attack(0));
+            let hp = state
+                .world()
+                .effective_health(sacrifice)
+                .unwrap_or(Health(0));
             // Destroy the sacrifice
             queue.push(Event::DamageDealt {
                 source,
                 target: sacrifice,
                 amount: hp.0.max(1),
             });
-            // Add the stats to the source minion
-            let cur_atk = state.world().attack(source).unwrap_or(Attack(0));
-            let cur_hp = state.world().health(source).unwrap_or(Health(0));
-            state
-                .world_mut()
-                .set_attack(source, Attack(cur_atk.0 + atk.0));
-            state
-                .world_mut()
-                .set_health(source, Health(cur_hp.0 + hp.0));
+            // Add the stats to the source minion as an enchantment (roadmap G4)
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack: atk.0,
+                    health: hp.0,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
         }
         CardEffect::DestroyManaCrystal => {
             let inner = state.make_mut();
@@ -270,7 +282,15 @@ pub fn resolve_effect(
                 let world = &mut inner.world;
                 if world.zone(entity) == Some(Zone::Graveyard) {
                     let _ = world.move_to_zone(entity, Zone::Play);
-                    world.set_health(entity, Health(1));
+                    // Resurrected at 1 health: damage = base − 1 (enchantments
+                    // were cleared when the minion left play)
+                    let base = world.health(entity).unwrap_or(Health(0)).0;
+                    let dmg = (base - 1).max(0);
+                    if dmg > 0 {
+                        world.set_damage(entity, Damage(dmg));
+                    } else {
+                        world.remove_damage(entity);
+                    }
                     world.set_attacks_used(entity, AttacksUsed(0));
                 }
             }
@@ -282,11 +302,33 @@ pub fn resolve_effect(
             }
             let idx = state.rng_mut().next_usize(friendly.len());
             let target = friendly[idx];
-            let atk = state.world().effective_attack(target).unwrap_or(Attack(0));
-            let hp = state.world().effective_health(target).unwrap_or(Health(0));
+            // Copy (Faceless Manipulator-style, roadmap G4): copy the target's
+            // current stats as an enchantment on top of the source's own base —
+            // silencing the copy reverts to the source's printed stats.
+            let atk = state
+                .world()
+                .effective_attack(target)
+                .unwrap_or(Attack(0))
+                .0;
+            let hp = state
+                .world()
+                .effective_health(target)
+                .unwrap_or(Health(0))
+                .0;
             let world = state.world_mut();
-            world.set_attack(source, Attack(atk.0));
-            world.set_health(source, Health(hp.0));
+            let base_atk = world.attack(source).unwrap_or(Attack(0)).0;
+            let base_hp = world.health(source).unwrap_or(Health(0)).0;
+            world.remove_enchantments(source);
+            world.remove_damage(source);
+            world.add_enchantment(
+                source,
+                Enchantment {
+                    attack: atk - base_atk,
+                    health: hp - base_hp,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
         }
         CardEffect::TempDebuff {
             attack_reduction,
@@ -299,9 +341,14 @@ pub fn resolve_effect(
             let Some(enemy) = select_target(explicit_target, &enemies, state.rng_mut()) else {
                 return;
             };
-            state.world_mut().set_temp_attack_debuff(
+            state.world_mut().add_enchantment(
                 enemy,
-                crate::core::component::TempAttackDebuff(attack_reduction),
+                Enchantment {
+                    attack: -attack_reduction,
+                    health: 0,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::UntilEndOfTurn,
+                },
             );
         }
         CardEffect::ReflectDamage => {
@@ -439,10 +486,10 @@ fn draw_card_with_reduction(
         .move_to_zone(card, Zone::Hand)
         .expect("card should be movable to hand");
 
-    // Cost reduction (kept above the base cost)
+    // Cost reduction (kept above the base cost) — a cost enchantment (roadmap G4)
     if cost_reduction > 0 {
         let world = state.world_mut();
-        let cur = world.cost(card).unwrap_or(Cost(0));
+        let cur = world.effective_cost(card).unwrap_or(Cost(0));
         world.set_cost(card, Cost((cur.0 - cost_reduction).max(0)));
     }
 
@@ -706,22 +753,22 @@ fn resolve_gain_stats(
     target: EffectTarget,
     explicit: Option<Entity>,
 ) {
+    // Buffs attach enchantments (roadmap G4) instead of writing the base stats
+    let buff = Enchantment {
+        attack,
+        health,
+        cost: 0,
+        expiry: EnchantmentExpiry::Permanent,
+    };
     match target {
         EffectTarget::Self_ => {
-            let world = state.world_mut();
-            let cur_atk = world.attack(source).unwrap_or(Attack(0));
-            let cur_hp = world.health(source).unwrap_or(Health(0));
-            world.set_attack(source, Attack(cur_atk.0 + attack));
-            world.set_health(source, Health(cur_hp.0 + health));
+            state.world_mut().add_enchantment(source, buff);
         }
         EffectTarget::AllFriendlyMinions => {
             let minions: SmallList<Entity> = collect_friendly_minions(state, owner);
             let world = state.world_mut();
             for minion in &minions {
-                let cur_atk = world.attack(*minion).unwrap_or(Attack(0));
-                let cur_hp = world.health(*minion).unwrap_or(Health(0));
-                world.set_attack(*minion, Attack(cur_atk.0 + attack));
-                world.set_health(*minion, Health(cur_hp.0 + health));
+                world.add_enchantment(*minion, buff);
             }
         }
         EffectTarget::FriendlyMinion => {
@@ -729,11 +776,7 @@ fn resolve_gain_stats(
             let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
                 return;
             };
-            let world = state.world_mut();
-            let cur_atk = world.attack(m).unwrap_or(Attack(0));
-            let cur_hp = world.health(m).unwrap_or(Health(0));
-            world.set_attack(m, Attack(cur_atk.0 + attack));
-            world.set_health(m, Health(cur_hp.0 + health));
+            state.world_mut().add_enchantment(m, buff);
         }
         _ => {}
     }
@@ -846,9 +889,16 @@ fn resolve_return_to_hand_and_increase_cost(
     let target_entity = minions[idx];
 
     let _ = state.world_mut().move_to_zone(target_entity, Zone::Hand);
-    let world = state.world_mut();
-    let cur_cost = world.cost(target_entity).unwrap_or(Cost(0));
-    world.set_cost(target_entity, Cost(cur_cost.0 + amount));
+    // Cost increase as a cost enchantment (roadmap G4)
+    state.world_mut().add_enchantment(
+        target_entity,
+        Enchantment {
+            attack: 0,
+            health: 0,
+            cost: amount,
+            expiry: EnchantmentExpiry::Permanent,
+        },
+    );
 }
 
 /// Increases a minion's mana cost (e.g. Freezing Trap effect).
@@ -908,7 +958,7 @@ fn resolve_destroy_minion(
             }
             let idx = state.rng_mut().next_usize(minions.len());
             let m = minions[idx];
-            let hp = state.world().health(m).unwrap_or(Health(1));
+            let hp = state.world().effective_health(m).unwrap_or(Health(1));
             queue.push(Event::DamageDealt {
                 source: m,
                 target: m,
@@ -920,7 +970,7 @@ fn resolve_destroy_minion(
             let mut all = collect_friendly_minions(state, owner);
             all.extend(collect_all_enemy_minions(state, owner));
             for &m in &all {
-                let hp = state.world().health(m).unwrap_or(Health(1));
+                let hp = state.world().effective_health(m).unwrap_or(Health(1));
                 queue.push(Event::DamageDealt {
                     source: m,
                     target: m,
@@ -933,7 +983,7 @@ fn resolve_destroy_minion(
     };
     // Explicit target: destroy only the specified minion
     if let Some(t) = explicit.filter(|t| minions.contains(t)) {
-        let hp = state.world().health(t).unwrap_or(Health(1));
+        let hp = state.world().effective_health(t).unwrap_or(Health(1));
         queue.push(Event::DamageDealt {
             source: t,
             target: t,
@@ -942,7 +992,7 @@ fn resolve_destroy_minion(
         return;
     }
     for &m in &minions {
-        let hp = state.world().health(m).unwrap_or(Health(1));
+        let hp = state.world().effective_health(m).unwrap_or(Health(1));
         queue.push(Event::DamageDealt {
             source: m,
             target: m,
@@ -979,6 +1029,8 @@ fn resolve_silence(
         world.remove_windfury(t);
         world.remove_charge(t);
         world.remove_spell_damage(t);
+        // Silence strips enchantments, keeping base stats and damage (roadmap G4)
+        world.remove_enchantments(t);
         return;
     }
     for &m in &minions {
@@ -992,6 +1044,7 @@ fn resolve_silence(
         world.remove_windfury(m);
         world.remove_charge(m);
         world.remove_spell_damage(m);
+        world.remove_enchantments(m);
     }
 }
 
@@ -1020,28 +1073,26 @@ fn resolve_restore_health(
     amount: i32,
     target: EffectTarget,
 ) {
-    match target {
-        EffectTarget::FriendlyHero => {
-            let hero = state.player(owner).hero;
-            let cur = state.world().health(hero).unwrap_or(Health(0));
-            state
-                .world_mut()
-                .set_health(hero, Health((cur.0 + amount).min(30)));
+    // Healing reduces accumulated damage (roadmap G4)
+    fn heal(world: &mut crate::core::world::World, entity: Entity, amount: i32) {
+        let dmg = world.damage(entity).unwrap_or(Damage(0)).0;
+        let new_dmg = (dmg - amount).max(0);
+        if new_dmg > 0 {
+            world.set_damage(entity, Damage(new_dmg));
+        } else {
+            world.remove_damage(entity);
         }
-        EffectTarget::Self_ => {
-            // source is the effect source, but here we use hero
+    }
+    match target {
+        EffectTarget::FriendlyHero | EffectTarget::Self_ => {
             let hero = state.player(owner).hero;
-            let cur = state.world().health(hero).unwrap_or(Health(0));
-            state
-                .world_mut()
-                .set_health(hero, Health((cur.0 + amount).min(30)));
+            heal(state.world_mut(), hero, amount);
         }
         EffectTarget::AllFriendlyMinions => {
             let minions = collect_friendly_minions(state, owner);
             let world = state.world_mut();
             for &m in &minions {
-                let cur = world.health(m).unwrap_or(Health(0));
-                world.set_health(m, Health((cur.0 + amount).min(30)));
+                heal(world, m, amount);
             }
         }
         _ => {}
@@ -1079,13 +1130,21 @@ fn resolve_freeze(
 /// Gives the hero temporary attack and optional armor.
 fn resolve_gain_hero_attack(state: &mut GameState, owner: PlayerId, attack: i32, armor: i32) {
     let hero = state.player(owner).hero;
-    let inner = state.make_mut();
-    // Add temporary attack
-    inner.players[owner.index()].temp_attack_bonus += attack;
-    let cur_atk = inner.world.attack(hero).unwrap_or(Attack(0));
-    inner.world.set_attack(hero, Attack(cur_atk.0 + attack));
+    // Temporary attack as an until-end-of-turn enchantment (roadmap G4)
+    if attack != 0 {
+        state.world_mut().add_enchantment(
+            hero,
+            Enchantment {
+                attack,
+                health: 0,
+                cost: 0,
+                expiry: EnchantmentExpiry::UntilEndOfTurn,
+            },
+        );
+    }
     // Add armor
     if armor > 0 {
+        let inner = state.make_mut();
         inner.players[owner.index()].armor += armor;
     }
 }
@@ -1136,19 +1195,8 @@ fn resolve_full_heal(
     };
     // Get max health (based on the original definition; simplified here to 30 or the current max)
     // Simplified approach: heal from current health (use max_health if present, otherwise keep the current value)
-    let world = state.world_mut();
-    if world.health(m).is_some() {
-        // Simplified: restore to the card definition value. Since the original
-        // definition is not available, set the current health
-        // Actually the original definition should be looked up via card_id
-        // Here we use a helper approach: set health to the max (saved at entity creation)
-        // Simplified implementation: set to 30 (hero cap) or keep the current value
-        // A real implementation would need a max_health component
-        let cur = world.health(m).unwrap_or(Health(0));
-        // For minions, assume max health >= current health; set to the larger value
-        // Simplified: use cur + a reasonable buffer
-        world.set_health(m, Health((cur.0 + 10).min(30)));
-    }
+    // Full heal clears all accumulated damage (roadmap G4)
+    state.world_mut().remove_damage(m);
 }
 
 /// Grants a minion windfury.
@@ -1209,9 +1257,18 @@ fn resolve_double_attack(
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
-    let world = state.world_mut();
-    let cur_atk = world.attack(m).unwrap_or(Attack(0));
-    world.set_attack(m, Attack(cur_atk.0 * 2));
+    // Doubling the current attack becomes an enchantment equal to the current
+    // attack (roadmap G4)
+    let cur_atk = state.world().effective_attack(m).unwrap_or(Attack(0)).0;
+    state.world_mut().add_enchantment(
+        m,
+        Enchantment {
+            attack: cur_atk,
+            health: 0,
+            cost: 0,
+            expiry: EnchantmentExpiry::Permanent,
+        },
+    );
 }
 
 /// Doubles a minion's health.
@@ -1228,9 +1285,18 @@ fn resolve_double_health(
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
-    let world = state.world_mut();
-    let cur_hp = world.health(m).unwrap_or(Health(0));
-    world.set_health(m, Health((cur_hp.0 * 2).min(30)));
+    // Doubling the current health becomes an enchantment equal to the current
+    // health (roadmap G4)
+    let cur_hp = state.world().effective_health(m).unwrap_or(Health(0)).0;
+    state.world_mut().add_enchantment(
+        m,
+        Enchantment {
+            attack: 0,
+            health: cur_hp,
+            cost: 0,
+            expiry: EnchantmentExpiry::Permanent,
+        },
+    );
 }
 
 /// Increases the friendly hero's weapon attack and durability.
@@ -1366,9 +1432,10 @@ fn resolve_set_attack_to_health(
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
-    let world = state.world_mut();
-    let hp = world.health(m).unwrap_or(Health(0));
-    world.set_attack(m, Attack(hp.0));
+    // "Set attack equal to health" — one-shot set; expressed as a base write
+    // for now (set-to-value modifiers land with G5's modifier stack).
+    let hp = state.world().effective_health(m).unwrap_or(Health(0)).0;
+    state.world_mut().set_attack(m, Attack(hp));
 }
 
 /// Destroys all minions except one random survivor.
@@ -1392,7 +1459,7 @@ fn resolve_destroy_all_except_one(state: &mut GameState, queue: &mut EventQueue,
     let survivor_idx = state.rng_mut().next_usize(all_minions.len());
     let survivor = all_minions.remove(survivor_idx);
     for &m in &all_minions {
-        let hp = state.world().health(m).unwrap_or(Health(1));
+        let hp = state.world().effective_health(m).unwrap_or(Health(1));
         queue.push(Event::DamageDealt {
             source: survivor,
             target: m,
@@ -1417,17 +1484,21 @@ fn resolve_destroy_and_heal(
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
-    let hp = state.world().health(m).unwrap_or(Health(1));
+    let hp = state.world().effective_health(m).unwrap_or(Health(1));
     queue.push(Event::DamageDealt {
         source: m,
         target: m,
         amount: hp.0.max(1),
     });
+    // Heal the hero (reduce accumulated damage)
     let hero = state.player(owner).hero;
-    let cur = state.world().health(hero).unwrap_or(Health(0));
-    state
-        .world_mut()
-        .set_health(hero, Health((cur.0 + heal).min(30)));
+    let dmg = state.world().damage(hero).unwrap_or(Damage(0)).0;
+    let new_dmg = (dmg - heal).max(0);
+    if new_dmg > 0 {
+        state.world_mut().set_damage(hero, Damage(new_dmg));
+    } else {
+        state.world_mut().remove_damage(hero);
+    }
 }
 
 /// Destroys a friendly minion and deals AOE damage equal to its attack.
@@ -1445,7 +1516,11 @@ fn resolve_destroy_and_aoe(
     }
     let idx = state.rng_mut().next_usize(friendly.len());
     let sacrifice = friendly[idx];
-    let atk = state.world().attack(sacrifice).unwrap_or(Attack(0)).0;
+    let atk = state
+        .world()
+        .effective_attack(sacrifice)
+        .unwrap_or(Attack(0))
+        .0;
     // Destroy the sacrifice
     let hp = state.world().health(sacrifice).unwrap_or(Health(1));
     queue.push(Event::DamageDealt {
@@ -1477,9 +1552,16 @@ fn resolve_return_friendly_reduce_cost(state: &mut GameState, owner: PlayerId, a
     let idx = state.rng_mut().next_usize(minions.len());
     let target = minions[idx];
     let _ = state.world_mut().move_to_zone(target, Zone::Hand);
-    let world = state.world_mut();
-    let cur = world.cost(target).unwrap_or(Cost(0));
-    world.set_cost(target, Cost((cur.0 - amount).max(0)));
+    // Cost reduction as a cost enchantment — survives the bounce (Shadowstep, roadmap G4)
+    state.world_mut().add_enchantment(
+        target,
+        Enchantment {
+            attack: 0,
+            health: 0,
+            cost: -amount,
+            expiry: EnchantmentExpiry::Permanent,
+        },
+    );
 }
 
 /// Deals damage equal to the target's attack to its adjacent minions (Betrayal).
@@ -1601,17 +1683,27 @@ fn resolve_destroy_and_gain_health(
     }
     let idx = state.rng_mut().next_usize(minions.len());
     let target = minions[idx];
-    let hp = state.world().health(target).unwrap_or(Health(0)).0;
+    let hp = state
+        .world()
+        .effective_health(target)
+        .unwrap_or(Health(0))
+        .0;
     // Destroy the target
     queue.push(Event::DamageDealt {
         source: target,
         target,
         amount: hp.max(1),
     });
-    // The source minion (Natalie) gains the target's health
-    let world = state.world_mut();
-    let cur = world.health(source).unwrap_or(Health(0));
-    world.set_health(source, Health(cur.0 + hp.max(1)));
+    // The source minion (Natalie) gains the target's health as an enchantment
+    state.world_mut().add_enchantment(
+        source,
+        Enchantment {
+            attack: 0,
+            health: hp.max(1),
+            cost: 0,
+            expiry: EnchantmentExpiry::Permanent,
+        },
+    );
 }
 
 /// Grants a friendly minion an attack bonus and immunity until end of turn (Bestial Wrath).
@@ -1623,8 +1715,15 @@ fn resolve_grant_attack_and_immune(state: &mut GameState, owner: PlayerId, attac
     let idx = state.rng_mut().next_usize(minions.len());
     let target = minions[idx];
     let world = state.world_mut();
-    let cur = world.attack(target).unwrap_or(Attack(0));
-    world.set_attack(target, Attack(cur.0 + attack));
+    world.add_enchantment(
+        target,
+        Enchantment {
+            attack,
+            health: 0,
+            cost: 0,
+            expiry: EnchantmentExpiry::UntilEndOfTurn,
+        },
+    );
     world.set_immune(target, Immune);
 }
 
@@ -1759,7 +1858,7 @@ fn resolve_damage_and_summon_if_killed(
     let will_die = state.world().divine_shield(target).is_none()
         && state
             .world()
-            .health(target)
+            .effective_health(target)
             .is_some_and(|h| h.0 - amount <= 0);
     if will_die {
         if let Some(card_def) = crate::cards::pool::random_card(state.rng_mut(), pool) {

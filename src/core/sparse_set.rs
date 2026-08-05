@@ -45,7 +45,7 @@ pub struct SparseSet<T> {
 /// Sentinel value marking "absent"
 const ABSENT: u32 = u32::MAX;
 
-impl<T: Copy> SparseSet<T> {
+impl<T: Clone> SparseSet<T> {
     /// Create an empty sparse set.
     #[must_use]
     pub fn new() -> Self {
@@ -77,7 +77,7 @@ impl<T: Copy> SparseSet<T> {
     /// Read the value at a dense slot (the caller must guarantee the slot is valid).
     fn slot_value(&self, slot: usize) -> T {
         let (page, offset) = Self::slot_parts(slot);
-        self.pages[page][offset]
+        self.pages[page][offset].clone()
     }
 
     /// Read the entity at a dense slot.
@@ -117,10 +117,10 @@ impl<T: Copy> SparseSet<T> {
         Some(&self.pages[page][offset])
     }
 
-    /// Get an entity's component value (Copy types are returned by value).
+    /// Get an entity's component value (cloned out; Copy components are unaffected).
     #[must_use]
     pub fn get(&self, entity: Entity) -> Option<T> {
-        self.get_ref(entity).copied()
+        self.get_ref(entity).cloned()
     }
 
     /// Insert or update an entity's component value.
@@ -264,7 +264,7 @@ impl<T: Copy> SparseSet<T> {
     }
 }
 
-impl<T: Copy> Default for SparseSet<T> {
+impl<T: Clone> Default for SparseSet<T> {
     fn default() -> Self {
         Self::new()
     }

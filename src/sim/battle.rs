@@ -443,12 +443,12 @@ impl BattleRunner {
 
         let p1_hp = state
             .world()
-            .health(state.player(PlayerId::Player1).hero)
+            .effective_health(state.player(PlayerId::Player1).hero)
             .map(|h| h.0)
             .unwrap_or(0);
         let p2_hp = state
             .world()
-            .health(state.player(PlayerId::Player2).hero)
+            .effective_health(state.player(PlayerId::Player2).hero)
             .map(|h| h.0)
             .unwrap_or(0);
 
@@ -493,7 +493,7 @@ fn get_card_id(state: &GameState, entity: crate::core::entity::Entity) -> Option
     let world = state.world();
     let cost = world.cost(entity)?;
     let atk = world.attack(entity).unwrap_or_default();
-    let hp = world.health(entity).unwrap_or_default();
+    let hp = world.effective_health(entity).unwrap_or_default();
     let ct = world.card_type(entity)?;
 
     // Exact match
@@ -515,7 +515,7 @@ fn check_invariants(state: &GameState, _player: PlayerId, _turn: u32) -> Option<
     // Check that the hero did not die from non-damage effects
     for &pid in &[PlayerId::Player1, PlayerId::Player2] {
         let hero = state.player(pid).hero;
-        if let Some(hp) = world.health(hero) {
+        if let Some(hp) = world.effective_health(hero) {
             if hp.0 < -100 {
                 return Some(BattleError {
                     player: pid,

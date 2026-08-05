@@ -93,11 +93,11 @@ pub fn step_reward(
     // Enemy hero health lost
     let before_enemy_hp = before
         .world()
-        .health(before.player(enemy).hero)
+        .effective_health(before.player(enemy).hero)
         .map_or(0, |h| h.0);
     let after_enemy_hp = after
         .world()
-        .health(after.player(enemy).hero)
+        .effective_health(after.player(enemy).hero)
         .map_or(0, |h| h.0);
     let hero_damage = (before_enemy_hp - after_enemy_hp).max(0) as f32;
 

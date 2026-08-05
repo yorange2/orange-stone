@@ -697,7 +697,7 @@ impl SmartBot {
                     attackers.push(ProjectedAttacker {
                         entity: hero,
                         attack: atk,
-                        health: world.health(hero).map(|h| h.0).unwrap_or(30),
+                        health: world.effective_health(hero).map(|h| h.0).unwrap_or(30),
                         has_divine_shield: false,
                         is_hero: true,
                     });
@@ -732,7 +732,10 @@ impl SmartBot {
             .collect();
 
         let enemy_hero_entity = state.player(enemy).hero;
-        let enemy_hero_health = world.health(enemy_hero_entity).map(|h| h.0).unwrap_or(0);
+        let enemy_hero_health = world
+            .effective_health(enemy_hero_entity)
+            .map(|h| h.0)
+            .unwrap_or(0);
         let enemy_hero_armor = state.player(enemy).armor;
         let enemy_effective_hp = enemy_hero_health + enemy_hero_armor;
 

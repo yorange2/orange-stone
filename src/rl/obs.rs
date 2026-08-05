@@ -45,7 +45,7 @@ fn normf(value: f32, max: f32) -> f32 {
 fn hero_block(state: &GameState, player: PlayerId, out: &mut Vec<f32>) {
     let hero = state.player(player).hero;
     let world = state.world();
-    out.push(norm(world.health(hero).map_or(0, |h| h.0), 30.0));
+    out.push(norm(world.effective_health(hero).map_or(0, |h| h.0), 30.0));
     out.push(normf(
         world.effective_attack(hero).map_or(0.0, |a| a.0 as f32),
         15.0,

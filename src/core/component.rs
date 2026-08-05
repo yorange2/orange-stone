@@ -385,9 +385,38 @@ pub struct ComboEffect(pub crate::core::effect::CardEffect);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct AttackEqualsHealth;
 
-/// Temporary attack debuff — cleared at the end of the turn.
+/// Enchantment expiry — when the enchantment is removed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
-pub struct TempAttackDebuff(pub i32);
+pub enum EnchantmentExpiry {
+    /// Removed only by silence / transform / leaving the battlefield
+    #[default]
+    Permanent,
+    /// Removed at the end of the owner's turn (wrap-up)
+    UntilEndOfTurn,
+}
+
+/// A stat modifier on an entity — the enchantment layer (roadmap G4).
+///
+/// Effective stats are `base + Σ enchantments (+ auras)`, with damage
+/// subtracted from effective health. Buffs, debuffs, and cost modifiers attach
+/// enchantments instead of writing the base components, which makes silence
+/// (strip enchantments), transform, copy (Faceless Manipulator), until-end-of-
+/// turn expiry, and zone-change retention expressible.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct Enchantment {
+    /// Attack delta
+    pub attack: i32,
+    /// Health delta
+    pub health: i32,
+    /// Cost delta (cost modifiers survive zone changes — e.g. Shadowstep)
+    pub cost: i32,
+    /// When the enchantment is removed
+    pub expiry: EnchantmentExpiry,
+}
+
+/// Accumulated damage (roadmap G4): effective health = base + Σ health deltas − damage.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct Damage(pub i32);
 
 /// Card ID — records the original card definition ID of the entity.
 ///

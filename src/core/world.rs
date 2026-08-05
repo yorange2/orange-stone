@@ -11,9 +11,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
-    Charge, ChooseOneEffect, ComboEffect, Cost, Deathrattle, DivineShield, Durability, Freeze,
-    Health, HeroPowerDef, HeroPowerUsed, Immune, Overload, Poison, Secret, SpellDamage, Stealth,
-    Taunt, TempAttackDebuff, Trigger, Windfury,
+    Charge, ChooseOneEffect, ComboEffect, Cost, Damage, Deathrattle, DivineShield, Durability,
+    Enchantment, Freeze, Health, HeroPowerDef, HeroPowerUsed, Immune, Overload, Poison, Secret,
+    SpellDamage, Stealth, Taunt, Trigger, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -136,8 +136,10 @@ pub struct World {
     combo_effect: SparseSet<ComboEffect>,
     /// AttackEqualsHealth component storage (Lightspawn)
     attack_equals_health: SparseSet<AttackEqualsHealth>,
-    /// TempAttackDebuff component storage (temporary attack debuffs)
-    temp_attack_debuff: SparseSet<TempAttackDebuff>,
+    /// Enchantment component storage — stat modifiers (roadmap G4)
+    enchantments: SparseSet<Vec<Enchantment>>,
+    /// Damage component storage — accumulated damage (roadmap G4)
+    damage: SparseSet<Damage>,
     /// CardId component storage (original card definition ID)
     card_id: SparseSet<CardId>,
     /// Poison component storage (poison)
@@ -251,7 +253,8 @@ impl World {
             choose_one_effect: SparseSet::new(),
             combo_effect: SparseSet::new(),
             attack_equals_health: SparseSet::new(),
-            temp_attack_debuff: SparseSet::new(),
+            enchantments: SparseSet::new(),
+            damage: SparseSet::new(),
             card_id: SparseSet::new(),
             poison: SparseSet::new(),
             stealth: SparseSet::new(),
@@ -320,7 +323,8 @@ impl World {
         self.choose_one_effect.remove(entity);
         self.combo_effect.remove(entity);
         self.attack_equals_health.remove(entity);
-        self.temp_attack_debuff.remove(entity);
+        self.enchantments.remove(entity);
+        self.damage.remove(entity);
         self.card_id.remove(entity);
         self.poison.remove(entity);
         self.stealth.remove(entity);
@@ -354,6 +358,15 @@ impl World {
         self.zones.insert(target, player, entity);
         // Update the Zone component
         self.set_zone(entity, target);
+
+        // Roadmap G4 — leaving the battlefield removes enchantments and damage
+        // (bounced minions return at full health, unbuffed; cost modifiers are
+        // also removed, matching HS — bounce effects like Shadowstep re-apply
+        // their own cost enchantment).
+        if current == Zone::Play && target != Zone::Play {
+            self.remove_enchantments(entity);
+            self.remove_damage(entity);
+        }
 
         Ok(())
     }
@@ -646,14 +659,65 @@ impl World {
         remove_attack_equals_health,
         iter_attack_equals_health
     );
-    component_accessors!(
-        temp_attack_debuff,
-        TempAttackDebuff,
-        temp_attack_debuff,
-        set_temp_attack_debuff,
-        remove_temp_attack_debuff,
-        iter_temp_attack_debuff
-    );
+    /// Get the enchantments attached to an entity (roadmap G4).
+    #[must_use]
+    pub fn enchantments(&self, entity: Entity) -> Option<&[Enchantment]> {
+        self.enchantments.get_ref(entity).map(Vec::as_slice)
+    }
+
+    /// Attach an enchantment to an entity.
+    pub fn add_enchantment(&mut self, entity: Entity, enchantment: Enchantment) {
+        let mut list = self.enchantments.get(entity).unwrap_or_default();
+        list.push(enchantment);
+        self.enchantments.insert(entity, list);
+    }
+
+    /// Remove enchantments for which `keep` returns `false`; drops the component
+    /// when none remain. Returns whether any enchantment was removed.
+    pub fn retain_enchantments(
+        &mut self,
+        entity: Entity,
+        keep: impl FnMut(&Enchantment) -> bool,
+    ) -> bool {
+        let Some(mut list) = self.enchantments.get(entity) else {
+            return false;
+        };
+        let before = list.len();
+        list.retain(keep);
+        let removed = list.len() != before;
+        if list.is_empty() {
+            self.enchantments.remove(entity);
+        } else {
+            self.enchantments.insert(entity, list);
+        }
+        removed
+    }
+
+    /// Remove all enchantments from an entity.
+    pub fn remove_enchantments(&mut self, entity: Entity) {
+        self.enchantments.remove(entity);
+    }
+
+    /// Iterate all entities with enchantments.
+    pub fn iter_enchantments(&self) -> impl Iterator<Item = (Entity, &Vec<Enchantment>)> {
+        self.enchantments.iter()
+    }
+
+    /// Get the accumulated damage on an entity.
+    #[must_use]
+    pub fn damage(&self, entity: Entity) -> Option<Damage> {
+        self.damage.get(entity)
+    }
+
+    /// Set the accumulated damage on an entity.
+    pub fn set_damage(&mut self, entity: Entity, value: impl Into<Damage>) {
+        self.damage.insert(entity, value.into());
+    }
+
+    /// Clear the accumulated damage on an entity.
+    pub fn remove_damage(&mut self, entity: Entity) {
+        self.damage.remove(entity);
+    }
     component_accessors!(
         card_id,
         CardId,
@@ -729,7 +793,10 @@ impl World {
         let base = self.attack(entity)?;
         let player = self.player(entity)?;
 
-        let mut bonus = 0i32;
+        // Enchantment deltas (roadmap G4)
+        let mut bonus = self
+            .enchantments(entity)
+            .map_or(0, |list| list.iter().map(|e| e.attack).sum::<i32>());
         // Friendly auras affect friendly minions; enemy auras affect friendly minions via AllEnemyMinions
         for owner in [player, player.opponent()] {
             for (source, aura) in &self.aura_index.attack[owner.index()] {
@@ -751,7 +818,11 @@ impl World {
         let base = self.health(entity)?;
         let player = self.player(entity)?;
 
-        let mut bonus = 0i32;
+        // Enchantment health deltas minus accumulated damage (roadmap G4)
+        let mut bonus = self
+            .enchantments(entity)
+            .map_or(0, |list| list.iter().map(|e| e.health).sum::<i32>())
+            - self.damage(entity).map_or(0, |d| d.0);
         for owner in [player, player.opponent()] {
             for (source, aura) in &self.aura_index.health[owner.index()] {
                 if aura_applies_to(aura, *source, owner, entity, player, self) {
@@ -779,6 +850,12 @@ impl World {
         let in_hand = self.zone(entity) == Some(Zone::Hand);
 
         // Cost auras only affect the aura owner's own hand
+        // Enchantment cost deltas (roadmap G4) — cost modifiers persist across zones
+        let base = base.0
+            + self
+                .enchantments(entity)
+                .map_or(0, |l| l.iter().map(|e| e.cost).sum::<i32>());
+
         let mut reduction = 0i32;
         let mut min_cost = 0i32;
         for (_, aura) in &self.aura_index.cost[player.index()] {
@@ -795,7 +872,7 @@ impl World {
                 _ => {}
             }
         }
-        Some(Cost((base.0 - reduction).max(min_cost)))
+        Some(Cost((base - reduction).max(min_cost)))
     }
 }
 
