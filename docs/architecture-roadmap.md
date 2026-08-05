@@ -82,9 +82,9 @@ One-sentence comparison: RosettaStone and SabberStone are **fidelity-first simul
 
 ### Milestone B — Damage pipeline unification (design work)
 
-- [ ] **B1** — Converge damage resolution into a single pipeline: immune → divine shield → armor → health → death check (`DamageDealt` handler in `rules.rs` + retaliation already partly there).
-- [ ] **B2** — Attach secret/reactive effects at pipeline points instead of mutating already-queued events; retire `redirect_damage` / `replace_damage` / `redirect_damages` special cases (`src/core/event.rs:192-253`).
-- [ ] **B3** — Re-verify all secret cards (Misdirection, Noble Sacrifice, Explosive Trap, Spellbender, Vaporize, …) against the unified pipeline with the existing battle-runner coverage.
+- [x] **B1** — Converge damage resolution into a single pipeline: immune → divine shield → armor → health → death check (`DamageDealt` handler in `rules.rs` + retaliation already partly there). *(PR #39: extracted `queue_death_events`; attacks flow through the pipeline via `ResolveAttack`)*
+- [x] **B2** — Attach secret/reactive effects at pipeline points instead of mutating already-queued events; retire `redirect_damage` / `replace_damage` / `redirect_damages` special cases (`src/core/event.rs:192-253`). *(PR #39: unified `redirect_attack` primitive; `redirect_damage`/`replace_damage` deleted; `redirect_damages` kept as the spell-source primitive)*
+- [x] **B3** — Re-verify all secret cards (Misdirection, Noble Sacrifice, Explosive Trap, Spellbender, Vaporize, …) against the unified pipeline with the existing battle-runner coverage. *(PR #39: all secret tests green + 3 new pipeline tests)*
 
 ### Milestone C — RL environment prep (Phase 4 in CLAUDE.md)
 

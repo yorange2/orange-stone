@@ -45,6 +45,23 @@ pub enum Event {
         /// 防御方
         defender: Entity,
     },
+    /// 攻击结算 — 统一伤害管线中的攻击步骤。
+    ///
+    /// 在 `AttackDeclared`（含奥秘反应点）之后处理：将攻击方伤害
+    /// 与防御方反击入队。攻击方伤害在入队时计算（武器在
+    /// `AttackDeclared` 中可能被摧毁，伤害必须包含攻击时的武器加成）；
+    /// 反击伤害在结算时根据当前状态重新计算（奥秘重定向后的新目标
+    /// 自动获得反击，无需逐个卡牌特殊处理）。
+    ResolveAttack {
+        /// 攻击方
+        attacker: Entity,
+        /// 防御方
+        defender: Entity,
+        /// 攻击方造成的伤害（入队时计算）
+        attacker_damage: i32,
+        /// 攻击方是否免疫反击（角斗士的长弓 — 英雄攻击时免疫）
+        retaliation_immune: bool,
+    },
     /// 伤害被造成
     DamageDealt {
         /// 伤害来源
@@ -193,49 +210,35 @@ impl EventQueue {
         events
     }
 
-    /// 重定向队列中第一个匹配 `DamageDealt { source, target }` 事件的目标。
+    /// 重定向队列中第一个匹配 `ResolveAttack { attacker, defender }` 的攻击。
     ///
-    /// 用于攻击/法术重定向（误导、崇高牺牲等奥秘）：事件已在队列中，
-    /// 修改其目标使后续结算命中新目标。返回是否找到并重定向。
-    pub fn redirect_damage(
+    /// 攻击重定向奥秘（误导、崇高牺牲）的统一原语：攻击的伤害与反击
+    /// 都在 `ResolveAttack` 结算时按当前状态计算，因此只需替换该事件的
+    /// 防御方即可完整重定向（新目标的自动反击由结算逻辑处理）。
+    /// 返回是否找到并重定向。
+    pub fn redirect_attack(
         &mut self,
-        source: Entity,
-        old_target: Entity,
-        new_target: Entity,
+        attacker: Entity,
+        old_defender: Entity,
+        new_defender: Entity,
     ) -> bool {
         // 按处理顺序（优先级从高到低）扫描各桶，找到第一个匹配
         for bucket in &mut self.buckets {
             for event in bucket {
-                if let Event::DamageDealt {
-                    source: s,
-                    target: t,
-                    ..
-                } = event
-                {
-                    if *s == source && *t == old_target {
-                        *t = new_target;
-                        return true;
-                    }
-                }
-            }
-        }
-        false
-    }
-
-    /// 替换队列中第一个匹配 `DamageDealt { source, target }` 的事件。
-    ///
-    /// 用于攻击重定向后的反击结算（崇高牺牲：防御者的反击替换原防御者反击）。
-    pub fn replace_damage(&mut self, source: Entity, target: Entity, replacement: Event) -> bool {
-        for bucket in &mut self.buckets {
-            for event in bucket {
-                if let Event::DamageDealt {
-                    source: s,
-                    target: t,
-                    ..
+                if let Event::ResolveAttack {
+                    attacker: a,
+                    defender: d,
+                    attacker_damage,
+                    retaliation_immune,
                 } = *event
                 {
-                    if s == source && t == target {
-                        *event = replacement;
+                    if a == attacker && d == old_defender {
+                        *event = Event::ResolveAttack {
+                            attacker,
+                            defender: new_defender,
+                            attacker_damage,
+                            retaliation_immune,
+                        };
                         return true;
                     }
                 }
@@ -247,7 +250,8 @@ impl EventQueue {
     /// 将所有满足谓词的 `DamageDealt` 事件重定向到 `new_target`。
     ///
     /// 谓词接收事件的 source 和 target。用于法术扭曲者等需要按来源
-    /// 批量重定向的奥秘。返回重定向的数量。
+    /// 批量重定向的奥秘（法术伤害在效果解析时按源法术入队，奥秘在此
+    /// 统一拦截）。返回重定向的数量。
     pub fn redirect_damages(
         &mut self,
         predicate: impl Fn(Entity, Entity) -> bool,
@@ -494,40 +498,81 @@ mod tests {
     }
 
     #[test]
-    fn redirect_matches_processing_order() {
+    fn redirect_attack_matches_processing_order() {
         let mut q = EventQueue::new();
         // 同优先级中，先入队的先处理 — 重定向应命中第一个匹配
         let first = Entity::new(1, 0);
         let second = Entity::new(2, 0);
-        let source = Entity::new(3, 0);
-        q.push(Event::DamageDealt {
-            source,
-            target: first,
-            amount: 3,
+        let attacker = Entity::new(3, 0);
+        q.push(Event::ResolveAttack {
+            attacker,
+            defender: first,
+            attacker_damage: 3,
+            retaliation_immune: false,
         });
-        q.push(Event::DamageDealt {
-            source,
-            target: second,
-            amount: 3,
+        q.push(Event::ResolveAttack {
+            attacker,
+            defender: second,
+            attacker_damage: 3,
+            retaliation_immune: false,
         });
 
-        assert!(q.redirect_damage(source, second, Entity::new(9, 0)));
-        // 第二个事件被重定向，第一个保持不变
+        assert!(q.redirect_attack(attacker, second, Entity::new(9, 0)));
+        // 第二个攻击被重定向，第一个保持不变（attacker_damage/retaliation_immune 也保留）
         assert_eq!(
             q.pop_front(),
-            Some(Event::DamageDealt {
-                source,
-                target: first,
-                amount: 3
+            Some(Event::ResolveAttack {
+                attacker,
+                defender: first,
+                attacker_damage: 3,
+                retaliation_immune: false,
             })
         );
         assert_eq!(
             q.pop_front(),
-            Some(Event::DamageDealt {
-                source,
-                target: Entity::new(9, 0),
-                amount: 3
+            Some(Event::ResolveAttack {
+                attacker,
+                defender: Entity::new(9, 0),
+                attacker_damage: 3,
+                retaliation_immune: false,
             })
         );
+    }
+
+    #[test]
+    fn redirect_attack_preserves_attack_fields() {
+        let mut q = EventQueue::new();
+        let attacker = Entity::new(5, 0);
+        q.push(Event::ResolveAttack {
+            attacker,
+            defender: Entity::new(6, 0),
+            attacker_damage: 7,
+            retaliation_immune: true,
+        });
+
+        assert!(q.redirect_attack(attacker, Entity::new(6, 0), Entity::new(8, 0)));
+        assert_eq!(
+            q.pop_front(),
+            Some(Event::ResolveAttack {
+                attacker,
+                defender: Entity::new(8, 0),
+                attacker_damage: 7,
+                retaliation_immune: true,
+            })
+        );
+    }
+
+    #[test]
+    fn redirect_attack_no_match() {
+        let mut q = EventQueue::new();
+        q.push(Event::ResolveAttack {
+            attacker: Entity::new(1, 0),
+            defender: Entity::new(2, 0),
+            attacker_damage: 1,
+            retaliation_immune: false,
+        });
+        assert!(!q.redirect_attack(Entity::new(9, 0), Entity::new(2, 0), Entity::new(3, 0)));
+        assert!(!q.redirect_attack(Entity::new(1, 0), Entity::new(9, 0), Entity::new(3, 0)));
+        assert_eq!(q.len(), 1);
     }
 }

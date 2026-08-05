@@ -341,15 +341,12 @@ pub fn enqueue(
         Action::Attack { attacker, defender } => {
             let world = state.world();
             queue.push(Event::AttackDeclared { attacker, defender });
-            // 计算攻击者的有效攻击力（含光环加成和武器加成）
+            // 攻击结算入队为单一管线事件：伤害数值在 `ResolveAttack`
+            // 处理时计算，但攻击方伤害必须在入队时确定 — 武器在
+            // `AttackDeclared` 中可能被摧毁，攻击伤害必须包含武器加成。
             let attacker_total_atk = compute_attacker_damage(state, attacker);
-            queue.push(Event::DamageDealt {
-                source: attacker,
-                target: defender,
-                amount: attacker_total_atk,
-            });
-            // 如果防御者是随从，它也会反击（角斗士的长弓：英雄攻击时免疫，不反击）
-            let hero_immune_attacking = world.card_type(attacker) == Some(CardType::Hero)
+            // 反击免疫（角斗士的长弓：英雄攻击时免疫，不反击）
+            let retaliation_immune = world.card_type(attacker) == Some(CardType::Hero)
                 && world.player(attacker).is_some_and(|pid| {
                     state.player(pid).weapon.is_some_and(|w| {
                         world.card_id(w).is_some_and(|c| {
@@ -357,16 +354,12 @@ pub fn enqueue(
                         })
                     })
                 });
-            if world.card_type(defender) == Some(CardType::Minion) && !hero_immune_attacking {
-                let defender_atk = world.effective_attack(defender).unwrap_or(Attack(0));
-                if defender_atk.0 > 0 {
-                    queue.push(Event::DamageDealt {
-                        source: defender,
-                        target: attacker,
-                        amount: defender_atk.0,
-                    });
-                }
-            }
+            queue.push(Event::ResolveAttack {
+                attacker,
+                defender,
+                attacker_damage: attacker_total_atk,
+                retaliation_immune,
+            });
         }
         Action::EndTurn => {
             let active = state.active_player();
@@ -388,6 +381,35 @@ pub fn enqueue(
 // ============================================================
 // 事件应用（修改状态）
 // ============================================================
+
+/// 死亡检查 — 伤害管线（`DamageDealt`）的最后一步。
+///
+/// 目标的有效生命值 ≤ 0 时：英雄入队游戏结束（最高优先级），
+/// 随从入队 `MinionDied`。
+fn queue_death_events(
+    state: &GameState,
+    queue: &mut EventQueue,
+    target: Entity,
+    card_type: Option<CardType>,
+) {
+    let effective_hp = state.world().effective_health(target);
+    if !effective_hp.is_some_and(|h| h.is_dead()) {
+        return;
+    }
+    match card_type {
+        Some(CardType::Hero) => {
+            let loser = state.world().player(target);
+            if let Some(player) = loser {
+                let winner = player.opponent();
+                queue.push_with_priority(Event::GameOver { winner }, Priority::Highest);
+            }
+        }
+        Some(CardType::Minion) => {
+            queue.push(Event::MinionDied { minion: target });
+        }
+        _ => {}
+    }
+}
 
 /// 应用单个事件，可能产生新的事件并入队。
 ///
@@ -736,11 +758,40 @@ pub fn apply_event(
                 }
             }
         }
+        Event::ResolveAttack {
+            attacker,
+            defender,
+            attacker_damage,
+            retaliation_immune,
+        } => {
+            // 攻击伤害入队（数值在入队时已确定）
+            queue.push(Event::DamageDealt {
+                source: attacker,
+                target: defender,
+                amount: attacker_damage,
+            });
+            // 防御方反击：按结算时的当前状态计算攻击力 — 攻击被奥秘
+            // 重定向后，新防御者的反击自动生效，无需逐个卡牌特殊处理。
+            if !retaliation_immune && state.world().card_type(defender) == Some(CardType::Minion) {
+                let atk = state
+                    .world()
+                    .effective_attack(defender)
+                    .unwrap_or(Attack(0));
+                if atk.0 > 0 {
+                    queue.push(Event::DamageDealt {
+                        source: defender,
+                        target: attacker,
+                        amount: atk.0,
+                    });
+                }
+            }
+        }
         Event::DamageDealt {
             target,
             amount,
             source,
         } => {
+            // 统一伤害管线：免疫 → 圣盾 → 护甲 → 生命值 → 死亡检查
             // 免疫：伤害被完全忽略（攻击仍被消耗）
             if state.world().immune(target).is_some() {
                 return Ok(());
@@ -754,7 +805,7 @@ pub fn apply_event(
             // 获取目标的卡牌类型
             let card_type = state.world().card_type(target);
 
-            // 如果目标是英雄，先扣护甲
+            // 英雄先扣护甲，剩余伤害穿透到生命值
             if card_type == Some(CardType::Hero) {
                 let target_player = state.world().player(target);
                 if let Some(pid) = target_player {
@@ -775,12 +826,7 @@ pub fn apply_event(
                         };
                         let new_hp = Health(hp.0 - remaining);
                         state.world_mut().set_health(target, new_hp);
-
-                        let effective_hp = state.world().effective_health(target).unwrap_or(new_hp);
-                        if effective_hp.is_dead() {
-                            let winner = pid.opponent();
-                            queue.push_with_priority(Event::GameOver { winner }, Priority::Highest);
-                        }
+                        queue_death_events(state, queue, target, card_type);
                         return Ok(());
                     }
                 }
@@ -818,24 +864,8 @@ pub fn apply_event(
             // 通过 CoW 修改状态
             state.world_mut().set_health(target, new_hp);
 
-            // 检查死亡（使用有效生命值考虑光环加成）
-            let effective_hp = state.world().effective_health(target).unwrap_or(new_hp);
-            if effective_hp.is_dead() {
-                match card_type {
-                    Some(CardType::Hero) => {
-                        // 英雄死亡 → 游戏结束
-                        let loser = state.world().player(target);
-                        if let Some(player) = loser {
-                            let winner = player.opponent();
-                            queue.push_with_priority(Event::GameOver { winner }, Priority::Highest);
-                        }
-                    }
-                    Some(CardType::Minion) => {
-                        queue.push(Event::MinionDied { minion: target });
-                    }
-                    _ => {}
-                }
-            }
+            // 死亡检查（使用有效生命值考虑光环加成）
+            queue_death_events(state, queue, target, card_type);
         }
         Event::MinionDied { minion } => {
             // 先检查亡语效果（实体还在战场上）
