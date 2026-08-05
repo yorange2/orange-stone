@@ -34,19 +34,34 @@ impl PyGameEnv {
     ///
     /// `deck` (optional) is a list of card IDs used as a mirror deck for both players
     /// (M1-G2); `None`/omitted generates random decks of `deck_size` cards.
+    ///
+    /// `bot` (optional) selects the opponent: `"greedy"` / `"smart"` play the
+    /// opponent's turn automatically; `"none"` (M1-G4) leaves both sides to
+    /// the caller — after `EndTurn` the other player becomes externally steppable.
     #[new]
-    #[pyo3(signature = (seed, perspective=0, deck_size=30, deck=None))]
+    #[pyo3(signature = (seed, perspective=0, deck_size=30, deck=None, bot="greedy"))]
     fn new(
         seed: u64,
         perspective: u8,
         deck_size: usize,
         deck: Option<Vec<String>>,
+        bot: &str,
     ) -> PyResult<Self> {
         let perspective = match perspective {
             0 => PlayerId::Player1,
             _ => PlayerId::Player2,
         };
-        let mut config = EnvConfig::default_with(BotType::Greedy, deck_size);
+        let bot_type = match bot {
+            "greedy" => BotType::Greedy,
+            "smart" => BotType::Smart,
+            "none" => BotType::None,
+            other => {
+                return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                    "unknown bot type: {other} (expected greedy | smart | none)"
+                )));
+            }
+        };
+        let mut config = EnvConfig::default_with(bot_type, deck_size);
         if let Some(ids) = deck {
             let mut resolved = Vec::with_capacity(ids.len());
             for id in &ids {
