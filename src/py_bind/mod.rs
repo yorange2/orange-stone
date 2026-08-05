@@ -38,14 +38,20 @@ impl PyGameEnv {
     /// `bot` (optional) selects the opponent: `"greedy"` / `"smart"` play the
     /// opponent's turn automatically; `"none"` (M1-G4) leaves both sides to
     /// the caller — after `EndTurn` the other player becomes externally steppable.
+    ///
+    /// `hand_size` / `second_player_coin` (optional, M1-G6) shape the opening:
+    /// the first player draws `hand_size`; with the coin the second player
+    /// draws `hand_size + 1` and gets The Coin.
     #[new]
-    #[pyo3(signature = (seed, perspective=0, deck_size=30, deck=None, bot="greedy"))]
+    #[pyo3(signature = (seed, perspective=0, deck_size=30, deck=None, bot="greedy", hand_size=3, second_player_coin=false))]
     fn new(
         seed: u64,
         perspective: u8,
         deck_size: usize,
         deck: Option<Vec<String>>,
         bot: &str,
+        hand_size: usize,
+        second_player_coin: bool,
     ) -> PyResult<Self> {
         let perspective = match perspective {
             0 => PlayerId::Player1,
@@ -61,7 +67,8 @@ impl PyGameEnv {
                 )));
             }
         };
-        let mut config = EnvConfig::default_with(bot_type, deck_size);
+        let mut config = EnvConfig::default_with(bot_type, deck_size)
+            .with_opening(hand_size, second_player_coin);
         if let Some(ids) = deck {
             let mut resolved = Vec::with_capacity(ids.len());
             for id in &ids {
