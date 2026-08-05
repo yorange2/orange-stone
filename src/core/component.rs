@@ -246,8 +246,9 @@ pub enum AuraTarget {
 pub struct Secret {
     /// Trigger condition
     pub trigger: SecretTrigger,
-    /// Effect executed after triggering
-    pub effect: crate::core::effect::CardEffect,
+    /// Effect executed after triggering (None for negation-only secrets such
+    /// as Counterspell — the reveal itself is the effect)
+    pub effect: Option<crate::core::effect::CardEffect>,
 }
 
 /// Secret trigger condition.

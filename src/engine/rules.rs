@@ -18,6 +18,7 @@ use crate::core::player::PlayerId;
 use crate::core::small_list::SmallList;
 use crate::core::state::{ChoiceKind, GameState, Step};
 use crate::core::zone::Zone;
+use crate::engine::secret;
 use crate::engine::trigger;
 
 /// Engine error — why an action could not be executed.
@@ -541,9 +542,15 @@ pub fn apply_event(
                     let secret_effect = state.world().battlecry(card).map(|b| b.0);
                     let inner = state.make_mut();
                     inner.players[player.index()].next_secret_free = false;
-                    if let Some(effect) = secret_effect {
-                        inner.world.set_secret(card, Secret { trigger, effect });
-                    }
+                    // The secret is registered even when it has no effect
+                    // (Counterspell — the reveal itself negates the spell)
+                    inner.world.set_secret(
+                        card,
+                        Secret {
+                            trigger,
+                            effect: secret_effect,
+                        },
+                    );
                     state
                         .world_mut()
                         .move_to_zone(card, Zone::SetAside)
@@ -552,48 +559,106 @@ pub fn apply_event(
                         player,
                         spell: card,
                     });
-                } else if state.world().choose_one_effect(card).is_some() && !combo_active {
-                    // Choose One spell (roadmap G6): the branch choice surfaces
-                    // as a pending choice; the effect, the SpellCast event, and
-                    // the graveyard move resolve in ChoiceResolved. The default
-                    // policy (GameEngine::apply) resolves it randomly via the
-                    // embedded RNG, preserving the historical behavior.
-                    state.set_pending_choice(
-                        ChoiceKind::ChooseOne,
-                        card,
-                        vec![String::from("First option"), String::from("Second option")],
-                        Vec::new(),
-                    );
                 } else {
-                    // Spell card: resolve the effect (combo-aware), then move to the graveyard
-                    let chosen_effect = if combo_active {
-                        // Combo: prefer combo_effect
-                        state
-                            .world()
-                            .combo_effect(card)
-                            .map(|c| c.0)
-                            .or_else(|| state.world().battlecry(card).map(|b| b.0))
-                    } else {
-                        state.world().battlecry(card).map(|b| b.0)
-                    };
-                    // Combo bounce-back (Headcrack): the card stays in hand after the effect resolves instead of going to the graveyard
-                    let returns_to_hand = matches!(
-                        chosen_effect,
-                        Some(crate::core::effect::CardEffect::DealDamageAndReturnToHand { .. })
-                    );
-                    if let Some(effect) = chosen_effect {
-                        trigger::resolve_effect(state, queue, card, player, effect, target);
-                    }
-                    // Push the spell-cast event
-                    queue.push(Event::SpellCast {
-                        player,
-                        spell: card,
-                    });
-                    if !returns_to_hand {
-                        state
-                            .world_mut()
-                            .move_to_zone(card, Zone::Graveyard)
-                            .map_err(|_| EngineError::EntityGone(card))?;
+                    // Counter-secret interception (roadmap G8): WhenEnemySpellCast
+                    // secrets fire BEFORE the spell's effect resolves.
+                    let interception =
+                        secret::intercept_counter_secrets(state, queue, card, player);
+                    match interception {
+                        secret::Interception::Countered => {
+                            // The spell is negated but still cast and discarded
+                            queue.push(Event::SpellCast {
+                                player,
+                                spell: card,
+                            });
+                            state
+                                .world_mut()
+                                .move_to_zone(card, Zone::Graveyard)
+                                .map_err(|_| EngineError::EntityGone(card))?;
+                        }
+                        secret::Interception::Spellbent(token) => {
+                            // Spellbender: the spell's single-target effect is
+                            // redirected to the 1/3 token
+                            let chosen_effect = if combo_active {
+                                state
+                                    .world()
+                                    .combo_effect(card)
+                                    .map(|c| c.0)
+                                    .or_else(|| state.world().battlecry(card).map(|b| b.0))
+                            } else {
+                                state.world().battlecry(card).map(|b| b.0)
+                            };
+                            if let Some(effect) = chosen_effect {
+                                trigger::resolve_effect(
+                                    state,
+                                    queue,
+                                    card,
+                                    player,
+                                    effect,
+                                    Some(token),
+                                );
+                            }
+                            queue.push(Event::SpellCast {
+                                player,
+                                spell: card,
+                            });
+                            state
+                                .world_mut()
+                                .move_to_zone(card, Zone::Graveyard)
+                                .map_err(|_| EngineError::EntityGone(card))?;
+                        }
+                        secret::Interception::None => {
+                            if state.world().choose_one_effect(card).is_some() && !combo_active {
+                                // Choose One spell (roadmap G6): the branch choice
+                                // surfaces as a pending choice; the effect, the
+                                // SpellCast event, and the graveyard move resolve in
+                                // ChoiceResolved. The default policy
+                                // (GameEngine::apply) resolves it randomly via the
+                                // embedded RNG, preserving the historical behavior.
+                                state.set_pending_choice(
+                                    ChoiceKind::ChooseOne,
+                                    card,
+                                    vec![
+                                        String::from("First option"),
+                                        String::from("Second option"),
+                                    ],
+                                    Vec::new(),
+                                );
+                            } else {
+                                // Spell card: resolve the effect (combo-aware), then move to the graveyard
+                                let chosen_effect = if combo_active {
+                                    // Combo: prefer combo_effect
+                                    state
+                                        .world()
+                                        .combo_effect(card)
+                                        .map(|c| c.0)
+                                        .or_else(|| state.world().battlecry(card).map(|b| b.0))
+                                } else {
+                                    state.world().battlecry(card).map(|b| b.0)
+                                };
+                                // Combo bounce-back (Headcrack): the card stays in hand after the effect resolves instead of going to the graveyard
+                                let returns_to_hand = matches!(
+                                    chosen_effect,
+                                    Some(crate::core::effect::CardEffect::DealDamageAndReturnToHand { .. })
+                                );
+                                if let Some(effect) = chosen_effect {
+                                    trigger::resolve_effect(
+                                        state, queue, card, player, effect, target,
+                                    );
+                                }
+                                // Push the spell-cast event
+                                queue.push(Event::SpellCast {
+                                    player,
+                                    spell: card,
+                                });
+                                if !returns_to_hand {
+                                    state
+                                        .world_mut()
+                                        .move_to_zone(card, Zone::Graveyard)
+                                        .map_err(|_| EngineError::EntityGone(card))?;
+                                }
+                            }
+                        }
                     }
                 }
             } else if card_type == Some(CardType::Weapon) {
@@ -1736,7 +1801,7 @@ mod tests {
                 e,
                 Secret {
                     trigger: SecretTrigger::OnFriendlyTurnStart,
-                    effect: CardEffect::DiscardRandomCard,
+                    effect: Some(CardEffect::DiscardRandomCard),
                 },
             );
             world.set_zone(e, Zone::SetAside);
@@ -2898,6 +2963,148 @@ mod tests {
             state.player(PlayerId::Player1).mana_crystals,
             1,
             "the coin does not add a permanent crystal"
+        );
+    }
+
+    // ============================================================
+    // G8 — secret interception at step boundaries
+    // ============================================================
+
+    /// Adds a custom spell to the player's hand (type + effect set manually).
+    fn add_custom_spell(
+        state: &mut GameState,
+        player: PlayerId,
+        effect: crate::core::effect::CardEffect,
+    ) -> Entity {
+        use crate::core::component::Battlecry;
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_card_type(e, CardType::Spell);
+        world.set_cost(e, crate::core::component::Cost(1));
+        world.set_player(e, player);
+        world.set_battlecry(e, Battlecry(effect));
+        world.set_zone(e, Zone::Hand);
+        world.zones_mut().insert(Zone::Hand, player, e);
+        e
+    }
+
+    #[test]
+    fn counterspell_negates_enemy_spell() {
+        // G8: Counterspell intercepts the enemy spell BEFORE its effect resolves
+        use crate::cards::def::COUNTERSPELL;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_hand(PlayerId::Player1, &COUNTERSPELL);
+        builder.set_mana(PlayerId::Player1, 10, 10);
+        builder.set_mana(PlayerId::Player2, 10, 10);
+        let minion = builder.add_custom_minion_to_board(PlayerId::Player1, 3, 3, 3);
+        let mut state = builder.build();
+        let counterspell = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("counterspell in hand");
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: counterspell,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        // P2 casts a damaging spell — it is negated
+        state.set_active_player(PlayerId::Player2);
+        let spell = add_custom_spell(
+            &mut state,
+            PlayerId::Player2,
+            crate::core::effect::CardEffect::DealDamage {
+                amount: 5,
+                target: crate::core::effect::EffectTarget::AnyEnemyMinion,
+            },
+        );
+        let log = engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: spell,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        assert!(
+            log.iter()
+                .any(|e| matches!(e, Event::SecretRevealed { .. })),
+            "counterspell must be revealed"
+        );
+        assert_eq!(
+            state.world().effective_health(minion),
+            Some(Health(3)),
+            "the countered spell's effect must not resolve"
+        );
+        assert_eq!(
+            state.world().zone(spell),
+            Some(Zone::Graveyard),
+            "the countered spell still goes to the graveyard"
+        );
+    }
+
+    #[test]
+    fn spellbender_does_not_redirect_aoe_spells() {
+        // G8: Spellbender only redirects single-target effects — AOE spells hit
+        // normally (including the token), matching HS
+        use crate::cards::def::SPELLBENDER;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_hand(PlayerId::Player1, &SPELLBENDER);
+        builder.set_mana(PlayerId::Player1, 10, 10);
+        builder.set_mana(PlayerId::Player2, 10, 10);
+        let minion = builder.add_custom_minion_to_board(PlayerId::Player1, 3, 3, 3);
+        let mut state = builder.build();
+        let spellbender = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("spellbender in hand");
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: spellbender,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        state.set_active_player(PlayerId::Player2);
+        let spell = add_custom_spell(
+            &mut state,
+            PlayerId::Player2,
+            crate::core::effect::CardEffect::DealDamage {
+                amount: 2,
+                target: crate::core::effect::EffectTarget::AllEnemyMinions,
+            },
+        );
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: spell,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state.world().effective_health(minion),
+            Some(Health(1)),
+            "AOE spells are not redirected by Spellbender"
         );
     }
 }

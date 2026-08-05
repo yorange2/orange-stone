@@ -59,8 +59,11 @@ pub fn check_secrets(state: &mut GameState, queue: &mut EventQueue, event: &Even
                 player: *player,
                 secret: *entity,
             });
-            // Resolve the secret effect (some effects need trigger event context, e.g. Snipe/Misdirection)
-            resolve_secret_effect(state, queue, event, *entity, *player, secret.effect);
+            // Resolve the secret effect (some effects need trigger event context,
+            // e.g. Snipe/Misdirection; negation-only secrets have no effect)
+            if let Some(effect) = secret.effect {
+                resolve_secret_effect(state, queue, event, *entity, *player, effect);
+            }
             triggered += 1;
         }
     }
@@ -195,6 +198,71 @@ fn resolve_secret_effect(
     }
 }
 
+/// The outcome of counter-secret interception (roadmap G8).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Interception {
+    /// No counter-secret matched — the spell resolves normally
+    None,
+    /// A counter-secret negated the spell (Counterspell) — no effect resolves
+    Countered,
+    /// Spellbender summoned its token; the spell's single-target effect should
+    /// target it
+    Spellbent(crate::core::entity::Entity),
+}
+
+/// Counter-secret interception (roadmap G8): `WhenEnemySpellCast` secrets fire
+/// BEFORE the spell's effect resolves, at the play boundary — Counterspell
+/// negates the spell, Spellbender summons its token and redirects the spell's
+/// single-target effect to it. This retires the post-hoc `redirect_damages`
+/// queue mutation (E2).
+pub fn intercept_counter_secrets(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    spell: crate::core::entity::Entity,
+    caster: PlayerId,
+) -> Interception {
+    let owner = caster.opponent();
+    let event = Event::CardPlayed {
+        player: caster,
+        card: spell,
+        target: None,
+        position: None,
+    };
+    let secrets: SmallList<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::SetAside, owner)
+        .filter(|&e| {
+            state.world().player(e) == Some(owner)
+                && state
+                    .world()
+                    .secret(e)
+                    .is_some_and(|sec| sec.trigger == SecretTrigger::WhenEnemySpellCast)
+        })
+        .collect();
+    for entity in secrets {
+        // Reveal the secret and resolve its interception effect
+        let _ = state.world_mut().move_to_zone(entity, Zone::Graveyard);
+        queue.push(Event::SecretRevealed {
+            player: owner,
+            secret: entity,
+        });
+        let effect = state.world().battlecry(entity).map(|b| b.0);
+        if matches!(effect, Some(CardEffect::SummonSpellbender)) {
+            let token = resolve_spellbender(state, queue, &event, owner);
+            return match token {
+                Some(token) => Interception::Spellbent(token),
+                None => Interception::Countered,
+            };
+        }
+        if let Some(effect) = effect {
+            resolve_secret_effect(state, queue, &event, entity, owner, effect);
+        }
+        return Interception::Countered;
+    }
+    Interception::None
+}
+
 /// Misdirection: redirects an attack to another random character (including
 /// the attacker itself, excluding own hero).
 ///
@@ -262,18 +330,11 @@ fn resolve_spellbender(
     queue: &mut EventQueue,
     event: &Event,
     owner: PlayerId,
-) {
+) -> Option<Entity> {
     let Event::CardPlayed { card, .. } = event else {
-        return;
+        return None;
     };
-    let Some(spellbender) =
-        crate::engine::trigger::resolve_summon(state, queue, *card, owner, "MAGE_019t")
-    else {
-        return;
-    };
-    // Redirect pending damage whose source is the spell and whose target is a minion
-    queue.redirect_damages(
-        |s, t| s == *card && state.world().card_type(t) == Some(CardType::Minion),
-        spellbender,
-    );
+    // The 1/3 token is summoned; the spell redirect is handled by the caller
+    // (intercept_counter_secrets) — roadmap G8, the queue mutation is retired.
+    crate::engine::trigger::resolve_summon(state, queue, *card, owner, "MAGE_019t")
 }

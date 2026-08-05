@@ -59,7 +59,7 @@ fn playing_secret_card_moves_to_setaside_with_secret_component() {
     // Effect comes from the battlecry slot (2 damage, all enemies)
     assert!(matches!(
         secret.effect,
-        orange_stone::core::effect::CardEffect::DealDamage { amount: 2, .. }
+        Some(orange_stone::core::effect::CardEffect::DealDamage { amount: 2, .. })
     ));
 }
 
