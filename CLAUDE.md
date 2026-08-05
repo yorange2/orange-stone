@@ -189,4 +189,6 @@ pub struct GameRng {
 - 核心逻辑有单元测试
 - 新增卡牌效果需要属性测试验证正确性
 - 性能敏感路径有 benchmark
-- commit message 使用中文
+- 所有代码注释应当使用英文
+- 所有 commit message 和 PR message 应当使用英文
+- **文档同步**：`README.md`（英文）和 `README_zh.md`（中文）必须始终保持内容同步。任何对其中一份文档的更新，必须同时以对应语言更新另一份文档，两份文档的结构、信息量和时效性应当完全一致。
