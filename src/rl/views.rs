@@ -49,6 +49,31 @@ pub struct EntityView {
     pub frozen: bool,
     /// Hand cards only: affordable with the owner's current mana
     pub playable: bool,
+    /// Card type: 0=Minion, 1=Spell, 2=Weapon, 3=Hero (M5 card text)
+    pub card_type: i32,
+    /// Has a battlecry (spell effects also live in this slot)
+    pub has_battlecry: bool,
+    /// Has a deathrattle
+    pub has_deathrattle: bool,
+    /// Has an aura
+    pub has_aura: bool,
+    /// Has a trigger
+    pub has_trigger: bool,
+    /// Battlecry/spell magnitudes (M5 card text — v6 A_TEXT idea)
+    pub bc_damage: i32,
+    pub bc_draw: i32,
+    pub bc_summon: i32,
+    pub bc_buff: i32,
+    pub bc_heal: i32,
+    pub bc_freeze: i32,
+    pub bc_destroy: i32,
+    /// Deathrattle magnitudes
+    pub dr_damage: i32,
+    pub dr_draw: i32,
+    pub dr_summon: i32,
+    /// Aura magnitudes
+    pub aura_attack: i32,
+    pub aura_health: i32,
 }
 
 /// One player's view: hero, mana, zones, and entities.
@@ -132,6 +157,9 @@ pub fn entity_view(state: &GameState, entity: Entity, is_hand: bool) -> EntityVi
         .map_or_else(String::new, |c| c.name.to_string());
     let attack = world.effective_attack(entity).map_or(0, |a| a.0);
     let cost = world.effective_cost(entity).map_or(0, |c| c.0);
+    let bc = world.battlecry(entity).map(|b| b.0);
+    let dr = world.deathrattle(entity).map(|d| d.0);
+    let aura = world.aura(entity);
 
     EntityView {
         entity_id: entity.index,
@@ -157,7 +185,87 @@ pub fn entity_view(state: &GameState, entity: Entity, is_hand: bool) -> EntityVi
             && world
                 .player(entity)
                 .is_some_and(|p| cost <= state.player(p).current_mana),
+        card_type: match world.card_type(entity) {
+            Some(crate::core::component::CardType::Minion) => 0,
+            Some(crate::core::component::CardType::Spell) => 1,
+            Some(crate::core::component::CardType::Weapon) => 2,
+            _ => 3,
+        },
+        has_battlecry: bc.is_some(),
+        has_deathrattle: dr.is_some(),
+        has_aura: aura.is_some(),
+        has_trigger: world.trigger(entity).is_some(),
+        bc_damage: bc.map_or(0, |e| effect_magnitudes(&e).damage),
+        bc_draw: bc.map_or(0, |e| effect_magnitudes(&e).draw),
+        bc_summon: bc.map_or(0, |e| effect_magnitudes(&e).summon),
+        bc_buff: bc.map_or(0, |e| effect_magnitudes(&e).buff),
+        bc_heal: bc.map_or(0, |e| effect_magnitudes(&e).heal),
+        bc_freeze: bc.map_or(0, |e| effect_magnitudes(&e).freeze),
+        bc_destroy: bc.map_or(0, |e| effect_magnitudes(&e).destroy),
+        dr_damage: dr.map_or(0, |e| effect_magnitudes(&e).damage),
+        dr_draw: dr.map_or(0, |e| effect_magnitudes(&e).draw),
+        dr_summon: dr.map_or(0, |e| effect_magnitudes(&e).summon),
+        aura_attack: aura.map_or(0, |a| aura_effect_magnitudes(&a.effect).0),
+        aura_health: aura.map_or(0, |a| aura_effect_magnitudes(&a.effect).1),
     }
+}
+
+/// 卡面文本的量级（v6 A_TEXT 思路）：把 CardEffect 压成紧凑标量。
+/// 战吼/法术共用 battlecry 槽，因此这一组对两种都成立。
+#[derive(Default, Clone, Copy)]
+struct EffectMagnitudes {
+    damage: i32,
+    draw: i32,
+    summon: i32,
+    buff: i32,
+    heal: i32,
+    freeze: i32,
+    destroy: i32,
+}
+
+/// 光环的量级（攻击/生命各一）。
+fn aura_effect_magnitudes(effect: &crate::core::component::AuraEffect) -> (i32, i32) {
+    use crate::core::component::AuraEffect;
+    match effect {
+        AuraEffect::GainStats { attack, health } => (*attack, *health),
+        AuraEffect::GainAttack(a) => (*a, 0),
+        AuraEffect::GainHealth(h) => (0, *h),
+        _ => (0, 0),
+    }
+}
+
+fn effect_magnitudes(effect: &crate::core::effect::CardEffect) -> EffectMagnitudes {
+    use crate::core::effect::CardEffect;
+    let mut m = EffectMagnitudes::default();
+    match effect {
+        CardEffect::DealDamage { amount, .. } => m.damage = *amount,
+        CardEffect::DrawCard { count } => m.draw = *count as i32,
+        CardEffect::SummonMinion { .. } => m.summon = 1,
+        CardEffect::GainStats { attack, health, .. } => m.buff = attack + health,
+        CardEffect::GainArmor { amount, .. } => m.heal = *amount,
+        CardEffect::RestoreHealth { amount, .. } => m.heal = *amount,
+        CardEffect::FullHeal { .. } => m.heal = 30,
+        CardEffect::FreezeCharacter { .. } => m.freeze = 1,
+        CardEffect::DestroyMinion { .. } => m.destroy = 1,
+        CardEffect::DestroyAllExceptOne => m.destroy = 1,
+        CardEffect::TransformToRandom { .. } => m.destroy = 1,
+        CardEffect::ReturnToHand { .. } => m.destroy = 1,
+        CardEffect::IncreaseCost { .. } => m.buff = 1,
+        CardEffect::ReturnToHandAndIncreaseCost { .. } => m.destroy = 1,
+        CardEffect::SilenceMinion { .. } => m.destroy = 1,
+        CardEffect::SetAttack { .. } => m.buff = 1,
+        CardEffect::SetAttackToHealth { .. } => m.buff = 1,
+        CardEffect::GrantWindfury { .. } => m.buff = 1,
+        CardEffect::DoubleAttack { .. } => m.buff = 1,
+        CardEffect::DoubleHealth { .. } => m.buff = 1,
+        CardEffect::TempDebuff { .. } => m.buff = -1,
+        CardEffect::GrantStealth => m.buff = 1,
+        CardEffect::GainManaCrystal { .. } => m.buff = 1,
+        CardEffect::GainManaThisTurn { .. } => m.buff = 1,
+        CardEffect::EquipWeapon { .. } => m.buff = 1,
+        _ => {}
+    }
+    m
 }
 
 /// Builds a [`PlayerView`]; `reveal_hand` is true only for the perspective player.
