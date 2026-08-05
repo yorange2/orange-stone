@@ -3107,4 +3107,52 @@ mod tests {
             "AOE spells are not redirected by Spellbender"
         );
     }
+
+    // ============================================================
+    // G9 — target legality at resolution
+    // ============================================================
+
+    #[test]
+    fn stealthed_minion_cannot_be_explicitly_targeted() {
+        // G9: single-target effects cannot target stealthed characters — an
+        // explicit stealthed target makes the effect fizzle (no random fallback)
+        use crate::cards::def::FROSTBOLT;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_hand(PlayerId::Player1, &FROSTBOLT);
+        builder.set_mana(PlayerId::Player1, 10, 10);
+        let stealthed = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 5, 3);
+        let visible = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 5, 3);
+        let mut state = builder.build();
+        state
+            .world_mut()
+            .set_stealth(stealthed, crate::core::component::Stealth);
+        let frostbolt = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("frostbolt in hand");
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: frostbolt,
+                    target: Some(stealthed),
+                    position: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state.world().effective_health(stealthed),
+            Some(Health(5)),
+            "the stealthed minion cannot be targeted — the spell fizzles"
+        );
+        assert_eq!(
+            state.world().effective_health(visible),
+            Some(Health(5)),
+            "no random fallback to another target"
+        );
+    }
 }

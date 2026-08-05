@@ -1980,9 +1980,10 @@ fn spell_without_target_falls_back_to_random() {
     assert!(dmg_hero == 3 || dmg_minion == 3);
 }
 
-/// Explicit target not in the candidate set (e.g. own minion) → falls back to random selection.
+/// Explicit target not in the candidate set at resolution (e.g. own minion) →
+/// the effect fizzles — HS re-validation semantics (roadmap G9).
 #[test]
-fn invalid_explicit_target_falls_back_to_random() {
+fn invalid_explicit_target_fizzles() {
     use orange_stone::cards::def::FROSTBOLT;
 
     let engine = GameEngine::new();
@@ -1998,7 +1999,8 @@ fn invalid_explicit_target_falls_back_to_random() {
         .zones()
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
-    // Own minion is not an "enemy character" candidate — falls back to random; own minion must not be damaged
+    // Own minion is not an "enemy character" candidate — the spell fizzles and
+    // deals no damage anywhere (no random fallback)
     engine
         .apply(
             &mut state,
@@ -2016,9 +2018,16 @@ fn invalid_explicit_target_falls_back_to_random() {
         "own minion never damaged"
     );
     let enemy_hero = state.player(PlayerId::Player2).hero;
-    let dmg = 30 - state.world().effective_health(enemy_hero).unwrap().0 + 5
-        - state.world().effective_health(enemy_minion).unwrap().0;
-    assert_eq!(dmg, 3, "3 damage lands on an enemy");
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(30)),
+        "the fizzled spell damages nobody"
+    );
+    assert_eq!(
+        state.world().effective_health(enemy_minion),
+        Some(Health(5)),
+        "the fizzled spell damages nobody"
+    );
 }
 
 /// Battlecry damage: the explicit target is hit precisely.
