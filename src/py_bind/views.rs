@@ -45,6 +45,9 @@ pub struct PyEntityView {
     /// Stealth keyword
     #[pyo3(get)]
     pub stealth: bool,
+    /// Elusive keyword (M5)
+    #[pyo3(get)]
+    pub elusive: bool,
     /// Windfury keyword
     #[pyo3(get)]
     pub windfury: bool,
@@ -72,6 +75,7 @@ impl From<&rviews::EntityView> for PyEntityView {
             taunt: v.taunt,
             divine_shield: v.divine_shield,
             stealth: v.stealth,
+            elusive: v.elusive,
             windfury: v.windfury,
             charge: v.charge,
             frozen: v.frozen,

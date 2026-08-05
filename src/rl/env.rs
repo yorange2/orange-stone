@@ -430,7 +430,9 @@ fn play_targets(
         .world()
         .player(card)
         .unwrap_or_else(|| state.active_player());
-    candidates_for_target(state, owner, target)
+    // Elusive (M5): spells can't target elusive minions; battlecries can.
+    let exclude_elusive = state.world().card_type(card) == Some(CardType::Spell);
+    candidates_for_target(state, owner, target, exclude_elusive)
 }
 
 /// Enumerates candidate entities by `EffectTarget`.
@@ -438,6 +440,7 @@ fn candidates_for_target(
     state: &GameState,
     owner: PlayerId,
     target: EffectTarget,
+    exclude_elusive: bool,
 ) -> Vec<crate::core::entity::Entity> {
     let world = state.world();
     let enemy = owner.opponent();
@@ -458,9 +461,12 @@ fn candidates_for_target(
             .filter(|&e| world.card_type(e) == Some(CardType::Minion))
             .collect::<Vec<_>>()
     };
+    let no_elusive = |e: &crate::core::entity::Entity| {
+        !(exclude_elusive && world.elusive(*e).is_some())
+    };
     match target {
-        EffectTarget::AnyEnemy => chars(enemy),
-        EffectTarget::AnyEnemyMinion => minions(enemy),
+        EffectTarget::AnyEnemy => chars(enemy).into_iter().filter(no_elusive).collect(),
+        EffectTarget::AnyEnemyMinion => minions(enemy).into_iter().filter(no_elusive).collect(),
         EffectTarget::EnemyHero => vec![state.player(enemy).hero],
         EffectTarget::FriendlyMinion => minions(owner),
         EffectTarget::FriendlyHero => vec![state.player(owner).hero],
@@ -607,6 +613,66 @@ mod tests {
             "Jungle Panther must expose stealth in the view, got {stealth_cards:?}"
         );
         assert!(stealth_cards.contains(&"NEUTRAL_C10"));
+    }
+
+    #[test]
+    fn elusive_cards_expose_the_keyword_and_block_spell_targeting() {
+        // M5: Faerie Dragon carries elusive; a spell's play actions must not
+        // enumerate it as a target (and the resolution fizzles on it).
+        let deck: Vec<&'static str> =
+            vec!["CLASSIC_019"; 10]; // Faerie Dragon (elusive)
+        let mut env = GameEnv::new(
+            PlayerId::Player1,
+            EnvConfig::default_with(BotType::Greedy, 30).with_fixed_deck(deck),
+        );
+        env.reset(4);
+        let view = crate::rl::views::observation(&env.state, PlayerId::Player1);
+        let faeries: Vec<&crate::rl::views::EntityView> =
+            view.me.hand.iter().filter(|c| c.card_id == "CLASSIC_019").collect();
+        assert!(!faeries.is_empty(), "Faerie Dragon must be in the opening hand");
+        assert!(faeries.iter().all(|c| c.elusive), "Faerie Dragon must expose elusive");
+    }
+
+    #[test]
+    fn spell_play_actions_exclude_elusive_targets() {
+        use crate::core::action::Action;
+        use crate::sim::game::GameBuilder;
+        use crate::core::zone::Zone;
+
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_hand(PlayerId::Player1, &crate::cards::def::FIREBALL);
+        builder.set_mana(PlayerId::Player1, 10, 10);
+        let faerie = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 5, 3);
+        builder
+            .state_mut()
+            .world_mut()
+            .set_elusive(faerie, crate::core::component::Elusive);
+        let visible = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 5, 3);
+        let mut state = builder.build();
+        state.make_mut().rng = crate::sim::rng::GameRng::new(1);
+
+        let infos = legal_action_infos(&state);
+        let fireball = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("fireball in hand");
+        let play_actions: Vec<&ActionInfo> = infos
+            .iter()
+            .filter(|a| matches!(a.action, Action::PlayCard { card, .. } if card == fireball))
+            .collect();
+        assert!(!play_actions.is_empty(), "fireball must be playable with a target");
+        // 目标可以是英雄或可见随从，但绝不能是精灵龙（elusive）
+        assert!(play_actions.iter().any(|info| {
+            matches!(info.action, Action::PlayCard { target: Some(t), .. } if t != faerie)
+        }), "fireball must keep legal non-elusive targets");
+        for info in &play_actions {
+            let Action::PlayCard { target: Some(t), .. } = info.action else {
+                continue;
+            };
+            assert_ne!(t, faerie, "fireball must not enumerate the elusive minion as a target");
+        }
     }
 
     #[test]

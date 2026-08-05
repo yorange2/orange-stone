@@ -468,6 +468,11 @@ pub struct Poison;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Stealth;
 
+/// Elusive (扰咒) — cannot be targeted by spells or hero powers (M5).
+/// Attacks and battlecries CAN target it; AOE still hits it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct Elusive;
+
 /// Immune — this character cannot take any damage.
 ///
 /// Damage taken by an Immune character is completely ignored (attacks are still consumed and weapon durability still drops).
