@@ -716,3 +716,68 @@ pub const RAMPAGE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// ============================================================
+// Tier 1 补全 — 战士（docs/classic-cards-roadmap.md）
+// ============================================================
+
+/// 炽炎战斧 — 武器 3/2
+pub const FIERY_WAR_AXE: CardDef = CardDef {
+    id: "WARRIOR_T01",
+    name: "Fiery War Axe",
+    card_type: CardType::Weapon,
+    cost: 2,
+    attack: 3,
+    health: 0,
+    durability: 2,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+/// 奥金斧 — 武器 5/2
+pub const ARCANITE_REAPER: CardDef = CardDef {
+    id: "WARRIOR_T02",
+    name: "Arcanite Reaper",
+    card_type: CardType::Weapon,
+    cost: 5,
+    attack: 5,
+    health: 0,
+    durability: 2,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

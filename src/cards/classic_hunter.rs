@@ -2,7 +2,7 @@
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
-use crate::core::component::{AuraEffect, AuraTarget, CardType};
+use crate::core::component::{AuraEffect, AuraTarget, CardType, SecretTrigger};
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::vanilla;
 
@@ -514,6 +514,71 @@ pub const FLARE: CardDef = CardDef {
     hero_power: None,
     aura: None,
     secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+// ============================================================
+// Tier 1 补全 — 猎人（docs/classic-cards-roadmap.md）
+// ============================================================
+
+/// 爆炸陷阱 — 奥秘：当你的英雄被攻击时，对所有敌人造成2点伤害
+pub const EXPLOSIVE_TRAP: CardDef = CardDef {
+    id: "HUNTER_T01",
+    name: "Explosive Trap",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: Some(SecretTrigger::WhenEnemyMinionAttacksHero),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+/// 冰冻陷阱 — 奥秘：当一个敌方随从攻击时，将其移回其拥有者的手牌，并使其费用增加（2）
+pub const FREEZING_TRAP: CardDef = CardDef {
+    id: "HUNTER_T02",
+    name: "Freezing Trap",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: Some(SecretTrigger::WhenEnemyMinionAttacksHero),
     divine_shield: false,
     windfury: false,
     charge: false,

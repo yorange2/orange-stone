@@ -62,6 +62,9 @@ pub fn resolve_effect(
         CardEffect::IncreaseCost { amount, target } => {
             resolve_increase_cost(state, owner, amount, target);
         }
+        CardEffect::ReturnToHandAndIncreaseCost { amount } => {
+            resolve_return_to_hand_and_increase_cost(state, queue, owner, amount);
+        }
         CardEffect::DestroyMinion { target } => {
             resolve_destroy_minion(state, queue, owner, target);
         }
@@ -283,23 +286,6 @@ pub fn draw_card(state: &mut GameState, queue: &mut EventQueue, player: PlayerId
     queue.push(Event::CardDrawn { player, card });
 }
 
-/// 解析伤害效果。
-/// 收集友方受伤的随从。
-fn collect_damaged_friendly(state: &GameState, owner: PlayerId) -> Vec<Entity> {
-    state
-        .world()
-        .zones()
-        .iter(Zone::Play, owner)
-        .filter(|&e| {
-            state.world().card_type(e) == Some(CardType::Minion)
-                && state.world().health(e).is_some_and(|h| {
-                    // 受伤 = 当前生命值 < 有效生命值
-                    h.0 < state.world().effective_health(e).unwrap_or(h).0
-                })
-        })
-        .collect()
-}
-
 fn resolve_deal_damage(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -321,6 +307,17 @@ fn resolve_deal_damage(
                 queue.push(Event::DamageDealt {
                     source,
                     target: *minion,
+                    amount,
+                });
+            }
+            return;
+        }
+        EffectTarget::AllEnemies => {
+            let enemies = collect_enemy_characters(state, owner);
+            for enemy in &enemies {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: *enemy,
                     amount,
                 });
             }
@@ -610,6 +607,27 @@ fn resolve_return_to_hand(
     let _ = state.world_mut().move_to_zone(target_entity, Zone::Hand);
 }
 
+/// 将一个随机敌方随从移回手牌并增加其法力消耗（冰冻陷阱完整效果）。
+fn resolve_return_to_hand_and_increase_cost(
+    state: &mut GameState,
+    _queue: &mut EventQueue,
+    owner: PlayerId,
+    amount: i32,
+) {
+    let minions = collect_enemy_minions(state, owner);
+    if minions.is_empty() {
+        return;
+    }
+
+    let idx = state.rng_mut().next_usize(minions.len());
+    let target_entity = minions[idx];
+
+    let _ = state.world_mut().move_to_zone(target_entity, Zone::Hand);
+    let world = state.world_mut();
+    let cur_cost = world.cost(target_entity).unwrap_or(Cost(0));
+    world.set_cost(target_entity, Cost(cur_cost.0 + amount));
+}
+
 /// 增加随从的法力消耗（如冰冻陷阱效果）。
 fn resolve_increase_cost(
     state: &mut GameState,
@@ -844,7 +862,7 @@ fn resolve_full_heal(state: &mut GameState, owner: PlayerId, target: EffectTarge
     // 获取最大生命值（基于初始定义，这里简化为设为30或使用current max）
     // 简化方案：从基础生命值恢复（使用 max_health 如果存在，否则设为当前值）
     let world = state.world_mut();
-    if let Some(_) = world.health(m) {
+    if world.health(m).is_some() {
         // 简化：恢复到卡牌定义值。由于无法获取原始定义，设为当前生命值
         // 实际应通过 card_id 查找原始定义
         // 在这里我们使用一个辅助方法：将生命值设为最大值（在实体创建时保存的）

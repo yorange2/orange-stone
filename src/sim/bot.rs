@@ -753,7 +753,7 @@ impl SmartBot {
                 }
             } else {
                 // 有嘲讽，检查是否可以通过嘲讽斩杀
-                let taunt_total_hp: i32 = taunt_minions.iter().map(|t| effective_hp(t)).sum();
+                let taunt_total_hp: i32 = taunt_minions.iter().map(effective_hp).sum();
                 let damage_needed = taunt_total_hp + enemy_effective_hp;
                 if total_attack >= damage_needed && self.can_clear_and_lethal(
                     &attackers,
@@ -843,7 +843,7 @@ impl SmartBot {
         let mut sorted_attackers = attackers.to_vec();
         sorted_attackers.sort_by_key(|a| std::cmp::Reverse(a.attack));
 
-        let mut taunt_hps: Vec<i32> = taunts.iter().map(|t| effective_hp(t)).collect();
+        let mut taunt_hps: Vec<i32> = taunts.iter().map(effective_hp).collect();
         let mut idx = 0;
 
         for th in &mut taunt_hps {
@@ -1125,6 +1125,7 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::GainArmor { amount, .. } => amount as f64 * 0.6,
         CardEffect::ReturnToHand { .. } => 2.0,
         CardEffect::IncreaseCost { amount, .. } => amount as f64 * 0.5,
+        CardEffect::ReturnToHandAndIncreaseCost { amount, .. } => 2.0 + amount as f64 * 0.5,
         CardEffect::DestroyMinion { .. } => 5.0,
         CardEffect::SilenceMinion { .. } => 3.0,
         CardEffect::SetAttack { attack, .. } => attack as f64 * 0.5,

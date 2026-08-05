@@ -23,37 +23,39 @@
 
 Every effect these cards need (Taunt, Stealth, Battlecry, Deathrattle, auras, weapons, secrets, card draw) is already supported by the engine. The docs already list them as ✅, so implementing them also fixes doc drift.
 
+> Note: two cards needed tiny effect additions despite the "no engine changes" claim (added 2026-08-05): `EffectTarget::AllEnemies` (all enemy characters — Explosive Trap) and `CardEffect::ReturnToHandAndIncreaseCost` (Freezing Trap). Both are additive variants in `src/core/effect.rs` with resolution in `src/engine/trigger.rs`.
+
 ### `src/cards/classic_neutral.rs` (15)
 
-- [ ] **Wisp** — 0 cost 1/1, vanilla
-- [ ] **Elven Archer** — **Battlecry:** Deal 1 damage.
-- [ ] **Goldshire Footman** — **Taunt**
-- [ ] **Novice Engineer** — **Battlecry:** Draw a card.
-- [ ] **River Crocolisk** — 2/3 Beast, vanilla
-- [ ] **Raid Leader** — aura: your other minions have +1 Attack
-- [ ] **Shattered Sun Cleric** — **Battlecry:** Give a friendly minion +1/+1.
-- [ ] **Chillwind Yeti** — 4/5, vanilla
-- [ ] **Boulderfist Ogre** — 6/7, vanilla
-- [ ] **Stormwind Champion** — aura: your other minions have +1/+1
-- [ ] **War Golem** — 7/7, vanilla
-- [ ] **Dire Wolf Alpha** — aura: adjacent minions have +1 Attack
-- [ ] **Loot Hoarder** — **Deathrattle:** Draw a card.
-- [ ] **Stranglethorn Tiger** — **Stealth**
-- [ ] **Ravenholdt Assassin** — **Stealth**
+- [x] **Wisp** — 0 cost 1/1, vanilla
+- [x] **Elven Archer** — **Battlecry:** Deal 1 damage.
+- [x] **Goldshire Footman** — **Taunt**
+- [x] **Novice Engineer** — **Battlecry:** Draw a card.
+- [x] **River Crocolisk** — 2/3 Beast, vanilla
+- [x] **Raid Leader** — aura: your other minions have +1 Attack
+- [x] **Shattered Sun Cleric** — **Battlecry:** Give a friendly minion +1/+1.
+- [x] **Chillwind Yeti** — 4/5, vanilla
+- [x] **Boulderfist Ogre** — 6/7, vanilla
+- [x] **Stormwind Champion** — aura: your other minions have +1/+1
+- [x] **War Golem** — 7/7, vanilla
+- [x] **Dire Wolf Alpha** — aura: adjacent minions have +1 Attack
+- [x] **Loot Hoarder** — **Deathrattle:** Draw a card.
+- [x] **Stranglethorn Tiger** — **Stealth**
+- [x] **Ravenholdt Assassin** — **Stealth**
 
 ### `src/cards/classic_warrior.rs` (2)
 
-- [ ] **Fiery War Axe** — weapon 3/2
-- [ ] **Arcanite Reaper** — weapon 5/2
+- [x] **Fiery War Axe** — weapon 3/2
+- [x] **Arcanite Reaper** — weapon 5/2
 
 ### `src/cards/classic_hunter.rs` (2)
 
-- [ ] **Explosive Trap** — **Secret:** When a minion attacks your hero, deal 2 damage to all enemies.
-- [ ] **Freezing Trap** — **Secret:** When an enemy minion attacks, return it to its owner's hand and it costs (2) more.
+- [x] **Explosive Trap** — **Secret:** When a minion attacks your hero, deal 2 damage to all enemies.
+- [x] **Freezing Trap** — **Secret:** When an enemy minion attacks, return it to its owner's hand and it costs (2) more.
 
 ### `src/cards/classic_warlock.rs` (1)
 
-- [ ] **Siegebreaker** — **Taunt**
+- [x] **Siegebreaker** — **Taunt**
 
 ---
 
