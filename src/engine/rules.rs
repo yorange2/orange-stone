@@ -211,6 +211,11 @@ fn validate_attack(
         }
     }
 
+    // 潜行检查：不能攻击敌方潜行角色
+    if world.stealth(defender).is_some() && defender_player != active {
+        return Err(EngineError::InvalidTarget);
+    }
+
     Ok(())
 }
 
@@ -516,6 +521,11 @@ pub fn apply_event(
                     } else {
                         state.world().battlecry(card).map(|b| b.0)
                     };
+                    // 连击回手（头部爆裂）：效果解析后留在手牌而非进入坟墓场
+                    let returns_to_hand = matches!(
+                        chosen_effect,
+                        Some(crate::core::effect::CardEffect::DealDamageAndReturnToHand { .. })
+                    );
                     if let Some(effect) = chosen_effect {
                         trigger::resolve_effect(state, queue, card, player, effect);
                     }
@@ -524,10 +534,12 @@ pub fn apply_event(
                         player,
                         spell: card,
                     });
-                    state
-                        .world_mut()
-                        .move_to_zone(card, Zone::Graveyard)
-                        .map_err(|_| EngineError::EntityGone(card))?;
+                    if !returns_to_hand {
+                        state
+                            .world_mut()
+                            .move_to_zone(card, Zone::Graveyard)
+                            .map_err(|_| EngineError::EntityGone(card))?;
+                    }
                 }
             } else if card_type == Some(CardType::Weapon) {
                 // 武器牌：先销毁旧武器，然后装备新武器
@@ -645,7 +657,7 @@ pub fn apply_event(
         Event::DamageDealt {
             target,
             amount,
-            source: _,
+            source,
         } => {
             // 圣盾吸收：如果目标有圣盾，移除圣盾，伤害归零
             if state.world().divine_shield(target).is_some() {
@@ -694,7 +706,14 @@ pub fn apply_event(
                 // 目标不存在（已死或已移除），跳过
                 return Ok(());
             };
-            let new_hp = Health(hp.0 - amount);
+            let mut new_hp = Health(hp.0 - amount);
+            // 剧毒：带剧毒的来源对随从造成伤害时直接将其消灭（圣盾判定已优先返回）
+            if state.world().poison(source).is_some()
+                && card_type == Some(CardType::Minion)
+                && amount > 0
+            {
+                new_hp = Health(0);
+            }
 
             // 通过 CoW 修改状态
             state.world_mut().set_health(target, new_hp);

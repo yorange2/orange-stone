@@ -1172,6 +1172,11 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
             attack_reduction, ..
         } => attack_reduction as f64 * 1.5,
         CardEffect::ReflectDamage => 3.0,
+        CardEffect::DealDamageAndReturnToHand { amount, .. } => amount as f64 * 1.2 + 3.0,
+        CardEffect::ReturnFriendlyToHandAndReduceCost { amount } => 2.0 + amount as f64 * 0.5,
+        CardEffect::AdjacentDamage => 3.0,
+        CardEffect::DestroyWeaponAndDealAttackToEnemies => 4.0,
+        CardEffect::GrantStealth => 2.0,
     }
 }
 

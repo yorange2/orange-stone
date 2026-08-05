@@ -256,4 +256,22 @@ pub enum CardEffect {
     },
     /// 将受到的反伤反射给攻击者（奥秘效果）
     ReflectDamage,
+    /// 对目标造成伤害，并在连击时将施放者移回手牌（头部爆裂）
+    DealDamageAndReturnToHand {
+        /// 伤害数值
+        amount: i32,
+        /// 目标选择方式
+        target: EffectTarget,
+    },
+    /// 将一个友方随从移回手牌并使其费用减少（暗影步）
+    ReturnFriendlyToHandAndReduceCost {
+        /// 费用减少量
+        amount: i32,
+    },
+    /// 对目标相邻的随从造成等于其攻击力的伤害（背叛）
+    AdjacentDamage,
+    /// 摧毁己方武器并对所有敌人造成等于其攻击力的伤害（剑刃乱舞）
+    DestroyWeaponAndDealAttackToEnemies,
+    /// 使一个友方随从获得潜行（伪装大师）
+    GrantStealth,
 }

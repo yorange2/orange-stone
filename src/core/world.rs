@@ -11,8 +11,8 @@
 use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
     Charge, ChooseOneEffect, ComboEffect, Cost, DeathTrigger, Deathrattle, DivineShield,
-    Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Secret, SpellDamage,
-    SpellTrigger, SummonTrigger, Taunt, TempAttackDebuff, Windfury,
+    Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Poison, Secret,
+    SpellDamage, SpellTrigger, Stealth, SummonTrigger, Taunt, TempAttackDebuff, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -143,6 +143,10 @@ pub struct World {
     temp_attack_debuff: SparseSet<TempAttackDebuff>,
     /// CardId 组件存储（原始卡牌定义 ID）
     card_id: SparseSet<CardId>,
+    /// Poison 组件存储（剧毒）
+    poison: SparseSet<Poison>,
+    /// Stealth 组件存储（潜行）
+    stealth: SparseSet<Stealth>,
     /// 区域表 — 每个 Zone 的有序实体列表
     zones: Zones,
 }
@@ -185,6 +189,8 @@ impl World {
             attack_equals_health: SparseSet::new(),
             temp_attack_debuff: SparseSet::new(),
             card_id: SparseSet::new(),
+            poison: SparseSet::new(),
+            stealth: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -253,6 +259,8 @@ impl World {
         self.attack_equals_health.remove(entity);
         self.temp_attack_debuff.remove(entity);
         self.card_id.remove(entity);
+        self.poison.remove(entity);
+        self.stealth.remove(entity);
         // 提升 generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // 归还槽位
@@ -512,6 +520,22 @@ impl World {
         set_card_id,
         remove_card_id,
         iter_card_id
+    );
+    component_accessors!(
+        poison,
+        Poison,
+        poison,
+        set_poison,
+        remove_poison,
+        iter_poison
+    );
+    component_accessors!(
+        stealth,
+        Stealth,
+        stealth,
+        set_stealth,
+        remove_stealth,
+        iter_stealth
     );
 
     /// 获取实体每回合可攻击的最大次数。

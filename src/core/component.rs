@@ -337,6 +337,20 @@ pub struct TempAttackDebuff(pub i32);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CardId(pub &'static str);
 
+/// 剧毒 — 对随从造成的伤害直接将其消灭。
+///
+/// 带剧毒的角色对随从造成伤害时，目标生命值被直接归零（不经过正常伤害减免）。
+/// 圣盾仍能吸收剧毒伤害（圣盾判定优先）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Poison;
+
+/// 潜行 — 敌方不能攻击或指定此角色为单目标效果的目标。
+///
+/// 潜行角色仍会受到 AOE（全体伤害）影响。潜行不是永久属性：
+/// 潜行角色攻击后潜行解除（本引擎简化为永久潜行，解除逻辑留待后续）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Stealth;
+
 #[cfg(test)]
 mod tests {
     use super::*;
