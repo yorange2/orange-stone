@@ -82,7 +82,10 @@ pub const SHIELD_BLOCK: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainArmor { amount: 5, target: EffectTarget::Self_ }),
+    battlecry: Some(CardEffect::GainArmor {
+        amount: 5,
+        target: EffectTarget::Self_,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -229,7 +232,6 @@ pub const BATTLE_AXE: CardDef = CardDef {
 };
 
 pub const FROTHING_BERSERKER: CardDef = vanilla!("WARRIOR_007", "Frothing Berserker", 3, 2, 4);
-
 
 pub const WARSONG_COMMANDER: CardDef = CardDef {
     id: "WARRIOR_008",
@@ -393,7 +395,10 @@ pub const ARMORSMITH: CardDef = CardDef {
     attack: 1,
     health: 4,
     durability: 0,
-    battlecry: Some(CardEffect::GainArmor { amount: 1, target: EffectTarget::Self_ }),
+    battlecry: Some(CardEffect::GainArmor {
+        amount: 1,
+        target: EffectTarget::Self_,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -483,7 +488,6 @@ pub const HEROIC_STRIKE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-
 
 /// 冲锋 — 使一个友方随从获得+2攻击力和冲锋
 pub const CHARGE_SPELL: CardDef = CardDef {

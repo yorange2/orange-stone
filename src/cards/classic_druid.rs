@@ -82,7 +82,11 @@ pub const MARK_OF_THE_WILD: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats { attack: 2, health: 3, target: EffectTarget::FriendlyMinion }),
+    battlecry: Some(CardEffect::GainStats {
+        attack: 2,
+        health: 3,
+        target: EffectTarget::FriendlyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -112,7 +116,10 @@ pub const WRATH: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 3, target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 3,
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -142,7 +149,10 @@ pub const SWIPE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 4, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 4,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -172,7 +182,10 @@ pub const STARFIRE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 5, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 5,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -295,7 +308,11 @@ pub const SAVAGE_ROAR: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats { attack: 2, health: 0, target: EffectTarget::AllFriendlyMinions }),
+    battlecry: Some(CardEffect::GainStats {
+        attack: 2,
+        health: 0,
+        target: EffectTarget::AllFriendlyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -317,7 +334,6 @@ pub const SAVAGE_ROAR: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-
 // 德鲁伊补全
 pub const MOONFIRE: CardDef = CardDef {
     id: "DRUID_011",
@@ -327,7 +343,10 @@ pub const MOONFIRE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 1, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 1,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -385,7 +404,10 @@ pub const HEALING_TOUCH: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::RestoreHealth { amount: 8, target: EffectTarget::FriendlyHero }),
+    battlecry: Some(CardEffect::RestoreHealth {
+        amount: 8,
+        target: EffectTarget::FriendlyHero,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -436,7 +458,6 @@ pub const IRONBARK_PROTECTOR: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-
 // 补全德鲁伊 Force of Nature
 pub const FORCE_OF_NATURE: CardDef = CardDef {
     id: "DRUID_015",
@@ -446,7 +467,9 @@ pub const FORCE_OF_NATURE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::SummonMinion { card_id: "DRUID_015t" }),
+    battlecry: Some(CardEffect::SummonMinion {
+        card_id: "DRUID_015t",
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -506,7 +529,11 @@ pub const GIFT_OF_THE_WILD: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats { attack: 2, health: 2, target: EffectTarget::AllFriendlyMinions }),
+    battlecry: Some(CardEffect::GainStats {
+        attack: 2,
+        health: 2,
+        target: EffectTarget::AllFriendlyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -595,7 +622,6 @@ pub const SAVAGERY: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-
 /// 野性之力 — 抉择：使你的随从获得+1/+1；或召唤一个3/2的猎豹
 pub const POWER_OF_THE_WILD: CardDef = CardDef {
     id: "DRUID_019",
@@ -605,7 +631,11 @@ pub const POWER_OF_THE_WILD: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats { attack: 1, health: 1, target: EffectTarget::AllFriendlyMinions }),
+    battlecry: Some(CardEffect::GainStats {
+        attack: 1,
+        health: 1,
+        target: EffectTarget::AllFriendlyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -622,7 +652,9 @@ pub const POWER_OF_THE_WILD: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
-    choose_one_effect: Some(CardEffect::SummonMinion { card_id: "DRUID_019t" }),
+    choose_one_effect: Some(CardEffect::SummonMinion {
+        card_id: "DRUID_019t",
+    }),
     combo_effect: None,
     attack_equals_health: false,
 };
@@ -639,7 +671,11 @@ pub const MARK_OF_NATURE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats { attack: 4, health: 0, target: EffectTarget::FriendlyMinion }),
+    battlecry: Some(CardEffect::GainStats {
+        attack: 4,
+        health: 0,
+        target: EffectTarget::FriendlyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -656,7 +692,11 @@ pub const MARK_OF_NATURE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
-    choose_one_effect: Some(CardEffect::GainStats { attack: 0, health: 4, target: EffectTarget::FriendlyMinion }),
+    choose_one_effect: Some(CardEffect::GainStats {
+        attack: 0,
+        health: 4,
+        target: EffectTarget::FriendlyMinion,
+    }),
     combo_effect: None,
     attack_equals_health: false,
 };
@@ -701,7 +741,10 @@ pub const STARFALL: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 5, target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 5,
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -718,7 +761,10 @@ pub const STARFALL: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
-    choose_one_effect: Some(CardEffect::DealDamage { amount: 2, target: EffectTarget::AllEnemyMinions }),
+    choose_one_effect: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AllEnemyMinions,
+    }),
     combo_effect: None,
     attack_equals_health: false,
 };

@@ -100,11 +100,7 @@ fn matches_trigger(
 }
 
 /// 检查敌方随从是否攻击己方英雄。
-fn matches_enemy_minion_attacks_hero(
-    event: &Event,
-    state: &GameState,
-    owner: PlayerId,
-) -> bool {
+fn matches_enemy_minion_attacks_hero(event: &Event, state: &GameState, owner: PlayerId) -> bool {
     use crate::core::component::CardType;
     if let Event::AttackDeclared { attacker, defender } = event {
         let hero = state.player(owner).hero;

@@ -17,7 +17,10 @@ pub const HOLY_SMITE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 3, target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 3,
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -47,7 +50,10 @@ pub const MIND_BLAST: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 5, target: EffectTarget::EnemyHero }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 5,
+        target: EffectTarget::EnemyHero,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -77,7 +83,11 @@ pub const POWER_WORD_SHIELD: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats { attack: 0, health: 2, target: EffectTarget::FriendlyMinion }),
+    battlecry: Some(CardEffect::GainStats {
+        attack: 0,
+        health: 2,
+        target: EffectTarget::FriendlyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -109,7 +119,9 @@ pub const SHADOW_WORD_PAIN: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DestroyMinion { target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -139,7 +151,9 @@ pub const SHADOW_WORD_DEATH: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DestroyMinion { target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -169,7 +183,10 @@ pub const HOLY_NOVA: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 2, target: EffectTarget::AllEnemyMinions }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AllEnemyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -199,7 +216,10 @@ pub const HOLY_FIRE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 5, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 5,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -221,7 +241,6 @@ pub const HOLY_FIRE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-
 pub const CIRCLE_OF_HEALING: CardDef = CardDef {
     id: "PRIEST_009",
     name: "Circle of Healing",
@@ -230,7 +249,10 @@ pub const CIRCLE_OF_HEALING: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::RestoreHealth { amount: 4, target: EffectTarget::AllMinions }),
+    battlecry: Some(CardEffect::RestoreHealth {
+        amount: 4,
+        target: EffectTarget::AllMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -351,7 +373,9 @@ pub const SILENCE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::SilenceMinion { target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::SilenceMinion {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -380,7 +404,9 @@ pub const SHADOW_WORD_RUIN: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DestroyMinion { target: EffectTarget::AllMinions }),
+    battlecry: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::AllMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -445,7 +471,10 @@ pub const RADIANCE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::RestoreHealth { amount: 5, target: EffectTarget::FriendlyHero }),
+    battlecry: Some(CardEffect::RestoreHealth {
+        amount: 5,
+        target: EffectTarget::FriendlyHero,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -509,7 +538,9 @@ pub const MASS_DISPEL: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::SilenceMinion { target: EffectTarget::AllEnemyMinions }),
+    battlecry: Some(CardEffect::SilenceMinion {
+        target: EffectTarget::AllEnemyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -530,7 +561,6 @@ pub const MASS_DISPEL: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-
 
 /// 神圣之灵 — 使一个随从的生命值翻倍
 pub const DIVINE_SPIRIT: CardDef = CardDef {
@@ -619,7 +649,10 @@ pub const LIGHTWELL: CardDef = CardDef {
     spell_damage: 0,
     cant_attack: false,
     spell_effect: None,
-    end_turn_effect: Some(CardEffect::RestoreHealth { amount: 3, target: EffectTarget::FriendlyHero }),
+    end_turn_effect: Some(CardEffect::RestoreHealth {
+        amount: 3,
+        target: EffectTarget::FriendlyHero,
+    }),
     start_turn_effect: None,
     spell_trigger: None,
     death_trigger: None,
@@ -669,7 +702,10 @@ pub const SCARLET_SUBJUGATOR: CardDef = CardDef {
     attack: 2,
     health: 1,
     durability: 0,
-    battlecry: Some(CardEffect::TempDebuff { attack_reduction: 2, target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::TempDebuff {
+        attack_reduction: 2,
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,

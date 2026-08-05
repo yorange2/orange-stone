@@ -270,7 +270,10 @@ impl BattleRunner {
     }
 
     /// 生成两个随机牌组（每个 player 的牌组内不重复）。
-    fn generate_random_decks(&mut self, deck_size: usize) -> (Vec<&'static CardDef>, Vec<&'static CardDef>) {
+    fn generate_random_decks(
+        &mut self,
+        deck_size: usize,
+    ) -> (Vec<&'static CardDef>, Vec<&'static CardDef>) {
         let unique_cards: Vec<&CardDef> = ALL_CARDS.iter().collect();
         let total = unique_cards.len();
 
@@ -283,34 +286,36 @@ impl BattleRunner {
 
         // 优先选择使用次数较少的卡牌：
         // 对每个位置，在洗牌后的几个候选中选使用次数最少的
-        let pick_card = |rng: &mut GameRng, tracker: &CardTracker, used: &mut Vec<bool>| -> &'static CardDef {
-            // 在未使用的卡牌中，随机选几个，挑使用次数最少的
-            let candidates: Vec<usize> = (0..total)
-                .filter(|&idx| !used[indices[idx]])
-                .collect();
-            if candidates.is_empty() {
-                // 去重卡牌全部用了，允许复用
-                let pick = rng.next_usize(total);
-                return unique_cards[pick];
-            }
-            // 取 5 个候选，选 deck_count 最少的
-            let n = (candidates.len()).min(5);
-            let start = rng.next_usize(candidates.len());
-            let mut best: Option<(usize, &'static str)> = None;
-            for i in 0..n {
-                let ci = candidates[(start + i) % candidates.len()];
-                let card = unique_cards[indices[ci]];
-                let cnt = *tracker.deck_count.get(card.id).unwrap_or(&0);
-                if best.is_none_or(|(b_cnt, _)| cnt < b_cnt) {
-                    best = Some((cnt, card.id));
+        let pick_card =
+            |rng: &mut GameRng, tracker: &CardTracker, used: &mut Vec<bool>| -> &'static CardDef {
+                // 在未使用的卡牌中，随机选几个，挑使用次数最少的
+                let candidates: Vec<usize> =
+                    (0..total).filter(|&idx| !used[indices[idx]]).collect();
+                if candidates.is_empty() {
+                    // 去重卡牌全部用了，允许复用
+                    let pick = rng.next_usize(total);
+                    return unique_cards[pick];
                 }
-            }
-            let card_id = best.unwrap().1;
-            // 找到对应卡牌
-            let idx = (0..total).find(|&i| unique_cards[indices[i]].id == card_id).unwrap();
-            used[indices[idx]] = true;
-            unique_cards[indices[idx]]
-        };
+                // 取 5 个候选，选 deck_count 最少的
+                let n = (candidates.len()).min(5);
+                let start = rng.next_usize(candidates.len());
+                let mut best: Option<(usize, &'static str)> = None;
+                for i in 0..n {
+                    let ci = candidates[(start + i) % candidates.len()];
+                    let card = unique_cards[indices[ci]];
+                    let cnt = *tracker.deck_count.get(card.id).unwrap_or(&0);
+                    if best.is_none_or(|(b_cnt, _)| cnt < b_cnt) {
+                        best = Some((cnt, card.id));
+                    }
+                }
+                let card_id = best.unwrap().1;
+                // 找到对应卡牌
+                let idx = (0..total)
+                    .find(|&i| unique_cards[indices[i]].id == card_id)
+                    .unwrap();
+                used[indices[idx]] = true;
+                unique_cards[indices[idx]]
+            };
 
         let mut used1 = vec![false; total];
         let mut used2 = vec![false; total];

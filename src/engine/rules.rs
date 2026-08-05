@@ -8,7 +8,9 @@
 //! 所有函数都是纯函数式风格，通过 `GameState` 参数与状态交互。
 
 use crate::core::action::Action;
-use crate::core::component::{Attack, AttacksUsed, CardType, Durability, Health, HeroPowerUsed};
+use crate::core::component::{
+    Attack, AttacksUsed, CardType, Durability, Health, HeroPowerUsed, Secret,
+};
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue, Priority};
 use crate::core::player::PlayerId;
@@ -84,7 +86,10 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
 
     // 必须是随从、武器或法术
     let card_type = world.card_type(card).ok_or(EngineError::NotPlayable)?;
-    if card_type != CardType::Minion && card_type != CardType::Weapon && card_type != CardType::Spell {
+    if card_type != CardType::Minion
+        && card_type != CardType::Weapon
+        && card_type != CardType::Spell
+    {
         return Err(EngineError::NotPlayable);
     }
 
@@ -462,37 +467,68 @@ pub fn apply_event(
             // 检测连击：本回合已打出其他牌 (cards_played > 1 因为刚递增了)
             let combo_active = state.player(player).cards_played_this_turn > 1;
             if card_type == Some(CardType::Spell) {
-                // 法术牌：解析效果（支持抉择随机选择和连击），然后移入坟墓场
-                let chosen_effect = if combo_active {
-                    // 连击：优先使用 combo_effect
-                    state.world().combo_effect(card).map(|c| c.0)
-                        .or_else(|| state.world().battlecry(card).map(|b| b.0))
-                } else if state.world().choose_one_effect(card).is_some() {
-                    // 抉择：随机选一个
-                    let has_main = state.world().battlecry(card).is_some();
-                    let has_alt = state.world().choose_one_effect(card).is_some();
-                    if has_main && has_alt {
-                        if state.rng_mut().next_usize(2) == 0 {
-                            state.world().battlecry(card).map(|b| b.0)
+                // 奥秘卡牌：挂载奥秘组件并放入 SetAside 区域（触发条件满足时揭示）。
+                // 奥秘效果存储在 battlecry 槽位（与法术牌惯例一致）。
+                let secret_trigger = state
+                    .world()
+                    .card_id(card)
+                    .and_then(|cid| crate::cards::def::card_by_id(cid.0))
+                    .and_then(|def| def.secret);
+                if let Some(trigger) = secret_trigger {
+                    if let Some(effect) = state.world().battlecry(card).map(|b| b.0) {
+                        let inner = state.make_mut();
+                        inner.world.set_secret(card, Secret { trigger, effect });
+                    }
+                    state
+                        .world_mut()
+                        .move_to_zone(card, Zone::SetAside)
+                        .map_err(|_| EngineError::EntityGone(card))?;
+                    queue.push(Event::SpellCast {
+                        player,
+                        spell: card,
+                    });
+                } else {
+                    // 法术牌：解析效果（支持抉择随机选择和连击），然后移入坟墓场
+                    let chosen_effect = if combo_active {
+                        // 连击：优先使用 combo_effect
+                        state
+                            .world()
+                            .combo_effect(card)
+                            .map(|c| c.0)
+                            .or_else(|| state.world().battlecry(card).map(|b| b.0))
+                    } else if state.world().choose_one_effect(card).is_some() {
+                        // 抉择：随机选一个
+                        let has_main = state.world().battlecry(card).is_some();
+                        let has_alt = state.world().choose_one_effect(card).is_some();
+                        if has_main && has_alt {
+                            if state.rng_mut().next_usize(2) == 0 {
+                                state.world().battlecry(card).map(|b| b.0)
+                            } else {
+                                state.world().choose_one_effect(card).map(|c| c.0)
+                            }
                         } else {
-                            state.world().choose_one_effect(card).map(|c| c.0)
+                            state
+                                .world()
+                                .battlecry(card)
+                                .map(|b| b.0)
+                                .or_else(|| state.world().choose_one_effect(card).map(|c| c.0))
                         }
                     } else {
                         state.world().battlecry(card).map(|b| b.0)
-                            .or_else(|| state.world().choose_one_effect(card).map(|c| c.0))
+                    };
+                    if let Some(effect) = chosen_effect {
+                        trigger::resolve_effect(state, queue, card, player, effect);
                     }
-                } else {
-                    state.world().battlecry(card).map(|b| b.0)
-                };
-                if let Some(effect) = chosen_effect {
-                    trigger::resolve_effect(state, queue, card, player, effect);
+                    // 触发法术施放事件
+                    queue.push(Event::SpellCast {
+                        player,
+                        spell: card,
+                    });
+                    state
+                        .world_mut()
+                        .move_to_zone(card, Zone::Graveyard)
+                        .map_err(|_| EngineError::EntityGone(card))?;
                 }
-                // 触发法术施放事件
-                queue.push(Event::SpellCast { player, spell: card });
-                state
-                    .world_mut()
-                    .move_to_zone(card, Zone::Graveyard)
-                    .map_err(|_| EngineError::EntityGone(card))?;
             } else if card_type == Some(CardType::Weapon) {
                 // 武器牌：先销毁旧武器，然后装备新武器
                 let old_weapon = state.player(player).weapon;
@@ -515,6 +551,19 @@ pub fn apply_event(
                     player,
                     weapon: card,
                 });
+                // 武器战吼（连击感知）：装备后解析，如毁灭之刃
+                let weapon_effect = if combo_active {
+                    state
+                        .world()
+                        .combo_effect(card)
+                        .map(|c| c.0)
+                        .or_else(|| state.world().battlecry(card).map(|b| b.0))
+                } else {
+                    state.world().battlecry(card).map(|b| b.0)
+                };
+                if let Some(effect) = weapon_effect {
+                    trigger::resolve_effect(state, queue, card, player, effect);
+                }
             } else {
                 // 卡牌从手牌移到战场
                 state
@@ -526,14 +575,15 @@ pub fn apply_event(
         Event::MinionSummoned { player, minion } => {
             // 召唤失调：非冲锋随从本回合不能攻击
             if state.world().charge(minion).is_none() {
-                state
-                    .world_mut()
-                    .set_attacks_used(minion, AttacksUsed(1));
+                state.world_mut().set_attacks_used(minion, AttacksUsed(1));
             }
             // 检查战吼组件（支持连击）
             let combo_active = state.player(player).cards_played_this_turn > 1;
             let chosen_effect = if combo_active {
-                state.world().combo_effect(minion).map(|c| c.0)
+                state
+                    .world()
+                    .combo_effect(minion)
+                    .map(|c| c.0)
                     .or_else(|| state.world().battlecry(minion).map(|b| b.0))
             } else {
                 state.world().battlecry(minion).map(|b| b.0)

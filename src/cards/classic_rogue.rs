@@ -16,7 +16,10 @@ pub const BACKSTAB: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 2, target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -46,7 +49,10 @@ pub const DEADLY_POISON: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::BuffWeapon { attack: 2, durability: 0 }),
+    battlecry: Some(CardEffect::BuffWeapon {
+        attack: 2,
+        durability: 0,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -76,7 +82,10 @@ pub const EVISCERATE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 2, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -94,7 +103,10 @@ pub const EVISCERATE: CardDef = CardDef {
     death_trigger: None,
     summon_trigger: None,
     choose_one_effect: None,
-    combo_effect: Some(CardEffect::DealDamage { amount: 4, target: EffectTarget::AnyEnemy }),
+    combo_effect: Some(CardEffect::DealDamage {
+        amount: 4,
+        target: EffectTarget::AnyEnemy,
+    }),
     attack_equals_health: false,
 };
 
@@ -106,7 +118,9 @@ pub const SAP: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::ReturnToHand { target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::ReturnToHand {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -157,7 +171,10 @@ pub const SI7_AGENT: CardDef = CardDef {
     death_trigger: None,
     summon_trigger: None,
     choose_one_effect: None,
-    combo_effect: Some(CardEffect::DealDamage { amount: 2, target: EffectTarget::AnyEnemy }),
+    combo_effect: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AnyEnemy,
+    }),
     attack_equals_health: false,
 };
 
@@ -169,7 +186,9 @@ pub const ASSASSINATE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DestroyMinion { target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -229,7 +248,10 @@ pub const FAN_OF_KNIVES: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 1, target: EffectTarget::AllEnemyMinions }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 1,
+        target: EffectTarget::AllEnemyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -250,7 +272,6 @@ pub const FAN_OF_KNIVES: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-
 
 pub const PREPARATION: CardDef = CardDef {
     id: "ROGUE_009",
@@ -308,7 +329,11 @@ pub const COLD_BLOOD: CardDef = CardDef {
     death_trigger: None,
     summon_trigger: None,
     choose_one_effect: None,
-    combo_effect: Some(CardEffect::GainStats { attack: 4, health: 0, target: EffectTarget::FriendlyMinion }),
+    combo_effect: Some(CardEffect::GainStats {
+        attack: 4,
+        health: 0,
+        target: EffectTarget::FriendlyMinion,
+    }),
     attack_equals_health: false,
 };
 
@@ -368,7 +393,11 @@ pub const EDWIN_VANCLEEF: CardDef = CardDef {
     death_trigger: None,
     summon_trigger: None,
     choose_one_effect: None,
-    combo_effect: Some(CardEffect::GainStats { attack: 4, health: 4, target: EffectTarget::Self_ }),
+    combo_effect: Some(CardEffect::GainStats {
+        attack: 4,
+        health: 4,
+        target: EffectTarget::Self_,
+    }),
     attack_equals_health: false,
 };
 
@@ -381,7 +410,10 @@ pub const SINISTER_STRIKE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 3, target: EffectTarget::EnemyHero }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 3,
+        target: EffectTarget::EnemyHero,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -460,7 +492,6 @@ pub const ASSASSINS_BLADE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-
 
 /// 消失 — 将所有随从移回其拥有者的手牌
 pub const VANISH: CardDef = CardDef {

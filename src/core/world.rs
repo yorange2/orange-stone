@@ -9,10 +9,10 @@
 //! 所有实体访问都经过 generation 检查，防止悬垂引用。
 
 use crate::core::component::{
-    Armor, Attack, AttacksUsed, AttackEqualsHealth, Aura, Battlecry, CantAttack, CardType, Charge,
-    ChooseOneEffect, ComboEffect, Cost, DeathTrigger, Deathrattle, DivineShield, Durability,
-    EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Secret, SpellDamage, SpellTrigger,
-    SummonTrigger, Taunt, TempAttackDebuff, Windfury,
+    Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
+    Charge, ChooseOneEffect, ComboEffect, Cost, DeathTrigger, Deathrattle, DivineShield,
+    Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Secret, SpellDamage,
+    SpellTrigger, SummonTrigger, Taunt, TempAttackDebuff, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -141,6 +141,8 @@ pub struct World {
     attack_equals_health: SparseSet<AttackEqualsHealth>,
     /// TempAttackDebuff 组件存储（临时攻击减益）
     temp_attack_debuff: SparseSet<TempAttackDebuff>,
+    /// CardId 组件存储（原始卡牌定义 ID）
+    card_id: SparseSet<CardId>,
     /// 区域表 — 每个 Zone 的有序实体列表
     zones: Zones,
 }
@@ -182,6 +184,7 @@ impl World {
             combo_effect: SparseSet::new(),
             attack_equals_health: SparseSet::new(),
             temp_attack_debuff: SparseSet::new(),
+            card_id: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -249,6 +252,7 @@ impl World {
         self.combo_effect.remove(entity);
         self.attack_equals_health.remove(entity);
         self.temp_attack_debuff.remove(entity);
+        self.card_id.remove(entity);
         // 提升 generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // 归还槽位
@@ -500,6 +504,14 @@ impl World {
         set_temp_attack_debuff,
         remove_temp_attack_debuff,
         iter_temp_attack_debuff
+    );
+    component_accessors!(
+        card_id,
+        CardId,
+        card_id,
+        set_card_id,
+        remove_card_id,
+        iter_card_id
     );
 
     /// 获取实体每回合可攻击的最大次数。

@@ -32,7 +32,10 @@ fn run_1000_battles() {
     println!("║  机器人:   SmartBot vs SmartBot                             ║");
     println!("║  每局牌组: 30 张                                            ║");
     println!("╠══════════════════════════════════════════════════════════════╣");
-    println!("║  卡牌总数: {}                                              ║", orange_stone::cards::sets::ALL_CARDS.len());
+    println!(
+        "║  卡牌总数: {}                                              ║",
+        orange_stone::cards::sets::ALL_CARDS.len()
+    );
 
     let unique_cards = {
         use std::collections::HashSet;
@@ -96,14 +99,23 @@ fn run_1000_battles() {
     println!("╠══════════════════════════════════════════════════════════════╣");
     println!("║  总对局数:     {:<46}║", stats.games_played);
     println!("║  总用时:       {:.1}s{:<41}║", elapsed.as_secs_f64(), "");
-    println!("║  每局平均:     {:.2}s{:<41}║", elapsed.as_secs_f64() / stats.games_played as f64, "");
+    println!(
+        "║  每局平均:     {:.2}s{:<41}║",
+        elapsed.as_secs_f64() / stats.games_played as f64,
+        ""
+    );
     println!("║  总动作数:     {:<46}║", stats.total_actions);
     println!("║  总回合数:     {:<46}║", stats.total_turns);
     println!("║  P1 胜:        {:<46}║", stats.p1_wins);
     println!("║  P2 胜:        {:<46}║", stats.p2_wins);
     println!("║  超时:         {:<46}║", stats.turn_limit_hits);
-    println!("║  卡牌覆盖:     {}/{} ({:.1}%){:<30}║",
-        covered, total, covered as f64 / total as f64 * 100.0, "");
+    println!(
+        "║  卡牌覆盖:     {}/{} ({:.1}%){:<30}║",
+        covered,
+        total,
+        covered as f64 / total as f64 * 100.0,
+        ""
+    );
     println!("╠══════════════════════════════════════════════════════════════╣");
 
     // 引擎错误统计
@@ -156,10 +168,12 @@ fn run_1000_battles() {
     let least = tracker.least_used();
     let most = tracker.most_used();
 
-    println!("║  最少使用 ({min}次): {count} 张卡牌{pad}║",
+    println!(
+        "║  最少使用 ({min}次): {count} 张卡牌{pad}║",
         min = least.first().map(|(_, c)| *c).unwrap_or(0),
         count = least.len(),
-        pad = "");
+        pad = ""
+    );
     for (id, cnt) in least.iter().take(5) {
         let name = get_card_name(&id);
         println!("║    {cnt}× {id} ({name})");
@@ -169,9 +183,11 @@ fn run_1000_battles() {
     }
 
     println!("║                                                              ║");
-    println!("║  最多使用 ({max}次):{pad}║",
+    println!(
+        "║  最多使用 ({max}次):{pad}║",
         max = most.first().map(|(_, c)| *c).unwrap_or(0),
-        pad = "");
+        pad = ""
+    );
     for (id, cnt) in most.iter().take(5) {
         let name = get_card_name(&id);
         println!("║    {cnt}× {id} ({name})");
@@ -193,7 +209,9 @@ fn run_1000_battles() {
     if total_errors > 0 {
         println!("\n⚠️  检测到 {total_errors} 个引擎错误！请检查上面的错误详情。");
         // 对常见预期错误不 panic（如 HeroPowerAlreadyUsed 等机器人策略问题）
-        let unexpected_errors: Vec<_> = stats.all_errors.iter()
+        let unexpected_errors: Vec<_> = stats
+            .all_errors
+            .iter()
             .filter(|e| {
                 // 排除所有已知的机器人策略错误
                 !e.error.contains("HeroPowerAlreadyUsed")

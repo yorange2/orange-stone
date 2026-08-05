@@ -16,7 +16,9 @@ pub const EARTH_SHOCK: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::SilenceMinion { target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::SilenceMinion {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -46,7 +48,10 @@ pub const LIGHTNING_BOLT: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 3, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 3,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -76,7 +81,10 @@ pub const ROCKBITER_WEAPON: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainHeroAttack { attack: 3, armor: 0 }),
+    battlecry: Some(CardEffect::GainHeroAttack {
+        attack: 3,
+        armor: 0,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -136,7 +144,9 @@ pub const HEX: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DestroyMinion { target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -166,7 +176,10 @@ pub const LIGHTNING_STORM: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 2, target: EffectTarget::AllEnemyMinions }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AllEnemyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -229,7 +242,11 @@ pub const BLOODLUST: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats { attack: 3, health: 0, target: EffectTarget::AllFriendlyMinions }),
+    battlecry: Some(CardEffect::GainStats {
+        attack: 3,
+        health: 0,
+        target: EffectTarget::AllFriendlyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -250,7 +267,6 @@ pub const BLOODLUST: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-
 
 pub const FERAL_SPIRIT: CardDef = CardDef {
     id: "SHAMAN_009",
@@ -381,7 +397,11 @@ pub const TOTEMIC_MIGHT: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats { attack: 0, health: 2, target: EffectTarget::AllFriendlyMinions }),
+    battlecry: Some(CardEffect::GainStats {
+        attack: 0,
+        health: 2,
+        target: EffectTarget::AllFriendlyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -410,7 +430,10 @@ pub const FROST_SHOCK: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 1, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 1,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -497,7 +520,10 @@ pub const LAVA_BURST: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 5, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 5,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -576,7 +602,6 @@ pub const EARTH_ELEMENTAL: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-
 
 /// 风怒 — 使一个友方随从获得风怒
 pub const WINDFURY: CardDef = CardDef {

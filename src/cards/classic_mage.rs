@@ -16,7 +16,10 @@ pub const ARCANE_MISSILES: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 3, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 3,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -46,7 +49,10 @@ pub const FROSTBOLT: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 3, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 3,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -106,7 +112,9 @@ pub const FROST_NOVA: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::FreezeCharacter { target: EffectTarget::AllEnemyMinions }),
+    battlecry: Some(CardEffect::FreezeCharacter {
+        target: EffectTarget::AllEnemyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -136,7 +144,10 @@ pub const FIREBALL: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 6, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 6,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -166,7 +177,9 @@ pub const POLYMORPH: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DestroyMinion { target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -226,7 +239,10 @@ pub const FLAMESTRIKE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 4, target: EffectTarget::AllEnemyMinions }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 4,
+        target: EffectTarget::AllEnemyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -256,7 +272,10 @@ pub const PYROBLAST: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 10, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 10,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -277,7 +296,6 @@ pub const PYROBLAST: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-
 
 pub const ICE_BARRIER: CardDef = CardDef {
     id: "MAGE_010",
@@ -407,7 +425,10 @@ pub const BLIZZARD: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 2, target: EffectTarget::AllEnemyMinions }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AllEnemyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -438,7 +459,9 @@ pub const CONE_OF_COLD: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::FreezeCharacter { target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::FreezeCharacter {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -469,7 +492,10 @@ pub const ARCANE_EXPLOSION: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 1, target: EffectTarget::AllEnemyMinions }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 1,
+        target: EffectTarget::AllEnemyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -490,7 +516,6 @@ pub const ARCANE_EXPLOSION: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-
 
 /// 玛瑙巫师 — 每当你施放一个法术，获得+1攻击力
 pub const MANA_WYRM: CardDef = CardDef {
@@ -579,7 +604,11 @@ pub const ETHEREAL_ARCANIST: CardDef = CardDef {
     spell_damage: 0,
     cant_attack: false,
     spell_effect: None,
-    end_turn_effect: Some(CardEffect::GainStats { attack: 2, health: 2, target: EffectTarget::Self_ }),
+    end_turn_effect: Some(CardEffect::GainStats {
+        attack: 2,
+        health: 2,
+        target: EffectTarget::Self_,
+    }),
     start_turn_effect: None,
     spell_trigger: None,
     death_trigger: None,

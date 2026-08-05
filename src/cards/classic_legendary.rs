@@ -394,7 +394,6 @@ pub const DEATHWING: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-
 /// 绿皮船长 — 战吼：使你的武器获得+1/+1
 pub const CAPTAIN_GREENSKIN: CardDef = CardDef {
     id: "LEGENDARY_018",
@@ -469,7 +468,9 @@ pub const THE_BLACK_KNIGHT: CardDef = CardDef {
     attack: 4,
     health: 5,
     durability: 0,
-    battlecry: Some(CardEffect::DestroyMinion { target: EffectTarget::TauntEnemyMinion }),
+    battlecry: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::TauntEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
