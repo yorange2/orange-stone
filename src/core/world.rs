@@ -11,7 +11,7 @@
 use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
     Charge, ChooseOneEffect, ComboEffect, Cost, DeathTrigger, Deathrattle, DivineShield,
-    Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Poison, Secret,
+    Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Immune, Poison, Secret,
     SpellDamage, SpellTrigger, Stealth, SummonTrigger, Taunt, TempAttackDebuff, Windfury,
 };
 use crate::core::entity::Entity;
@@ -147,6 +147,8 @@ pub struct World {
     poison: SparseSet<Poison>,
     /// Stealth 组件存储（潜行）
     stealth: SparseSet<Stealth>,
+    /// Immune 组件存储（免疫）
+    immune: SparseSet<Immune>,
     /// 区域表 — 每个 Zone 的有序实体列表
     zones: Zones,
 }
@@ -191,6 +193,7 @@ impl World {
             card_id: SparseSet::new(),
             poison: SparseSet::new(),
             stealth: SparseSet::new(),
+            immune: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -261,6 +264,7 @@ impl World {
         self.card_id.remove(entity);
         self.poison.remove(entity);
         self.stealth.remove(entity);
+        self.immune.remove(entity);
         // 提升 generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // 归还槽位
@@ -536,6 +540,14 @@ impl World {
         set_stealth,
         remove_stealth,
         iter_stealth
+    );
+    component_accessors!(
+        immune,
+        Immune,
+        immune,
+        set_immune,
+        remove_immune,
+        iter_immune
     );
 
     /// 获取实体每回合可攻击的最大次数。

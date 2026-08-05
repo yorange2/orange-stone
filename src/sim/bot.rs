@@ -1186,6 +1186,9 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DrawCardAndReduceCost { amount } => 3.0 + amount as f64 * 0.5,
         CardEffect::GrantDeathrattleAll { .. } => 3.0,
         CardEffect::GiveCardToOpponent { count, .. } => -(count as f64) * 1.0,
+        CardEffect::FreezeOrDamage { amount } => 1.0 + amount as f64,
+        CardEffect::DestroyAndGainHealth => 5.0,
+        CardEffect::GrantAttackAndImmune { attack } => 2.0 + attack as f64 * 1.5,
     }
 }
 

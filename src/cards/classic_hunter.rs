@@ -721,3 +721,72 @@ pub const SNIPE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// Tier 2 补全 — 免疫
+// ============================================================
+
+/// 角斗士的长弓的卡牌 ID — 引擎据此判断英雄攻击时是否免疫。
+pub const GLADIATORS_LONGBOW_ID: &str = "HUNTER_022";
+
+/// 狂野怒火 — 使一个野兽获得 +2 攻击力和免疫，直到本回合结束。
+/// （本引擎简化为任意友方随从）
+pub const BESTIAL_WRATH: CardDef = CardDef {
+    id: "HUNTER_021",
+    name: "Bestial Wrath",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::GrantAttackAndImmune { attack: 2 }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 角斗士的长弓 — 武器 5/2；你的英雄在攻击时具有免疫。
+pub const GLADIATORS_LONGBOW: CardDef = CardDef {
+    id: GLADIATORS_LONGBOW_ID,
+    name: "Gladiator's Longbow",
+    card_type: CardType::Weapon,
+    cost: 7,
+    attack: 5,
+    health: 0,
+    durability: 2,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
