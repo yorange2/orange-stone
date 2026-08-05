@@ -302,4 +302,16 @@ pub enum CardEffect {
         /// 费用减少量
         amount: i32,
     },
+    /// 使所有友方随从获得"亡语：召唤指定随从"（丛林之魂）
+    GrantDeathrattleAll {
+        /// 亡语要召唤的卡牌 ID
+        card_id: &'static str,
+    },
+    /// 将指定卡牌置入对手手牌（穆克拉的香蕉）
+    GiveCardToOpponent {
+        /// 要给予的卡牌 ID
+        card_id: &'static str,
+        /// 数量
+        count: u32,
+    },
 }

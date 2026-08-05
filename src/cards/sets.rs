@@ -161,6 +161,9 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     LOOT_HOARDER,
     STRANGLETHORN_TIGER,
     RAVENHOLDT_ASSASSIN,
+    // Tier 2 补全
+    KING_MUKLA,
+    BANANA,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -216,6 +219,11 @@ pub const DRUID_CLASSIC: &[CardDef] = &[
     MARK_OF_NATURE,
     NOURISH,
     STARFALL,
+    // Tier 2 补全
+    CENARIUS,
+    CENARIUS_TREANT,
+    KEEPER_OF_THE_GROVE,
+    SOUL_OF_THE_FOREST,
 ];
 
 pub const HUNTER_CLASSIC: &[CardDef] = &[
@@ -838,4 +846,11 @@ pub const ALL_CARDS: &[CardDef] = &[
     KIRIN_TOR_MAGE,
     FAR_SIGHT,
     SUMMONING_PORTAL,
+    // Tier 2 德鲁伊
+    CENARIUS,
+    CENARIUS_TREANT,
+    KEEPER_OF_THE_GROVE,
+    SOUL_OF_THE_FOREST,
+    KING_MUKLA,
+    BANANA,
 ];

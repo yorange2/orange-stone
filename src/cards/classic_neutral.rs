@@ -2628,3 +2628,75 @@ pub const LOOT_HOARDER: CardDef = CardDef {
 pub const STRANGLETHORN_TIGER: CardDef = vanilla!("NEUTRAL_T14", "Stranglethorn Tiger", 5, 5, 5);
 /// 拉文霍德刺客 — 潜行（简化：白板，引擎暂未实现潜行）
 pub const RAVENHOLDT_ASSASSIN: CardDef = vanilla!("NEUTRAL_T15", "Ravenholdt Assassin", 7, 7, 5);
+
+// Tier 2 补全 — 穆克拉
+// ============================================================
+
+/// 穆克拉 — 战吼：给你的对手 2 张香蕉。
+pub const KING_MUKLA: CardDef = CardDef {
+    id: "NEUTRAL_T16",
+    name: "King Mukla",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 5,
+    health: 5,
+    durability: 0,
+    battlecry: Some(CardEffect::GiveCardToOpponent {
+        card_id: "NEUTRAL_T16t",
+        count: 2,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 香蕉（穆克拉 token）— 使一个随从获得 +1/+1。
+pub const BANANA: CardDef = CardDef {
+    id: "NEUTRAL_T16t",
+    name: "Banana",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::GainStats {
+        attack: 1,
+        health: 1,
+        target: EffectTarget::FriendlyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
