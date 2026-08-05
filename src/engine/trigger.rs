@@ -81,7 +81,7 @@ pub fn resolve_effect(
             let inner = state.make_mut();
             let p = &mut inner.players[owner.index()];
             p.mana_crystals = (p.mana_crystals + count).min(10);
-            p.current_mana += count;
+            p.current_mana = (p.current_mana + count).min(10);
         }
         CardEffect::DestroyWeapon => {
             let enemy = owner.opponent();
