@@ -88,11 +88,11 @@
 
 ### 里程碑 C — RL 环境准备（CLAUDE.md Phase 4）
 
-- [ ] **C1** — 为 `Action::PlayCard` 增加可选目标（缺省时引擎随机回退），解锁保真的决策空间。
-- [ ] **C2** — PyO3 绑定（`py_bind/`）+ Gym-like 环境（`rl/env.rs`）。
-- [ ] **C3** — 观察空间张量化（`rl/obs.rs`）。
-- [ ] **C4** — 奖励函数配置（`rl/reward.rs`）。
-- [ ] **C5** — 批量模拟 API：多个 `GameState` 并行（rayon）。
+- [x] **C1** — 为 `Action::PlayCard` 增加可选目标（缺省时引擎随机回退），解锁保真的决策空间。*(PR #40：`select_target` 显式目标优先，20+ 单目标解析器接入)*
+- [x] **C2** — PyO3 绑定（`py_bind/`）+ Gym-like 环境（`rl/env.rs`）。*(PR #42：`GameEnv` reset/step/legal_actions；`py` feature 门控的 `GameEnv` 类，maturin wheel 实测通过)*
+- [x] **C3** — 观察空间张量化（`rl/obs.rs`）。*(PR #42：168 维固定长度观察)*
+- [x] **C4** — 奖励函数配置（`rl/reward.rs`）。*(PR #42：稀疏胜/负 + 密集整形分量)*
+- [x] **C5** — 批量模拟 API：多个 `GameState` 并行（rayon）。*(PR #41：`BatchSimulator`)*
 
 ### 里程碑 D — 规模
 

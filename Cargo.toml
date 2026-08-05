@@ -5,8 +5,13 @@ edition = "2024"
 rust-version = "1.85"
 license = "MIT"
 
+[features]
+# Python 绑定（PyO3，stable ABI — 编译无需本机 Python 头文件）
+py = ["dep:pyo3"]
+
 [dependencies]
 rayon = "1.10"
+pyo3 = { version = "0.25", features = ["abi3-py38"], optional = true }
 
 [dev-dependencies]
 criterion = "0.5"
