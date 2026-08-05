@@ -14,6 +14,7 @@
 //! let mut branch = parent.clone();  // Arc refcount bump
 //! // 对 branch 修改时自动 CoW，parent 不受影响
 //! ```
+use serde::{Deserialize, Serialize};
 
 use crate::core::component::{Attack, AttacksUsed, CardType, Cost, Health};
 use crate::core::player::{Player, PlayerId};
@@ -23,7 +24,7 @@ use crate::sim::rng::GameRng;
 use std::sync::Arc;
 
 /// 游戏阶段。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Phase {
     /// 主要阶段 — 玩家可以出牌、攻击、结束回合
     Main,
@@ -39,7 +40,7 @@ pub enum Phase {
 /// 游戏状态的内部数据 — 通过 `Arc` 共享。
 ///
 /// 包含完整的 World、玩家信息和游戏元数据。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Inner {
     /// ECS World（实体和组件）
     pub world: World,
@@ -60,7 +61,7 @@ pub struct Inner {
 /// Clone 是 O(1)。变异通过内部的 `Arc::make_mut` 触发 CoW：
 /// - 若仅有一个引用 → 原地修改
 /// - 若被多个引用共享 → 克隆 Inner 后再修改
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameState {
     inner: Arc<Inner>,
 }
@@ -216,6 +217,23 @@ impl Default for GameState {
     }
 }
 
+impl GameState {
+    /// 序列化为紧凑二进制（bincode）— 分布式训练状态传输 / 检查点。
+    ///
+    /// 反序列化后与原始状态完全等价（含 RNG 状态与事件日志），
+    /// 可继续推进对局并得到相同结果。
+    pub fn to_bytes(&self) -> Result<Vec<u8>, bincode::Error> {
+        bincode::serialize(&self.inner)
+    }
+
+    /// 从 bincode 字节反序列化恢复游戏状态。
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, bincode::Error> {
+        Ok(Self {
+            inner: Arc::new(bincode::deserialize(bytes)?),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -330,4 +348,143 @@ mod tests {
         assert_eq!(state.world().health(hero), Some(Health(10)));
         assert_eq!(snapshot.world().health(hero), Some(Health(20)));
     }
+}
+
+#[cfg(test)]
+mod serialization_tests {
+    use super::*;
+    use crate::core::action::Action;
+    use crate::core::component::{Attack, Health};
+    use crate::engine::game::GameEngine;
+    use crate::sim::game::GameBuilder;
+
+    /// 构建一个复杂状态：随从、光环、护甲、法力、武器。
+    fn complex_state() -> GameState {
+        use crate::cards::def::{BLOODFEN_RAPTOR, GLADIATORS_LONGBOW, STORMWIND_CHAMPION};
+        let mut builder = GameBuilder::new();
+        builder.set_mana(PlayerId::Player1, 5, 5);
+        builder.set_mana(PlayerId::Player2, 4, 4);
+        builder.hero_health(PlayerId::Player1, 25);
+        builder.add_minion_to_board(PlayerId::Player1, &STORMWIND_CHAMPION);
+        builder.add_minion_to_board(PlayerId::Player1, &BLOODFEN_RAPTOR);
+        builder.add_minion_to_board(PlayerId::Player2, &BLOODFEN_RAPTOR);
+        builder.add_minion_to_hand(PlayerId::Player1, &BLOODFEN_RAPTOR);
+        builder.equip_weapon(PlayerId::Player1, &GLADIATORS_LONGBOW);
+        builder.build()
+    }
+
+    #[test]
+    fn roundtrip_preserves_state() {
+        let state = complex_state();
+        let bytes = state.to_bytes().expect("serialize");
+        let restored = GameState::from_bytes(&bytes).expect("deserialize");
+
+        // 元数据
+        assert_eq!(restored.turn(), state.turn());
+        assert_eq!(restored.phase(), state.phase());
+        assert_eq!(restored.active_player(), state.active_player());
+        // 玩家状态
+        for pid in [PlayerId::Player1, PlayerId::Player2] {
+            let a = state.player(pid);
+            let b = restored.player(pid);
+            assert_eq!(a.mana_crystals, b.mana_crystals);
+            assert_eq!(a.current_mana, b.current_mana);
+            assert_eq!(a.armor, b.armor);
+            assert_eq!(a.weapon.is_some(), b.weapon.is_some());
+        }
+        // 世界状态：英雄血量、随从、光环
+        let wa = state.world();
+        let wb = restored.world();
+        assert_eq!(
+            wb.health(restored.player(PlayerId::Player1).hero),
+            wa.health(state.player(PlayerId::Player1).hero)
+        );
+        // 光环随从（暴风城勇士）仍在场且效果可查询
+        let champion = wb
+            .zones()
+            .iter(Zone::Play, PlayerId::Player1)
+            .find(|&e| wb.card_id(e).is_some_and(|c| c.0 == "NEUTRAL_T10"))
+            .expect("champion on board");
+        assert!(wb.aura(champion).is_some());
+        // 光环效果仍然生效（索引随状态序列化）
+        let raptor = wb
+            .zones()
+            .iter(Zone::Play, PlayerId::Player1)
+            .find(|&e| wb.card_id(e).is_some_and(|c| c.0 == "CLASSIC_001"))
+            .expect("raptor on board");
+        assert!(
+            wb.effective_attack(raptor).map_or(0, |a| a.0) > 3,
+            "aura buff must survive serialization"
+        );
+    }
+
+    #[test]
+    fn roundtrip_continues_identically() {
+        // 序列化后继续对局，与原状态产生完全一致的事件日志
+        let engine = GameEngine::new();
+        let mut a = complex_state();
+        let mut b = GameState::from_bytes(&a.to_bytes().unwrap()).unwrap();
+
+        let hero = a.player(PlayerId::Player1).hero;
+        let defender = a
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId::Player2)
+            .find(|&e| a.world().card_type(e) == Some(crate::core::component::CardType::Minion))
+            .expect("enemy minion");
+
+        let log_a = engine
+            .apply(
+                &mut a,
+                Action::Attack {
+                    attacker: hero,
+                    defender,
+                },
+            )
+            .unwrap();
+        let log_b = engine
+            .apply(
+                &mut b,
+                Action::Attack {
+                    attacker: hero,
+                    defender,
+                },
+            )
+            .unwrap();
+        assert_eq!(log_a, log_b, "identical event logs after restore");
+        assert_eq!(a.turn(), b.turn());
+        assert_eq!(
+            a.world().health(defender),
+            b.world().health(defender),
+            "damage identical after restore"
+        );
+    }
+
+    #[test]
+    fn corrupted_bytes_rejected() {
+        let state = complex_state();
+        let mut bytes = state.to_bytes().unwrap();
+        // 破坏数据（第一个长度字段）
+        bytes[0] ^= 0xFF;
+        assert!(
+            GameState::from_bytes(&bytes).is_err(),
+            "corrupt data must fail"
+        );
+    }
+
+    #[test]
+    fn rng_state_preserved() {
+        // 相同的后续随机调用序列
+        let a = GameState::new();
+        let b = GameState::from_bytes(&a.to_bytes().unwrap()).unwrap();
+        let mut a = a;
+        let mut b = b;
+        for _ in 0..10 {
+            assert_eq!(a.rng_mut().next_u32(), b.rng_mut().next_u32());
+        }
+    }
+
+    // silence unused import warning safety
+    #[allow(dead_code)]
+    fn _unused(_: Health, _: Attack) {}
 }

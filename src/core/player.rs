@@ -2,11 +2,12 @@
 //!
 //! 每个玩家有一个 `PlayerId`（通过组件挂载到实体上）
 //! 和一个 `Player` 结构体（存储在 `GameState` 中）。
+use serde::{Deserialize, Serialize};
 
 /// 玩家标识符。
 ///
 /// 用 `#[repr(u8)]` 确保可以高效索引数组（`[T; 2]`）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum PlayerId {
     /// 先手玩家
@@ -39,7 +40,7 @@ impl PlayerId {
 ///
 /// 英雄本身是一个实体（`CardType::Hero`），存储在 World 中。
 /// `Player` 则持有对英雄实体的引用以及法力水晶等状态。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Player {
     /// 玩家 ID
     pub id: PlayerId,

@@ -2,11 +2,12 @@
 //!
 //! Phase 2 支持的卡牌效果：伤害、抽牌、召唤、buff。
 //! 效果作为 `Copy` 枚举常量存储在 `CardDef` 和 `Battlecry`/`Deathrattle` 组件中。
+use serde::{Deserialize, Serialize};
 
 /// 效果目标选择器。
 ///
 /// 执行效果时，引擎根据此枚举选择目标实体。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EffectTarget {
     /// 随机敌方角色（英雄或随从）
     AnyEnemy,
@@ -39,7 +40,7 @@ pub enum EffectTarget {
 /// 卡牌效果 — 触发时执行的动作。
 ///
 /// 实现 `Copy` 以作为组件存储。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 pub enum CardEffect {
     /// 造成 N 点伤害（DealDamage）
     DealDamage {
@@ -365,11 +366,378 @@ pub enum CardEffect {
     },
 }
 
+/// CardEffect 的反序列化镜像（拥有所有字段，无 &'static str 引用）。
+#[derive(serde::Deserialize)]
+enum CardEffectDe {
+    DealDamage {
+        amount: i32,
+        target: EffectTarget,
+    },
+    DrawCard {
+        count: u32,
+    },
+    SummonMinion {
+        card_id: String,
+    },
+    GainStats {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+    },
+    EquipWeapon {
+        card_id: String,
+    },
+    GainArmor {
+        amount: i32,
+        target: EffectTarget,
+    },
+    ReturnToHand {
+        target: EffectTarget,
+    },
+    IncreaseCost {
+        amount: i32,
+        target: EffectTarget,
+    },
+    ReturnToHandAndIncreaseCost {
+        amount: i32,
+    },
+    DestroyMinion {
+        target: EffectTarget,
+    },
+    SilenceMinion {
+        target: EffectTarget,
+    },
+    SetAttack {
+        attack: i32,
+        target: EffectTarget,
+    },
+    RestoreHealth {
+        amount: i32,
+        target: EffectTarget,
+    },
+    FreezeCharacter {
+        target: EffectTarget,
+    },
+    GainManaCrystal {
+        count: i32,
+    },
+    DestroyWeapon,
+    GainHeroAttack {
+        attack: i32,
+        armor: i32,
+    },
+    DealHeroAttackDamage {
+        target: EffectTarget,
+    },
+    FullHeal {
+        target: EffectTarget,
+    },
+    GrantWindfury {
+        target: EffectTarget,
+    },
+    GrantCharge {
+        target: EffectTarget,
+        attack_bonus: i32,
+    },
+    DoubleAttack {
+        target: EffectTarget,
+    },
+    DoubleHealth {
+        target: EffectTarget,
+    },
+    BuffWeapon {
+        attack: i32,
+        durability: i32,
+    },
+    DiscardRandomCard,
+    DealArmorDamage {
+        target: EffectTarget,
+    },
+    DestroyWeaponAndDraw,
+    ReturnAllToHand,
+    SetAttackToHealth {
+        target: EffectTarget,
+    },
+    DestroyAllExceptOne,
+    DestroyAndHeal {
+        target: EffectTarget,
+        heal: i32,
+    },
+    DestroyAndAOE {
+        target: EffectTarget,
+    },
+    DealDamageToTwo {
+        amount: i32,
+    },
+    DealDamageAndDraw {
+        damage: i32,
+        target: EffectTarget,
+        draw: u32,
+    },
+    DamageAndGainAttack {
+        damage: i32,
+        attack_bonus: i32,
+        target: EffectTarget,
+    },
+    DestroyAdjacent {
+        gain_stats: bool,
+    },
+    DestroyManaCrystal,
+    GiveCardsToOpponent {
+        count: u32,
+    },
+    ResurrectMinion,
+    CopyMinionStats,
+    TempDebuff {
+        attack_reduction: i32,
+        target: EffectTarget,
+    },
+    ReflectDamage,
+    DealDamageAndReturnToHand {
+        amount: i32,
+        target: EffectTarget,
+    },
+    ReturnFriendlyToHandAndReduceCost {
+        amount: i32,
+    },
+    AdjacentDamage,
+    DestroyWeaponAndDealAttackToEnemies,
+    GrantStealth,
+    SummonMultipleMinions {
+        card_id: String,
+        count: u32,
+    },
+    DamagePlayedMinion {
+        amount: i32,
+    },
+    RedirectAttackToRandomCharacter,
+    SummonAndRedirectAttack {
+        card_id: String,
+    },
+    SummonSpellbender,
+    NextSecretCostsZero,
+    DrawCardAndReduceCost {
+        amount: i32,
+    },
+    GrantDeathrattleAll {
+        card_id: String,
+    },
+    GiveCardToOpponent {
+        card_id: String,
+        count: u32,
+    },
+    FreezeOrDamage {
+        amount: i32,
+    },
+    DestroyAndGainHealth,
+    GrantAttackAndImmune {
+        attack: i32,
+    },
+    TakeControlUntilEndOfTurn,
+    TakeControl,
+    Corrupt,
+    MinHealthUntilEndOfTurn,
+    TransformToRandom {
+        card_a: String,
+        card_b: String,
+    },
+    AddRandomCardToHand {
+        pool: RandomPool,
+    },
+    SummonRandomMinion {
+        pool: RandomPool,
+    },
+    AddCardToHand {
+        card_id: String,
+    },
+    DealDamageAndSummonIfKilled {
+        amount: i32,
+        pool: RandomPool,
+    },
+}
+
+impl<'de> serde::Deserialize<'de> for CardEffect {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let de = CardEffectDe::deserialize(d)?;
+        // 卡牌 ID 全部来自静态卡牌库 — 反序列化时解析回 &'static str
+        let intern = |s: String| -> Result<&'static str, D::Error> {
+            crate::cards::def::card_by_id(&s)
+                .map(|def| def.id)
+                .ok_or_else(|| serde::de::Error::custom(format!("unknown card id: {s}")))
+        };
+        Ok(match de {
+            CardEffectDe::DealDamage { amount, target } => {
+                CardEffect::DealDamage { amount, target }
+            }
+            CardEffectDe::DrawCard { count } => CardEffect::DrawCard { count },
+            CardEffectDe::SummonMinion { card_id } => CardEffect::SummonMinion {
+                card_id: intern(card_id)?,
+            },
+            CardEffectDe::GainStats {
+                attack,
+                health,
+                target,
+            } => CardEffect::GainStats {
+                attack,
+                health,
+                target,
+            },
+            CardEffectDe::EquipWeapon { card_id } => CardEffect::EquipWeapon {
+                card_id: intern(card_id)?,
+            },
+            CardEffectDe::GainArmor { amount, target } => CardEffect::GainArmor { amount, target },
+            CardEffectDe::ReturnToHand { target } => CardEffect::ReturnToHand { target },
+            CardEffectDe::IncreaseCost { amount, target } => {
+                CardEffect::IncreaseCost { amount, target }
+            }
+            CardEffectDe::ReturnToHandAndIncreaseCost { amount } => {
+                CardEffect::ReturnToHandAndIncreaseCost { amount }
+            }
+            CardEffectDe::DestroyMinion { target } => CardEffect::DestroyMinion { target },
+            CardEffectDe::SilenceMinion { target } => CardEffect::SilenceMinion { target },
+            CardEffectDe::SetAttack { attack, target } => CardEffect::SetAttack { attack, target },
+            CardEffectDe::RestoreHealth { amount, target } => {
+                CardEffect::RestoreHealth { amount, target }
+            }
+            CardEffectDe::FreezeCharacter { target } => CardEffect::FreezeCharacter { target },
+            CardEffectDe::GainManaCrystal { count } => CardEffect::GainManaCrystal { count },
+            CardEffectDe::DestroyWeapon => CardEffect::DestroyWeapon,
+            CardEffectDe::GainHeroAttack { attack, armor } => {
+                CardEffect::GainHeroAttack { attack, armor }
+            }
+            CardEffectDe::DealHeroAttackDamage { target } => {
+                CardEffect::DealHeroAttackDamage { target }
+            }
+            CardEffectDe::FullHeal { target } => CardEffect::FullHeal { target },
+            CardEffectDe::GrantWindfury { target } => CardEffect::GrantWindfury { target },
+            CardEffectDe::GrantCharge {
+                target,
+                attack_bonus,
+            } => CardEffect::GrantCharge {
+                target,
+                attack_bonus,
+            },
+            CardEffectDe::DoubleAttack { target } => CardEffect::DoubleAttack { target },
+            CardEffectDe::DoubleHealth { target } => CardEffect::DoubleHealth { target },
+            CardEffectDe::BuffWeapon { attack, durability } => {
+                CardEffect::BuffWeapon { attack, durability }
+            }
+            CardEffectDe::DiscardRandomCard => CardEffect::DiscardRandomCard,
+            CardEffectDe::DealArmorDamage { target } => CardEffect::DealArmorDamage { target },
+            CardEffectDe::DestroyWeaponAndDraw => CardEffect::DestroyWeaponAndDraw,
+            CardEffectDe::ReturnAllToHand => CardEffect::ReturnAllToHand,
+            CardEffectDe::SetAttackToHealth { target } => CardEffect::SetAttackToHealth { target },
+            CardEffectDe::DestroyAllExceptOne => CardEffect::DestroyAllExceptOne,
+            CardEffectDe::DestroyAndHeal { target, heal } => {
+                CardEffect::DestroyAndHeal { target, heal }
+            }
+            CardEffectDe::DestroyAndAOE { target } => CardEffect::DestroyAndAOE { target },
+            CardEffectDe::DealDamageToTwo { amount } => CardEffect::DealDamageToTwo { amount },
+            CardEffectDe::DealDamageAndDraw {
+                damage,
+                target,
+                draw,
+            } => CardEffect::DealDamageAndDraw {
+                damage,
+                target,
+                draw,
+            },
+            CardEffectDe::DamageAndGainAttack {
+                damage,
+                attack_bonus,
+                target,
+            } => CardEffect::DamageAndGainAttack {
+                damage,
+                attack_bonus,
+                target,
+            },
+            CardEffectDe::DestroyAdjacent { gain_stats } => {
+                CardEffect::DestroyAdjacent { gain_stats }
+            }
+            CardEffectDe::DestroyManaCrystal => CardEffect::DestroyManaCrystal,
+            CardEffectDe::GiveCardsToOpponent { count } => {
+                CardEffect::GiveCardsToOpponent { count }
+            }
+            CardEffectDe::ResurrectMinion => CardEffect::ResurrectMinion,
+            CardEffectDe::CopyMinionStats => CardEffect::CopyMinionStats,
+            CardEffectDe::TempDebuff {
+                attack_reduction,
+                target,
+            } => CardEffect::TempDebuff {
+                attack_reduction,
+                target,
+            },
+            CardEffectDe::ReflectDamage => CardEffect::ReflectDamage,
+            CardEffectDe::DealDamageAndReturnToHand { amount, target } => {
+                CardEffect::DealDamageAndReturnToHand { amount, target }
+            }
+            CardEffectDe::ReturnFriendlyToHandAndReduceCost { amount } => {
+                CardEffect::ReturnFriendlyToHandAndReduceCost { amount }
+            }
+            CardEffectDe::AdjacentDamage => CardEffect::AdjacentDamage,
+            CardEffectDe::DestroyWeaponAndDealAttackToEnemies => {
+                CardEffect::DestroyWeaponAndDealAttackToEnemies
+            }
+            CardEffectDe::GrantStealth => CardEffect::GrantStealth,
+            CardEffectDe::SummonMultipleMinions { card_id, count } => {
+                CardEffect::SummonMultipleMinions {
+                    card_id: intern(card_id)?,
+                    count,
+                }
+            }
+            CardEffectDe::DamagePlayedMinion { amount } => {
+                CardEffect::DamagePlayedMinion { amount }
+            }
+            CardEffectDe::RedirectAttackToRandomCharacter => {
+                CardEffect::RedirectAttackToRandomCharacter
+            }
+            CardEffectDe::SummonAndRedirectAttack { card_id } => {
+                CardEffect::SummonAndRedirectAttack {
+                    card_id: intern(card_id)?,
+                }
+            }
+            CardEffectDe::SummonSpellbender => CardEffect::SummonSpellbender,
+            CardEffectDe::NextSecretCostsZero => CardEffect::NextSecretCostsZero,
+            CardEffectDe::DrawCardAndReduceCost { amount } => {
+                CardEffect::DrawCardAndReduceCost { amount }
+            }
+            CardEffectDe::GrantDeathrattleAll { card_id } => CardEffect::GrantDeathrattleAll {
+                card_id: intern(card_id)?,
+            },
+            CardEffectDe::GiveCardToOpponent { card_id, count } => CardEffect::GiveCardToOpponent {
+                card_id: intern(card_id)?,
+                count,
+            },
+            CardEffectDe::FreezeOrDamage { amount } => CardEffect::FreezeOrDamage { amount },
+            CardEffectDe::DestroyAndGainHealth => CardEffect::DestroyAndGainHealth,
+            CardEffectDe::GrantAttackAndImmune { attack } => {
+                CardEffect::GrantAttackAndImmune { attack }
+            }
+            CardEffectDe::TakeControlUntilEndOfTurn => CardEffect::TakeControlUntilEndOfTurn,
+            CardEffectDe::TakeControl => CardEffect::TakeControl,
+            CardEffectDe::Corrupt => CardEffect::Corrupt,
+            CardEffectDe::MinHealthUntilEndOfTurn => CardEffect::MinHealthUntilEndOfTurn,
+            CardEffectDe::TransformToRandom { card_a, card_b } => CardEffect::TransformToRandom {
+                card_a: intern(card_a)?,
+                card_b: intern(card_b)?,
+            },
+            CardEffectDe::AddRandomCardToHand { pool } => CardEffect::AddRandomCardToHand { pool },
+            CardEffectDe::SummonRandomMinion { pool } => CardEffect::SummonRandomMinion { pool },
+            CardEffectDe::AddCardToHand { card_id } => CardEffect::AddCardToHand {
+                card_id: intern(card_id)?,
+            },
+            CardEffectDe::DealDamageAndSummonIfKilled { amount, pool } => {
+                CardEffect::DealDamageAndSummonIfKilled { amount, pool }
+            }
+        })
+    }
+}
+
 /// 随机卡池类型 — Tier 3 随机生成。
 ///
 /// 满足卡池封闭性：所有抽样池都是 Classic 池的过滤子集
 /// （见 `src/cards/pool.rs`）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RandomPool {
     /// 随机传说随从（光明之翼）
     Legendary,

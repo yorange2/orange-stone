@@ -16,9 +16,10 @@
 //! let seq2: Vec<u32> = (0..5).map(|_| rng2.next_u32()).collect();
 //! assert_eq!(seq1, seq2);
 //! ```
+use serde::{Deserialize, Serialize};
 
 /// 随机调用记录 — 用于回放验证。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RngCall {
     /// next_u32 调用
     NextU32 {
@@ -42,7 +43,7 @@ pub enum RngCall {
 ///
 /// 基于 xorshift64 算法，状态为一个 `u64`。
 /// 记录每次随机调用，用于回放验证。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameRng {
     /// 当前内部状态
     state: u64,
