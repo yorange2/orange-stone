@@ -7,6 +7,21 @@ use crate::core::player::PlayerId;
 use crate::core::state::{GameState, Step};
 use crate::core::zone::Zone;
 
+/// Reference hero health used by the health-scaled loss (the simplified
+/// hearthstone engine's `HERO_HEALTH`).
+pub const HERO_HEALTH: f32 = 30.0;
+
+/// Terminal reward policy (roadmap M1-G7).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TerminalReward {
+    /// Sparse: win +1 / loss −1 / draw 0 (default)
+    Sparse,
+    /// Simplified-hearthstone style: win +1 / draw 0 / loss −(winner's
+    /// remaining health)/30 — losing to a nearly-dead opponent is a mild
+    /// penalty, losing untouched is a full −1
+    ScaledByWinnerHealth,
+}
+
 /// Reward configuration — weights for each component.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RewardConfig {
@@ -24,6 +39,8 @@ pub struct RewardConfig {
     pub own_minion_loss: f32,
     /// Invalid action penalty
     pub invalid_action: f32,
+    /// How the terminal reward is computed (M1-G7)
+    pub terminal: TerminalReward,
 }
 
 impl Default for RewardConfig {
@@ -36,6 +53,7 @@ impl Default for RewardConfig {
             enemy_minion_kill: 0.0,
             own_minion_loss: 0.0,
             invalid_action: -0.1,
+            terminal: TerminalReward::Sparse,
         }
     }
 }
@@ -54,11 +72,31 @@ pub fn terminal_reward(
     }
 }
 
+/// Health-scaled loss (M1-G7): the penalty scales with the winner's remaining
+/// health — `−remaining/30`, clamped to [−1, 0].
+#[must_use]
+fn scaled_loss(state: &GameState, winner: PlayerId) -> f32 {
+    let hp = state
+        .world()
+        .effective_health(state.player(winner).hero)
+        .map_or(0, |h| h.0);
+    -(hp as f32 / HERO_HEALTH).clamp(0.0, 1.0)
+}
+
 /// Computes the final reward when the game ends.
 #[must_use]
 pub fn final_reward(config: &RewardConfig, state: &GameState, perspective: PlayerId) -> f32 {
     match state.step() {
-        Step::GameOver { winner } => terminal_reward(config, Some(winner), perspective),
+        Step::GameOver { winner } => match config.terminal {
+            TerminalReward::Sparse => terminal_reward(config, Some(winner), perspective),
+            TerminalReward::ScaledByWinnerHealth => {
+                if winner == perspective {
+                    config.win
+                } else {
+                    scaled_loss(state, winner)
+                }
+            }
+        },
         _ => config.draw,
     }
 }
@@ -131,6 +169,61 @@ mod tests {
             -1.0
         );
         assert_eq!(terminal_reward(&cfg, None, PlayerId::Player1), 0.0);
+    }
+
+    // ============================================================
+    // M1-G7 — health-scaled terminal reward (simplified-hearthstone style)
+    // ============================================================
+
+    fn game_over_state(winner: PlayerId, winner_hp: i32) -> GameState {
+        let mut builder = GameBuilder::new();
+        builder.hero_health(winner, winner_hp);
+        builder.step(Step::GameOver { winner });
+        builder.build()
+    }
+
+    #[test]
+    fn scaled_terminal_reward_win_draw_loss() {
+        let cfg = RewardConfig {
+            terminal: TerminalReward::ScaledByWinnerHealth,
+            ..RewardConfig::default()
+        };
+        // Win → +1 regardless of the winner's health
+        let state = game_over_state(PlayerId::Player1, 30);
+        assert_eq!(final_reward(&cfg, &state, PlayerId::Player1), 1.0);
+        // Draw (no game over) → 0
+        let mut builder = GameBuilder::new();
+        let state = builder.build();
+        assert_eq!(final_reward(&cfg, &state, PlayerId::Player1), 0.0);
+    }
+
+    #[test]
+    fn scaled_loss_uses_winner_remaining_health() {
+        let cfg = RewardConfig {
+            terminal: TerminalReward::ScaledByWinnerHealth,
+            ..RewardConfig::default()
+        };
+        // Lost to a 30-HP winner: full penalty −1
+        let state = game_over_state(PlayerId::Player2, 30);
+        assert_eq!(final_reward(&cfg, &state, PlayerId::Player1), -1.0);
+        // Lost to a 15-HP winner: −0.5
+        let state = game_over_state(PlayerId::Player2, 15);
+        assert!((final_reward(&cfg, &state, PlayerId::Player1) + 0.5).abs() < 1e-6);
+        // Lost to a 2-HP winner: −2/30
+        let state = game_over_state(PlayerId::Player2, 2);
+        assert!((final_reward(&cfg, &state, PlayerId::Player1) + 2.0 / 30.0).abs() < 1e-6);
+        // Clamped: a winner with negative/absurd health never flips the sign
+        let state = game_over_state(PlayerId::Player2, -5);
+        assert_eq!(final_reward(&cfg, &state, PlayerId::Player1), 0.0);
+    }
+
+    #[test]
+    fn default_terminal_reward_is_sparse() {
+        assert_eq!(
+            RewardConfig::default().terminal,
+            TerminalReward::Sparse,
+            "default must stay sparse for backward compatibility"
+        );
     }
 
     #[test]
