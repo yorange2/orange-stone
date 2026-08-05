@@ -137,16 +137,12 @@ fn attack_trade_deals_damage_both_ways() {
         .apply(&mut state_copy, Action::Attack { attacker, defender })
         .unwrap();
 
-    // defender should take 4 damage: 3 - 4 = -1 → dies
-    assert_eq!(
-        state_copy.world().health(defender),
-        Some(orange_stone::core::component::Health(-1))
-    );
+    // defender should take 4 damage and die (damage clears on the graveyard move)
     assert_eq!(state_copy.world().zone(defender), Some(Zone::Graveyard));
 
     // attacker should take 2 damage: 5 - 2 = 3
     assert_eq!(
-        state_copy.world().health(attacker),
+        state_copy.world().effective_health(attacker),
         Some(orange_stone::core::component::Health(3))
     );
     assert_eq!(state_copy.world().zone(attacker), Some(Zone::Play));
@@ -166,14 +162,10 @@ fn attacker_dies_in_trade_still_deals_damage() {
 
     // defender takes 4 damage: 10 → 6, survives
     assert_eq!(
-        state.world().health(defender),
+        state.world().effective_health(defender),
         Some(orange_stone::core::component::Health(6))
     );
-    // attacker takes 3 damage: 1 → -2, dies
-    assert_eq!(
-        state.world().health(attacker),
-        Some(orange_stone::core::component::Health(-2))
-    );
+    // attacker takes 3 damage and dies
     assert_eq!(state.world().zone(attacker), Some(Zone::Graveyard));
     // Event log contains MinionDied
     assert!(log.iter().any(|e| matches!(e, Event::MinionDied { .. })));
@@ -200,12 +192,12 @@ fn attack_hero_deals_damage_one_way() {
 
     // Hero takes 5 damage
     assert_eq!(
-        state.world().health(hero),
+        state.world().effective_health(hero),
         Some(orange_stone::core::component::Health(25))
     );
     // Attacker takes no damage (hero does not retaliate)
     assert_eq!(
-        state.world().health(attacker),
+        state.world().effective_health(attacker),
         Some(orange_stone::core::component::Health(3))
     );
     // Only one DamageDealt event (attacker → hero only)
@@ -538,7 +530,7 @@ fn full_game_scenario() {
     // Croc takes 6 damage: 3 → -3 dies; Ogre takes 2 damage: 7 → 5
     assert_eq!(state.world().zone(croc), Some(Zone::Graveyard));
     assert_eq!(
-        state.world().health(ogre),
+        state.world().effective_health(ogre),
         Some(orange_stone::core::component::Health(5))
     );
 
@@ -556,7 +548,7 @@ fn full_game_scenario() {
     assert_eq!(state.world().zone(yeti), Some(Zone::Graveyard));
     assert_eq!(state.world().zone(ogre), Some(Zone::Play));
     assert_eq!(
-        state.world().health(ogre),
+        state.world().effective_health(ogre),
         Some(orange_stone::core::component::Health(1))
     );
 
@@ -577,7 +569,7 @@ fn full_game_scenario() {
 
     // Hero takes 6 damage
     assert_eq!(
-        state.world().health(hero),
+        state.world().effective_health(hero),
         Some(orange_stone::core::component::Health(24))
     );
 }
@@ -598,7 +590,7 @@ fn equip_weapon_gives_hero_attack() {
     assert!(player.weapon.is_some());
     let weapon = player.weapon.unwrap();
     assert_eq!(
-        state.world().attack(weapon),
+        state.world().effective_attack(weapon),
         Some(orange_stone::core::component::Attack(3))
     );
     assert_eq!(
@@ -639,7 +631,7 @@ fn hero_attack_with_weapon_consumes_durability() {
     );
     // Enemy hero should take 3 damage (weapon attack)
     assert_eq!(
-        state.world().health(defender_hero),
+        state.world().effective_health(defender_hero),
         Some(orange_stone::core::component::Health(27))
     );
     assert!(
@@ -741,7 +733,7 @@ fn armor_absorbs_damage_before_health() {
     assert_eq!(state.player(PlayerId::Player2).armor, 2);
     // Health should not decrease (fully absorbed by armor)
     assert_eq!(
-        state.world().health(hero),
+        state.world().effective_health(hero),
         Some(orange_stone::core::component::Health(30))
     );
 }
@@ -770,7 +762,7 @@ fn damage_spills_over_armor_to_health() {
     assert_eq!(state.player(PlayerId::Player2).armor, 0);
     // Remaining 7 damage spills over to health: 30 → 23
     assert_eq!(
-        state.world().health(hero),
+        state.world().effective_health(hero),
         Some(orange_stone::core::component::Health(23))
     );
 }
@@ -1199,7 +1191,7 @@ fn heroic_strike_gives_hero_attack_this_turn() {
 
     // Hero's base attack should be 0
     assert_eq!(
-        state.world().attack(hero),
+        state.world().effective_attack(hero),
         Some(orange_stone::core::component::Attack(0))
     );
 
@@ -1219,24 +1211,22 @@ fn heroic_strike_gives_hero_attack_this_turn() {
     // Check events
     assert!(log.iter().any(|e| matches!(e, Event::CardPlayed { .. })));
 
-    // Hero attack should be 4
+    // Hero attack should be 4 (enchantment, roadmap G4)
     assert_eq!(
-        state.world().attack(hero),
+        state.world().effective_attack(hero),
         Some(orange_stone::core::component::Attack(4))
     );
-    assert_eq!(state.player(PlayerId::Player1).temp_attack_bonus, 4);
 
     // The spell should go to the graveyard
     assert_eq!(state.world().zone(card), Some(Zone::Graveyard));
 
-    // End turn → hero attack should return to 0
+    // End turn → hero attack should return to 0 (enchantment expired at wrap-up)
     engine.apply(&mut state, Action::EndTurn).unwrap();
 
     assert_eq!(
-        state.world().attack(hero),
+        state.world().effective_attack(hero),
         Some(orange_stone::core::component::Attack(0))
     );
-    assert_eq!(state.player(PlayerId::Player1).temp_attack_bonus, 0);
 }
 
 #[test]
@@ -1276,7 +1266,7 @@ fn hero_with_temp_attack_can_attack() {
 
     // Enemy hero should take 4 damage
     assert_eq!(
-        state.world().health(enemy_hero),
+        state.world().effective_health(enemy_hero),
         Some(orange_stone::core::component::Health(26))
     );
 }
@@ -1338,7 +1328,7 @@ fn double_attack_doubles_minion_attack() {
 
     // Minion attack should double from 4 to 8
     assert_eq!(
-        state.world().attack(minion),
+        state.world().effective_attack(minion),
         Some(orange_stone::core::component::Attack(8))
     );
 }
@@ -1367,7 +1357,7 @@ fn double_health_doubles_minion_health() {
 
     // Minion health should double from 6 to 12 (cap 30)
     assert_eq!(
-        state.world().health(minion),
+        state.world().effective_health(minion),
         Some(orange_stone::core::component::Health(12))
     );
 }
@@ -1408,7 +1398,7 @@ fn grant_charge_allows_immediate_attack() {
     );
     // Attack should go from 3 to 5 (+2 bonus)
     assert_eq!(
-        state.world().attack(minion),
+        state.world().effective_attack(minion),
         Some(orange_stone::core::component::Attack(5))
     );
 }
@@ -1464,7 +1454,7 @@ fn elven_archer_battlecry_deals_one_damage() {
     // Enemy has only the hero, so 1 damage must hit the hero
     let enemy_hero = state.player(PlayerId::Player2).hero;
     assert_eq!(
-        state.world().health(enemy_hero),
+        state.world().effective_health(enemy_hero),
         Some(orange_stone::core::component::Health(29))
     );
 }
@@ -1492,11 +1482,11 @@ fn goldshire_footman_and_siegebreaker_have_taunt() {
     assert!(state.world().taunt(footman).is_some());
     assert!(state.world().taunt(siegebreaker).is_some());
     assert_eq!(
-        state.world().attack(siegebreaker),
+        state.world().effective_attack(siegebreaker),
         Some(orange_stone::core::component::Attack(5))
     );
     assert_eq!(
-        state.world().health(siegebreaker),
+        state.world().effective_health(siegebreaker),
         Some(orange_stone::core::component::Health(8))
     );
 }
@@ -1571,11 +1561,11 @@ fn shattered_sun_cleric_buffs_friendly_minion() {
 
     // The cleric is the only friendly minion; the battlecry must buff itself
     assert_eq!(
-        state.world().attack(card),
+        state.world().effective_attack(card),
         Some(orange_stone::core::component::Attack(4))
     );
     assert_eq!(
-        state.world().health(card),
+        state.world().effective_health(card),
         Some(orange_stone::core::component::Health(3))
     );
 }
@@ -1678,7 +1668,7 @@ fn fiery_war_axe_and_arcanite_reaper_equip() {
     // The later weapon replaces the earlier one
     let weapon = state.player(PlayerId::Player1).weapon.unwrap();
     assert_eq!(
-        state.world().attack(weapon),
+        state.world().effective_attack(weapon),
         Some(orange_stone::core::component::Attack(5))
     );
     assert_eq!(
@@ -1740,17 +1730,17 @@ fn explosive_trap_deals_damage_to_all_enemies() {
     // Enemy hero takes 2 damage
     let enemy_hero = state.player(PlayerId::Player2).hero;
     assert_eq!(
-        state.world().health(enemy_hero),
+        state.world().effective_health(enemy_hero),
         Some(orange_stone::core::component::Health(28))
     );
     // Enemy minion takes 2 damage
     assert_eq!(
-        state.world().health(attacker),
+        state.world().effective_health(attacker),
         Some(orange_stone::core::component::Health(1))
     );
     // Attack still resolves: own hero takes the attacker's 2 damage (matches Hearthstone rules; traps do not cancel the attack)
     assert_eq!(
-        state.world().health(defender_hero),
+        state.world().effective_health(defender_hero),
         Some(orange_stone::core::component::Health(28))
     );
 }
@@ -1804,7 +1794,7 @@ fn freezing_trap_returns_attacker_to_hand_with_cost_increase() {
     );
     assert_eq!(state.world().zone(attacker), Some(Zone::Hand));
     // Cost increases (2): 3 -> 5
-    assert_eq!(state.world().cost(attacker), Some(Cost(5)));
+    assert_eq!(state.world().effective_cost(attacker), Some(Cost(5)));
 }
 
 // ============================================================
@@ -1841,17 +1831,17 @@ fn spell_with_explicit_target_hits_that_target() {
         .unwrap();
 
     assert_eq!(
-        state.world().health(enemy_hero),
+        state.world().effective_health(enemy_hero),
         Some(Health(27)),
         "explicit target hero should take exactly 3"
     );
     assert_eq!(
-        state.world().health(minion_a),
+        state.world().effective_health(minion_a),
         Some(Health(5)),
         "untargeted minion untouched"
     );
     assert_eq!(
-        state.world().health(minion_b),
+        state.world().effective_health(minion_b),
         Some(Health(5)),
         "untargeted minion untouched"
     );
@@ -1885,8 +1875,8 @@ fn spell_without_target_falls_back_to_random() {
         )
         .unwrap();
 
-    let dmg_hero = 30 - state.world().health(enemy_hero).unwrap().0;
-    let dmg_minion = 5 - state.world().health(minion).unwrap().0;
+    let dmg_hero = 30 - state.world().effective_health(enemy_hero).unwrap().0;
+    let dmg_minion = 5 - state.world().effective_health(minion).unwrap().0;
     assert_eq!(dmg_hero + dmg_minion, 3, "exactly 3 damage lands somewhere");
     assert!(dmg_hero == 3 || dmg_minion == 3);
 }
@@ -1921,13 +1911,13 @@ fn invalid_explicit_target_falls_back_to_random() {
         .unwrap();
 
     assert_eq!(
-        state.world().health(own_minion),
+        state.world().effective_health(own_minion),
         Some(Health(5)),
         "own minion never damaged"
     );
     let enemy_hero = state.player(PlayerId::Player2).hero;
-    let dmg = 30 - state.world().health(enemy_hero).unwrap().0 + 5
-        - state.world().health(enemy_minion).unwrap().0;
+    let dmg = 30 - state.world().effective_health(enemy_hero).unwrap().0 + 5
+        - state.world().effective_health(enemy_minion).unwrap().0;
     assert_eq!(dmg, 3, "3 damage lands on an enemy");
 }
 
@@ -1959,7 +1949,7 @@ fn battlecry_with_explicit_target_hits_that_target() {
         .unwrap();
 
     assert_eq!(
-        state.world().health(minion_a),
+        state.world().effective_health(minion_a),
         Some(Health(4)),
         "battlecry should hit the explicit target"
     );

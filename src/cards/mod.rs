@@ -127,9 +127,11 @@ pub(crate) fn clear_minion_effects(world: &mut World, entity: Entity) {
     world.remove_cant_attack(entity);
     world.remove_trigger(entity);
     world.remove_choose_one_effect(entity);
+    // Enchantments and damage (roadmap G4): transform resets to the new base
+    world.remove_enchantments(entity);
+    world.remove_damage(entity);
     world.remove_combo_effect(entity);
     world.remove_attack_equals_health(entity);
-    world.remove_temp_attack_debuff(entity);
     world.remove_poison(entity);
     world.remove_stealth(entity);
     world.remove_immune(entity);

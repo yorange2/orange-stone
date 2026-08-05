@@ -54,8 +54,6 @@ pub struct Player {
     pub weapon: Option<crate::core::entity::Entity>,
     /// Hero armor
     pub armor: i32,
-    /// The hero's temporary attack bonus this turn (cleared at end of turn)
-    pub temp_attack_bonus: i32,
     /// Cards played this turn (for the Combo mechanic)
     pub cards_played_this_turn: u32,
     /// Friendly minions that died this turn (for resurrection effects)
@@ -81,7 +79,6 @@ impl Player {
             current_mana: mana_crystals,
             weapon: None,
             armor: 0,
-            temp_attack_bonus: 0,
             cards_played_this_turn: 0,
             died_this_turn: Vec::new(),
             next_secret_free: false,

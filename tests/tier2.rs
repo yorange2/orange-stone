@@ -99,13 +99,13 @@ fn played_secret_triggers_when_condition_met() {
     );
     // Attacking minion takes 2 damage
     assert_eq!(
-        state.world().health(attacker),
+        state.world().effective_health(attacker),
         Some(orange_stone::core::component::Health(1))
     );
     // Enemy hero also takes 2 damage (all enemies)
     let enemy_hero = state.player(PlayerId::Player2).hero;
     assert_eq!(
-        state.world().health(enemy_hero),
+        state.world().effective_health(enemy_hero),
         Some(orange_stone::core::component::Health(28))
     );
 }
@@ -145,7 +145,7 @@ fn freezing_trap_playable_and_triggers() {
     // Attacking minion returns to hand, cost +2
     assert_eq!(state.world().zone(attacker), Some(Zone::Hand));
     assert_eq!(
-        state.world().cost(attacker),
+        state.world().effective_cost(attacker),
         Some(orange_stone::core::component::Cost(5))
     );
 }
@@ -212,7 +212,7 @@ fn weapon_with_battlecry_resolves_on_play() {
     // Battlecry deals 1 damage → enemy hero at 29 HP
     let enemy_hero = state.player(PlayerId::Player2).hero;
     assert_eq!(
-        state.world().health(enemy_hero),
+        state.world().effective_health(enemy_hero),
         Some(orange_stone::core::component::Health(29))
     );
 }
@@ -252,7 +252,7 @@ fn headcrack_no_combo_goes_to_graveyard() {
     // No combo: deals 2 damage, goes to the graveyard
     let enemy_hero = state.player(PlayerId::Player2).hero;
     assert_eq!(
-        state.world().health(enemy_hero),
+        state.world().effective_health(enemy_hero),
         Some(orange_stone::core::component::Health(28))
     );
     assert_eq!(state.world().zone(card), Some(Zone::Graveyard));
@@ -300,7 +300,7 @@ fn headcrack_combo_returns_to_hand() {
     // Combo: deals 2 damage, card returns to hand
     let enemy_hero = state.player(PlayerId::Player2).hero;
     assert_eq!(
-        state.world().health(enemy_hero),
+        state.world().effective_health(enemy_hero),
         Some(orange_stone::core::component::Health(28))
     );
     assert_eq!(state.world().zone(headcrack), Some(Zone::Hand));
@@ -374,7 +374,7 @@ fn shadowstep_returns_friendly_and_reduces_cost() {
     // Friendly minion returns to hand, cost 3 → 1
     assert_eq!(state.world().zone(minion), Some(Zone::Hand));
     assert_eq!(
-        state.world().cost(minion),
+        state.world().effective_cost(minion),
         Some(orange_stone::core::component::Cost(1))
     );
 }
@@ -408,18 +408,13 @@ fn betrayal_damages_adjacent_minions() {
         .apply(&mut state, Action::PlayCard { card, target: None })
         .unwrap();
 
-    // The middle 5/5 is chosen: each flank takes 5 damage
-    assert_eq!(
-        state.world().health(left),
-        Some(orange_stone::core::component::Health(-4))
-    );
-    assert_eq!(
-        state.world().health(right),
-        Some(orange_stone::core::component::Health(-3))
-    );
+    // The middle 5/5 is chosen: each flank takes 5 damage and dies (damage
+    // clears on the graveyard move, so the dead minion reads its base health)
+    assert_eq!(state.world().zone(left), Some(Zone::Graveyard));
+    assert_eq!(state.world().zone(right), Some(Zone::Graveyard));
     // The middle target takes no damage
     assert_eq!(
-        state.world().health(middle),
+        state.world().effective_health(middle),
         Some(orange_stone::core::component::Health(5))
     );
 }
@@ -452,11 +447,11 @@ fn blade_flurry_destroys_weapon_and_damages_all_enemies() {
     // All enemies (hero + minions) take the weapon's attack (3) in damage
     let enemy_hero = state.player(PlayerId::Player2).hero;
     assert_eq!(
-        state.world().health(enemy_hero),
+        state.world().effective_health(enemy_hero),
         Some(orange_stone::core::component::Health(27))
     );
     assert_eq!(
-        state.world().health(enemy),
+        state.world().effective_health(enemy),
         Some(orange_stone::core::component::Health(2))
     );
 }
@@ -555,7 +550,7 @@ fn perdition_blade_battlecry_on_play() {
     // Weapon is equipped (2/2)
     assert_eq!(state.player(PlayerId::Player1).weapon, Some(card));
     assert_eq!(
-        state.world().attack(card),
+        state.world().effective_attack(card),
         Some(orange_stone::core::component::Attack(2))
     );
     assert_eq!(
@@ -565,7 +560,7 @@ fn perdition_blade_battlecry_on_play() {
     // Battlecry deals 1 damage
     let enemy_hero = state.player(PlayerId::Player2).hero;
     assert_eq!(
-        state.world().health(enemy_hero),
+        state.world().effective_health(enemy_hero),
         Some(orange_stone::core::component::Health(29))
     );
 }
@@ -681,11 +676,6 @@ fn misdirection_redirects_attack_away_from_hero() {
     state.set_active_player(PlayerId::Player2);
     let hero = state.player(PlayerId::Player1).hero;
     let enemy_hero = state.player(PlayerId::Player2).hero;
-    // Record each candidate character's health before the attack
-    let before: Vec<i32> = [enemy_hero, other_enemy, own_minion]
-        .iter()
-        .map(|&e| state.world().health(e).unwrap().0)
-        .collect();
     let log = engine
         .apply(
             &mut state,
@@ -703,14 +693,21 @@ fn misdirection_redirects_attack_away_from_hero() {
     );
     // Own hero takes no damage
     assert_eq!(
-        state.world().health(hero),
+        state.world().effective_health(hero),
         Some(orange_stone::core::component::Health(30))
     );
     // 2 damage lands on another character: enemy hero / other enemy minion / own minion
-    let damage_spread: i32 = [enemy_hero, other_enemy, own_minion]
+    // (counted from the event log — a killed minion's damage clears on the
+    // graveyard move, so post-state health cannot measure it)
+    let candidates = [enemy_hero, other_enemy, own_minion];
+    let damage_spread: i32 = log
         .iter()
-        .zip(before.iter())
-        .map(|(&e, &b)| (b - state.world().health(e).unwrap().0).max(0))
+        .filter_map(|e| match e {
+            Event::DamageDealt { target, amount, .. } if candidates.contains(target) => {
+                Some(*amount)
+            }
+            _ => None,
+        })
         .sum();
     assert_eq!(
         damage_spread, 2,
@@ -759,7 +756,7 @@ fn noble_sacrifice_summons_defender_as_new_target() {
     );
     // Own hero takes no damage
     assert_eq!(
-        state.world().health(hero),
+        state.world().effective_health(hero),
         Some(orange_stone::core::component::Health(30))
     );
     // Defender is summoned and takes 3 damage (2/1 → dies)
@@ -781,7 +778,7 @@ fn noble_sacrifice_summons_defender_as_new_target() {
     );
     // Attacker takes 2 retaliation from the defender
     assert_eq!(
-        state.world().health(attacker),
+        state.world().effective_health(attacker),
         Some(orange_stone::core::component::Health(1))
     );
 }
@@ -906,19 +903,16 @@ fn snake_trap_summons_three_snakes() {
     assert_eq!(snakes.len(), 3, "three snakes should be summoned");
     for s in &snakes {
         assert_eq!(
-            state.world().attack(*s),
+            state.world().effective_attack(*s),
             Some(orange_stone::core::component::Attack(1))
         );
         assert_eq!(
-            state.world().health(*s),
+            state.world().effective_health(*s),
             Some(orange_stone::core::component::Health(1))
         );
     }
-    // Friendly minion takes 2 damage
-    assert_eq!(
-        state.world().health(friendly),
-        Some(orange_stone::core::component::Health(0))
-    );
+    // Friendly minion takes 2 damage and dies
+    assert_eq!(state.world().zone(friendly), Some(Zone::Graveyard));
 }
 
 #[test]
@@ -1021,7 +1015,7 @@ fn spellbender_redirects_spell_damage_to_itself() {
     );
     // The original target minion takes no damage
     assert_eq!(
-        state.world().health(own_minion),
+        state.world().effective_health(own_minion),
         Some(orange_stone::core::component::Health(3))
     );
 }
@@ -1176,7 +1170,7 @@ fn far_sight_draws_card_with_reduced_cost() {
         .collect();
     assert_eq!(drawn.len(), 1);
     assert_eq!(
-        state.world().cost(drawn[0]),
+        state.world().effective_cost(drawn[0]),
         Some(orange_stone::core::component::Cost(1))
     );
 }
@@ -1223,22 +1217,22 @@ fn cenarius_choose_one_buffs_or_summons_treants() {
         assert_eq!(treants.len(), 2, "buff branch: two treants expected");
         for t in &treants {
             assert_eq!(
-                state.world().attack(*t),
+                state.world().effective_attack(*t),
                 Some(orange_stone::core::component::Attack(2))
             );
             assert_eq!(
-                state.world().health(*t),
+                state.world().effective_health(*t),
                 Some(orange_stone::core::component::Health(2))
             );
         }
     } else {
         // +2/+2 branch: friendly minion goes 2/3 → 4/5
         assert_eq!(
-            state.world().attack(ally),
+            state.world().effective_attack(ally),
             Some(orange_stone::core::component::Attack(4))
         );
         assert_eq!(
-            state.world().health(ally),
+            state.world().effective_health(ally),
             Some(orange_stone::core::component::Health(5))
         );
     }
@@ -1276,15 +1270,15 @@ fn keeper_of_the_grove_choose_one_damage_or_silence() {
 
     // Random choose-one: 2 damage (on the taunt minion or the enemy hero) or silence the taunt minion
     let enemy_hero = state.player(PlayerId::Player2).hero;
-    let footman_hp = state.world().health(footman).unwrap().0;
-    let hero_hp = state.world().health(enemy_hero).unwrap().0;
+    let footman_dead = state.world().zone(footman) == Some(Zone::Graveyard);
+    let hero_hp = state.world().effective_health(enemy_hero).unwrap().0;
     if state.world().taunt(footman).is_none() {
         // Silence branch: taunt is removed
     } else {
         // Damage branch: the taunt minion (1/2, dies to 2 damage) or the hero takes 2 damage
         assert!(
-            footman_hp <= 0 || hero_hp == 28,
-            "damage branch should hit the footman (1/2) or the enemy hero, got footman={footman_hp} hero={hero_hp}"
+            footman_dead || hero_hp == 28,
+            "damage branch should hit the footman (1/2) or the enemy hero, got footman_dead={footman_dead} hero={hero_hp}"
         );
     }
 }
@@ -1438,7 +1432,7 @@ fn bestial_wrath_grants_attack_and_immune_until_turn_end() {
         })
         .unwrap();
     assert_eq!(
-        state.world().attack(beast),
+        state.world().effective_attack(beast),
         Some(orange_stone::core::component::Attack(3))
     );
     assert!(state.world().immune(beast).is_some());
@@ -1455,7 +1449,7 @@ fn bestial_wrath_grants_attack_and_immune_until_turn_end() {
         )
         .unwrap();
     assert_eq!(
-        state.world().health(beast),
+        state.world().effective_health(beast),
         Some(orange_stone::core::component::Health(1)),
         "immune minion should not take damage"
     );
@@ -1492,15 +1486,12 @@ fn gladiators_longbow_hero_immune_while_attacking() {
         )
         .unwrap();
 
-    // Hero takes 0 damage (immune); defender takes 5 damage
+    // Hero takes 0 damage (immune); defender takes 5 damage and dies
     assert_eq!(
-        state.world().health(hero),
+        state.world().effective_health(hero),
         Some(orange_stone::core::component::Health(30))
     );
-    assert_eq!(
-        state.world().health(defender),
-        Some(orange_stone::core::component::Health(0))
-    );
+    assert_eq!(state.world().zone(defender), Some(Zone::Graveyard));
 }
 
 #[test]
@@ -1528,7 +1519,7 @@ fn icicle_freezes_unfrozen_minion() {
     // The enemy's only minion is frozen (no damage)
     assert!(state.world().freeze(enemy).is_some());
     assert_eq!(
-        state.world().health(enemy),
+        state.world().effective_health(enemy),
         Some(orange_stone::core::component::Health(3))
     );
 }
@@ -1560,7 +1551,7 @@ fn icicle_damages_already_frozen_minion() {
 
     // Already frozen → deals 2 damage
     assert_eq!(
-        state.world().health(enemy),
+        state.world().effective_health(enemy),
         Some(orange_stone::core::component::Health(1))
     );
 }
@@ -1598,7 +1589,7 @@ fn natalie_seline_destroys_minion_and_gains_health() {
         .count();
     assert_eq!(enemy_dead, 0, "enemy minion should be destroyed");
     assert_eq!(
-        state.world().health(card),
+        state.world().effective_health(card),
         Some(orange_stone::core::component::Health(11))
     );
 }
@@ -1763,7 +1754,7 @@ fn commanding_shout_prevents_minion_death() {
         )
         .unwrap();
     assert_eq!(
-        state.world().health(ally),
+        state.world().effective_health(ally),
         Some(orange_stone::core::component::Health(1))
     );
     assert_eq!(state.world().zone(ally), Some(Zone::Play));
@@ -1809,11 +1800,11 @@ fn unbound_elemental_gains_stats_when_overload_played() {
         })
         .unwrap();
     assert_eq!(
-        state.world().attack(elemental),
+        state.world().effective_attack(elemental),
         Some(orange_stone::core::component::Attack(3))
     );
     assert_eq!(
-        state.world().health(elemental),
+        state.world().effective_health(elemental),
         Some(orange_stone::core::component::Health(5))
     );
 }
@@ -1841,8 +1832,8 @@ fn tinkmaster_transforms_enemy_minion() {
         .unwrap();
 
     // Enemy minion is transformed into a 5/5 Devilsaur or a 1/1 Squirrel
-    let atk = state.world().attack(enemy_minion).unwrap().0;
-    let hp = state.world().health(enemy_minion).unwrap().0;
+    let atk = state.world().effective_attack(enemy_minion).unwrap().0;
+    let hp = state.world().effective_health(enemy_minion).unwrap().0;
     assert!(
         (atk, hp) == (5, 5) || (atk, hp) == (1, 1),
         "transformed stats should be 5/5 or 1/1, got {atk}/{hp}"
@@ -2241,7 +2232,7 @@ fn bane_of_doom_damages_and_summons_demon_if_killed() {
     // Random target: the 1/1 minion (dies → summon a demon) or the enemy hero (only takes 2 damage)
     let enemy_hero = state.player(PlayerId::Player2).hero;
     let minion_dead = state.world().zone(enemy_minion) == Some(Zone::Graveyard);
-    let hero_hp = state.world().health(enemy_hero).unwrap().0;
+    let hero_hp = state.world().effective_health(enemy_hero).unwrap().0;
     if minion_dead {
         // Minion died → summon a random demon (the demon may die to its own battlecry in the simplified implementation, e.g. Flame Imp)
         let demons: Vec<Entity> = [Zone::Play, Zone::Graveyard]
@@ -2312,12 +2303,12 @@ fn noble_sacrifice_attacker_takes_defender_retaliation() {
 
     // Defender takes 3 damage and dies, while retaliating for 2 (resolved simultaneously)
     assert_eq!(
-        state.world().health(hero),
+        state.world().effective_health(hero),
         Some(orange_stone::core::component::Health(30)),
         "hero should take no damage"
     );
     assert_eq!(
-        state.world().health(attacker),
+        state.world().effective_health(attacker),
         Some(orange_stone::core::component::Health(1)),
         "attacker should take 2 retaliation from the defender"
     );
@@ -2347,7 +2338,7 @@ fn attack_with_breaking_weapon_deals_full_damage() {
 
     // All 7 weapon damage applies, even though the weapon breaks from this attack
     assert_eq!(
-        state.world().health(enemy_hero),
+        state.world().effective_health(enemy_hero),
         Some(orange_stone::core::component::Health(23))
     );
     // Weapon is destroyed
@@ -2374,7 +2365,7 @@ fn dead_defender_still_retaliates() {
         "defender should be dead"
     );
     assert_eq!(
-        state.world().health(attacker),
+        state.world().effective_health(attacker),
         Some(orange_stone::core::component::Health(3)),
         "attacker should take 2 retaliation even though defender died"
     );

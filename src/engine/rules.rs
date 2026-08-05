@@ -9,9 +9,9 @@
 
 use crate::core::action::Action;
 use crate::core::component::{
-    Attack, AttacksUsed, CardType, Cost, Durability, Health, HeroPowerUsed, Secret,
+    Attack, AttacksUsed, CardType, Cost, Durability, EnchantmentExpiry, Health, HeroPowerUsed,
+    Secret, TriggerEvent, TriggerTiming,
 };
-use crate::core::component::{TriggerEvent, TriggerTiming};
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue, Priority};
 use crate::core::player::PlayerId;
@@ -162,10 +162,14 @@ fn validate_attack(
     match attacker_type {
         CardType::Minion => {}
         CardType::Hero => {
-            // Hero attacks require a weapon or a temporary attack bonus
+            // Hero attacks require a weapon or a temporary attack enchantment
+            // (Heroic Strike-style buffs make the hero able to attack)
             let has_weapon = state.player(attacker_player).weapon.is_some();
-            let has_temp_attack = state.player(attacker_player).temp_attack_bonus > 0;
-            if !has_weapon && !has_temp_attack {
+            let has_attack = state
+                .world()
+                .effective_attack(attacker)
+                .is_some_and(|a| a.0 > 0);
+            if !has_weapon && !has_attack {
                 return Err(EngineError::InvalidTarget);
             }
         }
@@ -763,32 +767,45 @@ pub fn apply_event(
                             // All damage absorbed by armor
                             return Ok(());
                         }
-                        // Remaining damage continues through to health
-                        let current_health = state.world().health(target);
-                        let Some(hp) = current_health else {
+                        // Remaining damage continues through to health — accumulate
+                        // it on the damage component (roadmap G4)
+                        let current_health = state.world().effective_health(target);
+                        let Some(_hp) = current_health else {
                             return Ok(());
                         };
-                        let new_hp = Health(hp.0 - remaining);
-                        state.world_mut().set_health(target, new_hp);
+                        let damage_old = state
+                            .world()
+                            .damage(target)
+                            .unwrap_or(crate::core::component::Damage(0))
+                            .0;
+                        let new_damage = damage_old + remaining;
+                        state
+                            .world_mut()
+                            .set_damage(target, crate::core::component::Damage(new_damage));
                         queue_death_events(state, queue, target, card_type);
                         return Ok(());
                     }
                 }
             }
 
-            // No armor or non-hero: deduct health directly
-            let current_health = state.world().health(target);
-            let Some(hp) = current_health else {
+            // No armor or non-hero: deduct health directly via the damage component
+            let Some(cur) = state.world().effective_health(target) else {
                 // Target does not exist (dead or removed); skip
                 return Ok(());
             };
-            let mut new_hp = Health(hp.0 - amount);
+            let damage_old = state
+                .world()
+                .damage(target)
+                .unwrap_or(crate::core::component::Damage(0))
+                .0;
+            // cur + damage_old = base + Σ health enchantments + aura (undamaged total)
+            let mut new_damage = damage_old + amount;
             // Poison: a poisonous source destroys minions it damages (divine shield already handled above)
             if state.world().poison(source).is_some()
                 && card_type == Some(CardType::Minion)
                 && amount > 0
             {
-                new_hp = Health(0);
+                new_damage = cur.0 + damage_old;
             }
             // Commanding Shout: minions' health cannot drop below 1 this turn
             if card_type == Some(CardType::Minion)
@@ -802,11 +819,13 @@ pub fn apply_event(
                     .player(target)
                     .map(|pid| state.player(pid).minion_min_health)
                     .unwrap_or(0);
-                new_hp = Health(new_hp.0.max(min_hp));
+                new_damage = new_damage.min(cur.0 + damage_old - min_hp);
             }
 
             // Mutate state via CoW
-            state.world_mut().set_health(target, new_hp);
+            state
+                .world_mut()
+                .set_damage(target, crate::core::component::Damage(new_damage));
 
             // Damage triggers (roadmap G2): "whenever this minion takes damage"
             // (Acolyte of Pain) and "whenever a friendly minion takes damage"
@@ -1114,33 +1133,26 @@ fn trigger_applies(
 /// strength and deaths they cause are processed before buffs expire.
 fn wrap_up_turn(state: &mut GameState) {
     let player = state.active_player();
-    // Clear temporary attack bonus
-    {
-        let inner = state.make_mut();
-        let p = &mut inner.players[player.index()];
-        let hero = p.hero;
-        let bonus = p.temp_attack_bonus;
-        if bonus > 0 {
-            let cur_atk = inner.world.attack(hero).unwrap_or(Attack(0));
-            inner
-                .world
-                .set_attack(hero, Attack((cur_atk.0 - bonus).max(0)));
-            p.temp_attack_bonus = 0;
-        }
-    }
-    // Clear temporary attack debuffs and death records
+    // Expire "until end of turn" enchantments (temporary attack buffs/debuffs)
+    // and clear per-turn state
     {
         let inner = state.make_mut();
         let p = &mut inner.players[player.index()];
         p.died_this_turn.clear();
-        // Clear temporary attack debuffs on all entities (stack-buffered snapshot)
-        let debuff_entities: SmallList<Entity> = inner
+        // Stack-buffered snapshot of entities holding expiring enchantments
+        let expiring: SmallList<Entity> = inner
             .world
-            .iter_temp_attack_debuff()
+            .iter_enchantments()
+            .filter(|(_, list)| {
+                list.iter()
+                    .any(|e| e.expiry == EnchantmentExpiry::UntilEndOfTurn)
+            })
             .map(|(e, _)| e)
             .collect();
-        for &e in debuff_entities.iter() {
-            inner.world.remove_temp_attack_debuff(e);
+        for &e in expiring.iter() {
+            inner
+                .world
+                .retain_enchantments(e, |ench| ench.expiry != EnchantmentExpiry::UntilEndOfTurn);
         }
         // Clear temporary immunity on all entities (Bestial Wrath — until end of turn)
         let immune_entities: SmallList<Entity> =
@@ -1168,7 +1180,9 @@ fn wrap_up_turn(state: &mut GameState) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::component::{Attack, CardType, Health, Trigger};
+    use crate::core::component::{
+        Attack, CardType, Damage, Enchantment, EnchantmentExpiry, Health, Trigger,
+    };
     use crate::core::entity::Entity;
     use crate::core::state::GameState;
     use crate::core::zone::Zone;
@@ -1304,12 +1318,8 @@ mod tests {
             .apply(&mut state, Action::Attack { attacker, defender })
             .unwrap();
 
-        // defender takes 3 damage: 3 → 0, dies
-        assert_eq!(
-            state.world().health(defender),
-            Some(Health(0)),
-            "defender should have taken 3 damage"
-        );
+        // defender takes 3 damage and dies (damage is cleared when it moves to
+        // the graveyard, so the dead minion reads its base health)
         assert_eq!(
             state.world().zone(defender),
             Some(Zone::Graveyard),
@@ -1318,7 +1328,7 @@ mod tests {
 
         // attacker takes 2 damage: 5 → 3, survives
         assert_eq!(
-            state.world().health(attacker),
+            state.world().effective_health(attacker),
             Some(Health(3)),
             "attacker should have taken 2 damage"
         );
@@ -1350,9 +1360,9 @@ mod tests {
             apply_event(&mut state, event, &mut queue).unwrap();
         }
 
-        assert_eq!(state.world().health(hero), Some(Health(25)));
+        assert_eq!(state.world().effective_health(hero), Some(Health(25)));
         // The attacker should not take damage from the hero (heroes do not retaliate)
-        assert_eq!(state.world().health(attacker), Some(Health(3)));
+        assert_eq!(state.world().effective_health(attacker), Some(Health(3)));
     }
 
     #[test]
@@ -1397,9 +1407,8 @@ mod tests {
             .unwrap();
 
         // defender takes 4 damage: 10 → 6
-        assert_eq!(state.world().health(defender), Some(Health(6)));
+        assert_eq!(state.world().effective_health(defender), Some(Health(6)));
         // attacker takes 5 damage: 1 → -4 → dies
-        assert_eq!(state.world().health(attacker), Some(Health(-4)));
         assert_eq!(state.world().zone(attacker), Some(Zone::Graveyard));
         assert_eq!(state.world().zone(defender), Some(Zone::Play)); // defender survives
     }
@@ -1498,8 +1507,8 @@ mod tests {
         let engine = crate::engine::game::GameEngine::new();
         engine.apply(&mut state, Action::EndTurn).unwrap();
         // The start effect resolved
-        assert_eq!(state.world().attack(minion), Some(Attack(2)));
-        assert_eq!(state.world().health(minion), Some(Health(3)));
+        assert_eq!(state.world().effective_attack(minion), Some(Attack(2)));
+        assert_eq!(state.world().effective_health(minion), Some(Health(3)));
     }
 
     #[test]
@@ -1509,14 +1518,17 @@ mod tests {
         // an end-of-turn effect dealing the hero's attack as damage: the enemy
         // minion must take the full 5 (if wrap-up ran first, it would take 0).
         let mut state = GameState::new();
-        // Heroic-Strike-style temporary bonus: attack 5 + temp bonus 5
-        {
-            let inner = state.make_mut();
-            let p = &mut inner.players[0];
-            p.temp_attack_bonus = 5;
-            inner.world.set_attack(p.hero, Attack(5));
-        }
+        // Heroic-Strike-style temporary bonus: a +5 until-end-of-turn attack enchantment
         let hero = state.player(PlayerId::Player1).hero;
+        state.world_mut().add_enchantment(
+            hero,
+            crate::core::component::Enchantment {
+                attack: 5,
+                health: 0,
+                cost: 0,
+                expiry: crate::core::component::EnchantmentExpiry::UntilEndOfTurn,
+            },
+        );
         state.world_mut().set_trigger(
             hero,
             Trigger {
@@ -1537,10 +1549,9 @@ mod tests {
             Some(Zone::Graveyard),
             "end-of-turn effect must resolve before the temporary buff expires"
         );
-        // The temp bonus expired afterwards
-        assert_eq!(state.player(PlayerId::Player1).temp_attack_bonus, 0);
+        // The temp enchantment expired afterwards — the hero is back to base attack
         assert_eq!(
-            state.world().attack(hero),
+            state.world().effective_attack(hero),
             Some(Attack(0)),
             "temporary attack bonus must expire at wrap-up"
         );
@@ -1652,7 +1663,7 @@ mod tests {
             1,
             "Acolyte of Pain must draw when damaged"
         );
-        assert_eq!(state.world().health(acolyte), Some(Health(1)));
+        assert_eq!(state.world().effective_health(acolyte), Some(Health(1)));
     }
 
     #[test]
@@ -1729,7 +1740,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(
-            state.world().attack(frothing),
+            state.world().effective_attack(frothing),
             Some(Attack(3)),
             "Frothing Berserker gains +1 attack when a friendly minion takes damage"
         );
@@ -1938,8 +1949,9 @@ mod tests {
             Some(Zone::Play),
             "A must survive: healed above 0 before its death was processed"
         );
-        // Damage dropped A to 0; the heal then restored 10
-        assert_eq!(state.world().health(a), Some(Health(10)));
+        // Damage dropped A to 0; the heal restored it to full (heals cap at
+        // full health in the damage model)
+        assert_eq!(state.world().effective_health(a), Some(Health(1)));
         assert_eq!(state.world().zone(b), Some(Zone::Graveyard));
         assert_eq!(state.step(), Step::Main);
     }
@@ -2010,6 +2022,232 @@ mod tests {
                 .count(),
             1,
             "deathrattle summon must resolve after the minion is removed"
+        );
+    }
+
+    // ============================================================
+    // G4 — enchantment layer
+    // ============================================================
+
+    /// Plays a custom P1 minion whose battlecry is `effect`, returning it.
+    fn play_battlecry_minion(
+        state: &mut GameState,
+        effect: crate::core::effect::CardEffect,
+    ) -> Entity {
+        use crate::core::component::Battlecry;
+        let e = {
+            let world = state.world_mut();
+            let e = world.spawn();
+            world.set_health(e, Health(2));
+            world.set_attack(e, Attack(1));
+            world.set_cost(e, crate::core::component::Cost(1));
+            world.set_card_type(e, CardType::Minion);
+            world.set_player(e, PlayerId::Player1);
+            world.set_attacks_used(e, AttacksUsed(0));
+            world.set_battlecry(e, Battlecry(effect));
+            world.set_zone(e, Zone::Hand);
+            world.zones_mut().insert(Zone::Hand, PlayerId::Player1, e);
+            e
+        };
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                state,
+                Action::PlayCard {
+                    card: e,
+                    target: None,
+                },
+            )
+            .unwrap();
+        e
+    }
+
+    #[test]
+    fn buffs_and_damage_are_enchantments_and_damage_component() {
+        // G4: base stats stay untouched; buffs attach enchantments, damage
+        // accumulates on the damage component.
+        let mut state = GameState::new();
+        let minion = add_minion_to_board(&mut state, PlayerId::Player1, 2, 5);
+        state.world_mut().add_enchantment(
+            minion,
+            Enchantment {
+                attack: 3,
+                health: 2,
+                cost: 0,
+                expiry: EnchantmentExpiry::Permanent,
+            },
+        );
+        state.world_mut().set_damage(minion, Damage(2));
+        // Base values untouched
+        assert_eq!(state.world().attack(minion), Some(Attack(2)));
+        assert_eq!(state.world().health(minion), Some(Health(5)));
+        // Effective values: base + enchantments − damage
+        assert_eq!(state.world().effective_attack(minion), Some(Attack(5)));
+        assert_eq!(state.world().effective_health(minion), Some(Health(5)));
+    }
+
+    #[test]
+    fn silence_strips_enchantments_but_keeps_damage() {
+        // G4: silence removes enchantments, keeping base stats and accumulated damage
+        let mut state = GameState::new();
+        let target = add_minion_to_board(&mut state, PlayerId::Player2, 2, 5);
+        state.world_mut().add_enchantment(
+            target,
+            Enchantment {
+                attack: 3,
+                health: 3,
+                cost: 0,
+                expiry: EnchantmentExpiry::Permanent,
+            },
+        );
+        state.world_mut().set_damage(target, Damage(2));
+        assert_eq!(state.world().effective_attack(target), Some(Attack(5)));
+        assert_eq!(state.world().effective_health(target), Some(Health(6)));
+        // Silence via a custom battlecry
+        play_battlecry_minion(
+            &mut state,
+            crate::core::effect::CardEffect::SilenceMinion {
+                target: crate::core::effect::EffectTarget::AnyEnemyMinion,
+            },
+        );
+        assert_eq!(
+            state.world().effective_attack(target),
+            Some(Attack(2)),
+            "silence must strip enchantments, revealing the base attack"
+        );
+        assert_eq!(
+            state.world().effective_health(target),
+            Some(Health(3)),
+            "silence keeps the accumulated damage (5 − 2)"
+        );
+        assert!(state.world().enchantments(target).is_none());
+    }
+
+    #[test]
+    fn until_end_of_turn_enchantments_expire_at_wrap_up() {
+        // G4: "until end of turn" enchantments expire at wrap-up; permanent
+        // enchantments survive it.
+        let mut state = GameState::new();
+        let minion = add_minion_to_board(&mut state, PlayerId::Player1, 2, 3);
+        state.world_mut().add_enchantment(
+            minion,
+            Enchantment {
+                attack: 3,
+                health: 0,
+                cost: 0,
+                expiry: EnchantmentExpiry::UntilEndOfTurn,
+            },
+        );
+        state.world_mut().add_enchantment(
+            minion,
+            Enchantment {
+                attack: 1,
+                health: 0,
+                cost: 0,
+                expiry: EnchantmentExpiry::Permanent,
+            },
+        );
+        assert_eq!(state.world().effective_attack(minion), Some(Attack(6)));
+        let engine = crate::engine::game::GameEngine::new();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        assert_eq!(
+            state.world().effective_attack(minion),
+            Some(Attack(3)),
+            "the until-end-of-turn enchantment must expire at wrap-up"
+        );
+    }
+
+    #[test]
+    fn leaving_play_clears_enchantments_and_damage() {
+        // G4: a minion leaving the battlefield loses enchantments and damage —
+        // bounced minions return at full health with base stats.
+        let mut state = GameState::new();
+        let minion = add_minion_to_board(&mut state, PlayerId::Player1, 2, 5);
+        state.world_mut().add_enchantment(
+            minion,
+            Enchantment {
+                attack: 2,
+                health: 3,
+                cost: 0,
+                expiry: EnchantmentExpiry::Permanent,
+            },
+        );
+        state.world_mut().set_damage(minion, Damage(2));
+        assert_eq!(state.world().effective_attack(minion), Some(Attack(4)));
+        state
+            .world_mut()
+            .move_to_zone(minion, Zone::Hand)
+            .expect("bounce");
+        assert_eq!(state.world().effective_attack(minion), Some(Attack(2)));
+        assert_eq!(state.world().effective_health(minion), Some(Health(5)));
+        assert!(state.world().enchantments(minion).is_none());
+        assert!(state.world().damage(minion).is_none());
+    }
+
+    #[test]
+    fn shadowstep_cost_enchantment_applies_after_bounce() {
+        // G4 end-to-end: Shadowstep bounces a buffed, damaged minion — the
+        // bounce clears enchantments and damage, then the bounce effect
+        // re-applies its cost reduction as a cost enchantment.
+        use crate::cards::def::SHADOWSTEP;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_board(PlayerId::Player1, &crate::cards::def::BLOODFEN_RAPTOR);
+        builder.add_minion_to_hand(PlayerId::Player1, &SHADOWSTEP);
+        let mut state = builder.build();
+        let minion = state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId::Player1)
+            .find(|&e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .is_some_and(|c| c.0 == "CLASSIC_001")
+            })
+            .expect("raptor on board");
+        let shadowstep = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "ROGUE_019"))
+            .expect("shadowstep in hand");
+        // Buff +2/+2 and damage the minion
+        state.world_mut().add_enchantment(
+            minion,
+            Enchantment {
+                attack: 2,
+                health: 2,
+                cost: 0,
+                expiry: EnchantmentExpiry::Permanent,
+            },
+        );
+        state.world_mut().set_damage(minion, Damage(1));
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: shadowstep,
+                    target: Some(minion),
+                },
+            )
+            .unwrap();
+        assert_eq!(state.world().zone(minion), Some(Zone::Hand));
+        assert_eq!(
+            state.world().effective_attack(minion),
+            Some(Attack(3)),
+            "bounced minion must lose its buffs (raptor base attack)"
+        );
+        assert_eq!(
+            state.world().effective_health(minion),
+            Some(Health(2)),
+            "bounced minion must be at full health (raptor base health)"
+        );
+        assert_eq!(
+            state.world().effective_cost(minion),
+            Some(crate::core::component::Cost(0)),
+            "Shadowstep's cost reduction persists in hand (3 − 2)"
         );
     }
 }
