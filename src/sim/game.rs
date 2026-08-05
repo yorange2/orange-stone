@@ -211,6 +211,7 @@ impl GameBuilder {
     fn spawn_minion(&mut self, player: PlayerId, card: &CardDef) -> Entity {
         let world = self.state.world_mut();
         let e = world.spawn();
+        world.set_card_id(e, crate::core::component::CardId(card.id));
         world.set_health(e, Health(card.health));
         world.set_attack(e, Attack(card.attack));
         world.set_cost(e, Cost(card.cost));

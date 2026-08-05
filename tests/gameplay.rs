@@ -1173,9 +1173,7 @@ fn heroic_strike_gives_hero_attack_this_turn() {
     let card = hand[0];
 
     // 打出 Heroic Strike
-    let log = engine
-        .apply(&mut state, Action::PlayCard { card })
-        .unwrap();
+    let log = engine.apply(&mut state, Action::PlayCard { card }).unwrap();
 
     // 检查事件
     assert!(log.iter().any(|e| matches!(e, Event::CardPlayed { .. })));
@@ -1220,9 +1218,7 @@ fn hero_with_temp_attack_can_attack() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
-    engine
-        .apply(&mut state, Action::PlayCard { card })
-        .unwrap();
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
 
     // 现在英雄有 4 攻击力，可以攻击（无需武器）
     let _log = engine
@@ -1265,9 +1261,7 @@ fn grant_windfury_gives_minion_windfury() {
         .collect();
     let card = hand[0];
 
-    engine
-        .apply(&mut state, Action::PlayCard { card })
-        .unwrap();
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
 
     // 随从应获得风怒
     assert!(state.world().windfury(minion).is_some());
@@ -1293,9 +1287,7 @@ fn double_attack_doubles_minion_attack() {
         .collect();
     let card = hand[0];
 
-    engine
-        .apply(&mut state, Action::PlayCard { card })
-        .unwrap();
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
 
     // 随从攻击力应从 4 翻倍到 8
     assert_eq!(
@@ -1322,9 +1314,7 @@ fn double_health_doubles_minion_health() {
         .collect();
     let card = hand[0];
 
-    engine
-        .apply(&mut state, Action::PlayCard { card })
-        .unwrap();
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
 
     // 随从生命值应从 6 翻倍到 12 (上限 30)
     assert_eq!(
@@ -1356,9 +1346,7 @@ fn grant_charge_allows_immediate_attack() {
         .collect();
     let card = hand[0];
 
-    engine
-        .apply(&mut state, Action::PlayCard { card })
-        .unwrap();
+    engine.apply(&mut state, Action::PlayCard { card }).unwrap();
 
     // 随从应获得冲锋
     assert!(state.world().charge(minion).is_some());
@@ -1442,10 +1430,7 @@ fn goldshire_footman_and_siegebreaker_have_taunt() {
         .zones()
         .iter(Zone::Play, PlayerId::Player1)
         .filter(|&e| {
-            state
-                .world()
-                .card_type(e)
-                == Some(orange_stone::core::component::CardType::Minion)
+            state.world().card_type(e) == Some(orange_stone::core::component::CardType::Minion)
         })
         .collect();
     let footman = minions[0];
@@ -1481,9 +1466,7 @@ fn novice_engineer_battlecry_draws_card() {
         .collect();
     let card = hand[0];
 
-    let log = engine
-        .apply(&mut state, Action::PlayCard { card })
-        .unwrap();
+    let log = engine.apply(&mut state, Action::PlayCard { card }).unwrap();
 
     assert!(log.iter().any(|e| matches!(e, Event::CardDrawn { .. })));
     // 牌库中的 Wisp 应被抽到手牌
@@ -1608,10 +1591,7 @@ fn loot_hoarder_deathrattle_draws_card() {
         .zones()
         .iter(Zone::Play, PlayerId::Player1)
         .find(|&e| {
-            state
-                .world()
-                .card_type(e)
-                == Some(orange_stone::core::component::CardType::Minion)
+            state.world().card_type(e) == Some(orange_stone::core::component::CardType::Minion)
         })
         .unwrap();
 
@@ -1696,7 +1676,10 @@ fn explosive_trap_deals_damage_to_all_enemies() {
         .unwrap();
 
     // 奥秘被揭示
-    assert!(log.iter().any(|e| matches!(e, Event::SecretRevealed { .. })));
+    assert!(
+        log.iter()
+            .any(|e| matches!(e, Event::SecretRevealed { .. }))
+    );
     // 敌方英雄受到 2 点伤害
     let enemy_hero = state.player(PlayerId::Player2).hero;
     assert_eq!(
@@ -1758,7 +1741,10 @@ fn freezing_trap_returns_attacker_to_hand_with_cost_increase() {
         .unwrap();
 
     // 奥秘被揭示，攻击随从被移回其拥有者手牌
-    assert!(log.iter().any(|e| matches!(e, Event::SecretRevealed { .. })));
+    assert!(
+        log.iter()
+            .any(|e| matches!(e, Event::SecretRevealed { .. }))
+    );
     assert_eq!(state.world().zone(attacker), Some(Zone::Hand));
     // 费用增加 (2)：3 -> 5
     assert_eq!(state.world().cost(attacker), Some(Cost(5)));

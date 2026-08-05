@@ -12,7 +12,9 @@
 //! - `Self_` → 效果来源实体自身
 //! - `AllEnemyMinions` → 所有敌方随从
 
-use crate::core::component::{Attack, AttacksUsed, CardType, Cost, Durability, Freeze, Health};
+use crate::core::component::{
+    Attack, AttacksUsed, CardId, CardType, Cost, Durability, Freeze, Health,
+};
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue};
@@ -196,8 +198,12 @@ pub fn resolve_effect(
             // 给source随从增加属性
             let cur_atk = state.world().attack(source).unwrap_or(Attack(0));
             let cur_hp = state.world().health(source).unwrap_or(Health(0));
-            state.world_mut().set_attack(source, Attack(cur_atk.0 + atk.0));
-            state.world_mut().set_health(source, Health(cur_hp.0 + hp.0));
+            state
+                .world_mut()
+                .set_attack(source, Attack(cur_atk.0 + atk.0));
+            state
+                .world_mut()
+                .set_health(source, Health(cur_hp.0 + hp.0));
         }
         CardEffect::DestroyManaCrystal => {
             let inner = state.make_mut();
@@ -250,9 +256,10 @@ pub fn resolve_effect(
             }
             let idx = state.rng_mut().next_usize(enemies.len());
             let enemy = enemies[idx];
-            state
-                .world_mut()
-                .set_temp_attack_debuff(enemy, crate::core::component::TempAttackDebuff(attack_reduction));
+            state.world_mut().set_temp_attack_debuff(
+                enemy,
+                crate::core::component::TempAttackDebuff(attack_reduction),
+            );
         }
         CardEffect::ReflectDamage => {
             // 已由奥秘系统的 WhenHeroDamaged 触发器处理
@@ -406,6 +413,7 @@ fn resolve_summon(
     let e = {
         let world = state.world_mut();
         let e = world.spawn();
+        world.set_card_id(e, CardId(card_def.id));
         world.set_health(e, Health(card_def.health));
         world.set_attack(e, Attack(card_def.attack));
         world.set_cost(e, crate::core::component::Cost(card_def.cost));
@@ -444,7 +452,10 @@ fn resolve_summon(
             world.set_charge(e, crate::core::component::Charge);
         }
         if card_def.spell_damage != 0 {
-            world.set_spell_damage(e, crate::core::component::SpellDamage(card_def.spell_damage));
+            world.set_spell_damage(
+                e,
+                crate::core::component::SpellDamage(card_def.spell_damage),
+            );
         }
         if card_def.cant_attack {
             world.set_cant_attack(e, crate::core::component::CantAttack);
@@ -548,6 +559,7 @@ fn resolve_equip_weapon(
     // 创建武器实体并更新 Player
     let inner = state.make_mut();
     let weapon = inner.world.spawn();
+    inner.world.set_card_id(weapon, CardId(card_def.id));
     inner.world.set_attack(weapon, Attack(card_def.attack));
     inner
         .world
@@ -666,9 +678,10 @@ fn resolve_destroy_minion(
         EffectTarget::DamagedEnemyMinion => collect_enemy_minions(state, owner)
             .into_iter()
             .filter(|&e| {
-                state.world().health(e).is_some_and(|h| {
-                    h.0 < state.world().effective_health(e).unwrap_or(h).0
-                })
+                state
+                    .world()
+                    .health(e)
+                    .is_some_and(|h| h.0 < state.world().effective_health(e).unwrap_or(h).0)
             })
             .collect(),
         EffectTarget::TauntEnemyMinion => {
@@ -885,7 +898,9 @@ fn resolve_grant_windfury(state: &mut GameState, owner: PlayerId, target: Effect
         return;
     }
     let idx = state.rng_mut().next_usize(minions.len());
-    state.world_mut().set_windfury(minions[idx], crate::core::component::Windfury);
+    state
+        .world_mut()
+        .set_windfury(minions[idx], crate::core::component::Windfury);
 }
 
 /// 给随从增加冲锋和可选攻击力加成。
@@ -964,11 +979,7 @@ fn resolve_buff_weapon(state: &mut GameState, owner: PlayerId, attack: i32, dura
 
 /// 随机丢弃一张手牌。
 fn resolve_discard_random(state: &mut GameState, owner: PlayerId) {
-    let hand: Vec<Entity> = state
-        .world()
-        .zones()
-        .iter(Zone::Hand, owner)
-        .collect();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, owner).collect();
     if hand.is_empty() {
         return;
     }
@@ -1006,11 +1017,7 @@ fn resolve_deal_armor_damage(
 }
 
 /// 摧毁敌方武器并抽等于其耐久度的牌数。
-fn resolve_destroy_weapon_and_draw(
-    state: &mut GameState,
-    queue: &mut EventQueue,
-    owner: PlayerId,
-) {
+fn resolve_destroy_weapon_and_draw(state: &mut GameState, queue: &mut EventQueue, owner: PlayerId) {
     let enemy = owner.opponent();
     let weapon = state.player(enemy).weapon;
     if let Some(w) = weapon {
@@ -1090,11 +1097,7 @@ fn resolve_set_attack_to_health(state: &mut GameState, owner: PlayerId, target: 
 }
 
 /// 消灭所有随从，除随机一个之外。
-fn resolve_destroy_all_except_one(
-    state: &mut GameState,
-    queue: &mut EventQueue,
-    owner: PlayerId,
-) {
+fn resolve_destroy_all_except_one(state: &mut GameState, queue: &mut EventQueue, owner: PlayerId) {
     let enemy = owner.opponent();
     let mut all_minions: Vec<Entity> = [owner, enemy]
         .iter()

@@ -480,13 +480,8 @@ impl SmartBot {
         let hero_power_action = self.hero_power(state, active, remaining_mana);
 
         // ── 3. 战斗阶段 ──
-        let combat_actions = self.combat_phase(
-            state,
-            active,
-            enemy,
-            &projected_charge,
-            hero_weapon_attack,
-        );
+        let combat_actions =
+            self.combat_phase(state, active, enemy, &projected_charge, hero_weapon_attack);
 
         // ── 4. 组装动作序列 ──
         let mut actions = Vec::with_capacity(
@@ -532,7 +527,8 @@ impl SmartBot {
             .collect();
 
         // 按评分从高到低排序
-        candidates.sort_by(|(s1, _), (s2, _)| s2.partial_cmp(s1).unwrap_or(std::cmp::Ordering::Equal));
+        candidates
+            .sort_by(|(s1, _), (s2, _)| s2.partial_cmp(s1).unwrap_or(std::cmp::Ordering::Equal));
 
         let mut actions = Vec::new();
         let mut projected_charge: Vec<ProjectedAttacker> = Vec::new();
@@ -573,7 +569,12 @@ impl SmartBot {
             remaining_mana -= cost;
         }
 
-        (actions, projected_charge, hero_weapon_attack, remaining_mana)
+        (
+            actions,
+            projected_charge,
+            hero_weapon_attack,
+            remaining_mana,
+        )
     }
 
     /// 评估一张卡牌的价值分数。
@@ -643,7 +644,11 @@ impl SmartBot {
             return None;
         }
 
-        let cost = state.world().hero_power(hero).map(|hp| hp.cost).unwrap_or(2);
+        let cost = state
+            .world()
+            .hero_power(hero)
+            .map(|hp| hp.cost)
+            .unwrap_or(2);
         if remaining_mana < cost {
             return None;
         }
@@ -715,9 +720,7 @@ impl SmartBot {
         let enemy_minions: Vec<EnemyMinion> = world
             .zones()
             .iter(Zone::Play, enemy)
-            .filter(|&e| {
-                world.card_type(e) == Some(CardType::Minion) && world.is_alive(e)
-            })
+            .filter(|&e| world.card_type(e) == Some(CardType::Minion) && world.is_alive(e))
             .map(|e| EnemyMinion {
                 entity: e,
                 attack: world.effective_attack(e).map(|a| a.0).unwrap_or(0),
@@ -755,11 +758,9 @@ impl SmartBot {
                 // 有嘲讽，检查是否可以通过嘲讽斩杀
                 let taunt_total_hp: i32 = taunt_minions.iter().map(effective_hp).sum();
                 let damage_needed = taunt_total_hp + enemy_effective_hp;
-                if total_attack >= damage_needed && self.can_clear_and_lethal(
-                    &attackers,
-                    &taunt_minions,
-                    enemy_effective_hp,
-                ) {
+                if total_attack >= damage_needed
+                    && self.can_clear_and_lethal(&attackers, &taunt_minions, enemy_effective_hp)
+                {
                     // 先清嘲讽再打脸
                     let mut actions = self.assign_taunt_clear(&attackers, &taunt_minions);
                     // 剩余攻击者打脸
@@ -804,8 +805,7 @@ impl SmartBot {
             .collect();
 
         if !available.is_empty() && !non_taunt_minions.is_empty() {
-            let (trade_actions, newly_assigned) =
-                self.value_trades(&available, &non_taunt_minions);
+            let (trade_actions, newly_assigned) = self.value_trades(&available, &non_taunt_minions);
             assigned_attackers.extend(newly_assigned);
             actions.extend(trade_actions);
         }
@@ -942,8 +942,11 @@ impl SmartBot {
         used: &[Entity],
         enemy: &EnemyMinion,
     ) -> Option<ProjectedAttacker> {
-        let candidates: Vec<&ProjectedAttacker> =
-            available.iter().filter(|a| !used.contains(&a.entity)).copied().collect();
+        let candidates: Vec<&ProjectedAttacker> = available
+            .iter()
+            .filter(|a| !used.contains(&a.entity))
+            .copied()
+            .collect();
         self.find_best_attacker_inner(&candidates, enemy)
     }
 
@@ -1000,9 +1003,7 @@ impl SmartBot {
         // 第二优先：用圣盾无伤破敌
         let divine_trade = candidates
             .iter()
-            .filter(|a| {
-                a.has_divine_shield && !enemy.has_divine_shield && a.attack >= enemy.health
-            })
+            .filter(|a| a.has_divine_shield && !enemy.has_divine_shield && a.attack >= enemy.health)
             .min_by_key(|a| a.attack);
 
         if let Some(&a) = divine_trade {
@@ -1045,7 +1046,11 @@ impl SmartBot {
         enemy: &EnemyMinion,
     ) -> f64 {
         if let Some(best) = self.find_best_attacker_slice(available, used, enemy) {
-            let dmg_to_self = if best.has_divine_shield { 0 } else { enemy.attack };
+            let dmg_to_self = if best.has_divine_shield {
+                0
+            } else {
+                enemy.attack
+            };
             let attacker_dies = !best.is_hero && dmg_to_self >= best.health;
             let attacker_value = best.attack as f64 + best.health as f64 * 0.5;
             let enemy_value = enemy.attack as f64 * 1.5 + enemy.health as f64 * 0.5;
@@ -1150,7 +1155,9 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DestroyAndHeal { heal, .. } => 4.0 + heal as f64 * 0.7,
         CardEffect::DestroyAndAOE { .. } => 5.0,
         CardEffect::DealDamageToTwo { amount } => amount as f64 * 2.0,
-        CardEffect::DealDamageAndDraw { damage, draw, .. } => damage as f64 * 1.2 + draw as f64 * 3.0,
+        CardEffect::DealDamageAndDraw { damage, draw, .. } => {
+            damage as f64 * 1.2 + draw as f64 * 3.0
+        }
         CardEffect::DamageAndGainAttack {
             damage,
             attack_bonus,
@@ -1161,7 +1168,9 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::GiveCardsToOpponent { .. } => -2.0,
         CardEffect::ResurrectMinion => 5.0,
         CardEffect::CopyMinionStats => 4.0,
-        CardEffect::TempDebuff { attack_reduction, .. } => attack_reduction as f64 * 1.5,
+        CardEffect::TempDebuff {
+            attack_reduction, ..
+        } => attack_reduction as f64 * 1.5,
         CardEffect::ReflectDamage => 3.0,
     }
 }
@@ -1174,8 +1183,7 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
 mod smart_bot_tests {
     use super::*;
     use crate::cards::def::{
-        BLOODFEN_RAPTOR, BLUEGILL_WARRIOR,
-        OGRE_MAGI, VOIDWALKER, EAGLEHORN_BOW,
+        BLOODFEN_RAPTOR, BLUEGILL_WARRIOR, EAGLEHORN_BOW, OGRE_MAGI, VOIDWALKER,
     };
     use crate::core::player::PlayerId;
     use crate::sim::game::GameBuilder;
@@ -1290,10 +1298,13 @@ mod smart_bot_tests {
             .collect();
         if !attack_actions.is_empty() {
             let first = attack_actions[0];
-            assert!(matches!(
-                first,
-                Action::Attack { attacker: a, defender: d } if *a == attacker && *d == taunt
-            ), "First attack should be our minion clearing enemy taunt");
+            assert!(
+                matches!(
+                    first,
+                    Action::Attack { attacker: a, defender: d } if *a == attacker && *d == taunt
+                ),
+                "First attack should be our minion clearing enemy taunt"
+            );
             // 清除嘲讽后，剩余攻击应该打脸
             let enemy_hero = state.player(PlayerId::Player2).hero;
             let remaining: Vec<_> = attack_actions.iter().skip(1).collect();

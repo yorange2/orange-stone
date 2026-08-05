@@ -17,7 +17,11 @@ pub const BLESSING_OF_MIGHT: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats { attack: 3, health: 0, target: EffectTarget::FriendlyMinion }),
+    battlecry: Some(CardEffect::GainStats {
+        attack: 3,
+        health: 0,
+        target: EffectTarget::FriendlyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -47,7 +51,10 @@ pub const HUMILITY: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::SetAttack { attack: 1, target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::SetAttack {
+        attack: 1,
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -77,7 +84,10 @@ pub const HOLY_LIGHT: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::RestoreHealth { amount: 8, target: EffectTarget::FriendlyHero }),
+    battlecry: Some(CardEffect::RestoreHealth {
+        amount: 8,
+        target: EffectTarget::FriendlyHero,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -107,7 +117,11 @@ pub const BLESSING_OF_KINGS: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats { attack: 4, health: 4, target: EffectTarget::FriendlyMinion }),
+    battlecry: Some(CardEffect::GainStats {
+        attack: 4,
+        health: 4,
+        target: EffectTarget::FriendlyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -137,7 +151,10 @@ pub const CONSECRATION: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 2, target: EffectTarget::AllEnemyMinions }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AllEnemyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -316,7 +333,6 @@ pub const ALDOR_PEACEKEEPER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-
 pub const EQUALITY: CardDef = CardDef {
     id: "PALADIN_010",
     name: "Equality",
@@ -325,7 +341,10 @@ pub const EQUALITY: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::SetAttack { attack: 0, target: EffectTarget::AllMinions }),
+    battlecry: Some(CardEffect::SetAttack {
+        attack: 0,
+        target: EffectTarget::AllMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -355,7 +374,10 @@ pub const HAMMER_OF_WRATH: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 3, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 3,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -385,7 +407,10 @@ pub const AVENGING_WRATH: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 8, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 8,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -415,7 +440,10 @@ pub const LAY_ON_HANDS: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::RestoreHealth { amount: 8, target: EffectTarget::FriendlyHero }),
+    battlecry: Some(CardEffect::RestoreHealth {
+        amount: 8,
+        target: EffectTarget::FriendlyHero,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -446,7 +474,10 @@ pub const HOLY_WRATH: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 5, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 5,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -476,7 +507,11 @@ pub const RIGHTEOUSNESS: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats { attack: 0, health: 0, target: EffectTarget::AllFriendlyMinions }),
+    battlecry: Some(CardEffect::GainStats {
+        attack: 0,
+        health: 0,
+        target: EffectTarget::AllFriendlyMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -507,7 +542,11 @@ pub const HAND_OF_PROTECTION: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats { attack: 0, health: 0, target: EffectTarget::FriendlyMinion }),
+    battlecry: Some(CardEffect::GainStats {
+        attack: 0,
+        health: 0,
+        target: EffectTarget::FriendlyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -587,7 +626,6 @@ pub const ARGENT_PROTECTOR: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-
 /// 受祝福的勇士 — 使一个随从的攻击力翻倍
 pub const BLESSED_CHAMPION: CardDef = CardDef {
     id: "PALADIN_016",
@@ -646,7 +684,11 @@ pub const SWORD_OF_JUSTICE: CardDef = CardDef {
     start_turn_effect: None,
     spell_trigger: None,
     death_trigger: None,
-    summon_trigger: Some(CardEffect::GainStats { attack: 1, health: 1, target: EffectTarget::Self_ }),
+    summon_trigger: Some(CardEffect::GainStats {
+        attack: 1,
+        health: 1,
+        target: EffectTarget::Self_,
+    }),
     choose_one_effect: None,
     combo_effect: None,
     attack_equals_health: false,

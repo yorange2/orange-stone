@@ -2056,7 +2056,6 @@ pub const MURLOC_WARLEADER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-
 // ============================================================
 // 怀旧系列 — 🔧 卡牌简化版（效果需要新引擎支持，简化为白板或部分效果）
 // ============================================================
@@ -2165,8 +2164,7 @@ pub const DREAD_CORSAIR: CardDef = CardDef {
     attack_equals_health: false,
 };
 /// 风险投资公司雇佣兵 — 你的随从费用增加（3）（简化：白板）
-pub const VENTURE_CO_MERCENARY: CardDef =
-    vanilla!("NEUTRAL_C14", "Venture Co. Mercenary", 5, 7, 6);
+pub const VENTURE_CO_MERCENARY: CardDef = vanilla!("NEUTRAL_C14", "Venture Co. Mercenary", 5, 7, 6);
 /// 恶毒铁匠 — 激怒：你的武器获得+2攻击力（简化：白板）
 pub const SPITEFUL_SMITH: CardDef = vanilla!("NEUTRAL_C15", "Spiteful Smith", 5, 4, 6);
 

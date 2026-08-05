@@ -330,6 +330,13 @@ pub struct AttackEqualsHealth;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct TempAttackDebuff(pub i32);
 
+/// 卡牌 ID — 记录实体对应的原始卡牌定义 ID。
+///
+/// 用于在运行时反查 `CardDef`（变形、奥秘挂载、随机卡池等场景）。
+/// 随从/武器/法术实体在创建（召唤、装备、构建）时设置。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CardId(pub &'static str);
+
 #[cfg(test)]
 mod tests {
     use super::*;

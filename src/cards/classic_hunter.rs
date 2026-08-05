@@ -17,7 +17,10 @@ pub const ARCANE_SHOT: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 2, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -47,7 +50,10 @@ pub const HUNTERS_MARK: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::SetAttack { attack: 0, target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::SetAttack {
+        attack: 0,
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -107,7 +113,10 @@ pub const KILL_COMMAND: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 3, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 3,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -137,7 +146,9 @@ pub const UNLEASH_THE_HOUNDS: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::SummonMinion { card_id: "HUNTER_t" }),
+    battlecry: Some(CardEffect::SummonMinion {
+        card_id: "HUNTER_t",
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -192,7 +203,6 @@ pub const SAVANNAH_HIGHMANE: CardDef = CardDef {
 };
 pub const HYENA: CardDef = vanilla!("HUNTER_006t", "Hyena", 2, 2, 2);
 
-
 pub const EAGLEHORN_BOW: CardDef = CardDef {
     id: "HUNTER_007",
     name: "Eaglehorn Bow",
@@ -231,7 +241,9 @@ pub const DEADLY_SHOT: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DestroyMinion { target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -261,7 +273,10 @@ pub const EXPLOSIVE_SHOT: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 5, target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 5,
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -374,7 +389,6 @@ pub const KING_KRUSH: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-
 /// 食腐土狼 — 每当友方随从死亡，获得+2/+1
 pub const SCAVENGING_HYENA: CardDef = CardDef {
     id: "HUNTER_013",
@@ -399,7 +413,11 @@ pub const SCAVENGING_HYENA: CardDef = CardDef {
     end_turn_effect: None,
     start_turn_effect: None,
     spell_trigger: None,
-    death_trigger: Some(CardEffect::GainStats { attack: 2, health: 1, target: EffectTarget::Self_ }),
+    death_trigger: Some(CardEffect::GainStats {
+        attack: 2,
+        health: 1,
+        target: EffectTarget::Self_,
+    }),
     summon_trigger: None,
     choose_one_effect: None,
     combo_effect: None,
@@ -446,7 +464,11 @@ pub const HOUNDMASTER: CardDef = CardDef {
     attack: 4,
     health: 3,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats { attack: 2, health: 2, target: EffectTarget::FriendlyMinion }),
+    battlecry: Some(CardEffect::GainStats {
+        attack: 2,
+        health: 2,
+        target: EffectTarget::FriendlyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -543,7 +565,10 @@ pub const EXPLOSIVE_TRAP: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AllEnemies,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -573,7 +598,7 @@ pub const FREEZING_TRAP: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::ReturnToHandAndIncreaseCost { amount: 2 }),
     deathrattle: None,
     taunt: false,
     hero_power: None,

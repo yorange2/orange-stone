@@ -16,7 +16,10 @@ pub const SOULFIRE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 4, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 4,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -79,7 +82,10 @@ pub const MORTAL_COIL: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 1, target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 1,
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -139,7 +145,10 @@ pub const HELLFIRE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 3, target: EffectTarget::AllCharacters }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 3,
+        target: EffectTarget::AllCharacters,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -169,7 +178,10 @@ pub const DRAIN_LIFE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 2, target: EffectTarget::AnyEnemy }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AnyEnemy,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -221,7 +233,6 @@ pub const DOOMGUARD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-
 pub const SHADOW_BOLT: CardDef = CardDef {
     id: "WARLOCK_008",
     name: "Shadow Bolt",
@@ -230,7 +241,10 @@ pub const SHADOW_BOLT: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage { amount: 4, target: EffectTarget::AnyEnemyMinion }),
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 4,
+        target: EffectTarget::AnyEnemyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -260,7 +274,9 @@ pub const TWISTING_NETHER: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DestroyMinion { target: EffectTarget::AllMinions }),
+    battlecry: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::AllMinions,
+    }),
     deathrattle: None,
     taunt: false,
     hero_power: None,
@@ -408,7 +424,6 @@ pub const PIT_LORD: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-
 
 /// 恶魔猎犬 — 战吼：随机丢弃一张手牌
 pub const FELSTALKER: CardDef = CardDef {
