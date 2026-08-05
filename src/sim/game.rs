@@ -292,6 +292,8 @@ impl GameBuilder {
         if card.attack_equals_health {
             world.set_attack_equals_health(e, crate::core::component::AttackEqualsHealth);
         }
+        // 特殊关键词（剧毒/潜行等）
+        crate::cards::apply_card_keywords(world, e, card);
         e
     }
 }

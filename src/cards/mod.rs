@@ -17,3 +17,21 @@ pub mod classic_warlock;
 pub mod classic_warrior;
 pub mod def;
 pub mod sets;
+
+use crate::core::component::{Poison, Stealth};
+use crate::core::entity::Entity;
+use crate::core::world::World;
+use def::CardDef;
+
+/// 在实体上应用特殊关键词组件（剧毒、潜行等）。
+///
+/// 这些关键词不新增 `CardDef` 字段（避免大面积结构体改动），
+/// 而是按卡牌 ID 在此集中映射。召唤随从（`trigger::resolve_summon`）
+/// 和构建卡牌（`GameBuilder::spawn_minion`）时调用。
+pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &CardDef) {
+    if card_def.id == "ROGUE_022" {
+        // 耐心的刺客 — 潜行 + 剧毒
+        world.set_poison(entity, Poison);
+        world.set_stealth(entity, Stealth);
+    }
+}

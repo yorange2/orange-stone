@@ -13,7 +13,7 @@
 //! - `AllEnemyMinions` → 所有敌方随从
 
 use crate::core::component::{
-    Attack, AttacksUsed, CardId, CardType, Cost, Durability, Freeze, Health,
+    Attack, AttacksUsed, CardId, CardType, Cost, Durability, Freeze, Health, Stealth,
 };
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
@@ -218,6 +218,16 @@ pub fn resolve_effect(
             draw_card(state, queue, enemy);
         }
         CardEffect::ResurrectMinion => {
+            // 战场已满时无法复活
+            let board_count = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .count();
+            if board_count >= crate::engine::rules::MAX_BOARD_SIZE {
+                return;
+            }
             let inner = state.make_mut();
             let died = &mut inner.players[owner.index()].died_this_turn;
             if let Some(entity) = died.pop() {
@@ -264,6 +274,22 @@ pub fn resolve_effect(
         CardEffect::ReflectDamage => {
             // 已由奥秘系统的 WhenHeroDamaged 触发器处理
         }
+        CardEffect::DealDamageAndReturnToHand { amount, target } => {
+            // 伤害立即结算；"移回手牌"由 rules.rs 的 CardPlayed 处理
+            resolve_deal_damage(state, queue, source, owner, amount, target);
+        }
+        CardEffect::ReturnFriendlyToHandAndReduceCost { amount } => {
+            resolve_return_friendly_reduce_cost(state, owner, amount);
+        }
+        CardEffect::AdjacentDamage => {
+            resolve_adjacent_damage(state, queue, source, owner);
+        }
+        CardEffect::DestroyWeaponAndDealAttackToEnemies => {
+            resolve_destroy_weapon_deal_attack(state, queue, source, owner);
+        }
+        CardEffect::GrantStealth => {
+            resolve_grant_stealth(state, source, owner);
+        }
     }
 }
 
@@ -309,7 +335,7 @@ fn resolve_deal_damage(
             vec![hero]
         }
         EffectTarget::AllEnemyMinions => {
-            let minions = collect_enemy_minions(state, owner);
+            let minions = collect_all_enemy_minions(state, owner);
             for minion in &minions {
                 queue.push(Event::DamageDealt {
                     source,
@@ -320,7 +346,7 @@ fn resolve_deal_damage(
             return;
         }
         EffectTarget::AllEnemies => {
-            let enemies = collect_enemy_characters(state, owner);
+            let enemies = collect_all_enemy_characters(state, owner);
             for enemy in &enemies {
                 queue.push(Event::DamageDealt {
                     source,
@@ -351,7 +377,7 @@ fn resolve_deal_damage(
         }
         EffectTarget::AllMinions => {
             let mut all = collect_friendly_minions(state, owner);
-            all.extend(collect_enemy_minions(state, owner));
+            all.extend(collect_all_enemy_minions(state, owner));
             for m in &all {
                 queue.push(Event::DamageDealt {
                     source,
@@ -481,6 +507,8 @@ fn resolve_summon(
         if card_def.attack_equals_health {
             world.set_attack_equals_health(e, crate::core::component::AttackEqualsHealth);
         }
+        // 特殊关键词（剧毒/潜行等）：按卡牌 ID 在 cards 层集中映射
+        crate::cards::apply_card_keywords(world, e, card_def);
         e
     };
 
@@ -704,7 +732,7 @@ fn resolve_destroy_minion(
         }
         EffectTarget::AllMinions => {
             let mut all = collect_friendly_minions(state, owner);
-            all.extend(collect_enemy_minions(state, owner));
+            all.extend(collect_all_enemy_minions(state, owner));
             for &m in &all {
                 let hp = state.world().health(m).unwrap_or(Health(1));
                 queue.push(Event::DamageDealt {
@@ -733,7 +761,7 @@ fn resolve_silence(state: &mut GameState, owner: PlayerId, target: EffectTarget)
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
         EffectTarget::AllMinions => {
             let mut all = collect_friendly_minions(state, owner);
-            all.extend(collect_enemy_minions(state, owner));
+            all.extend(collect_all_enemy_minions(state, owner));
             all
         }
         _ => return,
@@ -804,10 +832,10 @@ fn resolve_freeze(state: &mut GameState, owner: PlayerId, target: EffectTarget) 
     let targets: Vec<Entity> = match target {
         EffectTarget::AnyEnemy => collect_enemy_characters(state, owner),
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner),
-        EffectTarget::AllEnemyMinions => collect_enemy_minions(state, owner),
+        EffectTarget::AllEnemyMinions => collect_all_enemy_minions(state, owner),
         EffectTarget::AllCharacters => {
             let mut all = collect_friendly_minions(state, owner);
-            all.extend(collect_enemy_characters(state, owner));
+            all.extend(collect_all_enemy_characters(state, owner));
             all
         }
         _ => return,
@@ -1182,7 +1210,7 @@ fn resolve_destroy_and_aoe(
     // 对所有敌方随从造成等于其攻击力的伤害
     let _enemy = owner.opponent();
     let targets: Vec<Entity> = match target {
-        EffectTarget::AllEnemyMinions => collect_enemy_minions(state, owner),
+        EffectTarget::AllEnemyMinions => collect_all_enemy_minions(state, owner),
         _ => return,
     };
     for t in &targets {
@@ -1194,12 +1222,135 @@ fn resolve_destroy_and_aoe(
     }
 }
 
+/// 将一个友方随从移回手牌并使其费用减少（暗影步）。
+fn resolve_return_friendly_reduce_cost(state: &mut GameState, owner: PlayerId, amount: i32) {
+    let minions = collect_friendly_minions(state, owner);
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let target = minions[idx];
+    let _ = state.world_mut().move_to_zone(target, Zone::Hand);
+    let world = state.world_mut();
+    let cur = world.cost(target).unwrap_or(Cost(0));
+    world.set_cost(target, Cost((cur.0 - amount).max(0)));
+}
+
+/// 对目标相邻的随从造成等于其攻击力的伤害（背叛）。
+///
+/// 目标为随机敌方随从；伤害其左右相邻的随从（同一战场位置差为 1）。
+fn resolve_adjacent_damage(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+) {
+    let minions = collect_enemy_minions(state, owner);
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let target = minions[idx];
+    let atk = state
+        .world()
+        .effective_attack(target)
+        .unwrap_or(Attack(0))
+        .0;
+    if atk <= 0 {
+        return;
+    }
+    // 找到目标在敌方战场上的位置，取其左右相邻随从
+    let enemy = owner.opponent();
+    let board: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, enemy)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    let Some(pos) = board.iter().position(|&e| e == target) else {
+        return;
+    };
+    // 左邻（pos 为 0 时 wrapping_sub 得到 None）
+    if let Some(&left) = board.get(pos.wrapping_sub(1)) {
+        queue.push(Event::DamageDealt {
+            source,
+            target: left,
+            amount: atk,
+        });
+    }
+    if let Some(&right) = board.get(pos + 1) {
+        queue.push(Event::DamageDealt {
+            source,
+            target: right,
+            amount: atk,
+        });
+    }
+}
+
+/// 摧毁己方武器并对所有敌人造成等于其攻击力的伤害（剑刃乱舞）。
+fn resolve_destroy_weapon_deal_attack(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+) {
+    let weapon = state.player(owner).weapon;
+    let Some(w) = weapon else {
+        return;
+    };
+    let atk = state.world().attack(w).unwrap_or(Attack(0)).0;
+    let inner = state.make_mut();
+    inner.players[owner.index()].weapon = None;
+    queue.push(Event::WeaponDestroyed {
+        player: owner,
+        weapon: w,
+    });
+    if atk > 0 {
+        let enemies = collect_all_enemy_characters(state, owner);
+        for enemy in &enemies {
+            queue.push(Event::DamageDealt {
+                source,
+                target: *enemy,
+                amount: atk,
+            });
+        }
+    }
+}
+
+/// 使一个友方随从获得潜行（伪装大师，不能指定自身）。
+fn resolve_grant_stealth(state: &mut GameState, source: Entity, owner: PlayerId) {
+    let minions: Vec<Entity> = collect_friendly_minions(state, owner)
+        .into_iter()
+        .filter(|&e| e != source)
+        .collect();
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    state.world_mut().set_stealth(minions[idx], Stealth);
+}
+
 // ============================================================
 // 辅助函数
 // ============================================================
 
-/// 收集敌方所有角色（英雄 + 随从）。
+/// 收集敌方所有角色（英雄 + 随从），排除潜行随从。
+///
+/// 潜行角色不能被单目标效果指定，但仍受 AOE 影响。
 fn collect_enemy_characters(state: &GameState, owner: PlayerId) -> Vec<Entity> {
+    collect_enemy_characters_impl(state, owner, false)
+}
+
+/// 收集敌方所有角色（英雄 + 随从，含潜行）— 用于 AOE 效果。
+fn collect_all_enemy_characters(state: &GameState, owner: PlayerId) -> Vec<Entity> {
+    collect_enemy_characters_impl(state, owner, true)
+}
+
+fn collect_enemy_characters_impl(
+    state: &GameState,
+    owner: PlayerId,
+    include_stealth: bool,
+) -> Vec<Entity> {
     let enemy = owner.opponent();
     let mut chars: Vec<Entity> = state
         .world()
@@ -1207,7 +1358,11 @@ fn collect_enemy_characters(state: &GameState, owner: PlayerId) -> Vec<Entity> {
         .iter(Zone::Play, enemy)
         .filter(|&e| {
             let ct = state.world().card_type(e);
-            ct == Some(CardType::Minion) || ct == Some(CardType::Hero)
+            if ct != Some(CardType::Minion) && ct != Some(CardType::Hero) {
+                return false;
+            }
+            // 单目标选择排除潜行；AOE（include_stealth）包含潜行
+            !(!include_stealth && state.world().stealth(e).is_some())
         })
         .collect();
     chars.push(state.player(enemy).hero);
@@ -1217,14 +1372,30 @@ fn collect_enemy_characters(state: &GameState, owner: PlayerId) -> Vec<Entity> {
     chars
 }
 
-/// 收集敌方所有随从。
+/// 收集敌方所有随从，排除潜行随从。
 fn collect_enemy_minions(state: &GameState, owner: PlayerId) -> Vec<Entity> {
+    collect_enemy_minions_impl(state, owner, false)
+}
+
+/// 收集敌方所有随从（含潜行）— 用于 AOE 效果。
+fn collect_all_enemy_minions(state: &GameState, owner: PlayerId) -> Vec<Entity> {
+    collect_enemy_minions_impl(state, owner, true)
+}
+
+fn collect_enemy_minions_impl(
+    state: &GameState,
+    owner: PlayerId,
+    include_stealth: bool,
+) -> Vec<Entity> {
     let enemy = owner.opponent();
     state
         .world()
         .zones()
         .iter(Zone::Play, enemy)
-        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .filter(|&e| {
+            state.world().card_type(e) == Some(CardType::Minion)
+                && (include_stealth || state.world().stealth(e).is_none())
+        })
         .collect()
 }
 

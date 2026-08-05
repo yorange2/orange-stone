@@ -337,6 +337,15 @@ pub const ROGUE_CLASSIC: &[CardDef] = &[
     SHIV,
     VANISH,
     ASSASSINS_BLADE,
+    // Tier 2 补全
+    HEADCRACK,
+    KIDNAPPER,
+    SHADOWSTEP,
+    BETRAYAL,
+    BLADE_FLURRY,
+    PATIENT_ASSASSIN,
+    PERDITIONS_BLADE,
+    MASTER_OF_DISGUISE,
 ];
 
 pub const SHAMAN_CLASSIC: &[CardDef] = &[
@@ -607,6 +616,15 @@ pub const ALL_CARDS: &[CardDef] = &[
     SHIV,
     VANISH,
     ASSASSINS_BLADE,
+    // Tier 2
+    HEADCRACK,
+    KIDNAPPER,
+    SHADOWSTEP,
+    BETRAYAL,
+    BLADE_FLURRY,
+    PATIENT_ASSASSIN,
+    PERDITIONS_BLADE,
+    MASTER_OF_DISGUISE,
     // Shaman
     EARTH_SHOCK,
     LIGHTNING_BOLT,
