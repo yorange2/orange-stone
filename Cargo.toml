@@ -6,6 +6,7 @@ rust-version = "1.85"
 license = "MIT"
 
 [dependencies]
+rayon = "1.10"
 
 [dev-dependencies]
 criterion = "0.5"

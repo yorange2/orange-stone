@@ -253,6 +253,18 @@ impl BattleRunner {
     /// `max_turns` — 回合数上限（防止无限循环）。
     /// `hand_size` — 初始手牌数（默认 3）。
     pub fn run_battle(&mut self, deck_size: usize) -> BattleResult {
+        // 构建初始对局（牌组 + 种子）
+        let mut state = self.create_game_state(deck_size);
+
+        // 运行对局
+        self.run_game_loop(&mut state, 60)
+    }
+
+    /// 生成随机牌组并构建初始 `GameState`（供单局与批量模拟共用）。
+    ///
+    /// 每次调用消耗一个牌组种子和一个对局种子，因此对同一个
+    /// `BattleRunner`（相同初始 seed）连续调用会产生不同的对局。
+    pub fn create_game_state(&mut self, deck_size: usize) -> GameState {
         // 生成牌组
         let (p1_deck, p2_deck) = self.generate_random_decks(deck_size);
         self.tracker.record_deck(&p1_deck);
@@ -264,9 +276,7 @@ impl BattleRunner {
         // 记录本局种子（用于复现）
         let game_seed = self.rng.next_u32() as u64;
         state.make_mut().rng = GameRng::new(game_seed);
-
-        // 运行对局
-        self.run_game_loop(&mut state, 60)
+        state
     }
 
     /// 生成两个随机牌组（每个 player 的牌组内不重复）。
