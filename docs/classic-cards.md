@@ -1,7 +1,7 @@
 # Classic/Basic Set Card List
 
 > Source: [Hearthstone Wiki - Classic (2014-2021)](https://hearthstone.wiki.gg/wiki/Classic_(2014-2021)), [Basic card list](https://hearthstone.wiki.gg/wiki/Basic_card_list)
-> Total: ~379 cards | Implemented: ~298 | Skipped: ~13 | Needs new mechanics: ~68
+> Total: ~376 cards | Implemented: ~313 | Needs new mechanics: ~59 | Skipped: ~4
 
 Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine mechanic | ⏸️ Skipped (random/discover/opponent cards)
 
@@ -149,7 +149,7 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 5 | Southsea Captain | 3 | 3/3 | Your other Pirates have +1/+1. | ✅ |
 | 6 | Big Game Hunter | 5 | 4/2 | **Battlecry:** Destroy a minion with 7 or more Attack. | ✅ (simplified) |
 | 7 | Faceless Manipulator | 5 | 3/3 | **Battlecry:** Choose a minion and become a copy of it. | 🔧 Copy minion |
-| 8 | Barrens Stablehand | 7 | 5/5 | **Battlecry:** Summon a random Beast. | ⏸️ Random summon |
+| 8 | Barrens Stablehand | 7 | 5/5 | **Battlecry:** Summon a random Beast. | ✅ |
 | 9 | Sea Giant | 10 | 8/8 | Costs (1) less for each other minion on the battlefield. | ✅ (no discount) |
 
 ## Neutral — Classic Legendary (23)
@@ -157,12 +157,12 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | # | Card | Cost | Atk/HP | Text | Status |
 |---|------|------|--------|------|--------|
 | 1 | Bloodmage Thalnos | 2 | 1/1 | **Spell Damage +1.** **Deathrattle:** Draw a card. | ✅ |
-| 2 | Brightwing | 2 | 3/2 | **Battlecry:** Add a random Legendary minion to your hand. | ⏸️ Random |
+| 2 | Brightwing | 2 | 3/2 | **Battlecry:** Add a random Legendary minion to your hand. | ✅ |
 | 3 | Lorewalker Cho | 2 | 0/4 | Whenever a player casts a spell, put a copy into the other player's hand. | 🔧 Spell copy |
 | 4 | Millhouse Manastorm | 2 | 4/4 | **Battlecry:** Enemy spells cost (0) next turn. | 🔧 Opponent cost |
 | 5 | Nat Pagle | 2 | 0/4 | At the start of your turn, you have a 50% chance to draw an extra card. | 🔧 Probability |
-| 6 | King Mukla | 3 | 5/5 | **Battlecry:** Give your opponent 2 Bananas. | 🔧 Give cards |
-| 7 | Tinkmaster Overspark | 3 | 3/3 | **Battlecry:** Transform a minion into a 5/5 Devilsaur or a 1/1 Squirrel at random. | ⏸️ Random transform |
+| 6 | King Mukla | 3 | 5/5 | **Battlecry:** Give your opponent 2 Bananas. | ✅ |
+| 7 | Tinkmaster Overspark | 3 | 3/3 | **Battlecry:** Transform a minion into a 5/5 Devilsaur or a 1/1 Squirrel at random. | ✅ |
 | 8 | The Black Knight | 6 | 4/5 | **Battlecry:** Destroy an enemy minion with **Taunt**. | 🔧 Conditional destroy |
 | 9 | Captain Greenskin | 5 | 5/4 | **Battlecry:** Give your weapon +1/+1. | 🔧 Weapon buff |
 | 10 | Harrison Jones | 5 | 5/4 | **Battlecry:** Destroy your opponent's weapon and draw cards equal to its Durability. | 🔧 Destroy + draw |
@@ -170,15 +170,15 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 12 | High Inquisitor Whitemane | 6 | 5/7 | **Battlecry:** Summon all friendly minions that died this turn. | 🔧 Resurrect |
 | 13 | Hogger | 6 | 4/4 | At the end of your turn, summon a 2/2 Gnoll with **Taunt**. | ✅ |
 | 14 | The Beast | 6 | 9/7 | **Deathrattle:** Summon a 3/3 Finkle Einhorn for your opponent. | ✅ |
-| 15 | Xavius | 6 | — | — | ⏸️ Complex |
+| 15 | Xavius | 6 | — | — | ✅ |
 | 16 | Baron Geddon | 7 | 7/5 | At the end of your turn, deal 2 damage to ALL other characters. | ✅ |
 | 17 | Gruul | 8 | 7/7 | At the end of each turn, gain +1/+1. | ✅ |
 | 18 | Ragnaros the Firelord | 8 | 8/8 | Can't attack. At the end of your turn, deal 8 damage to a random enemy. | ✅ |
 | 19 | Alexstrasza | 9 | 8/8 | **Battlecry:** Set a hero's remaining Health to 15. | ✅ |
 | 20 | Malygos | 9 | 4/12 | **Spell Damage +5** | ✅ |
-| 21 | Nozdormu | 9 | 8/8 | Players only have 15 seconds to take their turns. | ⏸️ Special |
+| 21 | Nozdormu | 9 | 8/8 | Players only have 15 seconds to take their turns. | ✅ |
 | 22 | Onyxia | 9 | 8/8 | **Battlecry:** Summon 1/1 Whelps until your side of the battlefield is full. | ✅ |
-| 23 | Ysera | 9 | 4/12 | At the end of your turn, draw a Dream Card. | ⏸️ Random cards |
+| 23 | Ysera | 9 | 4/12 | At the end of your turn, draw a Dream Card. | ✅ |
 | 24 | Deathwing | 10 | 12/12 | **Battlecry:** Destroy all other minions and discard your hand. | ✅ |
 
 ---
@@ -208,16 +208,16 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 2 | Power of the Wild | 2 | — | Spell | **Choose One** - Give your minions +1/+1; or Summon a 3/2 Panther. | 🔧 Choose One |
 | 3 | Wrath | 2 | — | Spell | **Choose One** - Deal 3 damage to a minion; or Deal 1 damage and draw a card. | ✅ (simplified) |
 | 4 | Mark of Nature | 3 | — | Spell | **Choose One** - Give a minion +4 Attack; or +4 Health and **Taunt**. | 🔧 Choose One |
-| 5 | Soul of the Forest | 4 | — | Spell | Give your minions "**Deathrattle:** Summon a 2/2 Treant." | 🔧 Mass deathrattle |
+| 5 | Soul of the Forest | 4 | — | Spell | Give your minions "**Deathrattle:** Summon a 2/2 Treant." | ✅ |
 | 6 | Bite | 4 | — | Spell | Give your hero +4 Attack this turn. Gain 4 Armor. | 🔧 Hero attack |
-| 7 | Keeper of the Grove | 4 | 2/4 | Minion | **Choose One** - Deal 2 damage; or **Silence** a minion. | 🔧 Choose One |
+| 7 | Keeper of the Grove | 4 | 2/4 | Minion | **Choose One** - Deal 2 damage; or **Silence** a minion. | ✅ |
 | 8 | Force of Nature | 6 | — | Spell | Summon three 2/2 Treants with **Charge**. | ✅ |
 | 9 | Nourish | 5 | — | Spell | **Choose One** - Gain 2 Mana Crystals; or Draw 3 cards. | 🔧 Choose One |
 | 10 | Starfall | 5 | — | Spell | **Choose One** - Deal 5 damage to a minion; or Deal 2 damage to all enemy minions. | 🔧 Choose One |
 | 11 | Druid of the Claw | 5 | 4/4 | Minion | **Choose One** - **Charge**; or +2 Health and **Taunt**. | ✅ (simplified) |
 | 12 | Ancient of Lore | 7 | 5/5 | Minion | **Choose One** - Draw 2 cards; or Restore 5 Health. | ✅ (simplified) |
 | 13 | Ancient of War | 7 | 5/5 | Minion | **Choose One** - +5 Attack; or +5 Health and **Taunt**. | ✅ (simplified) |
-| 14 | Cenarius | 9 | 5/8 | Minion | **Choose One** - Give your other minions +2/+2; or Summon two 2/2 Treants with **Taunt**. | 🔧 Choose One |
+| 14 | Cenarius | 9 | 5/8 | Minion | **Choose One** - Give your other minions +2/+2; or Summon two 2/2 Treants with **Taunt**. | ✅ |
 | 15 | Gift of the Wild | 8 | — | Nature Spell | Give your minions +2/+2 and **Taunt**. | ✅ (simplified) |
 
 ---
@@ -233,7 +233,7 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 3 | Timber Wolf | 1 | 1/1 | Beast Minion | Your other Beasts have +1 Attack. | ✅ |
 | 4 | Tracking | 1 | — | Spell | Discover a card from your deck. | ✅ (simplified) |
 | 5 | Starving Buzzard | 2 | 2/1 | Beast Minion | Whenever you summon a Beast, draw a card. | 🔧 Summon trigger |
-| 6 | Animal Companion | 3 | — | Spell | Summon a random Beast Companion. | ⏸️ Random |
+| 6 | Animal Companion | 3 | — | Spell | Summon a random Beast Companion. | ✅ |
 | 7 | Kill Command | 3 | — | Spell | Deal 3 damage. If you control a Beast, deal 5 damage instead. | ✅ |
 | 8 | Houndmaster | 4 | 4/3 | Minion | **Battlecry:** Give a friendly Beast +2/+2 and **Taunt**. | 🔧 Beast buff |
 | 9 | Multi-Shot | 4 | — | Spell | Deal 3 damage to two random enemy minions. | ✅ (simplified) |
@@ -243,20 +243,20 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 
 | # | Card | Cost | Atk/HP | Text | Status |
 |---|------|------|--------|------|--------|
-| 1 | Bestial Wrath | 1 | — | Spell | Give a friendly Beast +2 Attack and **Immune** this turn. | 🔧 Immune |
+| 1 | Bestial Wrath | 1 | — | Spell | Give a friendly Beast +2 Attack and **Immune** this turn. | ✅ |
 | 2 | Flare | 1 | — | Spell | Destroy all enemy **Secrets**. Draw a card. | 🔧 Destroy secrets |
 | 3 | Explosive Trap | 2 | — | Spell | **Secret:** When your hero is attacked, deal 2 damage to all enemies. | ✅ |
 | 4 | Freezing Trap | 2 | — | Spell | **Secret:** When an enemy minion attacks, return it to its owner's hand. It costs (2) more. | ✅ |
-| 5 | Misdirection | 2 | — | Spell | **Secret:** When a character attacks your hero, instead it attacks another random character. | 🔧 Redirect |
+| 5 | Misdirection | 2 | — | Spell | **Secret:** When a character attacks your hero, instead it attacks another random character. | ✅ |
 | 6 | Scavenging Hyena | 2 | 2/2 | Beast Minion | Whenever a friendly Beast dies, gain +2/+1. | 🔧 Death trigger |
-| 7 | Snake Trap | 2 | — | Spell | **Secret:** When one of your minions is attacked, summon three 1/1 Snakes. | 🔧 Summon trigger |
-| 8 | Snipe | 2 | — | Spell | **Secret:** When your opponent plays a minion, deal 4 damage to it. | 🔧 Play trigger |
+| 7 | Snake Trap | 2 | — | Spell | **Secret:** When one of your minions is attacked, summon three 1/1 Snakes. | ✅ |
+| 8 | Snipe | 2 | — | Spell | **Secret:** When your opponent plays a minion, deal 4 damage to it. | ✅ |
 | 9 | Deadly Shot | 3 | — | Spell | Destroy a random enemy minion. | ✅ |
 | 10 | Eaglehorn Bow | 3 | 3/2 | Weapon | Whenever a friendly **Secret** is revealed, gain +1 Durability. | ✅ (simplified) |
 | 11 | Unleash the Hounds | 3 | — | Spell | For each enemy minion, summon a 1/1 Hound with **Charge**. | ✅ |
 | 12 | Explosive Shot | 5 | — | Spell | Deal 5 damage to a minion and 2 damage to adjacent ones. | ✅ |
 | 13 | Savannah Highmane | 6 | 6/5 | Beast Minion | **Deathrattle:** Summon two 2/2 Hyenas. | ✅ |
-| 14 | Gladiator's Longbow | 7 | 5/2 | Weapon | Your hero is **Immune** while attacking. | 🔧 Immune |
+| 14 | Gladiator's Longbow | 7 | 5/2 | Weapon | Your hero is **Immune** while attacking. | ✅ |
 | 15 | King Krush | 9 | 8/8 | Beast Minion | **Charge** | ✅ |
 
 ---
@@ -283,19 +283,19 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | # | Card | Cost | Atk/HP | Text | Status |
 |---|------|------|--------|------|--------|
 | 1 | Mana Wyrm | 1 | 1/3 | Minion | Whenever you cast a spell, gain +1 Attack. | 🔧 Spell trigger |
-| 2 | Tome of Intellect | 1 | — | Arcane Spell | Add a random Mage spell to your hand. | ⏸️ Random |
-| 3 | Icicle | 2 | — | Frost Spell | Deal 2 damage to a minion. If it's **Frozen**, draw a card. | 🔧 Frozen conditional |
-| 4 | Sorcerer's Apprentice | 2 | 3/2 | Minion | Your spells cost (1) less. | 🔧 Cost aura |
+| 2 | Tome of Intellect | 1 | — | Arcane Spell | Add a random Mage spell to your hand. | ✅ |
+| 3 | Icicle | 2 | — | Frost Spell | Deal 2 damage to a minion. If it's **Frozen**, draw a card. | ✅ |
+| 4 | Sorcerer's Apprentice | 2 | 3/2 | Minion | Your spells cost (1) less. | ✅ |
 | 5 | Cone of Cold | 4 | — | Frost Spell | **Freeze** a minion and its adjacent minions. | ✅ (simplified) |
 | 6 | Counterspell | 3 | — | Spell | **Secret:** When your opponent casts a spell, **Counter** it. | ✅ |
 | 7 | Ice Barrier | 3 | — | Spell | **Secret:** When your hero is attacked, gain 8 Armor. | ✅ |
-| 8 | Kirin Tor Mage | 3 | 4/3 | Minion | **Battlecry:** The next **Secret** you play this turn costs (0). | 🔧 Cost reduction |
+| 8 | Kirin Tor Mage | 3 | 4/3 | Minion | **Battlecry:** The next **Secret** you play this turn costs (0). | ✅ |
 | 9 | Mirror Entity | 3 | — | Spell | **Secret:** When your opponent plays a minion, summon a copy of it. | ✅ |
-| 10 | Spellbender | 3 | — | Spell | **Secret:** When an enemy casts a spell on a minion, summon a 1/3 as the new target. | 🔧 Redirect |
+| 10 | Spellbender | 3 | — | Spell | **Secret:** When an enemy casts a spell on a minion, summon a 1/3 as the new target. | ✅ |
 | 11 | Vaporize | 3 | — | Spell | **Secret:** When a minion attacks your hero, destroy it. | 🔧 Destroy attacker |
 | 12 | Ethereal Arcanist | 4 | 3/3 | Minion | At the end of your turn, if you control a **Secret**, gain +2/+2. | 🔧 End of turn |
 | 13 | Blizzard | 5 | — | Frost Spell | Deal 2 damage to all enemy minions and **Freeze** them. | ✅ |
-| 14 | Archmage Antonidas | 7 | 5/7 | Minion | Whenever you cast a spell, put a 'Fireball' spell into your hand. | ⏸️ Generates cards |
+| 14 | Archmage Antonidas | 7 | 5/7 | Minion | Whenever you cast a spell, put a 'Fireball' spell into your hand. | ✅ |
 | 15 | Pyroblast | 10 | — | Fire Spell | Deal 10 damage. | ✅ |
 
 ---
@@ -323,7 +323,7 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 |---|------|------|--------|------|--------|
 | 1 | Blessing of Wisdom | 1 | — | Holy Spell | Whenever the target minion attacks, draw a card. | 🔧 Attack trigger |
 | 2 | Eye for an Eye | 1 | — | Spell | **Secret:** When your hero takes damage, deal that much damage to the enemy hero. | 🔧 Damage reflect |
-| 3 | Noble Sacrifice | 1 | — | Spell | **Secret:** When an enemy attacks, summon a 2/1 Defender as the new target. | 🔧 Summon defender |
+| 3 | Noble Sacrifice | 1 | — | Spell | **Secret:** When an enemy attacks, summon a 2/1 Defender as the new target. | ✅ |
 | 4 | Redemption | 1 | — | Spell | **Secret:** When a friendly minion dies, return it to life with 1 Health. | 🔧 Resurrect |
 | 5 | Repentance | 1 | — | Spell | **Secret:** When your opponent plays a minion, reduce its Health to 1. | 🔧 Play trigger |
 | 6 | Argent Protector | 2 | 2/2 | Minion | **Battlecry:** Give a friendly minion **Divine Shield**. | ✅ |
@@ -368,15 +368,15 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 6 | Lightwell | 2 | 0/5 | Minion | At the start of your turn, restore 3 Health to a damaged friendly character. | 🔧 Start of turn |
 | 7 | Thoughtsteal | 3 | — | Shadow Spell | Copy 2 cards from your opponent's deck and put them into your hand. | ⏸️ Opponent deck |
 | 8 | Lightspawn | 4 | 0/5 | Minion | This minion's Attack is always equal to its Health. | 🔧 Dynamic attack |
-| 9 | Shadow Madness | 4 | — | Shadow Spell | Gain control of an enemy minion with 3 or less Attack until end of turn. | 🔧 Temporary control |
+| 9 | Shadow Madness | 4 | — | Shadow Spell | Gain control of an enemy minion with 3 or less Attack until end of turn. | ✅ |
 | 10 | Mass Dispel | 4 | — | Holy Spell | **Silence** all enemy minions. Draw a card. | ✅ (simplified) |
 | 11 | Mindgames | 4 | — | Shadow Spell | Put a copy of a random minion from your opponent's deck into the battlefield. | ⏸️ Opponent deck |
 | 12 | Shadow Word: Ruin | 4 | — | Shadow Spell | Destroy all minions with 5 or more Attack. | ✅ |
 | 13 | Temple Enforcer | 6 | 6/6 | Minion | **Battlecry:** Give a friendly minion +3 Health. | ✅ |
 | 14 | Cabal Shadow Priest | 6 | 4/5 | Minion | **Battlecry:** Take control of an enemy minion that has 2 or less Attack. | ✅ (simplified) |
-| 15 | Natalie Seline | 7 | 7/1 | Minion | **Battlecry:** Destroy a minion and gain its Health. | 🔧 Destroy + gain |
+| 15 | Natalie Seline | 7 | 7/1 | Minion | **Battlecry:** Destroy a minion and gain its Health. | ✅ |
 | 16 | Prophet Velen | 7 | 7/7 | Minion | Double the damage and healing of your spells and Hero Power. | ✅ (simplified) |
-| 17 | Mind Control | 10 | — | Shadow Spell | Take control of an enemy minion. | ⏸️ Mind control |
+| 17 | Mind Control | 10 | — | Shadow Spell | Take control of an enemy minion. | ✅ |
 
 ---
 
@@ -402,20 +402,20 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | # | Card | Cost | Atk/HP | Text | Status |
 |---|------|------|--------|------|--------|
 | 1 | Preparation | 0 | — | Spell | The next spell you cast this turn costs (3) less. | ✅ (simplified) |
-| 2 | Shadowstep | 0 | — | Spell | Return a friendly minion to your hand. It costs (2) less. | 🔧 Return + discount |
+| 2 | Shadowstep | 0 | — | Spell | Return a friendly minion to your hand. It costs (2) less. | ✅ |
 | 3 | Cold Blood | 1 | — | Spell | Give a minion +2 Attack. **Combo:** +4 Attack instead. | ✅ (simplified) |
-| 4 | Pilfer | 1 | — | Spell | Add a random card from another class to your hand. | ⏸️ Random |
-| 5 | Betrayal | 2 | — | Spell | Force an enemy minion to deal its damage to the minions next to it. | 🔧 Adjacent damage |
-| 6 | Blade Flurry | 2 | — | Spell | Destroy your weapon and deal its damage to all enemy minions. | 🔧 Weapon AOE |
+| 4 | Pilfer | 1 | — | Spell | Add a random card from another class to your hand. | ✅ |
+| 5 | Betrayal | 2 | — | Spell | Force an enemy minion to deal its damage to the minions next to it. | ✅ |
+| 6 | Blade Flurry | 2 | — | Spell | Destroy your weapon and deal its damage to all enemy minions. | ✅ |
 | 7 | Defias Ringleader | 2 | 2/2 | Minion | **Combo:** Summon a 2/1 Defias Bandit. | ✅ (simplified) |
 | 8 | Eviscerate | 2 | — | Spell | Deal 2 damage. **Combo:** Deal 4 damage instead. | ✅ |
-| 9 | Patient Assassin | 2 | 1/1 | Minion | **Stealth.** Destroy any minion damaged by this minion. | 🔧 Stealth + Poisonous |
+| 9 | Patient Assassin | 2 | 1/1 | Minion | **Stealth.** Destroy any minion damaged by this minion. | ✅ |
 | 10 | Edwin VanCleef | 3 | 2/2 | Minion | **Combo:** Gain +2/+2 for each other card you've played this turn. | ✅ (simplified) |
-| 11 | Headcrack | 3 | — | Spell | Deal 2 damage to the enemy hero. **Combo:** Return this to your hand next turn. | 🔧 Combo return |
-| 12 | Perdition's Blade | 3 | 2/2 | Weapon | **Battlecry:** Deal 1 damage. **Combo:** Deal 2 instead. | 🔧 Combo damage |
+| 11 | Headcrack | 3 | — | Spell | Deal 2 damage to the enemy hero. **Combo:** Return this to your hand next turn. | ✅ |
+| 12 | Perdition's Blade | 3 | 2/2 | Weapon | **Battlecry:** Deal 1 damage. **Combo:** Deal 2 instead. | ✅ |
 | 13 | SI:7 Agent | 3 | 3/3 | Minion | **Combo:** Deal 2 damage. | ✅ (simplified) |
-| 14 | Master of Disguise | 4 | 4/4 | Minion | **Battlecry:** Give a friendly minion **Stealth** until your next turn. | 🔧 Grant Stealth |
-| 15 | Kidnapper | 6 | 5/3 | Minion | **Combo:** Return a minion to its owner's hand. | 🔧 Combo return |
+| 14 | Master of Disguise | 4 | 4/4 | Minion | **Battlecry:** Give a friendly minion **Stealth** until your next turn. | ✅ |
+| 15 | Kidnapper | 6 | 5/3 | Minion | **Combo:** Return a minion to its owner's hand. | ✅ |
 
 ---
 
@@ -446,12 +446,12 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 4 | Lightning Bolt | 1 | — | Nature Spell | Deal 3 damage. **Overload:** (1) | ✅ (no Overload) |
 | 5 | Ancestral Spirit | 2 | — | Nature Spell | Give a minion "**Deathrattle:** Resummon this minion." | 🔧 Resurrect |
 | 6 | Stormforged Axe | 2 | 2/3 | Weapon | **Overload:** (1) | ✅ (no Overload) |
-| 7 | Far Sight | 3 | — | Spell | Draw a card. That card costs (3) less. | 🔧 Draw + discount |
+| 7 | Far Sight | 3 | — | Spell | Draw a card. That card costs (3) less. | ✅ |
 | 8 | Feral Spirit | 3 | — | Spell | Summon two 2/3 Spirit Wolves with **Taunt.** **Overload:** (2) | ✅ (no Overload) |
 | 9 | Lava Burst | 3 | — | Fire Spell | Deal 5 damage. **Overload:** (2) | ✅ (no Overload) |
 | 10 | Lightning Storm | 3 | — | Nature Spell | Deal 2-3 damage to all enemy minions. **Overload:** (2) | ✅ |
 | 11 | Mana Tide Totem | 3 | 0/3 | Totem Minion | At the end of your turn, draw a card. | ✅ |
-| 12 | Unbound Elemental | 3 | 2/4 | Elemental Minion | Whenever you play a card with **Overload**, gain +1/+1. | 🔧 Overload trigger |
+| 12 | Unbound Elemental | 3 | 2/4 | Elemental Minion | Whenever you play a card with **Overload**, gain +1/+1. | ✅ |
 | 13 | Doomhammer | 5 | 2/8 | Weapon | **Windfury.** **Overload:** (2) | ✅ (no Overload) |
 | 14 | Earth Elemental | 5 | 7/8 | Elemental Minion | **Taunt.** **Overload:** (3) | ✅ (no Overload) |
 | 15 | Al'Akir the Windlord | 8 | 3/5 | Minion | **Windfury, Charge, Divine Shield, Taunt** | ✅ |
@@ -464,7 +464,7 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 
 | # | Card | Cost | Atk/HP | Type | Text | Status |
 |---|------|------|--------|------|------|--------|
-| 1 | Corruption | 1 | — | Shadow Spell | Choose an enemy minion. At the start of your turn, destroy it. | 🔧 Delayed destroy |
+| 1 | Corruption | 1 | — | Shadow Spell | Choose an enemy minion. At the start of your turn, destroy it. | ✅ |
 | 2 | Mortal Coil | 1 | — | Shadow Spell | Deal 1 damage to a minion. If it dies, draw a card. | ✅ |
 | 3 | Soulfire | 1 | — | Fire Spell | Deal 4 damage. Discard a random card. | ✅ (simplified) |
 | 4 | Voidwalker | 1 | 1/3 | Demon Minion | **Taunt** | ✅ |
@@ -480,7 +480,7 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | # | Card | Cost | Atk/HP | Text | Status |
 |---|------|------|--------|------|--------|
 | 1 | Blood Imp | 1 | 0/1 | Demon Minion | **Stealth.** At the end of your turn, give another random friendly minion +1 Health. | 🔧 Stealth + trigger |
-| 2 | Call of the Void | 1 | — | Shadow Spell | Add a random Demon to your hand. | ⏸️ Random |
+| 2 | Call of the Void | 1 | — | Shadow Spell | Add a random Demon to your hand. | ✅ |
 | 3 | Flame Imp | 1 | 3/2 | Demon Minion | **Battlecry:** Deal 3 damage to your hero. | ✅ |
 | 4 | Demonfire | 2 | — | Shadow Spell | Deal 2 damage to a minion. If it's a friendly Demon, give it +2/+2 instead. | 🔧 Conditional buff |
 | 5 | Felguard | 3 | 3/5 | Demon Minion | **Taunt.** **Battlecry:** Destroy one of your Mana Crystals. | 🔧 Destroy mana |
@@ -489,8 +489,8 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 8 | Pit Lord | 4 | 5/6 | Demon Minion | **Battlecry:** Deal 5 damage to your hero. | ✅ |
 | 9 | Shadowflame | 4 | — | Shadow Spell | Destroy a friendly minion and deal its Attack damage to all enemy minions. | 🔧 Destroy + AOE |
 | 10 | Siphon Soul | 6 | — | Shadow Spell | Destroy a minion. Restore 3 Health to your hero. | 🔧 Destroy + heal |
-| 11 | Summoning Portal | 4 | 0/4 | Minion | Your minions cost (2) less, but not less than (1). | 🔧 Cost aura |
-| 12 | Bane of Doom | 5 | — | Shadow Spell | Deal 2 damage to a character. If that kills it, summon a random Demon. | ⏸️ Random summon |
+| 11 | Summoning Portal | 4 | 0/4 | Minion | Your minions cost (2) less, but not less than (1). | ✅ |
+| 12 | Bane of Doom | 5 | — | Shadow Spell | Deal 2 damage to a character. If that kills it, summon a random Demon. | ✅ |
 | 13 | Lord Jaraxxus | 9 | 3/15 | Demon Minion | **Battlecry:** Destroy your hero and replace it with Lord Jaraxxus. Equip a 3/8 Blood Fury. | ✅ (simplified) |
 | 14 | Twisting Nether | 8 | — | Shadow Spell | Destroy all minions. | ✅ |
 
@@ -523,7 +523,7 @@ Legend: ✅ Implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine 
 | 4 | Upgrade! | 1 | — | Spell | If you have a weapon, give it +1/+1. Otherwise equip a 1/3 weapon. | 🔧 Weapon buff |
 | 5 | Armorsmith | 2 | 1/4 | Minion | Whenever a friendly minion takes damage, gain 1 Armor. | ✅ (simplified) |
 | 6 | Battle Rage | 2 | — | Spell | Draw a card for each damaged friendly character. | 🔧 Conditional draw |
-| 7 | Commanding Shout | 2 | — | Spell | Your minions can't be reduced below 1 Health this turn. Draw a card. | 🔧 Immune mechanism |
+| 7 | Commanding Shout | 2 | — | Spell | Your minions can't be reduced below 1 Health this turn. Draw a card. | ✅ |
 | 8 | Cruel Taskmaster | 2 | 2/2 | Minion | **Battlecry:** Deal 1 damage to a minion and give it +2 Attack. | ✅ (simplified) |
 | 9 | Rampage | 2 | — | Spell | Give a damaged minion +3/+3. | 🔧 Conditional buff |
 | 10 | Frothing Berserker | 3 | 2/4 | Minion | Whenever a minion takes damage, gain +1 Attack. | ✅ (simplified) |
