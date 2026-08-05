@@ -21,7 +21,7 @@
 
 use crate::core::action::Action;
 use crate::core::event::{Event, EventQueue};
-use crate::core::state::{GameState, Step};
+use crate::core::state::GameState;
 use crate::engine::rules::{self, EngineError};
 use crate::engine::secret;
 
@@ -51,18 +51,12 @@ impl GameEngine {
         let mut queue = EventQueue::new();
         rules::enqueue(state, action, &mut queue)?;
 
-        // 3. Step-driven event loop (roadmap G1): events process within the
+        // 3. Step-driven event loop (roadmap G1/G3): events process within the
         // current step; when the queue drains, the step machine advances
         // (turn-start sequence, end-of-turn sequence, wrap-up, death step).
         let mut log = Vec::new();
         loop {
             if let Some(event) = queue.pop_front() {
-                // Pending deaths surfacing in the main step enter the death
-                // step so queued MinionDied events batch-process (Milestone G3
-                // replaces this with marked pending deaths).
-                if state.step() == Step::Main && matches!(event, Event::MinionDied { .. }) {
-                    state.set_step(Step::Death);
-                }
                 // Apply the event (mutates state + may enqueue new events)
                 rules::apply_event(state, event, &mut queue)?;
                 // Check secret triggers after applying the event
