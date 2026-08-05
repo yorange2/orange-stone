@@ -2,7 +2,9 @@
 //!
 //! Environment state machine:
 //! - The agent can execute actions consecutively during its own turn (`step`)
-//! - After `EndTurn`, the opponent's turn is advanced automatically by the bot
+//! - After `EndTurn`, the opponent's turn is advanced automatically by the bot;
+//!   with `BotType::None` no bot acts and the caller controls both sides
+//!   (roadmap M1-G4 — arena and future self-play use this mode)
 //! - The game ends when either hero dies (`done = true`, with terminal reward)
 //!
 //! Observations (`obs`), rewards (`reward`), and the action space (`legal_actions`)
@@ -634,5 +636,83 @@ mod tests {
             }
         }
         assert!(env.done || guard >= 3000, "game must terminate");
+    }
+
+    // ============================================================
+    // M1-G4 — both players externally controlled (BotType::None)
+    // ============================================================
+
+    #[test]
+    fn no_bot_hands_control_to_the_other_side_after_end_turn() {
+        let mut env = GameEnv::new(
+            PlayerId::Player1,
+            EnvConfig::default_with(BotType::None, 20),
+        );
+        env.reset(4);
+        // P1 ends the turn: with no bot, the opponent's turn is NOT auto-played
+        let r = env.step(Action::EndTurn);
+        assert!(!r.done);
+        assert_eq!(
+            env.state.active_player(),
+            PlayerId::Player2,
+            "control returns to the external driver on the other side"
+        );
+        assert!(!env.legal_actions().is_empty(), "P2 has legal actions");
+        // P2 ends the turn → back to P1
+        let r = env.step(Action::EndTurn);
+        assert!(!r.done);
+        assert_eq!(env.state.active_player(), PlayerId::Player1);
+    }
+
+    #[test]
+    fn no_bot_full_game_loop_terminates_with_external_control() {
+        // Random-vs-random can stall forever (no fatigue damage in the engine yet),
+        // so the external driver plays a scripted policy: play a card → attack face
+        // with everything → end turn. Face damage guarantees the game ends.
+        let mut env = GameEnv::new(
+            PlayerId::Player1,
+            EnvConfig::default_with(BotType::None, 20),
+        );
+        env.reset(6);
+        let mut guard = 0;
+        loop {
+            let actions = env.legal_actions();
+            assert!(!actions.is_empty(), "both sides always have EndTurn");
+            let enemy_hero = env.state.player(env.state.active_player().opponent()).hero;
+            let pick = actions
+                .iter()
+                .position(|a| matches!(a, Action::PlayCard { .. }))
+                .or_else(|| {
+                    actions.iter().position(
+                        |a| matches!(a, Action::Attack { defender, .. } if *defender == enemy_hero),
+                    )
+                })
+                .or_else(|| actions.iter().position(|a| matches!(a, Action::EndTurn)))
+                .expect("EndTurn is always legal");
+            let r = env.step_indexed(pick);
+            guard += 1;
+            if r.done || guard > 3000 {
+                break;
+            }
+        }
+        assert!(env.done, "scripted face pressure must end the game");
+        assert!(
+            matches!(env.state.step(), Step::GameOver { .. }),
+            "termination must come from a real game over, not the step limit"
+        );
+    }
+
+    #[test]
+    fn no_bot_with_perspective_two_is_symmetric() {
+        // Same setup with the agent fixed as the second player
+        let mut env = GameEnv::new(
+            PlayerId::Player2,
+            EnvConfig::default_with(BotType::None, 20),
+        );
+        env.reset(9);
+        let actions = env.legal_actions();
+        assert!(!actions.is_empty(), "P2 controls its own opening turn");
+        let r = env.step_indexed(actions.len() % actions.len().max(1));
+        assert!(!r.done);
     }
 }

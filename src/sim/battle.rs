@@ -129,6 +129,9 @@ pub enum BotType {
     Greedy,
     /// Smart bot
     Smart,
+    /// No bot — both players are controlled externally (roadmap M1-G4,
+    /// used by the RL env for arena / self-play)
+    None,
 }
 
 /// Unified bot delegation that avoids trait object dependencies.
@@ -138,6 +141,8 @@ pub enum BotDelegate {
     Greedy(GreedyBot),
     /// Smart bot variant
     Smart(SmartBot),
+    /// No bot — returns no actions (external control)
+    None,
 }
 
 impl BotDelegate {
@@ -146,6 +151,7 @@ impl BotDelegate {
         match bot_type {
             BotType::Greedy => Self::Greedy(GreedyBot::new()),
             BotType::Smart => Self::Smart(SmartBot::new()),
+            BotType::None => Self::None,
         }
     }
 
@@ -154,6 +160,7 @@ impl BotDelegate {
         match self {
             Self::Greedy(bot) => bot.decide_actions(state),
             Self::Smart(bot) => bot.decide_actions(state),
+            Self::None => Vec::new(),
         }
     }
 }
@@ -420,6 +427,10 @@ impl BattleRunner {
 
             let active = state.active_player();
             let actions = bot.decide_actions(state);
+            if actions.is_empty() {
+                // No actions (e.g. BotType::None): nothing to do this turn
+                break;
+            }
 
             for action in &actions {
                 total_actions += 1;
