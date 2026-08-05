@@ -12,6 +12,8 @@
 
 现有的炉石模拟器（[RosettaStone](https://github.com/utilForever/RosettaStone)、[SabberStone](https://github.com/HearthSim/SabberStone)）主要面向对局重现和 AI 对战。Orange Stone 的目标不同——它是为**大规模并行模拟**而生的，核心场景是：
 
+> **保真度是硬性要求**：卡牌效果、结算/触发顺序、目标规则必须与真实炉石语义一致，以 RosettaStone/SabberStone 为正确性基准（见路线图里程碑 F）。下面的工程特性是同一保真引擎的属性——而非简化游戏规则的许可。
+
 - 在 RL 训练中，每步需要模拟数万个对局来收集经验
 - 需要确定性的状态回放，便于经验重放和调试
 - 需要与 Python ML 生态（PyTorch、JAX、RLlib）无缝对接
