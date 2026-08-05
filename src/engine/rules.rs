@@ -722,9 +722,12 @@ pub fn apply_event(
                     );
                 }
             }
-            // Overload triggers: when a card with overload is played, registered
-            // FriendlyOverloadPlayed triggers fire (Unbound Elemental)
-            if state.world().overload(card).is_some() {
+            // Overload (roadmap F1): playing an overload card locks mana for the
+            // owner's next turn (applied at the ManaRefill step)
+            if let Some(overload) = state.world().overload(card) {
+                let inner = state.make_mut();
+                inner.players[player.index()].overload_locked += overload.0;
+                // Registered FriendlyOverloadPlayed triggers fire (Unbound Elemental)
                 fire_triggers(
                     state,
                     queue,
@@ -788,6 +791,8 @@ pub fn apply_event(
                 let world = state.world_mut();
                 let used = world.attacks_used(attacker).unwrap_or(AttacksUsed(0));
                 world.set_attacks_used(attacker, AttacksUsed(used.0 + 1));
+                // Stealth (roadmap F2): attacking breaks the attacker's stealth
+                world.remove_stealth(attacker);
             }
 
             // Decrement weapon durability by 1
@@ -1175,7 +1180,9 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
             let inner = state.make_mut();
             let p = &mut inner.players[active.index()];
             p.mana_crystals = (p.mana_crystals + 1).min(10);
-            p.current_mana = p.mana_crystals;
+            let locked = p.overload_locked;
+            p.overload_locked = 0;
+            p.current_mana = (p.mana_crystals - locked).max(0);
             p.cards_played_this_turn = 0;
             state.set_step(Step::DrawStep);
             true
@@ -3153,6 +3160,81 @@ mod tests {
             state.world().effective_health(visible),
             Some(Health(5)),
             "no random fallback to another target"
+        );
+    }
+
+    // ============================================================
+    // F1 — overload mana lock
+    // ============================================================
+
+    #[test]
+    fn overload_locks_mana_on_next_turn() {
+        // F1: Lightning Bolt (overload 1) locks 1 mana on the owner's NEXT
+        // turn — applied at the ManaRefill step and cleared afterwards.
+        use crate::cards::def::LIGHTNING_BOLT;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_hand(PlayerId::Player1, &LIGHTNING_BOLT);
+        // Turn 1: 1 mana
+        let mut state = builder.build();
+        let bolt = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("lightning bolt in hand");
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: bolt,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state.player(PlayerId::Player1).overload_locked,
+            1,
+            "playing an overload card locks mana for the next turn"
+        );
+        // P2's turn, then P1's next turn (turn 3): crystals 2, mana 2 − 1 lock
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        assert_eq!(state.player(PlayerId::Player1).mana_crystals, 2);
+        assert_eq!(
+            state.player(PlayerId::Player1).current_mana,
+            1,
+            "the overload lock reduces the next turn's mana"
+        );
+        assert_eq!(
+            state.player(PlayerId::Player1).overload_locked,
+            0,
+            "the lock is consumed at the refill"
+        );
+    }
+
+    // ============================================================
+    // F2 — stealth fidelity
+    // ============================================================
+
+    #[test]
+    fn attacking_breaks_stealth() {
+        // F2: a stealthed minion loses stealth when it attacks
+        let mut state = GameState::new();
+        let attacker = add_minion_to_board(&mut state, PlayerId::Player1, 3, 3);
+        let defender = add_minion_to_board(&mut state, PlayerId::Player2, 2, 5);
+        state
+            .world_mut()
+            .set_stealth(attacker, crate::core::component::Stealth);
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(&mut state, Action::Attack { attacker, defender })
+            .unwrap();
+        assert!(
+            state.world().stealth(attacker).is_none(),
+            "attacking breaks the attacker's stealth"
         );
     }
 }
