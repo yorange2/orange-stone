@@ -2,28 +2,39 @@
 
 [![Rust](https://img.shields.io/badge/rust-stable-orange.svg)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Phase](https://img.shields.io/badge/phase-3-blue)]()
 
-用 Rust 编写的高性能炉石传说（Hearthstone）模拟器，专为强化学习训练而设计。
+*中文版: [README_zh.md](README_zh.md)*
 
-## 为什么选择 Orange Stone？
+A high-performance Hearthstone simulator written in Rust, purpose-built for Reinforcement Learning training.
 
-现有的炉石模拟器（[RosettaStone](https://github.com/utilForever/RosettaStone)、[SabberStone](https://github.com/HearthSim/SabberStone)）主要面向对局重现和 AI 对战。Orange Stone 的目标不同——它是为**大规模并行模拟**而生的，核心场景是：
+## Why Orange Stone?
 
-- 在 RL 训练中，每步需要模拟数万个对局来收集经验
-- 要求确定性的状态回放，便于经验重放和调试
-- 需要与 Python ML 生态（PyTorch、JAX、RLlib）无缝对接
-- 批量将游戏状态编码为张量，供神经网络消费
+Existing Hearthstone simulators ([RosettaStone](https://github.com/utilForever/RosettaStone), [SabberStone](https://github.com/HearthSim/SabberStone)) focus on game replay and AI-vs-AI matches. Orange Stone has a different goal — it's designed for **massively parallel simulation**, targeting:
 
-Rust 的所有权系统天然适合这一场景：零成本抽象的批量模拟、无 GC 停顿的确定性延迟、编译期保证的并发安全。
+- Simulating tens of thousands of games per step to collect experience for RL training
+- Deterministic state replay for experience replay and debugging
+- Seamless integration with the Python ML ecosystem (PyTorch, JAX, RLlib)
+- Batched encoding of game states into tensors for neural network consumption
 
-## 设计亮点
+Rust's ownership system is a natural fit: zero-cost abstractions for batch simulation, predictable latency without GC pauses, and compile-time concurrency safety.
 
-### ECS 架构代替继承树
+## Current Progress
 
-传统模拟器使用 `Minion → Weapon → Spell` 的继承树来表示卡牌。Orange Stone 使用 Entity Component System，将卡牌效果拆解为可组合的 Component：
+- ✅ **Phase 1**: Core framework — ECS, GameState (CoW), basic Action/Event loop
+- ✅ **Phase 2**: Basic rules — mana crystals, turn flow, Battlecry, Deathrattle, Taunt, Divine Shield, Charge, Windfury
+- 🔄 **Phase 3**: Full rules — Auras, Secrets, Weapons, Hero Powers, Choose One/Combo, 316 unique Classic cards
+- ⬜ **Phase 4**: RL interface — Gym API, batched simulation, tensor observations, reward functions
+- ⬜ **Phase 5**: Performance optimization — SIMD, zero-copy deserialization, GPU batched inference
+
+## Design Highlights
+
+### ECS Architecture
+
+Instead of traditional inheritance trees (`Minion → Weapon → Spell`), Orange Stone uses Entity Component System, decomposing card effects into composable Components:
 
 ```rust
-// 一张"战吼：抽一张牌"的随从
+// A "Battlecry: Draw a card" minion
 entity
     .with(Health(5))
     .with(Attack(3))
@@ -32,88 +43,112 @@ entity
     .with(Zone(ZoneType::Hand));
 ```
 
-这让卡牌效果可以灵活组合，数据布局对缓存友好，适合批量操作。
+This enables flexible effect composition, cache-friendly data layout (SoA), and SIMD-friendly batch operations.
 
-### 不可变状态 + Copy-on-Write
+### Immutable State + Copy-on-Write
 
-每次状态变更产生新的 `GameState`，通过 CoW 共享不变的部分：
+Every state change produces a new `GameState`, sharing unchanged parts via CoW:
 
 ```
 state_0 ──→ state_1 ──→ state_2
   │                       │
-  └───→ branch_1 ──→ branch_2   (MCTS 分支，几乎零额外开销)
+  └───→ branch_1 ──→ branch_2   (MCTS branching, near-zero overhead)
 ```
 
-这对 RL 至关重要：MCTS 搜索、经验回放、分布式训练都依赖高效的状态复制和回退。
+Critical for RL: MCTS search, experience replay, and distributed training all depend on efficient state cloning and rollback.
 
-### 确定性 + 高性能
+### Event-Driven Rule Engine
 
-| 指标 | 目标 |
-|------|------|
-| 单核模拟速度 | > 50,000 steps/s |
-| 多核并行 | 线性扩展至物理核心数 |
-| 内存占用 | < 1 MB / game instance |
-| Python 绑定开销 | < 1 μs / call |
+```
+[Action] → [Event] → [Trigger match] → [New Event] → ...
+```
 
-## 快速开始
+Actions (play card, attack, end turn) generate Events. Triggers (Battlecry, Deathrattle, Aura, Secret) respond to Events by generating new ones, resolved in a priority queue until the queue is empty.
 
-> 项目处于早期开发阶段，以下内容会持续更新。
+### Performance
 
-### 前置要求
+| Metric | Current | Target |
+|--------|---------|--------|
+| Single-core speed | ~7,000 matches/s | > 50,000 steps/s |
+| Card coverage | 316 Classic cards | Full Standard set |
+| Memory usage | < 1 MB / instance | < 1 MB / game instance |
+| Integration tests | 131 | Continuously growing |
 
-- Rust 1.80+
-- Python 3.10+（用于 RL 接口）
+## Quick Start
 
-### 构建
+### Prerequisites
+
+- Rust 1.85+
+
+### Build
 
 ```bash
-git clone https://github.com/yourname/orange-stone.git
+git clone https://github.com/yorange2/orange-stone.git
 cd orange-stone
 cargo build --release
 ```
 
-### 运行测试
+### Run Tests
 
 ```bash
+# All tests
 cargo test
+
+# 1000-round bot battle (massive card coverage test)
+cargo test run_1000 --release -- --nocapture
+
+# Visual bot battle replay
+cargo test bot_game -- --nocapture
 ```
 
-### Python 绑定（计划中）
+### Python Bindings (Planned)
 
 ```python
 import orange_stone as os
 
-# 创建批量环境
+# Create batched environment
 env = os.BatchedGameEnv(num_envs=1024)
 
-# 重置所有环境
+# Reset all environments
 states = env.reset()
 
-# RL 训练循环
+# RL training loop
 for step in range(max_steps):
-    actions = agent.compute_actions(states)  # 你的 RL agent
+    actions = agent.compute_actions(states)
     next_states, rewards, terminals, infos = env.step(actions)
     ...
 ```
 
-## 开发阶段
+## Architecture
 
-- [ ] **Phase 1**：核心框架 — ECS、GameState、基础 Action/Event、白板随从对战
-- [ ] **Phase 2**：基础规则 — 法力水晶、回合流程、战吼、亡语、嘲讽
-- [ ] **Phase 3**：完整规则 — 光环、奥秘、武器、复杂交互时序
-- [ ] **Phase 4**：RL 接口 — Gym API、批量模拟、张量化观察、奖励函数
-- [ ] **Phase 5**：性能优化 — SIMD、零拷贝反序列化、GPU 批量推理
+```
+src/
+├── core/           # ECS core: Entity, Component, World, GameState (CoW)
+├── engine/         # Rule engine: validation, event queue, effect resolution, auras, secrets
+├── cards/          # Card definitions: CardDef, vanilla! macro, 316 Classic cards
+├── sim/            # Simulation layer: GameBuilder, GreedyBot, SmartBot, RNG
+└── lib.rs
+tests/
+├── gameplay.rs     # 36 rule engine integration tests
+├── bot_game.rs     # 2 visual bot battle tests
+└── battle_1000.rs  # Large-scale card coverage test (1000 rounds)
+```
 
-## 贡献
+## Contributing
 
-欢迎贡献！请先阅读 [CLAUDE.md](CLAUDE.md) 了解项目架构和编码规范。
+Contributions welcome! Please read [CLAUDE.md](CLAUDE.md) for project architecture and coding conventions.
 
-## 致谢
+- Use Chinese for commit messages
+- All public APIs must have doc comments
+- Core logic requires unit tests
+- New card effects should include property tests
 
-- [RosettaStone](https://github.com/utilForever/RosettaStone) — C++ 炉石模拟器，规则引擎的重要参考
-- [SabberStone](https://github.com/HearthSim/SabberStone) — C# 炉石模拟器，卡牌实现的重要参考
-- [HearthSim](https://hearthsim.info/) — 炉石模拟社区
+## Acknowledgments
 
-## 许可
+- [RosettaStone](https://github.com/utilForever/RosettaStone) — C++ Hearthstone simulator; key reference for rule engine design
+- [SabberStone](https://github.com/HearthSim/SabberStone) — C# Hearthstone simulator; key reference for card implementations
+- [HearthSim](https://hearthsim.info/) — Hearthstone simulation community
+
+## License
 
 MIT License
