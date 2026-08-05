@@ -624,7 +624,9 @@ pub const ACOLYTE_OF_PAIN: CardDef = CardDef {
     health: 3,
     durability: 0,
     battlecry: None,
-    deathrattle: Some(CardEffect::DrawCard { count: 1 }),
+    // Draw-on-damage is a trigger, not a deathrattle (roadmap G2) — registered
+    // by ID in cards/mod.rs apply_card_keywords.
+    deathrattle: None,
     taunt: false,
     hero_power: None,
     aura: None,

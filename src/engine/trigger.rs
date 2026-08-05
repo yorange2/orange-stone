@@ -15,7 +15,7 @@
 
 use crate::core::component::{
     Attack, AttacksUsed, CardId, CardType, Cost, Deathrattle, Durability, Freeze, Health, Immune,
-    Stealth,
+    Stealth, Trigger, TriggerEvent, TriggerTiming,
 };
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
@@ -622,16 +622,54 @@ pub(crate) fn resolve_summon(
             world.set_cant_attack(e, crate::core::component::CantAttack);
         }
         if let Some(ete) = card_def.end_turn_effect {
-            world.set_end_turn_effect(e, crate::core::component::EndTurnEffect(ete));
+            world.set_trigger(
+                e,
+                Trigger {
+                    event: TriggerEvent::TurnEnd,
+                    timing: TriggerTiming::Whenever,
+                    effect: ete,
+                },
+            );
+        }
+        if let Some(ste) = card_def.start_turn_effect {
+            world.set_trigger(
+                e,
+                Trigger {
+                    event: TriggerEvent::TurnStart,
+                    timing: TriggerTiming::Whenever,
+                    effect: ste,
+                },
+            );
         }
         if let Some(st) = card_def.spell_trigger {
-            world.set_spell_trigger(e, crate::core::component::SpellTrigger(st));
+            world.set_trigger(
+                e,
+                Trigger {
+                    event: TriggerEvent::FriendlySpellCast,
+                    timing: TriggerTiming::Whenever,
+                    effect: st,
+                },
+            );
         }
         if let Some(dt) = card_def.death_trigger {
-            world.set_death_trigger(e, crate::core::component::DeathTrigger(dt));
+            world.set_trigger(
+                e,
+                Trigger {
+                    event: TriggerEvent::FriendlyMinionDied,
+                    timing: TriggerTiming::Whenever,
+                    effect: dt,
+                },
+            );
         }
         if let Some(st) = card_def.summon_trigger {
-            world.set_summon_trigger(e, crate::core::component::SummonTrigger(st));
+            world.set_trigger(
+                e,
+                Trigger {
+                    event: TriggerEvent::FriendlyMinionSummoned,
+                    timing: TriggerTiming::Whenever,
+                    effect: st,
+                },
+            );
         }
         if let Some(ce) = card_def.choose_one_effect {
             world.set_choose_one_effect(e, crate::core::component::ChooseOneEffect(ce));
@@ -751,7 +789,7 @@ fn resolve_gain_armor(
     _explicit: Option<Entity>,
 ) {
     match target {
-        EffectTarget::Self_ => {
+        EffectTarget::Self_ | EffectTarget::FriendlyHero => {
             let inner = state.make_mut();
             inner.players[owner.index()].armor += amount;
         }
@@ -936,6 +974,7 @@ fn resolve_silence(
         world.remove_battlecry(t);
         world.remove_deathrattle(t);
         world.remove_aura(t);
+        world.remove_trigger(t);
         world.remove_divine_shield(t);
         world.remove_windfury(t);
         world.remove_charge(t);
@@ -948,6 +987,7 @@ fn resolve_silence(
         world.remove_battlecry(m);
         world.remove_deathrattle(m);
         world.remove_aura(m);
+        world.remove_trigger(m);
         world.remove_divine_shield(m);
         world.remove_windfury(m);
         world.remove_charge(m);

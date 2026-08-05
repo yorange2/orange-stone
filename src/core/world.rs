@@ -11,10 +11,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
-    Charge, ChooseOneEffect, ComboEffect, Cost, DeathTrigger, Deathrattle, DivineShield,
-    Durability, EndTurnEffect, Freeze, Health, HeroPowerDef, HeroPowerUsed, Immune, Overload,
-    OverloadTrigger, Poison, Secret, SpellDamage, SpellTrigger, StartTurnEffect, Stealth,
-    SummonTrigger, Taunt, TempAttackDebuff, Windfury,
+    Charge, ChooseOneEffect, ComboEffect, Cost, Deathrattle, DivineShield, Durability, Freeze,
+    Health, HeroPowerDef, HeroPowerUsed, Immune, Overload, Poison, Secret, SpellDamage, Stealth,
+    Taunt, TempAttackDebuff, Trigger, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -129,15 +128,8 @@ pub struct World {
     freeze: SparseSet<Freeze>,
     /// CantAttack component storage (cannot attack)
     cant_attack: SparseSet<CantAttack>,
-    /// EndTurnEffect component storage (end-of-turn effects)
-    end_turn_effect: SparseSet<EndTurnEffect>,
-    start_turn_effect: SparseSet<StartTurnEffect>,
-    /// SpellTrigger component storage (spell trigger effects)
-    spell_trigger: SparseSet<SpellTrigger>,
-    /// DeathTrigger component storage (minion death trigger effects)
-    death_trigger: SparseSet<DeathTrigger>,
-    /// SummonTrigger component storage (minion summon trigger effects)
-    summon_trigger: SparseSet<SummonTrigger>,
+    /// Trigger component storage — registered per-entity triggers (roadmap G2)
+    trigger: SparseSet<Trigger>,
     /// ChooseOneEffect component storage (Choose One effects)
     choose_one_effect: SparseSet<ChooseOneEffect>,
     /// ComboEffect component storage (combo effects)
@@ -156,8 +148,6 @@ pub struct World {
     immune: SparseSet<Immune>,
     /// Overload component storage (overload marker)
     overload: SparseSet<Overload>,
-    /// OverloadTrigger component storage (overload trigger effects)
-    overload_trigger: SparseSet<OverloadTrigger>,
     /// Zone table — ordered entity lists per Zone
     zones: Zones,
 }
@@ -257,11 +247,7 @@ impl World {
             spell_damage: SparseSet::new(),
             freeze: SparseSet::new(),
             cant_attack: SparseSet::new(),
-            end_turn_effect: SparseSet::new(),
-            start_turn_effect: SparseSet::new(),
-            spell_trigger: SparseSet::new(),
-            death_trigger: SparseSet::new(),
-            summon_trigger: SparseSet::new(),
+            trigger: SparseSet::new(),
             choose_one_effect: SparseSet::new(),
             combo_effect: SparseSet::new(),
             attack_equals_health: SparseSet::new(),
@@ -271,7 +257,6 @@ impl World {
             stealth: SparseSet::new(),
             immune: SparseSet::new(),
             overload: SparseSet::new(),
-            overload_trigger: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -331,10 +316,7 @@ impl World {
         self.spell_damage.remove(entity);
         self.freeze.remove(entity);
         self.cant_attack.remove(entity);
-        self.end_turn_effect.remove(entity);
-        self.spell_trigger.remove(entity);
-        self.death_trigger.remove(entity);
-        self.summon_trigger.remove(entity);
+        self.trigger.remove(entity);
         self.choose_one_effect.remove(entity);
         self.combo_effect.remove(entity);
         self.attack_equals_health.remove(entity);
@@ -344,7 +326,6 @@ impl World {
         self.stealth.remove(entity);
         self.immune.remove(entity);
         self.overload.remove(entity);
-        self.overload_trigger.remove(entity);
         // Bump the generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // Return the slot
@@ -634,44 +615,12 @@ impl World {
         iter_cant_attack
     );
     component_accessors!(
-        end_turn_effect,
-        EndTurnEffect,
-        end_turn_effect,
-        set_end_turn_effect,
-        remove_end_turn_effect,
-        iter_end_turn_effect
-    );
-    component_accessors!(
-        start_turn_effect,
-        StartTurnEffect,
-        start_turn_effect,
-        set_start_turn_effect,
-        remove_start_turn_effect,
-        iter_start_turn_effect
-    );
-    component_accessors!(
-        spell_trigger,
-        SpellTrigger,
-        spell_trigger,
-        set_spell_trigger,
-        remove_spell_trigger,
-        iter_spell_trigger
-    );
-    component_accessors!(
-        death_trigger,
-        DeathTrigger,
-        death_trigger,
-        set_death_trigger,
-        remove_death_trigger,
-        iter_death_trigger
-    );
-    component_accessors!(
-        summon_trigger,
-        SummonTrigger,
-        summon_trigger,
-        set_summon_trigger,
-        remove_summon_trigger,
-        iter_summon_trigger
+        trigger,
+        Trigger,
+        trigger,
+        set_trigger,
+        remove_trigger,
+        iter_trigger
     );
     component_accessors!(
         choose_one_effect,
@@ -745,15 +694,6 @@ impl World {
         remove_overload,
         iter_overload
     );
-    component_accessors!(
-        overload_trigger,
-        OverloadTrigger,
-        overload_trigger,
-        set_overload_trigger,
-        remove_overload_trigger,
-        iter_overload_trigger
-    );
-
     /// Get the maximum number of attacks an entity can make per turn.
     #[must_use]
     pub fn max_attacks(&self, entity: Entity) -> u8 {

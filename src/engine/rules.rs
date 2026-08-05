@@ -11,6 +11,7 @@ use crate::core::action::Action;
 use crate::core::component::{
     Attack, AttacksUsed, CardType, Cost, Durability, Health, HeroPowerUsed, Secret,
 };
+use crate::core::component::{TriggerEvent, TriggerTiming};
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue, Priority};
 use crate::core::player::PlayerId;
@@ -618,22 +619,17 @@ pub fn apply_event(
                     .move_to_zone(card, Zone::Play)
                     .map_err(|_| EngineError::EntityGone(card))?;
             }
-            // Overload trigger: when a card with overload is played, trigger overload effects of friendly minions (Unbound Elemental)
+            // Overload triggers: when a card with overload is played, registered
+            // FriendlyOverloadPlayed triggers fire (Unbound Elemental)
             if state.world().overload(card).is_some() {
-                let overload_triggers: SmallList<(Entity, crate::core::effect::CardEffect), 8> =
-                    state
-                        .world()
-                        .iter_overload_trigger()
-                        .filter(|(e, _)| {
-                            state.world().zone(*e) == Some(Zone::Play)
-                                && state.world().is_alive(*e)
-                                && state.world().player(*e) == Some(player)
-                        })
-                        .map(|(e, ot)| (e, ot.0))
-                        .collect();
-                for (source, effect) in overload_triggers {
-                    trigger::resolve_effect(state, queue, source, player, effect, None);
-                }
+                fire_triggers(
+                    state,
+                    queue,
+                    TriggerEvent::FriendlyOverloadPlayed,
+                    player,
+                    None,
+                    None,
+                );
             }
         }
         Event::MinionSummoned { player, minion } => {
@@ -655,21 +651,16 @@ pub fn apply_event(
             if let Some(effect) = chosen_effect {
                 trigger::resolve_effect(state, queue, minion, player, effect, None);
             }
-            // Check summon triggers (summon_trigger of other minions on the board when a friendly minion is summoned)
-            let summon_triggers: SmallList<(Entity, crate::core::effect::CardEffect), 8> = state
-                .world()
-                .iter_summon_trigger()
-                .filter(|(e, _)| {
-                    *e != minion  // Exclude the minion itself
-                        && state.world().zone(*e) == Some(Zone::Play)
-                        && state.world().is_alive(*e)
-                        && state.world().player(*e) == Some(player)
-                })
-                .map(|(e, st)| (e, st.0))
-                .collect();
-            for (source, effect) in summon_triggers {
-                trigger::resolve_effect(state, queue, source, player, effect, None);
-            }
+            // Summon triggers: registered FriendlyMinionSummoned triggers fire in
+            // play order (the summoned minion itself is excluded)
+            fire_triggers(
+                state,
+                queue,
+                TriggerEvent::FriendlyMinionSummoned,
+                player,
+                None,
+                Some(minion),
+            );
         }
         Event::AttackDeclared { attacker, .. } => {
             // Freeze check: frozen characters cannot attack
@@ -814,6 +805,32 @@ pub fn apply_event(
             // Mutate state via CoW
             state.world_mut().set_health(target, new_hp);
 
+            // Damage triggers (roadmap G2): "whenever this minion takes damage"
+            // (Acolyte of Pain) and "whenever a friendly minion takes damage"
+            // (Frothing Berserker, Armorsmith) fire after the damage is applied
+            // and before the death check — matching HS (Acolyte draws even if it
+            // dies to the same damage).
+            if amount > 0 && card_type == Some(CardType::Minion) {
+                if let Some(owner) = state.world().player(target) {
+                    fire_triggers(
+                        state,
+                        queue,
+                        TriggerEvent::ThisMinionDamaged,
+                        owner,
+                        Some(target),
+                        None,
+                    );
+                    fire_triggers(
+                        state,
+                        queue,
+                        TriggerEvent::FriendlyMinionDamaged,
+                        owner,
+                        None,
+                        None,
+                    );
+                }
+            }
+
             // Death check (using effective health to account for aura bonuses)
             queue_death_events(state, queue, target, card_type);
         }
@@ -827,22 +844,17 @@ pub fn apply_event(
                 trigger::resolve_effect(state, queue, minion, owner, dr.0, None);
             }
 
-            // Check death triggers (death_trigger of other friendly minions)
+            // Death triggers: registered FriendlyMinionDied triggers fire in play
+            // order (the dead minion itself is excluded)
             if let Some(owner) = owner {
-                let death_triggers: SmallList<(Entity, crate::core::effect::CardEffect), 8> = state
-                    .world()
-                    .iter_death_trigger()
-                    .filter(|(e, _)| {
-                        *e != minion  // Exclude the dead minion itself
-                            && state.world().zone(*e) == Some(Zone::Play)
-                            && state.world().is_alive(*e)
-                            && state.world().player(*e) == Some(owner)
-                    })
-                    .map(|(e, dt)| (e, dt.0))
-                    .collect();
-                for (source, effect) in death_triggers {
-                    trigger::resolve_effect(state, queue, source, owner, effect, None);
-                }
+                fire_triggers(
+                    state,
+                    queue,
+                    TriggerEvent::FriendlyMinionDied,
+                    owner,
+                    None,
+                    Some(minion),
+                );
             }
 
             // Move the minion to the graveyard (entity and components kept for replay and Phase 2+ graveyard effects)
@@ -891,20 +903,15 @@ pub fn apply_event(
             // Notification event — the secret effect is resolved through the trigger system
         }
         Event::SpellCast { player, spell: _ } => {
-            // Spell trigger effects — check the spell_trigger component of all friendly minions on the board
-            let spell_triggers: SmallList<(Entity, crate::core::effect::CardEffect), 8> = state
-                .world()
-                .iter_spell_trigger()
-                .filter(|(e, _)| {
-                    state.world().zone(*e) == Some(Zone::Play)
-                        && state.world().is_alive(*e)
-                        && state.world().player(*e) == Some(player)
-                })
-                .map(|(e, st)| (e, st.0))
-                .collect();
-            for (source, effect) in spell_triggers {
-                trigger::resolve_effect(state, queue, source, player, effect, None);
-            }
+            // Spell triggers: registered FriendlySpellCast triggers fire in play order
+            fire_triggers(
+                state,
+                queue,
+                TriggerEvent::FriendlySpellCast,
+                player,
+                None,
+                None,
+            );
         }
         Event::GameOver { winner } => {
             state.set_step(Step::GameOver { winner });
@@ -929,8 +936,10 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
     match state.step() {
         Step::GameOver { .. } => false,
         Step::StartTriggers => {
-            // "At the start of your turn" card effects (CardDef::start_turn_effect)
-            fire_start_turn_effects(state, queue);
+            // Start-of-turn triggers (CardDef::start_turn_effect) fire before
+            // the mana refill and the draw
+            let active = state.active_player();
+            fire_triggers(state, queue, TriggerEvent::TurnStart, active, None, None);
             state.set_step(Step::ManaRefill);
             true
         }
@@ -956,8 +965,9 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
             true
         }
         Step::EndTriggers => {
-            // End-of-turn effects fire before the wrap-up cleanup
-            fire_end_turn_effects(state, queue);
+            // End-of-turn triggers fire before the wrap-up cleanup
+            let active = state.active_player();
+            fire_triggers(state, queue, TriggerEvent::TurnEnd, active, None, None);
             state.set_step(Step::WrapUp);
             true
         }
@@ -981,39 +991,72 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
     }
 }
 
-/// Fires "at the start of your turn" effects (`CardDef::start_turn_effect`).
-fn fire_start_turn_effects(state: &mut GameState, queue: &mut EventQueue) {
-    let player = state.active_player();
-    let start_turn_effects: SmallList<(Entity, crate::core::effect::CardEffect), 8> = state
-        .world()
-        .iter_start_turn_effect()
-        .filter(|(e, _)| {
-            state.world().zone(*e) == Some(Zone::Play)
-                && state.world().is_alive(*e)
-                && state.world().player(*e) == Some(player)
-        })
-        .map(|(e, ste)| (e, ste.0))
-        .collect();
-    for (source, effect) in start_turn_effects {
-        trigger::resolve_effect(state, queue, source, player, effect, None);
+/// Fires registered triggers for the given event (roadmap G2).
+///
+/// Replaces the ad-hoc per-class trigger scans with per-entity trigger
+/// registration (the unified `Trigger` component). Triggers fire in **play
+/// order** (summon order on each board), with the **current player's triggers
+/// first** and the opponent's second — HS's simultaneous-trigger precedence.
+/// "Whenever" triggers fire before "after" triggers (the HS whenever/after
+/// timing classification).
+///
+/// `event_owner` is the player the event involves (the spell caster, the
+/// minion's owner, the turn player); only triggers whose scope includes them
+/// fire. `subject` pins the event to one entity (`ThisMinionDamaged` — the
+/// damaged minion). `exclude` skips one entity (the summoned/died minion).
+pub fn fire_triggers(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    event: TriggerEvent,
+    event_owner: PlayerId,
+    subject: Option<Entity>,
+    exclude: Option<Entity>,
+) {
+    let active = state.active_player();
+    for timing in [TriggerTiming::Whenever, TriggerTiming::After] {
+        for player in [active, active.opponent()] {
+            let triggers: SmallList<(Entity, crate::core::effect::CardEffect), 8> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, player)
+                .filter(|&e| {
+                    Some(e) != exclude
+                        && state.world().is_alive(e)
+                        && state.world().trigger(e).is_some_and(|t| {
+                            t.event == event
+                                && t.timing == timing
+                                && trigger_applies(event, player, event_owner, subject, e)
+                        })
+                })
+                .map(|e| {
+                    let t = state
+                        .world()
+                        .trigger(e)
+                        .expect("filter guarantees a trigger");
+                    (e, t.effect)
+                })
+                .collect();
+            for (source, effect) in triggers {
+                trigger::resolve_effect(state, queue, source, player, effect, None);
+            }
+        }
     }
 }
 
-/// Fires "at the end of your turn" effects (`CardDef::end_turn_effect`).
-fn fire_end_turn_effects(state: &mut GameState, queue: &mut EventQueue) {
-    let player = state.active_player();
-    let end_turn_effects: SmallList<(Entity, crate::core::effect::CardEffect), 8> = state
-        .world()
-        .iter_end_turn_effect()
-        .filter(|(e, _)| {
-            state.world().zone(*e) == Some(Zone::Play)
-                && state.world().is_alive(*e)
-                && state.world().player(*e) == Some(player)
-        })
-        .map(|(e, ete)| (e, ete.0))
-        .collect();
-    for (source, effect) in end_turn_effects {
-        trigger::resolve_effect(state, queue, source, player, effect, None);
+/// Whether a trigger owned by `trigger_player` fires for the event.
+///
+/// Most trigger classes are friendly-scoped (the trigger's owner must be the
+/// event's player); `ThisMinionDamaged` is pinned to the damaged minion itself.
+fn trigger_applies(
+    event: TriggerEvent,
+    trigger_player: PlayerId,
+    event_owner: PlayerId,
+    subject: Option<Entity>,
+    entity: Entity,
+) -> bool {
+    match event {
+        TriggerEvent::ThisMinionDamaged => Some(entity) == subject,
+        _ => trigger_player == event_owner,
     }
 }
 
@@ -1077,7 +1120,7 @@ fn wrap_up_turn(state: &mut GameState) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::component::{Attack, CardType, Health};
+    use crate::core::component::{Attack, CardType, Health, Trigger};
     use crate::core::entity::Entity;
     use crate::core::state::GameState;
     use crate::core::zone::Zone;
@@ -1397,13 +1440,17 @@ mod tests {
         // turn's draw both happened afterwards.
         let mut state = GameState::new();
         let minion = add_minion_to_board(&mut state, PlayerId::Player2, 1, 2);
-        state.world_mut().set_start_turn_effect(
+        state.world_mut().set_trigger(
             minion,
-            crate::core::component::StartTurnEffect(crate::core::effect::CardEffect::GainStats {
-                attack: 1,
-                health: 1,
-                target: crate::core::effect::EffectTarget::Self_,
-            }),
+            Trigger {
+                event: TriggerEvent::TurnStart,
+                timing: TriggerTiming::Whenever,
+                effect: crate::core::effect::CardEffect::GainStats {
+                    attack: 1,
+                    health: 1,
+                    target: crate::core::effect::EffectTarget::Self_,
+                },
+            },
         );
         let engine = crate::engine::game::GameEngine::new();
         engine.apply(&mut state, Action::EndTurn).unwrap();
@@ -1427,13 +1474,15 @@ mod tests {
             inner.world.set_attack(p.hero, Attack(5));
         }
         let hero = state.player(PlayerId::Player1).hero;
-        state.world_mut().set_end_turn_effect(
+        state.world_mut().set_trigger(
             hero,
-            crate::core::component::EndTurnEffect(
-                crate::core::effect::CardEffect::DealHeroAttackDamage {
+            Trigger {
+                event: TriggerEvent::TurnEnd,
+                timing: TriggerTiming::Whenever,
+                effect: crate::core::effect::CardEffect::DealHeroAttackDamage {
                     target: crate::core::effect::EffectTarget::AnyEnemy,
                 },
-            ),
+            },
         );
         let enemy_minion = add_minion_to_board(&mut state, PlayerId::Player2, 1, 2);
         let engine = crate::engine::game::GameEngine::new();
@@ -1514,5 +1563,266 @@ mod tests {
             .unwrap();
         assert_eq!(state.world().zone(defender), Some(Zone::Graveyard));
         assert_eq!(state.step(), Step::Main);
+    }
+
+    // ============================================================
+    // G2 — registered triggers
+    // ============================================================
+
+    #[test]
+    fn acolyte_of_pain_draws_when_damaged() {
+        // Acolyte of Pain is a damage trigger, not a deathrattle (the old
+        // mis-modeling is removed): it draws when it takes damage.
+        use crate::cards::def::ACOLYTE_OF_PAIN;
+        use crate::cards::def::BLOODFEN_RAPTOR;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_board(PlayerId::Player1, &ACOLYTE_OF_PAIN);
+        builder.add_minion_to_deck(PlayerId::Player1, &BLOODFEN_RAPTOR);
+        let mut state = builder.build();
+        // P2's attacker damages the Acolyte on P2's turn
+        let attacker = add_minion_to_board(&mut state, PlayerId::Player2, 2, 3);
+        let acolyte = state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId::Player1)
+            .find(|&e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .is_some_and(|c| c.0 == "NEUTRAL_004")
+            })
+            .expect("acolyte on board");
+        let engine = crate::engine::game::GameEngine::new();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker,
+                    defender: acolyte,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state.world().zones().len(Zone::Hand, PlayerId::Player1),
+            1,
+            "Acolyte of Pain must draw when damaged"
+        );
+        assert_eq!(state.world().health(acolyte), Some(Health(1)));
+    }
+
+    #[test]
+    fn acolyte_of_pain_draws_before_dying_to_the_damage() {
+        // HS semantics: the draw fires when the damage is applied, before the
+        // death check — a lethal hit still draws.
+        use crate::cards::def::ACOLYTE_OF_PAIN;
+        use crate::cards::def::BLOODFEN_RAPTOR;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_board(PlayerId::Player1, &ACOLYTE_OF_PAIN);
+        builder.add_minion_to_deck(PlayerId::Player1, &BLOODFEN_RAPTOR);
+        let mut state = builder.build();
+        let acolyte = state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId::Player1)
+            .find(|&e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .is_some_and(|c| c.0 == "NEUTRAL_004")
+            })
+            .expect("acolyte on board");
+        let attacker = add_minion_to_board(&mut state, PlayerId::Player2, 5, 3);
+        let engine = crate::engine::game::GameEngine::new();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker,
+                    defender: acolyte,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state.world().zones().len(Zone::Hand, PlayerId::Player1),
+            1,
+            "Acolyte draws even when the damage is lethal"
+        );
+        assert_eq!(state.world().zone(acolyte), Some(Zone::Graveyard));
+    }
+
+    #[test]
+    fn frothing_berserker_gains_attack_when_friendly_minion_damaged() {
+        use crate::cards::def::FROTHING_BERSERKER;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_board(PlayerId::Player1, &FROTHING_BERSERKER);
+        let mut state = builder.build();
+        let frothing = state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId::Player1)
+            .find(|&e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .is_some_and(|c| c.0 == "WARRIOR_007")
+            })
+            .expect("frothing on board");
+        let friendly_minion = add_minion_to_board(&mut state, PlayerId::Player1, 1, 3);
+        let attacker = add_minion_to_board(&mut state, PlayerId::Player2, 1, 3);
+        let engine = crate::engine::game::GameEngine::new();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker,
+                    defender: friendly_minion,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state.world().attack(frothing),
+            Some(Attack(3)),
+            "Frothing Berserker gains +1 attack when a friendly minion takes damage"
+        );
+    }
+
+    #[test]
+    fn armorsmith_gains_armor_when_friendly_minion_damaged() {
+        use crate::cards::def::ARMORSMITH;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_board(PlayerId::Player1, &ARMORSMITH);
+        let mut state = builder.build();
+        let friendly_minion = add_minion_to_board(&mut state, PlayerId::Player1, 1, 3);
+        let attacker = add_minion_to_board(&mut state, PlayerId::Player2, 1, 3);
+        let engine = crate::engine::game::GameEngine::new();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker,
+                    defender: friendly_minion,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state.player(PlayerId::Player1).armor,
+            1,
+            "Armorsmith grants 1 armor when a friendly minion takes damage"
+        );
+    }
+
+    #[test]
+    fn triggers_fire_in_play_order() {
+        // Two friendly-summon triggers with order-observable effects: the first
+        // played (A draws) must fire before the second (B discards) — the drawn
+        // card is discarded, leaving the hand empty.
+        use crate::core::effect::CardEffect;
+        let mut state = GameState::new();
+        let a = add_minion_to_board(&mut state, PlayerId::Player1, 1, 1);
+        let b = add_minion_to_board(&mut state, PlayerId::Player1, 1, 1);
+        state.world_mut().set_trigger(
+            a,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionSummoned,
+                timing: TriggerTiming::Whenever,
+                effect: CardEffect::DrawCard { count: 1 },
+            },
+        );
+        state.world_mut().set_trigger(
+            b,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionSummoned,
+                timing: TriggerTiming::Whenever,
+                effect: CardEffect::DiscardRandomCard,
+            },
+        );
+        // A deck with one card so A's draw has something to draw
+        {
+            let world = state.world_mut();
+            let e = world.spawn();
+            world.set_card_type(e, CardType::Minion);
+            world.set_cost(e, crate::core::component::Cost(0));
+            world.set_player(e, PlayerId::Player1);
+            world.set_zone(e, Zone::Deck);
+            world.zones_mut().insert(Zone::Deck, PlayerId::Player1, e);
+        }
+        // Play a third minion from hand to trigger FriendlyMinionSummoned
+        let hand_minion = add_minion_to_hand(&mut state, PlayerId::Player1, 1, 1);
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: hand_minion,
+                    target: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state.world().zones().len(Zone::Hand, PlayerId::Player1),
+            0,
+            "triggers must fire in play order: A draws first, B discards it"
+        );
+    }
+
+    #[test]
+    fn whenever_triggers_fire_before_after() {
+        // HS timing classification: "whenever" triggers fire before "after"
+        // triggers, even when the "after" trigger was played first.
+        use crate::core::effect::CardEffect;
+        let mut state = GameState::new();
+        // B is played first but is an "after" trigger; A is a "whenever" trigger
+        let b = add_minion_to_board(&mut state, PlayerId::Player1, 1, 1);
+        let a = add_minion_to_board(&mut state, PlayerId::Player1, 1, 1);
+        state.world_mut().set_trigger(
+            b,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionSummoned,
+                timing: TriggerTiming::After,
+                effect: CardEffect::DiscardRandomCard,
+            },
+        );
+        state.world_mut().set_trigger(
+            a,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionSummoned,
+                timing: TriggerTiming::Whenever,
+                effect: CardEffect::DrawCard { count: 1 },
+            },
+        );
+        {
+            let world = state.world_mut();
+            let e = world.spawn();
+            world.set_card_type(e, CardType::Minion);
+            world.set_cost(e, crate::core::component::Cost(0));
+            world.set_player(e, PlayerId::Player1);
+            world.set_zone(e, Zone::Deck);
+            world.zones_mut().insert(Zone::Deck, PlayerId::Player1, e);
+        }
+        let hand_minion = add_minion_to_hand(&mut state, PlayerId::Player1, 1, 1);
+        let engine = crate::engine::game::GameEngine::new();
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: hand_minion,
+                    target: None,
+                },
+            )
+            .unwrap();
+        // Whenever (A) drew, then After (B) discarded it
+        assert_eq!(
+            state.world().zones().len(Zone::Hand, PlayerId::Player1),
+            0,
+            "whenever triggers must fire before after triggers"
+        );
     }
 }
