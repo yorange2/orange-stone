@@ -271,11 +271,18 @@ impl GameEnv {
     }
 
     /// Current winner (`None` if the game is not over).
-    fn winner(&self) -> Option<PlayerId> {
+    #[must_use]
+    pub fn winner(&self) -> Option<PlayerId> {
         match self.state.step() {
             Step::GameOver { winner } => Some(winner),
             _ => None,
         }
+    }
+
+    /// Whether the game has ended (M4 batch API).
+    #[must_use]
+    pub fn is_done(&self) -> bool {
+        matches!(self.state.step(), Step::GameOver { .. })
     }
 }
 
