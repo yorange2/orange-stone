@@ -790,3 +790,76 @@ pub const GLADIATORS_LONGBOW: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// Tier 3 补全 — 动物伙伴
+// ============================================================
+
+/// 动物伙伴 — 随机召唤一个 4/4 霍弗、4/2 雷欧克或 2/4 米莎。
+pub const ANIMAL_COMPANION: CardDef = CardDef {
+    id: "HUNTER_023",
+    name: "Animal Companion",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::SummonRandomMinion {
+        pool: crate::core::effect::RandomPool::Companion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 霍弗（动物伙伴 token）— 4/4
+pub const HUFFER: CardDef = vanilla!("HUNTER_023a", "Huffer", 3, 4, 4);
+
+/// 雷欧克（动物伙伴 token）— 4/2
+pub const LEOKK: CardDef = vanilla!("HUNTER_023b", "Leokk", 3, 4, 2);
+
+/// 米莎（动物伙伴 token）— 2/4 嘲讽
+pub const MISHA: CardDef = CardDef {
+    id: "HUNTER_023c",
+    name: "Misha",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 2,
+    health: 4,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: true,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

@@ -755,3 +755,73 @@ pub const CORRUPTION: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// Tier 3 补全 — 随机恶魔
+// ============================================================
+
+/// 虚空呼唤 — 将一张随机恶魔置入你的手牌。
+pub const CALL_OF_THE_VOID: CardDef = CardDef {
+    id: "WARLOCK_025",
+    name: "Call of the Void",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::AddRandomCardToHand {
+        pool: crate::core::effect::RandomPool::Demon,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 厄运降临 — 对一个角色造成 2 点伤害。若其死亡，则召唤一个随机恶魔。
+pub const BANE_OF_DOOM: CardDef = CardDef {
+    id: "WARLOCK_026",
+    name: "Bane of Doom",
+    card_type: CardType::Spell,
+    cost: 5,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::DealDamageAndSummonIfKilled {
+        amount: 2,
+        pool: crate::core::effect::RandomPool::Demon,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

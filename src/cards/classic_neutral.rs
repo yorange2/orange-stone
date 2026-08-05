@@ -3,7 +3,7 @@
 
 use crate::cards::def::CardDef;
 use crate::core::component::{AuraEffect, AuraTarget, CardType};
-use crate::core::effect::{CardEffect, EffectTarget};
+use crate::core::effect::{CardEffect, EffectTarget, RandomPool};
 use crate::vanilla;
 
 // ============================================================
@@ -2743,3 +2743,249 @@ pub const DEVILSAUR: CardDef = vanilla!("NEUTRAL_T17a", "Devilsaur", 5, 5, 5);
 
 /// 松鼠（工匠大师 token）— 1/1
 pub const SQUIRREL: CardDef = vanilla!("NEUTRAL_T17b", "Squirrel", 1, 1, 1);
+
+// Tier 3 补全 — 随机卡池
+// ============================================================
+
+/// 光明之翼 — 战吼：将一张随机传说随从置入你的手牌。
+pub const BRIGHTWING: CardDef = CardDef {
+    id: "NEUTRAL_T18",
+    name: "Brightwing",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 2,
+    durability: 0,
+    battlecry: Some(CardEffect::AddRandomCardToHand {
+        pool: RandomPool::Legendary,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 诺兹多姆 — 8/8（回合时限在模拟器中无意义，按普通随从实现）。
+pub const NOZDORMU: CardDef = vanilla!("NEUTRAL_T19", "Nozdormu", 9, 8, 8);
+
+/// 萨维斯 — 在你的回合结束时，将一张随机暗影法术置入你的手牌。
+pub const XAVIUS: CardDef = CardDef {
+    id: "NEUTRAL_T20",
+    name: "Xavius",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 2,
+    health: 4,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: Some(CardEffect::AddRandomCardToHand {
+        pool: RandomPool::ShadowSpell,
+    }),
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 伊瑟拉 — 在你的回合结束时，抽一张梦境卡。
+pub const YSERA: CardDef = CardDef {
+    id: "NEUTRAL_T21",
+    name: "Ysera",
+    card_type: CardType::Minion,
+    cost: 9,
+    attack: 4,
+    health: 12,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: Some(CardEffect::AddRandomCardToHand {
+        pool: RandomPool::Dream,
+    }),
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 翡翠幼龙（梦境卡）— 4/7
+pub const EMERALD_DRAKE: CardDef = vanilla!("NEUTRAL_T21a", "Emerald Drake", 4, 4, 7);
+
+/// 欢笑的姐妹（梦境卡）— 3/5
+pub const LAUGHING_SISTER: CardDef = vanilla!("NEUTRAL_T21b", "Laughing Sister", 3, 3, 5);
+
+/// 梦境（梦境卡）— 将一个随从移回其拥有者的手牌。
+pub const DREAM: CardDef = CardDef {
+    id: "NEUTRAL_T21c",
+    name: "Dream",
+    card_type: CardType::Spell,
+    cost: 0,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::ReturnToHand {
+        target: EffectTarget::AnyEnemyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 噩梦（梦境卡）— 使一个随从获得 +5/+5。
+pub const NIGHTMARE: CardDef = CardDef {
+    id: "NEUTRAL_T21d",
+    name: "Nightmare",
+    card_type: CardType::Spell,
+    cost: 0,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::GainStats {
+        attack: 5,
+        health: 5,
+        target: EffectTarget::FriendlyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 伊瑟拉的觉醒（梦境卡）— 对所有角色造成 5 点伤害（简化：含伊瑟拉自身）。
+pub const YSERA_AWAKENS: CardDef = CardDef {
+    id: "NEUTRAL_T21e",
+    name: "Ysera Awakens",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::DealDamage {
+        amount: 5,
+        target: EffectTarget::AllCharacters,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// 贫瘠之地驯马师 — 战吼：召唤一个随机野兽。
+pub const BARRENS_STABLEHAND: CardDef = CardDef {
+    id: "NEUTRAL_T22",
+    name: "Barrens Stablehand",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 3,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::SummonRandomMinion {
+        pool: RandomPool::Beast,
+    }),
+    deathrattle: None,
+    taunt: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

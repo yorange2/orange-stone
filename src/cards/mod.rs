@@ -16,6 +16,7 @@ pub mod classic_shaman;
 pub mod classic_warlock;
 pub mod classic_warrior;
 pub mod def;
+pub mod pool;
 pub mod sets;
 
 use crate::core::component::{
