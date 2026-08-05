@@ -583,6 +583,33 @@ mod tests {
     }
 
     #[test]
+    fn stealth_cards_carry_the_keyword_through_the_battle_path() {
+        // Regression (M5): CardDef had no stealth field, so stealth minions
+        // (Jungle Panther etc.) were defined vanilla. The deck path must apply
+        // the component and expose it in the structured view.
+        let deck: Vec<&'static str> = vec!["NEUTRAL_C10"; 10]; // Jungle Panther
+        let env = GameEnv::new(
+            PlayerId::Player1,
+            EnvConfig::default_with(BotType::Greedy, 30).with_fixed_deck(deck),
+        );
+        let mut env = env;
+        env.reset(3);
+        let view = crate::rl::views::observation(&env.state, PlayerId::Player1);
+        let stealth_cards: Vec<&str> = view
+            .me
+            .hand
+            .iter()
+            .filter(|c| c.stealth)
+            .map(|c| c.card_id.as_str())
+            .collect();
+        assert!(
+            !stealth_cards.is_empty(),
+            "Jungle Panther must expose stealth in the view, got {stealth_cards:?}"
+        );
+        assert!(stealth_cards.contains(&"NEUTRAL_C10"));
+    }
+
+    #[test]
     fn env_observation_reflects_hero_health() {
         let mut env = GameEnv::new(
             PlayerId::Player1,

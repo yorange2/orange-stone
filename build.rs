@@ -80,6 +80,7 @@ fn main() {
             _ => "CardType::Minion",
         };
         let taunt = card.mechanics.iter().any(|m| m == "TAUNT");
+        let stealth = card.mechanics.iter().any(|m| m == "STEALTH");
         let divine_shield = card.mechanics.iter().any(|m| m == "DIVINE_SHIELD");
         let windfury = card.mechanics.iter().any(|m| m == "WINDFURY");
         let charge = card.mechanics.iter().any(|m| m == "CHARGE");
@@ -110,6 +111,7 @@ fn main() {
         code.push_str(&format!("    durability: {durability},\n"));
         code.push_str("    battlecry: None,\n    deathrattle: None,\n");
         code.push_str(&format!("    taunt: {taunt},\n"));
+        code.push_str(&format!("    stealth: {stealth},\n"));
         code.push_str("    hero_power: None,\n    aura: None,\n    secret: None,\n");
         code.push_str(&format!("    divine_shield: {divine_shield},\n"));
         code.push_str(&format!("    windfury: {windfury},\n"));

@@ -213,6 +213,11 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
     if let Some(dr) = card.deathrattle {
         world.set_deathrattle(e, Deathrattle(dr));
     }
+    // Set Stealth (roadmap M5: card-level stealth — the mechanic existed
+    // (F2) but CardDef had no field, so stealth cards were defined vanilla)
+    if card.stealth {
+        world.set_stealth(e, crate::core::component::Stealth);
+    }
     // Set Taunt
     if card.taunt {
         world.set_taunt(e, crate::core::component::Taunt);
