@@ -3,6 +3,7 @@
 //! `Entity` 由 `index`（槽位地址）和 `generation`（代际版本号）组成。
 //! 当实体被销毁时，其槽位的 generation 递增，使得任何持有旧 handle 的代码
 //! 在访问时被拒绝，避免悬垂引用和 ABA 问题。
+use serde::{Deserialize, Serialize};
 
 /// 实体句柄 — 指向 World 中某个实体槽位的安全引用。
 ///
@@ -13,7 +14,7 @@
 /// despawn  → 槽位 generation 变为 1，旧 Entity 失效
 /// spawn    → Entity { index: 0, generation: 1 }（槽位复用）
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Entity {
     /// 在实体数组中的槽位索引
     pub index: u32,

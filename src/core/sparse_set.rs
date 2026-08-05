@@ -8,6 +8,7 @@
 //! - `sparse`: entity.index → dense 数组中的位置（用 `u32::MAX` 表示不存在）
 //! - `dense_entities` + `dense_values`: 并行数组，存储所有已插入的 (Entity, T) 对
 //! - 删除使用 swap-remove，O(1) 但会改变密集遍历顺序
+use serde::{Deserialize, Serialize};
 
 /// 稀疏集合 — 按 Entity 索引的泛型组件存储。
 ///
@@ -15,7 +16,7 @@
 /// - `sparse[i]` = 实体 i 在 dense 中的位置，或 `ABSENT`（未插入）
 /// - `dense_entities[pos]` = 该位置的 Entity
 /// - `dense_values[pos]` = 该位置的组件值
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SparseSet<T> {
     /// 映射 entity.index → dense 中的位置，u32::MAX 表示不存在
     sparse: Vec<u32>,

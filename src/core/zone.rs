@@ -3,13 +3,14 @@
 //! 炉石传说有 5 个区域：牌库 (Deck)、手牌 (Hand)、战场 (Play)、
 //! 坟墓场 (Graveyard)、暂离区 (SetAside)。
 //! 每个区域维护一个有序的实体列表（手牌和战场顺序有意义）。
+use serde::{Deserialize, Serialize};
 
 use crate::core::player::PlayerId;
 
 /// 区域类型。
 ///
 /// 实体在同一时刻只能在一个区域中。区域转移通过 `World::move_to_zone` 进行。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Zone {
     /// 牌库 — 卡牌初始所在地，Phase 2+ 加入抽牌逻辑
     Deck,
@@ -37,7 +38,7 @@ pub enum ZoneError {
 /// 所有区域的实体列表。
 ///
 /// 牌库、手牌、战场、坟墓场是每个玩家独立维护的；暂离区是共享的。
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Zones {
     deck: [Vec<crate::core::entity::Entity>; 2],
     hand: [Vec<crate::core::entity::Entity>; 2],

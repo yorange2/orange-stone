@@ -7,6 +7,7 @@
 //! - 组件通过生成的 accessor 方法访问
 //!
 //! 所有实体访问都经过 generation 检查，防止悬垂引用。
+use serde::{Deserialize, Serialize};
 
 use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
@@ -76,7 +77,7 @@ macro_rules! component_accessors {
 /// - `generations`: 每个槽位的代际版本号（despawn 时递增）
 /// - `free_list`: 可复用的空闲槽位（FIFO）
 /// - 10 个组件稀疏集 + Zones 表
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct World {
     /// 活跃光环源索引（见 [`AuraIndex`]）— 由所有相关变异方法增量维护。
     aura_index: AuraIndex,
@@ -171,7 +172,7 @@ pub struct World {
 ///
 /// 注意：索引只信任 `zone` 组件（与查询语义一致），不信任 `Zones` 表，
 /// 因此 `zones_mut()` 直接操作区域表不会造成索引与查询不一致。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct AuraIndex {
     /// 影响攻击力的光环源（按拥有者分桶）
     attack: [Vec<(Entity, Aura)>; 2],
