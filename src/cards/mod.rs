@@ -30,6 +30,30 @@ use crate::core::player::PlayerId;
 use crate::core::world::World;
 use def::CardDef;
 
+/// Looks up a card by its ID (first match in `ALL_CARDS`, which deduplicates IDs).
+///
+/// Used by the RL environment and Python bindings to build explicit decks
+/// (roadmap M1-G2); `None` for unknown IDs.
+#[must_use]
+pub fn card_by_id(id: &str) -> Option<&'static CardDef> {
+    sets::ALL_CARDS.iter().find(|c| c.id == id)
+}
+
+#[cfg(test)]
+mod lookup_tests {
+    use super::card_by_id;
+    use crate::cards::def::BLOODFEN_RAPTOR;
+
+    #[test]
+    fn card_by_id_resolves_known_and_unknown() {
+        let card = card_by_id("CLASSIC_001").expect("Bloodfen Raptor is in ALL_CARDS");
+        assert_eq!(card.id, BLOODFEN_RAPTOR.id);
+        assert_eq!(card.name, "Bloodfen Raptor");
+        assert!(card_by_id("NOT_A_REAL_CARD_999").is_none());
+        assert!(card_by_id("").is_none());
+    }
+}
+
 /// Applies special keyword components (Poison, Stealth, Overload, etc.) to an entity.
 ///
 /// These keywords do not add `CardDef` fields (to avoid large struct changes);

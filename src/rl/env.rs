@@ -21,9 +21,9 @@ use crate::rl::reward::{self, RewardConfig};
 use crate::sim::battle::{BattleRunner, BotDelegate, BotType};
 
 /// Environment configuration.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct EnvConfig {
-    /// Deck size per player
+    /// Deck size per player (random deck generation)
     pub deck_size: usize,
     /// Initial hand size
     pub hand_size: usize,
@@ -33,6 +33,8 @@ pub struct EnvConfig {
     pub max_steps: u32,
     /// Reward configuration
     pub reward: RewardConfig,
+    /// Explicit mirror deck (card IDs) used by both players; `None` = random decks (M1-G2)
+    pub deck: Option<Vec<&'static str>>,
 }
 
 impl EnvConfig {
@@ -45,7 +47,15 @@ impl EnvConfig {
             bot_type,
             max_steps: 5000,
             reward: RewardConfig::default(),
+            deck: None,
         }
+    }
+
+    /// Uses an explicit mirror deck (both players draw from the same card list).
+    #[must_use]
+    pub fn with_fixed_deck(mut self, deck: Vec<&'static str>) -> Self {
+        self.deck = Some(deck);
+        self
     }
 }
 
@@ -89,10 +99,24 @@ impl GameEnv {
         }
     }
 
-    /// Resets the environment: generates a fresh game (random deck) with `seed`, returning the initial observation.
+    /// Resets the environment: generates a fresh game (random or fixed deck) with `seed`, returning the initial observation.
     pub fn reset(&mut self, seed: u64) -> Vec<f32> {
         let mut runner = BattleRunner::new(self.config.bot_type, seed);
-        self.state = runner.create_game_state(self.config.deck_size);
+        self.state = match &self.config.deck {
+            Some(deck) => {
+                let cards: Vec<&'static crate::cards::def::CardDef> = deck
+                    .iter()
+                    .filter_map(|id| crate::cards::card_by_id(id))
+                    .collect();
+                debug_assert_eq!(
+                    cards.len(),
+                    deck.len(),
+                    "all deck card IDs must resolve (validated at construction)"
+                );
+                runner.create_game_state_with_decks(&cards, &cards)
+            }
+            None => runner.create_game_state(self.config.deck_size),
+        };
         // Initial hand size is determined by create_game_state (fixed at 3); adjust here if configurability is needed
         self.steps = 0;
         self.done = false;
@@ -447,5 +471,96 @@ mod tests {
         assert_eq!(obs[0], 1.0);
         assert_eq!(obs[5], 1.0);
         let _ = Health(30); // keep the Health reference to avoid an unused warning
+    }
+
+    // ============================================================
+    // M1-G2 — explicit mirror decks
+    // ============================================================
+
+    /// A fixed deck of 10 copies of one card: every hand card must come from it.
+    fn fixed_deck_env(seed: u64) -> GameEnv {
+        let deck: Vec<&'static str> = vec!["CLASSIC_001"; 10]; // Bloodfen Raptor
+        let env = GameEnv::new(
+            PlayerId::Player1,
+            EnvConfig::default_with(BotType::Greedy, 30).with_fixed_deck(deck),
+        );
+        let mut env = env;
+        env.reset(seed);
+        env
+    }
+
+    #[test]
+    fn fixed_deck_env_deals_only_deck_cards() {
+        let env = fixed_deck_env(1);
+        // Both players' decks have exactly 10 cards, hand 3 each → 7 remaining each
+        assert_eq!(
+            env.state.world().zones().len(Zone::Deck, PlayerId::Player1),
+            7
+        );
+        assert_eq!(
+            env.state.world().zones().len(Zone::Deck, PlayerId::Player2),
+            7
+        );
+        for pid in [PlayerId::Player1, PlayerId::Player2] {
+            for e in env.state.world().zones().iter(Zone::Hand, pid) {
+                assert_eq!(
+                    env.state.world().card_id(e),
+                    Some(crate::core::component::CardId("CLASSIC_001")),
+                    "hand card must come from the fixed deck"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn fixed_deck_env_is_deterministic() {
+        let a = fixed_deck_env(7).observation();
+        let b = fixed_deck_env(7).observation();
+        assert_eq!(a, b, "same seed + same fixed deck → identical observation");
+    }
+
+    #[test]
+    fn fixed_deck_env_differs_across_seeds() {
+        // A heterogeneous deck: the opening hand depends on the per-seed shuffle,
+        // so a different seed must change the observable state.
+        let deck: Vec<&'static str> = vec![
+            "CLASSIC_001",  // Bloodfen Raptor 2/3/2
+            "CLASSIC_018",  // Amani Berserker 2/2/3
+            "NEUTRAL_025",  // Core Hound 7/9/5
+            "NEUTRAL_B09",  // Magma Rager 3/5/1
+            "NEUTRAL_B13",  // Oasis Snapjaw 4/2/7
+            "NEUTRAL_B19",  // Gurubashi Berserker 5/2/8
+            "CLASSIC_019",  // Faerie Dragon 2/3/2
+            "NEUTRAL_B02",  // Murloc Raider 1/2/1
+            "CLASSIC_006t", // Murloc Scout 1/1/1
+            "NEUTRAL_020t", // Squire 1/2/2
+        ];
+        let make = |seed: u64| {
+            GameEnv::new(
+                PlayerId::Player1,
+                EnvConfig::default_with(BotType::Greedy, 30).with_fixed_deck(deck.clone()),
+            )
+            .reset(seed)
+        };
+        assert_ne!(make(7), make(8), "different seed → different opening hand");
+        assert_eq!(make(42), make(42), "same seed → identical opening hand");
+    }
+
+    #[test]
+    fn fixed_deck_env_completes_a_game() {
+        let mut env = fixed_deck_env(3);
+        let mut guard = 0;
+        loop {
+            let actions = env.legal_actions();
+            if actions.is_empty() {
+                break;
+            }
+            let r = env.step_indexed(actions.len() % actions.len().max(1));
+            guard += 1;
+            if r.done || guard > 3000 {
+                break;
+            }
+        }
+        assert!(env.done || guard >= 3000, "game must terminate");
     }
 }
