@@ -968,10 +968,9 @@ fn resolve_destroy_minion(
         EffectTarget::DamagedEnemyMinion => collect_enemy_minions(state, owner)
             .into_iter()
             .filter(|&e| {
-                state
-                    .world()
-                    .health(e)
-                    .is_some_and(|h| h.0 < state.world().effective_health(e).unwrap_or(h).0)
+                // "Damaged" = accumulated damage > 0 (roadmap G4 — the damage
+                // component, not a base-vs-effective comparison)
+                state.world().damage(e).is_some_and(|d| d.0 > 0)
             })
             .collect(),
         EffectTarget::TauntEnemyMinion => {
@@ -1007,17 +1006,20 @@ fn resolve_destroy_minion(
         }
         _ => return,
     };
-    // Explicit target: destroy only the specified minion
-    if let Some(t) = explicit.filter(|t| minions.contains(t)) {
-        let hp = state.world().effective_health(t).unwrap_or(Health(1));
-        queue.push(Event::DamageDealt {
-            source: t,
-            target: t,
-            amount: hp.0.max(1),
-        });
-        return;
-    }
-    for &m in &minions {
+    // Single-target destroy (roadmap F4): an explicit target destroys only
+    // that minion; an explicit target that left the legal set fizzles (G9);
+    // with no explicit target the effect destroys ONE random matching minion —
+    // never all of them.
+    let chosen = match explicit {
+        Some(t) if minions.contains(&t) => Some(t),
+        Some(_) => None, // fizzle — G9 re-validation
+        None if minions.is_empty() => None,
+        None => {
+            let idx = state.rng_mut().next_usize(minions.len());
+            Some(minions[idx])
+        }
+    };
+    if let Some(m) = chosen {
         let hp = state.world().effective_health(m).unwrap_or(Health(1));
         queue.push(Event::DamageDealt {
             source: m,
