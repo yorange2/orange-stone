@@ -6,6 +6,7 @@ pub mod effect;
 pub mod entity;
 pub mod event;
 pub mod player;
+pub mod small_list;
 pub mod sparse_set;
 pub mod state;
 pub mod world;

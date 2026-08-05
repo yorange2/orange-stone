@@ -112,9 +112,10 @@ fn is_adjacent_to(
     world: &crate::core::world::World,
 ) -> bool {
     use crate::core::component::CardType;
+    use crate::core::small_list::SmallList;
     use crate::core::zone::Zone;
 
-    let minions: Vec<crate::core::entity::Entity> = world
+    let minions: SmallList<crate::core::entity::Entity> = world
         .zones()
         .iter(Zone::Play, player)
         .filter(|&e| world.card_type(e) == Some(CardType::Minion) && world.is_alive(e))
