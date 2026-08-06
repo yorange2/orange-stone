@@ -519,11 +519,15 @@ pub fn apply_event(
             // Deduct mana (single cost composition — roadmap G5)
             let cost = crate::engine::cost::play_cost(state, card, player);
             let card_type = state.world().card_type(card);
+            let is_minion = state.world().card_type(card) == Some(CardType::Minion);
             {
                 let inner = state.make_mut();
                 let p = &mut inner.players[player.index()];
                 p.current_mana -= cost.0;
                 p.cards_played_this_turn += 1;
+                if is_minion {
+                    p.minions_played_this_turn += 1;
+                }
             }
             // Detect combo: another card was played this turn (cards_played > 1 because it was just incremented)
             let combo_active = state.player(player).cards_played_this_turn > 1;
@@ -1279,6 +1283,7 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
             p.overload_locked = 0;
             p.current_mana = (p.mana_crystals - locked).max(0);
             p.cards_played_this_turn = 0;
+            p.minions_played_this_turn = 0;
             state.set_step(Step::DrawStep);
             true
         }

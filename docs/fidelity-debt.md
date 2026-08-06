@@ -1,7 +1,8 @@
 # Fidelity Debt — Simplified Cards (F4/F5 Audit Ledger)
 
-> **Status: 35 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
-> W0 wiring pass PR #79 cleared 13; W1 race pass PR #80 cleared 11; W2 triggers PR #81 cleared 8).
+> **Status: 26 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
+> W0 wiring pass PR #79 cleared 13; W1 race pass PR #80 cleared 11; W2 triggers PR #81 cleared 8;
+> W3 predicates PR #83 cleared 9).
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
@@ -45,6 +46,18 @@
 > fire only on real heals (an undamaged character is not a heal event).
 > 8 scenarios in `tests/differential.rs` (`w2_*`).
 >
+> **2026-08-06 W3 predicate pass (PR #83)**: all 9 conditional cards landed —
+> attack-range targets (`EnemyMinionAttackLE` Kodo, `AnyMinionAttackGE` Big
+> Game Hunter), hand-size counting (`GainStatsPerHandCard` Twilight Drake),
+> hero-health threshold (`MortalStrike`), damaged-friendly/any targets
+> (`DamagedFriendlyMinion` / `DamagedMinion` Rampage), damaged-counting
+> (`DrawPerDamagedFriendlyCharacter` Battle Rage), owns-secret
+> (`GainStatsIfOwnSecret` Ethereal Arcanist), the "first minion this turn"
+> state (`AuraEffect::FirstMinionDiscount` + a per-player
+> `minions_played_this_turn` counter — Pint-Sized Summoner), and divine-shield
+> absorb (`AbsorbDivineShields` Blood Knight — +3/+3 per shield, both sides).
+> 9 scenarios in `tests/differential.rs` (`w3_*`).
+>
 > **Execution plan**: [docs/fidelity-debt-roadmap.md](fidelity-debt-roadmap.md)
 > (zh: `fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
 > W7 wrap-up) covering all 67 cards; a card is done when its ledger row, its code
@@ -62,8 +75,8 @@ The 67 markers are 67 unique card IDs — the 3 pre-fix ID collisions
 (EX1_365 / EX1_349 / EX1_341), so Mass Dispel is now reachable. All 67 are in
 `ALL_CARDS` (413 unique entries after the 10-card addition and the 7-entry dedup,
 PR #77). 4 markers were stale comments on already-faithful cards and are cleaned
-(§10); the genuine debt is 67 cards — **W0 cleared 13, W1 cleared 11 and
-W2 cleared 8, leaving 35**.
+(§10); the genuine debt is 67 cards — **W0 cleared 13, W1 cleared 11,
+W2 cleared 8 and W3 cleared 9, leaving 26**.
 
 ---
 
@@ -98,23 +111,11 @@ Questing Adventurer; Flare is in §9.)
 | NEUTRAL_R13 | Alarm-o-Bot | vanilla | At the start of your turn, swap this with a random hand minion | hand-zone swap effect (missing) |
 | MAGE_017 | Ethereal Arcanist | +2/+2 at end of turn, unconditional | At the end of your turn, if you control a Secret, gain +2/+2 | conditional end-turn (owns-secret predicate) |
 
-### 4. Conditional targets & states (9)
+### 4. Conditional targets & states (9) ✅ resolved (W3, PR #83)
 
-Needs **condition predicates on targets / owners** (some exist: `DamagedEnemyMinion`,
-`TauntEnemyMinion`; missing: attack-range, hand-size, hero-health, divine-shield
-count, "set health to 1" effect).
-
-| ID | Card | Current | Real Hearthstone | Missing mechanism |
-| --- | --- | --- | --- | --- |
-| NEUTRAL_R20 | Stampeding Kodo | vanilla | Battlecry: destroy a random enemy minion with 2 or less Attack | attack ≤ N predicate + random pick |
-| NEUTRAL_E06 | Big Game Hunter | vanilla | Battlecry: destroy a minion with 7 or more Attack | attack ≥ N predicate |
-| NEUTRAL_R19 | Twilight Drake | vanilla | Battlecry: +1 Health for each card in your hand | hand-size predicate |
-| NEUTRAL_E05 | Blood Knight | vanilla | Battlecry: absorb all Divine Shields, gain +3/+3 | divine-shield count + mass absorb |
-| WARRIOR_021 | Mortal Strike | deal 4 | Deal 4 damage; if you have 12 or less Health, deal 6 instead | owner-health predicate + conditional branch |
-| WARRIOR_023 | Rampage | +3/+3 to any friendly minion | Give a **damaged** minion +3/+3 | damaged predicate (exists for enemies only: `DamagedEnemyMinion`) |
-| WARRIOR_022 | Battle Rage | draw 2 | Draw a card for each damaged friendly character | damaged-counting (both sides) |
-| PRIEST_018 | Mass Dispel | Silence one random enemy minion | Silence ALL enemy minions, draw a card | `SilenceMinion`+`AllEnemyMinions` exists — mostly card-wiring; unreachable by ID (see Findings) |
-| PALADIN_018 | Repentance | Secret: DealDamage | Secret: when your opponent plays a minion, set its Health to 1 | "set health to 1" effect (missing; `MinHealthUntilEndOfTurn` is temporary only); wrong ID too |
+All landed: attack-range (≤2 / ≥7), hand-size, hero-health threshold,
+damaged-friendly/any targets, damaged-counting, owns-secret, the "first
+minion this turn" state, and divine-shield absorb (`w3_*` scenarios).
 
 ### 5. Adjacent / multi-target (4)
 

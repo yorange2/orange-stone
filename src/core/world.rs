@@ -221,9 +221,9 @@ impl AuraIndex {
                 self.attack[oi].push((entity, aura))
             }
             AuraEffect::GainHealth(_) => self.health[oi].push((entity, aura)),
-            AuraEffect::ReduceSpellCost(_) | AuraEffect::ReduceMinionCost { .. } => {
-                self.cost[oi].push((entity, aura))
-            }
+            AuraEffect::ReduceSpellCost(_)
+            | AuraEffect::ReduceMinionCost { .. }
+            | AuraEffect::FirstMinionDiscount { .. } => self.cost[oi].push((entity, aura)),
         }
     }
 }
@@ -1033,6 +1033,7 @@ const fn aura_attack_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::ReduceSpellCost(_) => 0,
         AuraEffect::ReduceMinionCost { .. } => 0,
         AuraEffect::GrantCharge => 0,
+        AuraEffect::FirstMinionDiscount { .. } => 0,
     }
 }
 
@@ -1046,6 +1047,7 @@ const fn aura_health_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::ReduceSpellCost(_) => 0,
         AuraEffect::ReduceMinionCost { .. } => 0,
         AuraEffect::GrantCharge => 0,
+        AuraEffect::FirstMinionDiscount { .. } => 0,
     }
 }
 
@@ -1108,9 +1110,9 @@ mod tests {
                     idx.attack[oi].push((source, *aura))
                 }
                 AuraEffect::GainHealth(_) => idx.health[oi].push((source, *aura)),
-                AuraEffect::ReduceSpellCost(_) | AuraEffect::ReduceMinionCost { .. } => {
-                    idx.cost[oi].push((source, *aura))
-                }
+                AuraEffect::ReduceSpellCost(_)
+                | AuraEffect::ReduceMinionCost { .. }
+                | AuraEffect::FirstMinionDiscount { .. } => idx.cost[oi].push((source, *aura)),
             }
         }
         idx

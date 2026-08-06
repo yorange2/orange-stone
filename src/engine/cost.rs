@@ -26,5 +26,23 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
     if is_secret && state.player(player).next_secret_free {
         cost = Cost(0);
     }
+    // Pint-Sized Summoner: while its FirstMinionDiscount aura is on the board
+    // (silencing the summoner removes the aura), the FIRST minion played this
+    // turn costs `amount` less.
+    if state.world().card_type(card) == Some(crate::core::component::CardType::Minion)
+        && state.player(player).minions_played_this_turn == 0
+    {
+        let discount: i32 = state
+            .world()
+            .zones()
+            .iter(crate::core::zone::Zone::Play, player)
+            .filter_map(|e| state.world().aura(e))
+            .filter_map(|a| match a.effect {
+                crate::core::component::AuraEffect::FirstMinionDiscount { amount } => Some(amount),
+                _ => None,
+            })
+            .sum();
+        cost = Cost((cost.0 - discount).max(0));
+    }
     cost
 }

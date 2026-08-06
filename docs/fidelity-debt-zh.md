@@ -1,7 +1,8 @@
 # 保真债 — 简化卡清单（F4/F5 持续审计账本）
 
-> **现状：`src/cards/` 里有 35 处简化标记**（2026-08-06 审计，修复轮 PR #77；
-> W0 接线轮 PR #79 清掉 13 张；W1 种族轮 PR #80 清掉 11 张；W2 触发轮 PR #81 清掉 8 张）。
+> **现状：`src/cards/` 里有 26 处简化标记**（2026-08-06 审计，修复轮 PR #77；
+> W0 接线轮 PR #79 清掉 13 张；W1 种族轮 PR #80 清掉 11 张；W2 触发轮 PR #81 清掉 8 张；
+> W3 谓词轮 PR #83 清掉 9 张）。
 > 本账本是 F4 逐效果保真审计的**权威记录**。一张卡**离开账本**的唯一条件：
 > 真实炉石效果已实现**且**通过 F5 差分测试验证。不要静默重写卡牌——改动必须
 > 同时更新本账本、代码注释和下游简化债提取器（见[维护约定](#维护约定)）。
@@ -35,6 +36,16 @@
 > 照明弹全部 + 组合增益/抽牌）。治疗触发只在"真的治疗到"时触发（满血角色
 > 不是治疗事件）。对应 8 个差分场景（`tests/differential.rs` 的 `w2_*`）。
 >
+> **2026-08-06 W3 谓词轮（PR #83）**：9 张条件谓词卡全部落地——攻击区间目标
+> （`EnemyMinionAttackLE` 科多兽、`AnyMinionAttackGE` 猎潮驯兽师）、手牌数计数
+> （`GainStatsPerHandCard` 暮光幼龙）、英雄血量阈值（`MortalStrike`）、受伤
+> 友方/任意目标（`DamagedFriendlyMinion` / `DamagedMinion` 狂暴）、受伤计数
+> （`DrawPerDamagedFriendlyCharacter` 战斗怒火）、控制奥秘（
+> `GainStatsIfOwnSecret` 以太奥秘学者）、"每回合首个随从"状态（
+> `AuraEffect::FirstMinionDiscount` + 每玩家 `minions_played_this_turn`
+> 计数器，微型召唤师）、圣盾吸收（`AbsorbDivineShields` 血骑士，每盾 +3/+3，
+> 双方圣盾都吸收）。对应 9 个差分场景（`tests/differential.rs` 的 `w3_*`）。
+>
 > **执行计划**：[docs/fidelity-debt-roadmap-zh.md](fidelity-debt-roadmap-zh.md)
 > （英文版 `fidelity-debt-roadmap.md`）——按依赖排序的 8 个 wave（W0 接线 …
 > W7 收尾）覆盖全部 67 张卡；一张卡完成 = 账本行、代码注释、差分场景三者
@@ -50,7 +61,7 @@ Repentance / Lightwell）已改成官方 ID（EX1_365 / EX1_349 / EX1_341），
 Mass Dispel 现在可取了。67 张全部在 `ALL_CARDS` 里（补入 10 张、去重 7 个
 重复条目后共 413 个唯一条目，PR #77）。其中 4 处是过期注释（卡已忠实，已
 清理，见 §10）；真实债务是 67 张，**W0 已清 13 张、W1 已清 11 张、
-W2 已清 8 张，剩 35 张**。
+W2 已清 8 张、W3 已清 9 张，剩 26 张**。
 
 ---
 
@@ -83,22 +94,10 @@ Questing Adventurer；Flare 见 §9。）
 | NEUTRAL_R13 | Alarm-o-Bot | 白板 | 在你的回合开始时，与手牌中一个随机随从交换 | 手牌区交换效果（缺） |
 | MAGE_017 | Ethereal Arcanist | 回合结束无条件 +2/+2 | 在你的回合结束时，若你控制一个奥秘，获得 +2/+2 | 条件回合结束（控制奥秘谓词） |
 
-### 4. 条件目标与状态（9 张）
+### 4. 条件目标与状态（9 张）✅ 已解决（W3，PR #83）
 
-需要**目标/持有者条件谓词**（部分已有：`DamagedEnemyMinion`、`TauntEnemyMinion`；
-缺：攻击区间、手牌数、英雄血量、圣盾计数、"生命设为 1"效果）。
-
-| ID | 卡名 | 现状 | 真实炉石效果 | 缺失机制 |
-| --- | --- | --- | --- | --- |
-| NEUTRAL_R20 | Stampeding Kodo | 白板 | 战吼：摧毁一个攻击力 ≤2 的随机敌方随从 | 攻击 ≤N 谓词 + 随机选取 |
-| NEUTRAL_E06 | Big Game Hunter | 白板 | 战吼：摧毁一个攻击力 ≥7 的随从 | 攻击 ≥N 谓词 |
-| NEUTRAL_R19 | Twilight Drake | 白板 | 战吼：每有一张手牌便 +1 生命 | 手牌数谓词 |
-| NEUTRAL_E05 | Blood Knight | 白板 | 战吼：吸收所有圣盾并获得 +3/+3 | 圣盾计数 + 群体吸收 |
-| WARRIOR_021 | Mortal Strike | 造成 4 点伤害 | 造成 4 点伤害；若你 ≤12 生命则改为 6 | 持有者血量谓词 + 条件分支 |
-| WARRIOR_023 | Rampage | 给任意友方随从 +3/+3 | 使一个**受伤**的随从 +3/+3 | 受伤谓词（现有只有敌方：`DamagedEnemyMinion`） |
-| WARRIOR_022 | Battle Rage | 抽 2 张 | 每有一个受伤的友方角色便抽一张牌 | 受伤计数（双方） |
-| PRIEST_018 | Mass Dispel | 沉默一个随机敌方随从 | 沉默所有敌方随从并抽一张牌 | `SilenceMinion`+`AllEnemyMinions` 已有——主要是接线；按 ID 不可达（见审计发现） |
-| PALADIN_018 | Repentance | 奥秘：造成伤害 | 奥秘：对手打出随从时，将其生命设为 1 | "生命设为 1"效果（缺；`MinHealthUntilEndOfTurn` 只是临时的）；ID 也错了 |
+全部落地：攻击区间（≤2 / ≥7）、手牌数计数、英雄血量阈值、受伤友方/任意目标、
+受伤计数、控制奥秘、"每回合首个随从"状态、圣盾吸收（差分场景 `w3_*`）。
 
 ### 5. 邻位 / 多目标（4 张）
 

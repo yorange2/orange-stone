@@ -237,6 +237,14 @@ pub enum AuraEffect {
     /// Charge aura (Tundra Rhino — friendly Beasts have Charge). Consulted via
     /// `World::effective_charge` (base Charge component or an applying aura).
     GrantCharge,
+    /// First-minion cost reduction marker (Pint-Sized Summoner): while the
+    /// source is on the board, the owner's first minion each turn costs
+    /// `amount` less. Consulted by `engine::cost::play_cost`; silencing the
+    /// source removes the aura and the discount.
+    FirstMinionDiscount {
+        /// Cost reduction for the first minion played this turn
+        amount: i32,
+    },
 }
 
 /// Aura target scope.

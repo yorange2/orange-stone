@@ -56,6 +56,9 @@ pub struct Player {
     pub armor: i32,
     /// Cards played this turn (for the Combo mechanic)
     pub cards_played_this_turn: u32,
+    /// Minions played this turn (Pint-Sized Summoner — the first minion
+    /// each turn costs less)
+    pub minions_played_this_turn: u8,
     /// Mana locked by overload cards for the next turn (roadmap F1)
     pub overload_locked: i32,
     /// Friendly minions that died this turn (for resurrection effects)
@@ -82,6 +85,7 @@ impl Player {
             weapon: None,
             armor: 0,
             cards_played_this_turn: 0,
+            minions_played_this_turn: 0,
             overload_locked: 0,
             died_this_turn: Vec::new(),
             next_secret_free: false,

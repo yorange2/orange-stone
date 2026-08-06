@@ -1,6 +1,6 @@
 # Fidelity-Debt Implementation Roadmap — the 67 simplified cards
 
-> **Status: W2 done (PR #81); W3 next.** This roadmap executes the F4-ongoing /
+> **Status: W3 done (PR #83); W4 next.** This roadmap executes the F4-ongoing /
 > F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
 > [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
@@ -174,27 +174,36 @@ Beasts/Demons the old lists missed); RL pool grows by 11 (335 → 346).
 
 **Acceptance**: 8 differential scenarios (per-card after/whenever timing
 verified); RL pool grows by 8 (346 → 354).
-## Wave 3 — Conditional predicates (9 cards)
+## Wave 3 — Conditional predicates (9 cards) ✅ done (PR #83)
 
-**Primitives** (extend `EffectTarget` / add effect conditions):
-- attack-range predicates (≤2, ≥7), hand-size count, hero-health threshold,
-  damaged-friendly target + damaged-count, owns-secret, "first minion this turn"
-  state, divine-shield absorb-and-buff.
+**Primitives** — all landed:
+- Attack-range targets: `EffectTarget::EnemyMinionAttackLE` (Kodo, ≤2),
+  `AnyMinionAttackGE` (Big Game Hunter, ≥7, either side).
+- Hand-size counting: `CardEffect::GainStatsPerHandCard` (Twilight Drake).
+- Hero-health threshold: `CardEffect::MortalStrike` (6 damage at ≤12 health).
+- Damaged targets: `DamagedFriendlyMinion` / `DamagedMinion` (Rampage, either side).
+- Damaged-counting: `CardEffect::DrawPerDamagedFriendlyCharacter` (Battle Rage —
+  hero and minions count).
+- Owns-secret: `CardEffect::GainStatsIfOwnSecret` (Ethereal Arcanist).
+- "First minion this turn" state: `AuraEffect::FirstMinionDiscount` + a
+  per-player `minions_played_this_turn` counter (Pint-Sized Summoner;
+  silencing the summoner removes the aura and the discount).
+- Divine-shield absorb: `CardEffect::AbsorbDivineShields` (Blood Knight —
+  +3/+3 per shield, both sides).
 
-| ID | Card | Real effect |
-| --- | --- | --- |
-| NEUTRAL_R20 | Stampeding Kodo | Destroy a random enemy minion with ≤2 Attack |
-| NEUTRAL_E06 | Big Game Hunter | Destroy a minion with ≥7 Attack |
-| NEUTRAL_R19 | Twilight Drake | +1 Health per card in hand |
-| WARRIOR_021 | Mortal Strike | 4 damage; 6 if you have ≤12 Health |
-| WARRIOR_023 | Rampage | Give a **damaged** minion +3/+3 |
-| WARRIOR_022 | Battle Rage | Draw per damaged friendly character |
-| MAGE_017 | Ethereal Arcanist | End of turn: if you control a Secret, +2/+2 |
-| NEUTRAL_R24 | Pint-Sized Summoner | First minion each turn costs (1) less |
-| NEUTRAL_E05 | Blood Knight | Absorb all Divine Shields, +3/+3 |
+| ID | Card | Real effect | Scenario |
+| --- | --- | --- | --- |
+| NEUTRAL_R20 | Stampeding Kodo | Destroy a random enemy minion with 2 or less Attack | `w3_stampeding_kodo_destroys_low_attack_minion` |
+| NEUTRAL_E06 | Big Game Hunter | Destroy a minion with 7 or more Attack | `w3_big_game_hunter_destroys_high_attack_minion` |
+| NEUTRAL_R19 | Twilight Drake | +1 Health for each card in hand | `w3_twilight_drake_gains_health_per_hand_card` |
+| WARRIOR_021 | Mortal Strike | 4 damage; 6 if you have 12 or less Health | `w3_mortal_strike_boosts_at_low_health` |
+| WARRIOR_023 | Rampage | Give a damaged minion +3/+3 | `w3_rampage_targets_only_damaged_minions` |
+| WARRIOR_022 | Battle Rage | Draw a card for each damaged friendly character | `w3_battle_rage_draws_per_damaged_friendly_character` |
+| MAGE_017 | Ethereal Arcanist | End of turn: if you control a Secret, +2/+2 | `w3_ethereal_arcanist_requires_a_secret` |
+| NEUTRAL_R24 | Pint-Sized Summoner | The first minion each turn costs (1) less | `w3_pint_sized_summoner_discounts_first_minion` |
+| NEUTRAL_E05 | Blood Knight | Destroy all Divine Shields, +3/+3 each | `w3_blood_knight_absorbs_all_divine_shields` |
 
-**Acceptance**: 9 differential scenarios; RL pool grows by 9.
-
+**Acceptance**: 9 differential scenarios; RL pool grows by 9 (354 → 363).
 ## Wave 4 — Cost & weapon interactions (8 cards)
 
 **Primitives**:
@@ -289,7 +298,7 @@ constructible size; final sweep + full SabberStone parity run.
 | W0 wiring ✅ PR #79 | 13 | `EventSubject` / `OtherFriendlyMinion` targets; weapon trigger registration + destroy-leaves-play; spell-cast death-before-after-cast | +13 → **334** |
 | W1 race ✅ PR #80 | 11 | race field + targets/auras/triggers + field-driven pools | +11 → **346** |
 | W2 triggers ✅ PR #81 | 8 | 5 trigger classes + destroy-secret | +8 → **354** |
-| W3 predicates | 9 | 6+ predicates | +9 |
+| W3 predicates ✅ PR #83 | 9 | attack-range/hand-size/health/damaged/secret/first-minion/shield predicates | +9 → **363** |
 | W4 cost/weapon | 8 | 6+ primitives | +8 |
 | W5 target structure | 7 | 5+ primitives | +7 |
 | W6 special mechanics | 8 | 6 primitives | +8 |

@@ -2951,9 +2951,43 @@ pub const QUESTING_ADVENTURER: CardDef = CardDef {
 };
 /// Ancient Mage — Battlecry: give adjacent minions Spell Damage +1 (simplified: vanilla)
 pub const ANCIENT_MAGE: CardDef = vanilla!("NEUTRAL_R18", "Ancient Mage", 4, 2, 5);
-/// Twilight Drake — Battlecry: +1 Health per card in hand (simplified: vanilla)
-pub const TWILIGHT_DRAKE: CardDef = vanilla!("NEUTRAL_R19", "Twilight Drake", 4, 4, 1);
-/// Stampeding Kodo — Battlecry: destroy a random enemy minion with 2 or less Attack (simplified: vanilla)
+/// Twilight Drake — Battlecry: gain +1 Health for each card in your hand
+pub const TWILIGHT_DRAKE: CardDef = CardDef {
+    id: "NEUTRAL_R19",
+    name: "Twilight Drake",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 4,
+    health: 1,
+    durability: 0,
+    battlecry: Some(CardEffect::GainStatsPerHandCard {
+        attack: 0,
+        health_per_card: 1,
+    }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+/// Stampeding Kodo — Battlecry: destroy a random enemy minion with 2 or less Attack
 pub const STAMPEDING_KODO: CardDef = CardDef {
     id: "NEUTRAL_R20",
     name: "Stampeding Kodo",
@@ -2962,7 +2996,9 @@ pub const STAMPEDING_KODO: CardDef = CardDef {
     attack: 3,
     health: 5,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::EnemyMinionAttackLE(2),
+    }),
     deathrattle: None,
     taunt: false,
     stealth: false,
@@ -3060,10 +3096,77 @@ pub const DOOMSAYER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Blood Knight — Battlecry: absorb all Divine Shields and gain +3/+3 (simplified: vanilla)
-pub const BLOOD_KNIGHT: CardDef = vanilla!("NEUTRAL_E05", "Blood Knight", 3, 3, 3);
-/// Big Game Hunter — Battlecry: destroy a minion with 7 or more Attack (simplified: vanilla)
-pub const BIG_GAME_HUNTER: CardDef = vanilla!("NEUTRAL_E06", "Big Game Hunter", 5, 4, 2);
+/// Blood Knight — Battlecry: destroy all Divine Shields and gain +3/+3 for each
+pub const BLOOD_KNIGHT: CardDef = CardDef {
+    id: "NEUTRAL_E05",
+    name: "Blood Knight",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::AbsorbDivineShields {
+        attack_per_shield: 3,
+        health_per_shield: 3,
+    }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+/// Big Game Hunter — Battlecry: destroy a minion with 7 or more Attack
+pub const BIG_GAME_HUNTER: CardDef = CardDef {
+    id: "NEUTRAL_E06",
+    name: "Big Game Hunter",
+    card_type: CardType::Minion,
+    cost: 5,
+    attack: 4,
+    health: 2,
+    durability: 0,
+    battlecry: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::AnyMinionAttackGE(7),
+    }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Young Priestess — at the end of your turn, give ANOTHER random friendly
 /// minion +1 Health
 pub const YOUNG_PRIESTESS: CardDef = CardDef {
@@ -3142,8 +3245,42 @@ pub const MASTER_SWORDSMITH: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Pint-Sized Summoner — the first minion each turn costs (1) less (simplified: vanilla)
-pub const PINT_SIZED_SUMMONER: CardDef = vanilla!("NEUTRAL_R24", "Pint-Sized Summoner", 2, 2, 2);
+/// Pint-Sized Summoner — the first minion you play each turn costs (1) less
+pub const PINT_SIZED_SUMMONER: CardDef = CardDef {
+    id: "NEUTRAL_R24",
+    name: "Pint-Sized Summoner",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: Some((
+        AuraEffect::FirstMinionDiscount { amount: 1 },
+        AuraTarget::AllFriendlyMinions,
+    )),
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// SI:7 Infiltrator — Battlecry: destroy a random enemy Secret
 pub const SI7_INFILTRATOR: CardDef = CardDef {
     id: "NEUTRAL_R25",
