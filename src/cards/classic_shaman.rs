@@ -358,7 +358,6 @@ pub const MANA_TIDE_TOTEM: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Doomhammer — Windfury. Overload: (2) (simplified: no Overload)
 pub const DOOMHAMMER: CardDef = CardDef {
     id: "SHAMAN_011",
     name: "Doomhammer",
@@ -529,7 +528,6 @@ pub const DUST_DEVIL: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Forked Lightning — deal 2 damage to 2 random enemy minions. Overload: (2) (simplified: Overload amount 1, not 2 — id collision with Windfury, see fidelity-debt F-A8)
 pub const FORKED_LIGHTNING: CardDef = CardDef {
     id: "SHAMAN_016",
     name: "Forked Lightning",
@@ -597,7 +595,6 @@ pub const LAVA_BURST: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Stormforged Axe — 2/3 weapon. Overload: (1) (simplified: no Overload)
 pub const STORMFORGED_AXE: CardDef = CardDef {
     id: "SHAMAN_018",
     name: "Stormforged Axe",
@@ -665,7 +662,7 @@ pub const EARTH_ELEMENTAL: CardDef = CardDef {
 
 /// Windfury — give a friendly minion Windfury
 pub const WINDFURY: CardDef = CardDef {
-    id: "SHAMAN_016",
+    id: "CS2_039",
     name: "Windfury",
     card_type: CardType::Spell,
     cost: 2,
@@ -701,7 +698,7 @@ pub const WINDFURY: CardDef = CardDef {
 
 /// Windspeaker — Battlecry: give a friendly minion Windfury
 pub const WINDSPEAKER: CardDef = CardDef {
-    id: "SHAMAN_017",
+    id: "CS2_041",
     name: "Windspeaker",
     card_type: CardType::Minion,
     cost: 4,
@@ -737,7 +734,7 @@ pub const WINDSPEAKER: CardDef = CardDef {
 
 /// Ancestral Healing — restore a minion to full Health and give it Taunt
 pub const ANCESTRAL_HEALING: CardDef = CardDef {
-    id: "SHAMAN_018",
+    id: "CS2_003",
     name: "Ancestral Healing",
     card_type: CardType::Spell,
     cost: 0,
@@ -773,7 +770,7 @@ pub const ANCESTRAL_HEALING: CardDef = CardDef {
 
 /// Ancestral Spirit — give a minion "Deathrattle: resummon this minion"
 pub const ANCESTRAL_SPIRIT: CardDef = CardDef {
-    id: "SHAMAN_019",
+    id: "CS2_289",
     name: "Ancestral Spirit",
     card_type: CardType::Spell,
     cost: 2,

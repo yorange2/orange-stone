@@ -568,7 +568,7 @@ pub const ARCANE_EXPLOSION: CardDef = CardDef {
 
 /// Mana Wyrm — whenever you cast a spell, gain +1 Attack
 pub const MANA_WYRM: CardDef = CardDef {
-    id: "MAGE_016",
+    id: "CS2_027",
     name: "Mana Wyrm",
     card_type: CardType::Minion,
     cost: 1,

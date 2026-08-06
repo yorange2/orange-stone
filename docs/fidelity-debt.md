@@ -7,8 +7,8 @@
 > the full classic constructed size (391). **2026-08-06 registration pass: the status audit found
 > 27 more cards implemented with known simplifications but **without** `(simplified: …)` markers —
 > silently in the RL pool. All 27 now carry comments and are registered below (§11); the debt set
-> grows from 0 to 27 and the RL pool drops to 361 (413 − 27 debt − coin/tokens). Retraining needed. F-A8 (8 duplicate
-> card IDs) remains open.**
+> grew to 27 (RL pool 361), then to 24 after the F-A8 overload fix (RL pool 367 — 413 − 24 debt −
+> 21 tokens − coin, fresh wheel). Retraining needed. F-A8 (8 duplicate card IDs) resolved (PR #88).**
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
@@ -101,7 +101,7 @@
 > and the 1-Health resummon secret (`ResurrectDiedMinion` Redemption).
 > 3 scenarios (`w7_*`). **The ledger was EMPTY and the RL pool was the full 391-card
 > classic pool — until the 2026-08-06 registration pass re-opened it with 27
-> pre-existing simplifications (§11); the pool is now 364 (391 − 27).**
+> pre-existing simplifications (§11); the pool is now 367 (413 − 24 debt − 21 tokens − coin).**
 >
 > **Execution plan**: [docs/fidelity-debt-roadmap.md](../finished/fidelity-debt-roadmap.md)
 > (zh: `finished/fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
@@ -205,7 +205,7 @@ which also removes them from the Python debt set (4 cards re-enter the RL pool).
 ---
 
 
-### 11. Pre-existing simplifications registered 2026-08-06 (27 cards, pending)
+### 11. Pre-existing simplifications registered 2026-08-06 (27 → 24 cards)
 
 The 2026-08-06 status audit (`docs/classic-cards-zh.md` vs. the code) found 27
 cards with known simplifications that carried no `(simplified: …)` marker — they
@@ -222,9 +222,6 @@ cards leave the ledger only via the [Maintenance](#maintenance) flow
 | PRIEST_004 | Northshire Cleric | no heal-draw — vanilla 1/3 |
 | HUNTER_021 | Bestial Wrath | grants to any friendly minion (Beast only) |
 | NEUTRAL_026 | Sea Giant | no cost reduction — vanilla 8/8 |
-| SHAMAN_016 | Forked Lightning | Overload 1, real 2 (id collision, F-A8) |
-| SHAMAN_018 | Stormforged Axe | no Overload (1) |
-| SHAMAN_011 | Doomhammer | no Overload (2) |
 | DRUID_004 | Wrath | 3-damage branch only |
 | DRUID_007 | Druid of the Claw | fixed 4/6 Taunt, no Choose One |
 | DRUID_008 | Ancient of Lore | draw-2 branch only |
@@ -283,7 +280,7 @@ groups above plus the F5 verification protocol.
   drift once re-trained.
 
 
-## F-A8 — 8 duplicate card IDs + mis-wired Overload map (open, found 2026-08-06)
+## F-A8 — 8 duplicate card IDs + mis-wired Overload map ✅ resolved (PR #88, 2026-08-06)
 
 F-A3 fixed 3 ID collisions; this pass found 8 more. `card_by_id` resolves the
 first match, so one card of each pair is unreachable by ID, and the Overload
@@ -308,14 +305,16 @@ Overload, Stormforged Axe / Doomhammer get none (registered §11). The match's
 comments are stale (naming Feral Spirit / Forked Lightning / Lightning Storm /
 Totem Golem — the last one is not in the card set at all).
 
-Fix plan (a code wave — not done silently, touches the engine + F5 scenes):
-renumber one card per pair with a unique ID (real HS IDs where known, per the
-F-A3 precedent), re-wire the Overload match by actual card IDs with correct
-amounts (Forked Lightning 2, add Stormforged Axe 1 + Doomhammer 2, drop the
-phantom Windfury / Windspeaker / Ancestral Spirit entries), add F5 differential
-scenes. Verified: the RL side references none of these 8 IDs
-(hearthstone_os / hearthstone use only CLASSIC_* / NEUTRAL_* ids) — no RL deck
-config changes needed.
+Fix applied (PR #88): one card of each pair renumbered to its real HS ID
+(Mana Wyrm CS2_027, Blessed Champion CS2_089, Divine Spirit CS2_235, Inner Fire
+CS1_129, Windfury CS2_039, Windspeaker CS2_041, Ancestral Healing CS2_003,
+Ancestral Spirit CS2_289 — no duplicate IDs remain); the Overload match is
+re-wired by actual IDs with correct amounts (Forked Lightning 2, Stormforged
+Axe 1, Doomhammer 2 — phantom Windfury / Windspeaker / Ancestral Spirit entries
+gone with the renumber); F5 differential scenes `f8_*` pin the new behavior;
+§11 rows for the three now-fixed overload cards removed (24 remain). The RL
+side references none of the touched IDs — no RL deck config changes. Full
+`cargo test` green (402 tests).
 
 ## Mechanism inventory (what the engine has vs. what's missing)
 
@@ -352,8 +351,7 @@ two-effect composition (Mass Dispel, Ancestral Healing) (W5).
 6. Battlecries (Onyxia, Argent Protector, Deathwing hand discard);
    freeze-on-damage (Water Elemental); control (Cabal Shadow Priest); healing
    doubling (Prophet Velen); Shiv's 1-damage draw-1
-7. Cost reduction (Sea Giant, Preparation); Combo base branch (Cold Blood);
-   Overload (Stormforged Axe, Doomhammer, Forked Lightning amount — see F-A8)
+7. Cost reduction (Sea Giant, Preparation); Combo base branch (Cold Blood)
 
 ## F5 verification per fix
 

@@ -3807,3 +3807,141 @@ fn w7_redemption_resummons_with_1_health() {
     );
     assert_eq!(state.world().effective_attack(ogre), Some(Attack(6)));
 }
+
+// ============================================================
+// F-A8 — Overload wiring after the duplicate-ID renumber
+// ============================================================
+
+/// F-A8-1 Forked Lightning — Overload: (2) (was 1 via the SHAMAN_016 id
+/// collision with Windfury). Playing it locks 2 mana on the next turn.
+#[test]
+fn f8_forked_lightning_overload_amount_2() {
+    use orange_stone::cards::def::FORKED_LIGHTNING;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &FORKED_LIGHTNING);
+    builder.set_mana(PlayerId1(), 3, 3);
+    let mut state = builder.build();
+    let fork = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("forked lightning in hand");
+    let engine = GameEngine::new();
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: fork,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId1()).overload_locked,
+        2,
+        "Forked Lightning overloads 2 (real HS amount), not 1"
+    );
+}
+
+/// F-A8-2 Stormforged Axe — Overload: (1) (had no overload via the
+/// SHAMAN_018 id collision with Ancestral Healing).
+#[test]
+fn f8_stormforged_axe_overload_1() {
+    use orange_stone::cards::def::STORMFORGED_AXE;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &STORMFORGED_AXE);
+    builder.set_mana(PlayerId1(), 3, 3);
+    let mut state = builder.build();
+    let axe = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("stormforged axe in hand");
+    let engine = GameEngine::new();
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: axe,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId1()).overload_locked,
+        1,
+        "Stormforged Axe overloads 1"
+    );
+}
+
+/// F-A8-3 Doomhammer — Overload: (2) (had no overload; SHAMAN_011 was never
+/// in the match).
+#[test]
+fn f8_doomhammer_overload_2() {
+    use orange_stone::cards::def::DOOMHAMMER;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &DOOMHAMMER);
+    builder.set_mana(PlayerId1(), 6, 6);
+    let mut state = builder.build();
+    let hammer = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("doomhammer in hand");
+    let engine = GameEngine::new();
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hammer,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId1()).overload_locked,
+        2,
+        "Doomhammer overloads 2"
+    );
+}
+
+/// F-A8-4 Windfury (spell) — regression: must NOT gain Overload from the old
+/// SHAMAN_016 id (now CS2_039).
+#[test]
+fn f8_windfury_spell_no_overload() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, WINDFURY};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &WINDFURY);
+    builder.add_minion_to_board(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 3, 3);
+    let mut state = builder.build();
+    let windfury = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("windfury in hand");
+    let raptor = find_entity(&state, PlayerId1(), "CLASSIC_001");
+    let engine = GameEngine::new();
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: windfury,
+                target: Some(raptor),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId1()).overload_locked,
+        0,
+        "Windfury the spell has no Overload"
+    );
+}

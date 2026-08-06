@@ -1,7 +1,7 @@
 # Classic/Basic Set Card List
 
 > Source: [Hearthstone Wiki - Classic (2014-2021)](https://hearthstone.wiki.gg/wiki/Classic_(2014-2021)), [Basic card list](https://hearthstone.wiki.gg/wiki/Basic_card_list)
-> Total: 375 | ✅ fully implemented: 343 | ✅ simplified: 27 | ⬜ pending: 0 | 🔧 needs new mechanic: 2 | ⏸️ skipped: 3（status column refreshed 2026-08-06 against the code）
+> Total: 375 | ✅ fully implemented: 346 | ✅ simplified: 24 | ⬜ pending: 0 | 🔧 needs new mechanic: 2 | ⏸️ skipped: 3（status column refreshed 2026-08-06 against the code）
 
 Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications (tracked in fidelity-debt) | ⬜ Pending (engine supports) | 🔧 Needs new engine mechanic | ⏸️ Skipped (opponent hand/deck)
 
@@ -442,17 +442,17 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 |---|------|------|--------|------|--------|
 | 1 | Dust Devil | 1 | 3/1 | Minion | **Windfury.** **Overload:** (2) | ✅ |
 | 2 | Earth Shock | 1 | — | Nature Spell | **Silence** a minion, then deal 1 damage to it. | ✅ |
-| 3 | Forked Lightning | 1 | — | Spell | Deal 2 damage to 2 random enemy minions. **Overload:** (2) | ✅ (Overload amount 1, real: 2) |
+| 3 | Forked Lightning | 1 | — | Spell | Deal 2 damage to 2 random enemy minions. **Overload:** (2) | ✅ |
 | 4 | Lightning Bolt | 1 | — | Nature Spell | Deal 3 damage. **Overload:** (1) | ✅ |
 | 5 | Ancestral Spirit | 2 | — | Nature Spell | Give a minion "**Deathrattle:** Resummon this minion." | ✅ |
-| 6 | Stormforged Axe | 2 | 2/3 | Weapon | **Overload:** (1) | ✅ (no Overload) |
+| 6 | Stormforged Axe | 2 | 2/3 | Weapon | **Overload:** (1) | ✅ |
 | 7 | Far Sight | 3 | — | Spell | Draw a card. That card costs (3) less. | ✅ |
 | 8 | Feral Spirit | 3 | — | Spell | Summon two 2/3 Spirit Wolves with **Taunt.** **Overload:** (2) | ✅ |
 | 9 | Lava Burst | 3 | — | Fire Spell | Deal 5 damage. **Overload:** (2) | ✅ |
 | 10 | Lightning Storm | 3 | — | Nature Spell | Deal 2-3 damage to all enemy minions. **Overload:** (2) | ✅ |
 | 11 | Mana Tide Totem | 3 | 0/3 | Totem Minion | At the end of your turn, draw a card. | ✅ |
 | 12 | Unbound Elemental | 3 | 2/4 | Elemental Minion | Whenever you play a card with **Overload**, gain +1/+1. | ✅ |
-| 13 | Doomhammer | 5 | 2/8 | Weapon | **Windfury.** **Overload:** (2) | ✅ (no Overload) |
+| 13 | Doomhammer | 5 | 2/8 | Weapon | **Windfury.** **Overload:** (2) | ✅ |
 | 14 | Earth Elemental | 5 | 7/8 | Elemental Minion | **Taunt.** **Overload:** (3) | ✅ |
 | 15 | Al'Akir the Windlord | 8 | 3/5 | Minion | **Windfury, Charge, Divine Shield, Taunt** | ✅ |
 
@@ -550,7 +550,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | Paladin | 25 | 23 | 2 | 0 | 0 | 0 |
 | Priest | 27 | 21 | 3 | 0 | 0 | 3 |
 | Rogue | 25 | 22 | 3 | 0 | 0 | 0 |
-| Shaman | 25 | 22 | 3 | 0 | 0 | 0 |
+| Shaman | 25 | 25 | 0 | 0 | 0 | 0 |
 | Warlock | 24 | 23 | 0 | 0 | 1 | 0 |
 | Warrior | 25 | 22 | 3 | 0 | 0 | 0 |
-| **Grand Total** | **375** | **343** | **27** | **0** | **2** | **3** |
+| **Grand Total** | **375** | **346** | **24** | **0** | **2** | **3** |

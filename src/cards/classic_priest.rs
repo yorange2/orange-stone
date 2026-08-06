@@ -617,7 +617,7 @@ pub const MASS_DISPEL: CardDef = CardDef {
 
 /// Divine Spirit — double a minion's Health
 pub const DIVINE_SPIRIT: CardDef = CardDef {
-    id: "PRIEST_016",
+    id: "CS2_235",
     name: "Divine Spirit",
     card_type: CardType::Spell,
     cost: 2,
@@ -653,7 +653,7 @@ pub const DIVINE_SPIRIT: CardDef = CardDef {
 
 /// Inner Fire — set a minion's Attack equal to its Health
 pub const INNER_FIRE: CardDef = CardDef {
-    id: "PRIEST_017",
+    id: "CS1_129",
     name: "Inner Fire",
     card_type: CardType::Spell,
     cost: 1,
