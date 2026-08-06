@@ -681,7 +681,7 @@ pub const ARGENT_PROTECTOR: CardDef = CardDef {
 
 /// Blessed Champion — double a minion's Attack
 pub const BLESSED_CHAMPION: CardDef = CardDef {
-    id: "PALADIN_016",
+    id: "CS2_089",
     name: "Blessed Champion",
     card_type: CardType::Spell,
     cost: 5,

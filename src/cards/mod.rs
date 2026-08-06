@@ -61,15 +61,21 @@ mod lookup_tests {
 /// (`trigger::resolve_summon`) and building cards (`GameBuilder::spawn_minion`).
 pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &CardDef) {
     // Shaman cards with Overload — the amount locks mana on the owner's next
-    // turn (roadmap F1): Lightning Bolt 1, Feral Spirit 2, Forked Lightning 2,
-    // Lightning Storm 2, Totem Golem 1, Lava Burst 2, Earth Elemental 3.
+    // turn (roadmap F1): Lightning Bolt 1, Lightning Storm 2, Feral Spirit 2,
+    // Dust Devil 2, Forked Lightning 2, Lava Burst 2, Stormforged Axe 1,
+    // Doomhammer 2, Earth Elemental 3. Keyed by actual card IDs (F-A8 fix:
+    // the map was mis-wired by the 8 duplicate-ID pairs, giving Forked
+    // Lightning 1 instead of 2 and phantom Overload to Windfury / Windspeaker /
+    // Ancestral Spirit — those cards are now on unique CS2_*/CS1_* IDs).
     let overload_amount = match card_def.id {
         "SHAMAN_002" => Some(1), // Lightning Bolt
-        "SHAMAN_006" => Some(2), // Feral Spirit
-        "SHAMAN_009" => Some(2), // Forked Lightning
-        "SHAMAN_015" => Some(2), // Lightning Storm
-        "SHAMAN_016" => Some(1), // Totem Golem
+        "SHAMAN_006" => Some(2), // Lightning Storm
+        "SHAMAN_009" => Some(2), // Feral Spirit
+        "SHAMAN_011" => Some(2), // Doomhammer
+        "SHAMAN_015" => Some(2), // Dust Devil
+        "SHAMAN_016" => Some(2), // Forked Lightning
         "SHAMAN_017" => Some(2), // Lava Burst
+        "SHAMAN_018" => Some(1), // Stormforged Axe
         "SHAMAN_019" => Some(3), // Earth Elemental
         _ => None,
     };
