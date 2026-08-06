@@ -943,6 +943,18 @@ pub fn apply_event(
             if state.world().immune(target).is_some() {
                 return Ok(());
             }
+            // Water Elemental (W12, D2 — damage-pipeline check): freeze any
+            // character damaged by this minion. Applied before the divine
+            // shield absorption — HS freezes even when the shield absorbs.
+            if state
+                .world()
+                .card_id(source)
+                .is_some_and(|c| c.0 == crate::cards::classic_mage::WATER_ELEMENTAL_ID)
+            {
+                state
+                    .world_mut()
+                    .set_freeze(target, crate::core::component::Freeze);
+            }
             // Divine shield absorbs: if the target has a divine shield, remove it and zero the damage
             if state.world().divine_shield(target).is_some() {
                 state.world_mut().remove_divine_shield(target);

@@ -1214,6 +1214,7 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::PreventFatalDamageAndImmune => 5.0,
         CardEffect::TakeControlUntilEndOfTurn => 4.0,
         CardEffect::TakeControl => 6.0,
+        CardEffect::TakeControlAttackLE { .. } => 6.0,
         CardEffect::Corrupt => 2.0,
         CardEffect::MinHealthUntilEndOfTurn => 2.0,
         CardEffect::TransformToRandom { .. } => 4.0,
@@ -1261,6 +1262,7 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::ChanceDraw { percent } => percent as f64 / 100.0 * 3.0,
         CardEffect::GainStatsThisTurn { attack, health, .. } => (attack + health) as f64 * 0.8,
         CardEffect::GrantDivineShieldAllFriendly => 3.0,
+        CardEffect::GrantDivineShield { .. } => 2.0,
         CardEffect::YseraAwakens { damage } => damage as f64 * 1.2,
         CardEffect::GainStatsAndTauntAllFriendly { attack, health } => {
             (attack + health) as f64 * 0.8 + 2.0

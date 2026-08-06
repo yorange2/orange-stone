@@ -220,9 +220,15 @@ pub const POLYMORPH: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Water Elemental — freeze any character damaged by this minion (simplified: no freeze-on-damage — vanilla 3/6)
+/// Water Elemental's card ID — rules.rs freezes characters damaged by it
+/// (the DamageDealt pipeline hook, W12 D2).
+pub const WATER_ELEMENTAL_ID: &str = "MAGE_007";
+
+/// Water Elemental — freeze any character damaged by this minion
+/// (the freeze applies in the DamageDealt pipeline — even through a Divine
+/// Shield, matching HS)
 pub const WATER_ELEMENTAL: CardDef = CardDef {
-    id: "MAGE_007",
+    id: WATER_ELEMENTAL_ID,
     name: "Water Elemental",
     card_type: CardType::Minion,
     cost: 4,

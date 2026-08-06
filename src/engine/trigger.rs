@@ -485,6 +485,9 @@ pub fn resolve_effect(
         CardEffect::TakeControl => {
             resolve_take_control(state, owner, false);
         }
+        CardEffect::TakeControlAttackLE { max_attack } => {
+            resolve_take_control_attack_le(state, owner, max_attack);
+        }
         CardEffect::Corrupt => {
             resolve_corrupt(state, owner);
         }
@@ -686,6 +689,18 @@ pub fn resolve_effect(
                 state
                     .world_mut()
                     .set_divine_shield(*m, crate::core::component::DivineShield);
+            }
+        }
+        CardEffect::GrantDivineShield { target } => {
+            let minions: SmallList<Entity> = match target {
+                EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+                EffectTarget::Self_ => SmallList::from_iter([source]),
+                _ => return,
+            };
+            if let Some(m) = select_target(explicit_target, &minions, state.rng_mut()) {
+                state
+                    .world_mut()
+                    .set_divine_shield(m, crate::core::component::DivineShield);
             }
         }
         CardEffect::YseraAwakens { damage } => {
@@ -2185,6 +2200,16 @@ fn resolve_restore_health(
     amount: i32,
     target: EffectTarget,
 ) {
+    // Prophet Velen (W12, D3 — pipeline hook): while Velen is on the owner's
+    // board, healing is doubled (mirroring the spell-damage modifier; the
+    // spell-damage half stays a +1 rebalance per known_rebalanced).
+    let velen_present = state.world().zones().iter(Zone::Play, owner).any(|e| {
+        state
+            .world()
+            .card_id(e)
+            .is_some_and(|c| c.0 == "PRIEST_012")
+    });
+    let amount = if velen_present { amount * 2 } else { amount };
     // Healing reduces accumulated damage (roadmap G4); returns whether any
     // damage was actually removed
     fn heal(world: &mut crate::core::world::World, entity: Entity, amount: i32) -> bool {
@@ -2937,6 +2962,21 @@ fn resolve_take_control(state: &mut GameState, owner: PlayerId, until_end_of_tur
             .controlled_this_turn
             .push((target, original_owner));
     }
+}
+
+/// Takes permanent control of a random enemy minion with at most `max_attack`
+/// attack (Cabal Shadow Priest — Battlecry: take control of an enemy minion
+/// with 2 or less Attack).
+fn resolve_take_control_attack_le(state: &mut GameState, owner: PlayerId, max_attack: i32) {
+    let minions: SmallList<Entity> = collect_enemy_minions(state, owner, None)
+        .into_iter()
+        .filter(|&e| state.world().effective_attack(e).unwrap_or(Attack(0)).0 <= max_attack)
+        .collect();
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    transfer_minion(state, minions[idx], owner);
 }
 
 /// Transfers control of a minion to a new player (changes the player
