@@ -82,20 +82,24 @@ charge aura grant, heal-draw timing vs the heal event); `cargo test` green
 minion hit, durability gain per reveal, beast-only targeting); `cargo test`
 green (426); RL pool 372 → **376**.
 
-### W10 — Choose-One & Discover (5 cards): Wrath, Druid of the Claw, Ancient of Lore, Ancient of War, Tracking
+### W10 — Choose-One & Discover (5 cards): Wrath, Druid of the Claw, Ancient of Lore, Ancient of War, Tracking ✅ (PR #99)
 
 - Wrath / Druid of the Claw / Ancient of Lore / Ancient of War: wire both
-  branches into the existing Choose-One pipeline (audit why the defs
-  currently fall back to a fixed branch — likely missing second-branch
-  wiring, not a pipeline gap)
+  branches into the existing Choose-One pipeline (the audit confirmed the
+  diagnosis — the pipeline's option mapping (battlecry = branch 0,
+  `choose_one_effect` = branch 1) was complete, the defs simply never had
+  the second branch wired). Druid of the Claw base back to 4/4, Ancient of
+  War base back to 5/5; `GrantCharge` and `GainStatsAndTaunt` gained
+  `Self_` arms for the minion branches
 - Tracking: Discover over the **top 3 cards of the player's deck** — pick
-  one into hand, discard the rest. The Discover pipeline exists but draws
-  from a card pool; decide (D1) whether the deck-top-3 is a new pool
-  source or a parallel choice
+  one into hand, discard the rest. **D1 decided**: a new pool source (the
+  deck's top 3) surfaced as a parallel Discover choice carrying the new
+  `discard_rest` flag — the picked card's existing entity moves to hand,
+  the other two are discarded
 
-**Acceptance**: 5 `w10_*` scenarios (branch choices, cost/target per branch,
-Tracking deck-top-3 semantics incl. the discard); `cargo test` green;
-RL pool 376 → 381.
+**Acceptance**: ✅ 5 `w10_*` scenarios (branch choices, cost/target per branch,
+Tracking deck-top-3 semantics incl. the discard); `cargo test` green (431);
+RL pool 376 → **381**.
 
 ### W11 — Battlecries & cost reduction (6 cards): Onyxia, Defender of Argus, Deathwing, Sea Giant, Preparation, Cold Blood
 
@@ -134,7 +138,7 @@ Sea Giant cost vs board state, Preparation window, Cold Blood base branch);
 | --- | --- | --- |
 | W8 trigger wiring ✅ (PR #97) | 5 | 367 → **372** |
 | W9 weapon & race ✅ (PR #98) | 4 | 372 → **376** |
-| W10 choose-one & discover | 5 | 376 → **381** |
+| W10 choose-one & discover ✅ (PR #99) | 5 | 376 → **381** |
 | W11 battlecries & cost | 6 | 381 → **387** |
 | W12 remaining mechanics | 4 | 387 → **391 (ledger empty)** |
 
