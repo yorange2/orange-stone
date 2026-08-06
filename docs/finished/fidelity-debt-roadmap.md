@@ -2,11 +2,11 @@
 
 > **Status: ALL DONE (W7 wrap-up PR #86) — all 67 fidelity-debt cards cleared.** This roadmap executes the F4-ongoing /
 > F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
-> [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
+> [fidelity-debt.md](../fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
 > implemented **and** verified by an F5 differential test — see the ledger's
-> [F5 verification](fidelity-debt.md#f5-verification-per-fix) and
-> [Maintenance](fidelity-debt.md#maintenance) sections.
+> [F5 verification](../fidelity-debt.md#f5-verification-per-fix) and
+> [Maintenance](../fidelity-debt.md#maintenance) sections.
 >
 > Verified against the engine on 2026-08-06: all 67 markers, trigger-scope
 > semantics, and the mechanism inventory below are current as of PR #77.

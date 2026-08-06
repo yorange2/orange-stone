@@ -81,8 +81,8 @@
 > （`ResurrectDiedMinion` 救赎）。对应 3 个差分场景（`tests/differential.rs`
 > 的 `w7_*`）。**账本至此清空；RL 卡池 391 张 = 全经典构筑池满规模。**
 >
-> **执行计划**：[docs/fidelity-debt-roadmap-zh.md](fidelity-debt-roadmap-zh.md)
-> （英文版 `fidelity-debt-roadmap.md`）——按依赖排序的 8 个 wave（W0 接线 …
+> **执行计划**：[docs/fidelity-debt-roadmap-zh.md](finished/fidelity-debt-roadmap-zh.md)
+> （英文版 `finished/fidelity-debt-roadmap.md`）——按依赖排序的 8 个 wave（W0 接线 …
 > W7 收尾）覆盖全部 67 张卡；一张卡完成 = 账本行、代码注释、差分场景三者
 > 同时落地。
 
