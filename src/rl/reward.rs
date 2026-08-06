@@ -192,7 +192,7 @@ mod tests {
         let state = game_over_state(PlayerId::Player1, 30);
         assert_eq!(final_reward(&cfg, &state, PlayerId::Player1), 1.0);
         // Draw (no game over) → 0
-        let mut builder = GameBuilder::new();
+        let builder = GameBuilder::new();
         let state = builder.build();
         assert_eq!(final_reward(&cfg, &state, PlayerId::Player1), 0.0);
     }

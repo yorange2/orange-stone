@@ -12,7 +12,7 @@
 //! enchantment expiry, counter-secret interception, and target re-validation.
 
 use orange_stone::core::action::Action;
-use orange_stone::core::component::{Attack, CardType, Cost, Damage, Health};
+use orange_stone::core::component::{Attack, CardType, Cost, Health};
 use orange_stone::core::entity::Entity;
 use orange_stone::core::event::Event;
 use orange_stone::core::state::{ChoiceKind, GameState, Step};
@@ -400,11 +400,14 @@ fn find_entity(
         .expect("entity with card id on the board")
 }
 
-// Small helpers — keep the scenarios readable.
+// Small helpers — keep the scenarios readable. The uppercase names mirror
+// the file's scenario naming style (PlayerId1() reads like a player).
+#[allow(non_snake_case)]
 fn PlayerId1() -> orange_stone::core::player::PlayerId {
     orange_stone::core::player::PlayerId::Player1
 }
 
+#[allow(non_snake_case)]
 fn PlayerId2() -> orange_stone::core::player::PlayerId {
     orange_stone::core::player::PlayerId::Player2
 }
@@ -491,7 +494,7 @@ fn w0_wild_pyromancer_aoe_after_spell() {
     let pyro = find_entity(&state, PlayerId1(), "NEUTRAL_R12");
     // A custom no-op spell entity in hand
     let noop_spell = {
-        use orange_stone::core::component::{Battlecry, Cost};
+        use orange_stone::core::component::Cost;
         let world = state.world_mut();
         let e = world.spawn();
         world.set_card_type(e, CardType::Spell);
@@ -647,7 +650,7 @@ fn fatigue_ends_exhausted_deck_games_with_a_winner() {
 /// firing.
 #[test]
 fn w0_sword_of_justice_buffs_the_summoned_minion() {
-    use orange_stone::cards::def::{BLOODFEN_RAPTOR, SWORD_OF_JUSTICE, TRUESILVER_CHAMPION};
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, SWORD_OF_JUSTICE};
     let mut builder = GameBuilder::new();
     let bystander = builder.add_custom_minion_to_board(PlayerId1(), 5, 5, 5);
     builder.equip_weapon(PlayerId1(), &SWORD_OF_JUSTICE);
@@ -913,7 +916,7 @@ fn w0_tauren_warrior_enrage_with_taunt() {
         .unwrap();
     assert_eq!(state.world().effective_attack(tauren), Some(Attack(5)));
     assert_eq!(state.world().effective_health(tauren), Some(Health(2)));
-    assert_eq!(state.world().taunt(tauren).is_some(), true);
+    assert!(state.world().taunt(tauren).is_some());
 }
 
 /// W0-11 Angry Chicken — the Enrage buff fires BEFORE the death check (the
@@ -1038,9 +1041,8 @@ fn w0_emperor_cobra_poison_kills_and_divine_shield_absorbs() {
         Some(Zone::Play),
         "divine shield absorbs the poison damage"
     );
-    assert_eq!(
-        state.world().divine_shield(shielded).is_some(),
-        false,
+    assert!(
+        !state.world().divine_shield(shielded).is_some(),
         "the shield is consumed"
     );
 }
@@ -1083,10 +1085,10 @@ fn w1_houndmaster_buffs_only_a_friendly_beast() {
     // The single Beast candidate takes the +2/+2 AND the Taunt
     assert_eq!(state.world().effective_attack(raptor), Some(Attack(5)));
     assert_eq!(state.world().effective_health(raptor), Some(Health(4)));
-    assert_eq!(state.world().taunt(raptor).is_some(), true);
+    assert!(state.world().taunt(raptor).is_some());
     assert_eq!(state.world().effective_attack(human), Some(Attack(2)));
     assert_eq!(state.world().effective_health(human), Some(Health(3)));
-    assert_eq!(state.world().taunt(human).is_some(), false);
+    assert!(!state.world().taunt(human).is_some());
 }
 
 /// W1-2 Tundra Rhino — your Beasts have Charge (aura; includes the Rhino).
@@ -1121,9 +1123,8 @@ fn w1_tundra_rhino_gives_beasts_charge() {
             },
         )
         .unwrap();
-    assert_eq!(
+    assert!(
         state.world().effective_charge(raptor),
-        true,
         "the rhino aura grants charge to a summoned Beast"
     );
     // The freshly summoned Beast can attack immediately
@@ -1463,7 +1464,7 @@ fn w1_siegebreaker_buffs_other_demons() {
         "the aura excludes its own source"
     );
     assert_eq!(state.world().effective_attack(human), Some(Attack(2)));
-    assert_eq!(state.world().taunt(siegebreaker).is_some(), true);
+    assert!(state.world().taunt(siegebreaker).is_some());
 }
 
 /// W1-10 Scavenging Hyena — whenever a friendly Beast dies, gain +2/+1
@@ -2656,12 +2657,9 @@ fn w3_blood_knight_absorbs_all_divine_shields() {
         "two shields absorbed → +6/+6"
     );
     assert_eq!(state.world().effective_health(knight), Some(Health(9)));
-    assert_eq!(
-        state.world().divine_shield(friendly_shielded).is_some(),
-        false
-    );
-    assert_eq!(state.world().divine_shield(enemy_shielded).is_some(), false);
-    assert_eq!(state.world().divine_shield(enemy_plain).is_some(), false);
+    assert!(!state.world().divine_shield(friendly_shielded).is_some());
+    assert!(!state.world().divine_shield(enemy_shielded).is_some());
+    assert!(!state.world().divine_shield(enemy_plain).is_some());
 }
 
 // ============================================================
@@ -2779,7 +2777,7 @@ fn w4_southsea_deckhand_charge_with_weapon() {
             },
         )
         .unwrap();
-    assert_eq!(state.world().effective_charge(deckhand), true);
+    assert!(state.world().effective_charge(deckhand));
     let hero = state.player(PlayerId2()).hero;
     engine
         .apply(
@@ -2942,7 +2940,7 @@ fn w4_bloodsail_corsair_destroys_1_durability_weapon() {
 /// turn.
 #[test]
 fn w4_millhouse_makes_enemy_spells_free() {
-    use orange_stone::cards::def::{BLOODFEN_RAPTOR, MILLHOUSE_MANASTORM, PYROBLAST};
+    use orange_stone::cards::def::{MILLHOUSE_MANASTORM, PYROBLAST};
     let mut builder = GameBuilder::new();
     builder.add_minion_to_hand(PlayerId1(), &MILLHOUSE_MANASTORM);
     builder.add_minion_to_hand(PlayerId2(), &PYROBLAST);
@@ -3028,7 +3026,7 @@ fn w4_arcane_golem_gives_opponent_crystal() {
         5,
         "the crystal is empty — current mana unchanged"
     );
-    assert_eq!(state.world().effective_charge(golem), true);
+    assert!(state.world().effective_charge(golem));
 }
 
 // ============================================================
@@ -3256,11 +3254,10 @@ fn w5_sunfury_protector_taunts_adjacent() {
             },
         )
         .unwrap();
-    assert_eq!(state.world().taunt(left).is_some(), true);
-    assert_eq!(state.world().taunt(right).is_some(), true);
-    assert_eq!(
-        state.world().taunt(protector).is_some(),
-        false,
+    assert!(state.world().taunt(left).is_some());
+    assert!(state.world().taunt(right).is_some());
+    assert!(
+        !state.world().taunt(protector).is_some(),
         "the protector does not taunt itself"
     );
 }
@@ -3294,7 +3291,7 @@ fn w5_ancient_mage_gives_adjacent_spell_damage() {
         .unwrap();
     assert_eq!(state.world().spell_damage(left).map(|s| s.0), Some(1));
     assert_eq!(state.world().spell_damage(right).map(|s| s.0), Some(1));
-    assert_eq!(state.world().spell_damage(mage).is_none(), true);
+    assert!(state.world().spell_damage(mage).is_none());
 }
 
 /// W5-7 Ancestral Healing — restore a minion to full Health and give it
@@ -3351,7 +3348,7 @@ fn w5_ancestral_healing_full_heals_and_taunts() {
         )
         .unwrap();
     assert_eq!(state.world().effective_health(damaged), Some(Health(2)));
-    assert_eq!(state.world().taunt(damaged).is_some(), true);
+    assert!(state.world().taunt(damaged).is_some());
 }
 
 // ============================================================
@@ -3453,8 +3450,8 @@ fn w6_righteousness_grants_divine_shields() {
             },
         )
         .unwrap();
-    assert_eq!(state.world().divine_shield(a).is_some(), true);
-    assert_eq!(state.world().divine_shield(b).is_some(), true);
+    assert!(state.world().divine_shield(a).is_some());
+    assert!(state.world().divine_shield(b).is_some());
 }
 
 /// W6-4 Ysera Awakens — deal 5 damage to all characters except Ysera.
@@ -3543,8 +3540,8 @@ fn w6_gift_of_the_wild_buffs_and_taunts() {
     assert_eq!(state.world().effective_attack(a), Some(Attack(4)));
     assert_eq!(state.world().effective_health(a), Some(Health(4)));
     assert_eq!(state.world().effective_attack(b), Some(Attack(4)));
-    assert_eq!(state.world().taunt(a).is_some(), true);
-    assert_eq!(state.world().taunt(b).is_some(), true);
+    assert!(state.world().taunt(a).is_some());
+    assert!(state.world().taunt(b).is_some());
 }
 
 /// W6-6 Holy Wrath — draw a card, deal damage equal to its mana cost.

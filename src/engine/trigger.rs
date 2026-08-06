@@ -959,6 +959,8 @@ fn resolve_draw_by_race(
 
 /// Demonfire — deal damage to a minion; if the target is a friendly Demon,
 /// buff it instead (WARLOCK_021: 2 damage, or +2/+2 to a friendly Demon).
+// 8 parameters (state, queue, source, owner, damage, attack_bonus, health_bonus, explicit) — resolver convention style.
+#[allow(clippy::too_many_arguments)]
 fn resolve_demonfire(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -1287,7 +1289,7 @@ fn resolve_remove_weapon_durability(
 fn resolve_swap_attack_health(
     state: &mut GameState,
     owner: PlayerId,
-    target: EffectTarget,
+    _target: EffectTarget,
     explicit: Option<Entity>,
 ) {
     let mut minions = collect_friendly_minions(state, owner);
@@ -1394,7 +1396,7 @@ fn resolve_grant_adjacent_spell_damage(
 fn resolve_full_heal_and_taunt(
     state: &mut GameState,
     owner: PlayerId,
-    target: EffectTarget,
+    _target: EffectTarget,
     explicit: Option<Entity>,
 ) {
     let mut minions = collect_friendly_minions(state, owner);
@@ -1499,15 +1501,17 @@ fn resolve_attach_attack_draw(
 /// parts (Houndmaster: +2/+2 and Taunt to a friendly Beast). Reuses the
 /// single-target selection from `resolve_gain_stats` for the same target
 /// variants (FriendlyRace etc.).
+// 8 parameters (state, source, owner, attack, health, target, explicit, subject) — resolver convention style.
+#[allow(clippy::too_many_arguments)]
 fn resolve_gain_stats_and_taunt(
     state: &mut GameState,
-    source: Entity,
+    _source: Entity,
     owner: PlayerId,
     attack: i32,
     health: i32,
     target: EffectTarget,
     explicit: Option<Entity>,
-    subject: Option<Entity>,
+    _subject: Option<Entity>,
 ) {
     let buff = Enchantment {
         attack,
@@ -1532,6 +1536,8 @@ fn resolve_gain_stats_and_taunt(
 
 /// Destroys a minion of the target scope, then grants the source fixed stats
 /// (Hungry Crab — destroy a Murloc and gain +2/+2).
+// 8 parameters (state, queue, source, owner, attack, health, target, explicit) — resolver convention style.
+#[allow(clippy::too_many_arguments)]
 fn resolve_destroy_and_gain_stats(
     state: &mut GameState,
     queue: &mut EventQueue,

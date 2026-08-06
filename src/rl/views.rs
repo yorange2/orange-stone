@@ -63,18 +63,27 @@ pub struct EntityView {
     pub has_trigger: bool,
     /// Battlecry/spell magnitudes (M5 card text — v6 A_TEXT idea)
     pub bc_damage: i32,
+    /// Cards drawn
     pub bc_draw: i32,
+    /// Minions summoned
     pub bc_summon: i32,
+    /// Attack/health granted
     pub bc_buff: i32,
+    /// Health restored
     pub bc_heal: i32,
+    /// Characters frozen
     pub bc_freeze: i32,
+    /// Minions destroyed
     pub bc_destroy: i32,
     /// Deathrattle magnitudes
     pub dr_damage: i32,
+    /// Cards drawn
     pub dr_draw: i32,
+    /// Minions summoned
     pub dr_summon: i32,
-    /// Aura magnitudes
+    /// Aura attack bonus
     pub aura_attack: i32,
+    /// Aura health bonus
     pub aura_health: i32,
 }
 
@@ -468,7 +477,7 @@ mod tests {
         assert_eq!(views.len(), plain.len());
         assert_eq!(views[0].kind, "end_turn");
         for v in &views {
-            assert_eq!(v.index as usize, views[v.index].index);
+            assert_eq!(v.index, views[v.index].index);
             assert!(!v.description.is_empty());
         }
     }

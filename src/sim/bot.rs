@@ -1230,9 +1230,7 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
             attack,
             health_per_card,
         } => attack as f64 + health_per_card as f64 * 4.0,
-        CardEffect::MortalStrike {
-            damage, boosted, ..
-        } => boosted as f64 * 1.2,
+        CardEffect::MortalStrike { boosted, .. } => boosted as f64 * 1.2,
         CardEffect::DrawPerDamagedFriendlyCharacter => 3.0,
         CardEffect::GainStatsIfOwnSecret { attack, health } => (attack + health) as f64 * 0.8,
         CardEffect::AbsorbDivineShields {
