@@ -319,6 +319,8 @@ pub enum SecretTrigger {
     WhenFriendlyMinionDamaged,
     /// When the friendly hero takes damage (Eye for an Eye)
     WhenFriendlyHeroDamaged,
+    /// When the friendly hero takes fatal damage (Ice Block — the hit would kill)
+    WhenFriendlyHeroFatallyDamaged,
 }
 
 /// Divine Shield — absorbs one instance of damage, then disappears.

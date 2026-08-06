@@ -423,6 +423,10 @@ impl BattleRunner {
             (PlayerId::Player1, hand_size + 1),
             (PlayerId::Player2, hand_size + p2_bonus),
         ] {
+            // Opening deal (official fatigue rule 5): the deck is provably
+            // full here, so these draws never fatigue. This is the battle
+            // path's own opening helper — every in-game draw funnels through
+            // the draw choke point instead.
             let deck_count = state.world().zones().len(Zone::Deck, pid);
             for _ in 0..draw_count.min(deck_count) {
                 let current = state.world().zones().len(Zone::Deck, pid);

@@ -711,6 +711,9 @@ pub fn resolve_effect(
             // Secret-context effect — resolved by the secret system with the
             // death event (Redemption)
         }
+        CardEffect::PreventFatalDamageAndImmune => {
+            // Secret-context effect — resolved by the secret system (Ice Block)
+        }
         CardEffect::RestoreDamagedFriendly { amount } => {
             // Lightwell — restore to a random damaged friendly character
             let damaged: SmallList<Entity> = state
@@ -923,6 +926,10 @@ pub fn draw_card(state: &mut GameState, queue: &mut EventQueue, player: PlayerId
 /// Demons). Unlike a top-deck draw, the deck is scanned for matching cards —
 /// the first `count` matches in deck order (the deck is shuffled at game
 /// start, so the pick order is the deterministic shuffle order).
+///
+/// No fatigue applies here (official rule 5): a scan draws what exists and
+/// nothing more — a "draw N minions of a race" that finds 0 draws 0 and deals
+/// 0 damage.
 fn resolve_draw_by_race(
     state: &mut GameState,
     queue: &mut EventQueue,

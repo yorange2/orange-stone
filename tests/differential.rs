@@ -618,6 +618,30 @@ fn w0_doomsayer_destroys_all_minions_including_itself() {
     );
 }
 
+/// F-A10 — empty-deck draws fatigue (official HS rule, SabberStone parity for
+/// the exhausted-deck line): each draw attempt on an empty deck deals
+/// escalating damage (1, 2, 3, …) to the drawing hero. With both decks empty
+/// the game ends with a real winner — previously the engine stalled forever.
+#[test]
+fn fatigue_ends_exhausted_deck_games_with_a_winner() {
+    use orange_stone::core::player::PlayerId;
+    let engine = GameEngine::new();
+    // One card per deck: drawn on the first turns, then every draw fatigues
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(PlayerId::Player1, &orange_stone::cards::def::OGRE_MAGI);
+    builder.add_minion_to_deck(PlayerId::Player2, &orange_stone::cards::def::OGRE_MAGI);
+    let mut state = builder.build();
+    let mut guard = 0;
+    while !matches!(state.step(), Step::GameOver { .. }) && guard < 60 {
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        guard += 1;
+    }
+    assert!(
+        matches!(state.step(), Step::GameOver { .. }),
+        "the exhausted-deck game must end with a real winner (turns = {guard})"
+    );
+}
+
 /// W0-5 Sword of Justice — whenever you summon a minion, give IT +1/+1 (the
 /// event subject, not a random friendly minion); a destroyed sword stops
 /// firing.

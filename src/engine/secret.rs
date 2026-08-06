@@ -11,7 +11,7 @@
 //! play order (the order in SetAside). Between players, the active player's
 //! secrets trigger first.
 
-use crate::core::component::{CardType, Secret, SecretTrigger};
+use crate::core::component::{CardType, Damage, Immune, Secret, SecretTrigger};
 use crate::core::effect::CardEffect;
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue};
@@ -121,6 +121,12 @@ fn matches_trigger(
             let hero = state.player(owner).hero;
             matches!(event, Event::DamageDealt { target, amount, .. } if *amount > 0 && *target == hero)
         }
+        SecretTrigger::WhenFriendlyHeroFatallyDamaged => {
+            // The friendly hero takes FATAL damage (Ice Block) — the damage
+            // must have brought the hero to 0 or below for the secret to fire
+            let hero = state.player(owner).hero;
+            matches!(event, Event::DamageDealt { target, amount, .. } if *amount > 0 && *target == hero && state.world().effective_health(hero).is_some_and(|h| h.is_dead()))
+        }
     }
 }
 
@@ -203,6 +209,25 @@ fn resolve_secret_effect(
                         amount: *amount,
                     });
                 }
+            }
+        }
+        CardEffect::PreventFatalDamageAndImmune => {
+            // Ice Block — the hero survives the fatal hit at 1 health and
+            // becomes Immune until the end of the turn
+            if let Event::DamageDealt { .. } = event {
+                let hero = state.player(player).hero;
+                let world = state.world();
+                let cur = world.effective_health(hero);
+                let damage_old = world.damage(hero).unwrap_or(Damage(0)).0;
+                if let Some(cur) = cur {
+                    // Undo the fatal damage: health = undamaged total − 1
+                    state
+                        .world_mut()
+                        .set_damage(hero, Damage(cur.0 + damage_old - 1));
+                }
+                state.world_mut().set_immune(hero, Immune);
+                // Drop the pending GameOver — the fatal hit was prevented
+                queue.retain(|e| !matches!(e, Event::GameOver { .. }));
             }
         }
         CardEffect::ResurrectDiedMinion => {
@@ -403,4 +428,60 @@ fn resolve_spellbender(
     // The 1/3 token is summoned; the spell redirect is handled by the caller
     // (intercept_counter_secrets) — roadmap G8, the queue mutation is retired.
     crate::engine::trigger::resolve_summon(state, queue, *card, owner, "MAGE_019t")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::action::Action;
+    use crate::core::player::PlayerId;
+    use crate::core::zone::Zone;
+    use crate::engine::game::GameEngine;
+    use crate::sim::game::GameBuilder;
+
+    /// Playing Ice Block wires the fatal-damage trigger and the
+    /// prevent-lethal-and-immune effect onto the hero's secret.
+    #[test]
+    fn playing_ice_block_registers_fatal_damage_secret() {
+        let mut builder = GameBuilder::new();
+        builder.active_player(PlayerId::Player2);
+        builder.set_mana(PlayerId::Player2, 10, 10);
+        let card = {
+            let world = builder.state_mut().world_mut();
+            let e = crate::cards::spawn_card_from_def(
+                world,
+                PlayerId::Player2,
+                &crate::cards::classic_mage::ICE_BLOCK,
+            );
+            world.set_zone(e, Zone::Hand);
+            world.zones_mut().insert(Zone::Hand, PlayerId::Player2, e);
+            e
+        };
+        let mut state = builder.build();
+        let engine = GameEngine::new();
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+
+        let secret = state
+            .world()
+            .zones()
+            .iter(Zone::SetAside, PlayerId::Player2)
+            .find(|&e| state.world().secret(e).is_some())
+            .expect("the played secret should sit in SetAside");
+        assert_eq!(
+            state.world().secret(secret),
+            Some(Secret {
+                trigger: SecretTrigger::WhenFriendlyHeroFatallyDamaged,
+                effect: Some(CardEffect::PreventFatalDamageAndImmune),
+            })
+        );
+    }
 }
