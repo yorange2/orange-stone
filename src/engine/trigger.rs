@@ -60,6 +60,9 @@ fn select_target(
 /// `explicit_target` is the target specified by the player (passed from
 /// `Action::PlayCard`); when `None`, the engine chooses randomly
 /// (`select_target` fallback).
+/// `event_subject` is the entity a triggering event happened to (passed by
+/// `fire_triggers` for `EffectTarget::EventSubject`); `None` for non-trigger
+/// resolutions.
 pub fn resolve_effect(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -67,6 +70,7 @@ pub fn resolve_effect(
     owner: PlayerId,
     effect: CardEffect,
     explicit_target: Option<Entity>,
+    event_subject: Option<Entity>,
 ) {
     match effect {
         CardEffect::DealDamage { amount, target } => {
@@ -94,6 +98,7 @@ pub fn resolve_effect(
                 health,
                 target,
                 explicit_target,
+                event_subject,
             );
         }
         CardEffect::EquipWeapon { card_id } => {
@@ -600,7 +605,9 @@ fn resolve_deal_damage(
         | EffectTarget::FriendlyHero
         | EffectTarget::DamagedEnemyMinion
         | EffectTarget::FriendlyMinion
-        | EffectTarget::TauntEnemyMinion => {
+        | EffectTarget::OtherFriendlyMinion
+        | EffectTarget::TauntEnemyMinion
+        | EffectTarget::EventSubject => {
             return;
         }
     };
@@ -767,7 +774,7 @@ pub(crate) fn resolve_summon(
 }
 
 /// Resolves a buff effect.
-// 8 parameters (state, queue, source, owner, attack, health, target, explicit) — resolver convention style.
+// 9 parameters (state, queue, source, owner, attack, health, target, explicit, subject) — resolver convention style.
 #[allow(clippy::too_many_arguments)]
 fn resolve_gain_stats(
     state: &mut GameState,
@@ -778,6 +785,7 @@ fn resolve_gain_stats(
     health: i32,
     target: EffectTarget,
     explicit: Option<Entity>,
+    subject: Option<Entity>,
 ) {
     // Buffs attach enchantments (roadmap G4) instead of writing the base stats
     let buff = Enchantment {
@@ -804,6 +812,25 @@ fn resolve_gain_stats(
             };
             state.world_mut().add_enchantment(m, buff);
         }
+        // Friendly minions other than the source (Young Priestess — "another")
+        EffectTarget::OtherFriendlyMinion => {
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| e != source)
+                .collect();
+            let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().add_enchantment(m, buff);
+        }
+        // The entity the triggering event happened to (Sword of Justice — the
+        // just-summoned minion). Buffed directly; a subject that left play is
+        // a no-op (the enchantment on a dead entity has no effect).
+        EffectTarget::EventSubject => {
+            if let Some(s) = subject {
+                state.world_mut().add_enchantment(s, buff);
+            }
+        }
         _ => {}
     }
 }
@@ -828,17 +855,10 @@ fn resolve_equip_weapon(
         });
     }
 
-    // Create the weapon entity and update the Player
+    // Create the weapon entity with the full component set (triggers included —
+    // e.g. Sword of Justice's summon trigger) and update the Player
     let inner = state.make_mut();
-    let weapon = inner.world.spawn();
-    inner.world.set_card_id(weapon, CardId(card_def.id));
-    inner.world.set_attack(weapon, Attack(card_def.attack));
-    inner
-        .world
-        .set_durability(weapon, Durability(card_def.durability));
-    inner.world.set_cost(weapon, Cost(card_def.cost));
-    inner.world.set_card_type(weapon, CardType::Weapon);
-    inner.world.set_player(weapon, owner);
+    let weapon = crate::cards::spawn_card_from_def(&mut inner.world, owner, card_def);
     inner.world.set_zone(weapon, Zone::Play);
     inner.world.zones_mut().insert(Zone::Play, owner, weapon);
     inner.players[owner.index()].weapon = Some(weapon);
@@ -2000,9 +2020,7 @@ fn collect_enemy_minions_impl(
             state.world().card_type(e) == Some(CardType::Minion)
                 && (include_stealth || state.world().stealth(e).is_none())
                 && (include_stealth
-                    || source
-                        .and_then(|s| state.world().card_type(s))
-                        != Some(CardType::Spell)
+                    || source.and_then(|s| state.world().card_type(s)) != Some(CardType::Spell)
                     || state.world().elusive(e).is_none())
         })
         .collect()

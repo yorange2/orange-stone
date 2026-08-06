@@ -33,8 +33,14 @@ pub enum EffectTarget {
     DamagedEnemyMinion,
     /// A random friendly minion
     FriendlyMinion,
+    /// A random friendly minion other than the effect source (Young Priestess)
+    OtherFriendlyMinion,
     /// A random enemy Taunt minion
     TauntEnemyMinion,
+    /// The entity the triggering event happened to (Sword of Justice — the
+    /// just-summoned minion). Resolved from the trigger's event subject; a
+    /// no-op when the subject is gone (dead / left play).
+    EventSubject,
 }
 
 /// Card effect — an action executed when triggered.

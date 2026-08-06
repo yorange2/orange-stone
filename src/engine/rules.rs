@@ -555,10 +555,16 @@ pub fn apply_event(
                         .world_mut()
                         .move_to_zone(card, Zone::SetAside)
                         .map_err(|_| EngineError::EntityGone(card))?;
-                    queue.push(Event::SpellCast {
-                        player,
-                        spell: card,
-                    });
+                    // After-cast triggers fire at Lowest priority — after the
+                    // spell's damage and the deaths it caused have resolved
+                    // (HS: deaths process before "after you cast" triggers)
+                    queue.push_with_priority(
+                        Event::SpellCast {
+                            player,
+                            spell: card,
+                        },
+                        Priority::Lowest,
+                    );
                 } else {
                     // Counter-secret interception (roadmap G8): WhenEnemySpellCast
                     // secrets fire BEFORE the spell's effect resolves.
@@ -567,10 +573,16 @@ pub fn apply_event(
                     match interception {
                         secret::Interception::Countered => {
                             // The spell is negated but still cast and discarded
-                            queue.push(Event::SpellCast {
-                                player,
-                                spell: card,
-                            });
+                            // After-cast triggers fire at Lowest priority — after the
+                            // spell's damage and the deaths it caused have resolved
+                            // (HS: deaths process before "after you cast" triggers)
+                            queue.push_with_priority(
+                                Event::SpellCast {
+                                    player,
+                                    spell: card,
+                                },
+                                Priority::Lowest,
+                            );
                             state
                                 .world_mut()
                                 .move_to_zone(card, Zone::Graveyard)
@@ -596,12 +608,19 @@ pub fn apply_event(
                                     player,
                                     effect,
                                     Some(token),
+                                    None,
                                 );
                             }
-                            queue.push(Event::SpellCast {
-                                player,
-                                spell: card,
-                            });
+                            // After-cast triggers fire at Lowest priority — after the
+                            // spell's damage and the deaths it caused have resolved
+                            // (HS: deaths process before "after you cast" triggers)
+                            queue.push_with_priority(
+                                Event::SpellCast {
+                                    player,
+                                    spell: card,
+                                },
+                                Priority::Lowest,
+                            );
                             state
                                 .world_mut()
                                 .move_to_zone(card, Zone::Graveyard)
@@ -643,14 +662,20 @@ pub fn apply_event(
                                 );
                                 if let Some(effect) = chosen_effect {
                                     trigger::resolve_effect(
-                                        state, queue, card, player, effect, target,
+                                        state, queue, card, player, effect, target, None,
                                     );
                                 }
                                 // Push the spell-cast event
-                                queue.push(Event::SpellCast {
-                                    player,
-                                    spell: card,
-                                });
+                                // After-cast triggers fire at Lowest priority — after the
+                                // spell's damage and the deaths it caused have resolved
+                                // (HS: deaths process before "after you cast" triggers)
+                                queue.push_with_priority(
+                                    Event::SpellCast {
+                                        player,
+                                        spell: card,
+                                    },
+                                    Priority::Lowest,
+                                );
                                 if !returns_to_hand {
                                     state
                                         .world_mut()
@@ -694,7 +719,7 @@ pub fn apply_event(
                     state.world().battlecry(card).map(|b| b.0)
                 };
                 if let Some(effect) = weapon_effect {
-                    trigger::resolve_effect(state, queue, card, player, effect, None);
+                    trigger::resolve_effect(state, queue, card, player, effect, None, None);
                 }
             } else {
                 // Move the card from hand to the battlefield (summon position,
@@ -757,17 +782,19 @@ pub fn apply_event(
                     state.world().battlecry(minion).map(|b| b.0)
                 };
                 if let Some(effect) = chosen_effect {
-                    trigger::resolve_effect(state, queue, minion, player, effect, None);
+                    trigger::resolve_effect(state, queue, minion, player, effect, None, None);
                 }
             }
             // Summon triggers: registered FriendlyMinionSummoned triggers fire in
-            // play order (the summoned minion itself is excluded)
+            // play order (the summoned minion itself is excluded). The summoned
+            // minion is the event subject — Sword of Justice buffs it via
+            // EffectTarget::EventSubject.
             fire_triggers(
                 state,
                 queue,
                 TriggerEvent::FriendlyMinionSummoned,
                 player,
-                None,
+                Some(minion),
                 Some(minion),
             );
         }
@@ -979,7 +1006,7 @@ pub fn apply_event(
 
             // Deathrattle effect (the entity is in the graveyard, as in HS)
             if let (Some(dr), Some(owner)) = (state.world().deathrattle(minion), owner) {
-                trigger::resolve_effect(state, queue, minion, owner, dr.0, None);
+                trigger::resolve_effect(state, queue, minion, owner, dr.0, None, None);
             }
 
             // Death triggers: registered FriendlyMinionDied triggers fire in play
@@ -1027,19 +1054,34 @@ pub fn apply_event(
             // Resolve the hero power effect (explicit target, roadmap G6)
             if let Some(hp_def) = state.world().hero_power(hero) {
                 let effect = hp_def.effect;
-                trigger::resolve_effect(state, queue, hero, player, effect, target);
+                trigger::resolve_effect(state, queue, hero, player, effect, target, None);
             }
         }
         Event::WeaponEquipped { .. } => {
             // Notification event — the weapon was already created in resolve_equip_weapon
         }
-        Event::WeaponDestroyed { .. } => {
-            // Notification event — the weapon was already removed in AttackDeclared or on equip
+        Event::WeaponDestroyed { weapon, .. } => {
+            // The weapon leaves play when destroyed — it must stop firing its
+            // triggers (Sword of Justice's summon trigger). The player's weapon
+            // pointer was already cleared by the destroying action.
+            let _ = state.world_mut().move_to_zone(weapon, Zone::Graveyard);
         }
         Event::SecretRevealed { .. } => {
             // Notification event — the secret effect is resolved through the trigger system
         }
-        Event::SpellCast { player, spell: _ } => {
+        Event::SpellCast { player, spell } => {
+            // HS: deaths caused by the spell resolve BEFORE "after you cast"
+            // triggers fire (a Wild Pyromancer killed by the spell must not
+            // fire). When the spell left pending deaths, defer the trigger
+            // firing: enqueue the death batch (Normal — processes first) and
+            // re-push this event at Lowest; the second pass sees an empty
+            // pending-death batch and fires the triggers.
+            if !state.pending_deaths().is_empty() {
+                if process_pending_deaths(state, queue) {
+                    queue.push_with_priority(Event::SpellCast { player, spell }, Priority::Lowest);
+                    return Ok(());
+                }
+            }
             // Spell triggers: registered FriendlySpellCast triggers fire in play order
             fire_triggers(
                 state,
@@ -1076,15 +1118,21 @@ pub fn apply_event(
                         Some(crate::core::effect::CardEffect::DealDamageAndReturnToHand { .. })
                     );
                     if let Some(effect) = chosen_effect {
-                        trigger::resolve_effect(state, queue, card, player, effect, None);
+                        trigger::resolve_effect(state, queue, card, player, effect, None, None);
                     }
                     if card_type == Some(CardType::Spell) {
                         // Spells: the SpellCast event and graveyard move complete
                         // the play that was deferred when the choice surfaced.
-                        queue.push(Event::SpellCast {
-                            player,
-                            spell: card,
-                        });
+                        // After-cast triggers fire at Lowest priority — after the
+                        // spell's damage and the deaths it caused have resolved
+                        // (HS: deaths process before "after you cast" triggers)
+                        queue.push_with_priority(
+                            Event::SpellCast {
+                                player,
+                                spell: card,
+                            },
+                            Priority::Lowest,
+                        );
                         if !returns_to_hand {
                             let _ = state.world_mut().move_to_zone(card, Zone::Graveyard);
                         }
@@ -1299,7 +1347,7 @@ pub fn fire_triggers(
                 })
                 .collect();
             for (source, effect) in triggers {
-                trigger::resolve_effect(state, queue, source, player, effect, None);
+                trigger::resolve_effect(state, queue, source, player, effect, None, subject);
             }
         }
     }

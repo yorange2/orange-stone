@@ -1,13 +1,13 @@
 # 保真债实现路线图 — 67 张简化卡
 
-> **状态：W0 进行中。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
+> **状态：W0 完成（PR #79）；W1 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
 > 的 F4 持续 / F5 持续条目。[fidelity-debt.md](fidelity-debt-zh.md) 账本是卡名单的
 > 权威来源，本文档是执行计划。一张卡只有在"实现 **且** 通过 F5 差分测试验证"后
 > 才离开账本——见账本的 [F5 验收](fidelity-debt-zh.md#每张卡的-f5-验收) 与
 > [维护约定](fidelity-debt-zh.md#维护约定)。
 >
 > 2026-08-06 对照引擎核实：67 处标记、触发作用域语义、下面的机制盘点截至
-> PR #77 全部为最新。
+> PR #77 全部为最新。W0（13 张）已在 PR #79 落地，盘点已更新 W0 原语。
 
 ## 原则
 
@@ -36,10 +36,14 @@
 | `ThisMinionDamaged`（自身受伤） | `cards/mod.rs` 关键词映射 | 苦痛侍僧 |
 | `FriendlyMinionDamaged` | `cards/mod.rs` 关键词映射 | 狂暴的狼人、铸甲师 |
 | `BuffWeapon`（攻击+耐久） | `effect.rs` | 升级类效果 |
-| `Poison` 组件，按卡 ID 映射 | `cards/mod.rs:136` | 耐心的刺客 |
+| `Poison` 组件，按卡 ID 映射 | `cards/mod.rs:136` | 耐心的刺客、帝王眼镜蛇（W0） |
 | `FreezeCharacter`、`FullHeal`、`SilenceMinion`+`AllEnemyMinions`、`DealDamageToTwo`、`DestroyAdjacent`、`GrantCharge`、`GrantWindfury` | `effect.rs` | 顺劈斩等 |
 | 费用修正栈（G5）含手牌区减费 | `engine::cost` | 冰霜巨人级、海盗减费类 |
 | `DealDamageAndDraw`、`SummonMinion`、`ReturnToHand`+… | `effect.rs` | — |
+| `ThisMinionDamaged` → 激怒增益（W0） | `cards/mod.rs` 关键词映射 | 4 张激怒卡 |
+| `EffectTarget::EventSubject` / `OtherFriendlyMinion`（W0） | `core/effect.rs` | 正义之剑；女祭司 / 武器锻造师 |
+| 武器触发注册 + 摧毁后离场（W0） | `trigger.rs` / `rules.rs` | 正义之剑 |
+| 法术死亡先于施法后触发（W0） | `rules.rs` SpellCast | 狂野炎术师 |
 
 **缺失**（按 wave 分组的原语）：
 
@@ -56,29 +60,39 @@
 
 ---
 
-## Wave 0 — 接线卡：机制已存在（13 张）
+## Wave 0 — 接线卡：机制已存在（13 张）✅ 完成（PR #79）
 
 预期无需新原语。数张卡带 **先核实** 标记——接线前必须确认既有机制的精确语义；
 核实可能暴露出小修（本 wave 可接受）。
 
-| # | ID | 卡名 | 要接的机制 | 备注 |
+| # | ID | 卡名 | 接上的机制 | 差分场景 |
 | --- | --- | --- | --- | --- |
-| 1 | NEUTRAL_R09 | 飞刀杂耍者 | `summon_trigger` + `DealDamage{AnyEnemy}` | 随机目标在结算时选取 ✓ |
-| 2 | HUNTER_012 | 狂野炎术师 | `spell_trigger` + `DealDamage{AllMinions}` | 你施法后触发 ✓ |
-| 3 | NEUTRAL_R15 | 攻城车 | `start_turn_effect` + `DealDamage{AnyEnemy}` | 随机敌方 ✓ |
-| 4 | NEUTRAL_E04 | 末日预言者 | `start_turn_effect` + `DestroyMinion{AllMinions}` | 含自身——核实全场摧毁顺序 |
-| 5 | EX1_365 | 正义之剑 | `summon_trigger` 增益**被召唤的随从** | 核实触发上下文里 `Self_` 的绑定；可能要小改目标 |
-| 6 | PRIEST_017 | 库尔提拉斯牧师 | 战吼 `GainStats{FriendlyMinion}` | 与破碎残阳祭司同族——核实当初为何简化 |
-| 7 | NEUTRAL_R21 | 年轻的女祭司 | `end_turn_effect` + `GainStats{FriendlyMinion}` | 核实"另一个"（排除自身）——可能要 `OtherFriendlyMinion` 目标 |
-| 8 | NEUTRAL_R23 | 武器锻造师 | 同上 | 同上 |
-| 9 | NEUTRAL_B19 | 古拉巴什狂暴者 | `ThisMinionDamaged` + `GainStats{Self_}` | 激怒 = 受伤触发的永久增益 |
-| 10 | NEUTRAL_C11 | 牛头人战士 | 嘲讽 + `ThisMinionDamaged` + `GainStats{Self_}` | 激怒 |
-| 11 | NEUTRAL_R02 | 愤怒的小鸡 | `ThisMinionDamaged` + `GainStats{Self_}` | 激怒 |
-| 12 | NEUTRAL_C15 | 恶毒铁匠 | `ThisMinionDamaged` + `BuffWeapon{攻+2}` | 武器激怒 |
-| 13 | NEUTRAL_R16 | 帝王眼镜蛇 | 把 ID 加进 `apply_card_keywords` 剧毒映射 | Poison 组件已有 |
+| 1 | NEUTRAL_R09 | 飞刀杂耍者 | `summon_trigger` + `DealDamage{AnyEnemy}` | `w0_knife_juggler_throws_after_friendly_summon` |
+| 2 | HUNTER_012 | 狂野炎术师 | `spell_trigger` + `DealDamage{AllMinions}` | `w0_wild_pyromancer_aoe_after_spell` + `…_killed_by_the_spell` |
+| 3 | NEUTRAL_R15 | 攻城车 | `start_turn_effect` + `DealDamage{AnyEnemy}` | `w0_demolisher_fires_at_turn_start` |
+| 4 | NEUTRAL_E04 | 末日预言者 | `start_turn_effect` + `DestroyMinion{AllMinions}` | `w0_doomsayer_destroys_all_minions_including_itself` |
+| 5 | EX1_365 | 正义之剑 | `summon_trigger` → 新 `EffectTarget::EventSubject` | `w0_sword_of_justice_buffs_the_summoned_minion` + `…_stops_firing_when_destroyed` |
+| 6 | PRIEST_017 | 库尔提拉斯牧师 | 战吼 `GainStats{FriendlyMinion}` | `w0_kul_tiran_chaplain_buffs_a_friendly_minion` |
+| 7 | NEUTRAL_R21 | 年轻的女祭司 | `end_turn_effect` → 新 `EffectTarget::OtherFriendlyMinion` | `w0_young_priestess_buffs_another_minion` + `…_alone_does_nothing` |
+| 8 | NEUTRAL_R23 | 武器锻造师 | 同上 | `w0_master_swordsmith_buffs_another_minion` |
+| 9 | NEUTRAL_B19 | 古拉巴什狂暴者 | `ThisMinionDamaged` + `GainStats{Self_}` | `w0_gurubashi_berserker_enrage_permanent` |
+| 10 | NEUTRAL_C11 | 牛头人战士 | 嘲讽 + `ThisMinionDamaged` + `GainStats{Self_}` | `w0_tauren_warrior_enrage_with_taunt` |
+| 11 | NEUTRAL_R02 | 愤怒的小鸡 | `ThisMinionDamaged` + `GainStats{Self_}` | `w0_angry_chicken_enrage_fires_before_death` |
+| 12 | NEUTRAL_C15 | 恶毒铁匠 | `ThisMinionDamaged` + `BuffWeapon{攻+2}` | `w0_spiteful_smith_buffs_weapon_on_damage` |
+| 13 | NEUTRAL_R16 | 帝王眼镜蛇 | ID 加进 `apply_card_keywords` 剧毒映射 | `w0_emperor_cobra_poison_kills_and_divine_shield_absorbs` |
 
-**验收**：13 个差分场景；4 张激怒卡的伤害时序（每次伤害事件触发一次、增益
-永久）；RL 卡池 +13。
+**W0 核实发现**（接线暴露的小引擎修复，均在 PR #79）：
+- 正义之剑核实了触发上下文问题：武器实体在装备时注册 CardDef 触发（从手牌
+  打出的武器本来就有），且被摧毁的武器离开战场——断剑不再触发。
+- `Self_` 绑定对"增益被召唤的随从"是错的；新 `EffectTarget::EventSubject`
+  直接解析触发事件的主体（已离场的主体是 no-op）。
+- 女祭司/武器锻造师的"另一个"需要真正的 `OtherFriendlyMinion` 目标
+  （候选集排除来源）。
+- 死亡与施法触发的时序：法术事件现在先结算法术造成的待定死亡，再触发
+  `FriendlySpellCast`（HS 语义——被自己的法术杀死的野炎术师不再触发）。
+
+**验收**：16 个差分场景（13 张卡，剑/炎术师/女祭司各两个）；4 张激怒卡的
+伤害时序（每次伤害事件触发一次、增益永久）；RL 卡池 +13。
 
 ## Wave 1 — 种族字段（11 张）
 
@@ -237,7 +251,7 @@
 
 | Wave | 卡数 | 新原语 | 卡池增量 |
 | --- | --- | --- | --- |
-| W0 接线 | 13 | —（先核实） | +13 |
+| W0 接线 ✅ PR #79 | 13 | `EventSubject` / `OtherFriendlyMinion` 目标；武器触发注册 + 摧毁后离场；法术死亡先于施法后触发 | +13 → **334** |
 | W1 种族 | 11 | 种族字段 + 谓词 + 池 | +11 |
 | W2 触发 | 8 | 4 个触发类 + 摧毁奥秘 | +8 |
 | W3 谓词 | 9 | 6+ 谓词 | +9 |

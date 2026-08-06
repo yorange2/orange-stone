@@ -1,6 +1,7 @@
 # Fidelity Debt — Simplified Cards (F4/F5 Audit Ledger)
 
-> **Status: 67 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77).
+> **Status: 54 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
+> W0 wiring pass PR #79 cleared 13).
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
@@ -12,6 +13,16 @@
 > collisions fixed, 10 cards added to `ALL_CARDS` (7 duplicated entries deduped),
 > and the Python extractor rewritten (PR #31). What remains is the per-mechanism
 > implementation work in the groups below and the F5 verification protocol.
+>
+> **2026-08-06 W0 wiring pass (PR #79)**: all 13 wiring cards landed (mechanisms
+> existed; only wiring was missing) — see the W0 wave in the roadmap. Four small
+> primitives came along: `EffectTarget::EventSubject` (event subject as buff
+> target — Sword of Justice), `EffectTarget::OtherFriendlyMinion` ("another"
+> friendly minion — Young Priestess / Master Swordsmith), weapon entities now
+> register triggers and leave play when destroyed (a broken Sword of Justice
+> stops firing), and spell-cast deaths resolve before "after you cast" triggers
+> (a Wild Pyromancer killed by its own spell does not fire). 16 scenarios in
+> `tests/differential.rs` (`w0_*`).
 >
 > **Execution plan**: [docs/fidelity-debt-roadmap.md](fidelity-debt-roadmap.md)
 > (zh: `fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
@@ -30,24 +41,19 @@ The 67 markers are 67 unique card IDs — the 3 pre-fix ID collisions
 (EX1_365 / EX1_349 / EX1_341), so Mass Dispel is now reachable. All 67 are in
 `ALL_CARDS` (413 unique entries after the 10-card addition and the 7-entry dedup,
 PR #77). 4 markers were stale comments on already-faithful cards and are cleaned
-(§10); the genuine debt is 67 cards.
+(§10); the genuine debt is 67 cards — **W0 cleared 13, leaving 54**.
 
 ---
 
 ## The ledger (grouped by missing mechanism)
 
-### 1. Enrage — damage-conditional buff (4)
+### 1. Enrage — damage-conditional buff (4) ✅ resolved (W0, PR #79)
 
-Needs a **damage-triggered permanent buff** (no damage-trigger class exists in the
-engine; `spell_trigger`/`summon_trigger`/`death_trigger`/`start|end_turn_effect`
-are the only trigger slots).
-
-| ID | Card | Current | Real Hearthstone | Missing mechanism |
-| --- | --- | --- | --- | --- |
-| NEUTRAL_B19 | Gurubashi Berserker | vanilla 5/2/8 | Whenever this minion takes damage, gain +3 Attack | damage-trigger + permanent buff |
-| NEUTRAL_C11 | Tauren Warrior | Taunt only | Taunt; **Enrage:** +3 Attack | same + conditional (damaged) |
-| NEUTRAL_C15 | Spiteful Smith | vanilla 4/6 | **Enrage:** your weapon has +2 Attack | damage-trigger + weapon-aura |
-| NEUTRAL_R02 | Angry Chicken | vanilla 1/1 | **Enrage:** +5 Attack | damage-trigger + permanent buff |
+All 4 wired to the existing `ThisMinionDamaged` trigger slot (registered per card
+ID in `apply_card_keywords`, same pattern as Acolyte of Pain); the buff is a
+permanent enchantment. Scenarios: `w0_gurubashi_berserker_enrage_permanent`,
+`w0_tauren_warrior_enrage_with_taunt`, `w0_angry_chicken_enrage_fires_before_death`,
+`w0_spiteful_smith_buffs_weapon_on_damage`.
 
 ### 2. Tribes — Beast / Murloc / Demon (9)
 
@@ -66,29 +72,24 @@ are hardcoded ID lists) plus tribe-conditioned targets and auras.
 | WARLOCK_021 | Demonfire | deal 2 damage | Deal 2 damage to a minion; if it's a friendly **Demon**, +2/+2 instead | tribe predicate + conditional branch |
 | WARLOCK_T01 | Siegebreaker | Taunt only | Taunt; your other **Demons** have +1 Attack | tribe-conditional aura |
 
-### 3. Event triggers — summon / heal / death / secret / attack / play (16)
+### 3. Event triggers — summon / heal / death / secret / attack / play (9)
 
 `summon_trigger`, `spell_trigger`, `death_trigger` exist and are used by other
 cards; **missing classes: heal-trigger, attack-trigger, card-played-trigger,
 secret-played-trigger**, and a "destroy secret" effect (for the secret cards).
+(W0 cleared: Knife Juggler, Sword of Justice, Demolisher, Doomsayer, Wild
+Pyromancer, Young Priestess, Master Swordsmith.)
 
 | ID | Card | Current | Real Hearthstone | Missing mechanism |
 | --- | --- | --- | --- | --- |
-| NEUTRAL_R09 | Knife Juggler | vanilla | After you summon a minion, deal 1 damage to a random enemy | summon-trigger + random-target damage (machinery exists; card not wired) |
-| PALADIN_017 | Sword of Justice | summon_trigger buffs Self_ (target semantics unverified) | Whenever you summon a minion, give it +1/+1 | verify trigger target binding; wrong ID too (see Findings) |
 | NEUTRAL_C12 | Flesheathing Ghoul | vanilla | Whenever a minion dies, gain +1 Attack | death-trigger + self-buff (machinery exists) |
 | NEUTRAL_R04 | Lightwarden | vanilla | Whenever a character is healed, gain +2 Attack | heal-trigger (missing) |
 | NEUTRAL_R06 | Secretkeeper | vanilla | Whenever a **Secret** is played, gain +1/+1 | secret-played-trigger (missing) |
 | NEUTRAL_R25 | SI:7 Infiltrator | vanilla | Battlecry: destroy a random enemy Secret | destroy-secret effect (missing) |
 | NEUTRAL_R26 | Eater of Secrets | vanilla | Battlecry: destroy all enemy Secrets and gain +1/+1 | destroy-secret effect + buff |
 | PALADIN_019 | Blessing of Wisdom | no effect | Whenever the target minion attacks, draw a card | attack-trigger on a target (missing) + aura-on-entity |
-| NEUTRAL_R15 | Demolisher | vanilla | At the start of your turn, deal 2 damage to a random enemy | start-turn trigger exists; random-target damage |
-| NEUTRAL_E04 | Doomsayer | vanilla | At the start of your turn, destroy all minions | start-turn trigger + DestroyMinion(AllMinions) |
 | NEUTRAL_R17 | Questing Adventurer | vanilla | Whenever you play a card, gain +1/+1 | card-played-trigger (missing) |
 | NEUTRAL_R13 | Alarm-o-Bot | vanilla | At the start of your turn, swap this with a random hand minion | hand-zone swap effect (missing) |
-| NEUTRAL_R12 | Wild Pyromancer | vanilla | After you cast a spell, deal 1 damage to ALL minions | spell-trigger + AOE (machinery exists; card not wired) |
-| NEUTRAL_R21 | Young Priestess | vanilla | At the end of your turn, give another random friendly minion +1 Health | end-turn trigger exists; random-friendly target |
-| NEUTRAL_R23 | Master Swordsmith | vanilla | At the end of your turn, give another random friendly minion +1 Attack | same |
 | MAGE_017 | Ethereal Arcanist | +2/+2 at end of turn, unconditional | At the end of your turn, if you control a Secret, gain +2/+2 | conditional end-turn (owns-secret predicate) |
 
 ### 4. Conditional targets & states (9)
@@ -151,7 +152,10 @@ Charge / weapon-attack cost reduction / weapon-durability damage**.
 | --- | --- | --- | --- | --- |
 | LEGENDARY_022 | Nat Pagle | draw at end of turn (always) | 50% chance to draw a card at the end of your turn | probabilistic effect |
 
-### 9. Composite & miscellaneous (11)
+### 9. Composite & miscellaneous (9)
+
+(W0 cleared: Kul Tiran Chaplain — target changed to `FriendlyMinion`; Emperor
+Cobra — wired to the existing Poison component.)
 
 | ID | Card | Current | Real Hearthstone | Missing mechanism |
 | --- | --- | --- | --- | --- |
@@ -159,13 +163,11 @@ Charge / weapon-attack cost reduction / weapon-durability damage**.
 | PALADIN_018 | Righteousness | not implementable per comment | Give your minions Divine Shield | mass Divine Shield (no mass-grant; wrong ID of its own, see Findings) |
 | PALADIN_017 | Holy Wrath | draw only | Draw a card, deal damage equal to its mana cost | draw-then-damage chained effect |
 | SHAMAN_018 | Ancestral Healing | heal + Taunt (partial) | Restore a minion to full Health and give it Taunt | verify `FullHeal` + taunt wiring |
-| PRIEST_017 | Kul Tiran Chaplain | buff self | Battlecry: give a friendly minion +2 Health | two-effect battlecry (exists elsewhere — wiring) |
 | PRIEST_018 | Lightwell | restore 3 at end of turn | At the start of your turn, restore 3 Health to a damaged friendly character | damaged-friendly predicate + start-turn (see also ID collision) |
 | ROGUE_025 | Pilfer | random non-Rogue card | Add a random card from another class to your hand | class filter (no class model) |
 | NEUTRAL_T21e | Ysera Awakens | damage includes Ysera | Deal 5 damage to all **other** characters (Dream token) | self-exclusion on AllCharacters |
 | HUNTER_017 | Flare | draw only | Destroy all enemy secrets, draw a card | destroy-secret effect (same as SI:7) |
 | NEUTRAL_R14 | Arcane Golem | Charge only | Charge; Battlecry: give your opponent a Mana Crystal | give-opponent-mana effect |
-| NEUTRAL_R16 | Emperor Cobra | vanilla | **Poison** (destroy any minion damaged by it) | poison mechanic (missing entirely) |
 
 ### 10. Resolved — marked simplified but already faithful (4, cleaned in PR #77)
 
@@ -229,15 +231,18 @@ groups above plus the F5 verification protocol.
 `aura` (`AuraTarget` incl. OtherFriendlyMinions) / cost-modifier stack (G5) /
 `SilenceMinion`+`AllEnemyMinions` / `FreezeCharacter` / `FullHeal` / `DestroyMinion`
 targets incl. `DamagedEnemyMinion` / `DealDamageToTwo` / `DestroyAdjacent` /
-`GrantCharge` / Stealth / Elusive / Secrets.
+`GrantCharge` / Stealth / Elusive / Secrets / `ThisMinionDamaged` (Enrage —
+W0 wired all 4) / Poison component (W0 — Emperor Cobra) /
+`EffectTarget::EventSubject` + `OtherFriendlyMinion` (W0) / weapon triggers
+register + destroyed weapons leave play (W0) / spell-cast deaths resolve before
+"after you cast" triggers (W0).
 
 **Missing** (primitives first, per the Review-II "do G before F4/F5" discipline):
 1. race/tribe field on `CardDef` — unblocks §2 entirely
-2. damage-triggered effects (Enrage) — §1
-3. trigger classes: heal, attack, card-played, secret-played — §3
-4. target predicates: attack-range, hand-size, hero-health, damaged-friendly,
+2. trigger classes: heal, attack, card-played, secret-played — §3
+3. target predicates: attack-range, hand-size, hero-health, damaged-friendly,
    owns-secret, weapon-equipped; "first minion this turn" state — §4, §6
-5. effects: set-health-to-1, swap attack/health, poison, mass Divine Shield,
+4. effects: set-health-to-1, swap attack/health, mass Divine Shield,
    enemy-spells-cost-0, destroy-secret, weapon-durability damage,
    adjacent-target buff/freeze, two-random damage, this-turn temp buff,
    probabilistic effects — §5, §6, §7, §8, §9

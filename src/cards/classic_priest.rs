@@ -525,7 +525,7 @@ pub const RADIANCE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Kul Tiran Chaplain — Battlecry: give a friendly minion +2 Health (simplified: buff self)
+/// Kul Tiran Chaplain — Battlecry: give a friendly minion +2 Health
 pub const KUL_TIRAN_CHAPLAIN: CardDef = CardDef {
     id: "PRIEST_017",
     name: "Kul Tiran Chaplain",
@@ -537,7 +537,7 @@ pub const KUL_TIRAN_CHAPLAIN: CardDef = CardDef {
     battlecry: Some(CardEffect::GainStats {
         attack: 0,
         health: 2,
-        target: EffectTarget::Self_,
+        target: EffectTarget::FriendlyMinion,
     }),
     deathrattle: None,
     taunt: false,

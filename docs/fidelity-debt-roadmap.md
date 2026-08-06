@@ -1,7 +1,7 @@
 # Fidelity-Debt Implementation Roadmap — the 67 simplified cards
 
-> **Status: W0 in progress.** This roadmap executes the F4-ongoing / F5-ongoing
-> items of [architecture-roadmap.md](architecture-roadmap.md). The
+> **Status: W0 done (PR #79); W1 next.** This roadmap executes the F4-ongoing /
+> F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
 > [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
 > implemented **and** verified by an F5 differential test — see the ledger's
@@ -10,6 +10,8 @@
 >
 > Verified against the engine on 2026-08-06: all 67 markers, trigger-scope
 > semantics, and the mechanism inventory below are current as of PR #77.
+> W0 (13 cards) landed in PR #79; the inventory below is updated for the W0
+> primitives.
 
 ## Principles
 
@@ -41,10 +43,14 @@
 | `ThisMinionDamaged` (self) | `cards/mod.rs` keyword map | Acolyte of Pain |
 | `FriendlyMinionDamaged` | `cards/mod.rs` keyword map | Frothing Berserker, Armorsmith |
 | `BuffWeapon` (attack+durability) | `effect.rs` | upgrade-style effects |
-| `Poison` component, mapped by card ID | `cards/mod.rs:136` | Patient Assassin |
+| `Poison` component, mapped by card ID | `cards/mod.rs:136` | Patient Assassin, Emperor Cobra (W0) |
 | `FreezeCharacter`, `FullHeal`, `SilenceMinion`+`AllEnemyMinions`, `DealDamageToTwo`, `DestroyAdjacent`, `GrantCharge`, `GrantWindfury` | `effect.rs` | Cleave, etc. |
 | Cost-modifier stack (G5) incl. hand-zone reductions | `engine::cost` | Frost Giant-class, Dread Corsair-adjacent |
 | `DealDamageAndDraw`, `SummonMinion`, `ReturnToHand`+… | `effect.rs` | — |
+| `ThisMinionDamaged` → Enrage buffs (W0) | `cards/mod.rs` keyword map | 4 Enrage cards |
+| `EffectTarget::EventSubject` / `OtherFriendlyMinion` (W0) | `core/effect.rs` | Sword of Justice; Young Priestess / Master Swordsmith |
+| Weapon triggers register + destroyed weapons leave play (W0) | `trigger.rs` / `rules.rs` | Sword of Justice |
+| Spell-cast deaths resolve before after-cast triggers (W0) | `rules.rs` SpellCast | Wild Pyromancer |
 
 **Missing** (per-group prerequisites):
 
@@ -66,30 +72,44 @@
 
 ---
 
-## Wave 0 — Wiring: mechanisms already exist (13 cards)
+## Wave 0 — Wiring: mechanisms already exist (13 cards) ✅ done (PR #79)
 
 No new primitives intended. Several cards carry **verify-first** notes where the
 existing mechanism's exact semantics must be confirmed before the card is wired;
 a verify may still surface a small engine fix (acceptable in this wave).
 
-| # | ID | Card | Mechanism to wire | Note |
+| # | ID | Card | Mechanism wired | Scenario(s) |
 | --- | --- | --- | --- | --- |
-| 1 | NEUTRAL_R09 | Knife Juggler | `summon_trigger` + `DealDamage{AnyEnemy}` | random target picked at resolution ✓ |
-| 2 | HUNTER_012 | Wild Pyromancer | `spell_trigger` + `DealDamage{AllMinions}` | fires after *your* spell ✓ |
-| 3 | NEUTRAL_R15 | Demolisher | `start_turn_effect` + `DealDamage{AnyEnemy}` | random enemy ✓ |
-| 4 | NEUTRAL_E04 | Doomsayer | `start_turn_effect` + `DestroyMinion{AllMinions}` | includes self — verify destroy-all ordering |
-| 5 | EX1_365 | Sword of Justice | `summon_trigger` buffing the **summoned minion** | verify `Self_` binding in trigger context; likely small target fix |
-| 6 | PRIEST_017 | Kul Tiran Chaplain | battlecry `GainStats{FriendlyMinion}` | same target family as Shattered Sun Cleric — verify why it was simplified |
-| 7 | NEUTRAL_R21 | Young Priestess | `end_turn_effect` + `GainStats{FriendlyMinion}` | verify "another" (self-exclusion) — may need `OtherFriendlyMinion` target |
-| 8 | NEUTRAL_R23 | Master Swordsmith | same as above | same verify |
-| 9 | NEUTRAL_B19 | Gurubashi Berserker | `ThisMinionDamaged` + `GainStats{Self_}` | Enrage = damage-triggered permanent buff |
-| 10 | NEUTRAL_C11 | Tauren Warrior | Taunt + `ThisMinionDamaged` + `GainStats{Self_}` | Enrage |
-| 11 | NEUTRAL_R02 | Angry Chicken | `ThisMinionDamaged` + `GainStats{Self_}` | Enrage |
-| 12 | NEUTRAL_C15 | Spiteful Smith | `ThisMinionDamaged` + `BuffWeapon{atk+2}` | Enrage on weapon |
-| 13 | NEUTRAL_R16 | Emperor Cobra | add ID to `apply_card_keywords` poison map | Poison component exists |
+| 1 | NEUTRAL_R09 | Knife Juggler | `summon_trigger` + `DealDamage{AnyEnemy}` | `w0_knife_juggler_throws_after_friendly_summon` |
+| 2 | HUNTER_012 | Wild Pyromancer | `spell_trigger` + `DealDamage{AllMinions}` | `w0_wild_pyromancer_aoe_after_spell` + `…_killed_by_the_spell` |
+| 3 | NEUTRAL_R15 | Demolisher | `start_turn_effect` + `DealDamage{AnyEnemy}` | `w0_demolisher_fires_at_turn_start` |
+| 4 | NEUTRAL_E04 | Doomsayer | `start_turn_effect` + `DestroyMinion{AllMinions}` | `w0_doomsayer_destroys_all_minions_including_itself` |
+| 5 | EX1_365 | Sword of Justice | `summon_trigger` → new `EffectTarget::EventSubject` | `w0_sword_of_justice_buffs_the_summoned_minion` + `…_stops_firing_when_destroyed` |
+| 6 | PRIEST_017 | Kul Tiran Chaplain | battlecry `GainStats{FriendlyMinion}` | `w0_kul_tiran_chaplain_buffs_a_friendly_minion` |
+| 7 | NEUTRAL_R21 | Young Priestess | `end_turn_effect` → new `EffectTarget::OtherFriendlyMinion` | `w0_young_priestess_buffs_another_minion` + `…_alone_does_nothing` |
+| 8 | NEUTRAL_R23 | Master Swordsmith | same as above | `w0_master_swordsmith_buffs_another_minion` |
+| 9 | NEUTRAL_B19 | Gurubashi Berserker | `ThisMinionDamaged` + `GainStats{Self_}` | `w0_gurubashi_berserker_enrage_permanent` |
+| 10 | NEUTRAL_C11 | Tauren Warrior | Taunt + `ThisMinionDamaged` + `GainStats{Self_}` | `w0_tauren_warrior_enrage_with_taunt` |
+| 11 | NEUTRAL_R02 | Angry Chicken | `ThisMinionDamaged` + `GainStats{Self_}` | `w0_angry_chicken_enrage_fires_before_death` |
+| 12 | NEUTRAL_C15 | Spiteful Smith | `ThisMinionDamaged` + `BuffWeapon{atk+2}` | `w0_spiteful_smith_buffs_weapon_on_damage` |
+| 13 | NEUTRAL_R16 | Emperor Cobra | ID added to `apply_card_keywords` poison map | `w0_emperor_cobra_poison_kills_and_divine_shield_absorbs` |
 
-**Acceptance**: 13 differential scenarios; the 4 Enrage cards' damage-sequencing
-(trigger fires once per damage event, buff persists); RL pool grows by 13.
+**W0 findings** (small engine fixes the wiring surfaced, all in PR #79):
+- Sword of Justice verified the trigger-context question: weapon entities now
+  register their CardDef triggers when equipped (played-from-hand weapons
+  already did), and a destroyed weapon leaves play — a broken sword stops firing.
+- The `Self_` binding was wrong for buff-the-summoned-minion; the new
+  `EffectTarget::EventSubject` resolves the trigger event's subject directly
+  (a summoned minion that left play is a no-op).
+- "Another" for Young Priestess / Master Swordsmith needed a real
+  `OtherFriendlyMinion` target (excludes the source from the candidate set).
+- Death-vs-after-cast ordering: the spell-cast event now resolves the spell's
+  pending deaths before firing `FriendlySpellCast` triggers (HS semantics — a
+  Wild Pyromancer killed by its own spell does not fire).
+
+**Acceptance**: 16 differential scenarios (13 cards, sword/pyro/priestess have two
+each); the 4 Enrage cards' damage-sequencing (trigger fires once per damage event,
+buff persists); RL pool grows by 13.
 
 ## Wave 1 — Race/tribe field (11 cards)
 
@@ -257,7 +277,7 @@ constructible size; final sweep + full SabberStone parity run.
 
 | Wave | Cards | New primitives | Pool growth |
 | --- | --- | --- | --- |
-| W0 wiring | 13 | — (verify-first) | +13 |
+| W0 wiring ✅ PR #79 | 13 | `EventSubject` / `OtherFriendlyMinion` targets; weapon trigger registration + destroy-leaves-play; spell-cast death-before-after-cast | +13 → **334** |
 | W1 race | 11 | race field + predicates + pools | +11 |
 | W2 triggers | 8 | 4 trigger classes + destroy-secret | +8 |
 | W3 predicates | 9 | 6+ predicates | +9 |

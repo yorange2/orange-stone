@@ -136,6 +136,42 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         world.set_poison(entity, Poison);
         world.set_stealth(entity, Stealth);
     }
+    // Enrage cards (fidelity-debt W0): permanent +Attack whenever this minion
+    // takes damage — wired to the existing ThisMinionDamaged trigger slot.
+    let enrage_effect: Option<CardEffect> = match card_def.id {
+        "NEUTRAL_B19" | "NEUTRAL_C11" => Some(CardEffect::GainStats {
+            // Gurubashi Berserker / Tauren Warrior — +3 Attack
+            attack: 3,
+            health: 0,
+            target: EffectTarget::Self_,
+        }),
+        "NEUTRAL_R02" => Some(CardEffect::GainStats {
+            // Angry Chicken — +5 Attack
+            attack: 5,
+            health: 0,
+            target: EffectTarget::Self_,
+        }),
+        "NEUTRAL_C15" => Some(CardEffect::BuffWeapon {
+            // Spiteful Smith — your weapon +2 Attack
+            attack: 2,
+            durability: 0,
+        }),
+        _ => None,
+    };
+    if let Some(effect) = enrage_effect {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::ThisMinionDamaged,
+                timing: TriggerTiming::Whenever,
+                effect,
+            },
+        );
+    }
+    if card_def.id == "NEUTRAL_R16" {
+        // Emperor Cobra — Poison
+        world.set_poison(entity, Poison);
+    }
 }
 
 /// Clears all effect components of a minion (resets the entity before transform).
