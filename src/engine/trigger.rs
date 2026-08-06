@@ -704,6 +704,13 @@ pub fn resolve_effect(
                 }
             }
         }
+        CardEffect::SwapWithHandMinion => {
+            resolve_swap_with_hand_minion(state, source, owner);
+        }
+        CardEffect::ResurrectDiedMinion => {
+            // Secret-context effect — resolved by the secret system with the
+            // death event (Redemption)
+        }
         CardEffect::RestoreDamagedFriendly { amount } => {
             // Lightwell — restore to a random damaged friendly character
             let damaged: SmallList<Entity> = state
@@ -1352,6 +1359,45 @@ fn resolve_full_heal_and_taunt(
     state
         .world_mut()
         .set_taunt(m, crate::core::component::Taunt);
+}
+
+/// Alarm-o-Bot — swap this minion with a random minion in your hand (the
+/// swapped-in minion lands at the bot's position with summoning sickness).
+fn resolve_swap_with_hand_minion(state: &mut GameState, source: Entity, owner: PlayerId) {
+    let hand_minions: SmallList<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, owner)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    if hand_minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(hand_minions.len());
+    let incoming = hand_minions[idx];
+    let board: SmallList<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, owner)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    let Some(pos) = board.iter().position(|&e| e == source) else {
+        return;
+    };
+    // The bot goes back to hand; the hand minion takes its position
+    let _ = state.world_mut().move_to_zone(source, Zone::Hand);
+    let _ = state.world_mut().move_to_zone(incoming, Zone::Play);
+    let world = state.world_mut();
+    world.zones_mut().remove(Zone::Play, owner, incoming);
+    world
+        .zones_mut()
+        .insert_at(Zone::Play, owner, incoming, pos);
+    // Summoning sickness unless it has Charge
+    if world.effective_charge(incoming) {
+        world.set_attacks_used(incoming, crate::core::component::AttacksUsed(0));
+    } else {
+        world.set_attacks_used(incoming, crate::core::component::AttacksUsed(1));
+    }
 }
 
 /// Destroys up to `limit` random enemy Secrets (SI:7 Infiltrator — one;

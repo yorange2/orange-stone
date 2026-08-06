@@ -1,8 +1,9 @@
 # 保真债 — 简化卡清单（F4/F5 持续审计账本）
 
-> **现状：`src/cards/` 里有 11 处简化标记**（2026-08-06 审计，修复轮 PR #77；
+> **现状：`src/cards/` 里已无简化标记——67 张保真债全部清偿（W7 收尾轮 PR #87 清掉最后 3 张）。
 > W0 接线轮 PR #79 清掉 13 张；W1 种族轮 PR #80 清掉 11 张；W2 触发轮 PR #81 清掉 8 张；
-> W3 谓词轮 PR #82 清掉 9 张；W4 费用/武器轮 PR #83 清掉 8 张；W5 目标结构轮 PR #84 清掉 7 张）。
+> W3 谓词轮 PR #82 清掉 9 张；W4 费用/武器轮 PR #83 清掉 8 张；W5 目标结构轮 PR #84 清掉 7 张；
+> W6 特殊机制轮 PR #85 清掉 8 张。账本清空，RL 卡池达到全经典构筑池满规模（391 张）。**
 > 本账本是 F4 逐效果保真审计的**权威记录**。一张卡**离开账本**的唯一条件：
 > 真实炉石效果已实现**且**通过 F5 差分测试验证。不要静默重写卡牌——改动必须
 > 同时更新本账本、代码注释和下游简化债提取器（见[维护约定](#维护约定)）。
@@ -74,6 +75,12 @@
 > `OtherClass` 池用职业组表过滤非潜行者卡，只清了过期注释。对应 8 个差分场景
 > （`tests/differential.rs` 的 `w6_*`）。
 >
+> **2026-08-06 W7 收尾轮（PR #87）**：最后 3 张全部落地——手牌区交换
+> （`SwapWithHandMinion` 闹钟机器人）、伤害反射奥秘（`ReflectDamage` 以眼还眼——
+> 新 `SecretTrigger::WhenFriendlyHeroDamaged`）、1 生命复活奥秘
+> （`ResurrectDiedMinion` 救赎）。对应 3 个差分场景（`tests/differential.rs`
+> 的 `w7_*`）。**账本至此清空；RL 卡池 391 张 = 全经典构筑池满规模。**
+>
 > **执行计划**：[docs/fidelity-debt-roadmap-zh.md](fidelity-debt-roadmap-zh.md)
 > （英文版 `fidelity-debt-roadmap.md`）——按依赖排序的 8 个 wave（W0 接线 …
 > W7 收尾）覆盖全部 67 张卡；一张卡完成 = 账本行、代码注释、差分场景三者
@@ -88,9 +95,9 @@ Python 侧（`orange-reinforcement/hearthstone_os/decks.py::_load_debt_ids`）�
 Repentance / Lightwell）已改成官方 ID（EX1_365 / EX1_349 / EX1_341），
 Mass Dispel 现在可取了。67 张全部在 `ALL_CARDS` 里（补入 10 张、去重 7 个
 重复条目后共 413 个唯一条目，PR #77）。其中 4 处是过期注释（卡已忠实，已
-清理，见 §10）；真实债务是 67 张，**W0 已清 13 张、W1 已清 11 张、
-W2 已清 8 张、W3 已清 9 张、W4 已清 8 张、W5 已清 7 张、W6 已清 8 张，
-剩 3 张（W7 收尾）**。
+清理，见 §10）；真实债务是 67 张——**67 张全部清偿（W0 13 + W1 11 +
+W2 8 + W3 9 + W4 8 + W5 7 + W6 8 + W7 3），账本清空（2026-08-06 W7 收尾轮
+PR #87）**。
 
 ---
 
@@ -110,18 +117,10 @@ W2 已清 8 张、W3 已清 9 张、W4 已清 8 张、W5 已清 7 张、W6 已�
 F-A6 补注的 Starving Buzzard（HUNTER_013）与 Scavenging Hyena（HUNTER_014）
 也随本轮离开账本。
 
-### 3. 事件触发 — 召唤 / 治疗 / 死亡 / 奥秘 / 攻击 / 打出（2 张）
+### 3. 事件触发 — 召唤 / 治疗 / 死亡 / 奥秘 / 攻击 / 打出（2 张）✅ 已解决（W7，PR #87）
 
-触发类已补全（W0 接线 + W2 触发轮）：治疗、攻击（目标身上）、打出卡牌、
-奥秘打出、任意随从死亡全部落地；摧毁奥秘效果（随机一个 / 全部 + 组合）也已
-落地。剩下两张缺的是非触发机制。（W2 已清：Flesheathing Ghoul、Lightwarden、
-Secretkeeper、SI:7 Infiltrator、Eater of Secrets、Blessing of Wisdom、
-Questing Adventurer；Flare 见 §9。）
-
-| ID | 卡名 | 现状 | 真实炉石效果 | 缺失机制 |
-| --- | --- | --- | --- | --- |
-| NEUTRAL_R13 | Alarm-o-Bot | 白板 | 在你的回合开始时，与手牌中一个随机随从交换 | 手牌区交换效果（缺） |
-| MAGE_017 | Ethereal Arcanist | 回合结束无条件 +2/+2 | 在你的回合结束时，若你控制一个奥秘，获得 +2/+2 | 条件回合结束（控制奥秘谓词） |
+Alarm-o-Bot（手牌区交换）随 W7 落地；Ethereal Arcanist（控制奥秘谓词）随
+W3 落地——本节清空（`w7_alarm_o_bot_swaps_with_hand_minion`）。
 
 ### 4. 条件目标与状态（9 张）✅ 已解决（W3，PR #82）
 

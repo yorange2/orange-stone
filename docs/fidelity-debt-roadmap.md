@@ -1,6 +1,6 @@
 # Fidelity-Debt Implementation Roadmap — the 67 simplified cards
 
-> **Status: W6 done (PR #85); W7 next.** This roadmap executes the F4-ongoing /
+> **Status: ALL DONE (W7 wrap-up PR #87) — all 67 fidelity-debt cards cleared.** This roadmap executes the F4-ongoing /
 > F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
 > [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
@@ -294,31 +294,28 @@ cost auras); RL pool grows by 8 (363 → 371).
 
 **Acceptance**: 8 differential scenarios; RL pool grows by 8 (378 → 388,
 including the Pilfer comment cleanup).
-## Wave 7 — Wrap-up: complex leftovers (3 cards)
+## Wave 7 — Wrap-up: complex leftovers (3 cards) ✅ done (PR #87)
 
-**Primitives**: hand-zone swap (Alarm-o-Bot), damage-reflection secret
-(Eye for an Eye), resummon-with-1-Health death secret (Redemption).
+**Primitives** — all landed:
+- Hand-zone swap: `CardEffect::SwapWithHandMinion` (Alarm-o-Bot — swaps with
+  a random hand minion at the start of the turn; the swapped-in minion lands
+  at the bot's position with summoning sickness).
+- Damage-reflection secret: `ReflectDamage` (Eye for an Eye — new
+  `SecretTrigger::WhenFriendlyHeroDamaged`; the enemy hero takes the same
+  damage the friendly hero just took, resolved with the damage event).
+- 1-Health resummon secret: `CardEffect::ResurrectDiedMinion` (Redemption —
+  a friendly minion that died is resummoned with 1 Health, resolved with the
+  death event).
 
-| ID | Card | Real effect |
-| --- | --- | --- |
-| NEUTRAL_R13 | Alarm-o-Bot | Start of turn: swap with a random hand minion |
-| PALADIN_020 | Eye for an Eye | Secret: reflect hero damage to the enemy hero |
-| PALADIN_021 | Redemption | Secret: resummon a dead minion with 1 Health |
+| ID | Card | Real effect | Scenario |
+| --- | --- | --- | --- |
+| NEUTRAL_R13 | Alarm-o-Bot | At the start of your turn, swap this with a random hand minion | `w7_alarm_o_bot_swaps_with_hand_minion` |
+| PALADIN_020 | Eye for an Eye | Secret: when your hero takes damage, deal the same to the enemy hero | `w7_eye_for_an_eye_reflects_damage` |
+| PALADIN_021 | Redemption | Secret: when a friendly minion dies, resummon it with 1 Health | `w7_redemption_resummons_with_1_health` |
 
-**Acceptance**: 3 differential scenarios; ledger empty; RL pool at full Classic
-constructible size; final sweep + full SabberStone parity run.
-
----
-
-## Cross-cutting tasks (each wave)
-
-- Invalidate `~/.cache/orange_stone_debt_ids.txt`; re-run the pool checks
-  (`hearthstone_os` tests + `tools/orange_stone_m5_smoke.py`).
-- Update the ledger: remove the fixed rows, drop the code comments, note the
-  differential scenario numbers.
-- `cargo bench` on any hot-path touch (trigger firing, aura evaluation) — the
-  per-wave primitives must not regress batch throughput (M4 baseline ~4,200 局/s).
-
+**Acceptance**: 3 differential scenarios; **the ledger is EMPTY; the RL pool
+reaches the full classic constructed size (391)**; final sweep + full
+SabberStone parity.
 ## Wave accounting
 
 | Wave | Cards | New primitives | Pool growth |
@@ -330,5 +327,5 @@ constructible size; final sweep + full SabberStone parity run.
 | W4 cost/weapon ✅ PR #83 | 8 | cost auras/weapon-attack cost/durability/conditional charge/spells-0/mana gift | +8 → **371** |
 | W5 target structure ✅ PR #84 | 7 | set-health/swap/adjacent targets/effect composition | +7 → **378** |
 | W6 special mechanics ✅ PR #85 | 8 | probability/temp-buff/mass-shield/self-exclusion/cost-damage/class-filter | +8 → **388** |
-| W7 wrap-up | 3 | 3 primitives | +3 |
-| **Total** | **67** | | **321 → 388** |
+| W7 wrap-up ✅ PR #87 | 3 | hand-zone swap / damage-reflection / 1-Health resummon | +3 → **391 (ledger empty)** |
+| **Total** | **67 ✅ all done** | | **321 → 391 (full classic constructed pool)** |

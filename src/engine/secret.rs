@@ -116,6 +116,11 @@ fn matches_trigger(
             // A friendly minion takes damage
             matches!(event, Event::DamageDealt { target, amount, .. } if *amount > 0 && state.world().player(*target).is_some_and(|p| p == owner) && state.world().card_type(*target) == Some(CardType::Minion))
         }
+        SecretTrigger::WhenFriendlyHeroDamaged => {
+            // The friendly hero takes damage (Eye for an Eye)
+            let hero = state.player(owner).hero;
+            matches!(event, Event::DamageDealt { target, amount, .. } if *amount > 0 && *target == hero)
+        }
     }
 }
 
@@ -183,6 +188,49 @@ fn resolve_secret_effect(
                     target: *minion,
                     amount,
                 });
+            }
+        }
+        CardEffect::ReflectDamage => {
+            // Eye for an Eye — the enemy hero takes the same damage the
+            // friendly hero just took
+            if let Event::DamageDealt { target, amount, .. } = event {
+                let hero = state.player(player).hero;
+                if *target == hero {
+                    let enemy_hero = state.player(player.opponent()).hero;
+                    queue.push(Event::DamageDealt {
+                        source: entity,
+                        target: enemy_hero,
+                        amount: *amount,
+                    });
+                }
+            }
+        }
+        CardEffect::ResurrectDiedMinion => {
+            // Redemption — resummon the minion that just died with 1 Health
+            if let Event::MinionDied { minion } = event {
+                if state.world().zone(*minion) == Some(Zone::Graveyard) {
+                    let board_count = state
+                        .world()
+                        .zones()
+                        .iter(Zone::Play, player)
+                        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                        .count();
+                    if board_count < crate::engine::rules::MAX_BOARD_SIZE {
+                        let _ = state.world_mut().move_to_zone(*minion, Zone::Play);
+                        let world = state.world_mut();
+                        let base = world
+                            .health(*minion)
+                            .unwrap_or(crate::core::component::Health(0))
+                            .0;
+                        let dmg = (base - 1).max(0);
+                        if dmg > 0 {
+                            world.set_damage(*minion, crate::core::component::Damage(dmg));
+                        } else {
+                            world.remove_damage(*minion);
+                        }
+                        world.set_attacks_used(*minion, crate::core::component::AttacksUsed(1));
+                    }
+                }
             }
         }
         CardEffect::SetPlayedMinionHealth { health } => {

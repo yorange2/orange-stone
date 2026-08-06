@@ -1,9 +1,9 @@
 # Fidelity Debt — Simplified Cards (F4/F5 Audit Ledger)
 
-> **Status: 3 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
-> W0 wiring pass PR #79 cleared 13; W1 race pass PR #80 cleared 11; W2 triggers PR #81 cleared 8;
+> **Status: no simplified-card markers — all 67 fidelity-debt cards cleared (W7 wrap-up PR #87 closed the last 3).
+> W0 wiring PR #79 cleared 13; W1 race PR #80 cleared 11; W2 triggers PR #81 cleared 8;
 > W3 predicates PR #82 cleared 9; W4 cost/weapon PR #83 cleared 8; W5 target structure PR #84 cleared 7;
-> W6 special mechanics PR #85 cleared 8).
+> W6 special mechanics PR #85 cleared 8. The ledger is EMPTY; the RL pool reaches the full classic constructed size (391).**
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
@@ -88,6 +88,13 @@
 > Rogue class group) — only the stale comment was cleaned. 8 scenarios
 > (`w6_*`).
 >
+> **2026-08-06 W7 wrap-up pass (PR #87)**: the last 3 cards landed — hand-zone
+> swap (`SwapWithHandMinion` Alarm-o-Bot), the damage-reflection secret
+> (`ReflectDamage` Eye for an Eye — new `SecretTrigger::WhenFriendlyHeroDamaged`),
+> and the 1-Health resummon secret (`ResurrectDiedMinion` Redemption).
+> 3 scenarios (`w7_*`). **The ledger is EMPTY; the RL pool is 391 — the full
+> classic constructed pool.**
+>
 > **Execution plan**: [docs/fidelity-debt-roadmap.md](fidelity-debt-roadmap.md)
 > (zh: `fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
 > W7 wrap-up) covering all 67 cards; a card is done when its ledger row, its code
@@ -105,9 +112,9 @@ The 67 markers are 67 unique card IDs — the 3 pre-fix ID collisions
 (EX1_365 / EX1_349 / EX1_341), so Mass Dispel is now reachable. All 67 are in
 `ALL_CARDS` (413 unique entries after the 10-card addition and the 7-entry dedup,
 PR #77). 4 markers were stale comments on already-faithful cards and are cleaned
-(§10); the genuine debt is 67 cards — **W0 cleared 13, W1 cleared 11,
-W2 cleared 8, W3 cleared 9, W4 cleared 8, W5 cleared 7 and W6 cleared 8,
-leaving 3 (the W7 wrap-up)**.
+(§10); the genuine debt is 67 cards — **all 67 cleared (W0 13 + W1 11 +
+W2 8 + W3 9 + W4 8 + W5 7 + W6 8 + W7 3); the ledger is EMPTY (2026-08-06
+W7 wrap-up PR #87)**.
 
 ---
 
@@ -128,19 +135,11 @@ race-filtered deck draw + field-driven pools (`w1_*` scenarios; pool parity
 pinned by `w1_race_pools_are_field_driven`). The F-A6-annotated Starving
 Buzzard (HUNTER_013) and Scavenging Hyena (HUNTER_014) also left the ledger. 
 
-### 3. Event triggers — summon / heal / death / secret / attack / play (2)
+### 3. Event triggers — summon / heal / death / secret / attack / play (2) ✅ resolved (W7, PR #87)
 
-Trigger classes are complete (W0 wiring + W2 trigger pass): heal, attack (on a
-target), card-played, secret-played and any-minion-died all landed; so did the
-destroy-secret effects (one random / all + composition). The two remaining
-cards need non-trigger mechanisms. (W2 cleared: Flesheathing Ghoul, Lightwarden,
-Secretkeeper, SI:7 Infiltrator, Eater of Secrets, Blessing of Wisdom,
-Questing Adventurer; Flare is in §9.)
-
-| ID | Card | Current | Real Hearthstone | Missing mechanism |
-| --- | --- | --- | --- | --- |
-| NEUTRAL_R13 | Alarm-o-Bot | vanilla | At the start of your turn, swap this with a random hand minion | hand-zone swap effect (missing) |
-| MAGE_017 | Ethereal Arcanist | +2/+2 at end of turn, unconditional | At the end of your turn, if you control a Secret, gain +2/+2 | conditional end-turn (owns-secret predicate) |
+Alarm-o-Bot (hand-zone swap) landed in W7; Ethereal Arcanist (owns-secret
+predicate) landed in W3 — this section is empty
+(`w7_alarm_o_bot_swaps_with_hand_minion`).
 
 ### 4. Conditional targets & states (9) ✅ resolved (W3, PR #82)
 

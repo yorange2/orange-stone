@@ -3646,3 +3646,153 @@ fn w6_pilfer_adds_non_rogue_card() {
         "the added card {id} is not a Rogue card"
     );
 }
+
+// ============================================================
+// Wave 7 — wrap-up (fidelity-debt-roadmap W7): hand-zone swap,
+// damage-reflection secret, 1-Health resummon secret.
+// ============================================================
+
+/// W7-1 Alarm-o-Bot — at the start of your turn, swap this with a random
+/// minion in your hand.
+#[test]
+fn w7_alarm_o_bot_swaps_with_hand_minion() {
+    use orange_stone::cards::def::{ALARM_O_BOT, BLOODFEN_RAPTOR, WORGEN_INFILTRATOR};
+    let mut builder = GameBuilder::new();
+    builder.with_rng_seed(42);
+    builder.add_minion_to_board(PlayerId1(), &ALARM_O_BOT);
+    builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_hand(PlayerId1(), &WORGEN_INFILTRATOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let bot = find_entity(&state, PlayerId1(), "NEUTRAL_R13");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // P1's turn starts: the swap happened — the bot is in hand and a hand
+    // minion is on the board in its place
+    assert_eq!(
+        state.world().zone(bot),
+        Some(Zone::Hand),
+        "the bot swapped into hand"
+    );
+    let board: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    assert_eq!(board.len(), 1, "exactly one minion on the board");
+    let incoming = board[0];
+    assert_ne!(incoming, bot, "a different minion took the bot's place");
+    assert_eq!(
+        state.world().card_id(incoming).map(|c| c.0),
+        Some("CLASSIC_001"),
+        "with seed 42 the Raptor is swapped in"
+    );
+}
+
+/// W7-2 Eye for an Eye — Secret: when your hero takes damage, deal the same
+/// amount to the enemy hero.
+#[test]
+fn w7_eye_for_an_eye_reflects_damage() {
+    use orange_stone::cards::def::EYE_FOR_AN_EYE;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &EYE_FOR_AN_EYE);
+    let attacker = builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let eye = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("eye for an eye in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: eye,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // P2's 4/4 attacks the P1 hero — the secret reflects the 4 damage
+    state.set_active_player(PlayerId2());
+    let hero = state.player(PlayerId1()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state
+            .world()
+            .effective_health(state.player(PlayerId1()).hero),
+        Some(Health(26))
+    );
+    assert_eq!(
+        state
+            .world()
+            .effective_health(state.player(PlayerId2()).hero),
+        Some(Health(26)),
+        "the enemy hero took the same 4 damage"
+    );
+}
+
+/// W7-3 Redemption — Secret: when a friendly minion dies, resummon it with
+/// 1 Health.
+#[test]
+fn w7_redemption_resummons_with_1_health() {
+    use orange_stone::cards::def::REDEMPTION;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &REDEMPTION);
+    builder.add_minion_to_board(PlayerId1(), &orange_stone::cards::def::BOULDERFIST_OGRE);
+    let attacker = builder.add_custom_minion_to_board(PlayerId2(), 7, 7, 7);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let redemption = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("redemption in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: redemption,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let ogre = find_entity(&state, PlayerId1(), "NEUTRAL_T09");
+    // The 7/7 kills the 6/7 ogre — Redemption brings it back with 1 Health
+    state.set_active_player(PlayerId2());
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: ogre,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(ogre),
+        Some(Zone::Play),
+        "the ogre was resummoned"
+    );
+    assert_eq!(
+        state.world().effective_health(ogre),
+        Some(Health(1)),
+        "revived at 1 Health"
+    );
+    assert_eq!(state.world().effective_attack(ogre), Some(Attack(6)));
+}
