@@ -97,7 +97,7 @@
 > 3 scenarios (`w7_*`). **The ledger is EMPTY; the RL pool is 391 — the full
 > classic constructed pool.**
 >
-> **Execution plan**: [docs/fidelity-debt-roadmap.md](finished/fidelity-debt-roadmap.md)
+> **Execution plan**: [docs/fidelity-debt-roadmap.md](../finished/fidelity-debt-roadmap.md)
 > (zh: `finished/fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
 > W7 wrap-up) covering all 67 cards; a card is done when its ledger row, its code
 > comment, and its differential scenario all land together.

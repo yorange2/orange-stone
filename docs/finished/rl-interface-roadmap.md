@@ -1,6 +1,6 @@
 # RL-Interface Roadmap — external RL-facing interface work
 
-> This roadmap tracks orange-stone's **external RL-facing interface work** (Python binding API, batching, card views, and fidelity), driven by the orange-reinforcement integration project (RL-side doc: `orange-reinforcement/docs/roadmap.md`). The engine's internal architecture and fidelity milestones (A–G, F) live in [architecture-roadmap.md](architecture-roadmap.md); this document is its RL-interface supplement — it closes the G2–G8 gaps raised by the integration project, and carries the M4 batch bindings and the M5 fidelity-debt payoff.
+> This roadmap tracks orange-stone's **external RL-facing interface work** (Python binding API, batching, card views, and fidelity), driven by the orange-reinforcement integration project (RL-side doc: `orange-reinforcement/docs/finished/roadmap.md`). The engine's internal architecture and fidelity milestones (A–G, F) live in [architecture-roadmap.md](../architecture-roadmap.md); this document is its RL-interface supplement — it closes the G2–G8 gaps raised by the integration project, and carries the M4 batch bindings and the M5 fidelity-debt payoff.
 >
 > Status verified: 2026-08-05 (M1 baseline; code cross-checked).
 
@@ -39,7 +39,7 @@ orange-reinforcement's previous attempt at a real engine was the RosettaStone C+
 | G7 | Different reward convention | Sparse win/loss +1/−1 | Simplified engine gives "loss 0~−1 scaled by opponent health"; training curves not comparable |
 | G8 | No RL batch step | `batch.rs` bot-driven only | Training parallel sampling would need hand-rolled multiprocessing |
 
-(G1 binding install, G9 pool misalignment, and G10 rule-semantics adaptation belong to the RL side — see `orange-reinforcement/docs/roadmap.md` §2.3.)
+(G1 binding install, G9 pool misalignment, and G10 rule-semantics adaptation belong to the RL side — see `orange-reinforcement/docs/finished/roadmap.md` §2.3.)
 
 ## 4. Milestones
 
@@ -75,24 +75,24 @@ Releasing the GIL was the prerequisite for RL-side threaded parallel training:
 
 - [x] **Card-view/pool additions** (**#72**/**#73**/**#74**/**#75**): stealth cards (`CardDef.stealth`), Elusive mechanic (`CardDef.elusive` + spell-target enumeration/resolution exclusion), card-text view fields (card_type + effect magnitude), `all_card_ids()`
 - [x] **In sync with milestone F**: F1–F5 done internally (`tests/differential.rs`); **external SabberStone comparison passing** (**#75**: dotnet-driven mirrored attack-trade scenarios, both simulators agree — see `docs/differential_sabberstone.md`)
-- [x] **Fidelity-debt payoff** (F4/F5 ongoing-audit items) ✅ **all cleared (2026-08-06)**: the 67 simplified-card markers are recorded in `docs/finished/fidelity-debt.md` (audit ledger, archived and now empty); the execution plan `docs/finished/fidelity-debt-roadmap.md` (8 dependency-ordered waves: W0 wiring 13 → W1 race 11 → W2 triggers 8 → W3 predicates 9 → W4 cost weapons 8 → W5 target structure 7 → W6 special mechanics 8 → W7 wrap-up 3) fully landed (PR #79–#86); a card **leaves the ledger** only when implemented **and** verified by an F5 differential test (`tests/differential.rs` now has 72 `w0_*`–`w7_*` scenarios); the F4/F5 ongoing-audit mechanism stays
+- [x] **Fidelity-debt payoff** (F4/F5 ongoing-audit items) ✅ **all cleared (2026-08-06)**: the 67 simplified-card markers are recorded in `docs/fidelity-debt.md` (audit ledger; empty after the payoff); the execution plan `docs/finished/fidelity-debt-roadmap.md` (8 dependency-ordered waves: W0 wiring 13 → W1 race 11 → W2 triggers 8 → W3 predicates 9 → W4 cost weapons 8 → W5 target structure 7 → W6 special mechanics 8 → W7 wrap-up 3) fully landed (PR #79–#86); a card **leaves the ledger** only when implemented **and** verified by an F5 differential test (`tests/differential.rs` now has 72 `w0_*`–`w7_*` scenarios); the F4/F5 ongoing-audit mechanism stays
 
 **Out-of-ledger fixes along the way**:
 - **#77 structural findings**: stale comments, Worgen Infiltrator stealth added, 3 card-ID conflicts, 10 cards added to ALL_CARDS, 7 duplicate entries — ALL_CARDS is now **413 unique entries**
 - **Pilfer**: the OtherClass pool filter was "any non-Rogue" (counting neutral cards); narrowed to the class cards of the other 8 classes
 
-**RL-side follow-up**: with the debt cleared, the RL training pool grew to full classic constructed scale, **391 cards**; the `decks.py::_load_debt_ids` pool bug (simplified marker recorded against the previous card's ID) was fixed in RL-side PR #31. Details in `orange-reinforcement/docs/roadmap.md` §3 M5.
+**RL-side follow-up**: with the debt cleared, the RL training pool grew to full classic constructed scale, **391 cards**; the `decks.py::_load_debt_ids` pool bug (simplified marker recorded against the previous card's ID) was fixed in RL-side PR #31. Details in `orange-reinforcement/docs/finished/roadmap.md` §3 M5.
 
 ## 5. Remaining risks (engine side)
 
 | Risk | Mitigation |
 | --- | --- |
-| Individual cards may still carry simplifications (F4 ongoing audit) | Training pools only use **cards implemented and passing differential tests**; new simplifications get registered per the archived ledger's maintenance convention |
+| Individual cards may still carry simplifications (F4 ongoing audit) | Training pools only use **cards implemented and passing differential tests**; new simplifications get registered in `docs/fidelity-debt.md` per its maintenance conventions |
 | Performance-regression on hot paths (`sim/`, `rl/`) | `cargo bench` required for changes; do not let parity/training throughput regress |
 
 ## 6. Related documents
 
-- RL-side integration roadmap: `orange-reinforcement/docs/roadmap.md` (M0/M2/M3/M6, decisions D1–D5, risks)
-- Architecture roadmap: `docs/architecture-roadmap.md` (milestone G precedes F; F4/F5 carry the fidelity debt; this doc's M5 records the RL-side landing)
-- Fidelity-debt ledger and plan (archived): `docs/finished/fidelity-debt.md`, `docs/finished/fidelity-debt-roadmap.md`
+- RL-side integration roadmap: `orange-reinforcement/docs/finished/roadmap.md` (M0/M2/M3/M6, decisions D1–D5, risks)
+- Architecture roadmap: `docs/finished/architecture-roadmap.md` (milestone G precedes F; F4/F5 carry the fidelity debt; this doc's M5 records the RL-side landing)
+- Fidelity-debt ledger: `docs/fidelity-debt.md` · execution plan (archived): `docs/finished/fidelity-debt-roadmap.md`
 - External comparison: `docs/differential_sabberstone.md` (SabberStone differential-verification protocol)

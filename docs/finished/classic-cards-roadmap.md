@@ -2,7 +2,7 @@
 
 > Last updated: 2026-08-05 (all cards implemented)
 > Covers the missing cards from the Classic/Basic (怀旧) set.
-> Companion documents: [classic-cards.md](classic-cards.md) (full card list) · [classic-cards-zh.md](classic-cards-zh.md)
+> Companion documents: [classic-cards.md](../classic-cards.md) (full card list) · [classic-cards-zh.md](../classic-cards-zh.md)
 
 ## TL;DR
 

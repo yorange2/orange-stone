@@ -1,10 +1,10 @@
 # 保真债实现路线图 — 67 张简化卡
 
-> **状态：W6 完成（PR #85）；W7 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
-> 的 F4 持续 / F5 持续条目。[fidelity-debt.md](fidelity-debt-zh.md) 账本是卡名单的
+> **状态：全部完成（W7 收尾 PR #86）。** 本路线图执行 [architecture-roadmap.md](../architecture-roadmap-zh.md)
+> 的 F4 持续 / F5 持续条目。[fidelity-debt.md](../fidelity-debt-zh.md) 账本是卡名单的
 > 权威来源，本文档是执行计划。一张卡只有在"实现 **且** 通过 F5 差分测试验证"后
-> 才离开账本——见账本的 [F5 验收](fidelity-debt-zh.md#每张卡的-f5-验收) 与
-> [维护约定](fidelity-debt-zh.md#维护约定)。
+> 才离开账本——见账本的 [F5 验收](../fidelity-debt-zh.md#每张卡的-f5-验收) 与
+> [维护约定](../fidelity-debt-zh.md#维护约定)。
 >
 > 2026-08-06 对照引擎核实：67 处标记、触发作用域语义、下面的机制盘点截至
 > PR #77 全部为最新。W0（13 张）已在 PR #79 落地，盘点已更新 W0 原语。

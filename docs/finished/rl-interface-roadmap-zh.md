@@ -1,6 +1,6 @@
 # RL 接口路线图 — 面向 orange-reinforcement 的外部接口工作
 
-> 本路线图记录 orange-stone 面向 RL 训练/对拍的**外部接口工作**（绑定层 API、批量、卡牌视图与保真），由 orange-reinforcement 对接项目驱动（RL 侧文档：`orange-reinforcement/docs/roadmap.md`）。引擎内部的架构与保真里程碑（A~G、F）见 [architecture-roadmap.md](architecture-roadmap.md)；本文档是它的 RL 接口补充——对接项目提出 G2~G8 差距后逐一补齐，并承载 M4 批量绑定与 M5 保真债清偿。
+> 本路线图记录 orange-stone 面向 RL 训练/对拍的**外部接口工作**（绑定层 API、批量、卡牌视图与保真），由 orange-reinforcement 对接项目驱动（RL 侧文档：`orange-reinforcement/docs/finished/roadmap.md`）。引擎内部的架构与保真里程碑（A~G、F）见 [architecture-roadmap.md](../architecture-roadmap.md)；本文档是它的 RL 接口补充——对接项目提出 G2~G8 差距后逐一补齐，并承载 M4 批量绑定与 M5 保真债清偿。
 >
 > 现状核对时间：2026-08-05（M1 起点，代码均已实地核实）。
 
@@ -39,7 +39,7 @@ orange-reinforcement 上一轮"接真实引擎"的尝试是 RosettaStone C++ 绑
 | G7 | 奖励口径不同 | 稀疏胜负 +1/−1 | 简化炉石是"输按对手剩血给 0~−1"，训练曲线不具可比性 |
 | G8 | 无 RL 批量 step | `batch.rs` 只支持 bot 驱动 | 训练并行采样要自己拿 multiprocessing 拼 |
 
-（G1 绑定安装、G9 卡池不对齐、G10 规则语义差异的适配属 RL 侧，见 `orange-reinforcement/docs/roadmap.md` §2.3。）
+（G1 绑定安装、G9 卡池不对齐、G10 规则语义差异的适配属 RL 侧，见 `orange-reinforcement/docs/finished/roadmap.md` §2.3。）
 
 ## 4. 里程碑
 
@@ -75,24 +75,24 @@ RL 侧并行训练的先决条件是**绑定层释放 GIL**：
 
 - [x] **卡牌视图/卡池补充**（**#72**/**#73**/**#74**/**#75**）：潜行卡（`CardDef.stealth`）、扰咒机制（`CardDef.elusive` + 法术目标枚举/结算排除）、卡面文本视图字段（card_type + effect 量级）、`all_card_ids()`
 - [x] **与里程碑 F 同步**：F1~F5 内部完成（`tests/differential.rs`）；**外部 SabberStone 对照跑通**（**#75**：dotnet 驱动镜像 attack-trade 场景，两个模拟器结果一致，见 `docs/differential_sabberstone.md`）
-- [x] **保真债清偿**（F4/F5 持续审计项）✅ **全部清偿（2026-08-06）**：67 处简化卡标记记录在 `docs/finished/fidelity-debt.md`（审计账本，已归档且为空），执行计划 `docs/finished/fidelity-debt-roadmap.md`（8 个按依赖排序的 wave：W0 接线 13 张 → W1 种族 11 → W2 触发 8 → W3 谓词 9 → W4 费用武器 8 → W5 目标结构 7 → W6 特殊机制 8 → W7 收尾 3）已全部落地（PR #79–#86），每张卡"实现 + F5 差分验证"后离开账本（`tests/differential.rs` 共 72 个 `w0_*`–`w7_*` 场景）；F4/F5 持续审计机制保留
+- [x] **保真债清偿**（F4/F5 持续审计项）✅ **全部清偿（2026-08-06）**：67 处简化卡标记记录在 `docs/fidelity-debt.md`（审计账本，账目为空），执行计划 `docs/finished/fidelity-debt-roadmap.md`（8 个按依赖排序的 wave：W0 接线 13 张 → W1 种族 11 → W2 触发 8 → W3 谓词 9 → W4 费用武器 8 → W5 目标结构 7 → W6 特殊机制 8 → W7 收尾 3）已全部落地（PR #79–#86），每张卡"实现 + F5 差分验证"后离开账本（`tests/differential.rs` 共 72 个 `w0_*`–`w7_*` 场景）；F4/F5 持续审计机制保留
 
 **过程中补的账本外修正**：
 - **#77 结构性发现**：过期注释、Worgen Infiltrator 补潜行、3 处卡 ID 冲突、10 张卡补入 ALL_CARDS、7 个重复条目——ALL_CARDS 现为 **413 唯一条目**
 - **顺手牵羊（Pilfer）**：OtherClass 卡池原过滤是"任意非潜行者"（把中立卡也算进去），已收窄为另外 8 个职业的职业卡
 
-**RL 侧联动**：保真债清偿后训练卡池扩到全经典构筑规模 **391 张**；`decks.py::_load_debt_ids` 的卡池执行 bug（简化注释错记到上一张卡 ID）在 RL 侧 PR #31 修复。细节见 `orange-reinforcement/docs/roadmap.md` §3 M5。
+**RL 侧联动**：保真债清偿后训练卡池扩到全经典构筑规模 **391 张**；`decks.py::_load_debt_ids` 的卡池执行 bug（简化注释错记到上一张卡 ID）在 RL 侧 PR #31 修复。细节见 `orange-reinforcement/docs/finished/roadmap.md` §3 M5。
 
 ## 5. 遗留与风险（引擎侧）
 
 | 风险 | 对策 |
 | --- | --- |
-| 个别卡可能仍有简化（F4 持续审计中） | 训练卡池只用**已实现且通过 differential 的卡**；新增简化卡按归档账本的维护约定登记 |
+| 个别卡可能仍有简化（F4 持续审计中） | 训练卡池只用**已实现且通过 differential 的卡**；新增简化卡在 `docs/fidelity-debt.md` 按其维护约定登记 |
 | 性能敏感路径回退（`sim/`、`rl/`） | 改动需跑 `cargo bench`，别让对拍/训练吞吐回退 |
 
 ## 6. 相关文档
 
-- RL 侧对接路线图：`orange-reinforcement/docs/roadmap.md`（M0/M2/M3/M6、决策点 D1~D5、风险）
-- 架构路线图：`docs/architecture-roadmap.md`（里程碑 G 是 F 的前置，F4/F5 是保真债的载体；本文档 M5 是其 RL 侧落地记录）
-- 保真债账本与执行计划（已归档）：`docs/finished/fidelity-debt.md`、`docs/finished/fidelity-debt-roadmap.md`
+- RL 侧对接路线图：`orange-reinforcement/docs/finished/roadmap.md`（M0/M2/M3/M6、决策点 D1~D5、风险）
+- 架构路线图：`docs/finished/architecture-roadmap.md`（里程碑 G 是 F 的前置，F4/F5 是保真债的载体；本文档 M5 是其 RL 侧落地记录）
+- 保真债账本：`docs/fidelity-debt.md` · 执行计划（已归档）：`docs/finished/fidelity-debt-roadmap.md`
 - 外部对照：`docs/differential_sabberstone.md`（SabberStone 差分验证协议）
