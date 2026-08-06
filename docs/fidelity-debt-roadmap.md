@@ -101,23 +101,30 @@ green (426); RL pool 372 → **376**.
 Tracking deck-top-3 semantics incl. the discard); `cargo test` green (431);
 RL pool 376 → **381**.
 
-### W11 — Battlecries & cost reduction (6 cards): Onyxia, Defender of Argus, Deathwing, Sea Giant, Preparation, Cold Blood
+### W11 — Battlecries & cost reduction (6 cards): Onyxia, Defender of Argus, Deathwing, Sea Giant, Preparation, Cold Blood ✅ (PR #100)
 
-- Onyxia: summon five 1/1 Whelps (multi-summon — `SummonMinion` loop)
+- Onyxia: summon five 1/1 Whelps (multi-summon — `SummonMinion` loop; new
+  `EX1_170t` token, auto-excluded from the RL pool by the `t`-suffix rule)
 - Defender of Argus: adjacent minions gain +1/+1 **and** Divine Shield
-  (target structure + shield grant; W5 adjacency precedent)
-- Deathwing: **discard the whole hand** (new effect — `DiscardRandomCard`
-  exists, full-hand discard does not) + destroy all other minions
-- Sea Giant: costs 1 less per minion on the board (board-count cost aura —
-  new; `FirstMinionDiscount` W3 precedent)
-- Preparation: your next spell this turn costs 3 less (per-player flag,
-  Millhouse `spells_cost_zero` W4 precedent)
+  (new `GrantAdjacentStatsAndDivineShield`, W5 adjacency resolver; the def
+  previously carried a wrong self-buff battlecry — a silent misimplementation
+  never registered in §11, so no ledger row accompanies it)
+- Deathwing: **discard the whole hand** (new `DiscardHand`) + destroy all
+  other minions (new `DestroyAllOtherMinionsAndDiscardHand` — the old
+  `AllMinions` effect destroyed Deathwing itself)
+- Sea Giant: costs 1 less per minion on the board (board-count rule composed
+  in `cost::play_cost` — the G5 single composition point, Dread Corsair
+  pattern)
+- Preparation: your next spell this turn costs 3 less (per-player
+  `next_spell_discount` flag, consumed by the first spell, cleared at the
+  turn end — Millhouse `spells_cost_zero` precedent)
 - Cold Blood: the base +2 branch wired alongside the existing combo branch
 
-**Acceptance**: 6 `w11_*` scenarios (Whelp count + board fill, Argus
+**Acceptance**: ✅ 6 `w11_*` scenarios (Whelp count + board fill, Argus
 adjacency incl. shield grant order, Deathwing discard-all + board wipe,
 Sea Giant cost vs board state, Preparation window, Cold Blood base branch);
-`cargo test` green; RL pool 381 → 387.
+`cargo test` green (437); RL pool 381 → **386** (the roadmap's 387 assumed
+Argus was a registered debt — it was not, so the pool gains 5, not 6).
 
 ### W12 — Remaining mechanics (4 cards): Water Elemental, Cabal Shadow Priest, Prophet Velen, Shiv
 
@@ -139,7 +146,7 @@ Sea Giant cost vs board state, Preparation window, Cold Blood base branch);
 | W8 trigger wiring ✅ (PR #97) | 5 | 367 → **372** |
 | W9 weapon & race ✅ (PR #98) | 4 | 372 → **376** |
 | W10 choose-one & discover ✅ (PR #99) | 5 | 376 → **381** |
-| W11 battlecries & cost | 6 | 381 → **387** |
+| W11 battlecries & cost ✅ (PR #100) | 6 | 381 → **386** |
 | W12 remaining mechanics | 4 | 387 → **391 (ledger empty)** |
 
 ## Out of scope
