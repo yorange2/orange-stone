@@ -1220,7 +1220,7 @@ pub fn apply_event(
                         if let Some(card) = mulliganable.get((option - 1) as usize).copied() {
                             let _ = state.world_mut().move_to_zone(card, Zone::Deck);
                             state.shuffle_decks();
-                            crate::engine::trigger::draw_card_no_queue(state, owner);
+                            crate::engine::trigger::draw_top_card_no_queue(state, owner);
                         }
                     }
                     state.make_mut().mulliganed[owner.index()] = true;
@@ -1231,7 +1231,7 @@ pub fn apply_event(
                     if !state.make_mut().mulliganed[next.index()] {
                         state.surface_mulligan(next);
                     } else {
-                        trigger::draw_card_no_queue(state, PlayerId::Player1);
+                        trigger::draw_top_card_no_queue(state, PlayerId::Player1);
                     }
                 }
             }

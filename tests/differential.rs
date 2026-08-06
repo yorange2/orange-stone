@@ -593,10 +593,14 @@ fn w0_demolisher_fires_at_turn_start() {
 /// included) in a single death batch.
 #[test]
 fn w0_doomsayer_destroys_all_minions_including_itself() {
-    use orange_stone::cards::def::DOOMSAYER;
+    use orange_stone::cards::def::{DOOMSAYER, OGRE_MAGI};
     let mut builder = GameBuilder::new();
     builder.add_minion_to_board(PlayerId1(), &DOOMSAYER);
     let enemy = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    // Deck cards so the turn draws don't fatigue the heroes — this scenario
+    // is about minion destruction, not fatigue
+    builder.add_minion_to_deck(PlayerId1(), &OGRE_MAGI);
+    builder.add_minion_to_deck(PlayerId2(), &OGRE_MAGI);
     let mut state = builder.build();
     let engine = GameEngine::new();
     let doomsayer = find_entity(&state, PlayerId1(), "NEUTRAL_E04");

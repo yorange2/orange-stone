@@ -685,7 +685,7 @@ pub fn resolve_effect(
         }
         CardEffect::DrawAndDamageByCost => {
             // Holy Wrath — draw a card, deal damage equal to its mana cost
-            if let Some(drawn) = draw_card_no_queue(state, owner) {
+            if let Some(drawn) = draw_card_no_queue(state, queue, owner) {
                 let cost = state.world().effective_cost(drawn).unwrap_or(Cost(0)).0;
                 queue.push(Event::CardDrawn {
                     player: owner,
@@ -840,13 +840,53 @@ pub fn resolve_effect(
     }
 }
 
-/// Draws a random card from the deck into hand, optionally with a cost reduction (Farsight).
-/// Draws the top card of the ordered deck (roadmap G7 — the deck is shuffled
-/// at game start, so the top draw is the random pick), without enqueueing a
-/// CardDrawn event. Returns the drawn card, or `None` when the deck is empty
-/// (fatigue in Phase 3+).
-pub(crate) fn draw_card_no_queue(state: &mut GameState, player: PlayerId) -> Option<Entity> {
-    let card = state.world().zones().iter(Zone::Deck, player).next()?;
+/// Draws the top card of the ordered deck into hand (roadmap G7 — the deck is
+/// shuffled at game start, so the top draw is the random pick), without
+/// enqueueing a CardDrawn event. Returns the drawn card, or `None` when the
+/// deck is empty — in which case the player suffers **fatigue** (official
+/// rule, docs/fatigue-roadmap.md): the drawing hero takes damage equal to the
+/// player's 1-based fatigue counter, the counter increments by 1, and no
+/// CardDrawn is emitted ("whenever you draw a card" triggers must not fire).
+/// The damage goes through the unified `DamageDealt` pipeline (armor absorbs,
+/// lethal ends the game, lethal-prevention secrets fire).
+pub(crate) fn draw_card_no_queue(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    player: PlayerId,
+) -> Option<Entity> {
+    let Some(card) = state.world().zones().iter(Zone::Deck, player).next() else {
+        // Empty deck: fatigue (official rule) — the counter IS the damage for
+        // this attempt, then it increments
+        let inner = state.make_mut();
+        let p = &mut inner.players[player.index()];
+        let hero = p.hero;
+        let amount = p.fatigue as i32;
+        p.fatigue += 1;
+        queue.push(Event::DamageDealt {
+            source: hero,
+            target: hero,
+            amount,
+        });
+        return None;
+    };
+    state
+        .world_mut()
+        .move_to_zone(card, Zone::Hand)
+        .expect("card should be movable to hand");
+    Some(card)
+}
+
+/// Draws the top card of the deck without a queue — used only at
+/// opening/mulligan time, where the deck is provably non-empty (fatigue is
+/// physically impossible, official rule 5). The non-empty invariant is
+/// debug-asserted; the hot opening path keeps its no-queue shape.
+pub(crate) fn draw_top_card_no_queue(state: &mut GameState, player: PlayerId) -> Option<Entity> {
+    let card = state.world().zones().iter(Zone::Deck, player).next();
+    debug_assert!(
+        card.is_some(),
+        "opening/mulligan draws must hit a non-empty deck"
+    );
+    let card = card?;
     state
         .world_mut()
         .move_to_zone(card, Zone::Hand)
@@ -860,7 +900,7 @@ fn draw_card_with_reduction(
     player: PlayerId,
     cost_reduction: i32,
 ) {
-    let Some(card) = draw_card_no_queue(state, player) else {
+    let Some(card) = draw_card_no_queue(state, queue, player) else {
         return;
     };
 

@@ -513,6 +513,12 @@ fn full_game_scenario() {
     let ogre = builder.add_custom_minion_to_board(PlayerId::Player2, 6, 7, 6);
     builder.set_mana(PlayerId::Player1, 10, 10);
     builder.set_mana(PlayerId::Player2, 10, 10);
+    // Deck cards so the turn draws don't fatigue the heroes — the scenario
+    // is about minion trading, not fatigue
+    for _ in 0..3 {
+        builder.add_minion_to_deck(PlayerId::Player1, &OGRE_MAGI);
+        builder.add_minion_to_deck(PlayerId::Player2, &OGRE_MAGI);
+    }
     let mut state = builder.build();
 
     // Turn 1: Player1 plays Yeti (4/5)

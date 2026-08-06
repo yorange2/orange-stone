@@ -285,10 +285,10 @@ impl GameState {
         self.shuffle_decks();
         // Deal starting hands: 3 for the first player, 4 + coin for the second
         for _ in 0..3 {
-            crate::engine::trigger::draw_card_no_queue(self, PlayerId::Player1);
+            crate::engine::trigger::draw_top_card_no_queue(self, PlayerId::Player1);
         }
         for _ in 0..4 {
-            crate::engine::trigger::draw_card_no_queue(self, PlayerId::Player2);
+            crate::engine::trigger::draw_top_card_no_queue(self, PlayerId::Player2);
         }
         // The second player's Coin
         if let Some(coin) = crate::cards::def::card_by_id("GAME_005") {

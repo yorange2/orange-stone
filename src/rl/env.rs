@@ -221,10 +221,11 @@ impl GameEnv {
             self.done = true;
             reward += reward::final_reward(&self.config.reward, &self.state, self.perspective);
         } else if self.steps >= self.config.max_steps {
-            // Step limit reached: game ends in a draw. Checked before the
-            // EndTurn branch — in a stall state (empty decks, no fatigue yet)
-            // every action is EndTurn, and the old check after that branch
-            // was unreachable, so such games stalled forever.
+            // Step limit reached: game ends in a draw. Only a backstop now —
+            // empty-deck games end naturally through fatigue damage; the cap
+            // still guards the theoretical armor/heal loop. Checked before
+            // the EndTurn branch — in a stall state every action is EndTurn,
+            // and the old check after that branch was unreachable.
             self.done = true;
         } else if ok && matches!(action, Action::EndTurn) {
             // Opponent's turn: the bot advances automatically until turn end or game over
@@ -465,9 +466,8 @@ fn candidates_for_target(
             .filter(|&e| world.card_type(e) == Some(CardType::Minion))
             .collect::<Vec<_>>()
     };
-    let no_elusive = |e: &crate::core::entity::Entity| {
-        !(exclude_elusive && world.elusive(*e).is_some())
-    };
+    let no_elusive =
+        |e: &crate::core::entity::Entity| !(exclude_elusive && world.elusive(*e).is_some());
     match target {
         EffectTarget::AnyEnemy => chars(enemy).into_iter().filter(no_elusive).collect(),
         EffectTarget::AnyEnemyMinion => minions(enemy).into_iter().filter(no_elusive).collect(),
@@ -623,25 +623,34 @@ mod tests {
     fn elusive_cards_expose_the_keyword_and_block_spell_targeting() {
         // M5: Faerie Dragon carries elusive; a spell's play actions must not
         // enumerate it as a target (and the resolution fizzles on it).
-        let deck: Vec<&'static str> =
-            vec!["CLASSIC_019"; 10]; // Faerie Dragon (elusive)
+        let deck: Vec<&'static str> = vec!["CLASSIC_019"; 10]; // Faerie Dragon (elusive)
         let mut env = GameEnv::new(
             PlayerId::Player1,
             EnvConfig::default_with(BotType::Greedy, 30).with_fixed_deck(deck),
         );
         env.reset(4);
         let view = crate::rl::views::observation(&env.state, PlayerId::Player1, env.is_done());
-        let faeries: Vec<&crate::rl::views::EntityView> =
-            view.me.hand.iter().filter(|c| c.card_id == "CLASSIC_019").collect();
-        assert!(!faeries.is_empty(), "Faerie Dragon must be in the opening hand");
-        assert!(faeries.iter().all(|c| c.elusive), "Faerie Dragon must expose elusive");
+        let faeries: Vec<&crate::rl::views::EntityView> = view
+            .me
+            .hand
+            .iter()
+            .filter(|c| c.card_id == "CLASSIC_019")
+            .collect();
+        assert!(
+            !faeries.is_empty(),
+            "Faerie Dragon must be in the opening hand"
+        );
+        assert!(
+            faeries.iter().all(|c| c.elusive),
+            "Faerie Dragon must expose elusive"
+        );
     }
 
     #[test]
     fn spell_play_actions_exclude_elusive_targets() {
         use crate::core::action::Action;
-        use crate::sim::game::GameBuilder;
         use crate::core::zone::Zone;
+        use crate::sim::game::GameBuilder;
 
         let mut builder = GameBuilder::new();
         builder.add_minion_to_hand(PlayerId::Player1, &crate::cards::def::FIREBALL);
@@ -666,16 +675,28 @@ mod tests {
             .iter()
             .filter(|a| matches!(a.action, Action::PlayCard { card, .. } if card == fireball))
             .collect();
-        assert!(!play_actions.is_empty(), "fireball must be playable with a target");
+        assert!(
+            !play_actions.is_empty(),
+            "fireball must be playable with a target"
+        );
         // 目标可以是英雄或可见随从，但绝不能是精灵龙（elusive）
-        assert!(play_actions.iter().any(|info| {
-            matches!(info.action, Action::PlayCard { target: Some(t), .. } if t != faerie)
-        }), "fireball must keep legal non-elusive targets");
+        assert!(
+            play_actions.iter().any(|info| {
+                matches!(info.action, Action::PlayCard { target: Some(t), .. } if t != faerie)
+            }),
+            "fireball must keep legal non-elusive targets"
+        );
         for info in &play_actions {
-            let Action::PlayCard { target: Some(t), .. } = info.action else {
+            let Action::PlayCard {
+                target: Some(t), ..
+            } = info.action
+            else {
                 continue;
             };
-            assert_ne!(t, faerie, "fireball must not enumerate the elusive minion as a target");
+            assert_ne!(
+                t, faerie,
+                "fireball must not enumerate the elusive minion as a target"
+            );
         }
     }
 
@@ -815,8 +836,7 @@ mod tests {
 
     #[test]
     fn no_bot_full_game_loop_terminates_with_external_control() {
-        // Random-vs-random can stall forever (no fatigue damage in the engine yet),
-        // so the external driver plays a scripted policy: play a card → attack face
+        // The external driver plays a scripted policy: play a card → attack face
         // with everything → end turn. Face damage guarantees the game ends.
         let mut env = GameEnv::new(
             PlayerId::Player1,
@@ -852,11 +872,10 @@ mod tests {
     }
 
     #[test]
-    fn step_limit_ends_end_turn_stall_in_draw() {
-        // EndTurn-only play drains the decks, then stalls (no fatigue damage
-        // in the engine yet). The step limit must still terminate the game as
-        // a draw — the check used to sit after the EndTurn branch and was
-        // never reached for an all-EndTurn loop.
+    fn end_turn_stall_ends_in_fatigue_winner() {
+        // EndTurn-only play drains the decks, then fatigue damage ends the
+        // game with a real winner (official rule) — the old expectation was a
+        // stall that only the step limit ended as a draw.
         let mut env = GameEnv::new(
             PlayerId::Player1,
             EnvConfig::default_with(BotType::None, 20),
@@ -875,12 +894,20 @@ mod tests {
                 break;
             }
         }
-        assert!(env.done, "EndTurn-only play must terminate at the step limit");
-        // The limit draw names no winner and leaves the state machine in Main
-        assert_eq!(env.winner(), None, "the step limit ends the game in a draw");
         assert!(
-            !matches!(env.state.step(), Step::GameOver { .. }),
-            "a limit draw is not a GameOver step"
+            env.done,
+            "EndTurn-only play must terminate with a fatigue winner"
+        );
+        // The first player draws one turn earlier, so P1 dies to fatigue
+        // first — a real winner, not the step-limit draw
+        assert_eq!(
+            env.winner(),
+            Some(PlayerId::Player2),
+            "the first player dies to fatigue first"
+        );
+        assert!(
+            matches!(env.state.step(), Step::GameOver { .. }),
+            "fatigue death is a real GameOver step"
         );
     }
 

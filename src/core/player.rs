@@ -54,6 +54,10 @@ pub struct Player {
     pub weapon: Option<crate::core::entity::Entity>,
     /// Hero armor
     pub armor: i32,
+    /// Fatigue counter (1-based): the damage dealt by the next empty-deck draw
+    /// attempt (official HS rule — docs/fatigue-roadmap.md). Starts at 1 (the
+    /// first hit deals 1) and increments by 1 after each fatigue hit.
+    pub fatigue: u32,
     /// Cards played this turn (for the Combo mechanic)
     pub cards_played_this_turn: u32,
     /// Minions played this turn (Pint-Sized Summoner — the first minion
@@ -87,6 +91,7 @@ impl Player {
             current_mana: mana_crystals,
             weapon: None,
             armor: 0,
+            fatigue: 1,
             cards_played_this_turn: 0,
             minions_played_this_turn: 0,
             overload_locked: 0,
