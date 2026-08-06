@@ -83,6 +83,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
             Trigger {
                 event: TriggerEvent::FriendlyOverloadPlayed,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect: CardEffect::GainStats {
                     attack: 1,
                     health: 1,
@@ -98,6 +99,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
             Trigger {
                 event: TriggerEvent::ThisMinionDamaged,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect: CardEffect::DrawCard { count: 1 },
             },
         );
@@ -109,6 +111,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
             Trigger {
                 event: TriggerEvent::FriendlyMinionDamaged,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect: CardEffect::GainStats {
                     attack: 1,
                     health: 0,
@@ -124,6 +127,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
             Trigger {
                 event: TriggerEvent::FriendlyMinionDamaged,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect: CardEffect::GainArmor {
                     amount: 1,
                     target: EffectTarget::FriendlyHero,
@@ -164,6 +168,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
             Trigger {
                 event: TriggerEvent::ThisMinionDamaged,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect,
             },
         );
@@ -171,6 +176,51 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
     if card_def.id == "NEUTRAL_R16" {
         // Emperor Cobra — Poison
         world.set_poison(entity, Poison);
+    }
+    // Race-conditioned triggers (fidelity-debt W1): the Trigger carries the
+    // race requirement — the event's subject must match for the trigger to fire.
+    let race_trigger: Option<(TriggerEvent, CardEffect)> = match card_def.id {
+        // Murloc Tidecaller — whenever you summon a Murloc, gain +1 Attack
+        "NEUTRAL_R05" => Some((
+            TriggerEvent::FriendlyMinionSummoned,
+            CardEffect::GainStats {
+                attack: 1,
+                health: 0,
+                target: EffectTarget::Self_,
+            },
+        )),
+        // Starving Buzzard — whenever you summon a Beast, draw a card
+        "HUNTER_014" => Some((
+            TriggerEvent::FriendlyMinionSummoned,
+            CardEffect::DrawCard { count: 1 },
+        )),
+        // Scavenging Hyena — whenever a friendly Beast dies, gain +2/+1
+        "HUNTER_013" => Some((
+            TriggerEvent::FriendlyMinionDied,
+            CardEffect::GainStats {
+                attack: 2,
+                health: 1,
+                target: EffectTarget::Self_,
+            },
+        )),
+        _ => None,
+    };
+    if let Some((event, effect)) = race_trigger {
+        use crate::core::component::Race;
+        let race = match card_def.id {
+            "NEUTRAL_R05" => Race::Murloc,
+            "HUNTER_014" | "HUNTER_013" => Race::Beast,
+            _ => unreachable!(),
+        };
+        world.set_trigger(
+            entity,
+            Trigger {
+                event,
+                timing: TriggerTiming::Whenever,
+                effect,
+                race: Some(race),
+            },
+        );
     }
 }
 
@@ -262,6 +312,10 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
     if card.taunt {
         world.set_taunt(e, crate::core::component::Taunt);
     }
+    // Set Race / tribe (fidelity-debt W1)
+    if let Some(race) = card.race {
+        world.set_race(e, race);
+    }
     // Set cannot-attack
     if card.cant_attack {
         world.set_cant_attack(e, crate::core::component::CantAttack);
@@ -274,6 +328,7 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
             Trigger {
                 event: TriggerEvent::TurnEnd,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect: ete,
             },
         );
@@ -284,6 +339,7 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
             Trigger {
                 event: TriggerEvent::TurnStart,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect: ste,
             },
         );
@@ -298,6 +354,7 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
             Trigger {
                 event: TriggerEvent::FriendlySpellCast,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect: st,
             },
         );
@@ -308,6 +365,7 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
             Trigger {
                 event: TriggerEvent::FriendlyMinionDied,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect: dt,
             },
         );
@@ -318,6 +376,7 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
             Trigger {
                 event: TriggerEvent::FriendlyMinionSummoned,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect: st,
             },
         );

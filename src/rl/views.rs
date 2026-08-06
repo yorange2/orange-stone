@@ -43,8 +43,10 @@ pub struct EntityView {
     pub elusive: bool,
     /// Windfury keyword
     pub windfury: bool,
-    /// Charge keyword
+    /// Charge keyword (effective — a Charge aura counts)
     pub charge: bool,
+    /// Race / tribe: 0=none, 1=Beast, 2=Murloc, 3=Demon (fidelity-debt W1)
+    pub race: i32,
     /// Frozen this turn
     pub frozen: bool,
     /// Hand cards only: affordable with the owner's current mana
@@ -179,7 +181,13 @@ pub fn entity_view(state: &GameState, entity: Entity, is_hand: bool) -> EntityVi
         stealth: world.stealth(entity).is_some(),
         elusive: world.elusive(entity).is_some(),
         windfury: world.windfury(entity).is_some(),
-        charge: world.charge(entity).is_some(),
+        charge: world.effective_charge(entity),
+        race: match world.race(entity) {
+            Some(crate::core::component::Race::Beast) => 1,
+            Some(crate::core::component::Race::Murloc) => 2,
+            Some(crate::core::component::Race::Demon) => 3,
+            None => 0,
+        },
         frozen: world.freeze(entity).is_some(),
         playable: is_hand
             && world

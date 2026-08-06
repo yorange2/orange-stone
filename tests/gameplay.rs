@@ -972,17 +972,34 @@ fn stormwind_champion_buffs_attack_and_health() {
 
     let mut builder = GameBuilder::new();
     builder.add_minion_to_board(PlayerId::Player1, &MURLOC_WARLEADER);
-    let ally = builder.add_custom_minion_to_board(PlayerId::Player1, 2, 3, 2);
+    builder.add_minion_to_board(PlayerId::Player1, &orange_stone::cards::def::MURLOC_RAIDER);
+    let non_murloc = builder.add_custom_minion_to_board(PlayerId::Player1, 2, 3, 2);
     let state = builder.build();
+    let ally = state
+        .world()
+        .zones()
+        .iter(orange_stone::core::zone::Zone::Play, PlayerId::Player1)
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "NEUTRAL_B02")
+        })
+        .expect("murloc raider on board");
 
-    // Friendly minion should get +2/+1
+    // Other Murlocs get +2/+1; non-Murloc allies are untouched
     assert_eq!(
         state.world().effective_attack(ally),
         Some(orange_stone::core::component::Attack(4))
     );
     assert_eq!(
         state.world().effective_health(ally),
-        Some(orange_stone::core::component::Health(4))
+        Some(orange_stone::core::component::Health(2))
+    );
+    assert_eq!(
+        state.world().effective_attack(non_murloc),
+        Some(orange_stone::core::component::Attack(2)),
+        "the Warleader aura is Murloc-only"
     );
 }
 

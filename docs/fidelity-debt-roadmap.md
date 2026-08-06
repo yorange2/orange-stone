@@ -1,6 +1,6 @@
 # Fidelity-Debt Implementation Roadmap — the 67 simplified cards
 
-> **Status: W0 done (PR #79); W1 next.** This roadmap executes the F4-ongoing /
+> **Status: W1 done (PR #81); W2 next.** This roadmap executes the F4-ongoing /
 > F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
 > [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
@@ -111,35 +111,41 @@ a verify may still surface a small engine fix (acceptable in this wave).
 each); the 4 Enrage cards' damage-sequencing (trigger fires once per damage event,
 buff persists); RL pool grows by 13.
 
-## Wave 1 — Race/tribe field (11 cards)
+## Wave 1 — Race/tribe field (11 cards) ✅ done (PR #81)
 
-**Primitives** (one PR-sized unit):
+**Primitives** (one PR-sized unit) — all landed:
 - `CardDef.race: Option<Race>` (`Beast` / `Murloc` / `Demon`), applied on spawn;
-  race exposed in the structured view (`EntityView`) for the RL side.
-- Race-conditioned targets: `FriendlyBeast`, `AnyMurloc`, `FriendlyDemon`,
-  `OtherMurlocs` / `OtherDemons` aura targets.
-- Race-conditioned trigger events: `FriendlyMurlocSummoned`, `FriendlyBeastDied`.
-- Deck-filtered draw (Sense Demons) — draw from the deck filtered by race.
-- Replace hardcoded `BEAST_POOL` / `DEMON_POOL` (`cards/pool.rs`) with
-  field-driven pools (keep behavior, delete ID lists).
+  race exposed in the structured view (`EntityView`) and the Python bindings.
+- Race-conditioned targets: `EffectTarget::FriendlyRace` (Houndmaster),
+  `AnyRace` (Hungry Crab), `AllOtherFriendlyRace` (Coldlight Seer).
+- Race-conditioned auras: `AuraTarget::FriendlyRace` (Tundra Rhino — a real
+  `AuraEffect::GrantCharge` Charge aura) and `OtherFriendlyRace`
+  (Murloc Warleader, Siegebreaker).
+- Race-conditioned triggers: a `Trigger.race` field (Murloc Tidecaller /
+  Scavenging Hyena / Starving Buzzard, registered per card ID in
+  `apply_card_keywords`).
+- Deck-filtered draw (Sense Demons — `CardEffect::DrawCardByRace`).
+- Hardcoded `BEAST_POOL` / `DEMON_POOL` replaced by field-driven pools
+  (parity pinned by `w1_race_pools_are_field_driven`: every old member stays;
+  the additions are exactly the genuine Beasts/Demons the old lists missed).
 
-| ID | Card | Real effect |
-| --- | --- | --- |
-| HUNTER_015 | Houndmaster | Battlecry: give a friendly **Beast** +2/+2 and Taunt |
-| HUNTER_016 | Tundra Rhino | Your **Beasts** have Charge |
-| NEUTRAL_R01 | Coldlight Seer | Battlecry: all other **Murlocs** +2 Health |
-| NEUTRAL_E02 | Murloc Warleader | Your other **Murlocs** +2/+1 |
-| NEUTRAL_R05 | Murloc Tidecaller | Whenever you summon a **Murloc**, +1 Attack |
-| NEUTRAL_E03 | Hungry Crab | Battlecry: destroy a **Murloc**, gain +2/+2 |
-| WARLOCK_020 | Sense Demons | Draw two **Demons** from your deck |
-| WARLOCK_021 | Demonfire | 2 damage; friendly **Demon** gets +2/+2 instead |
-| WARLOCK_T01 | Siegebreaker | Taunt; your other **Demons** +1 Attack |
-| HUNTER_013 | Scavenging Hyena | Whenever a friendly **Beast** dies, +2/+1 |
-| HUNTER_014 | Starving Buzzard | Whenever you summon a **Beast**, draw |
+| ID | Card | Real effect | Scenario |
+| --- | --- | --- | --- |
+| HUNTER_015 | Houndmaster | Battlecry: give a friendly **Beast** +2/+2 and Taunt | `w1_houndmaster_buffs_only_a_friendly_beast` |
+| HUNTER_016 | Tundra Rhino | Your **Beasts** have Charge | `w1_tundra_rhino_gives_beasts_charge` |
+| NEUTRAL_R01 | Coldlight Seer | Battlecry: all other **Murlocs** +2 Health | `w1_coldlight_seer_buffs_other_murlocs_only` |
+| NEUTRAL_E02 | Murloc Warleader | Your other **Murlocs** +2/+1 | `w1_murloc_warleader_aura_murloc_only` |
+| NEUTRAL_R05 | Murloc Tidecaller | Whenever you summon a **Murloc**, +1 Attack | `w1_murloc_tidecaller_gains_attack_on_murloc_summon` |
+| NEUTRAL_E03 | Hungry Crab | Battlecry: destroy a **Murloc**, gain +2/+2 | `w1_hungry_crab_destroys_enemy_murloc_and_buffs` |
+| WARLOCK_020 | Sense Demons | Draw two **Demons** from your deck | `w1_sense_demons_draws_two_demons_from_deck` |
+| WARLOCK_021 | Demonfire | 2 damage; friendly **Demon** becomes +2/+2 | `w1_demonfire_buffs_friendly_demon_and_damages_others` |
+| WARLOCK_T01 | Siegebreaker | Taunt; your other **Demons** +1 Attack | `w1_siegebreaker_buffs_other_demons` |
+| HUNTER_013 | Scavenging Hyena | Whenever a friendly **Beast** dies, +2/+1 | `w1_scavenging_hyena_only_counts_beast_deaths` |
+| HUNTER_014 | Starving Buzzard | Whenever you summon a **Beast**, draw a card | `w1_starving_buzzard_draws_on_beast_summon` |
 
-**Acceptance**: 11 differential scenarios; race pools verified identical to the
-hardcoded lists; RL pool grows by 11.
-
+**Acceptance**: 12 scenarios (11 cards + the pool-parity test); race pools match
+the hardcoded lists bit-for-bit (old members all stay; additions = genuine
+Beasts/Demons the old lists missed); RL pool grows by 11 (335 → 346).
 ## Wave 2 — Trigger classes (8 cards)
 
 **Primitives**:
@@ -278,7 +284,7 @@ constructible size; final sweep + full SabberStone parity run.
 | Wave | Cards | New primitives | Pool growth |
 | --- | --- | --- | --- |
 | W0 wiring ✅ PR #79 | 13 | `EventSubject` / `OtherFriendlyMinion` targets; weapon trigger registration + destroy-leaves-play; spell-cast death-before-after-cast | +13 → **334** |
-| W1 race | 11 | race field + predicates + pools | +11 |
+| W1 race ✅ PR #81 | 11 | race field + targets/auras/triggers + field-driven pools | +11 → **346** |
 | W2 triggers | 8 | 4 trigger classes + destroy-secret | +8 |
 | W3 predicates | 9 | 6+ predicates | +9 |
 | W4 cost/weapon | 8 | 6+ primitives | +8 |

@@ -200,6 +200,17 @@ pub struct Aura {
     pub target: AuraTarget,
 }
 
+/// Minion race / tribe (fidelity-debt W1) — Beast, Murloc, Demon.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Race {
+    /// Beast
+    Beast,
+    /// Murloc
+    Murloc,
+    /// Demon
+    Demon,
+}
+
 /// Aura effect kind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AuraEffect {
@@ -223,6 +234,9 @@ pub enum AuraEffect {
         /// Cost floor
         min: i32,
     },
+    /// Charge aura (Tundra Rhino — friendly Beasts have Charge). Consulted via
+    /// `World::effective_charge` (base Charge component or an applying aura).
+    GrantCharge,
 }
 
 /// Aura target scope.
@@ -236,6 +250,11 @@ pub enum AuraTarget {
     AllFriendlyMinions,
     /// All enemy minions
     AllEnemyMinions,
+    /// Friendly minions of the given race, including the source (Tundra Rhino)
+    FriendlyRace(Race),
+    /// Friendly minions of the given race, excluding the source
+    /// (Murloc Warleader, Siegebreaker)
+    OtherFriendlyRace(Race),
 }
 
 /// Secret — a face-down, passively triggered spell.
@@ -372,6 +391,10 @@ pub struct Trigger {
     pub timing: TriggerTiming,
     /// The effect resolved when the trigger fires
     pub effect: crate::core::effect::CardEffect,
+    /// Optional race condition: the trigger only fires when the event's
+    /// subject has this race (Murloc Tidecaller — a friendly Murloc was
+    /// summoned; Scavenging Hyena — a friendly Beast died).
+    pub race: Option<Race>,
 }
 
 /// Choose One effect — alternative effects for Druid Choose One cards.

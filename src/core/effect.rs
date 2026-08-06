@@ -41,6 +41,14 @@ pub enum EffectTarget {
     /// just-summoned minion). Resolved from the trigger's event subject; a
     /// no-op when the subject is gone (dead / left play).
     EventSubject,
+    /// A random friendly minion of the given race (Houndmaster — a friendly Beast)
+    FriendlyRace(crate::core::component::Race),
+    /// All friendly minions of the given race, excluding the effect source
+    /// (Coldlight Seer — all other Murlocs)
+    AllOtherFriendlyRace(crate::core::component::Race),
+    /// A random minion of the given race on either side of the board
+    /// (Hungry Crab — destroy a Murloc)
+    AnyRace(crate::core::component::Race),
 }
 
 /// Card effect — an action executed when triggered.
@@ -375,6 +383,42 @@ pub enum CardEffect {
         /// Pool summoned after the target dies
         pool: RandomPool,
     },
+    /// Draw cards of the given race from the deck (Sense Demons — draw two Demons)
+    DrawCardByRace {
+        /// Number of cards to draw
+        count: u32,
+        /// Required race of the drawn cards
+        race: crate::core::component::Race,
+    },
+    /// Deal damage to a minion; if it is a friendly Demon, buff it instead
+    /// (Demonfire — 2 damage, or +2/+2 to a friendly Demon)
+    Demonfire {
+        /// Damage amount (non-Demon targets)
+        damage: i32,
+        /// Attack gained by a friendly Demon target
+        attack_bonus: i32,
+        /// Health gained by a friendly Demon target
+        health_bonus: i32,
+    },
+    /// Gain stats AND grant Taunt to the target (Houndmaster — +2/+2 and Taunt)
+    GainStatsAndTaunt {
+        /// Attack gain
+        attack: i32,
+        /// Health gain
+        health: i32,
+        /// Target scope
+        target: EffectTarget,
+    },
+    /// Destroy a minion of the target scope, then gain fixed stats
+    /// (Hungry Crab — destroy a Murloc and gain +2/+2)
+    DestroyAndGainStats {
+        /// Attack gained by the source
+        attack: i32,
+        /// Health gained by the source
+        health: i32,
+        /// Destroy target scope
+        target: EffectTarget,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -568,6 +612,25 @@ enum CardEffectDe {
         amount: i32,
         pool: RandomPool,
     },
+    DrawCardByRace {
+        count: u32,
+        race: crate::core::component::Race,
+    },
+    Demonfire {
+        damage: i32,
+        attack_bonus: i32,
+        health_bonus: i32,
+    },
+    GainStatsAndTaunt {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+    },
+    DestroyAndGainStats {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+    },
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -744,6 +807,36 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::DealDamageAndSummonIfKilled { amount, pool } => {
                 CardEffect::DealDamageAndSummonIfKilled { amount, pool }
             }
+            CardEffectDe::DrawCardByRace { count, race } => {
+                CardEffect::DrawCardByRace { count, race }
+            }
+            CardEffectDe::Demonfire {
+                damage,
+                attack_bonus,
+                health_bonus,
+            } => CardEffect::Demonfire {
+                damage,
+                attack_bonus,
+                health_bonus,
+            },
+            CardEffectDe::GainStatsAndTaunt {
+                attack,
+                health,
+                target,
+            } => CardEffect::GainStatsAndTaunt {
+                attack,
+                health,
+                target,
+            },
+            CardEffectDe::DestroyAndGainStats {
+                attack,
+                health,
+                target,
+            } => CardEffect::DestroyAndGainStats {
+                attack,
+                health,
+                target,
+            },
         })
     }
 }

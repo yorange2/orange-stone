@@ -1,6 +1,6 @@
 # 保真债实现路线图 — 67 张简化卡
 
-> **状态：W0 完成（PR #79）；W1 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
+> **状态：W1 完成（PR #81）；W2 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
 > 的 F4 持续 / F5 持续条目。[fidelity-debt.md](fidelity-debt-zh.md) 账本是卡名单的
 > 权威来源，本文档是执行计划。一张卡只有在"实现 **且** 通过 F5 差分测试验证"后
 > 才离开账本——见账本的 [F5 验收](fidelity-debt-zh.md#每张卡的-f5-验收) 与
@@ -44,11 +44,12 @@
 | `EffectTarget::EventSubject` / `OtherFriendlyMinion`（W0） | `core/effect.rs` | 正义之剑；女祭司 / 武器锻造师 |
 | 武器触发注册 + 摧毁后离场（W0） | `trigger.rs` / `rules.rs` | 正义之剑 |
 | 法术死亡先于施法后触发（W0） | `rules.rs` SpellCast | 狂野炎术师 |
+| `CardDef.race` 字段 + 种族目标/光环/触发（W1） | `def.rs` / `core/effect.rs` / `core/component.rs` | 11 张种族卡 |
+| 字段驱动种族池（W1） | `cards/pool.rs` | Barrens Stablehand 等 |
 
 **缺失**（按 wave 分组的原语）：
 
-1. `CardDef` 种族（race/tribe）字段 + 种族谓词（目标/光环/触发事件）→ W1
-2. 触发类：治疗、攻击（目标身上）、打出卡牌、奥秘打出、任意随从死亡 → W2
+1. 触发类：治疗、攻击（目标身上）、打出卡牌、奥秘打出、任意随从死亡 → W2
 3. 目标/状态谓词：攻击区间、手牌数、英雄血量、受伤友方、受伤计数、控制奥秘、
    "每回合首个随从"、武器装备 → W3；圣盾吸收 → W3
 4. 手牌区费用光环（全体随从）、按武器攻击减费、武器耐久削减、敌方法术 0 费、
@@ -94,33 +95,38 @@
 **验收**：16 个差分场景（13 张卡，剑/炎术师/女祭司各两个）；4 张激怒卡的
 伤害时序（每次伤害事件触发一次、增益永久）；RL 卡池 +13。
 
-## Wave 1 — 种族字段（11 张）
+## Wave 1 — 种族字段（11 张）✅ 完成（PR #81）
 
-**原语**（一个 PR 的量）：
+**原语**（一个 PR 的量）——全部落地：
 - `CardDef.race: Option<Race>`（`Beast` / `Murloc` / `Demon`），召唤时生效；
-  结构化视图（`EntityView`）暴露 race 供 RL 侧用。
-- 种族条件目标：`FriendlyBeast`、`AnyMurloc`、`FriendlyDemon`、
-  `OtherMurlocs` / `OtherDemons` 光环目标。
-- 种族条件触发事件：`FriendlyMurlocSummoned`、`FriendlyBeastDied`。
-- 按种族过滤牌库抽牌（感知恶魔）。
-- 用字段驱动的池替换硬编码 `BEAST_POOL` / `DEMON_POOL`（`cards/pool.rs`，
-  行为不变，删 ID 列表）。
+  结构化视图（`EntityView`）/ Python 绑定暴露 race 供 RL 侧用。
+- 种族条件目标：`EffectTarget::FriendlyRace`（驯犬者）、`AnyRace`（饥饿的
+  螃蟹）、`AllOtherFriendlyRace`（寒光先知）。
+- 种族条件光环：`AuraTarget::FriendlyRace`（苔原犀牛——冲锋光环
+  `AuraEffect::GrantCharge`）与 `OtherFriendlyRace`（鱼人领军 / 攻城恶魔）。
+- 种族条件触发：`Trigger.race` 字段（鱼人招潮者 / 食腐土狼 / 饥饿的秃鹫，
+  `apply_card_keywords` 按卡 ID 注册）。
+- 按种族过滤牌库抽牌（感知恶魔——`CardEffect::DrawCardByRace`）。
+- 硬编码 `BEAST_POOL` / `DEMON_POOL` 换成字段驱动池（池一致性测试
+  `w1_race_pools_are_field_driven`：旧表成员全部保留，新增的正是旧表漏掉的
+  7 张野兽 / 攻城恶魔）。
 
-| ID | 卡名 | 真实效果 |
-| --- | --- | --- |
-| HUNTER_015 | 驯犬者 | 战吼：使一个友方**野兽** +2/+2 并获得嘲讽 |
-| HUNTER_016 | 苔原犀牛 | 你的**野兽**获得冲锋 |
-| NEUTRAL_R01 | 寒光先知 | 战吼：使所有其他**鱼人** +2 生命 |
-| NEUTRAL_E02 | 鱼人领军 | 你的其他**鱼人** +2/+1 |
-| NEUTRAL_R05 | 鱼人招潮者 | 每当你召唤一个**鱼人**，+1 攻击 |
-| NEUTRAL_E03 | 饥饿的螃蟹 | 战吼：摧毁一个**鱼人**，+2/+2 |
-| WARLOCK_020 | 感知恶魔 | 从牌库抽两张**恶魔** |
-| WARLOCK_021 | 恶魔之火 | 2 点伤害；友方**恶魔**改为 +2/+2 |
-| WARLOCK_T01 | 攻城恶魔 | 嘲讽；你的其他**恶魔** +1 攻击 |
-| HUNTER_013 | 食腐土狼 | 每当一个友方**野兽**死亡，+2/+1 |
-| HUNTER_014 | 饥饿的秃鹫 | 每当你召唤一个**野兽**，抽一张牌 |
+| ID | 卡名 | 真实效果 | 场景 |
+| --- | --- | --- | --- |
+| HUNTER_015 | 驯犬者 | 战吼：使一个友方**野兽** +2/+2 并获得嘲讽 | `w1_houndmaster_buffs_only_a_friendly_beast` |
+| HUNTER_016 | 苔原犀牛 | 你的**野兽**获得冲锋 | `w1_tundra_rhino_gives_beasts_charge` |
+| NEUTRAL_R01 | 寒光先知 | 战吼：使所有其他**鱼人** +2 生命 | `w1_coldlight_seer_buffs_other_murlocs_only` |
+| NEUTRAL_E02 | 鱼人领军 | 你的其他**鱼人** +2/+1 | `w1_murloc_warleader_aura_murloc_only` |
+| NEUTRAL_R05 | 鱼人招潮者 | 每当你召唤一个**鱼人**，+1 攻击 | `w1_murloc_tidecaller_gains_attack_on_murloc_summon` |
+| NEUTRAL_E03 | 饥饿的螃蟹 | 战吼：摧毁一个**鱼人**，+2/+2 | `w1_hungry_crab_destroys_enemy_murloc_and_buffs` |
+| WARLOCK_020 | 感知恶魔 | 从牌库抽两张**恶魔** | `w1_sense_demons_draws_two_demons_from_deck` |
+| WARLOCK_021 | 恶魔之火 | 2 点伤害；友方**恶魔**改为 +2/+2 | `w1_demonfire_buffs_friendly_demon_and_damages_others` |
+| WARLOCK_T01 | 攻城恶魔 | 嘲讽；你的其他**恶魔** +1 攻击 | `w1_siegebreaker_buffs_other_demons` |
+| HUNTER_013 | 食腐土狼 | 每当一个友方**野兽**死亡，+2/+1 | `w1_scavenging_hyena_only_counts_beast_deaths` |
+| HUNTER_014 | 饥饿的秃鹫 | 每当你召唤一个**野兽**，抽一张牌 | `w1_starving_buzzard_draws_on_beast_summon` |
 
-**验收**：11 个差分场景；种族池与硬编码列表逐位一致；RL 卡池 +11。
+**验收**：12 个差分场景（11 张卡 + 池一致性测试）；种族池与硬编码列表逐位一致
+（旧成员全保留，新增 = 旧表漏掉的真野兽/恶魔）；RL 卡池 +11（335 → 346）。
 
 ## Wave 2 — 触发类补全（8 张）
 
@@ -252,7 +258,7 @@
 | Wave | 卡数 | 新原语 | 卡池增量 |
 | --- | --- | --- | --- |
 | W0 接线 ✅ PR #79 | 13 | `EventSubject` / `OtherFriendlyMinion` 目标；武器触发注册 + 摧毁后离场；法术死亡先于施法后触发 | +13 → **334** |
-| W1 种族 | 11 | 种族字段 + 谓词 + 池 | +11 |
+| W1 种族 ✅ PR #81 | 11 | 种族字段 + 目标/光环/触发 + 字段驱动池 | +11 → **346** |
 | W2 触发 | 8 | 4 个触发类 + 摧毁奥秘 | +8 |
 | W3 谓词 | 9 | 6+ 谓词 | +9 |
 | W4 费用/武器 | 8 | 6+ 原语 | +8 |

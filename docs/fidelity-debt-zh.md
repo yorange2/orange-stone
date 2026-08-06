@@ -1,7 +1,7 @@
 # 保真债 — 简化卡清单（F4/F5 持续审计账本）
 
-> **现状：`src/cards/` 里有 54 处简化标记**（2026-08-06 审计，修复轮 PR #77；
-> W0 接线轮 PR #79 清掉 13 张）。
+> **现状：`src/cards/` 里有 43 处简化标记**（2026-08-06 审计，修复轮 PR #77；
+> W0 接线轮 PR #79 清掉 13 张；W1 种族轮 PR #81 清掉 11 张）。
 > 本账本是 F4 逐效果保真审计的**权威记录**。一张卡**离开账本**的唯一条件：
 > 真实炉石效果已实现**且**通过 F5 差分测试验证。不要静默重写卡牌——改动必须
 > 同时更新本账本、代码注释和下游简化债提取器（见[维护约定](#维护约定)）。
@@ -18,6 +18,15 @@
 > 断剑后不再触发）、法术结算后先处理死亡再触发施法触发（野炎术师被自己的法术
 > 杀死后不触发）。对应 16 个差分场景（`tests/differential.rs` 的 `w0_*`）。
 >
+> **2026-08-06 W1 种族轮（PR #81）**：11 张种族卡全部落地——`CardDef.race`
+> 字段（Beast/Murloc/Demon，召唤时生效，`EntityView`/Python 绑定暴露 race）、
+> 种族条件目标（`FriendlyRace` / `AllOtherFriendlyRace` / `AnyRace`）、种族条件
+> 光环（`FriendlyRace` / `OtherFriendlyRace` 目标 + `GrantCharge` 冲锋光环，
+> 苔原犀牛）、种族条件触发（`Trigger.race` 字段——鱼人招潮者 / 食腐土狼 /
+> 饥饿的秃鹫）、按种族过滤牌库抽牌（感知恶魔）、硬编码 `BEAST_POOL` /
+> `DEMON_POOL` 换成字段驱动池（含逐位一致测试，`w1_race_pools_are_field_driven`）。
+> 对应 12 个差分场景（`tests/differential.rs` 的 `w1_*`）。
+>
 > **执行计划**：[docs/fidelity-debt-roadmap-zh.md](fidelity-debt-roadmap-zh.md)
 > （英文版 `fidelity-debt-roadmap.md`）——按依赖排序的 8 个 wave（W0 接线 …
 > W7 收尾）覆盖全部 67 张卡；一张卡完成 = 账本行、代码注释、差分场景三者
@@ -32,7 +41,7 @@ Python 侧（`orange-reinforcement/hearthstone_os/decks.py::_load_debt_ids`）�
 Repentance / Lightwell）已改成官方 ID（EX1_365 / EX1_349 / EX1_341），
 Mass Dispel 现在可取了。67 张全部在 `ALL_CARDS` 里（补入 10 张、去重 7 个
 重复条目后共 413 个唯一条目，PR #77）。其中 4 处是过期注释（卡已忠实，已
-清理，见 §10）；真实债务是 67 张，**W0 已清 13 张，剩 54 张**。
+清理，见 §10）；真实债务是 67 张，**W0 已清 13 张、W1 已清 11 张，剩 43 张**。
 
 ---
 
@@ -45,22 +54,12 @@ Mass Dispel 现在可取了。67 张全部在 `ALL_CARDS` 里（补入 10 张、
 `w0_gurubashi_berserker_enrage_permanent`、`w0_tauren_warrior_enrage_with_taunt`、
 `w0_angry_chicken_enrage_fires_before_death`、`w0_spiteful_smith_buffs_weapon_on_damage`。
 
-### 2. 种族 — 野兽 / 鱼人 / 恶魔（9 张）
+### 2. 种族 — 野兽 / 鱼人 / 恶魔（9 张）✅ 已解决（W1，PR #81）
 
-需要 **`CardDef` 上的种族（tribe/race）字段**（目前没有；`RandomPool::Beast/Demon`
-是硬编码 ID 列表），以及种族条件的目标与光环。
-
-| ID | 卡名 | 现状 | 真实炉石效果 | 缺失机制 |
-| --- | --- | --- | --- | --- |
-| HUNTER_015 | Houndmaster | 战吼：给任意友方随从 +2/+2 | 战吼：使一个友方**野兽** +2/+2 并获得嘲讽 | 种族谓词 + 双效果战吼 |
-| HUNTER_016 | Tundra Rhino | 冲锋光环（所有友方） | 你的**野兽**获得冲锋 | 种族条件光环 |
-| NEUTRAL_R01 | Coldlight Seer | 战吼：所有友方随从 +2 生命 | 战吼：使所有其他**鱼人** +2 生命 | 种族谓词 |
-| NEUTRAL_E02 | Murloc Warleader | 光环：其他友方随从 +2/+1 | 你的其他**鱼人**获得 +2/+1 | 种族条件光环 |
-| NEUTRAL_R05 | Murloc Tidecaller | 白板 | 每当你召唤一个**鱼人**，获得 +1 攻击 | 种族谓词 + 召唤触发 |
-| NEUTRAL_E03 | Hungry Crab | 白板 | 战吼：摧毁一个**鱼人**并获得 +2/+2 | 种族谓词 + 摧毁增益组合 |
-| WARLOCK_020 | Sense Demons | 抽 1 张 | 从牌库抽两张**恶魔** | 种族谓词 + 牌库过滤抽牌 |
-| WARLOCK_021 | Demonfire | 造成 2 点伤害 | 对一个随从造成 2 点伤害；若为友方**恶魔**则改为 +2/+2 | 种族谓词 + 条件分支 |
-| WARLOCK_T01 | Siegebreaker | 只有嘲讽 | 嘲讽；你的其他**恶魔** +1 攻击 | 种族条件光环 |
+全部落地：`CardDef.race` 字段 + 种族条件目标/光环/触发 + 牌库过滤抽牌 +
+字段驱动池（差分场景 `w1_*`，池一致性见 `w1_race_pools_are_field_driven`）。
+F-A6 补注的 Starving Buzzard（HUNTER_013）与 Scavenging Hyena（HUNTER_014）
+也随本轮离开账本。
 
 ### 3. 事件触发 — 召唤 / 治疗 / 死亡 / 奥秘 / 攻击 / 打出（9 张）
 
@@ -216,14 +215,15 @@ Doomsayer、Wild Pyromancer、Young Priestess、Master Swordsmith。）
 潜行 / 扰咒 / 奥秘 / `ThisMinionDamaged`（激怒，W0 接线 4 张）/ 剧毒 Poison
 组件（W0 接入 Emperor Cobra）/ `EffectTarget::EventSubject` 与
 `OtherFriendlyMinion`（W0）/ 武器实体触发注册 + 摧毁后离场（W0）/ 法术结算后
-先处理死亡再触发施法触发（W0）。
+先处理死亡再触发施法触发（W0）/ `CardDef.race` 字段 + 种族条件目标
+（`FriendlyRace`/`AllOtherFriendlyRace`/`AnyRace`）+ 种族条件光环
+（`GrantCharge` 冲锋光环）+ `Trigger.race` 种族条件触发 + 字段驱动种族池（W1）。
 
 **缺**（先补原语，遵守 Review II 的"先 G 后 F4/F5"纪律）：
-1. `CardDef` 种族（tribe/race）字段——解锁 §2 全部
-2. 触发类：治疗、攻击、打出卡牌、奥秘打出——§3
-3. 目标谓词：攻击区间、手牌数、英雄血量、受伤友方、控制奥秘、武器装备；
+1. 触发类：治疗、攻击、打出卡牌、奥秘打出——§3
+2. 目标谓词：攻击区间、手牌数、英雄血量、受伤友方、控制奥秘、武器装备；
    "每回合首个随从"状态——§4、§6
-4. 效果：生命设为 1、交换攻击/生命、群体圣盾、敌方法术 0 费、
+3. 效果：生命设为 1、交换攻击/生命、群体圣盾、敌方法术 0 费、
    摧毁奥秘、武器耐久削减、邻位增益/冻结、双随机伤害、本回合临时增益、
    概率效果——§5、§6、§7、§8、§9
 

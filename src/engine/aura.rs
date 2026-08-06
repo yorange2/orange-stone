@@ -94,6 +94,14 @@ fn aura_applies_to_entity(
     match aura.target {
         AuraTarget::AllFriendlyMinions => target_player == aura_player,
         AuraTarget::OtherFriendlyMinions => target_player == aura_player && target != aura_source,
+        AuraTarget::FriendlyRace(race) => {
+            target_player == aura_player && world.race(target) == Some(race)
+        }
+        AuraTarget::OtherFriendlyRace(race) => {
+            target_player == aura_player
+                && target != aura_source
+                && world.race(target) == Some(race)
+        }
         AuraTarget::AdjacentMinions => {
             if target_player != aura_player || target == aura_source {
                 return false;
@@ -138,6 +146,7 @@ const fn aura_attack_value(effect: AuraEffect) -> i32 {
         AuraEffect::GainHealth(_) => 0,
         AuraEffect::ReduceSpellCost(_) => 0,
         AuraEffect::ReduceMinionCost { .. } => 0,
+        AuraEffect::GrantCharge => 0,
     }
 }
 
@@ -149,5 +158,6 @@ const fn aura_health_value(effect: AuraEffect) -> i32 {
         AuraEffect::GainHealth(h) => h,
         AuraEffect::ReduceSpellCost(_) => 0,
         AuraEffect::ReduceMinionCost { .. } => 0,
+        AuraEffect::GrantCharge => 0,
     }
 }

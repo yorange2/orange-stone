@@ -194,6 +194,7 @@ fn weapon_with_battlecry_resolves_on_play() {
         taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
         hero_power: None,
         aura: None,
         secret: None,
@@ -1050,6 +1051,7 @@ fn spellbender_redirects_spell_damage_to_itself() {
         taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
         hero_power: None,
         aura: None,
         secret: None,
@@ -2241,7 +2243,8 @@ fn ysera_end_turn_adds_dream_card() {
 #[test]
 fn barrens_stablehand_summons_random_beast() {
     use orange_stone::cards::def::BARRENS_STABLEHAND;
-    use orange_stone::cards::pool::BEAST_POOL;
+    use orange_stone::cards::pool::card_has_race;
+    use orange_stone::core::component::Race;
 
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
@@ -2283,7 +2286,7 @@ fn barrens_stablehand_summons_random_beast() {
         .expect("beast should exist");
     let beast_id = state.world().card_id(beast).unwrap().0;
     assert!(
-        BEAST_POOL.contains(&beast_id),
+        card_has_race(&beast_id, Race::Beast),
         "summoned minion {beast_id} should be a beast"
     );
 }
@@ -2470,7 +2473,8 @@ fn pilfer_adds_non_rogue_card() {
 #[test]
 fn call_of_the_void_adds_demon() {
     use orange_stone::cards::def::CALL_OF_THE_VOID;
-    use orange_stone::cards::pool::DEMON_POOL;
+    use orange_stone::cards::pool::card_has_race;
+    use orange_stone::core::component::Race;
 
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
@@ -2503,7 +2507,7 @@ fn call_of_the_void_adds_demon() {
     assert_eq!(hand.len(), 1);
     let id = state.world().card_id(hand[0]).unwrap().0;
     assert!(
-        DEMON_POOL.contains(&id),
+        card_has_race(&id, Race::Demon),
         "added card {id} should be a demon"
     );
 }
@@ -2511,7 +2515,8 @@ fn call_of_the_void_adds_demon() {
 #[test]
 fn bane_of_doom_damages_and_summons_demon_if_killed() {
     use orange_stone::cards::def::BANE_OF_DOOM;
-    use orange_stone::cards::pool::DEMON_POOL;
+    use orange_stone::cards::pool::card_has_race;
+    use orange_stone::core::component::Race;
 
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
@@ -2550,7 +2555,7 @@ fn bane_of_doom_damages_and_summons_demon_if_killed() {
                 state
                     .world()
                     .card_id(e)
-                    .is_some_and(|c| DEMON_POOL.contains(&c.0))
+                    .is_some_and(|c| card_has_race(&c.0, Race::Demon))
             })
             .collect();
         assert_eq!(
