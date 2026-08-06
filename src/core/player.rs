@@ -72,6 +72,9 @@ pub struct Player {
     /// All spells cost 0 this turn (Millhouse Manastorm — the opponent's
     /// spells cost 0 next turn); cleared at the owner's turn start
     pub spells_cost_zero: bool,
+    /// The next spell cast this turn costs this much less (Preparation —
+    /// one-time, consumed by the first spell played); cleared at turn end
+    pub next_spell_discount: i32,
     /// Enemy minions temporarily controlled (entity, original owner) — returned at end of turn (Shadow Madness)
     pub controlled_this_turn: Vec<(crate::core::entity::Entity, PlayerId)>,
     /// Corrupted enemy minions — destroyed at the owner's turn start (Corruption)
@@ -98,6 +101,7 @@ impl Player {
             died_this_turn: Vec::new(),
             next_secret_free: false,
             spells_cost_zero: false,
+            next_spell_discount: 0,
             controlled_this_turn: Vec::new(),
             corrupted: Vec::new(),
             minion_min_health: 0,

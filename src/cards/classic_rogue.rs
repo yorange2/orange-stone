@@ -297,7 +297,8 @@ pub const FAN_OF_KNIVES: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Preparation — your next spell costs (3) less (simplified: no cost reduction — vanilla)
+/// Preparation — your next spell this turn costs (3) less (one-time flag,
+/// consumed by the first spell played, cleared at the turn end)
 pub const PREPARATION: CardDef = CardDef {
     id: "ROGUE_009",
     name: "Preparation",
@@ -306,7 +307,7 @@ pub const PREPARATION: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::NextSpellDiscount { amount: 3 }),
     deathrattle: None,
     taunt: false,
     stealth: false,
@@ -331,7 +332,8 @@ pub const PREPARATION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Cold Blood — +2 Attack; Combo: +4 instead (simplified: Combo branch only — no base +2)
+/// Cold Blood — give a minion +2 Attack; Combo: +4 instead
+/// (battlecry = base branch, combo_effect = combo branch)
 pub const COLD_BLOOD: CardDef = CardDef {
     id: "ROGUE_010",
     name: "Cold Blood",
@@ -340,7 +342,11 @@ pub const COLD_BLOOD: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::GainStats {
+        attack: 2,
+        health: 0,
+        target: EffectTarget::FriendlyMinion,
+    }),
     deathrattle: None,
     taunt: false,
     stealth: false,

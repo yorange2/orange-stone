@@ -220,6 +220,24 @@ pub enum CardEffect {
     },
     /// Discard a random card from hand
     DiscardRandomCard,
+    /// Discard the whole hand (Deathwing's battlecry — combined with the
+    /// destroy-all-other-minions part in DestroyAllOtherMinionsAndDiscardHand)
+    DiscardHand,
+    /// The next spell cast this turn costs this much less (Preparation)
+    NextSpellDiscount {
+        /// Discount amount
+        amount: i32,
+    },
+    /// Give the source's adjacent minions stats and Divine Shield (Defender
+    /// of Argus — +1/+1 and Divine Shield)
+    GrantAdjacentStatsAndDivineShield {
+        /// Attack gain
+        attack: i32,
+        /// Health gain
+        health: i32,
+    },
+    /// Destroy all other minions and discard your hand (Deathwing)
+    DestroyAllOtherMinionsAndDiscardHand,
     /// Deal damage equal to the friendly hero's armor to the target
     DealArmorDamage {
         /// Target selection
@@ -685,6 +703,15 @@ enum CardEffectDe {
         durability: i32,
     },
     DiscardRandomCard,
+    DiscardHand,
+    NextSpellDiscount {
+        amount: i32,
+    },
+    GrantAdjacentStatsAndDivineShield {
+        attack: i32,
+        health: i32,
+    },
+    DestroyAllOtherMinionsAndDiscardHand,
     DealArmorDamage {
         target: EffectTarget,
     },
@@ -966,6 +993,14 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 CardEffect::BuffWeapon { attack, durability }
             }
             CardEffectDe::DiscardRandomCard => CardEffect::DiscardRandomCard,
+            CardEffectDe::DiscardHand => CardEffect::DiscardHand,
+            CardEffectDe::NextSpellDiscount { amount } => CardEffect::NextSpellDiscount { amount },
+            CardEffectDe::GrantAdjacentStatsAndDivineShield { attack, health } => {
+                CardEffect::GrantAdjacentStatsAndDivineShield { attack, health }
+            }
+            CardEffectDe::DestroyAllOtherMinionsAndDiscardHand => {
+                CardEffect::DestroyAllOtherMinionsAndDiscardHand
+            }
             CardEffectDe::DealArmorDamage { target } => CardEffect::DealArmorDamage { target },
             CardEffectDe::DestroyWeaponAndDraw => CardEffect::DestroyWeaponAndDraw,
             CardEffectDe::ReturnAllToHand => CardEffect::ReturnAllToHand,

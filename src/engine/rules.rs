@@ -528,6 +528,11 @@ pub fn apply_event(
                 if is_minion {
                     p.minions_played_this_turn += 1;
                 }
+                // Preparation (W11): the discount is one-time — the first
+                // spell played consumes it (its cost already included it)
+                if card_type == Some(CardType::Spell) {
+                    p.next_spell_discount = 0;
+                }
             }
             // Detect combo: another card was played this turn (cards_played > 1 because it was just incremented)
             let combo_active = state.player(player).cards_played_this_turn > 1;
@@ -1523,6 +1528,8 @@ fn wrap_up_turn(state: &mut GameState) {
         p.died_this_turn.clear();
         // Millhouse Manastorm's zero-spell-cost window lasts one turn
         p.spells_cost_zero = false;
+        // Preparation's next-spell discount also expires at the turn end
+        p.next_spell_discount = 0;
         // Stack-buffered snapshot of entities holding expiring enchantments
         let expiring: SmallList<Entity> = inner
             .world

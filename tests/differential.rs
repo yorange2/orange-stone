@@ -4990,3 +4990,348 @@ fn w10_tracking_discards_rest() {
         "exactly one card came to hand"
     );
 }
+
+/// W11-1 Onyxia — Battlecry: summon five 1/1 Whelps.
+#[test]
+fn w11_onyxia_summons_whelps() {
+    use orange_stone::cards::def::ONYXIA;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &ONYXIA);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let card = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Onyxia in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let minions: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    assert_eq!(minions.len(), 6, "Onyxia + five Whelps");
+    let whelps: Vec<Entity> = minions
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EX1_170t"))
+        .collect();
+    assert_eq!(whelps.len(), 5, "five Whelps were summoned");
+    for w in &whelps {
+        assert_eq!(state.world().effective_attack(*w), Some(Attack(1)));
+        assert_eq!(state.world().effective_health(*w), Some(Health(1)));
+    }
+}
+
+/// W11-2 Defender of Argus — Battlecry: adjacent minions gain +1/+1 AND
+/// Divine Shield (the source itself is untouched).
+#[test]
+fn w11_defender_of_argus_buffs_adjacent() {
+    use orange_stone::cards::def::DEFENDER_OF_ARGUS;
+    let mut builder = GameBuilder::new();
+    let left = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let right = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &DEFENDER_OF_ARGUS);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let argus = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Argus in hand");
+    // Play Argus between the two minions (position 2 — the play zone's slot 0
+    // is the hero, so the minion slots start at 1: [hero, left, argus, right])
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: argus,
+                target: None,
+                position: Some(2),
+            },
+        )
+        .unwrap();
+    for neighbor in [left, right] {
+        assert_eq!(
+            state.world().effective_attack(neighbor),
+            Some(Attack(3)),
+            "the adjacent minion gained +1 Attack"
+        );
+        assert_eq!(
+            state.world().effective_health(neighbor),
+            Some(Health(3)),
+            "the adjacent minion gained +1 Health"
+        );
+        assert!(
+            state.world().divine_shield(neighbor).is_some(),
+            "the adjacent minion gained Divine Shield"
+        );
+    }
+    // The source itself is not buffed and has no shield
+    let argus_on_board = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CLASSIC_010")
+        })
+        .expect("Argus on the board");
+    assert_eq!(
+        state.world().effective_attack(argus_on_board),
+        Some(Attack(2))
+    );
+    assert_eq!(
+        state.world().effective_health(argus_on_board),
+        Some(Health(3))
+    );
+    assert!(state.world().divine_shield(argus_on_board).is_none());
+}
+
+/// W11-3 Deathwing — Battlecry: discard your hand and destroy all OTHER
+/// minions (Deathwing survives).
+#[test]
+fn w11_deathwing_discards_hand_and_destroys_others() {
+    use orange_stone::cards::def::{DEATHWING, WISP};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &DEATHWING);
+    builder.add_minion_to_hand(PlayerId1(), &WISP);
+    builder.add_minion_to_hand(PlayerId1(), &WISP);
+    let p2_minion = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    builder.add_minion_to_board(PlayerId2(), &WISP);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let card = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "LEGENDARY_011")
+        })
+        .expect("Deathwing in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The hand was discarded entirely (Deathwing moved to play)
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        0,
+        "the whole hand was discarded"
+    );
+    // Enemy minions are destroyed
+    assert_eq!(state.world().zone(p2_minion), Some(Zone::Graveyard));
+    // Deathwing survives
+    assert_eq!(state.world().zone(card), Some(Zone::Play));
+    assert_eq!(
+        state.world().effective_attack(card),
+        Some(Attack(12)),
+        "Deathwing is intact"
+    );
+}
+
+/// W11-4 Sea Giant — costs (1) less for each minion on the battlefield.
+#[test]
+fn w11_sea_giant_costs_by_board() {
+    use orange_stone::cards::def::SEA_GIANT;
+    use orange_stone::engine::cost::play_cost;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &SEA_GIANT);
+    builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    let mut state = builder.build();
+    let giant = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Sea Giant in hand");
+    // 2 friendly + 1 enemy = 3 minions → costs 7
+    assert_eq!(
+        play_cost(&state, giant, PlayerId1()),
+        orange_stone::core::component::Cost(7)
+    );
+    // The enemy minion dies → 2 minions → costs 8
+    let engine = GameEngine::new();
+    let p1_minion = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("friendly minion");
+    let p2_minion = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("enemy minion");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: p1_minion,
+                defender: p2_minion,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        play_cost(&state, giant, PlayerId1()),
+        orange_stone::core::component::Cost(8),
+        "one fewer minion → one more mana"
+    );
+}
+
+/// W11-5 Preparation — your next spell this turn costs (3) less; the flag is
+/// consumed by the first spell and expires at the turn end.
+#[test]
+fn w11_preparation_discounts_next_spell() {
+    use orange_stone::cards::def::{PREPARATION, SWIPE};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &PREPARATION);
+    builder.add_minion_to_hand(PlayerId1(), &SWIPE);
+    builder.add_minion_to_hand(PlayerId1(), &SWIPE);
+    builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    // Preparation (0 cost)
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // First spell: 4 − 3 = 1
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId1()).current_mana,
+        9,
+        "the discounted spell cost 1 (4 − 3) out of the 10 mana"
+    );
+    // Second spell in the same turn: the discount was consumed → full 4
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId1()).current_mana,
+        5,
+        "the second spell cost its full 4 mana"
+    );
+}
+
+/// W11-6 Cold Blood — +2 Attack; Combo: +4 instead. The base branch fires
+/// when it is the first card of the turn, the combo branch on the second.
+#[test]
+fn w11_cold_blood_base_and_combo() {
+    use orange_stone::cards::def::COLD_BLOOD;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &COLD_BLOOD);
+    builder.add_minion_to_hand(PlayerId1(), &COLD_BLOOD);
+    let wisp = builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    // Base branch: +2 (first card of the turn — no combo)
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: Some(wisp),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(wisp),
+        Some(Attack(3)),
+        "the base branch granted +2 Attack"
+    );
+    // Combo branch: +4 (second card of the turn)
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: Some(wisp),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(wisp),
+        Some(Attack(7)),
+        "the combo branch granted +4 Attack instead of +2"
+    );
+}
