@@ -248,12 +248,14 @@ trigger classes complete: `CharacterHealed`, `Attacked`, `CardPlayed`,
 `SecretPlayed`, `MinionDied` (any) + destroy-secret effects (W2) /
 hand-zone cost auras (`IncreaseMinionCost` / `IncreaseMinionCostFriendly`) +
 weapon-attack cost reduction + weapon-durability damage + `ChargeWithWeapon`
-conditional Charge + enemy-spells-cost-0 + give-opponent-mana (W4).
+conditional Charge + enemy-spells-cost-0 + give-opponent-mana (W4) /
+set-health-to-1 (Repentance), swap attack/health (Crazed Alchemist),
+adjacent-target buff/freeze (Sunfury Protector / Ancient Mage / Cone of Cold),
+two-effect composition (Mass Dispel, Ancestral Healing) (W5).
 
 **Missing** (primitives first, per the Review-II "do G before F4/F5" discipline):
-1. effects: set-health-to-1, swap attack/health, mass Divine Shield,
-   adjacent-target buff/freeze, two-random damage, this-turn temp buff,
-   probabilistic effects — §5, §7, §8, §9
+1. effects: mass Divine Shield, two-random damage, this-turn temp buff,
+   probabilistic effects — §7, §8, §9
 
 ## F5 verification per fix
 

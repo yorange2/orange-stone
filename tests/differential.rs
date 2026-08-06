@@ -3003,3 +3003,326 @@ fn w4_arcane_golem_gives_opponent_crystal() {
     );
     assert_eq!(state.world().effective_charge(golem), true);
 }
+
+// ============================================================
+// Wave 5 — target structure & effect composition
+// (fidelity-debt-roadmap W5): set-health-to, swap, adjacent
+// targets, combined effects.
+// ============================================================
+
+/// W5-1 Repentance — Secret: when the opponent plays a minion, set its
+/// Health to 1.
+#[test]
+fn w5_repentance_sets_played_minion_health_to_1() {
+    use orange_stone::cards::def::REPENTANCE;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &REPENTANCE);
+    builder.add_custom_minion_to_hand(PlayerId2(), 4, 5, 4);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.set_mana(PlayerId2(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let repentance = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("repentance in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: repentance,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    state.set_active_player(PlayerId2());
+    let minion = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .next()
+        .expect("minion in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: minion,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(minion),
+        Some(Health(1)),
+        "the secret set the played minion's health to 1"
+    );
+    assert_eq!(
+        state.world().effective_attack(minion),
+        Some(Attack(4)),
+        "attack is untouched"
+    );
+}
+
+/// W5-2 Mass Dispel — Silence all enemy minions, draw a card.
+#[test]
+fn w5_mass_dispel_silences_all_enemy_minions() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, MASS_DISPEL, TAUREN_WARRIOR};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId2(), &TAUREN_WARRIOR);
+    builder.add_minion_to_hand(PlayerId1(), &MASS_DISPEL);
+    builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let tauren = find_entity(&state, PlayerId2(), "NEUTRAL_C11");
+    // Damage the tauren so the silence is observable (enrage buff would apply
+    // on damage, then silence removes it)
+    let attacker = {
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_health(e, Health(1));
+        world.set_attack(e, Attack(1));
+        world.set_cost(e, orange_stone::core::component::Cost(1));
+        world.set_card_type(e, CardType::Minion);
+        world.set_player(e, PlayerId1());
+        world.set_attacks_used(e, orange_stone::core::component::AttacksUsed(0));
+        world.set_zone(e, Zone::Play);
+        world.zones_mut().insert(Zone::Play, PlayerId1(), e);
+        e
+    };
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: tauren,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(tauren), Some(Attack(5)));
+    let dispel = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("dispel in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: dispel,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(tauren),
+        Some(Attack(2)),
+        "silence removed the enrage buff"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        1,
+        "Mass Dispel drew a card"
+    );
+}
+
+/// W5-3 Crazed Alchemist — Battlecry: swap a minion's Attack and Health.
+#[test]
+fn w5_crazed_alchemist_swaps_stats() {
+    use orange_stone::cards::def::CRAZED_ALCHEMIST;
+    let mut builder = GameBuilder::new();
+    builder.with_rng_seed(1);
+    let target = builder.add_custom_minion_to_board(PlayerId2(), 1, 5, 5);
+    builder.add_minion_to_hand(PlayerId1(), &CRAZED_ALCHEMIST);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let alchemist = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("alchemist in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: alchemist,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The only non-alchemist candidate: 1/5 becomes 5/1 (pinned by seed)
+    assert_eq!(state.world().effective_attack(target), Some(Attack(5)));
+    assert_eq!(state.world().effective_health(target), Some(Health(1)));
+}
+
+/// W5-4 Cone of Cold — Freeze a minion and its neighbors.
+#[test]
+fn w5_cone_of_cold_freezes_adjacent() {
+    use orange_stone::cards::def::CONE_OF_COLD;
+    let mut builder = GameBuilder::new();
+    builder.with_rng_seed(5);
+    let a = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    let b = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    let c = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    builder.add_minion_to_hand(PlayerId1(), &CONE_OF_COLD);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let cone = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("cone in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: cone,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // With three enemy minions, the middle one is always picked (pinned by
+    // seed): all three freeze — the middle and both neighbors.
+    let frozen = [a, b, c]
+        .iter()
+        .filter(|&&e| state.world().freeze(e).is_some())
+        .count();
+    assert_eq!(frozen, 3, "the picked minion and both neighbors freeze");
+}
+
+/// W5-5 Sunfury Protector — Battlecry: give adjacent minions Taunt.
+#[test]
+fn w5_sunfury_protector_taunts_adjacent() {
+    use orange_stone::cards::def::SUNFURY_PROTECTOR;
+    let mut builder = GameBuilder::new();
+    let left = builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    let right = builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    builder.add_minion_to_hand(PlayerId1(), &SUNFURY_PROTECTOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let protector = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("protector in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: protector,
+                target: None,
+                position: Some(2), // between left and right (the hero occupies zone position 0)
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().taunt(left).is_some(), true);
+    assert_eq!(state.world().taunt(right).is_some(), true);
+    assert_eq!(
+        state.world().taunt(protector).is_some(),
+        false,
+        "the protector does not taunt itself"
+    );
+}
+
+/// W5-6 Ancient Mage — Battlecry: give adjacent minions Spell Damage +1.
+#[test]
+fn w5_ancient_mage_gives_adjacent_spell_damage() {
+    use orange_stone::cards::def::ANCIENT_MAGE;
+    let mut builder = GameBuilder::new();
+    let left = builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    let right = builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    builder.add_minion_to_hand(PlayerId1(), &ANCIENT_MAGE);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let mage = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("mage in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: mage,
+                target: None,
+                position: Some(2), // between left and right (the hero occupies zone position 0)
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().spell_damage(left).map(|s| s.0), Some(1));
+    assert_eq!(state.world().spell_damage(right).map(|s| s.0), Some(1));
+    assert_eq!(state.world().spell_damage(mage).is_none(), true);
+}
+
+/// W5-7 Ancestral Healing — restore a minion to full Health and give it
+/// Taunt.
+#[test]
+fn w5_ancestral_healing_full_heals_and_taunts() {
+    use orange_stone::cards::def::ANCESTRAL_HEALING;
+    let mut builder = GameBuilder::new();
+    let damaged = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &ANCESTRAL_HEALING);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Damage the friendly minion (enemy attacks it)
+    let attacker = {
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_health(e, Health(1));
+        world.set_attack(e, Attack(1));
+        world.set_cost(e, orange_stone::core::component::Cost(1));
+        world.set_card_type(e, CardType::Minion);
+        world.set_player(e, PlayerId2());
+        world.set_attacks_used(e, orange_stone::core::component::AttacksUsed(0));
+        world.set_zone(e, Zone::Play);
+        world.zones_mut().insert(Zone::Play, PlayerId2(), e);
+        e
+    };
+    state.set_active_player(PlayerId2());
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: damaged,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(damaged), Some(Health(1)));
+    state.set_active_player(PlayerId1());
+    let heal = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("ancestral healing in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: heal,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(damaged), Some(Health(2)));
+    assert_eq!(state.world().taunt(damaged).is_some(), true);
+}

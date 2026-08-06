@@ -57,6 +57,8 @@ pub enum EffectTarget {
     DamagedFriendlyMinion,
     /// A random damaged minion on either side (Rampage)
     DamagedMinion,
+    /// A random minion on either side (Crazed Alchemist, Ancestral Healing)
+    AnyMinion,
 }
 
 /// Card effect — an action executed when triggered.
@@ -498,6 +500,36 @@ pub enum CardEffect {
         /// Number of crystals
         count: i32,
     },
+    /// Set a played enemy minion's health to a value (Repentance — 1);
+    /// resolved with the secret event's played minion
+    SetPlayedMinionHealth {
+        /// Health value the minion is set to
+        health: i32,
+    },
+    /// Silence all enemy minions and draw cards (Mass Dispel)
+    SilenceAllEnemyMinionsAndDraw {
+        /// Number of cards to draw
+        count: u32,
+    },
+    /// Swap a minion's Attack and Health (Crazed Alchemist)
+    SwapAttackAndHealth {
+        /// Target scope
+        target: EffectTarget,
+    },
+    /// Freeze a random enemy minion and its neighbors (Cone of Cold)
+    FreezeAdjacent,
+    /// Give the source's adjacent minions Taunt (Sunfury Protector)
+    GrantAdjacentTaunt,
+    /// Give the source's adjacent minions Spell Damage (Ancient Mage)
+    GrantAdjacentSpellDamage {
+        /// Spell damage granted
+        amount: i32,
+    },
+    /// Restore a minion to full Health and give it Taunt (Ancestral Healing)
+    FullHealAndTaunt {
+        /// Target scope
+        target: EffectTarget,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -746,6 +778,23 @@ enum CardEffectDe {
     EnemySpellsCostZero,
     GiveOpponentManaCrystal {
         count: i32,
+    },
+    SetPlayedMinionHealth {
+        health: i32,
+    },
+    SilenceAllEnemyMinionsAndDraw {
+        count: u32,
+    },
+    SwapAttackAndHealth {
+        target: EffectTarget,
+    },
+    FreezeAdjacent,
+    GrantAdjacentTaunt,
+    GrantAdjacentSpellDamage {
+        amount: i32,
+    },
+    FullHealAndTaunt {
+        target: EffectTarget,
     },
 }
 
@@ -998,6 +1047,21 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::GiveOpponentManaCrystal { count } => {
                 CardEffect::GiveOpponentManaCrystal { count }
             }
+            CardEffectDe::SetPlayedMinionHealth { health } => {
+                CardEffect::SetPlayedMinionHealth { health }
+            }
+            CardEffectDe::SilenceAllEnemyMinionsAndDraw { count } => {
+                CardEffect::SilenceAllEnemyMinionsAndDraw { count }
+            }
+            CardEffectDe::SwapAttackAndHealth { target } => {
+                CardEffect::SwapAttackAndHealth { target }
+            }
+            CardEffectDe::FreezeAdjacent => CardEffect::FreezeAdjacent,
+            CardEffectDe::GrantAdjacentTaunt => CardEffect::GrantAdjacentTaunt,
+            CardEffectDe::GrantAdjacentSpellDamage { amount } => {
+                CardEffect::GrantAdjacentSpellDamage { amount }
+            }
+            CardEffectDe::FullHealAndTaunt { target } => CardEffect::FullHealAndTaunt { target },
         })
     }
 }

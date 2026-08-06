@@ -593,6 +593,31 @@ pub fn resolve_effect(
             let p = &mut inner.players[owner.opponent().index()];
             p.mana_crystals = (p.mana_crystals + count).min(10);
         }
+        CardEffect::SetPlayedMinionHealth { .. } => {
+            // Secret-context effect — resolved by the secret system with the
+            // played minion (Repentance)
+        }
+        CardEffect::SilenceAllEnemyMinionsAndDraw { count } => {
+            resolve_silence(state, owner, EffectTarget::AllEnemyMinions, None);
+            for _ in 0..count {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::SwapAttackAndHealth { target } => {
+            resolve_swap_attack_health(state, owner, target, explicit_target);
+        }
+        CardEffect::FreezeAdjacent => {
+            resolve_freeze_adjacent(state, owner);
+        }
+        CardEffect::GrantAdjacentTaunt => {
+            resolve_grant_adjacent_taunt(state, source, owner);
+        }
+        CardEffect::GrantAdjacentSpellDamage { amount } => {
+            resolve_grant_adjacent_spell_damage(state, source, owner, amount);
+        }
+        CardEffect::FullHealAndTaunt { target } => {
+            resolve_full_heal_and_taunt(state, owner, target, explicit_target);
+        }
         CardEffect::GainStatsPerHandCard {
             attack,
             health_per_card,
@@ -890,7 +915,8 @@ fn resolve_deal_damage(
         | EffectTarget::EnemyMinionAttackLE(_)
         | EffectTarget::AnyMinionAttackGE(_)
         | EffectTarget::DamagedFriendlyMinion
-        | EffectTarget::DamagedMinion => {
+        | EffectTarget::DamagedMinion
+        | EffectTarget::AnyMinion => {
             return;
         }
     };
@@ -1091,6 +1117,132 @@ fn resolve_remove_weapon_durability(
             .world_mut()
             .set_durability(weapon, Durability(new_dur));
     }
+}
+
+/// Swaps a minion's Attack and Health (Crazed Alchemist) — expressed as
+/// enchantment deltas so the swap survives and stacks on the base stats.
+fn resolve_swap_attack_health(
+    state: &mut GameState,
+    owner: PlayerId,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+) {
+    let mut minions = collect_friendly_minions(state, owner);
+    minions.extend(collect_all_enemy_minions(state, owner));
+    let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
+        return;
+    };
+    let Some(atk) = state.world().effective_attack(m) else {
+        return;
+    };
+    let Some(hp) = state.world().effective_health(m) else {
+        return;
+    };
+    let base_atk = state.world().attack(m).unwrap_or(Attack(0)).0;
+    let base_hp = state.world().health(m).unwrap_or(Health(0)).0;
+    let world = state.world_mut();
+    world.remove_enchantments(m);
+    world.remove_damage(m);
+    world.add_enchantment(
+        m,
+        Enchantment {
+            attack: hp.0 - base_atk,
+            health: atk.0 - base_hp,
+            cost: 0,
+            expiry: EnchantmentExpiry::Permanent,
+        },
+    );
+}
+
+/// Freezes a random enemy minion and its neighbors (Cone of Cold).
+fn resolve_freeze_adjacent(state: &mut GameState, owner: PlayerId) {
+    let minions = collect_enemy_minions(state, owner, None);
+    if minions.is_empty() {
+        return;
+    }
+    let idx = state.rng_mut().next_usize(minions.len());
+    let target = minions[idx];
+    let enemy = owner.opponent();
+    let board: SmallList<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, enemy)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    let Some(pos) = board.iter().position(|&e| e == target) else {
+        return;
+    };
+    state.world_mut().set_freeze(target, Freeze);
+    if let Some(&left) = board.get(pos.wrapping_sub(1)) {
+        state.world_mut().set_freeze(left, Freeze);
+    }
+    if let Some(&right) = board.get(pos + 1) {
+        state.world_mut().set_freeze(right, Freeze);
+    }
+}
+
+/// Gives the source's adjacent minions Taunt (Sunfury Protector).
+fn resolve_grant_adjacent_taunt(state: &mut GameState, source: Entity, owner: PlayerId) {
+    let board: SmallList<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, owner)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    let Some(pos) = board.iter().position(|&e| e == source) else {
+        return;
+    };
+    for neighbor in [pos.wrapping_sub(1), pos + 1] {
+        if let Some(&n) = board.get(neighbor) {
+            state
+                .world_mut()
+                .set_taunt(n, crate::core::component::Taunt);
+        }
+    }
+}
+
+/// Gives the source's adjacent minions Spell Damage (Ancient Mage).
+fn resolve_grant_adjacent_spell_damage(
+    state: &mut GameState,
+    source: Entity,
+    owner: PlayerId,
+    amount: i32,
+) {
+    let board: SmallList<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, owner)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    let Some(pos) = board.iter().position(|&e| e == source) else {
+        return;
+    };
+    for neighbor in [pos.wrapping_sub(1), pos + 1] {
+        if let Some(&n) = board.get(neighbor) {
+            let cur = state.world().spell_damage(n).map_or(0, |s| s.0);
+            state
+                .world_mut()
+                .set_spell_damage(n, crate::core::component::SpellDamage(cur + amount));
+        }
+    }
+}
+
+/// Restores a minion to full Health and gives it Taunt (Ancestral Healing).
+fn resolve_full_heal_and_taunt(
+    state: &mut GameState,
+    owner: PlayerId,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+) {
+    let mut minions = collect_friendly_minions(state, owner);
+    minions.extend(collect_all_enemy_minions(state, owner));
+    let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
+        return;
+    };
+    state.world_mut().remove_damage(m);
+    state
+        .world_mut()
+        .set_taunt(m, crate::core::component::Taunt);
 }
 
 /// Destroys up to `limit` random enemy Secrets (SI:7 Infiltrator — one;
@@ -1583,6 +1735,7 @@ fn resolve_silence(
 ) {
     let minions: SmallList<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner, None),
+        EffectTarget::AllEnemyMinions => collect_all_enemy_minions(state, owner),
         EffectTarget::AllMinions => {
             let mut all = collect_friendly_minions(state, owner);
             all.extend(collect_all_enemy_minions(state, owner));

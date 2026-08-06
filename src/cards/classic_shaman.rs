@@ -732,7 +732,7 @@ pub const WINDSPEAKER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Ancestral Healing — restore a minion to full Health and give it Taunt (simplified: heal + Taunt)
+/// Ancestral Healing — restore a minion to full Health and give it Taunt
 pub const ANCESTRAL_HEALING: CardDef = CardDef {
     id: "SHAMAN_018",
     name: "Ancestral Healing",
@@ -741,8 +741,8 @@ pub const ANCESTRAL_HEALING: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::FullHeal {
-        target: EffectTarget::FriendlyMinion,
+    battlecry: Some(CardEffect::FullHealAndTaunt {
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,

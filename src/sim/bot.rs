@@ -1242,6 +1242,13 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::GainAttackEqualToWeapon => 2.0,
         CardEffect::EnemySpellsCostZero => 2.0,
         CardEffect::GiveOpponentManaCrystal { .. } => 0.5,
+        CardEffect::SetPlayedMinionHealth { .. } => 2.0,
+        CardEffect::SilenceAllEnemyMinionsAndDraw { count } => 3.0 + count as f64 * 3.0,
+        CardEffect::SwapAttackAndHealth { .. } => 1.5,
+        CardEffect::FreezeAdjacent => 1.5,
+        CardEffect::GrantAdjacentTaunt => 1.0,
+        CardEffect::GrantAdjacentSpellDamage { .. } => 1.0,
+        CardEffect::FullHealAndTaunt { .. } => 2.0,
     }
 }
 

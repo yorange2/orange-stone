@@ -758,7 +758,7 @@ pub const SWORD_OF_JUSTICE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Repentance — Secret: when your opponent plays a minion, set its Health to 1 (simplified: DealDamage)
+/// Repentance — Secret: when your opponent plays a minion, set its Health to 1
 pub const REPENTANCE: CardDef = CardDef {
     id: "EX1_349",
     name: "Repentance",
@@ -767,7 +767,7 @@ pub const REPENTANCE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::SetPlayedMinionHealth { health: 1 }),
     deathrattle: None,
     taunt: false,
     stealth: false,

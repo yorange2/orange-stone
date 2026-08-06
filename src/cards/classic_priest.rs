@@ -577,7 +577,7 @@ pub const KUL_TIRAN_CHAPLAIN: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Mass Dispel — Silence all enemy minions, draw a card (simplified: Silence one random enemy minion)
+/// Mass Dispel — Silence all enemy minions, draw a card
 pub const MASS_DISPEL: CardDef = CardDef {
     id: "PRIEST_018",
     name: "Mass Dispel",
@@ -586,9 +586,8 @@ pub const MASS_DISPEL: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::SilenceMinion {
-        target: EffectTarget::AllEnemyMinions,
-    }),
+    battlecry: Some(CardEffect::SilenceAllEnemyMinionsAndDraw { count: 1 }),
+
     deathrattle: None,
     taunt: false,
     stealth: false,
