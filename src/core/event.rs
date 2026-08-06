@@ -242,6 +242,14 @@ impl EventQueue {
     /// `ResolveAttack` resolution time, so replacing the event's defender fully redirects it
     /// (the new target's automatic retaliation is handled by the resolution logic).
     /// Returns whether a matching attack was found and redirected.
+    /// Removes every event matching the predicate (Ice Block drops the pending
+    /// GameOver when it prevents a fatal hit).
+    pub fn retain(&mut self, mut keep: impl FnMut(&Event) -> bool) {
+        for bucket in &mut self.buckets {
+            bucket.retain(&mut keep);
+        }
+    }
+
     pub fn redirect_attack(
         &mut self,
         attacker: Entity,

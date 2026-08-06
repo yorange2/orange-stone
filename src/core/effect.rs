@@ -356,6 +356,9 @@ pub enum CardEffect {
         /// Attack bonus
         attack: i32,
     },
+    /// Prevent the fatal damage that triggered this secret and become Immune
+    /// until the end of the turn (Ice Block — the hero survives at 1 health)
+    PreventFatalDamageAndImmune,
     /// Temporarily take control of an enemy minion until end of turn (Shadow Madness, attack ≤ 3)
     TakeControlUntilEndOfTurn,
     /// Permanently take control of an enemy minion (Mind Control)
@@ -745,6 +748,7 @@ enum CardEffectDe {
     GrantAttackAndImmune {
         attack: i32,
     },
+    PreventFatalDamageAndImmune,
     TakeControlUntilEndOfTurn,
     TakeControl,
     Corrupt,
@@ -1021,6 +1025,7 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::GrantAttackAndImmune { attack } => {
                 CardEffect::GrantAttackAndImmune { attack }
             }
+            CardEffectDe::PreventFatalDamageAndImmune => CardEffect::PreventFatalDamageAndImmune,
             CardEffectDe::TakeControlUntilEndOfTurn => CardEffect::TakeControlUntilEndOfTurn,
             CardEffectDe::TakeControl => CardEffect::TakeControl,
             CardEffectDe::Corrupt => CardEffect::Corrupt,

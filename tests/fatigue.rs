@@ -201,3 +201,100 @@ fn opening_and_mulligan_draws_never_fatigue() {
     assert_eq!(state.player(PlayerId::Player1).fatigue, 1);
     assert_eq!(state.player(PlayerId::Player2).fatigue, 1);
 }
+
+#[test]
+fn ice_block_prevents_fatigue_lethal_and_game_continues() {
+    use orange_stone::core::component::{Secret, SecretTrigger};
+    use orange_stone::core::effect::CardEffect;
+    let engine = GameEngine::new();
+    let mut builder = GameBuilder::new();
+    builder.hero_health(PlayerId::Player2, 1);
+    let p2_hero = builder.state_mut().player(PlayerId::Player2).hero;
+    // A played secret sits in SetAside — attach the component to a spawned
+    // entity and move it there (the secret system only scans SetAside)
+    let secret_entity = builder.add_custom_minion_to_board(PlayerId::Player2, 1, 1, 1);
+    builder.set_secret_on_entity(
+        secret_entity,
+        Secret {
+            trigger: SecretTrigger::WhenFriendlyHeroFatallyDamaged,
+            effect: Some(CardEffect::PreventFatalDamageAndImmune),
+        },
+    );
+    {
+        let world = builder.state_mut().world_mut();
+        let _ = world.move_to_zone(secret_entity, Zone::SetAside);
+    }
+    let mut state = builder.build();
+
+    // EndTurn → P2's DrawStep fatigues for 1 — lethal, but Ice Block saves her
+    let log = engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert!(
+        log.iter()
+            .any(|e| matches!(e, Event::SecretRevealed { .. }))
+    );
+    assert!(!log.iter().any(|e| matches!(e, Event::GameOver { .. })));
+    assert_eq!(hero_hp(&state, PlayerId::Player2), 1);
+    assert!(
+        state.world().immune(p2_hero).is_some(),
+        "the hero becomes Immune"
+    );
+    assert_eq!(state.step(), Step::Main);
+
+    // The secret is spent — the next fatigue hit kills the hero
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.step(),
+        Step::GameOver {
+            winner: PlayerId::Player1
+        }
+    );
+}
+
+#[test]
+fn battle_with_tiny_decks_ends_with_a_fatigue_winner() {
+    use orange_stone::sim::battle::{BattleRunner, BotType};
+    // Deck 1: the opening deal empties the decks, then every turn draw
+    // fatigues — the battle must end with a real winner well before the
+    // 60-turn cap (previously a deck-draining battle stalled forever)
+    let mut runner = BattleRunner::new(BotType::Smart, 7);
+    let result = runner.run_battle(1);
+    assert!(
+        result.winner.is_some(),
+        "a deck-draining battle must end with a real winner, not the turn cap"
+    );
+    assert!(
+        result.turns < 60,
+        "fatigue ends the battle well before the turn cap (turns = {})",
+        result.turns
+    );
+}
+
+#[test]
+fn fatigue_is_deterministic_across_same_seed_replays() {
+    // Fatigue uses no RNG — two identical same-seed states replay
+    // byte-identically through the empty-deck draws
+    let engine = GameEngine::new();
+    let build = |seed: u64| {
+        let mut builder = GameBuilder::new();
+        builder.with_rng_seed(seed);
+        builder.build()
+    };
+    let mut s1 = build(42);
+    let mut s2 = build(42);
+    let mut logs1 = Vec::new();
+    let mut logs2 = Vec::new();
+    for _ in 0..6 {
+        logs1.push(engine.apply(&mut s1, Action::EndTurn).unwrap());
+        logs2.push(engine.apply(&mut s2, Action::EndTurn).unwrap());
+    }
+    assert_eq!(logs1, logs2, "the fatigue replay must be identical");
+    assert_eq!(
+        hero_hp(&s1, PlayerId::Player2),
+        hero_hp(&s2, PlayerId::Player2)
+    );
+    assert_eq!(
+        s1.player(PlayerId::Player2).fatigue,
+        s2.player(PlayerId::Player2).fatigue
+    );
+}
