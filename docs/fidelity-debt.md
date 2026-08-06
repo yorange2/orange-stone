@@ -2,7 +2,7 @@
 
 > **Status: 18 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
 > W0 wiring pass PR #79 cleared 13; W1 race pass PR #80 cleared 11; W2 triggers PR #81 cleared 8;
-> W3 predicates PR #82 cleared 9; W4 cost/weapon PR #84 cleared 8).
+> W3 predicates PR #82 cleared 9; W4 cost/weapon PR #83 cleared 8).
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
@@ -58,7 +58,7 @@
 > absorb (`AbsorbDivineShields` Blood Knight — +3/+3 per shield, both sides).
 > 9 scenarios in `tests/differential.rs` (`w3_*`).
 >
-> **2026-08-06 W4 cost/weapon pass (PR #84)**: all 8 cost & weapon cards
+> **2026-08-06 W4 cost/weapon pass (PR #83)**: all 8 cost & weapon cards
 > landed — hand-zone cost auras (`IncreaseMinionCost` Mana Wraith — both
 > players; `IncreaseMinionCostFriendly` Venture Co. — own minions only; both
 > stack on the G5 modifier stack), weapon-attack cost reduction (Dread Corsair
@@ -141,7 +141,7 @@ used by Cleave; Multi-Shot is faithful but its comment is stale, see §10).
 | NEUTRAL_R18 | Ancient Mage | vanilla | Battlecry: give adjacent minions Spell Damage +1 | adjacent-target spell-damage buff |
 | NEUTRAL_R08 | Crazed Alchemist | vanilla | Battlecry: swap a minion's Attack and Health | swap effect (missing; only Set/Double variants) |
 
-### 6. Cost & weapon-condition auras (8) ✅ resolved (W4, PR #84)
+### 6. Cost & weapon-condition auras (8) ✅ resolved (W4, PR #83)
 
 All landed: hand-zone cost auras (global / own), weapon-attack cost reduction,
 weapon-durability damage, weapon-equipped predicate (conditional Charge),

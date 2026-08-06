@@ -1,6 +1,6 @@
 # Fidelity-Debt Implementation Roadmap — the 67 simplified cards
 
-> **Status: W4 done (PR #84); W5 next.** This roadmap executes the F4-ongoing /
+> **Status: W4 done (PR #83); W5 next.** This roadmap executes the F4-ongoing /
 > F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
 > [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
@@ -204,7 +204,7 @@ verified); RL pool grows by 8 (346 → 354).
 | NEUTRAL_E05 | Blood Knight | Destroy all Divine Shields, +3/+3 each | `w3_blood_knight_absorbs_all_divine_shields` |
 
 **Acceptance**: 9 differential scenarios; RL pool grows by 9 (354 → 363).
-## Wave 4 — Cost & weapon interactions (8 cards) ✅ done (PR #84)
+## Wave 4 — Cost & weapon interactions (8 cards) ✅ done (PR #83)
 
 **Primitives** — all landed:
 - Hand-zone cost auras: `AuraEffect::IncreaseMinionCost` (Mana Wraith — ALL
@@ -309,7 +309,7 @@ constructible size; final sweep + full SabberStone parity run.
 | W1 race ✅ PR #80 | 11 | race field + targets/auras/triggers + field-driven pools | +11 → **346** |
 | W2 triggers ✅ PR #81 | 8 | 5 trigger classes + destroy-secret | +8 → **354** |
 | W3 predicates ✅ PR #82 | 9 | attack-range/hand-size/health/damaged/secret/first-minion/shield predicates | +9 → **363** |
-| W4 cost/weapon ✅ PR #84 | 8 | cost auras/weapon-attack cost/durability/conditional charge/spells-0/mana gift | +8 → **371** |
+| W4 cost/weapon ✅ PR #83 | 8 | cost auras/weapon-attack cost/durability/conditional charge/spells-0/mana gift | +8 → **371** |
 | W5 target structure | 7 | 5+ primitives | +7 |
 | W6 special mechanics | 8 | 6 primitives | +8 |
 | W7 wrap-up | 3 | 3 primitives | +3 |
