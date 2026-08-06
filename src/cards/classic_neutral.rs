@@ -3003,8 +3003,39 @@ pub const WILD_PYROMANCER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Alarm-o-Bot — swap a hand minion at start of turn (simplified: vanilla)
-pub const ALARM_O_BOT: CardDef = vanilla!("NEUTRAL_R13", "Alarm-o-Bot", 3, 0, 3);
+/// Alarm-o-Bot — at the start of your turn, swap this with a random hand minion
+pub const ALARM_O_BOT: CardDef = CardDef {
+    id: "NEUTRAL_R13",
+    name: "Alarm-o-Bot",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 0,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: Some(CardEffect::SwapWithHandMinion),
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Arcane Golem — Charge; Battlecry: give your opponent a Mana Crystal
 pub const ARCANE_GOLEM: CardDef = CardDef {
     id: "NEUTRAL_R14",

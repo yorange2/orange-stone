@@ -1258,6 +1258,8 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         }
         CardEffect::DrawAndDamageByCost => 4.0,
         CardEffect::RestoreDamagedFriendly { amount } => amount as f64 * 0.6,
+        CardEffect::SwapWithHandMinion => 2.0,
+        CardEffect::ResurrectDiedMinion => 2.0,
     }
 }
 

@@ -568,6 +568,11 @@ pub enum CardEffect {
         /// Amount to restore
         amount: i32,
     },
+    /// Swap this minion with a random minion in your hand (Alarm-o-Bot)
+    SwapWithHandMinion,
+    /// Resummon the minion that just died with 1 Health (Redemption — a
+    /// secret effect resolved with the death event)
+    ResurrectDiedMinion,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -854,6 +859,8 @@ enum CardEffectDe {
     RestoreDamagedFriendly {
         amount: i32,
     },
+    SwapWithHandMinion,
+    ResurrectDiedMinion,
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -1139,6 +1146,8 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::RestoreDamagedFriendly { amount } => {
                 CardEffect::RestoreDamagedFriendly { amount }
             }
+            CardEffectDe::SwapWithHandMinion => CardEffect::SwapWithHandMinion,
+            CardEffectDe::ResurrectDiedMinion => CardEffect::ResurrectDiedMinion,
         })
     }
 }

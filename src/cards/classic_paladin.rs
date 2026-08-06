@@ -820,7 +820,7 @@ pub const BLESSING_OF_WISDOM: CardDef = CardDef {
 };
 
 /// Eye for an Eye — Secret: when your hero takes damage, deal equal damage to the enemy hero
-/// (simplified: secret trigger only, no effect — damage-reflection not implemented)
+/// Eye for an Eye — Secret: when your hero takes damage, deal the same amount to the enemy hero
 pub const EYE_FOR_AN_EYE: CardDef = CardDef {
     id: "PALADIN_020",
     name: "Eye for an Eye",
@@ -829,7 +829,7 @@ pub const EYE_FOR_AN_EYE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::ReflectDamage),
     deathrattle: None,
     taunt: false,
     stealth: false,
@@ -837,7 +837,7 @@ pub const EYE_FOR_AN_EYE: CardDef = CardDef {
     race: None,
     hero_power: None,
     aura: None,
-    secret: Some(SecretTrigger::AfterFriendlyAttacked),
+    secret: Some(SecretTrigger::WhenFriendlyHeroDamaged),
     divine_shield: false,
     windfury: false,
     charge: false,
@@ -855,7 +855,7 @@ pub const EYE_FOR_AN_EYE: CardDef = CardDef {
 };
 
 /// Redemption — Secret: when a friendly minion dies, resummon it with 1 Health
-/// (simplified: secret trigger only, no effect — 1-Health resummon not implemented)
+/// Redemption — Secret: when a friendly minion dies, resummon it with 1 Health
 pub const REDEMPTION: CardDef = CardDef {
     id: "PALADIN_021",
     name: "Redemption",
@@ -864,7 +864,7 @@ pub const REDEMPTION: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::ResurrectDiedMinion),
     deathrattle: None,
     taunt: false,
     stealth: false,

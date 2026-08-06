@@ -317,6 +317,8 @@ pub enum SecretTrigger {
     WhenEnemyAttacks,
     /// When a friendly minion takes damage (Snake Trap-type secrets)
     WhenFriendlyMinionDamaged,
+    /// When the friendly hero takes damage (Eye for an Eye)
+    WhenFriendlyHeroDamaged,
 }
 
 /// Divine Shield — absorbs one instance of damage, then disappears.
