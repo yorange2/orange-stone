@@ -245,6 +245,22 @@ pub enum AuraEffect {
         /// Cost reduction for the first minion played this turn
         amount: i32,
     },
+    /// Hand-cost increase for ALL minions (Mana Wraith — all minions cost 1
+    /// more; affects both players' hands). Consulted by
+    /// `World::effective_cost`.
+    IncreaseMinionCost {
+        /// Cost increase
+        amount: i32,
+    },
+    /// Hand-cost increase for the OWNER's minions only (Venture Co.
+    /// Mercenary — your minions cost 3 more).
+    IncreaseMinionCostFriendly {
+        /// Cost increase
+        amount: i32,
+    },
+    /// Conditional Charge marker (Southsea Deckhand — has Charge while you
+    /// have a weapon equipped). Consulted by `World::effective_charge`.
+    ChargeWithWeapon,
 }
 
 /// Aura target scope.

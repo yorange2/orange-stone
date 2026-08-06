@@ -537,7 +537,7 @@ pub const THE_BLACK_KNIGHT: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Millhouse Manastorm — 2-cost 4/4, Battlecry: enemy spells cost 0 next turn (simplified: no drawback)
+/// Millhouse Manastorm — Battlecry: enemy spells cost 0 next turn
 pub const MILLHOUSE_MANASTORM: CardDef = CardDef {
     id: "LEGENDARY_021",
     name: "Millhouse Manastorm",
@@ -546,7 +546,7 @@ pub const MILLHOUSE_MANASTORM: CardDef = CardDef {
     attack: 4,
     health: 4,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::EnemySpellsCostZero),
     deathrattle: None,
     taunt: false,
     stealth: false,

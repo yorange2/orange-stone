@@ -483,6 +483,21 @@ pub enum CardEffect {
         /// Health gained per absorbed shield
         health_per_shield: i32,
     },
+    /// Remove durability from the opponent's weapon (Bloodsail Corsair —
+    /// remove 1 Durability); a weapon at 0 durability is destroyed.
+    RemoveWeaponDurability {
+        /// Durability removed
+        amount: i32,
+    },
+    /// Gain attack equal to the owner's weapon attack (Bloodsail Raider)
+    GainAttackEqualToWeapon,
+    /// The opponent's spells cost 0 next turn (Millhouse Manastorm)
+    EnemySpellsCostZero,
+    /// Give the opponent an empty mana crystal (Arcane Golem)
+    GiveOpponentManaCrystal {
+        /// Number of crystals
+        count: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -723,6 +738,14 @@ enum CardEffectDe {
     AbsorbDivineShields {
         attack_per_shield: i32,
         health_per_shield: i32,
+    },
+    RemoveWeaponDurability {
+        amount: i32,
+    },
+    GainAttackEqualToWeapon,
+    EnemySpellsCostZero,
+    GiveOpponentManaCrystal {
+        count: i32,
     },
 }
 
@@ -967,6 +990,14 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 attack_per_shield,
                 health_per_shield,
             },
+            CardEffectDe::RemoveWeaponDurability { amount } => {
+                CardEffect::RemoveWeaponDurability { amount }
+            }
+            CardEffectDe::GainAttackEqualToWeapon => CardEffect::GainAttackEqualToWeapon,
+            CardEffectDe::EnemySpellsCostZero => CardEffect::EnemySpellsCostZero,
+            CardEffectDe::GiveOpponentManaCrystal { count } => {
+                CardEffect::GiveOpponentManaCrystal { count }
+            }
         })
     }
 }

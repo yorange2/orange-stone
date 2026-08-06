@@ -2417,7 +2417,7 @@ pub const MURLOC_WARLEADER: CardDef = CardDef {
 pub const GURUBASHI_BERSERKER: CardDef = vanilla!("NEUTRAL_B19", "Gurubashi Berserker", 5, 2, 8);
 
 // Neutral Common — simplified
-/// Southsea Deckhand — has Charge while you have a weapon (simplified: always has Charge)
+/// Southsea Deckhand — has Charge while you have a weapon equipped
 pub const SOUTHSHORE_DECKHAND: CardDef = CardDef {
     id: "NEUTRAL_C07",
     name: "Southsea Deckhand",
@@ -2433,11 +2433,11 @@ pub const SOUTHSHORE_DECKHAND: CardDef = CardDef {
     elusive: false,
     race: None,
     hero_power: None,
-    aura: None,
+    aura: Some((AuraEffect::ChargeWithWeapon, AuraTarget::AllFriendlyMinions)),
     secret: None,
     divine_shield: false,
     windfury: false,
-    charge: true,
+    charge: false,
     spell_damage: 0,
     cant_attack: false,
     spell_effect: None,
@@ -2483,8 +2483,39 @@ pub const WORGEN_INFILTRATOR: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Bloodsail Raider — Battlecry: gain Attack equal to your weapon's Attack (simplified: vanilla)
-pub const BLOODSAIL_RAIDER: CardDef = vanilla!("NEUTRAL_C09", "Bloodsail Raider", 2, 2, 3);
+/// Bloodsail Raider — Battlecry: gain Attack equal to your weapon's Attack
+pub const BLOODSAIL_RAIDER: CardDef = CardDef {
+    id: "NEUTRAL_C09",
+    name: "Bloodsail Raider",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::GainAttackEqualToWeapon),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Jungle Panther — Stealth
 pub const JUNGLE_PANTHER: CardDef = CardDef {
     id: "NEUTRAL_C10",
@@ -2585,7 +2616,7 @@ pub const FLESHEATING_GHOUL: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Dread Corsair — Taunt, cost reduced by your weapon (simplified: Taunt only)
+/// Dread Corsair — Taunt; costs (1) less per Attack of your weapon
 pub const DREAD_CORSAIR: CardDef = CardDef {
     id: "NEUTRAL_C13",
     name: "Dread Corsair",
@@ -2618,8 +2649,42 @@ pub const DREAD_CORSAIR: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Venture Co. Mercenary — your minions cost (3) more (simplified: vanilla)
-pub const VENTURE_CO_MERCENARY: CardDef = vanilla!("NEUTRAL_C14", "Venture Co. Mercenary", 5, 7, 6);
+/// Venture Co. Mercenary — your minions cost (3) more
+pub const VENTURE_CO_MERCENARY: CardDef = CardDef {
+    id: "NEUTRAL_C14",
+    name: "Venture Co. Mercenary",
+    card_type: CardType::Minion,
+    cost: 5,
+    attack: 7,
+    health: 6,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: Some((
+        AuraEffect::IncreaseMinionCostFriendly { amount: 3 },
+        AuraTarget::AllFriendlyMinions,
+    )),
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Spiteful Smith — Enrage: whenever this minion takes damage, your weapon
 /// gains +2 Attack
 pub const SPITEFUL_SMITH: CardDef = vanilla!("NEUTRAL_C15", "Spiteful Smith", 5, 4, 6);
@@ -2627,8 +2692,39 @@ pub const SPITEFUL_SMITH: CardDef = vanilla!("NEUTRAL_C15", "Spiteful Smith", 5,
 // Neutral Rare — simplified
 /// Angry Chicken — Enrage: whenever this minion takes damage, gain +5 Attack
 pub const ANGRY_CHICKEN: CardDef = vanilla!("NEUTRAL_R02", "Angry Chicken", 1, 1, 1);
-/// Bloodsail Corsair — Battlecry: remove 1 durability from the opponent's weapon (simplified: vanilla)
-pub const BLOODSAIL_CORSAIR: CardDef = vanilla!("NEUTRAL_R03", "Bloodsail Corsair", 1, 1, 2);
+/// Bloodsail Corsair — Battlecry: remove 1 Durability from the opponent's weapon
+pub const BLOODSAIL_CORSAIR: CardDef = CardDef {
+    id: "NEUTRAL_R03",
+    name: "Bloodsail Corsair",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 1,
+    health: 2,
+    durability: 0,
+    battlecry: Some(CardEffect::RemoveWeaponDurability { amount: 1 }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Lightwarden — whenever a character is healed, gain +2 Attack
 /// (heal trigger registered in `apply_card_keywords`)
 pub const LIGHTWARDEN: CardDef = CardDef {
@@ -2844,7 +2940,7 @@ pub const WILD_PYROMANCER: CardDef = CardDef {
 };
 /// Alarm-o-Bot — swap a hand minion at start of turn (simplified: vanilla)
 pub const ALARM_O_BOT: CardDef = vanilla!("NEUTRAL_R13", "Alarm-o-Bot", 3, 0, 3);
-/// Arcane Golem — Charge, Battlecry gives the opponent a mana crystal (simplified: Charge only)
+/// Arcane Golem — Charge; Battlecry: give your opponent a Mana Crystal
 pub const ARCANE_GOLEM: CardDef = CardDef {
     id: "NEUTRAL_R14",
     name: "Arcane Golem",
@@ -2853,7 +2949,7 @@ pub const ARCANE_GOLEM: CardDef = CardDef {
     attack: 4,
     health: 4,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::GiveOpponentManaCrystal { count: 1 }),
     deathrattle: None,
     taunt: false,
     stealth: false,
@@ -3205,8 +3301,42 @@ pub const YOUNG_PRIESTESS: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Mana Wraith — all minions cost (1) more (simplified: vanilla)
-pub const MANA_WRAITH: CardDef = vanilla!("NEUTRAL_R22", "Mana Wraith", 2, 2, 2);
+/// Mana Wraith — ALL minions cost (1) more
+pub const MANA_WRAITH: CardDef = CardDef {
+    id: "NEUTRAL_R22",
+    name: "Mana Wraith",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: Some((
+        AuraEffect::IncreaseMinionCost { amount: 1 },
+        AuraTarget::AllFriendlyMinions,
+    )),
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Master Swordsmith — at the end of your turn, give ANOTHER random friendly
 /// minion +1 Attack
 pub const MASTER_SWORDSMITH: CardDef = CardDef {

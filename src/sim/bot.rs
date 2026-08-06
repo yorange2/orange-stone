@@ -1238,6 +1238,10 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
             attack_per_shield,
             health_per_shield,
         } => (attack_per_shield + health_per_shield) as f64 * 0.8,
+        CardEffect::RemoveWeaponDurability { .. } => 1.5,
+        CardEffect::GainAttackEqualToWeapon => 2.0,
+        CardEffect::EnemySpellsCostZero => 2.0,
+        CardEffect::GiveOpponentManaCrystal { .. } => 0.5,
     }
 }
 

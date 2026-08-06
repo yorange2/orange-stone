@@ -26,6 +26,26 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
     if is_secret && state.player(player).next_secret_free {
         cost = Cost(0);
     }
+    // Millhouse Manastorm: the opponent's spells cost 0 this turn
+    if state.world().card_type(card) == Some(crate::core::component::CardType::Spell)
+        && state.player(player).spells_cost_zero
+    {
+        cost = Cost(0);
+    }
+    // Dread Corsair: costs (1) less per Attack of your weapon
+    let weapon_attack = state
+        .player(player)
+        .weapon
+        .and_then(|w| state.world().attack(w))
+        .map_or(0, |a| a.0);
+    if weapon_attack > 0
+        && state
+            .world()
+            .card_id(card)
+            .is_some_and(|c| c.0 == "NEUTRAL_C13")
+    {
+        cost = Cost((cost.0 - weapon_attack).max(0));
+    }
     // Pint-Sized Summoner: while its FirstMinionDiscount aura is on the board
     // (silencing the summoner removes the aura), the FIRST minion played this
     // turn costs `amount` less.
