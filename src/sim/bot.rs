@@ -1249,6 +1249,15 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::GrantAdjacentTaunt => 1.0,
         CardEffect::GrantAdjacentSpellDamage { .. } => 1.0,
         CardEffect::FullHealAndTaunt { .. } => 2.0,
+        CardEffect::ChanceDraw { percent } => percent as f64 / 100.0 * 3.0,
+        CardEffect::GainStatsThisTurn { attack, health, .. } => (attack + health) as f64 * 0.8,
+        CardEffect::GrantDivineShieldAllFriendly => 3.0,
+        CardEffect::YseraAwakens { damage } => damage as f64 * 1.2,
+        CardEffect::GainStatsAndTauntAllFriendly { attack, health } => {
+            (attack + health) as f64 * 0.8 + 2.0
+        }
+        CardEffect::DrawAndDamageByCost => 4.0,
+        CardEffect::RestoreDamagedFriendly { amount } => amount as f64 * 0.6,
     }
 }
 

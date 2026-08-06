@@ -1,8 +1,9 @@
 # Fidelity Debt — Simplified Cards (F4/F5 Audit Ledger)
 
-> **Status: 18 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
+> **Status: 3 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
 > W0 wiring pass PR #79 cleared 13; W1 race pass PR #80 cleared 11; W2 triggers PR #81 cleared 8;
-> W3 predicates PR #82 cleared 9; W4 cost/weapon PR #83 cleared 8).
+> W3 predicates PR #82 cleared 9; W4 cost/weapon PR #83 cleared 8; W5 target structure PR #84 cleared 7;
+> W6 special mechanics PR #86 cleared 8).
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
@@ -69,6 +70,24 @@
 > flag, cleared at turn end), and give-opponent-mana (Arcane Golem — an empty
 > crystal). 9 scenarios in `tests/differential.rs` (`w4_*`).
 >
+> **2026-08-06 W5 target-structure pass (PR #84)**: all 7 cards landed —
+> `SetPlayedMinionHealth` (Repentance), `SilenceAllEnemyMinionsAndDraw`
+> (Mass Dispel), `SwapAttackAndHealth` (Crazed Alchemist), `FreezeAdjacent`
+> (Cone of Cold), `GrantAdjacentTaunt` (Sunfury Protector) /
+> `GrantAdjacentSpellDamage` (Ancient Mage), `FullHealAndTaunt` (Ancestral
+> Healing). 7 scenarios (`w5_*`).
+>
+> **2026-08-06 W6 special-mechanics pass (PR #86)**: all 8 cards landed —
+> probability (`ChanceDraw` Nat Pagle), this-turn temp buff
+> (`GainStatsThisTurn` Mana Addict), mass Divine Shield
+> (`GrantDivineShieldAllFriendly` Righteousness), self-exclusion AOE
+> (`YseraAwakens` — spares Ysera), draw-damage-by-cost (`DrawAndDamageByCost`
+> Holy Wrath), damaged-friendly start-of-turn heal (`RestoreDamagedFriendly`
+> Lightwell), mass buff+Taunt (`GainStatsAndTauntAllFriendly` Gift of the
+> Wild). Pilfer was verified already-faithful (the OtherClass pool filters the
+> Rogue class group) — only the stale comment was cleaned. 8 scenarios
+> (`w6_*`).
+>
 > **Execution plan**: [docs/fidelity-debt-roadmap.md](fidelity-debt-roadmap.md)
 > (zh: `fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
 > W7 wrap-up) covering all 67 cards; a card is done when its ledger row, its code
@@ -87,7 +106,8 @@ The 67 markers are 67 unique card IDs — the 3 pre-fix ID collisions
 `ALL_CARDS` (413 unique entries after the 10-card addition and the 7-entry dedup,
 PR #77). 4 markers were stale comments on already-faithful cards and are cleaned
 (§10); the genuine debt is 67 cards — **W0 cleared 13, W1 cleared 11,
-W2 cleared 8, W3 cleared 9 and W4 cleared 8, leaving 18**.
+W2 cleared 8, W3 cleared 9, W4 cleared 8, W5 cleared 7 and W6 cleared 8,
+leaving 3 (the W7 wrap-up)**.
 
 ---
 
@@ -128,18 +148,11 @@ All landed: attack-range (≤2 / ≥7), hand-size, hero-health threshold,
 damaged-friendly/any targets, damaged-counting, owns-secret, the "first
 minion this turn" state, and divine-shield absorb (`w3_*` scenarios).
 
-### 5. Adjacent / multi-target (4)
+### 5. Adjacent / multi-target (4) ✅ resolved (W5, PR #84)
 
-`DestroyAdjacent` exists; **missing: adjacent-target buffs, adjacent Freeze,
-swap-attack-health** (two-random-target damage exists — `DealDamageToTwo`, already
-used by Cleave; Multi-Shot is faithful but its comment is stale, see §10).
-
-| ID | Card | Current | Real Hearthstone | Missing mechanism |
-| --- | --- | --- | --- | --- |
-| MAGE_016 | Cone of Cold | Freeze one random enemy minion | Freeze a minion and its neighbors | adjacent-target Freeze |
-| NEUTRAL_R11 | Sunfury Protector | vanilla | Battlecry: give adjacent minions Taunt | adjacent-target buff |
-| NEUTRAL_R18 | Ancient Mage | vanilla | Battlecry: give adjacent minions Spell Damage +1 | adjacent-target spell-damage buff |
-| NEUTRAL_R08 | Crazed Alchemist | vanilla | Battlecry: swap a minion's Attack and Health | swap effect (missing; only Set/Double variants) |
+All landed: adjacent-target Freeze (Cone of Cold), adjacent-target buffs
+(Sunfury Protector Taunt / Ancient Mage Spell Damage), swap attack/health
+(Crazed Alchemist) (`w5_*` scenarios).
 
 ### 6. Cost & weapon-condition auras (8) ✅ resolved (W4, PR #83)
 
@@ -147,33 +160,23 @@ All landed: hand-zone cost auras (global / own), weapon-attack cost reduction,
 weapon-durability damage, weapon-equipped predicate (conditional Charge),
 enemy-spells-cost-0, give-opponent-mana (`w4_*` scenarios).
 
-### 7. This-turn temporary buff (1)
+### 7. This-turn temporary buff (1) ✅ resolved (W6, PR #86)
 
-| ID | Card | Current | Real Hearthstone | Missing mechanism |
-| --- | --- | --- | --- | --- |
-| NEUTRAL_R10 | Mana Addict | vanilla | Whenever you cast a spell, gain +2 Attack **this turn** | this-turn buff with end-of-turn expiry (engine has `TempDebuff`; needs temp-buff) |
+`GainStatsThisTurn` — the enchantment expires at the end of the turn
+(`w6_mana_addict_buff_expires_at_turn_end`).
 
-### 8. Probability (1)
+### 8. Probability (1) ✅ resolved (W6, PR #86)
 
-| ID | Card | Current | Real Hearthstone | Missing mechanism |
-| --- | --- | --- | --- | --- |
-| LEGENDARY_022 | Nat Pagle | draw at end of turn (always) | 50% chance to draw a card at the end of your turn | probabilistic effect |
+`ChanceDraw` — a percentage draw at the end of the turn
+(`w6_nat_pagle_chance_draw`).
 
-### 9. Composite & miscellaneous (8)
+### 9. Composite & miscellaneous (8) ✅ resolved (W5 PR #84 + W6 PR #86)
 
-(W0 cleared: Kul Tiran Chaplain, Emperor Cobra; W2 cleared: Flare — destroy all
-enemy Secrets and draw.)
-
-| ID | Card | Current | Real Hearthstone | Missing mechanism |
-| --- | --- | --- | --- | --- |
-| DRUID_016 | Gift of the Wild | +2/+2 only | Give your minions +2/+2 and Taunt | two-effect mass battlecry (buff + taunt) |
-| PALADIN_018 | Righteousness | not implementable per comment | Give your minions Divine Shield | mass Divine Shield (no mass-grant; wrong ID of its own, see Findings) |
-| PALADIN_017 | Holy Wrath | draw only | Draw a card, deal damage equal to its mana cost | draw-then-damage chained effect |
-| SHAMAN_018 | Ancestral Healing | heal + Taunt (partial) | Restore a minion to full Health and give it Taunt | verify `FullHeal` + taunt wiring |
-| PRIEST_018 | Lightwell | restore 3 at end of turn | At the start of your turn, restore 3 Health to a damaged friendly character | damaged-friendly predicate + start-turn (see also ID collision) |
-| ROGUE_025 | Pilfer | random non-Rogue card | Add a random card from another class to your hand | class filter (no class model) |
-| NEUTRAL_T21e | Ysera Awakens | damage includes Ysera | Deal 5 damage to all **other** characters (Dream token) | self-exclusion on AllCharacters |
-| NEUTRAL_R14 | Arcane Golem | Charge only | Charge; Battlecry: give your opponent a Mana Crystal | give-opponent-mana effect |
+W5 cleared: Holy Wrath (draw-damage-by-cost), Ancestral Healing
+(full-heal + Taunt). W6 cleared: Righteousness (mass Divine Shield), Ysera
+Awakens (self-exclusion AOE), Lightwell (damaged-friendly start-of-turn
+heal), Gift of the Wild (mass buff+Taunt), Pilfer (class-filtered draw —
+verified already-faithful, stale comment cleaned). Scenarios `w5_*` / `w6_*`.
 
 ### 10. Resolved — marked simplified but already faithful (4, cleaned in PR #77)
 
@@ -254,8 +257,8 @@ adjacent-target buff/freeze (Sunfury Protector / Ancient Mage / Cone of Cold),
 two-effect composition (Mass Dispel, Ancestral Healing) (W5).
 
 **Missing** (primitives first, per the Review-II "do G before F4/F5" discipline):
-1. effects: mass Divine Shield, two-random damage, this-turn temp buff,
-   probabilistic effects — §7, §8, §9
+1. effects: (none remaining — the W7 wrap-up needs hand-zone swap and two
+   secret effects)
 
 ## F5 verification per fix
 

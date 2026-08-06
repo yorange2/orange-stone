@@ -3326,3 +3326,323 @@ fn w5_ancestral_healing_full_heals_and_taunts() {
     assert_eq!(state.world().effective_health(damaged), Some(Health(2)));
     assert_eq!(state.world().taunt(damaged).is_some(), true);
 }
+
+// ============================================================
+// Wave 6 — special mechanics (fidelity-debt-roadmap W6):
+// probability, this-turn temp buff, mass Divine Shield,
+// self-exclusion AOE, draw-damage-by-cost, class-filtered pool.
+// ============================================================
+
+/// W6-1 Nat Pagle — 50% chance to draw a card at the end of your turn.
+#[test]
+fn w6_nat_pagle_chance_draw() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, NAT_PAGLE};
+    let mut builder = GameBuilder::new();
+    builder.with_rng_seed(42);
+    builder.add_minion_to_board(PlayerId1(), &NAT_PAGLE);
+    builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // 50% roll — deterministic with the fixed seed (42 draws)
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        1,
+        "Nat Pagle drew with this seed"
+    );
+}
+
+/// W6-2 Mana Addict — whenever you cast a spell, gain +2 Attack THIS TURN
+/// (expires at the end of the turn).
+#[test]
+fn w6_mana_addict_buff_expires_at_turn_end() {
+    use orange_stone::cards::def::MANA_ADDICT;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &MANA_ADDICT);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let addict = find_entity(&state, PlayerId1(), "NEUTRAL_R10");
+    // Cast a no-op spell
+    let spell = {
+        use orange_stone::core::component::Cost;
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_card_type(e, CardType::Spell);
+        world.set_cost(e, Cost(0));
+        world.set_player(e, PlayerId1());
+        world.set_zone(e, Zone::Hand);
+        world.zones_mut().insert(Zone::Hand, PlayerId1(), e);
+        e
+    };
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(addict),
+        Some(Attack(3)),
+        "the spell cast granted +2 this turn"
+    );
+    // The buff expires at the end of the turn
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_attack(addict),
+        Some(Attack(1)),
+        "the this-turn buff expired"
+    );
+}
+
+/// W6-3 Righteousness — give your minions Divine Shield.
+#[test]
+fn w6_righteousness_grants_divine_shields() {
+    use orange_stone::cards::def::RIGHTEOUSNESS;
+    let mut builder = GameBuilder::new();
+    let a = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let b = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &RIGHTEOUSNESS);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let righteousness = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("righteousness in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: righteousness,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().divine_shield(a).is_some(), true);
+    assert_eq!(state.world().divine_shield(b).is_some(), true);
+}
+
+/// W6-4 Ysera Awakens — deal 5 damage to all characters except Ysera.
+#[test]
+fn w6_ysera_awakens_spares_ysera() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, YSERA, YSERA_AWAKENS};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &YSERA);
+    builder.add_minion_to_board(PlayerId1(), &BLOODFEN_RAPTOR);
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    builder.add_minion_to_hand(PlayerId1(), &YSERA_AWAKENS);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let ysera = find_entity(&state, PlayerId1(), "NEUTRAL_T21");
+    let friend = find_entity(&state, PlayerId1(), "CLASSIC_001");
+    let awaken = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("ysera awakens in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: awaken,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(ysera),
+        Some(Health(12)),
+        "Ysera is spared"
+    );
+    assert_eq!(
+        state.world().zone(friend),
+        Some(Zone::Graveyard),
+        "the friendly Raptor takes 5 (2 health)"
+    );
+    assert_eq!(state.world().zone(enemy), Some(Zone::Graveyard));
+    assert_eq!(
+        state
+            .world()
+            .effective_health(state.player(PlayerId1()).hero),
+        Some(Health(25)),
+        "both heroes take 5"
+    );
+    assert_eq!(
+        state
+            .world()
+            .effective_health(state.player(PlayerId2()).hero),
+        Some(Health(25))
+    );
+}
+
+/// W6-5 Gift of the Wild — give your minions +2/+2 and Taunt.
+#[test]
+fn w6_gift_of_the_wild_buffs_and_taunts() {
+    use orange_stone::cards::def::GIFT_OF_THE_WILD;
+    let mut builder = GameBuilder::new();
+    let a = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let b = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &GIFT_OF_THE_WILD);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let gift = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("gift in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: gift,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(a), Some(Attack(4)));
+    assert_eq!(state.world().effective_health(a), Some(Health(4)));
+    assert_eq!(state.world().effective_attack(b), Some(Attack(4)));
+    assert_eq!(state.world().taunt(a).is_some(), true);
+    assert_eq!(state.world().taunt(b).is_some(), true);
+}
+
+/// W6-6 Holy Wrath — draw a card, deal damage equal to its mana cost.
+#[test]
+fn w6_holy_wrath_damages_by_drawn_cost() {
+    use orange_stone::cards::def::{HOLY_WRATH, RAZORFEN_HUNTER};
+    let mut builder = GameBuilder::new();
+    builder.with_rng_seed(42);
+    builder.add_minion_to_deck(PlayerId1(), &RAZORFEN_HUNTER);
+    builder.add_minion_to_hand(PlayerId1(), &HOLY_WRATH);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let wrath = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("holy wrath in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: wrath,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        1,
+        "the drawn card is in hand"
+    );
+    let drawn = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("drawn card");
+    assert_eq!(
+        state.world().card_id(drawn).map(|c| c.0),
+        Some("NEUTRAL_B10"),
+        "Razorfen Hunter (3-cost) was drawn"
+    );
+    // 3 damage to a random enemy — the enemy hero is the only candidate
+    assert_eq!(
+        state
+            .world()
+            .effective_health(state.player(PlayerId2()).hero),
+        Some(Health(27)),
+        "3 damage dealt"
+    );
+}
+
+/// W6-7 Lightwell — at the start of your turn, restore 3 Health to a damaged
+/// friendly character.
+#[test]
+fn w6_lightwell_heals_at_turn_start() {
+    use orange_stone::cards::def::LIGHTWELL;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &LIGHTWELL);
+    let damaged = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let attacker = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    builder.active_player(PlayerId2());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: damaged,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(damaged), Some(Health(1)));
+    // P2's turn ends — the Lightwell fires at P1's turn start
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_health(damaged),
+        Some(Health(2)),
+        "the only damaged friendly character was healed"
+    );
+}
+
+/// W6-8 Pilfer — add a random card from another class to your hand (the
+/// OtherClass pool filters the Rogue class group).
+#[test]
+fn w6_pilfer_adds_non_rogue_card() {
+    use orange_stone::cards::def::PILFER;
+    let mut builder = GameBuilder::new();
+    builder.with_rng_seed(42);
+    builder.add_minion_to_hand(PlayerId1(), &PILFER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let pilfer = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("pilfer in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: pilfer,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    assert_eq!(hand.len(), 1, "one card added");
+    let added = hand[0];
+    let id = state.world().card_id(added).map(|c| c.0).expect("card id");
+    assert!(
+        !orange_stone::cards::sets::ROGUE_CLASSIC
+            .iter()
+            .any(|r| r.id == id),
+        "the added card {id} is not a Rogue card"
+    );
+}

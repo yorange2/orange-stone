@@ -274,6 +274,23 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
             },
         );
     }
+    // Mana Addict (W6) — whenever you cast a spell, gain +2 Attack THIS TURN
+    // (the temporary buff expires at the end of the turn)
+    if card_def.id == "NEUTRAL_R10" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlySpellCast,
+                timing: TriggerTiming::Whenever,
+                effect: CardEffect::GainStatsThisTurn {
+                    attack: 2,
+                    health: 0,
+                    target: EffectTarget::Self_,
+                },
+                race: None,
+            },
+        );
+    }
 }
 
 /// Clears all effect components of a minion (resets the entity before transform).

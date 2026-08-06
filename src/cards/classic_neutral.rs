@@ -2931,7 +2931,8 @@ pub const KNIFE_JUGGLER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Mana Addict — +2 Attack this turn after casting a spell (simplified: vanilla)
+/// Mana Addict — whenever you cast a spell, gain +2 Attack this turn
+/// (this-turn trigger registered in `apply_card_keywords`)
 pub const MANA_ADDICT: CardDef = vanilla!("NEUTRAL_R10", "Mana Addict", 2, 1, 3);
 /// Sunfury Protector — Battlecry: give adjacent minions Taunt
 pub const SUNFURY_PROTECTOR: CardDef = CardDef {
@@ -4360,7 +4361,7 @@ pub const NIGHTMARE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Ysera Awakens (Dream card) — deal 5 damage to all characters (simplified: includes Ysera herself).
+/// Ysera Awakens (Dream card) — deal 5 damage to all characters except Ysera
 pub const YSERA_AWAKENS: CardDef = CardDef {
     id: "NEUTRAL_T21e",
     name: "Ysera Awakens",
@@ -4369,10 +4370,8 @@ pub const YSERA_AWAKENS: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage {
-        amount: 5,
-        target: EffectTarget::AllCharacters,
-    }),
+    battlecry: Some(CardEffect::YseraAwakens { damage: 5 }),
+
     deathrattle: None,
     taunt: false,
     stealth: false,

@@ -861,8 +861,8 @@ pub const MASTER_OF_DISGUISE: CardDef = CardDef {
 // Tier 3 additions — stealing
 // ============================================================
 
-/// Pilfer — add a random card from another class to your hand.
-/// (This engine does not model classes; simplified to a random non-Rogue card)
+/// Pilfer — add a random card from another class to your hand (the
+/// OtherClass pool filters the Rogue class group — the engine's class model)
 pub const PILFER: CardDef = CardDef {
     id: "ROGUE_025",
     name: "Pilfer",

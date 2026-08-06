@@ -530,6 +530,44 @@ pub enum CardEffect {
         /// Target scope
         target: EffectTarget,
     },
+    /// Draw a card with the given probability at the end of the owner's turn
+    /// (Nat Pagle — 50% chance)
+    ChanceDraw {
+        /// Draw chance in percent (0-100)
+        percent: u32,
+    },
+    /// Gain stats THIS TURN (Mana Addict — +2 Attack this turn after casting
+    /// a spell; the enchantment expires at the end of the turn)
+    GainStatsThisTurn {
+        /// Attack gain
+        attack: i32,
+        /// Health gain
+        health: i32,
+        /// Target scope
+        target: EffectTarget,
+    },
+    /// Give all friendly minions Divine Shield (Righteousness)
+    GrantDivineShieldAllFriendly,
+    /// Deal damage to all characters except Ysera (Ysera Awakens — a Dream
+    /// card that spares its generator)
+    YseraAwakens {
+        /// Damage amount
+        damage: i32,
+    },
+    /// Give all friendly minions stats AND Taunt (Gift of the Wild)
+    GainStatsAndTauntAllFriendly {
+        /// Attack gain
+        attack: i32,
+        /// Health gain
+        health: i32,
+    },
+    /// Draw a card and deal damage equal to its mana cost (Holy Wrath)
+    DrawAndDamageByCost,
+    /// Restore health to a random damaged friendly character (Lightwell)
+    RestoreDamagedFriendly {
+        /// Amount to restore
+        amount: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -795,6 +833,26 @@ enum CardEffectDe {
     },
     FullHealAndTaunt {
         target: EffectTarget,
+    },
+    ChanceDraw {
+        percent: u32,
+    },
+    GainStatsThisTurn {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+    },
+    GrantDivineShieldAllFriendly,
+    YseraAwakens {
+        damage: i32,
+    },
+    GainStatsAndTauntAllFriendly {
+        attack: i32,
+        health: i32,
+    },
+    DrawAndDamageByCost,
+    RestoreDamagedFriendly {
+        amount: i32,
     },
 }
 
@@ -1062,6 +1120,25 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 CardEffect::GrantAdjacentSpellDamage { amount }
             }
             CardEffectDe::FullHealAndTaunt { target } => CardEffect::FullHealAndTaunt { target },
+            CardEffectDe::ChanceDraw { percent } => CardEffect::ChanceDraw { percent },
+            CardEffectDe::GainStatsThisTurn {
+                attack,
+                health,
+                target,
+            } => CardEffect::GainStatsThisTurn {
+                attack,
+                health,
+                target,
+            },
+            CardEffectDe::GrantDivineShieldAllFriendly => CardEffect::GrantDivineShieldAllFriendly,
+            CardEffectDe::YseraAwakens { damage } => CardEffect::YseraAwakens { damage },
+            CardEffectDe::GainStatsAndTauntAllFriendly { attack, health } => {
+                CardEffect::GainStatsAndTauntAllFriendly { attack, health }
+            }
+            CardEffectDe::DrawAndDamageByCost => CardEffect::DrawAndDamageByCost,
+            CardEffectDe::RestoreDamagedFriendly { amount } => {
+                CardEffect::RestoreDamagedFriendly { amount }
+            }
         })
     }
 }

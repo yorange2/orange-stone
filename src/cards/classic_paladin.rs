@@ -508,7 +508,7 @@ pub const LAY_ON_HANDS: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Holy Wrath — draw a card, deal damage equal to its mana cost (simplified: draw only)
+/// Holy Wrath — draw a card, deal damage equal to its mana cost
 pub const HOLY_WRATH: CardDef = CardDef {
     id: "PALADIN_017",
     name: "Holy Wrath",
@@ -517,10 +517,7 @@ pub const HOLY_WRATH: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage {
-        amount: 5,
-        target: EffectTarget::AnyEnemy,
-    }),
+    battlecry: Some(CardEffect::DrawAndDamageByCost),
     deathrattle: None,
     taunt: false,
     stealth: false,
@@ -544,7 +541,7 @@ pub const HOLY_WRATH: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Righteousness — give your minions Divine Shield (simplified; mass Divine Shield not implementable)
+/// Righteousness — give your minions Divine Shield
 pub const RIGHTEOUSNESS: CardDef = CardDef {
     id: "PALADIN_018",
     name: "Righteousness",
@@ -553,11 +550,7 @@ pub const RIGHTEOUSNESS: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats {
-        attack: 0,
-        health: 0,
-        target: EffectTarget::AllFriendlyMinions,
-    }),
+    battlecry: Some(CardEffect::GrantDivineShieldAllFriendly),
     deathrattle: None,
     taunt: false,
     stealth: false,

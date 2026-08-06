@@ -568,7 +568,7 @@ pub const TREANT: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Gift of the Wild — give your minions +2/+2 and Taunt (simplified: +2/+2 only)
+/// Gift of the Wild — give your minions +2/+2 and Taunt
 pub const GIFT_OF_THE_WILD: CardDef = CardDef {
     id: "DRUID_016",
     name: "Gift of the Wild",
@@ -577,11 +577,11 @@ pub const GIFT_OF_THE_WILD: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats {
+    battlecry: Some(CardEffect::GainStatsAndTauntAllFriendly {
         attack: 2,
         health: 2,
-        target: EffectTarget::AllFriendlyMinions,
     }),
+
     deathrattle: None,
     taunt: false,
     stealth: false,
@@ -850,11 +850,11 @@ pub const CENARIUS: CardDef = CardDef {
     attack: 5,
     health: 8,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats {
+    battlecry: Some(CardEffect::GainStatsAndTauntAllFriendly {
         attack: 2,
         health: 2,
-        target: EffectTarget::AllFriendlyMinions,
     }),
+
     deathrattle: None,
     taunt: false,
     stealth: false,

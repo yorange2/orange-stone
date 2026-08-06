@@ -64,6 +64,16 @@
 > `FullHealAndTaunt`（先祖治疗——满血 + 嘲讽组合）。对应 7 个差分场景
 > （`tests/differential.rs` 的 `w5_*`）。
 >
+> **2026-08-06 W6 特殊机制轮（PR #86）**：8 张特殊机制卡全部落地——概率效果
+> （`ChanceDraw` 纳特·帕格 50% 抽牌）、本回合临时增益（`GainStatsThisTurn`
+> 法力沸腾者，回合结束自动清除）、群体圣盾（`GrantDivineShieldAllFriendly`
+> 正义）、排除自身的全场伤害（`YseraAwakens`——伊瑟拉之醒放过伊瑟拉）、
+> 抽牌-按费用伤害（`DrawAndDamageByCost` 神圣愤怒）、受伤友方回合开始治疗
+> （`RestoreDamagedFriendly` 光明之泉——从回合结束改到回合开始）、群体增益+嘲讽
+> （`GainStatsAndTauntAllFriendly` 自然之力）。顺手牵羊核实时其实已忠实——
+> `OtherClass` 池用职业组表过滤非潜行者卡，只清了过期注释。对应 8 个差分场景
+> （`tests/differential.rs` 的 `w6_*`）。
+>
 > **执行计划**：[docs/fidelity-debt-roadmap-zh.md](fidelity-debt-roadmap-zh.md)
 > （英文版 `fidelity-debt-roadmap.md`）——按依赖排序的 8 个 wave（W0 接线 …
 > W7 收尾）覆盖全部 67 张卡；一张卡完成 = 账本行、代码注释、差分场景三者
@@ -79,7 +89,8 @@ Repentance / Lightwell）已改成官方 ID（EX1_365 / EX1_349 / EX1_341），
 Mass Dispel 现在可取了。67 张全部在 `ALL_CARDS` 里（补入 10 张、去重 7 个
 重复条目后共 413 个唯一条目，PR #77）。其中 4 处是过期注释（卡已忠实，已
 清理，见 §10）；真实债务是 67 张，**W0 已清 13 张、W1 已清 11 张、
-W2 已清 8 张、W3 已清 9 张、W4 已清 8 张、W5 已清 7 张，剩 11 张**。
+W2 已清 8 张、W3 已清 9 张、W4 已清 8 张、W5 已清 7 张、W6 已清 8 张，
+剩 3 张（W7 收尾）**。
 
 ---
 
@@ -127,31 +138,20 @@ Questing Adventurer；Flare 见 §9。）
 全部落地：手牌区费用光环（全局/己方）、按武器攻击减费、武器耐久削减、
 武器装备谓词（条件冲锋）、敌方法术 0 费、给对手水晶（差分场景 `w4_*`）。
 
-### 7. 本回合临时增益（1 张）
+### 7. 本回合临时增益（1 张）✅ 已解决（W6，PR #86）
 
-| ID | 卡名 | 现状 | 真实炉石效果 | 缺失机制 |
-| --- | --- | --- | --- | --- |
-| NEUTRAL_R10 | Mana Addict | 白板 | 每当你施放一个法术，**本回合**获得 +2 攻击 | 回合结束自动清除的临时增益（引擎有 `TempDebuff`，缺临时增益） |
+`GainStatsThisTurn`——附魔层 `UntilEndOfTurn` 到期（差分场景 `w6_mana_addict_buff_expires_at_turn_end`）。
 
-### 8. 概率效果（1 张）
+### 8. 概率效果（1 张）✅ 已解决（W6，PR #86）
 
-| ID | 卡名 | 现状 | 真实炉石效果 | 缺失机制 |
-| --- | --- | --- | --- | --- |
-| LEGENDARY_022 | Nat Pagle | 回合结束必抽牌 | 你的回合结束时，50% 几率抽一张牌 | 概率效果 |
+`ChanceDraw`——回合结束时按概率抽牌（差分场景 `w6_nat_pagle_chance_draw`）。
 
-### 9. 复合与其他（6 张）
+### 9. 复合与其他（6 张）✅ 已解决（W6，PR #86）
 
-（W0 已清：Kul Tiran Chaplain、Emperor Cobra；W2 已清：Flare；W5 已清：
-Holy Wrath、Ancestral Healing。）
-
-| ID | 卡名 | 现状 | 真实炉石效果 | 缺失机制 |
-| --- | --- | --- | --- | --- |
-| DRUID_016 | Gift of the Wild | 仅 +2/+2 | 使你的随从获得 +2/+2 和嘲讽 | 双效果群体战吼（增益 + 嘲讽） |
-| PALADIN_018 | Righteousness | 按注释不可实现 | 使你的随从获得圣盾 | 群体圣盾（无群体授予）；自身 ID 也错（见审计发现） |
-| PRIEST_018 | Lightwell | 回合结束恢复 3 | 在你的回合开始时，为一个受伤的友方角色恢复 3 点生命 | 受伤友方谓词 + 回合开始（另有 ID 冲突，见审计发现） |
-| ROGUE_025 | Pilfer | 随机一张非潜行者卡 | 随机将一张其他职业的卡牌置入你的手牌 | 职业过滤（引擎无职业模型） |
-| NEUTRAL_T21e | Ysera Awakens | 伤害包含 Ysera 自身 | 对所有**其他**角色造成 5 点伤害（梦境卡牌） | AllCharacters 排除自身 |
-| NEUTRAL_R14 | Arcane Golem | 仅冲锋 | 冲锋；战吼：使你的对手获得一个法力水晶 | 给对手水晶效果 |
+全部落地：群体圣盾（正义）、排除自身的全场伤害（伊瑟拉之醒）、抽牌-按费用
+伤害（神圣愤怒）、受伤友方回合开始治疗（光明之泉）、群体增益+嘲讽（自然之力）、
+职业过滤抽卡（顺手牵羊——`OtherClass` 池用职业组表过滤，核实已忠实，只清注释）。
+差分场景 `w6_*`。
 
 ### 10. 已解决 — 标记简化但实际已忠实（4 张，PR #77 清理）
 

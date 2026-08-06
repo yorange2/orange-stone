@@ -571,7 +571,7 @@ pub const MILLHOUSE_MANASTORM: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Nat Pagle — at the end of your turn, 50% chance to draw a card (simplified: draw at end of turn)
+/// Nat Pagle — at the end of your turn, 50% chance to draw a card
 pub const NAT_PAGLE: CardDef = CardDef {
     id: "LEGENDARY_022",
     name: "Nat Pagle",
@@ -595,7 +595,7 @@ pub const NAT_PAGLE: CardDef = CardDef {
     spell_damage: 0,
     cant_attack: false,
     spell_effect: None,
-    end_turn_effect: Some(CardEffect::DrawCard { count: 1 }),
+    end_turn_effect: Some(CardEffect::ChanceDraw { percent: 50 }),
     start_turn_effect: None,
     spell_trigger: None,
     death_trigger: None,

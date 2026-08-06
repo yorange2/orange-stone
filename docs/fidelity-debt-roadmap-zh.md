@@ -1,6 +1,6 @@
 # 保真债实现路线图 — 67 张简化卡
 
-> **状态：W5 完成（PR #84）；W6 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
+> **状态：W6 完成（PR #86）；W7 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
 > 的 F4 持续 / F5 持续条目。[fidelity-debt.md](fidelity-debt-zh.md) 账本是卡名单的
 > 权威来源，本文档是执行计划。一张卡只有在"实现 **且** 通过 F5 差分测试验证"后
 > 才离开账本——见账本的 [F5 验收](fidelity-debt-zh.md#每张卡的-f5-验收) 与
@@ -50,12 +50,11 @@
 | 条件谓词（W3）：攻击区间 / 手牌数 / 英雄血量 / 受伤 / 控制奥秘 / 首个随从 / 圣盾吸收 | `core/effect.rs` / `trigger.rs` / `engine/cost.rs` | 科多兽、猎潮驯兽师、暮光幼龙、致死打击、狂暴、战斗怒火、以太奥秘学者、微型召唤师、血骑士 |
 | 费用/武器（W4）：手牌区费用光环 / 按武器攻击减费 / 武器耐久削减 / `ChargeWithWeapon` / 敌方法术 0 费 / 给对手水晶 | `core/component.rs` / `core/world.rs` / `engine/cost.rs` / `trigger.rs` | 法力怨魂、雇佣兵、船工、恐怖海盗、血帆袭击者、血帆海盗、米米尔隆、奥术傀儡 |
 | 目标结构/组合（W5）：生命设为 1 / 交换攻击生命 / 邻位增益冻结 / 双效果组合 | `core/effect.rs` / `trigger.rs` / `secret.rs` | 忏悔、群体驱散、疯狂炼金师、冰锥术、日怒保卫者、远古法师、先祖治疗 |
+| 特殊机制（W6）：概率 / 本回合临时增益 / 群体圣盾 / 排除自身全场伤害 / 抽牌按费用伤害 / 职业过滤 | `core/effect.rs` / `trigger.rs` / `cards/mod.rs` | 纳特·帕格、法力沸腾者、正义、伊瑟拉之醒、神圣愤怒、光明之泉、自然之力、顺手牵羊 |
 
 **缺失**（按 wave 分组的原语）：
 
-1. 概率、本回合临时增益、群体圣盾、排除自身的全场伤害、抽牌-按费用伤害、
-   职业过滤 → W6
-7. 手牌区交换、伤害反射奥秘、1 生命复活奥秘 → W7
+1. 手牌区交换、伤害反射奥秘、1 生命复活奥秘 → W7
 
 ---
 
@@ -233,25 +232,34 @@
 | SHAMAN_018 | 先祖治疗 | 将一个随从恢复至满血并获得嘲讽 | `w5_ancestral_healing_full_heals_and_taunts` |
 
 **验收**：7 个差分场景；RL 卡池 +7（371 → 378）。
-## Wave 6 — 特殊机制（8 张）
+## Wave 6 — 特殊机制（8 张）✅ 完成（PR #86）
 
-**原语**：概率效果（纳特·帕格）、本回合临时增益（法力沸腾者；G4 附魔层已有
-`UntilEndOfTurn`）、群体圣盾、排除自身的全场伤害（AllOtherCharacters）、
-抽牌-按费用伤害（变数伤害）、随机卡池职业过滤（顺手牵羊）。
+**原语**——全部落地：
+- 概率效果：`CardEffect::ChanceDraw`（纳特·帕格——回合结束 50% 抽牌）。
+- 本回合临时增益：`CardEffect::GainStatsThisTurn`（法力沸腾者——附魔层
+  `UntilEndOfTurn` 到期）。
+- 群体圣盾：`CardEffect::GrantDivineShieldAllFriendly`（正义）。
+- 排除自身的全场伤害：`CardEffect::YseraAwakens`（伊瑟拉之醒——按卡 ID
+  放过伊瑟拉本体）。
+- 抽牌-按费用伤害：`CardEffect::DrawAndDamageByCost`（神圣愤怒——抽牌后
+  造成等同于其费用的伤害）。
+- 受伤友方回合开始治疗：`CardEffect::RestoreDamagedFriendly`（光明之泉——
+  从回合结束改为回合开始）。
+- 群体增益+嘲讽：`CardEffect::GainStatsAndTauntAllFriendly`（自然之力）。
+- 职业过滤：顺手牵羊核实已忠实——`OtherClass` 池用职业组表过滤，只清注释。
 
-| ID | 卡名 | 真实效果 |
-| --- | --- | --- |
-| LEGENDARY_022 | 纳特·帕格 | 回合结束：50% 几率抽一张牌 |
-| NEUTRAL_R10 | 法力沸腾者 | 施法后：本回合 +2 攻击 |
-| PALADIN_018 | 正义 | 使你的随从获得圣盾 |
-| NEUTRAL_T21e | 伊瑟拉之醒 | 对所有**其他**角色造成 5 点伤害 |
-| DRUID_016 | 自然之力 | 你的随从 +2/+2 并获得嘲讽 |
-| PALADIN_017 | 神圣愤怒 | 抽一张牌；造成等同于其费用值的伤害 |
-| EX1_341 | 光明之泉 | 回合开始：为一个受伤的友方角色恢复 3 点生命 |
-| ROGUE_025 | 顺手牵羊 | 随机将一张其他职业的卡牌置入你的手牌 |
+| ID | 卡名 | 真实效果 | 场景 |
+| --- | --- | --- | --- |
+| LEGENDARY_022 | 纳特·帕格 | 回合结束：50% 几率抽一张牌 | `w6_nat_pagle_chance_draw` |
+| NEUTRAL_R10 | 法力沸腾者 | 施法后：本回合 +2 攻击 | `w6_mana_addict_buff_expires_at_turn_end` |
+| PALADIN_018 | 正义 | 使你的随从获得圣盾 | `w6_righteousness_grants_divine_shields` |
+| NEUTRAL_T21e | 伊瑟拉之醒 | 对所有**其他**角色造成 5 点伤害 | `w6_ysera_awakens_spares_ysera` |
+| DRUID_016 | 自然之力 | 你的随从 +2/+2 并获得嘲讽 | `w6_gift_of_the_wild_buffs_and_taunts` |
+| PALADIN_017 | 神圣愤怒 | 抽一张牌；造成等同于其费用值的伤害 | `w6_holy_wrath_damages_by_drawn_cost` |
+| EX1_341 | 光明之泉 | 回合开始：为一个受伤的友方角色恢复 3 点生命 | `w6_lightwell_heals_at_turn_start` |
+| ROGUE_025 | 顺手牵羊 | 随机将一张其他职业的卡牌置入你的手牌 | `w6_pilfer_adds_non_rogue_card` |
 
-**验收**：8 个差分场景；RL 卡池 +8。
-
+**验收**：8 个差分场景；RL 卡池 +8（378 → 388，含顺手牵羊注释清理）。
 ## Wave 7 — 收尾：复杂遗留（3 张）
 
 **原语**：手牌区交换（闹钟机器人）、伤害反射奥秘（以眼还眼）、1 生命复活死亡
@@ -286,6 +294,6 @@
 | W3 谓词 ✅ PR #82 | 9 | 攻击区间/手牌数/血量/受伤/奥秘/首个随从/圣盾 谓词 | +9 → **363** |
 | W4 费用/武器 ✅ PR #83 | 8 | 费用光环/武器攻击减费/耐久削减/条件冲锋/法术0费/给水晶 | +8 → **371** |
 | W5 目标结构 ✅ PR #84 | 7 | 生命设为1/交换攻防/邻位目标/双效果组合 | +7 → **378** |
-| W6 特殊机制 | 8 | 6 个原语 | +8 |
+| W6 特殊机制 ✅ PR #86 | 8 | 概率/临时增益/群体圣盾/排除自身/按费用伤害/职业过滤 | +8 → **388** |
 | W7 收尾 | 3 | 3 个原语 | +3 |
 | **合计** | **67** | | **321 → 388** |
