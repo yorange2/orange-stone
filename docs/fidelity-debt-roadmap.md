@@ -1,6 +1,6 @@
 # Fidelity-Debt Implementation Roadmap — the 67 simplified cards
 
-> **Status: W5 done (PR #85); W6 next.** This roadmap executes the F4-ongoing /
+> **Status: W5 done (PR #84); W6 next.** This roadmap executes the F4-ongoing /
 > F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
 > [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
@@ -236,7 +236,7 @@ verified); RL pool grows by 8 (346 → 354).
 
 **Acceptance**: 9 differential scenarios (including stacking with existing
 cost auras); RL pool grows by 8 (363 → 371).
-## Wave 5 — Target structure & effect composition (7 cards) ✅ done (PR #85)
+## Wave 5 — Target structure & effect composition (7 cards) ✅ done (PR #84)
 
 **Primitives** — all landed:
 - `CardEffect::SetPlayedMinionHealth` (Repentance — the secret sets the played
@@ -320,7 +320,7 @@ constructible size; final sweep + full SabberStone parity run.
 | W2 triggers ✅ PR #81 | 8 | 5 trigger classes + destroy-secret | +8 → **354** |
 | W3 predicates ✅ PR #82 | 9 | attack-range/hand-size/health/damaged/secret/first-minion/shield predicates | +9 → **363** |
 | W4 cost/weapon ✅ PR #83 | 8 | cost auras/weapon-attack cost/durability/conditional charge/spells-0/mana gift | +8 → **371** |
-| W5 target structure ✅ PR #85 | 7 | set-health/swap/adjacent targets/effect composition | +7 → **378** |
+| W5 target structure ✅ PR #84 | 7 | set-health/swap/adjacent targets/effect composition | +7 → **378** |
 | W6 special mechanics | 8 | 6 primitives | +8 |
 | W7 wrap-up | 3 | 3 primitives | +3 |
 | **Total** | **67** | | **321 → 388** |
