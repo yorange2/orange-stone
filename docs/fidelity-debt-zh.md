@@ -9,6 +9,11 @@
 > 4 处过期注释清理、Worgen Infiltrator 修复、3 处卡 ID 冲突修复、10 张卡补入
 > `ALL_CARDS`（7 个重复条目去重）、Python 提取器重写（PR #31）。剩下的是
 > 下面各组的逐机制实现工作与 F5 验证协议。
+>
+> **执行计划**：[docs/fidelity-debt-roadmap-zh.md](fidelity-debt-roadmap-zh.md)
+> （英文版 `fidelity-debt-roadmap.md`）——按依赖排序的 8 个 wave（W0 接线 …
+> W7 收尾）覆盖全部 67 张卡；一张卡完成 = 账本行、代码注释、差分场景三者
+> 同时落地。
 
 **权威来源**：`src/cards/classic_*.rs` 中卡牌常量上的 `(simplified: ...)` 文档注释。
 Python 侧（`orange-reinforcement/hearthstone_os/decks.py::_load_debt_ids`）靠解析
