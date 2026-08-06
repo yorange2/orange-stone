@@ -2259,11 +2259,41 @@ pub const SOUTHSHORE_DECKHAND: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Worgen Infiltrator — Stealth (simplified: vanilla)
-pub const WORGEN_INFILTRATOR: CardDef = vanilla!("NEUTRAL_C08", "Worgen Infiltrator", 1, 2, 1);
+/// Worgen Infiltrator — Stealth
+pub const WORGEN_INFILTRATOR: CardDef = CardDef {
+    id: "NEUTRAL_C08",
+    name: "Worgen Infiltrator",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 2,
+    health: 1,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: true,
+    elusive: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Bloodsail Raider — Battlecry: gain Attack equal to your weapon's Attack (simplified: vanilla)
 pub const BLOODSAIL_RAIDER: CardDef = vanilla!("NEUTRAL_C09", "Bloodsail Raider", 2, 2, 3);
-/// Jungle Panther — Stealth (simplified: vanilla)
+/// Jungle Panther — Stealth
 pub const JUNGLE_PANTHER: CardDef = CardDef {
     id: "NEUTRAL_C10",
     name: "Jungle Panther",
@@ -2846,7 +2876,7 @@ pub const LOOT_HOARDER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Stranglethorn Tiger — Stealth (simplified: vanilla; engine does not implement Stealth yet)
+/// Stranglethorn Tiger — Stealth
 pub const STRANGLETHORN_TIGER: CardDef = CardDef {
     id: "NEUTRAL_T14",
     name: "Stranglethorn Tiger",
@@ -2878,7 +2908,7 @@ pub const STRANGLETHORN_TIGER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Ravenholdt Assassin — Stealth (simplified: vanilla; engine does not implement Stealth yet)
+/// Ravenholdt Assassin — Stealth
 pub const RAVENHOLDT_ASSASSIN: CardDef = CardDef {
     id: "NEUTRAL_T15",
     name: "Ravenholdt Assassin",

@@ -702,7 +702,7 @@ pub const BLESSED_CHAMPION: CardDef = CardDef {
 
 /// Sword of Justice — whenever you summon a minion, give it +1/+1 (simplified)
 pub const SWORD_OF_JUSTICE: CardDef = CardDef {
-    id: "PALADIN_017",
+    id: "EX1_365",
     name: "Sword of Justice",
     card_type: CardType::Weapon,
     cost: 3,
@@ -739,7 +739,7 @@ pub const SWORD_OF_JUSTICE: CardDef = CardDef {
 
 /// Repentance — Secret: when your opponent plays a minion, set its Health to 1 (simplified: DealDamage)
 pub const REPENTANCE: CardDef = CardDef {
-    id: "PALADIN_018",
+    id: "EX1_349",
     name: "Repentance",
     card_type: CardType::Spell,
     cost: 1,
@@ -804,6 +804,7 @@ pub const BLESSING_OF_WISDOM: CardDef = CardDef {
 };
 
 /// Eye for an Eye — Secret: when your hero takes damage, deal equal damage to the enemy hero
+/// (simplified: secret trigger only, no effect — damage-reflection not implemented)
 pub const EYE_FOR_AN_EYE: CardDef = CardDef {
     id: "PALADIN_020",
     name: "Eye for an Eye",
@@ -837,6 +838,7 @@ pub const EYE_FOR_AN_EYE: CardDef = CardDef {
 };
 
 /// Redemption — Secret: when a friendly minion dies, resummon it with 1 Health
+/// (simplified: secret trigger only, no effect — 1-Health resummon not implemented)
 pub const REDEMPTION: CardDef = CardDef {
     id: "PALADIN_021",
     name: "Redemption",

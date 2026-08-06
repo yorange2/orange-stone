@@ -316,7 +316,7 @@ pub const EXPLOSIVE_SHOT: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Multi-Shot — deal 3 damage to two random enemy minions (simplified: 3 damage to one random enemy minion)
+/// Multi-Shot — deal 3 damage to two random enemy minions
 pub const MULTI_SHOT: CardDef = CardDef {
     id: "HUNTER_012",
     name: "Multi-Shot",
@@ -414,6 +414,7 @@ pub const KING_KRUSH: CardDef = CardDef {
 };
 
 /// Scavenging Hyena — whenever a friendly minion dies, gain +2/+1
+/// (simplified: any friendly minion — real effect is Beast-triggered; tribes not modeled)
 pub const SCAVENGING_HYENA: CardDef = CardDef {
     id: "HUNTER_013",
     name: "Scavenging Hyena",
@@ -451,6 +452,7 @@ pub const SCAVENGING_HYENA: CardDef = CardDef {
 };
 
 /// Starving Buzzard — whenever you summon a minion, draw a card
+/// (simplified: any minion — real effect is Beast-triggered; tribes not modeled)
 pub const STARVING_BUZZARD: CardDef = CardDef {
     id: "HUNTER_014",
     name: "Starving Buzzard",

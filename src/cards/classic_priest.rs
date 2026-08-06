@@ -668,7 +668,7 @@ pub const INNER_FIRE: CardDef = CardDef {
 
 /// Lightwell — at start of your turn, restore 3 Health to a damaged friendly character (simplified: restore 3 Health at end of turn)
 pub const LIGHTWELL: CardDef = CardDef {
-    id: "PRIEST_018",
+    id: "EX1_341",
     name: "Lightwell",
     card_type: CardType::Minion,
     cost: 2,

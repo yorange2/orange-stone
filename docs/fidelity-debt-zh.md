@@ -1,19 +1,25 @@
 # 保真债 — 简化卡清单（F4/F5 持续审计账本）
 
-> **现状：`src/cards/` 里有 68 处简化标记**（2026-08-06 审计核对）。
+> **现状：`src/cards/` 里有 67 处简化标记**（2026-08-06 审计，修复轮 PR #77）。
 > 本账本是 F4 逐效果保真审计的**权威记录**。一张卡**离开账本**的唯一条件：
 > 真实炉石效果已实现**且**通过 F5 差分测试验证。不要静默重写卡牌——改动必须
 > 同时更新本账本、代码注释和下游简化债提取器（见[维护约定](#维护约定)）。
+>
+> **2026-08-06 修复轮（PR #77）**：下面的结构性发现（F-A1…F-A7）已全部解决——
+> 4 处过期注释清理、Worgen Infiltrator 修复、3 处卡 ID 冲突修复、10 张卡补入
+> `ALL_CARDS`（7 个重复条目去重）、Python 提取器重写（PR #31）。剩下的是
+> 下面各组的逐机制实现工作与 F5 验证协议。
 
 **权威来源**：`src/cards/classic_*.rs` 中卡牌常量上的 `(simplified: ...)` 文档注释。
 Python 侧（`orange-reinforcement/hearthstone_os/decks.py::_load_debt_ids`）靠解析
 这些注释提取清单，并把它们排除出 RL 训练卡池——所以注释措辞的改动会波及训练
 卡池（任何修改后记得使 `~/.cache/orange_stone_debt_ids.txt` 缓存失效）。
 
-68 处标记对应 65 个唯一卡 ID（3 张卡与他人共用 ID，见[审计发现](#2026-08-06-审计发现)）。
-62 张在 `ALL_CARDS` 里；其中 61 张可按 ID 取到——Mass Dispel 的 `PRIEST_018`
-被 Lightwell 抢占（Lightwell 在数组里靠前）。另有 6 张只存在于职业列表里、
-按 ID 不可达。**4 处注释是过期注释（卡已忠实，见 §10）**，真实债务是 64 张。
+67 处标记对应 67 个唯一卡 ID——修前的 3 处 ID 冲突（Sword of Justice /
+Repentance / Lightwell）已改成官方 ID（EX1_365 / EX1_349 / EX1_341），
+Mass Dispel 现在可取了。67 张全部在 `ALL_CARDS` 里（补入 10 张、去重 7 个
+重复条目后共 413 个唯一条目，PR #77）。其中 4 处是过期注释（卡已忠实，已
+清理，见 §10）；真实债务是 67 张。
 
 ---
 
@@ -131,7 +137,7 @@ Python 侧（`orange-reinforcement/hearthstone_os/decks.py::_load_debt_ids`）�
 | --- | --- | --- | --- | --- |
 | LEGENDARY_022 | Nat Pagle | 回合结束必抽牌 | 你的回合结束时，50% 几率抽一张牌 | 概率效果 |
 
-### 9. 复合与其他（12 张）
+### 9. 复合与其他（11 张）
 
 | ID | 卡名 | 现状 | 真实炉石效果 | 缺失机制 |
 | --- | --- | --- | --- | --- |
@@ -144,66 +150,58 @@ Python 侧（`orange-reinforcement/hearthstone_os/decks.py::_load_debt_ids`）�
 | ROGUE_025 | Pilfer | 随机一张非潜行者卡 | 随机将一张其他职业的卡牌置入你的手牌 | 职业过滤（引擎无职业模型） |
 | NEUTRAL_T21e | Ysera Awakens | 伤害包含 Ysera 自身 | 对所有**其他**角色造成 5 点伤害（梦境卡牌） | AllCharacters 排除自身 |
 | HUNTER_017 | Flare | 仅抽牌 | 摧毁所有敌方奥秘并抽一张牌 | 摧毁奥秘效果（同 SI:7） |
-| NEUTRAL_C08 | Worgen Infiltrator | 白板 | **潜行** | 无——一行 `stealth: true` 即可（#72 后字段已有） |
 | NEUTRAL_R14 | Arcane Golem | 仅冲锋 | 冲锋；战吼：使你的对手获得一个法力水晶 | 给对手水晶效果 |
 | NEUTRAL_R16 | Emperor Cobra | 白板 | **剧毒**（受到其伤害的随从被摧毁） | 剧毒机制（完全没有） |
 
-### 10. 标记简化但已忠实（4 张 — 注释过期）
+### 10. 已解决 — 标记简化但实际已忠实（4 张，PR #77 清理）
 
 注释早于落地 PR（前三张是 #72 潜行；Multi-Shot 的 `DealDamageToTwo` 随双随机目标
-效果落地）。def 里已经是真实效果，"simplified" 措辞是错的，应删掉（删了才会从
-Python 简化债集合里消失）。
+效果落地）。def 里本来就是真实效果，过期的 "simplified" 措辞已删除——这也会把
+它们从 Python 简化债集合里移除（4 张卡回到 RL 卡池）。
 
-| ID | 卡名 | 注释说 | 实际 |
-| --- | --- | --- | --- |
-| NEUTRAL_C10 | Jungle Panther | "Stealth (simplified: vanilla)" | def 里 `stealth: true` |
-| NEUTRAL_T14 | Stranglethorn Tiger | "simplified: vanilla; engine does not implement Stealth yet" | def 里 `stealth: true` |
-| NEUTRAL_T15 | Ravenholdt Assassin | "simplified: vanilla; engine does not implement Stealth yet" | def 里 `stealth: true` |
-| HUNTER_012 | Multi-Shot | "simplified: 3 damage to one random enemy minion" | `battlecry: DealDamageToTwo { amount: 3 }`——就是真实效果 |
+| ID | 卡名 | 修了什么 |
+| --- | --- | --- |
+| NEUTRAL_C10 | Jungle Panther | 注释清理——def 里 `stealth: true` |
+| NEUTRAL_T14 | Stranglethorn Tiger | 注释清理——def 里 `stealth: true` |
+| NEUTRAL_T15 | Ravenholdt Assassin | 注释清理——def 里 `stealth: true` |
+| HUNTER_012 | Multi-Shot | 注释清理——`DealDamageToTwo` 就是真实效果 |
 
 ---
 
-## 2026-08-06 审计发现
+## 2026-08-06 审计发现（已在 PR #77 / PR #31 全部解决）
 
-这些是整理账本时挖出来的 F4 工作项；每一项都需要决策，涉及可达卡池的改动要先
-与 RL 侧核对卡池规模。
+这些是整理账本时挖出来的 F4 工作项。所有结构性发现都已解决；剩下的是上面
+各组的逐机制实现工作与 F5 验证协议。
 
-- **F-A1 — 4 处过期注释**（见 §10）。动作：删掉注释里的 "(simplified…)"；
-  之后 Python 提取器就不再排除这些卡。使 `~/.cache/orange_stone_debt_ids.txt`
-  失效；RL 卡池 +4（3 张潜行随从 + Multi-Shot）。
-- **F-A2 — Worgen Infiltrator（NEUTRAL_C08）**：潜行机制已有时仍是白板。
-  一行修复（`stealth: true`）。可与 F-A1 一起做。
-- **F-A3 — 卡 ID 冲突（3 处）**：
-  - `SWORD_OF_JUSTICE` 用了 `"PALADIN_017"`（= Holy Wrath；真 ID EX1_365）
-  - `REPENTANCE` 用了 `"PALADIN_018"`（= Righteousness；真 ID EX1_349）
-  - `LIGHTWELL` 用了 `"PRIEST_018"`（= Mass Dispel；真 ID EX1_341）。Lightwell 在
-    `ALL_CARDS` 中靠前，所以 `card_by_id("PRIEST_018")` 返回 Lightwell，
-    **Mass Dispel 永远取不到**。动作：改成真 ID，再核对可达卡池（修好后 Mass
-    Dispel 会进入可达池）。
-- **F-A4 — 10 张不在 `ALL_CARDS`**（按 ID 和随机组牌都取不到）。它们只存在于
-  `HUNTER_CLASSIC`/`PALADIN_CLASSIC`：
-  - 简化卡：Houndmaster（HUNTER_015）、Tundra Rhino（HUNTER_016）、Flare
-    （HUNTER_017）、Sword of Justice、Repentance、Blessing of Wisdom（PALADIN_019）
-  - 未标简化的：Scavenging Hyena（HUNTER_013）、Starving Buzzard（HUNTER_014）、
-    Eye for an Eye（PALADIN_020）、Redemption（PALADIN_021）
-  需决策：是有意排除（写进文档）还是漏加（先修 F-A3 的 ID 再加）。
-- **F-A5 — `ALL_CARDS` 有 7 个重复常量条目**（410 项 / 403 个唯一）。对
-  `card_by_id`（首匹配）无害，但会让工作区路线图引用的 410 数字产生歧义；
-  方便时去重。
-- **F-A6 — 未标注的简化**：Starving Buzzard（HUNTER_014）和 Scavenging Hyena
-  （HUNTER_013）是种族简化（"召唤一个随从"/"一个友方随从死亡" vs 真实的
-  "**野兽**"），但注释没写 "simplified"；Eye for an Eye / Redemption
-  （PALADIN_020/021）的奥秘语义需要审计。`simplified` 注释纪律不完整——本次
-  核对是靠职业列表对照 `ALL_CARDS` 才发现的。这四张都不在 `ALL_CARDS` 里，
-  今天没有卡池影响，但仍是保真债。
-- **F-A7 —（2026-08-06 已修）Python 简化债提取器错位**：
+- ✅ **F-A1 — 4 处过期注释**（见 §10）。已解决：注释里的 "(simplified…)" 已删；
+  Python 提取器不再排除这些卡（缓存已失效）；RL 卡池 +4（3 张潜行随从 +
+  Multi-Shot）。
+- ✅ **F-A2 — Worgen Infiltrator（NEUTRAL_C08）**：潜行机制已有时仍是白板。
+  已解决：手写 def，`stealth: true`。
+- ✅ **F-A3 — 卡 ID 冲突（3 处）**：
+  - `SWORD_OF_JUSTICE` 原来用 `"PALADIN_017"`（= Holy Wrath）→ 现为 EX1_365
+  - `REPENTANCE` 原来用 `"PALADIN_018"`（= Righteousness）→ 现为 EX1_349
+  - `LIGHTWELL` 原来用 `"PRIEST_018"`（= Mass Dispel）→ 现为 EX1_341；
+    **Mass Dispel 现在可取了**（之前 `card_by_id("PRIEST_018")` 返回 Lightwell）。
+- ✅ **F-A4 — 10 张不在 `ALL_CARDS`**（Houndmaster、Tundra Rhino、Flare、Sword
+  of Justice、Repentance、Blessing of Wisdom、Scavenging Hyena、Starving
+  Buzzard、Eye for an Eye、Redemption）。按"漏加"处理：10 张全部补入
+  `ALL_CARDS`（现 413 个唯一条目）。RL 卡池不受影响——6 张简化卡和 4 张新标注
+  的卡（F-A6）都在简化债集合里被排除。
+- ✅ **F-A5 — `ALL_CARDS` 原有 7 个重复常量条目**（410 项 / 403 个唯一）。
+  已解决：去重后为 413 个唯一条目（403 + 补入 10）。
+- ✅ **F-A6 — 未标注的简化**：Starving Buzzard（HUNTER_013）和 Scavenging Hyena
+  （HUNTER_014）是种族简化（"召唤一个随从"/"一个友方随从死亡" vs 真实的
+  "**野兽**"）但没写标记；Eye for an Eye 和 Redemption（PALADIN_020/021）是只有
+  触发没有效果的奥秘。已解决：四张都补了显式 `(simplified: …)` 注释，成为已
+  记录债务，且不会进 RL 卡池。
+- ✅ **F-A7 — Python 简化债提取器错位**（PR #31 已修）：
   `hearthstone_os/decks.py::_load_debt_ids` 按 `pub const` 切块，把每处
   `simplified` 注释记到了**上一张**卡的 ID 上。导致 RL 训练卡池混进约 12 张真
   简化卡（Nat Pagle、Multi-Shot、Secretkeeper、Mass Dispel、Rampage、Cone of
   Cold、Ancestral Healing 等）、漏掉约 15 张干净卡——321 卡池的规模纯属巧合。
-  已改成"注释解析正下方的常量"（验证：65 个唯一 ID，与本账本一致；简化卡已
-  全部出池）。`~/.cache/orange_stone_debt_ids.txt` 缓存已失效；注意 M5 的训练
-  数字是修前卡池产出的，重训后会漂移。
+  已改成"注释解析正下方的常量"。`~/.cache/orange_stone_debt_ids.txt` 缓存已
+  失效；M5 的训练数字是修前卡池产出的，重训后会漂移。
 
 ## 机制盘点（引擎有 vs 缺）
 

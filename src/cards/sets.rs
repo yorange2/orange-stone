@@ -622,7 +622,6 @@ pub const ALL_CARDS: &[CardDef] = &[
     MIRROR_IMAGE_MINION,
     ETHEREAL_ARCANIST,
     VAPORIZE,
-    VAPORIZE,
     // Paladin
     BLESSING_OF_MIGHT,
     HUMILITY,
@@ -713,7 +712,6 @@ pub const ALL_CARDS: &[CardDef] = &[
     WINDSPEAKER,
     ANCESTRAL_HEALING,
     ANCESTRAL_SPIRIT,
-    ANCESTRAL_SPIRIT,
     // Warlock
     SOULFIRE,
     FLAME_IMP,
@@ -783,9 +781,6 @@ pub const ALL_CARDS: &[CardDef] = &[
     THE_BLACK_KNIGHT,
     MILLHOUSE_MANASTORM,
     NAT_PAGLE,
-    THE_BLACK_KNIGHT,
-    MILLHOUSE_MANASTORM,
-    NAT_PAGLE,
     // Incomplete additions
     GIFT_OF_THE_WILD,
     MULTI_SHOT,
@@ -798,7 +793,6 @@ pub const ALL_CARDS: &[CardDef] = &[
     COLDLIGHT_SEER,
     MURLOC_WARLEADER,
     // Hero Attack
-    HEROIC_STRIKE,
     BITE,
     SAVAGERY,
     POWER_OF_THE_WILD,
@@ -848,7 +842,6 @@ pub const ALL_CARDS: &[CardDef] = &[
     EATER_OF_SECRETS,
     ARCANE_DEVOURER,
     VIOLET_APPRENTICE,
-    FACELESS_MANIPULATOR,
     FACELESS_MANIPULATOR,
     // Tier 1 additions
     WISP,
@@ -926,4 +919,15 @@ pub const ALL_CARDS: &[CardDef] = &[
     PILFER,
     CALL_OF_THE_VOID,
     BANE_OF_DOOM,
+    // F-A4 additions (2026-08-06): implemented class cards that were missing from ALL_CARDS
+    SCAVENGING_HYENA,
+    STARVING_BUZZARD,
+    HOUNDMASTER,
+    TUNDRA_RHINO,
+    FLARE,
+    SWORD_OF_JUSTICE,
+    REPENTANCE,
+    BLESSING_OF_WISDOM,
+    EYE_FOR_AN_EYE,
+    REDEMPTION,
 ];
