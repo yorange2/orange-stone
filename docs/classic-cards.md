@@ -1,9 +1,9 @@
 # Classic/Basic Set Card List
 
 > Source: [Hearthstone Wiki - Classic (2014-2021)](https://hearthstone.wiki.gg/wiki/Classic_(2014-2021)), [Basic card list](https://hearthstone.wiki.gg/wiki/Basic_card_list)
-> Total: 375 | ✅ fully implemented: 346 | ✅ simplified: 24 | ⬜ pending: 0 | 🔧 needs new mechanic: 2 | ⏸️ skipped: 3（status column refreshed 2026-08-06 against the code）
+> Total: 375 | ✅ fully implemented: 346 | ✅ simplified: 24 | ⬜ pending: 0 | 🔧 needs new mechanic: 1 | ⏸️ skipped: 4（status column refreshed 2026-08-06 against the code）
 
-Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications (tracked in fidelity-debt) | ⬜ Pending (engine supports) | 🔧 Needs new engine mechanic | ⏸️ Skipped (opponent hand/deck)
+Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications (tracked in fidelity-debt) | ⬜ Pending (engine supports) | 🔧 Needs new engine mechanic | ⏸️ Skipped (opponent hand/deck, may introduce other-set cards)
 
 ---
 
@@ -158,7 +158,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 |---|------|------|--------|------|--------|
 | 1 | Bloodmage Thalnos | 2 | 1/1 | **Spell Damage +1.** **Deathrattle:** Draw a card. | ✅ |
 | 2 | Brightwing | 2 | 3/2 | **Battlecry:** Add a random Legendary minion to your hand. | ✅ |
-| 3 | Lorewalker Cho | 2 | 0/4 | Whenever a player casts a spell, put a copy into the other player's hand. | 🔧 spell copy |
+| 3 | Lorewalker Cho | 2 | 0/4 | Whenever a player casts a spell, put a copy into the other player's hand. | ⏸️ may introduce cards from other sets |
 | 4 | Millhouse Manastorm | 2 | 4/4 | **Battlecry:** Enemy spells cost (0) next turn. | ✅ |
 | 5 | Nat Pagle | 2 | 0/4 | At the start of your turn, you have a 50% chance to draw an extra card. | ✅ |
 | 6 | King Mukla | 3 | 5/5 | **Battlecry:** Give your opponent 2 Bananas. | ✅ |
@@ -543,7 +543,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | Neutral Common | 38 | 36 | 2 | 0 | 0 | 0 |
 | Neutral Rare | 35 | 35 | 0 | 0 | 0 | 0 |
 | Neutral Epic | 9 | 8 | 1 | 0 | 0 | 0 |
-| Neutral Legendary | 24 | 21 | 2 | 0 | 1 | 0 |
+| Neutral Legendary | 24 | 21 | 2 | 0 | 0 | 1 |
 | Druid | 25 | 21 | 4 | 0 | 0 | 0 |
 | Hunter | 25 | 22 | 3 | 0 | 0 | 0 |
 | Mage | 25 | 24 | 1 | 0 | 0 | 0 |
@@ -553,4 +553,4 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | Shaman | 25 | 25 | 0 | 0 | 0 | 0 |
 | Warlock | 24 | 23 | 0 | 0 | 1 | 0 |
 | Warrior | 25 | 22 | 3 | 0 | 0 | 0 |
-| **Grand Total** | **375** | **346** | **24** | **0** | **2** | **3** |
+| **Grand Total** | **375** | **346** | **24** | **0** | **1** | **4** |
