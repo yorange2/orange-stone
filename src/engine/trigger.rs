@@ -618,6 +618,115 @@ pub fn resolve_effect(
         CardEffect::FullHealAndTaunt { target } => {
             resolve_full_heal_and_taunt(state, owner, target, explicit_target);
         }
+        CardEffect::ChanceDraw { percent } => {
+            // Nat Pagle — a percent chance to draw at the end of the turn
+            if state.rng_mut().next_usize(100) < percent as usize {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::GainStatsThisTurn {
+            attack,
+            health,
+            target,
+        } => {
+            resolve_gain_stats_this_turn(
+                state,
+                source,
+                owner,
+                attack,
+                health,
+                target,
+                explicit_target,
+            );
+        }
+        CardEffect::GrantDivineShieldAllFriendly => {
+            let minions = collect_friendly_minions(state, owner);
+            for m in &minions {
+                state
+                    .world_mut()
+                    .set_divine_shield(*m, crate::core::component::DivineShield);
+            }
+        }
+        CardEffect::YseraAwakens { damage } => {
+            // The Dream card spares Ysera herself (the generator minion)
+            let mut chars = collect_friendly_minions(state, owner);
+            chars.push(state.player(owner).hero);
+            chars.extend(collect_all_enemy_characters(state, owner));
+            for c in &chars {
+                let is_ysera = state
+                    .world()
+                    .card_id(*c)
+                    .is_some_and(|cid| cid.0 == "NEUTRAL_T21");
+                if !is_ysera {
+                    queue.push(Event::DamageDealt {
+                        source,
+                        target: *c,
+                        amount: damage,
+                    });
+                }
+            }
+        }
+        CardEffect::GainStatsAndTauntAllFriendly { attack, health } => {
+            let minions = collect_friendly_minions(state, owner);
+            for m in &minions {
+                state.world_mut().add_enchantment(
+                    *m,
+                    Enchantment {
+                        attack,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+                state
+                    .world_mut()
+                    .set_taunt(*m, crate::core::component::Taunt);
+            }
+        }
+        CardEffect::DrawAndDamageByCost => {
+            // Holy Wrath — draw a card, deal damage equal to its mana cost
+            if let Some(drawn) = draw_card_no_queue(state, owner) {
+                let cost = state.world().effective_cost(drawn).unwrap_or(Cost(0)).0;
+                queue.push(Event::CardDrawn {
+                    player: owner,
+                    card: drawn,
+                });
+                if cost > 0 {
+                    resolve_deal_damage(
+                        state,
+                        queue,
+                        source,
+                        owner,
+                        cost,
+                        EffectTarget::AnyEnemy,
+                        None,
+                    );
+                }
+            }
+        }
+        CardEffect::RestoreDamagedFriendly { amount } => {
+            // Lightwell — restore to a random damaged friendly character
+            let damaged: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .filter(|&e| {
+                    state.world().damage(e).is_some_and(|d| d.0 > 0)
+                        && (state.world().card_type(e) == Some(CardType::Minion)
+                            || state.world().card_type(e) == Some(CardType::Hero))
+                })
+                .collect();
+            if let Some(target) = select_target(None, &damaged, state.rng_mut()) {
+                let dmg = state.world().damage(target).map_or(0, |d| d.0);
+                let new_dmg = (dmg - amount).max(0);
+                if new_dmg > 0 {
+                    state.world_mut().set_damage(target, Damage(new_dmg));
+                } else {
+                    state.world_mut().remove_damage(target);
+                }
+                fire_healed_trigger(state, queue, target);
+            }
+        }
         CardEffect::GainStatsPerHandCard {
             attack,
             health_per_card,
@@ -1368,6 +1477,36 @@ fn resolve_destroy_and_gain_stats(
             expiry: EnchantmentExpiry::Permanent,
         },
     );
+}
+
+/// This-turn buff (Mana Addict): same target selection as `resolve_gain_stats`
+/// but the enchantment expires at the end of the turn.
+fn resolve_gain_stats_this_turn(
+    state: &mut GameState,
+    source: Entity,
+    owner: PlayerId,
+    attack: i32,
+    health: i32,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+) {
+    let buff = Enchantment {
+        attack,
+        health,
+        cost: 0,
+        expiry: EnchantmentExpiry::UntilEndOfTurn,
+    };
+    let minions: SmallList<Entity> = match target {
+        EffectTarget::Self_ => {
+            state.world_mut().add_enchantment(source, buff);
+            return;
+        }
+        EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        _ => return,
+    };
+    if let Some(m) = select_target(explicit, &minions, state.rng_mut()) {
+        state.world_mut().add_enchantment(m, buff);
+    }
 }
 
 /// Resolves a buff effect.

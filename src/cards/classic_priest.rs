@@ -684,7 +684,7 @@ pub const INNER_FIRE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Lightwell — at start of your turn, restore 3 Health to a damaged friendly character (simplified: restore 3 Health at end of turn)
+/// Lightwell — at the start of your turn, restore 3 Health to a damaged friendly character
 pub const LIGHTWELL: CardDef = CardDef {
     id: "EX1_341",
     name: "Lightwell",
@@ -708,11 +708,8 @@ pub const LIGHTWELL: CardDef = CardDef {
     spell_damage: 0,
     cant_attack: false,
     spell_effect: None,
-    end_turn_effect: Some(CardEffect::RestoreHealth {
-        amount: 3,
-        target: EffectTarget::FriendlyHero,
-    }),
-    start_turn_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: Some(CardEffect::RestoreDamagedFriendly { amount: 3 }),
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,

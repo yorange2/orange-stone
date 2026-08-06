@@ -1,6 +1,6 @@
 # Fidelity-Debt Implementation Roadmap — the 67 simplified cards
 
-> **Status: W5 done (PR #84); W6 next.** This roadmap executes the F4-ongoing /
+> **Status: W6 done (PR #86); W7 next.** This roadmap executes the F4-ongoing /
 > F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
 > [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
@@ -265,27 +265,35 @@ cost auras); RL pool grows by 8 (363 → 371).
 | SHAMAN_018 | Ancestral Healing | Restore a minion to full Health and give it Taunt | `w5_ancestral_healing_full_heals_and_taunts` |
 
 **Acceptance**: 7 differential scenarios; RL pool grows by 7 (371 → 378).
-## Wave 6 — Special mechanics (8 cards)
+## Wave 6 — Special mechanics (8 cards) ✅ done (PR #86)
 
-**Primitives**: probabilistic effect (Nat Pagle), this-turn temporary buff with
-end-of-turn expiry (Mana Addict; the G4 enchantment layer already has
-`UntilEndOfTurn`), mass Divine Shield, self-exclusion AOE (AllOtherCharacters),
-draw-then-damage-equal-to-cost (variable-amount damage), class filter for random
-card pools (Pilfer).
+**Primitives** — all landed:
+- Probability: `CardEffect::ChanceDraw` (Nat Pagle — 50% draw at turn end).
+- This-turn temp buff: `CardEffect::GainStatsThisTurn` (Mana Addict — the
+  enchantment expires at the end of the turn).
+- Mass Divine Shield: `CardEffect::GrantDivineShieldAllFriendly`
+  (Righteousness).
+- Self-exclusion AOE: `CardEffect::YseraAwakens` (spares Ysera herself).
+- Draw-damage-by-cost: `CardEffect::DrawAndDamageByCost` (Holy Wrath).
+- Damaged-friendly start-of-turn heal: `CardEffect::RestoreDamagedFriendly`
+  (Lightwell — moved from end-of-turn).
+- Mass buff+Taunt: `CardEffect::GainStatsAndTauntAllFriendly` (Gift of the Wild).
+- Class-filtered draw: Pilfer verified already-faithful — the OtherClass pool
+  filters the Rogue class group; only the stale comment was cleaned.
 
-| ID | Card | Real effect |
-| --- | --- | --- |
-| LEGENDARY_022 | Nat Pagle | End of turn: 50% chance to draw |
-| NEUTRAL_R10 | Mana Addict | After spell: +2 Attack this turn |
-| PALADIN_018 | Righteousness | Give your minions Divine Shield |
-| NEUTRAL_T21e | Ysera Awakens | Deal 5 damage to all **other** characters |
-| DRUID_016 | Gift of the Wild | Your minions +2/+2 and Taunt |
-| PALADIN_017 | Holy Wrath | Draw; deal damage equal to its cost |
-| EX1_341 | Lightwell | Start of turn: heal 3 to a damaged friendly character |
-| ROGUE_025 | Pilfer | Add a random card from another class to hand |
+| ID | Card | Real effect | Scenario |
+| --- | --- | --- | --- |
+| LEGENDARY_022 | Nat Pagle | 50% chance to draw at the end of your turn | `w6_nat_pagle_chance_draw` |
+| NEUTRAL_R10 | Mana Addict | After you cast a spell, +2 Attack this turn | `w6_mana_addict_buff_expires_at_turn_end` |
+| PALADIN_018 | Righteousness | Give your minions Divine Shield | `w6_righteousness_grants_divine_shields` |
+| NEUTRAL_T21e | Ysera Awakens | Deal 5 damage to all other characters | `w6_ysera_awakens_spares_ysera` |
+| DRUID_016 | Gift of the Wild | Give your minions +2/+2 and Taunt | `w6_gift_of_the_wild_buffs_and_taunts` |
+| PALADIN_017 | Holy Wrath | Draw a card, deal damage equal to its mana cost | `w6_holy_wrath_damages_by_drawn_cost` |
+| EX1_341 | Lightwell | Start of turn: restore 3 to a damaged friendly character | `w6_lightwell_heals_at_turn_start` |
+| ROGUE_025 | Pilfer | Add a random card from another class to your hand | `w6_pilfer_adds_non_rogue_card` |
 
-**Acceptance**: 8 differential scenarios; RL pool grows by 8.
-
+**Acceptance**: 8 differential scenarios; RL pool grows by 8 (378 → 388,
+including the Pilfer comment cleanup).
 ## Wave 7 — Wrap-up: complex leftovers (3 cards)
 
 **Primitives**: hand-zone swap (Alarm-o-Bot), damage-reflection secret
@@ -321,6 +329,6 @@ constructible size; final sweep + full SabberStone parity run.
 | W3 predicates ✅ PR #82 | 9 | attack-range/hand-size/health/damaged/secret/first-minion/shield predicates | +9 → **363** |
 | W4 cost/weapon ✅ PR #83 | 8 | cost auras/weapon-attack cost/durability/conditional charge/spells-0/mana gift | +8 → **371** |
 | W5 target structure ✅ PR #84 | 7 | set-health/swap/adjacent targets/effect composition | +7 → **378** |
-| W6 special mechanics | 8 | 6 primitives | +8 |
+| W6 special mechanics ✅ PR #86 | 8 | probability/temp-buff/mass-shield/self-exclusion/cost-damage/class-filter | +8 → **388** |
 | W7 wrap-up | 3 | 3 primitives | +3 |
 | **Total** | **67** | | **321 → 388** |
