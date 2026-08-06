@@ -1,6 +1,6 @@
 # Fidelity-Debt Implementation Roadmap — the 67 simplified cards
 
-> **Status: W6 done (PR #86); W7 next.** This roadmap executes the F4-ongoing /
+> **Status: W6 done (PR #85); W7 next.** This roadmap executes the F4-ongoing /
 > F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
 > [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
@@ -265,7 +265,7 @@ cost auras); RL pool grows by 8 (363 → 371).
 | SHAMAN_018 | Ancestral Healing | Restore a minion to full Health and give it Taunt | `w5_ancestral_healing_full_heals_and_taunts` |
 
 **Acceptance**: 7 differential scenarios; RL pool grows by 7 (371 → 378).
-## Wave 6 — Special mechanics (8 cards) ✅ done (PR #86)
+## Wave 6 — Special mechanics (8 cards) ✅ done (PR #85)
 
 **Primitives** — all landed:
 - Probability: `CardEffect::ChanceDraw` (Nat Pagle — 50% draw at turn end).
@@ -329,6 +329,6 @@ constructible size; final sweep + full SabberStone parity run.
 | W3 predicates ✅ PR #82 | 9 | attack-range/hand-size/health/damaged/secret/first-minion/shield predicates | +9 → **363** |
 | W4 cost/weapon ✅ PR #83 | 8 | cost auras/weapon-attack cost/durability/conditional charge/spells-0/mana gift | +8 → **371** |
 | W5 target structure ✅ PR #84 | 7 | set-health/swap/adjacent targets/effect composition | +7 → **378** |
-| W6 special mechanics ✅ PR #86 | 8 | probability/temp-buff/mass-shield/self-exclusion/cost-damage/class-filter | +8 → **388** |
+| W6 special mechanics ✅ PR #85 | 8 | probability/temp-buff/mass-shield/self-exclusion/cost-damage/class-filter | +8 → **388** |
 | W7 wrap-up | 3 | 3 primitives | +3 |
 | **Total** | **67** | | **321 → 388** |

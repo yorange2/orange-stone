@@ -3,7 +3,7 @@
 > **Status: 3 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
 > W0 wiring pass PR #79 cleared 13; W1 race pass PR #80 cleared 11; W2 triggers PR #81 cleared 8;
 > W3 predicates PR #82 cleared 9; W4 cost/weapon PR #83 cleared 8; W5 target structure PR #84 cleared 7;
-> W6 special mechanics PR #86 cleared 8).
+> W6 special mechanics PR #85 cleared 8).
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
@@ -77,7 +77,7 @@
 > `GrantAdjacentSpellDamage` (Ancient Mage), `FullHealAndTaunt` (Ancestral
 > Healing). 7 scenarios (`w5_*`).
 >
-> **2026-08-06 W6 special-mechanics pass (PR #86)**: all 8 cards landed —
+> **2026-08-06 W6 special-mechanics pass (PR #85)**: all 8 cards landed —
 > probability (`ChanceDraw` Nat Pagle), this-turn temp buff
 > (`GainStatsThisTurn` Mana Addict), mass Divine Shield
 > (`GrantDivineShieldAllFriendly` Righteousness), self-exclusion AOE
@@ -160,17 +160,17 @@ All landed: hand-zone cost auras (global / own), weapon-attack cost reduction,
 weapon-durability damage, weapon-equipped predicate (conditional Charge),
 enemy-spells-cost-0, give-opponent-mana (`w4_*` scenarios).
 
-### 7. This-turn temporary buff (1) ✅ resolved (W6, PR #86)
+### 7. This-turn temporary buff (1) ✅ resolved (W6, PR #85)
 
 `GainStatsThisTurn` — the enchantment expires at the end of the turn
 (`w6_mana_addict_buff_expires_at_turn_end`).
 
-### 8. Probability (1) ✅ resolved (W6, PR #86)
+### 8. Probability (1) ✅ resolved (W6, PR #85)
 
 `ChanceDraw` — a percentage draw at the end of the turn
 (`w6_nat_pagle_chance_draw`).
 
-### 9. Composite & miscellaneous (8) ✅ resolved (W5 PR #84 + W6 PR #86)
+### 9. Composite & miscellaneous (8) ✅ resolved (W5 PR #84 + W6 PR #85)
 
 W5 cleared: Holy Wrath (draw-damage-by-cost), Ancestral Healing
 (full-heal + Taunt). W6 cleared: Righteousness (mass Divine Shield), Ysera
