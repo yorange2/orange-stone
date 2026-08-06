@@ -3,7 +3,8 @@
 > Active roadmap (not yet archived). Clears the remaining fidelity-debt
 > ledger: §11 of `docs/fidelity-debt.md` — the 2026-08-06 registration pass
 > found 27 cards with known simplifications but no `(simplified: …)` markers;
-> F-A8 (PR #88) resolved 3, leaving **24**. Each card leaves the ledger only
+> F-A8 (PR #88) resolved 3, and W8 (PR #97) resolved 5, leaving **19**. Each
+> card leaves the ledger only
 > when its real Hearthstone effect is implemented **and** verified by an F5
 > differential test (ledger maintenance contract). Chinese mirror:
 > `fidelity-debt-roadmap-zh.md`.
@@ -43,18 +44,21 @@
 
 ## Waves
 
-### W8 — Trigger wiring (5 cards): Amani Berserker, Raging Worgen, Grommash Hellscream, Warsong Commander, Northshire Cleric
+### W8 — Trigger wiring (5 cards): Amani Berserker, Raging Worgen, Grommash Hellscream, Warsong Commander, Northshire Cleric ✅ (PR #97)
 
 - Enrage wiring via the `ThisMinionDamaged` keyword map (W0 precedent):
-  Amani Berserker (2/3 → 5/3 enraged), Raging Worgen (1/3 + Windfury → 3/3
-  + Windfury), Grommash (4/9 → 7/9 enraged)
+  Amani Berserker (2/3 → 5/3 enraged), Raging Worgen (3/3, Enrage: +1 Attack
+  **and** Windfury — base is 3/3 per the official card data, not 1/3 as
+  originally drafted; the baked-in permanent Windfury was removed, it is part
+  of the Enrage), Grommash (4/9 → 10/9 enraged, not 7/9)
 - Warsong Commander: all-other-friendly-minions `GrantCharge` aura
   (Tundra Rhino precedent, self excluded)
-- Northshire Cleric: draw a card on friendly `CharacterHealed`
+- Northshire Cleric: draw a card on friendly `CharacterHealed` (new
+  `FriendlyCharacterHealed` event fired at the heal choke point)
 
-**Acceptance**: 5 `w8_*` differential scenarios (enrage resolution order,
-charge aura grant, heal-draw timing vs the heal event); `cargo test` green;
-RL pool 367 → 372; §11 loses 5 rows.
+**Acceptance**: ✅ 5 `w8_*` differential scenarios (enrage resolution order,
+charge aura grant, heal-draw timing vs the heal event); `cargo test` green
+(422); RL pool 367 → **372**; §11 loses 5 rows.
 
 ### W9 — Weapon & race (4 cards): Truesilver Champion, Gorehowl, Eaglehorn Bow, Bestial Wrath
 
@@ -121,7 +125,7 @@ Sea Giant cost vs board state, Preparation window, Cold Blood base branch);
 
 | Wave | Cards | RL pool |
 | --- | --- | --- |
-| W8 trigger wiring | 5 | 367 → **372** |
+| W8 trigger wiring ✅ (PR #97) | 5 | 367 → **372** |
 | W9 weapon & race | 4 | 372 → **376** |
 | W10 choose-one & discover | 5 | 376 → **381** |
 | W11 battlecries & cost | 6 | 381 → **387** |
