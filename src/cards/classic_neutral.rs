@@ -349,6 +349,7 @@ pub const DARK_IRON_DWARF: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Defender of Argus — Battlecry: give adjacent minions +1/+1 and Divine Shield
 pub const DEFENDER_OF_ARGUS: CardDef = CardDef {
     id: "CLASSIC_010",
     name: "Defender of Argus",
@@ -357,10 +358,9 @@ pub const DEFENDER_OF_ARGUS: CardDef = CardDef {
     attack: 2,
     health: 3,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats {
+    battlecry: Some(CardEffect::GrantAdjacentStatsAndDivineShield {
         attack: 1,
         health: 1,
-        target: EffectTarget::Self_,
     }),
     deathrattle: None,
     taunt: true,
@@ -1490,6 +1490,8 @@ pub const ARCHMAGE: CardDef = CardDef {
 pub const CORE_HOUND: CardDef = vanilla!("NEUTRAL_025", "Core Hound", 7, 9, 5);
 
 /// Sea Giant — costs (1) less for each other minion on the battlefield (simplified: no cost reduction — vanilla 8/8)
+/// Sea Giant — costs (1) less for each minion on the battlefield (the
+/// board-count rule composes in `cost::play_cost`, Dread Corsair pattern)
 pub const SEA_GIANT: CardDef = vanilla!("NEUTRAL_026", "Sea Giant", 10, 8, 8);
 pub const MOLTEN_GIANT: CardDef = vanilla!("NEUTRAL_027", "Molten Giant", 20, 8, 8);
 pub const MOUNTAIN_GIANT: CardDef = vanilla!("NEUTRAL_028", "Mountain Giant", 12, 8, 8);

@@ -213,6 +213,18 @@ pub fn resolve_effect(
         CardEffect::DiscardRandomCard => {
             resolve_discard_random(state, owner);
         }
+        CardEffect::DiscardHand => {
+            resolve_discard_hand(state, owner);
+        }
+        CardEffect::NextSpellDiscount { amount } => {
+            state.make_mut().players[owner.index()].next_spell_discount = amount;
+        }
+        CardEffect::GrantAdjacentStatsAndDivineShield { attack, health } => {
+            resolve_grant_adjacent_stats_and_divine_shield(state, source, owner, attack, health);
+        }
+        CardEffect::DestroyAllOtherMinionsAndDiscardHand => {
+            resolve_destroy_all_other_minions_and_discard_hand(state, queue, source, owner);
+        }
         CardEffect::DealArmorDamage { target } => {
             resolve_deal_armor_damage(state, queue, source, owner, target, explicit_target);
         }
@@ -1435,6 +1447,63 @@ fn resolve_grant_adjacent_taunt(state: &mut GameState, source: Entity, owner: Pl
     }
 }
 
+/// Gives the source's adjacent minions stats and Divine Shield (Defender of
+/// Argus — +1/+1 and Divine Shield to adjacent minions).
+fn resolve_grant_adjacent_stats_and_divine_shield(
+    state: &mut GameState,
+    source: Entity,
+    owner: PlayerId,
+    attack: i32,
+    health: i32,
+) {
+    let board: SmallList<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, owner)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    let Some(pos) = board.iter().position(|&e| e == source) else {
+        return;
+    };
+    let buff = Enchantment {
+        attack,
+        health,
+        cost: 0,
+        expiry: EnchantmentExpiry::Permanent,
+    };
+    for neighbor in [pos.wrapping_sub(1), pos + 1] {
+        if let Some(&n) = board.get(neighbor) {
+            let world = state.world_mut();
+            world.add_enchantment(n, buff);
+            world.set_divine_shield(n, crate::core::component::DivineShield);
+        }
+    }
+}
+
+/// Deathwing's battlecry: discard your whole hand, then destroy all other
+/// minions (the source survives).
+fn resolve_destroy_all_other_minions_and_discard_hand(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+) {
+    resolve_discard_hand(state, owner);
+    let mut all = collect_friendly_minions(state, owner);
+    all.extend(collect_all_enemy_minions(state, owner));
+    for &m in &all {
+        if m == source {
+            continue;
+        }
+        let hp = state.world().effective_health(m).unwrap_or(Health(1));
+        queue.push(Event::DamageDealt {
+            source: m,
+            target: m,
+            amount: hp.0.max(1),
+        });
+    }
+}
+
 /// Gives the source's adjacent minions Spell Damage (Ancient Mage).
 fn resolve_grant_adjacent_spell_damage(
     state: &mut GameState,
@@ -2418,6 +2487,15 @@ fn resolve_discard_random(state: &mut GameState, owner: PlayerId) {
     let idx = state.rng_mut().next_usize(hand.len());
     let card = hand[idx];
     let _ = state.world_mut().move_to_zone(card, Zone::Graveyard);
+}
+
+/// Discards the whole hand (Deathwing — every card in hand goes to the
+/// graveyard).
+fn resolve_discard_hand(state: &mut GameState, owner: PlayerId) {
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, owner).collect();
+    for card in hand {
+        let _ = state.world_mut().move_to_zone(card, Zone::Graveyard);
+    }
 }
 
 /// Deals damage to a target equal to the hero's armor.

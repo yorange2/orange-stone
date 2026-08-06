@@ -575,9 +575,12 @@ mod tests {
         // clobbering the turn-1 crystal that GameState::new() provides — the
         // first player stayed a full crystal behind for the whole game, which
         // collapsed first-seat RL training. HS official: 1 crystal on turn 1.
+        // Fixed 0-cost deck: the opening must be playable regardless of the
+        // ALL_CARDS pool composition (W11 added the Onyxia Whelp token).
+        let deck: Vec<&'static str> = vec!["NEUTRAL_T01"; 20]; // Wisp
         let mut env = GameEnv::new(
             PlayerId::Player1,
-            EnvConfig::default_with(BotType::Greedy, 20),
+            EnvConfig::default_with(BotType::Greedy, 20).with_fixed_deck(deck),
         );
         env.reset(7);
         assert_eq!(env.state.player(PlayerId::Player1).mana_crystals, 1);

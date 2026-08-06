@@ -1163,6 +1163,12 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DoubleHealth { .. } => 3.0,
         CardEffect::BuffWeapon { attack, durability } => (attack + durability) as f64 * 1.5,
         CardEffect::DiscardRandomCard => -2.0,
+        CardEffect::DiscardHand => -10.0,
+        CardEffect::NextSpellDiscount { amount } => amount as f64 * 1.0,
+        CardEffect::GrantAdjacentStatsAndDivineShield { attack, health } => {
+            (attack + health) as f64 * 0.8 + 2.0
+        }
+        CardEffect::DestroyAllOtherMinionsAndDiscardHand => -6.0,
         CardEffect::DealArmorDamage { .. } => 3.0,
         CardEffect::DestroyWeaponAndDraw => 5.0,
         CardEffect::ReturnAllToHand => 3.0,

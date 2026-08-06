@@ -32,6 +32,36 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
     {
         cost = Cost(0);
     }
+    // Preparation (W11): the next spell cast this turn costs `amount` less
+    // (one-time — the flag is consumed by the first spell played)
+    if state.world().card_type(card) == Some(crate::core::component::CardType::Spell) {
+        let discount = state.player(player).next_spell_discount;
+        if discount > 0 {
+            cost = Cost((cost.0 - discount).max(0));
+        }
+    }
+    // Sea Giant (W11): costs (1) less for each minion on the battlefield
+    // (both sides — the board-count rule composes here like Dread Corsair)
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "NEUTRAL_026")
+    {
+        let board_count = [player, player.opponent()]
+            .iter()
+            .map(|&p| {
+                state
+                    .world()
+                    .zones()
+                    .iter(crate::core::zone::Zone::Play, p)
+                    .filter(|&e| {
+                        state.world().card_type(e) == Some(crate::core::component::CardType::Minion)
+                    })
+                    .count()
+            })
+            .sum::<usize>();
+        cost = Cost((cost.0 - board_count as i32).max(0));
+    }
     // Dread Corsair: costs (1) less per Attack of your weapon
     let weapon_attack = state
         .player(player)

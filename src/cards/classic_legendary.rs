@@ -362,7 +362,7 @@ pub const MALYGOS: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Onyxia — Battlecry: summon 1/1 Whelps until your board is full (simplified: no Battlecry — vanilla 9/8)
+/// Onyxia — Battlecry: summon five 1/1 Whelps
 pub const ONYXIA: CardDef = CardDef {
     id: "LEGENDARY_010",
     name: "Onyxia",
@@ -371,7 +371,10 @@ pub const ONYXIA: CardDef = CardDef {
     attack: 8,
     health: 8,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::SummonMultipleMinions {
+        card_id: ONYXIA_WHELP_ID,
+        count: 5,
+    }),
     deathrattle: None,
     taunt: false,
     stealth: false,
@@ -396,7 +399,7 @@ pub const ONYXIA: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Deathwing — Battlecry: destroy all other minions and discard your hand (simplified: no hand discard)
+/// Deathwing — Battlecry: discard your hand and destroy all other minions
 pub const DEATHWING: CardDef = CardDef {
     id: "LEGENDARY_011",
     name: "Deathwing",
@@ -405,9 +408,7 @@ pub const DEATHWING: CardDef = CardDef {
     attack: 12,
     health: 12,
     durability: 0,
-    battlecry: Some(CardEffect::DestroyMinion {
-        target: EffectTarget::AllMinions,
-    }),
+    battlecry: Some(CardEffect::DestroyAllOtherMinionsAndDiscardHand),
     deathrattle: None,
     taunt: false,
     stealth: false,
@@ -617,6 +618,44 @@ pub const HIGH_INQUISITOR_WHITEMANE: CardDef = CardDef {
     health: 7,
     durability: 0,
     battlecry: Some(CardEffect::ResurrectMinion),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// Onyxia Whelp — the 1/1 Dragon token Onyxia's Battlecry summons
+/// (race None — the engine's tribe set has no Dragon; all dragon cards
+/// are race-less).
+pub const ONYXIA_WHELP_ID: &str = "EX1_170t";
+
+pub const ONYXIA_WHELP: CardDef = CardDef {
+    id: ONYXIA_WHELP_ID,
+    name: "Onyxia Whelp",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 1,
+    health: 1,
+    durability: 0,
+    battlecry: None,
     deathrattle: None,
     taunt: false,
     stealth: false,
