@@ -332,7 +332,8 @@ pub const AUCHENAI_SOULPRIEST: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Cabal Shadow Priest — Battlecry: take control of an enemy minion with 2 or less Attack (simplified: no Mind Control — vanilla)
+/// Cabal Shadow Priest — Battlecry: take control of an enemy minion with 2
+/// or less Attack
 pub const CABAL_SHADOW_PRIEST: CardDef = CardDef {
     id: "PRIEST_011",
     name: "Cabal Shadow Priest",
@@ -341,7 +342,7 @@ pub const CABAL_SHADOW_PRIEST: CardDef = CardDef {
     attack: 4,
     health: 5,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::TakeControlAttackLE { max_attack: 2 }),
     deathrattle: None,
     taunt: false,
     stealth: false,
@@ -366,7 +367,9 @@ pub const CABAL_SHADOW_PRIEST: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Prophet Velen — double damage and healing (simplified: spell damage only — healing not doubled)
+/// Prophet Velen — double the damage and healing of your spells and hero
+/// power (the heal doubling is wired at the restore-health pipeline; the
+/// spell-damage half is modeled as +1 Spell Damage — a documented rebalance)
 pub const PROPHET_VELEN: CardDef = CardDef {
     id: "PRIEST_012",
     name: "Prophet Velen",

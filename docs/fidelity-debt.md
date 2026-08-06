@@ -101,12 +101,15 @@
 > and the 1-Health resummon secret (`ResurrectDiedMinion` Redemption).
 > 3 scenarios (`w7_*`). **The ledger was EMPTY and the RL pool was the full 391-card
 > classic pool — until the 2026-08-06 registration pass re-opened it with 27
-> pre-existing simplifications (§11); the pool is now 386 (413 − 5 debt − 21 tokens − coin,
+> pre-existing simplifications (§11); the pool is now 391 (413 − 0 debt − 21 tokens − coin,
 > W8 clears 5: Amani Berserker / Raging Worgen / Grommash / Warsong Commander / Northshire Cleric;
 > W9 clears 4: Truesilver Champion / Gorehowl / Eaglehorn Bow / Bestial Wrath;
 > W10 clears 5: Wrath / Druid of the Claw / Ancient of Lore / Ancient of War / Tracking;
 > W11 clears 5: Onyxia / Deathwing / Sea Giant / Preparation / Cold Blood — Defender of Argus
-> was fixed in the same wave but was never registered in §11, so the pool gains 5, not 6).**
+> was fixed in the same wave but was never registered in §11, so the pool gains 5, not 6;
+> W12 clears the last 5: Water Elemental / Cabal Shadow Priest / Prophet Velen / Shiv /
+> Argent Protector (the roadmap's wave accounting swapped Argent for the unregistered
+> Argus; the ledger is now EMPTY and the pool is the full 391-card classic pool).**
 >
 > **Execution plan**: [docs/fidelity-debt-roadmap.md](../finished/fidelity-debt-roadmap.md)
 > (zh: `finished/fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
@@ -210,7 +213,7 @@ which also removes them from the Python debt set (4 cards re-enter the RL pool).
 ---
 
 
-### 11. Pre-existing simplifications registered 2026-08-06 (27 → 24 → 19 → 15 → 10 → 5 cards)
+### 11. Pre-existing simplifications registered 2026-08-06 (27 → 24 → 19 → 15 → 10 → 5 → 0 cards) ✅ EMPTY
 
 The 2026-08-06 status audit (`docs/classic-cards-zh.md` vs. the code) found 27
 cards with known simplifications that carried no `(simplified: …)` marker — they
@@ -221,16 +224,12 @@ PR #97) cleared 5: Amani Berserker / Raging Worgen / Grommash Hellscream /
 Warsong Commander / Northshire Cleric; W9 (PR #98) cleared 4: Truesilver
 Champion / Gorehowl / Eaglehorn Bow / Bestial Wrath; W10 (PR #99) cleared 5:
 Wrath / Druid of the Claw / Ancient of Lore / Ancient of War / Tracking; W11
-(PR #100) cleared 5: Onyxia / Deathwing / Sea Giant / Preparation / Cold Blood
-(5 remain).
+(PR #100) cleared 5: Onyxia / Deathwing / Sea Giant / Preparation / Cold Blood;
+W12 (PR #101) cleared the last 5: Water Elemental / Cabal Shadow Priest /
+Prophet Velen / Shiv / Argent Protector — **the ledger is EMPTY and the RL
+pool is the full 391-card classic pool**.
 
-| ID | Card | Debt |
-| --- | --- | --- |
-| PRIEST_011 | Cabal Shadow Priest | no Mind Control — vanilla |
-| PRIEST_012 | Prophet Velen | spell damage only, healing not doubled |
-| MAGE_007 | Water Elemental | no freeze-on-damage — vanilla 3/6 |
-| PALADIN_016 | Argent Protector | no Battlecry Divine Shield — vanilla 2/2 (id shared, F-A8) |
-| ROGUE_014 | Shiv | no effect — vanilla |
+*(empty — all 24 rows cleared by the W8–W12 fidelity-debt roadmap)*
 
 ## Findings from the 2026-08-06 audit pass (all resolved in PR #77 / PR #31)
 
@@ -389,11 +388,11 @@ W8 cleared groups 1–3, W9 cleared group 4):
    Durability)~~ ✅ W9
 5. ~~Discover (Tracking); Choose One second branches (Wrath, Druid of the Claw,
    Ancient of Lore, Ancient of War)~~ ✅ W10
-6. ~~Battlecries (Onyxia, Deathwing hand discard + all-other-destroy);~~
+6. ~~Battlecries (Onyxia, Deathwing hand discard + all-other-destroy);
    freeze-on-damage (Water Elemental); control (Cabal Shadow Priest); healing
    doubling (Prophet Velen); Shiv's 1-damage draw-1; Argent Protector
-   battlecry Divine Shield (W11 also fixed Defender of Argus's adjacent
-   buff, an unregistered silent misimplementation)
+   battlecry Divine Shield~~ ✅ W11/W12 (W11 also fixed Defender of Argus's
+   adjacent buff, an unregistered silent misimplementation)
 7. ~~Cost reduction (Sea Giant, Preparation); Combo base branch (Cold Blood)~~ ✅ W11
 
 ## F5 verification per fix

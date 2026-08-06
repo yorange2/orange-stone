@@ -481,7 +481,7 @@ pub const SINISTER_STRIKE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Shiv — deal 1 damage, draw a card (simplified: no effect — vanilla)
+/// Shiv — deal 1 damage to a minion, draw a card
 pub const SHIV: CardDef = CardDef {
     id: "ROGUE_014",
     name: "Shiv",
@@ -490,7 +490,11 @@ pub const SHIV: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::DealDamageAndDraw {
+        damage: 1,
+        target: EffectTarget::AnyEnemyMinion,
+        draw: 1,
+    }),
     deathrattle: None,
     taunt: false,
     stealth: false,

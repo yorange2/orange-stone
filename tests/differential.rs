@@ -5335,3 +5335,260 @@ fn w11_cold_blood_base_and_combo() {
         "the combo branch granted +4 Attack instead of +2"
     );
 }
+
+/// W12-1 Water Elemental — freeze any character damaged by this minion
+/// (D2 decided: a damage-pipeline check in Event::DamageDealt; the freeze
+/// lands even when a Divine Shield absorbs the damage, matching HS).
+#[test]
+fn w12_water_elemental_freezes_damaged_characters() {
+    use orange_stone::cards::def::WATER_ELEMENTAL;
+    use orange_stone::core::component::DivineShield;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &WATER_ELEMENTAL);
+    let minion = builder.add_custom_minion_to_board(PlayerId2(), 1, 4, 3);
+    let shielded = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    builder
+        .state_mut()
+        .world_mut()
+        .set_divine_shield(shielded, DivineShield);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let elemental = find_entity(&state, PlayerId1(), "MAGE_007");
+    let p2_hero = state.player(PlayerId2()).hero;
+    // Minion hit (turn 1): survives (4 health − 3) and freezes
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: elemental,
+                defender: minion,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(minion), Some(Health(1)));
+    assert!(
+        state.world().freeze(minion).is_some(),
+        "the damaged minion is frozen"
+    );
+    // P2's turn passes (a minion attacks once per turn)
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Divine shield hit (turn 2): the shield absorbs, the shield is gone, and
+    // the target still freezes (HS: the freeze applies through the shield)
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: elemental,
+                defender: shielded,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(shielded),
+        Some(Health(1)),
+        "the shield absorbed the damage"
+    );
+    assert!(state.world().divine_shield(shielded).is_none());
+    assert!(
+        state.world().freeze(shielded).is_some(),
+        "the freeze applies through the Divine Shield"
+    );
+    // P2's turn passes again
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Hero hit (turn 3): the hero freezes too
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: elemental,
+                defender: p2_hero,
+            },
+        )
+        .unwrap();
+    assert!(state.world().freeze(p2_hero).is_some(), "the hero freezes");
+}
+
+/// W12-2 Cabal Shadow Priest — Battlecry: take control of an enemy minion
+/// with 2 or less Attack (permanent control; stronger minions are untouched).
+#[test]
+fn w12_cabal_shadow_priest_takes_low_attack_minion() {
+    use orange_stone::cards::def::CABAL_SHADOW_PRIEST;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CABAL_SHADOW_PRIEST);
+    let weak = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    let strong = builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let card = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Cabal in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The only legal target (attack ≤ 2) came over to the friendly side
+    assert_eq!(
+        state.world().player(weak),
+        Some(PlayerId1()),
+        "the 2-attack minion was taken control of"
+    );
+    assert_eq!(
+        state.world().player(strong),
+        Some(PlayerId2()),
+        "the 4-attack minion was never a legal target"
+    );
+}
+
+/// W12-3 Prophet Velen — healing is doubled while Velen is on the board
+/// (D3 decided: a pipeline hook in resolve_restore_health).
+#[test]
+fn w12_prophet_velen_doubles_healing() {
+    use orange_stone::cards::def::{HOLY_LIGHT, PROPHET_VELEN};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &PROPHET_VELEN);
+    builder.add_minion_to_hand(PlayerId1(), &HOLY_LIGHT);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let p2_attacker = builder.add_custom_minion_to_board(PlayerId2(), 10, 1, 5);
+    builder.active_player(PlayerId2());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p1_hero = state.player(PlayerId1()).hero;
+    // 10 damage: the hero sits at 20 — one Holy Light (8, doubled to 16)
+    // must restore all of it (without the doubling the hero would sit at 28)
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: p2_attacker,
+                defender: p1_hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(p1_hero), Some(Health(20)));
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let holy_light = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Holy Light in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: holy_light,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(p1_hero),
+        Some(Health(30)),
+        "Velen doubled the 8-point heal to 16"
+    );
+}
+
+/// W12-4 Shiv — deal 1 damage to a minion and draw a card.
+#[test]
+fn w12_shiv_damages_and_draws() {
+    use orange_stone::cards::def::{SHIV, WISP};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &SHIV);
+    builder.add_minion_to_deck(PlayerId1(), &WISP);
+    builder.add_custom_minion_to_board(PlayerId2(), 1, 2, 1);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let shiv = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Shiv in hand");
+    let enemy = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("enemy minion");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: shiv,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy),
+        Some(Health(1)),
+        "the minion took 1 damage"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        1,
+        "Shiv drew a card"
+    );
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 0);
+}
+
+/// W12-5 Argent Protector — Battlecry: give a friendly minion Divine Shield
+/// (the final §11 row — the roadmap's wave accounting swapped this card for
+/// the unregistered Defender of Argus; clearing it empties the ledger).
+/// Note: minion battlecries resolve without an explicit target in this
+/// engine (pre-existing), so the effect shields one random friendly minion.
+#[test]
+fn w12_argent_protector_grants_divine_shield() {
+    use orange_stone::cards::def::ARGENT_PROTECTOR;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &ARGENT_PROTECTOR);
+    builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 3);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let card = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Argent Protector in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let shielded: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state.world().card_type(e) == Some(CardType::Minion)
+                && state.world().divine_shield(e).is_some()
+        })
+        .collect();
+    assert_eq!(
+        shielded.len(),
+        1,
+        "exactly one friendly minion gained Divine Shield"
+    );
+}

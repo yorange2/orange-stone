@@ -393,6 +393,12 @@ pub enum CardEffect {
     TakeControlUntilEndOfTurn,
     /// Permanently take control of an enemy minion (Mind Control)
     TakeControl,
+    /// Take permanent control of a random enemy minion with at most this
+    /// attack (Cabal Shadow Priest — attack ≤ 2)
+    TakeControlAttackLE {
+        /// Maximum attack of the controlled minion
+        max_attack: i32,
+    },
     /// Corrupt an enemy minion — destroy it at the start of your turn (Corruption)
     Corrupt,
     /// Minions cannot drop below 1 health this turn (Commanding Shout)
@@ -584,6 +590,11 @@ pub enum CardEffect {
     },
     /// Give all friendly minions Divine Shield (Righteousness)
     GrantDivineShieldAllFriendly,
+    /// Give a friendly minion Divine Shield (Argent Protector — Battlecry)
+    GrantDivineShield {
+        /// Target selection
+        target: EffectTarget,
+    },
     /// Deal damage to all characters except Ysera (Ysera Awakens — a Dream
     /// card that spares its generator)
     YseraAwakens {
@@ -799,6 +810,9 @@ enum CardEffectDe {
     PreventFatalDamageAndImmune,
     TakeControlUntilEndOfTurn,
     TakeControl,
+    TakeControlAttackLE {
+        max_attack: i32,
+    },
     Corrupt,
     MinHealthUntilEndOfTurn,
     TransformToRandom {
@@ -901,6 +915,9 @@ enum CardEffectDe {
         target: EffectTarget,
     },
     GrantDivineShieldAllFriendly,
+    GrantDivineShield {
+        target: EffectTarget,
+    },
     YseraAwakens {
         damage: i32,
     },
@@ -1094,6 +1111,9 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::PreventFatalDamageAndImmune => CardEffect::PreventFatalDamageAndImmune,
             CardEffectDe::TakeControlUntilEndOfTurn => CardEffect::TakeControlUntilEndOfTurn,
             CardEffectDe::TakeControl => CardEffect::TakeControl,
+            CardEffectDe::TakeControlAttackLE { max_attack } => {
+                CardEffect::TakeControlAttackLE { max_attack }
+            }
             CardEffectDe::Corrupt => CardEffect::Corrupt,
             CardEffectDe::MinHealthUntilEndOfTurn => CardEffect::MinHealthUntilEndOfTurn,
             CardEffectDe::TransformToRandom { card_a, card_b } => CardEffect::TransformToRandom {
@@ -1210,6 +1230,7 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 target,
             },
             CardEffectDe::GrantDivineShieldAllFriendly => CardEffect::GrantDivineShieldAllFriendly,
+            CardEffectDe::GrantDivineShield { target } => CardEffect::GrantDivineShield { target },
             CardEffectDe::YseraAwakens { damage } => CardEffect::YseraAwakens { damage },
             CardEffectDe::GainStatsAndTauntAllFriendly { attack, health } => {
                 CardEffect::GainStatsAndTauntAllFriendly { attack, health }
