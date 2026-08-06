@@ -4506,3 +4506,487 @@ fn w9_bestial_wrath_targets_beast_only() {
     );
     assert!(state.world().immune(wisp).is_none());
 }
+
+/// W10-1 Wrath — Choose One: deal 3 damage, or 1 damage + draw a card.
+/// Option 0 = battlecry branch, option 1 = choose_one_effect branch.
+#[test]
+fn w10_wrath_choose_one_branches() {
+    use orange_stone::cards::def::WRATH;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &WRATH);
+    builder.add_minion_to_hand(PlayerId1(), &WRATH);
+    builder.add_minion_to_deck(PlayerId1(), &WRATH);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 6, 4);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let enemy = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("enemy minion");
+    // First Wrath: 3-damage branch
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy),
+        Some(Health(3)),
+        "the 3-damage branch dealt 3"
+    );
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId1()), 1);
+    // P2's turn passes, then the second Wrath: 1-damage + draw branch
+    // (each Wrath is the first card of its turn — the G6 combo-active path
+    // skips the choose-one choice for a second card of the turn)
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy),
+        Some(Health(2)),
+        "the 1-damage branch dealt 1"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        1,
+        "the draw branch drew a card"
+    );
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 0);
+}
+
+/// W10-2 Druid of the Claw — Choose One: Charge, or +2 Health and Taunt.
+#[test]
+fn w10_druid_of_the_claw_choose_one() {
+    use orange_stone::cards::def::DRUID_OF_THE_CLAW;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &DRUID_OF_THE_CLAW);
+    builder.add_minion_to_hand(PlayerId1(), &DRUID_OF_THE_CLAW);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Claw #1: Taunt branch (4/6 Taunt)
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1,
+            },
+        )
+        .unwrap();
+    let claw1 = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "DRUID_007"))
+        .expect("claw on board");
+    assert_eq!(state.world().effective_attack(claw1), Some(Attack(4)));
+    assert_eq!(state.world().effective_health(claw1), Some(Health(6)));
+    assert!(
+        state.world().taunt(claw1).is_some(),
+        "Taunt branch grants Taunt"
+    );
+    // Claw #2: Charge branch (4/4, attacks immediately)
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    let claw2 = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| {
+            state.world().card_id(e).is_some_and(|c| c.0 == "DRUID_007")
+                && state.world().taunt(e).is_none()
+        })
+        .expect("charge-branched claw on board");
+    assert!(
+        state.world().effective_charge(claw2),
+        "Charge branch grants Charge"
+    );
+    assert_eq!(state.world().effective_health(claw2), Some(Health(4)));
+    let p2_hero = state.player(PlayerId2()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: claw2,
+                defender: p2_hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(p2_hero),
+        Some(Health(26)),
+        "the charged claw attacked immediately"
+    );
+}
+
+/// W10-3 Ancient of Lore — Choose One: draw 2, or restore 5 Health to your hero.
+#[test]
+fn w10_ancient_of_lore_choose_one() {
+    use orange_stone::cards::def::ANCIENT_OF_LORE;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &ANCIENT_OF_LORE);
+    builder.add_minion_to_hand(PlayerId1(), &ANCIENT_OF_LORE);
+    builder.add_minion_to_deck(PlayerId1(), &ANCIENT_OF_LORE);
+    builder.add_minion_to_deck(PlayerId1(), &ANCIENT_OF_LORE);
+    let p2_attacker = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    builder.active_player(PlayerId2());
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p1_hero = state.player(PlayerId1()).hero;
+    // Damage the hero so the heal branch has something to heal
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: p2_attacker,
+                defender: p1_hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(p1_hero), Some(Health(29)));
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Lore #1: draw-2 branch
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        3,
+        "the draw branch drew 2"
+    );
+    // P2's turn passes (7-mana lore × 2 do not fit one turn)
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Lore #2: heal branch — the hero heals 5 back to full
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(p1_hero),
+        Some(Health(30)),
+        "the heal branch restored 5 Health"
+    );
+}
+
+/// W10-4 Ancient of War — Choose One: +5 Attack, or +5 Health and Taunt.
+#[test]
+fn w10_ancient_of_war_choose_one() {
+    use orange_stone::cards::def::ANCIENT_OF_WAR;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &ANCIENT_OF_WAR);
+    builder.add_minion_to_hand(PlayerId1(), &ANCIENT_OF_WAR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // War #1: +5 Attack branch (10/5)
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    let war1 = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| {
+            state.world().card_id(e).is_some_and(|c| c.0 == "DRUID_009")
+                && state.world().effective_attack(e) == Some(Attack(10))
+        })
+        .expect("attack-branched war");
+    assert_eq!(state.world().effective_health(war1), Some(Health(5)));
+    assert!(state.world().taunt(war1).is_none());
+    // P2's turn passes (7-mana war × 2 do not fit one turn)
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // War #2: +5 Health and Taunt branch (5/10 Taunt)
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1,
+            },
+        )
+        .unwrap();
+    let war2 = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| {
+            state.world().card_id(e).is_some_and(|c| c.0 == "DRUID_009")
+                && state.world().effective_attack(e) == Some(Attack(5))
+        })
+        .expect("health-branched war");
+    assert_eq!(state.world().effective_health(war2), Some(Health(10)));
+    assert!(
+        state.world().taunt(war2).is_some(),
+        "the Health branch grants Taunt"
+    );
+}
+
+/// W10-5 Tracking — Discover over the top 3 cards of the deck: pick one into
+/// hand, discard the other two (their existing entities move zones).
+#[test]
+fn w10_tracking_discards_rest() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, TRACKING, WISP};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &TRACKING);
+    builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(PlayerId1(), &TRACKING);
+    builder.add_minion_to_deck(PlayerId1(), &WISP);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Capture the deck entities in draw order (the top of the deck)
+    let deck_top: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, PlayerId1())
+        .take(3)
+        .collect();
+    let tracking = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Tracking in hand");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: tracking,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("discover choice expected"),
+    };
+    assert_eq!(choice.options.len(), 3, "the pool is the deck's top 3");
+    // Pick the second option
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1,
+            },
+        )
+        .unwrap();
+    // The picked EXISTING entity moved to hand; the other two were discarded
+    assert_eq!(
+        state.world().zone(deck_top[1]),
+        Some(Zone::Hand),
+        "the picked card moved to hand"
+    );
+    assert_eq!(
+        state.world().zone(deck_top[0]),
+        Some(Zone::Graveyard),
+        "an unpicked card was discarded"
+    );
+    assert_eq!(
+        state.world().zone(deck_top[2]),
+        Some(Zone::Graveyard),
+        "an unpicked card was discarded"
+    );
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 0);
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        1,
+        "exactly one card came to hand"
+    );
+}

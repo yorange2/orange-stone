@@ -117,7 +117,9 @@ pub const MARK_OF_THE_WILD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Wrath — Choose One: deal 3 damage, or 1 damage + draw a card (simplified: 3-damage branch only)
+/// Wrath — Choose One: deal 3 damage, or 1 damage + draw a card
+/// (the branch choice surfaces through the G6 Choose One pipeline:
+/// battlecry = first option, choose_one_effect = second option)
 pub const WRATH: CardDef = CardDef {
     id: "DRUID_004",
     name: "Wrath",
@@ -149,7 +151,11 @@ pub const WRATH: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
-    choose_one_effect: None,
+    choose_one_effect: Some(CardEffect::DealDamageAndDraw {
+        damage: 1,
+        target: EffectTarget::AnyEnemyMinion,
+        draw: 1,
+    }),
     combo_effect: None,
     attack_equals_health: false,
 };
@@ -226,18 +232,22 @@ pub const STARFIRE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Druid of the Claw — Choose One: Charge or +2 Health and Taunt (simplified: fixed 4/6 Taunt — no Choose One)
+/// Druid of the Claw — Choose One: Charge, or +2 Health and Taunt
+/// (base 4/4; battlecry = Charge branch, choose_one_effect = Taunt branch)
 pub const DRUID_OF_THE_CLAW: CardDef = CardDef {
     id: "DRUID_007",
     name: "Druid of the Claw",
     card_type: CardType::Minion,
     cost: 5,
     attack: 4,
-    health: 6,
+    health: 4,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::GrantCharge {
+        target: EffectTarget::Self_,
+        attack_bonus: 0,
+    }),
     deathrattle: None,
-    taunt: true,
+    taunt: false,
     stealth: false,
     elusive: false,
     race: None,
@@ -255,12 +265,17 @@ pub const DRUID_OF_THE_CLAW: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
-    choose_one_effect: None,
+    choose_one_effect: Some(CardEffect::GainStatsAndTaunt {
+        attack: 0,
+        health: 2,
+        target: EffectTarget::Self_,
+    }),
     combo_effect: None,
     attack_equals_health: false,
 };
 
-/// Ancient of Lore — Choose One: draw 2 or restore 5 Health (simplified: draw-2 branch only)
+/// Ancient of Lore — Choose One: draw 2 cards, or restore 5 Health to your
+/// hero (battlecry = draw branch, choose_one_effect = heal branch)
 pub const ANCIENT_OF_LORE: CardDef = CardDef {
     id: "DRUID_008",
     name: "Ancient of Lore",
@@ -289,23 +304,31 @@ pub const ANCIENT_OF_LORE: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
-    choose_one_effect: None,
+    choose_one_effect: Some(CardEffect::RestoreHealth {
+        amount: 5,
+        target: EffectTarget::FriendlyHero,
+    }),
     combo_effect: None,
     attack_equals_health: false,
 };
 
-/// Ancient of War — Choose One: +5 Attack or +5 Health and Taunt (simplified: vanilla 5/5 — no Choose One)
+/// Ancient of War — Choose One: +5 Attack, or +5 Health and Taunt
+/// (base 5/5; battlecry = Attack branch, choose_one_effect = Health branch)
 pub const ANCIENT_OF_WAR: CardDef = CardDef {
     id: "DRUID_009",
     name: "Ancient of War",
     card_type: CardType::Minion,
     cost: 7,
     attack: 5,
-    health: 10,
+    health: 5,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::GainStats {
+        attack: 5,
+        health: 0,
+        target: EffectTarget::Self_,
+    }),
     deathrattle: None,
-    taunt: true,
+    taunt: false,
     stealth: false,
     elusive: false,
     race: None,
@@ -323,7 +346,11 @@ pub const ANCIENT_OF_WAR: CardDef = CardDef {
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,
-    choose_one_effect: None,
+    choose_one_effect: Some(CardEffect::GainStatsAndTaunt {
+        attack: 0,
+        health: 5,
+        target: EffectTarget::Self_,
+    }),
     combo_effect: None,
     attack_equals_health: false,
 };
