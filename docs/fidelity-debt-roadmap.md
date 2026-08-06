@@ -1,6 +1,6 @@
 # Fidelity-Debt Implementation Roadmap — the 67 simplified cards
 
-> **Status: W2 done (PR #82); W3 next.** This roadmap executes the F4-ongoing /
+> **Status: W2 done (PR #81); W3 next.** This roadmap executes the F4-ongoing /
 > F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
 > [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
@@ -111,7 +111,7 @@ a verify may still surface a small engine fix (acceptable in this wave).
 each); the 4 Enrage cards' damage-sequencing (trigger fires once per damage event,
 buff persists); RL pool grows by 13.
 
-## Wave 1 — Race/tribe field (11 cards) ✅ done (PR #81)
+## Wave 1 — Race/tribe field (11 cards) ✅ done (PR #80)
 
 **Primitives** (one PR-sized unit) — all landed:
 - `CardDef.race: Option<Race>` (`Beast` / `Murloc` / `Demon`), applied on spawn;
@@ -146,7 +146,7 @@ buff persists); RL pool grows by 13.
 **Acceptance**: 12 scenarios (11 cards + the pool-parity test); race pools match
 the hardcoded lists bit-for-bit (old members all stay; additions = genuine
 Beasts/Demons the old lists missed); RL pool grows by 11 (335 → 346).
-## Wave 2 — Trigger classes (8 cards) ✅ done (PR #82)
+## Wave 2 — Trigger classes (8 cards) ✅ done (PR #81)
 
 **Primitives** — all landed:
 - `TriggerEvent::CharacterHealed` — heal trigger (Lightwarden); fires for any
@@ -287,8 +287,8 @@ constructible size; final sweep + full SabberStone parity run.
 | Wave | Cards | New primitives | Pool growth |
 | --- | --- | --- | --- |
 | W0 wiring ✅ PR #79 | 13 | `EventSubject` / `OtherFriendlyMinion` targets; weapon trigger registration + destroy-leaves-play; spell-cast death-before-after-cast | +13 → **334** |
-| W1 race ✅ PR #81 | 11 | race field + targets/auras/triggers + field-driven pools | +11 → **346** |
-| W2 triggers ✅ PR #82 | 8 | 5 trigger classes + destroy-secret | +8 → **354** |
+| W1 race ✅ PR #80 | 11 | race field + targets/auras/triggers + field-driven pools | +11 → **346** |
+| W2 triggers ✅ PR #81 | 8 | 5 trigger classes + destroy-secret | +8 → **354** |
 | W3 predicates | 9 | 6+ predicates | +9 |
 | W4 cost/weapon | 8 | 6+ primitives | +8 |
 | W5 target structure | 7 | 5+ primitives | +7 |

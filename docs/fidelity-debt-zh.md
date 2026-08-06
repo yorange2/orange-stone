@@ -1,7 +1,7 @@
 # 保真债 — 简化卡清单（F4/F5 持续审计账本）
 
 > **现状：`src/cards/` 里有 35 处简化标记**（2026-08-06 审计，修复轮 PR #77；
-> W0 接线轮 PR #79 清掉 13 张；W1 种族轮 PR #81 清掉 11 张；W2 触发轮 PR #82 清掉 8 张）。
+> W0 接线轮 PR #79 清掉 13 张；W1 种族轮 PR #80 清掉 11 张；W2 触发轮 PR #81 清掉 8 张）。
 > 本账本是 F4 逐效果保真审计的**权威记录**。一张卡**离开账本**的唯一条件：
 > 真实炉石效果已实现**且**通过 F5 差分测试验证。不要静默重写卡牌——改动必须
 > 同时更新本账本、代码注释和下游简化债提取器（见[维护约定](#维护约定)）。
@@ -18,7 +18,7 @@
 > 断剑后不再触发）、法术结算后先处理死亡再触发施法触发（野炎术师被自己的法术
 > 杀死后不触发）。对应 16 个差分场景（`tests/differential.rs` 的 `w0_*`）。
 >
-> **2026-08-06 W1 种族轮（PR #81）**：11 张种族卡全部落地——`CardDef.race`
+> **2026-08-06 W1 种族轮（PR #80）**：11 张种族卡全部落地——`CardDef.race`
 > 字段（Beast/Murloc/Demon，召唤时生效，`EntityView`/Python 绑定暴露 race）、
 > 种族条件目标（`FriendlyRace` / `AllOtherFriendlyRace` / `AnyRace`）、种族条件
 > 光环（`FriendlyRace` / `OtherFriendlyRace` 目标 + `GrantCharge` 冲锋光环，
@@ -27,7 +27,7 @@
 > `DEMON_POOL` 换成字段驱动池（含逐位一致测试，`w1_race_pools_are_field_driven`）。
 > 对应 12 个差分场景（`tests/differential.rs` 的 `w1_*`）。
 >
-> **2026-08-06 W2 触发轮（PR #82）**：8 张触发/奥秘卡全部落地——5 个新触发类：
+> **2026-08-06 W2 触发轮（PR #81）**：8 张触发/奥秘卡全部落地——5 个新触发类：
 > `CharacterHealed`（治疗，任何角色被治疗都触发）、`Attacked`（实体攻击——
 > 智慧祝福把"本随从攻击时抽牌"挂在目标随从身上）、`CardPlayed`（打出卡牌，
 > 友方作用域）、`SecretPlayed`（奥秘打出，双方都触发）、`MinionDied`（任意
@@ -63,7 +63,7 @@ W2 已清 8 张，剩 35 张**。
 `w0_gurubashi_berserker_enrage_permanent`、`w0_tauren_warrior_enrage_with_taunt`、
 `w0_angry_chicken_enrage_fires_before_death`、`w0_spiteful_smith_buffs_weapon_on_damage`。
 
-### 2. 种族 — 野兽 / 鱼人 / 恶魔（9 张）✅ 已解决（W1，PR #81）
+### 2. 种族 — 野兽 / 鱼人 / 恶魔（9 张）✅ 已解决（W1，PR #80）
 
 全部落地：`CardDef.race` 字段 + 种族条件目标/光环/触发 + 牌库过滤抽牌 +
 字段驱动池（差分场景 `w1_*`，池一致性见 `w1_race_pools_are_field_driven`）。

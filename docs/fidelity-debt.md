@@ -1,7 +1,7 @@
 # Fidelity Debt — Simplified Cards (F4/F5 Audit Ledger)
 
 > **Status: 35 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
-> W0 wiring pass PR #79 cleared 13; W1 race pass PR #81 cleared 11; W2 triggers PR #82 cleared 8).
+> W0 wiring pass PR #79 cleared 13; W1 race pass PR #80 cleared 11; W2 triggers PR #81 cleared 8).
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
@@ -24,7 +24,7 @@
 > (a Wild Pyromancer killed by its own spell does not fire). 16 scenarios in
 > `tests/differential.rs` (`w0_*`).
 >
-> **2026-08-06 W1 race pass (PR #81)**: all 11 race cards landed — a `CardDef.race`
+> **2026-08-06 W1 race pass (PR #80)**: all 11 race cards landed — a `CardDef.race`
 > field (Beast/Murloc/Demon, applied on spawn, exposed in `EntityView`/Python
 > bindings), race-conditioned targets (`FriendlyRace` / `AllOtherFriendlyRace` /
 > `AnyRace`), race-conditioned auras (`FriendlyRace` / `OtherFriendlyRace`
@@ -35,7 +35,7 @@
 > `w1_race_pools_are_field_driven`). 12 scenarios in `tests/differential.rs`
 > (`w1_*`).
 >
-> **2026-08-06 W2 trigger pass (PR #82)**: all 8 trigger/secret cards landed —
+> **2026-08-06 W2 trigger pass (PR #81)**: all 8 trigger/secret cards landed —
 > five new trigger classes: `CharacterHealed` (any healed character),
 > `Attacked` (the entity attacks — Blessing of Wisdom attaches
 > "draw when this minion attacks" to the target), `CardPlayed` (friendly
@@ -77,7 +77,7 @@ permanent enchantment. Scenarios: `w0_gurubashi_berserker_enrage_permanent`,
 `w0_tauren_warrior_enrage_with_taunt`, `w0_angry_chicken_enrage_fires_before_death`,
 `w0_spiteful_smith_buffs_weapon_on_damage`.
 
-### 2. Tribes — Beast / Murloc / Demon (9) ✅ resolved (W1, PR #81)
+### 2. Tribes — Beast / Murloc / Demon (9) ✅ resolved (W1, PR #80)
 
 All landed: `CardDef.race` + race-conditioned targets/auras/triggers +
 race-filtered deck draw + field-driven pools (`w1_*` scenarios; pool parity
