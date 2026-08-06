@@ -907,3 +907,46 @@ pub const BANE_OF_DOOM: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// ============================================================
+// Blood Imp (2026-08-06)
+// ============================================================
+
+/// Blood Imp — Stealth. At the end of your turn, give another random
+/// friendly minion +1 Health.
+pub const BLOOD_IMP: CardDef = CardDef {
+    id: "CS2_064",
+    name: "Blood Imp",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 0,
+    health: 1,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: true,
+    elusive: false,
+    race: Some(crate::core::component::Race::Demon),
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: Some(CardEffect::GainStats {
+        attack: 0,
+        health: 1,
+        target: EffectTarget::OtherFriendlyMinion,
+    }),
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
