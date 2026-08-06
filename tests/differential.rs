@@ -4259,3 +4259,250 @@ fn w8_northshire_cleric_draws_on_friendly_heal() {
         "an enemy heal does not trigger the friendly Cleric"
     );
 }
+
+/// W9-1 Truesilver Champion — whenever your hero attacks, restore 2 Health
+/// to it (fires on attack declaration; a full-health hero gets no heal).
+#[test]
+fn w9_truesilver_champion_heals_on_hero_attack() {
+    use orange_stone::cards::def::{TRUESILVER_CHAMPION, WISP};
+    let mut builder = GameBuilder::new();
+    builder.equip_weapon(PlayerId1(), &TRUESILVER_CHAMPION);
+    let p2_attacker = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    builder.add_minion_to_board(PlayerId2(), &WISP);
+    builder.active_player(PlayerId2());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p1_hero = state.player(PlayerId1()).hero;
+    let p2_hero = state.player(PlayerId2()).hero;
+    // Damage the friendly hero first
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: p2_attacker,
+                defender: p1_hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(p1_hero), Some(Health(29)));
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // The hero attacks face → Truesilver heals 2 before any retaliation
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: p1_hero,
+                defender: p2_hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(p1_hero),
+        Some(Health(30)),
+        "the attack healed the friendly hero"
+    );
+    let weapon = state
+        .player(PlayerId1())
+        .weapon
+        .expect("Truesilver equipped");
+    assert_eq!(
+        state.world().durability(weapon),
+        Some(orange_stone::core::component::Durability(1)),
+        "the face attack consumed 1 durability"
+    );
+}
+
+/// W9-2 Gorehowl — attacking a minion costs 1 Attack instead of 1 Durability.
+/// Minion hits drain attack and keep durability; face hits drain durability.
+/// (Heroes attack once per turn — the second minion hit lands next turn.)
+#[test]
+fn w9_gorehowl_loses_attack_on_minion_attacks() {
+    use orange_stone::cards::def::GOREHOWL;
+    let mut builder = GameBuilder::new();
+    builder.equip_weapon(PlayerId1(), &GOREHOWL);
+    let minion_a = builder.add_custom_minion_to_board(PlayerId2(), 3, 6, 4);
+    let minion_b = builder.add_custom_minion_to_board(PlayerId2(), 2, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p1_hero = state.player(PlayerId1()).hero;
+    let p2_hero = state.player(PlayerId2()).hero;
+    let weapon = state.player(PlayerId1()).weapon.expect("Gorehowl equipped");
+    // Minion hit #1: 7 → 6 attack, durability unchanged (the 6/6 dies)
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: p1_hero,
+                defender: minion_a,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().attack(weapon),
+        Some(Attack(6)),
+        "the weapon lost 1 Attack on the minion hit"
+    );
+    assert_eq!(
+        state.world().durability(weapon),
+        Some(orange_stone::core::component::Durability(1)),
+        "durability is untouched by the minion hit"
+    );
+    // P2's turn passes
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Minion hit #2: 6 → 5 attack, durability still 1
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: p1_hero,
+                defender: minion_b,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().attack(weapon), Some(Attack(5)));
+    assert_eq!(
+        state.world().durability(weapon),
+        Some(orange_stone::core::component::Durability(1))
+    );
+    // P2's turn passes again
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Face hit: durability 1 → 0 → the weapon is destroyed
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: p1_hero,
+                defender: p2_hero,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.player(PlayerId1()).weapon.is_none(),
+        "the face hit drained the last durability"
+    );
+}
+
+/// W9-3 Eaglehorn Bow — +1 Durability whenever a FRIENDLY Secret is REVEALED
+/// (not when it is played; the reveal fires when the secret triggers).
+#[test]
+fn w9_eaglehorn_bow_durability_on_secret_revealed() {
+    use orange_stone::cards::def::{EAGLEHORN_BOW, EXPLOSIVE_TRAP};
+    let mut builder = GameBuilder::new();
+    builder.equip_weapon(PlayerId1(), &EAGLEHORN_BOW);
+    builder.add_minion_to_hand(PlayerId1(), &EXPLOSIVE_TRAP);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let p2_attacker = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let weapon = state
+        .player(PlayerId1())
+        .weapon
+        .expect("Eaglehorn equipped");
+    let p1_hero = state.player(PlayerId1()).hero;
+    // Playing the secret does NOT grant durability (the real trigger is the reveal)
+    let trap = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Explosive Trap in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: trap,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().durability(weapon),
+        Some(orange_stone::core::component::Durability(2)),
+        "playing a Secret does not yet grant Durability"
+    );
+    // The enemy attacks the hero → the Secret is revealed → +1 Durability
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: p2_attacker,
+                defender: p1_hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().durability(weapon),
+        Some(orange_stone::core::component::Durability(3)),
+        "the revealed Secret granted +1 Durability"
+    );
+}
+
+/// W9-4 Bestial Wrath — give a friendly BEAST +2 Attack and Immune until end
+/// of turn. A non-Beast is not a legal target: the spell fizzles (G9
+/// re-validation), it does not fall back to a random Beast.
+#[test]
+fn w9_bestial_wrath_targets_beast_only() {
+    use orange_stone::cards::def::{BESTIAL_WRATH, BLOODFEN_RAPTOR};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &BESTIAL_WRATH);
+    builder.add_minion_to_hand(PlayerId1(), &BESTIAL_WRATH);
+    builder.add_minion_to_board(PlayerId1(), &BLOODFEN_RAPTOR);
+    let wisp = builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let beast = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| state.world().race(e) == Some(orange_stone::core::component::Race::Beast))
+        .expect("raptor on the board");
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    // Targeting the Beast works
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hand[0],
+                target: Some(beast),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(beast),
+        Some(Attack(5)),
+        "the Beast received +2 Attack"
+    );
+    assert!(state.world().immune(beast).is_some());
+    // Targeting a non-Beast makes the spell fizzle — nothing is buffed
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hand[1],
+                target: Some(wisp),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(beast),
+        Some(Attack(5)),
+        "the fizzled spell buffed nothing"
+    );
+    assert_eq!(
+        state.world().effective_attack(wisp),
+        Some(Attack(1)),
+        "the non-Beast was never a valid target"
+    );
+    assert!(state.world().immune(wisp).is_none());
+}

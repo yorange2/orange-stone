@@ -823,7 +823,7 @@ pub fn apply_event(
                 Some(minion),
             );
         }
-        Event::AttackDeclared { attacker, .. } => {
+        Event::AttackDeclared { attacker, defender } => {
             // Freeze check: frozen characters cannot attack
             if state.world().freeze(attacker).is_some() {
                 return Err(EngineError::InvalidTarget);
@@ -842,6 +842,21 @@ pub fn apply_event(
                 Some(attacker),
                 None,
             );
+            // Minion-hit attack triggers (Gorehowl — the weapon loses 1
+            // Attack when the hero attacks a minion)
+            if state.world().card_type(defender) == Some(CardType::Minion) {
+                fire_triggers(
+                    state,
+                    queue,
+                    TriggerEvent::AttackedMinion,
+                    state
+                        .world()
+                        .player(attacker)
+                        .unwrap_or(state.active_player()),
+                    Some(attacker),
+                    None,
+                );
+            }
 
             // Read attacker type and weapon info first (read-only borrow)
             let is_hero = state.world().card_type(attacker) == Some(CardType::Hero);
@@ -861,16 +876,25 @@ pub fn apply_event(
                 world.remove_stealth(attacker);
             }
 
-            // Decrement weapon durability by 1
+            // Decrement weapon durability by 1 — except Gorehowl attacking a
+            // minion: the attack loss (triggered above) replaces the
+            // durability loss
             if let Some((player, weapon)) = weapon_info {
-                let dur = state.world().durability(weapon).unwrap_or(Durability(0));
-                let new_dur = Durability(dur.0 - 1);
-                state.world_mut().set_durability(weapon, new_dur);
-                if new_dur.0 <= 0 {
-                    // Destroy the weapon
-                    let inner = state.make_mut();
-                    inner.players[player.index()].weapon = None;
-                    queue.push(Event::WeaponDestroyed { player, weapon });
+                let gorehowl_minion_hit = state
+                    .world()
+                    .card_id(weapon)
+                    .is_some_and(|c| c.0 == crate::cards::classic_warrior::GOREHOWL_ID)
+                    && state.world().card_type(defender) == Some(CardType::Minion);
+                if !gorehowl_minion_hit {
+                    let dur = state.world().durability(weapon).unwrap_or(Durability(0));
+                    let new_dur = Durability(dur.0 - 1);
+                    state.world_mut().set_durability(weapon, new_dur);
+                    if new_dur.0 <= 0 {
+                        // Destroy the weapon
+                        let inner = state.make_mut();
+                        inner.players[player.index()].weapon = None;
+                        queue.push(Event::WeaponDestroyed { player, weapon });
+                    }
                 }
             }
         }
@@ -1426,8 +1450,25 @@ fn trigger_applies(
 ) -> bool {
     match event {
         // Pinned to the entity the event happened to
-        TriggerEvent::ThisMinionDamaged | TriggerEvent::Attacked => {
+        TriggerEvent::ThisMinionDamaged => {
             if Some(entity) != subject {
+                return false;
+            }
+        }
+        // Pinned to the attacker itself (Blessing of Wisdom), or to the
+        // weapon the attacking hero has equipped (Truesilver Champion,
+        // Gorehowl — weapon-attack effects ride the weapon entity)
+        TriggerEvent::Attacked | TriggerEvent::AttackedMinion => {
+            let pinned = Some(entity) == subject
+                || subject.is_some_and(|s| {
+                    state.world().card_type(s) == Some(CardType::Hero)
+                        && state
+                            .world()
+                            .player(s)
+                            .and_then(|pid| state.player(pid).weapon)
+                            == Some(entity)
+                });
+            if !pinned {
                 return false;
             }
         }

@@ -192,7 +192,8 @@ pub const CONSECRATION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Truesilver Champion — your hero restores 2 Health when attacking (simplified: no heal-on-attack — vanilla 4/2)
+/// Truesilver Champion — whenever your hero attacks, restore 2 Health to it
+/// (weapon-attack trigger registered in `apply_card_keywords`)
 pub const TRUESILVER_CHAMPION: CardDef = CardDef {
     id: "PALADIN_006",
     name: "Truesilver Champion",

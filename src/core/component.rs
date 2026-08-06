@@ -411,6 +411,14 @@ pub enum TriggerEvent {
     /// The entity itself attacks (Blessing of Wisdom — the buffed minion
     /// draws a card whenever it attacks; pinned to the attacker)
     Attacked,
+    /// The entity attacks a MINION (Gorehowl — the weapon loses 1 Attack
+    /// when the hero attacks a minion; pinned to the attacker or the
+    /// attacker's equipped weapon)
+    AttackedMinion,
+    /// A secret owned by the trigger's player is revealed (Eaglehorn Bow —
+    /// +1 Durability; friendly-scoped via the revealer, unlike the played
+    /// event which fires when the secret is played)
+    FriendlySecretRevealed,
 }
 
 /// Trigger timing — Hearthstone's "whenever" / "after" classification.

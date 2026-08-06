@@ -1566,15 +1566,25 @@ fn king_mukla_gives_opponent_two_bananas() {
 // Stage 6 Immunity batch
 // ============================================================
 
+/// The first friendly Beast on Player1's board (Bestial Wrath's target).
+fn find_beast(state: &orange_stone::core::state::GameState) -> Entity {
+    state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId::Player1)
+        .find(|&e| state.world().race(e) == Some(orange_stone::core::component::Race::Beast))
+        .expect("a friendly Beast on the board")
+}
+
 #[test]
 fn bestial_wrath_grants_attack_and_immune_until_turn_end() {
-    use orange_stone::cards::def::{BESTIAL_WRATH, WISP};
+    use orange_stone::cards::def::{BESTIAL_WRATH, BLOODFEN_RAPTOR};
 
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
     builder.add_minion_to_hand(PlayerId::Player1, &BESTIAL_WRATH);
-    // Only minion on the board (Wisp) → guaranteed target
-    builder.add_minion_to_board(PlayerId::Player1, &WISP);
+    // The only Beast on the board (Bloodfen Raptor) → guaranteed target
+    builder.add_minion_to_board(PlayerId::Player1, &BLOODFEN_RAPTOR);
     let attacker = builder.add_custom_minion_to_board(PlayerId::Player2, 3, 3, 3);
     builder.set_mana(PlayerId::Player1, 10, 10);
     let mut state = builder.build();
@@ -1585,30 +1595,24 @@ fn bestial_wrath_grants_attack_and_immune_until_turn_end() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
+    let beast = find_beast(&state);
 
     engine
         .apply(
             &mut state,
             Action::PlayCard {
                 card,
-                target: None,
+                target: Some(beast),
                 position: None,
             },
         )
         .unwrap();
 
     // Gains +2 attack and immunity
-    let beast: Entity = state
-        .world()
-        .zones()
-        .iter(Zone::Play, PlayerId::Player1)
-        .find(|&e| {
-            state.world().card_type(e) == Some(orange_stone::core::component::CardType::Minion)
-        })
-        .unwrap();
+    let beast = find_beast(&state);
     assert_eq!(
         state.world().effective_attack(beast),
-        Some(orange_stone::core::component::Attack(3))
+        Some(orange_stone::core::component::Attack(5))
     );
     assert!(state.world().immune(beast).is_some());
 
@@ -1625,7 +1629,7 @@ fn bestial_wrath_grants_attack_and_immune_until_turn_end() {
         .unwrap();
     assert_eq!(
         state.world().effective_health(beast),
-        Some(orange_stone::core::component::Health(1)),
+        Some(orange_stone::core::component::Health(2)),
         "immune minion should not take damage"
     );
 

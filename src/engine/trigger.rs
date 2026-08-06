@@ -461,8 +461,8 @@ pub fn resolve_effect(
         CardEffect::DestroyAndGainHealth => {
             resolve_destroy_and_gain_health(state, queue, source, owner);
         }
-        CardEffect::GrantAttackAndImmune { attack } => {
-            resolve_grant_attack_and_immune(state, owner, attack);
+        CardEffect::GrantAttackAndImmune { attack, target } => {
+            resolve_grant_attack_and_immune(state, owner, attack, target, explicit_target);
         }
         CardEffect::TakeControlUntilEndOfTurn => {
             resolve_take_control(state, owner, true);
@@ -2743,14 +2743,28 @@ fn resolve_destroy_and_gain_health(
     );
 }
 
-/// Grants a friendly minion an attack bonus and immunity until end of turn (Bestial Wrath).
-fn resolve_grant_attack_and_immune(state: &mut GameState, owner: PlayerId, attack: i32) {
-    let minions = collect_friendly_minions(state, owner);
+/// Grants a friendly minion an attack bonus and immunity until end of turn
+/// (Bestial Wrath — restricted to a friendly Beast).
+fn resolve_grant_attack_and_immune(
+    state: &mut GameState,
+    owner: PlayerId,
+    attack: i32,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+) {
+    let minions: SmallList<Entity> = match target {
+        EffectTarget::FriendlyRace(race) => collect_friendly_minions(state, owner)
+            .into_iter()
+            .filter(|&e| state.world().race(e) == Some(race))
+            .collect(),
+        _ => collect_friendly_minions(state, owner),
+    };
     if minions.is_empty() {
         return;
     }
-    let idx = state.rng_mut().next_usize(minions.len());
-    let target = minions[idx];
+    let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
+        return;
+    };
     let world = state.world_mut();
     world.add_enchantment(
         target,
