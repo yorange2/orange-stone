@@ -169,13 +169,12 @@ fn run_1000_battles() {
     let most = tracker.most_used();
 
     println!(
-        "║  最少使用 ({min}次): {count} 张卡牌{pad}║",
+        "║  最少使用 ({min}次): {count} 张卡牌║",
         min = least.first().map(|(_, c)| *c).unwrap_or(0),
         count = least.len(),
-        pad = ""
     );
     for (id, cnt) in least.iter().take(5) {
-        let name = get_card_name(&id);
+        let name = get_card_name(id);
         println!("║    {cnt}× {id} ({name})");
     }
     if least.len() > 5 {
@@ -184,12 +183,11 @@ fn run_1000_battles() {
 
     println!("║                                                              ║");
     println!(
-        "║  最多使用 ({max}次):{pad}║",
+        "║  最多使用 ({max}次):║",
         max = most.first().map(|(_, c)| *c).unwrap_or(0),
-        pad = ""
     );
     for (id, cnt) in most.iter().take(5) {
-        let name = get_card_name(&id);
+        let name = get_card_name(id);
         println!("║    {cnt}× {id} ({name})");
     }
 

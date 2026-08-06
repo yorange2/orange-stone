@@ -192,9 +192,9 @@ fn weapon_with_battlecry_resolves_on_play() {
         }),
         deathrattle: None,
         taunt: false,
-    stealth: false,
-    elusive: false,
-    race: None,
+        stealth: false,
+        elusive: false,
+        race: None,
         hero_power: None,
         aura: None,
         secret: None,
@@ -1049,9 +1049,9 @@ fn spellbender_redirects_spell_damage_to_itself() {
         }),
         deathrattle: None,
         taunt: false,
-    stealth: false,
-    elusive: false,
-    race: None,
+        stealth: false,
+        elusive: false,
+        race: None,
         hero_power: None,
         aura: None,
         secret: None,
@@ -2286,7 +2286,7 @@ fn barrens_stablehand_summons_random_beast() {
         .expect("beast should exist");
     let beast_id = state.world().card_id(beast).unwrap().0;
     assert!(
-        card_has_race(&beast_id, Race::Beast),
+        card_has_race(beast_id, Race::Beast),
         "summoned minion {beast_id} should be a beast"
     );
 }
@@ -2507,7 +2507,7 @@ fn call_of_the_void_adds_demon() {
     assert_eq!(hand.len(), 1);
     let id = state.world().card_id(hand[0]).unwrap().0;
     assert!(
-        card_has_race(&id, Race::Demon),
+        card_has_race(id, Race::Demon),
         "added card {id} should be a demon"
     );
 }
@@ -2555,7 +2555,7 @@ fn bane_of_doom_damages_and_summons_demon_if_killed() {
                 state
                     .world()
                     .card_id(e)
-                    .is_some_and(|c| card_has_race(&c.0, Race::Demon))
+                    .is_some_and(|c| card_has_race(c.0, Race::Demon))
             })
             .collect();
         assert_eq!(

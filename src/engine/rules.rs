@@ -1127,11 +1127,9 @@ pub fn apply_event(
             // firing: enqueue the death batch (Normal — processes first) and
             // re-push this event at Lowest; the second pass sees an empty
             // pending-death batch and fires the triggers.
-            if !state.pending_deaths().is_empty() {
-                if process_pending_deaths(state, queue) {
-                    queue.push_with_priority(Event::SpellCast { player, spell }, Priority::Lowest);
-                    return Ok(());
-                }
+            if !state.pending_deaths().is_empty() && process_pending_deaths(state, queue) {
+                queue.push_with_priority(Event::SpellCast { player, spell }, Priority::Lowest);
+                return Ok(());
             }
             // Spell triggers: registered FriendlySpellCast triggers fire in play order
             fire_triggers(

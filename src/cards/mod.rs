@@ -576,7 +576,7 @@ mod generated_tests {
         let mut compared = 0;
         let mut rebalanced = 0;
         for card in ALL_CARDS {
-            let Some(generated) = generated::find_by_name(&card.name) else {
+            let Some(generated) = generated::find_by_name(card.name) else {
                 continue; // no official counterpart (custom tokens)
             };
             compared += 1;
@@ -603,7 +603,7 @@ mod generated_tests {
                 let _ = handwritten_value;
                 if !generated_value {
                     assert!(
-                        known_rebalanced(&card.name, field),
+                        known_rebalanced(card.name, field),
                         "{field} mismatch: {} (rebalance not documented)",
                         card.name
                     );

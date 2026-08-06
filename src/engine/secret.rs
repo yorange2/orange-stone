@@ -331,7 +331,8 @@ pub fn intercept_counter_secrets(
                     .is_some_and(|sec| sec.trigger == SecretTrigger::WhenEnemySpellCast)
         })
         .collect();
-    for entity in secrets {
+    // Only the first matching secret fires (HS: one counter-secret per event)
+    if let Some(entity) = secrets.into_iter().next() {
         // Reveal the secret and resolve its interception effect
         let _ = state.world_mut().move_to_zone(entity, Zone::Graveyard);
         queue.push(Event::SecretRevealed {

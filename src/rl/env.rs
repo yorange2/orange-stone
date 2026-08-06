@@ -660,7 +660,7 @@ mod tests {
             .state_mut()
             .world_mut()
             .set_elusive(faerie, crate::core::component::Elusive);
-        let visible = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 5, 3);
+        let _visible = builder.add_custom_minion_to_board(PlayerId::Player2, 2, 5, 3);
         let mut state = builder.build();
         state.make_mut().rng = crate::sim::rng::GameRng::new(1);
 

@@ -250,6 +250,8 @@ impl EventQueue {
         }
     }
 
+    /// Redirects a queued attack to a new defender (Misdirection — the new
+    /// defender's retaliation damage is recomputed at resolution time).
     pub fn redirect_attack(
         &mut self,
         attacker: Entity,
