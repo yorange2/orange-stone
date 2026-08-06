@@ -1219,6 +1219,12 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DestroyAndGainStats { attack, health, .. } => {
             (attack + health) as f64 * 0.8 + 2.0
         }
+        CardEffect::DestroyRandomEnemySecret => 2.0,
+        CardEffect::DestroyAllEnemySecretsAndGainStats { attack, health } => {
+            (attack + health) as f64 * 0.8 + 3.0
+        }
+        CardEffect::DestroyAllEnemySecretsAndDraw { count } => 3.0 + count as f64 * 3.0,
+        CardEffect::AttachAttackDraw { count } => count as f64 * 3.0,
     }
 }
 

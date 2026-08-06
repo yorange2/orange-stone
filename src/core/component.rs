@@ -363,6 +363,21 @@ pub enum TriggerEvent {
     TurnStart,
     /// At the end of the owner's turn
     TurnEnd,
+    /// Any character is healed (Lightwarden — gain +2 Attack whenever a
+    /// character is healed; fires for friendly and enemy heals alike)
+    CharacterHealed,
+    /// A card is played (Questing Adventurer — whenever YOU play a card;
+    /// friendly scope)
+    CardPlayed,
+    /// A Secret is played (Secretkeeper — whenever a Secret is played; fires
+    /// for both players)
+    SecretPlayed,
+    /// Any minion dies (Flesheathing Ghoul — gain +1 Attack whenever a minion
+    /// dies; fires for both players)
+    MinionDied,
+    /// The entity itself attacks (Blessing of Wisdom — the buffed minion
+    /// draws a card whenever it attacks; pinned to the attacker)
+    Attacked,
 }
 
 /// Trigger timing — Hearthstone's "whenever" / "after" classification.

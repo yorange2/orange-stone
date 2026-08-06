@@ -2551,8 +2551,40 @@ pub const TAUREN_WARRIOR: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Flesheating Ghoul — gains +1 Attack whenever a minion dies (simplified: vanilla)
-pub const FLESHEATING_GHOUL: CardDef = vanilla!("NEUTRAL_C12", "Flesheating Ghoul", 3, 3, 3);
+/// Flesheating Ghoul — whenever a minion dies, gain +1 Attack
+/// (any-minion death trigger registered in `apply_card_keywords`)
+pub const FLESHEATING_GHOUL: CardDef = CardDef {
+    id: "NEUTRAL_C12",
+    name: "Flesheating Ghoul",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Dread Corsair — Taunt, cost reduced by your weapon (simplified: Taunt only)
 pub const DREAD_CORSAIR: CardDef = CardDef {
     id: "NEUTRAL_C13",
@@ -2597,8 +2629,40 @@ pub const SPITEFUL_SMITH: CardDef = vanilla!("NEUTRAL_C15", "Spiteful Smith", 5,
 pub const ANGRY_CHICKEN: CardDef = vanilla!("NEUTRAL_R02", "Angry Chicken", 1, 1, 1);
 /// Bloodsail Corsair — Battlecry: remove 1 durability from the opponent's weapon (simplified: vanilla)
 pub const BLOODSAIL_CORSAIR: CardDef = vanilla!("NEUTRAL_R03", "Bloodsail Corsair", 1, 1, 2);
-/// Lightwarden — gains +2 Attack whenever a character is healed (simplified: vanilla)
-pub const LIGHTWARDEN: CardDef = vanilla!("NEUTRAL_R04", "Lightwarden", 1, 1, 2);
+/// Lightwarden — whenever a character is healed, gain +2 Attack
+/// (heal trigger registered in `apply_card_keywords`)
+pub const LIGHTWARDEN: CardDef = CardDef {
+    id: "NEUTRAL_R04",
+    name: "Lightwarden",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 1,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Murloc Tidecaller — whenever you summon a Murloc, gain +1 Attack
 /// (race-conditioned trigger registered in `apply_card_keywords`)
 pub const MURLOC_TIDECALLER: CardDef = CardDef {
@@ -2633,8 +2697,40 @@ pub const MURLOC_TIDECALLER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Secretkeeper — gains +1/+1 whenever a Secret is played (simplified: vanilla)
-pub const SECRETKEEPER: CardDef = vanilla!("NEUTRAL_R06", "Secretkeeper", 1, 1, 2);
+/// Secretkeeper — whenever a Secret is played, gain +1/+1
+/// (secret-played trigger registered in `apply_card_keywords`)
+pub const SECRETKEEPER: CardDef = CardDef {
+    id: "NEUTRAL_R06",
+    name: "Secretkeeper",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 1,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Ancient Watcher — cannot attack (cant_attack supported by the engine)
 pub const ANCIENT_WATCHER: CardDef = CardDef {
     id: "NEUTRAL_R07",
@@ -2819,8 +2915,40 @@ pub const DEMOLISHER: CardDef = CardDef {
 };
 /// Emperor Cobra — Poison (destroy any minion damaged by it)
 pub const EMPEROR_COBRA: CardDef = vanilla!("NEUTRAL_R16", "Emperor Cobra", 3, 2, 3);
-/// Questing Adventurer — gains +1/+1 whenever you play a card (simplified: vanilla)
-pub const QUESTING_ADVENTURER: CardDef = vanilla!("NEUTRAL_R17", "Questing Adventurer", 3, 2, 2);
+/// Questing Adventurer — whenever you play a card, gain +1/+1
+/// (card-played trigger registered in `apply_card_keywords`)
+pub const QUESTING_ADVENTURER: CardDef = CardDef {
+    id: "NEUTRAL_R17",
+    name: "Questing Adventurer",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 2,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Ancient Mage — Battlecry: give adjacent minions Spell Damage +1 (simplified: vanilla)
 pub const ANCIENT_MAGE: CardDef = vanilla!("NEUTRAL_R18", "Ancient Mage", 4, 2, 5);
 /// Twilight Drake — Battlecry: +1 Health per card in hand (simplified: vanilla)
@@ -3016,10 +3144,75 @@ pub const MASTER_SWORDSMITH: CardDef = CardDef {
 };
 /// Pint-Sized Summoner — the first minion each turn costs (1) less (simplified: vanilla)
 pub const PINT_SIZED_SUMMONER: CardDef = vanilla!("NEUTRAL_R24", "Pint-Sized Summoner", 2, 2, 2);
-/// SI:7 Infiltrator — Battlecry: destroy a random enemy Secret (simplified: vanilla)
-pub const SI7_INFILTRATOR: CardDef = vanilla!("NEUTRAL_R25", "SI:7 Infiltrator", 4, 5, 4);
-/// Eater of Secrets — Battlecry: destroy all enemy Secrets and gain +1/+1 (simplified: vanilla)
-pub const EATER_OF_SECRETS: CardDef = vanilla!("NEUTRAL_R26", "Eater of Secrets", 4, 2, 4);
+/// SI:7 Infiltrator — Battlecry: destroy a random enemy Secret
+pub const SI7_INFILTRATOR: CardDef = CardDef {
+    id: "NEUTRAL_R25",
+    name: "SI:7 Infiltrator",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 5,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::DestroyRandomEnemySecret),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+/// Eater of Secrets — Battlecry: destroy all enemy Secrets and gain +1/+1
+pub const EATER_OF_SECRETS: CardDef = CardDef {
+    id: "NEUTRAL_R26",
+    name: "Eater of Secrets",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 2,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::DestroyAllEnemySecretsAndGainStats {
+        attack: 1,
+        health: 1,
+    }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 
 // ============================================================
 

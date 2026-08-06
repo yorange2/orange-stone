@@ -792,7 +792,7 @@ pub const REPENTANCE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Blessing of Wisdom — whenever the target minion attacks, draw a card (simplified: no effect)
+/// Blessing of Wisdom — give a minion "Whenever this minion attacks, draw a card"
 pub const BLESSING_OF_WISDOM: CardDef = CardDef {
     id: "PALADIN_019",
     name: "Blessing of Wisdom",
@@ -815,7 +815,7 @@ pub const BLESSING_OF_WISDOM: CardDef = CardDef {
     charge: false,
     spell_damage: 0,
     cant_attack: false,
-    spell_effect: None,
+    spell_effect: Some(CardEffect::AttachAttackDraw { count: 1 }),
     end_turn_effect: None,
     start_turn_effect: None,
     spell_trigger: None,

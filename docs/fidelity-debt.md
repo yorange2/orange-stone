@@ -1,7 +1,7 @@
 # Fidelity Debt — Simplified Cards (F4/F5 Audit Ledger)
 
-> **Status: 43 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
-> W0 wiring pass PR #79 cleared 13; W1 race pass PR #81 cleared 11).
+> **Status: 35 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
+> W0 wiring pass PR #79 cleared 13; W1 race pass PR #81 cleared 11; W2 triggers PR #82 cleared 8).
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
@@ -35,6 +35,16 @@
 > `w1_race_pools_are_field_driven`). 12 scenarios in `tests/differential.rs`
 > (`w1_*`).
 >
+> **2026-08-06 W2 trigger pass (PR #82)**: all 8 trigger/secret cards landed —
+> five new trigger classes: `CharacterHealed` (any healed character),
+> `Attacked` (the entity attacks — Blessing of Wisdom attaches
+> "draw when this minion attacks" to the target), `CardPlayed` (friendly
+> scope), `SecretPlayed` (both players), `MinionDied` (any minion, both
+> players); plus three destroy-secret effects (SI:7 — one random; Eater of
+> Secrets / Flare — all, with gain-stats / draw composition). Heal triggers
+> fire only on real heals (an undamaged character is not a heal event).
+> 8 scenarios in `tests/differential.rs` (`w2_*`).
+>
 > **Execution plan**: [docs/fidelity-debt-roadmap.md](fidelity-debt-roadmap.md)
 > (zh: `fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
 > W7 wrap-up) covering all 67 cards; a card is done when its ledger row, its code
@@ -52,8 +62,8 @@ The 67 markers are 67 unique card IDs — the 3 pre-fix ID collisions
 (EX1_365 / EX1_349 / EX1_341), so Mass Dispel is now reachable. All 67 are in
 `ALL_CARDS` (413 unique entries after the 10-card addition and the 7-entry dedup,
 PR #77). 4 markers were stale comments on already-faithful cards and are cleaned
-(§10); the genuine debt is 67 cards — **W0 cleared 13 and W1 cleared 11,
-leaving 43**.
+(§10); the genuine debt is 67 cards — **W0 cleared 13, W1 cleared 11 and
+W2 cleared 8, leaving 35**.
 
 ---
 
@@ -74,23 +84,17 @@ race-filtered deck draw + field-driven pools (`w1_*` scenarios; pool parity
 pinned by `w1_race_pools_are_field_driven`). The F-A6-annotated Starving
 Buzzard (HUNTER_013) and Scavenging Hyena (HUNTER_014) also left the ledger. 
 
-### 3. Event triggers — summon / heal / death / secret / attack / play (9)
+### 3. Event triggers — summon / heal / death / secret / attack / play (2)
 
-`summon_trigger`, `spell_trigger`, `death_trigger` exist and are used by other
-cards; **missing classes: heal-trigger, attack-trigger, card-played-trigger,
-secret-played-trigger**, and a "destroy secret" effect (for the secret cards).
-(W0 cleared: Knife Juggler, Sword of Justice, Demolisher, Doomsayer, Wild
-Pyromancer, Young Priestess, Master Swordsmith.)
+Trigger classes are complete (W0 wiring + W2 trigger pass): heal, attack (on a
+target), card-played, secret-played and any-minion-died all landed; so did the
+destroy-secret effects (one random / all + composition). The two remaining
+cards need non-trigger mechanisms. (W2 cleared: Flesheathing Ghoul, Lightwarden,
+Secretkeeper, SI:7 Infiltrator, Eater of Secrets, Blessing of Wisdom,
+Questing Adventurer; Flare is in §9.)
 
 | ID | Card | Current | Real Hearthstone | Missing mechanism |
 | --- | --- | --- | --- | --- |
-| NEUTRAL_C12 | Flesheathing Ghoul | vanilla | Whenever a minion dies, gain +1 Attack | death-trigger + self-buff (machinery exists) |
-| NEUTRAL_R04 | Lightwarden | vanilla | Whenever a character is healed, gain +2 Attack | heal-trigger (missing) |
-| NEUTRAL_R06 | Secretkeeper | vanilla | Whenever a **Secret** is played, gain +1/+1 | secret-played-trigger (missing) |
-| NEUTRAL_R25 | SI:7 Infiltrator | vanilla | Battlecry: destroy a random enemy Secret | destroy-secret effect (missing) |
-| NEUTRAL_R26 | Eater of Secrets | vanilla | Battlecry: destroy all enemy Secrets and gain +1/+1 | destroy-secret effect + buff |
-| PALADIN_019 | Blessing of Wisdom | no effect | Whenever the target minion attacks, draw a card | attack-trigger on a target (missing) + aura-on-entity |
-| NEUTRAL_R17 | Questing Adventurer | vanilla | Whenever you play a card, gain +1/+1 | card-played-trigger (missing) |
 | NEUTRAL_R13 | Alarm-o-Bot | vanilla | At the start of your turn, swap this with a random hand minion | hand-zone swap effect (missing) |
 | MAGE_017 | Ethereal Arcanist | +2/+2 at end of turn, unconditional | At the end of your turn, if you control a Secret, gain +2/+2 | conditional end-turn (owns-secret predicate) |
 
@@ -154,10 +158,10 @@ Charge / weapon-attack cost reduction / weapon-durability damage**.
 | --- | --- | --- | --- | --- |
 | LEGENDARY_022 | Nat Pagle | draw at end of turn (always) | 50% chance to draw a card at the end of your turn | probabilistic effect |
 
-### 9. Composite & miscellaneous (9)
+### 9. Composite & miscellaneous (8)
 
-(W0 cleared: Kul Tiran Chaplain — target changed to `FriendlyMinion`; Emperor
-Cobra — wired to the existing Poison component.)
+(W0 cleared: Kul Tiran Chaplain, Emperor Cobra; W2 cleared: Flare — destroy all
+enemy Secrets and draw.)
 
 | ID | Card | Current | Real Hearthstone | Missing mechanism |
 | --- | --- | --- | --- | --- |
@@ -168,7 +172,6 @@ Cobra — wired to the existing Poison component.)
 | PRIEST_018 | Lightwell | restore 3 at end of turn | At the start of your turn, restore 3 Health to a damaged friendly character | damaged-friendly predicate + start-turn (see also ID collision) |
 | ROGUE_025 | Pilfer | random non-Rogue card | Add a random card from another class to your hand | class filter (no class model) |
 | NEUTRAL_T21e | Ysera Awakens | damage includes Ysera | Deal 5 damage to all **other** characters (Dream token) | self-exclusion on AllCharacters |
-| HUNTER_017 | Flare | draw only | Destroy all enemy secrets, draw a card | destroy-secret effect (same as SI:7) |
 | NEUTRAL_R14 | Arcane Golem | Charge only | Charge; Battlecry: give your opponent a Mana Crystal | give-opponent-mana effect |
 
 ### 10. Resolved — marked simplified but already faithful (4, cleaned in PR #77)
@@ -239,14 +242,15 @@ W0 wired all 4) / Poison component (W0 — Emperor Cobra) /
 register + destroyed weapons leave play (W0) / spell-cast deaths resolve before
 "after you cast" triggers (W0) / `CardDef.race` + race-conditioned targets
 (`FriendlyRace`/`AllOtherFriendlyRace`/`AnyRace`) + race-conditioned auras
-(`GrantCharge` Charge aura) + `Trigger.race` + field-driven race pools (W1).
+(`GrantCharge` Charge aura) + `Trigger.race` + field-driven race pools (W1) /
+trigger classes complete: `CharacterHealed`, `Attacked`, `CardPlayed`,
+`SecretPlayed`, `MinionDied` (any) + destroy-secret effects (W2).
 
 **Missing** (primitives first, per the Review-II "do G before F4/F5" discipline):
-1. trigger classes: heal, attack, card-played, secret-played — §3
-2. target predicates: attack-range, hand-size, hero-health, damaged-friendly,
+1. target predicates: attack-range, hand-size, hero-health, damaged-friendly,
    owns-secret, weapon-equipped; "first minion this turn" state — §4, §6
-3. effects: set-health-to-1, swap attack/health, mass Divine Shield,
-   enemy-spells-cost-0, destroy-secret, weapon-durability damage,
+2. effects: set-health-to-1, swap attack/health, mass Divine Shield,
+   enemy-spells-cost-0, weapon-durability damage,
    adjacent-target buff/freeze, two-random damage, this-turn temp buff,
    probabilistic effects — §5, §6, §7, §8, §9
 

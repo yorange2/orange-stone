@@ -1616,3 +1616,514 @@ fn w1_race_pools_are_field_driven() {
         vec!["WARLOCK_T01"] // Siegebreaker
     );
 }
+
+// ============================================================
+// Wave 2 — trigger classes (fidelity-debt-roadmap W2): heal,
+// attack-on-target, card-played, secret-played, any-minion-died
+// triggers + destroy-secret effects.
+// ============================================================
+
+/// W2-1 Lightwarden — whenever a character is healed, gain +2 Attack
+/// (a heal that lands on an undamaged character is not a heal event).
+#[test]
+fn w2_lightwarden_gains_attack_on_real_heals() {
+    use orange_stone::cards::def::LIGHTWARDEN;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &LIGHTWARDEN);
+    let attacker = builder.add_custom_minion_to_board(PlayerId2(), 6, 6, 2);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId2());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let lightwarden = find_entity(&state, PlayerId1(), "NEUTRAL_R04");
+    let hero = state.player(PlayerId1()).hero;
+    // Damage the friendly hero (30 -> 24) so three 2-point heals are all real
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero), Some(Health(24)));
+    // A custom heal spell: restore 2 to the friendly hero
+    state.set_active_player(PlayerId1());
+    let heal_spell = {
+        use orange_stone::core::component::{Battlecry, Cost};
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_card_type(e, CardType::Spell);
+        world.set_cost(e, Cost(1));
+        world.set_player(e, PlayerId1());
+        world.set_battlecry(
+            e,
+            Battlecry(orange_stone::core::effect::CardEffect::RestoreHealth {
+                amount: 2,
+                target: orange_stone::core::effect::EffectTarget::FriendlyHero,
+            }),
+        );
+        world.set_zone(e, Zone::Hand);
+        world.zones_mut().insert(Zone::Hand, PlayerId1(), e);
+        e
+    };
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: heal_spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(lightwarden), Some(Attack(3)));
+    // A second real heal stacks
+    let heal_spell2 = {
+        use orange_stone::core::component::{Battlecry, Cost};
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_card_type(e, CardType::Spell);
+        world.set_cost(e, Cost(1));
+        world.set_player(e, PlayerId1());
+        world.set_battlecry(
+            e,
+            Battlecry(orange_stone::core::effect::CardEffect::RestoreHealth {
+                amount: 2,
+                target: orange_stone::core::effect::EffectTarget::FriendlyHero,
+            }),
+        );
+        world.set_zone(e, Zone::Hand);
+        world.zones_mut().insert(Zone::Hand, PlayerId1(), e);
+        e
+    };
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: heal_spell2,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(lightwarden), Some(Attack(5)));
+    // A heal that restores nothing (hero back to full) does not trigger
+    let heal_spell3 = {
+        use orange_stone::core::component::{Battlecry, Cost};
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_card_type(e, CardType::Spell);
+        world.set_cost(e, Cost(1));
+        world.set_player(e, PlayerId1());
+        world.set_battlecry(
+            e,
+            Battlecry(orange_stone::core::effect::CardEffect::RestoreHealth {
+                amount: 2,
+                target: orange_stone::core::effect::EffectTarget::FriendlyHero,
+            }),
+        );
+        world.set_zone(e, Zone::Hand);
+        world.zones_mut().insert(Zone::Hand, PlayerId1(), e);
+        e
+    };
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: heal_spell3,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(lightwarden), Some(Attack(7)));
+    // A heal that restores nothing (hero back to full) does not trigger
+    let heal_spell4 = {
+        use orange_stone::core::component::{Battlecry, Cost};
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_card_type(e, CardType::Spell);
+        world.set_cost(e, Cost(1));
+        world.set_player(e, PlayerId1());
+        world.set_battlecry(
+            e,
+            Battlecry(orange_stone::core::effect::CardEffect::RestoreHealth {
+                amount: 2,
+                target: orange_stone::core::effect::EffectTarget::FriendlyHero,
+            }),
+        );
+        world.set_zone(e, Zone::Hand);
+        world.zones_mut().insert(Zone::Hand, PlayerId1(), e);
+        e
+    };
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: heal_spell4,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(lightwarden),
+        Some(Attack(7)),
+        "a no-op heal is not a heal event"
+    );
+}
+
+/// W2-2 Blessing of Wisdom — the buffed minion draws a card whenever IT attacks.
+#[test]
+fn w2_blessing_of_wisdom_draws_on_attacks() {
+    use orange_stone::cards::def::{BLESSING_OF_WISDOM, BLOODFEN_RAPTOR};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &BLOODFEN_RAPTOR);
+    let b = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &BLESSING_OF_WISDOM);
+    builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let a = find_entity(&state, PlayerId1(), "CLASSIC_001");
+    let blessing = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("blessing in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: blessing,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // Both friendly minions attack; exactly one carries the blessing
+    let hero = state.player(PlayerId2()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: a,
+                defender: hero,
+            },
+        )
+        .unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: b,
+                defender: hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        1,
+        "exactly one attack drew a card — the blessed minion"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, PlayerId1()),
+        0,
+        "the drawn card came from the deck"
+    );
+}
+
+/// W2-3 Questing Adventurer — whenever you play a card, gain +1/+1.
+#[test]
+fn w2_questing_adventurer_grows_per_played_card() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, QUESTING_ADVENTURER};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &QUESTING_ADVENTURER);
+    builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let qa = find_entity(&state, PlayerId1(), "NEUTRAL_R17");
+    let raptor = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("raptor in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: raptor,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(qa), Some(Attack(3)));
+    assert_eq!(state.world().effective_health(qa), Some(Health(3)));
+}
+
+/// W2-4 Secretkeeper — whenever a Secret is played (either player), gain +1/+1.
+#[test]
+fn w2_secretkeeper_grows_on_any_secret() {
+    use orange_stone::cards::def::{COUNTERSPELL, SECRETKEEPER};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &SECRETKEEPER);
+    builder.add_minion_to_hand(PlayerId1(), &COUNTERSPELL);
+    builder.add_minion_to_hand(PlayerId2(), &COUNTERSPELL);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.set_mana(PlayerId2(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let secretkeeper = find_entity(&state, PlayerId1(), "NEUTRAL_R06");
+    let secret = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("counterspell in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: secret,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(secretkeeper),
+        Some(Attack(2))
+    );
+    // The opponent's Secret triggers it too
+    state.set_active_player(PlayerId2());
+    let secret2 = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .next()
+        .expect("counterspell in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: secret2,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(secretkeeper),
+        Some(Attack(3))
+    );
+}
+
+/// W2-5 Flesheating Ghoul — whenever a minion dies (either side), gain +1 Attack.
+#[test]
+fn w2_flesheating_ghoul_counts_every_death() {
+    use orange_stone::cards::def::FLESHEATING_GHOUL;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &FLESHEATING_GHOUL);
+    let friendly = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let ghoul = find_entity(&state, PlayerId1(), "NEUTRAL_C12");
+    // A mutual trade kills both minions — two death events, +2 Attack total
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: friendly,
+                defender: enemy,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(friendly), Some(Zone::Graveyard));
+    assert_eq!(state.world().zone(enemy), Some(Zone::Graveyard));
+    assert_eq!(
+        state.world().effective_attack(ghoul),
+        Some(Attack(5)),
+        "both deaths (friendly and enemy) counted"
+    );
+}
+
+/// W2-6 SI:7 Infiltrator — Battlecry: destroy ONE random enemy Secret.
+#[test]
+fn w2_si7_destroys_one_enemy_secret() {
+    use orange_stone::cards::def::{COUNTERSPELL, SI7_INFILTRATOR};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId2(), &COUNTERSPELL);
+    builder.add_minion_to_hand(PlayerId2(), &COUNTERSPELL);
+    builder.add_minion_to_hand(PlayerId1(), &SI7_INFILTRATOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.set_mana(PlayerId2(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // P2 plays two Secrets
+    state.set_active_player(PlayerId2());
+    let secrets: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .collect();
+    for secret in secrets {
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: secret,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+    }
+    assert_eq!(state.world().zones().len(Zone::SetAside, PlayerId2()), 2);
+    // P1 plays SI:7 — one random enemy Secret is destroyed
+    state.set_active_player(PlayerId1());
+    let si7 = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("si7 in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: si7,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::SetAside, PlayerId2()),
+        1,
+        "exactly one enemy Secret remains"
+    );
+}
+
+/// W2-7 Eater of Secrets — Battlecry: destroy ALL enemy Secrets and gain +1/+1.
+#[test]
+fn w2_eater_of_secrets_destroys_all_and_buffs() {
+    use orange_stone::cards::def::{COUNTERSPELL, EATER_OF_SECRETS};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId2(), &COUNTERSPELL);
+    builder.add_minion_to_hand(PlayerId2(), &COUNTERSPELL);
+    builder.add_minion_to_hand(PlayerId1(), &EATER_OF_SECRETS);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.set_mana(PlayerId2(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    state.set_active_player(PlayerId2());
+    let secrets: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .collect();
+    for secret in secrets {
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: secret,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+    }
+    state.set_active_player(PlayerId1());
+    let eater = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("eater in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: eater,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::SetAside, PlayerId2()),
+        0,
+        "all enemy Secrets destroyed"
+    );
+    assert_eq!(state.world().effective_attack(eater), Some(Attack(3)));
+    assert_eq!(state.world().effective_health(eater), Some(Health(5)));
+}
+
+/// W2-8 Flare — destroy all enemy Secrets and draw a card.
+#[test]
+fn w2_flare_destroys_all_secrets_and_draws() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, FLARE, VAPORIZE};
+    let mut builder = GameBuilder::new();
+    // Vaporize (not Counterspell): the secrets must NOT intercept Flare itself
+    builder.add_minion_to_hand(PlayerId2(), &VAPORIZE);
+    builder.add_minion_to_hand(PlayerId2(), &VAPORIZE);
+    builder.add_minion_to_hand(PlayerId1(), &FLARE);
+    builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.set_mana(PlayerId2(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    state.set_active_player(PlayerId2());
+    let secrets: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .collect();
+    for secret in secrets {
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: secret,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+    }
+    state.set_active_player(PlayerId1());
+    let flare = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("flare in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: flare,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::SetAside, PlayerId2()),
+        0,
+        "all enemy Secrets destroyed"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        1,
+        "Flare drew a card"
+    );
+}

@@ -419,6 +419,26 @@ pub enum CardEffect {
         /// Destroy target scope
         target: EffectTarget,
     },
+    /// Destroy one random enemy Secret (SI:7 Infiltrator)
+    DestroyRandomEnemySecret,
+    /// Destroy ALL enemy Secrets and gain stats (Eater of Secrets)
+    DestroyAllEnemySecretsAndGainStats {
+        /// Attack gained by the source
+        attack: i32,
+        /// Health gained by the source
+        health: i32,
+    },
+    /// Destroy ALL enemy Secrets and draw cards (Flare)
+    DestroyAllEnemySecretsAndDraw {
+        /// Number of cards to draw
+        count: u32,
+    },
+    /// Give a minion "Whenever this minion attacks, draw a card"
+    /// (Blessing of Wisdom — attaches an attack trigger to the target)
+    AttachAttackDraw {
+        /// Number of cards drawn per attack
+        count: u32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -631,6 +651,17 @@ enum CardEffectDe {
         health: i32,
         target: EffectTarget,
     },
+    DestroyRandomEnemySecret,
+    DestroyAllEnemySecretsAndGainStats {
+        attack: i32,
+        health: i32,
+    },
+    DestroyAllEnemySecretsAndDraw {
+        count: u32,
+    },
+    AttachAttackDraw {
+        count: u32,
+    },
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -837,6 +868,14 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 health,
                 target,
             },
+            CardEffectDe::DestroyRandomEnemySecret => CardEffect::DestroyRandomEnemySecret,
+            CardEffectDe::DestroyAllEnemySecretsAndGainStats { attack, health } => {
+                CardEffect::DestroyAllEnemySecretsAndGainStats { attack, health }
+            }
+            CardEffectDe::DestroyAllEnemySecretsAndDraw { count } => {
+                CardEffect::DestroyAllEnemySecretsAndDraw { count }
+            }
+            CardEffectDe::AttachAttackDraw { count } => CardEffect::AttachAttackDraw { count },
         })
     }
 }

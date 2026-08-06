@@ -555,6 +555,16 @@ pub fn apply_event(
                         .world_mut()
                         .move_to_zone(card, Zone::SetAside)
                         .map_err(|_| EngineError::EntityGone(card))?;
+                    // Secret-played triggers (Secretkeeper — whenever a Secret
+                    // is played; both players' secrets count)
+                    fire_triggers(
+                        state,
+                        queue,
+                        TriggerEvent::SecretPlayed,
+                        player,
+                        Some(card),
+                        None,
+                    );
                     // After-cast triggers fire at Lowest priority — after the
                     // spell's damage and the deaths it caused have resolved
                     // (HS: deaths process before "after you cast" triggers)
@@ -762,6 +772,16 @@ pub fn apply_event(
                     None,
                 );
             }
+            // Card-played triggers (Questing Adventurer — whenever YOU play a
+            // card): fire after the card fully resolved (effect included).
+            fire_triggers(
+                state,
+                queue,
+                TriggerEvent::CardPlayed,
+                player,
+                Some(card),
+                None,
+            );
         }
         Event::MinionSummoned { player, minion } => {
             // Summoning sickness: minions without charge cannot attack this
@@ -804,6 +824,20 @@ pub fn apply_event(
             if state.world().freeze(attacker).is_some() {
                 return Err(EngineError::InvalidTarget);
             }
+
+            // Attack triggers (Blessing of Wisdom — the buffed minion draws
+            // when IT attacks): pinned to the declared attacker
+            fire_triggers(
+                state,
+                queue,
+                TriggerEvent::Attacked,
+                state
+                    .world()
+                    .player(attacker)
+                    .unwrap_or(state.active_player()),
+                Some(attacker),
+                None,
+            );
 
             // Read attacker type and weapon info first (read-only borrow)
             let is_hero = state.world().card_type(attacker) == Some(CardType::Hero);
@@ -1022,6 +1056,16 @@ pub fn apply_event(
                     owner,
                     Some(minion),
                     Some(minion),
+                );
+                // Any-minion-died triggers (Flesheathing Ghoul) fire for both
+                // players' deaths
+                fire_triggers(
+                    state,
+                    queue,
+                    TriggerEvent::MinionDied,
+                    owner,
+                    Some(minion),
+                    None,
                 );
             }
 
@@ -1373,11 +1417,16 @@ fn trigger_applies(
     trigger: crate::core::component::Trigger,
 ) -> bool {
     match event {
-        TriggerEvent::ThisMinionDamaged => {
+        // Pinned to the entity the event happened to
+        TriggerEvent::ThisMinionDamaged | TriggerEvent::Attacked => {
             if Some(entity) != subject {
                 return false;
             }
         }
+        // Global classes — fire regardless of who owns the event
+        // (Lightwarden: any character healed; Secretkeeper: any Secret played;
+        // Flesheathing Ghoul: any minion died)
+        TriggerEvent::CharacterHealed | TriggerEvent::SecretPlayed | TriggerEvent::MinionDied => {}
         _ => {
             if trigger_player != event_owner {
                 return false;

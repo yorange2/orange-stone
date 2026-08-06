@@ -1,6 +1,6 @@
 # 保真债实现路线图 — 67 张简化卡
 
-> **状态：W1 完成（PR #81）；W2 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
+> **状态：W2 完成（PR #82）；W3 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
 > 的 F4 持续 / F5 持续条目。[fidelity-debt.md](fidelity-debt-zh.md) 账本是卡名单的
 > 权威来源，本文档是执行计划。一张卡只有在"实现 **且** 通过 F5 差分测试验证"后
 > 才离开账本——见账本的 [F5 验收](fidelity-debt-zh.md#每张卡的-f5-验收) 与
@@ -46,11 +46,11 @@
 | 法术死亡先于施法后触发（W0） | `rules.rs` SpellCast | 狂野炎术师 |
 | `CardDef.race` 字段 + 种族目标/光环/触发（W1） | `def.rs` / `core/effect.rs` / `core/component.rs` | 11 张种族卡 |
 | 字段驱动种族池（W1） | `cards/pool.rs` | Barrens Stablehand 等 |
+| 触发类补全（W2）：`CharacterHealed` / `Attacked` / `CardPlayed` / `SecretPlayed` / `MinionDied`（任意）+ 摧毁奥秘 | `core/component.rs` / `rules.rs` / `trigger.rs` | 光明之泉侍女、智慧祝福、任务达人、奥秘守护者、食尸鬼、SI:7、吞秘巨蟒、照明弹 |
 
 **缺失**（按 wave 分组的原语）：
 
-1. 触发类：治疗、攻击（目标身上）、打出卡牌、奥秘打出、任意随从死亡 → W2
-3. 目标/状态谓词：攻击区间、手牌数、英雄血量、受伤友方、受伤计数、控制奥秘、
+1. 目标/状态谓词：攻击区间、手牌数、英雄血量、受伤友方、受伤计数、控制奥秘、
    "每回合首个随从"、武器装备 → W3；圣盾吸收 → W3
 4. 手牌区费用光环（全体随从）、按武器攻击减费、武器耐久削减、敌方法术 0 费、
    给对手水晶 → W4
@@ -128,30 +128,32 @@
 **验收**：12 个差分场景（11 张卡 + 池一致性测试）；种族池与硬编码列表逐位一致
 （旧成员全保留，新增 = 旧表漏掉的真野兽/恶魔）；RL 卡池 +11（335 → 346）。
 
-## Wave 2 — 触发类补全（8 张）
+## Wave 2 — 触发类补全（8 张）✅ 完成（PR #82）
 
-**原语**：
-- `heal_trigger` → `FriendlyCharacterHealed`（光明之泉侍女）
-- 目标实体上的 `attack_trigger` → `Attacked`（智慧祝福）
-- `played_trigger` → `CardPlayed`（任务达人）
-- `secret_played_trigger` → `SecretPlayed`（奥秘守护者）
-- `FriendlyMinionDied` 的"任意随从死亡"变体（食尸鬼）
-- `DestroySecrets` 效果（SI:7 潜行者——随机一个敌方奥秘；吞秘巨蟒 /
-  照明弹——所有敌方奥秘；照明弹还要抽牌 → 组合，见 W5）
+**原语**——全部落地：
+- `TriggerEvent::CharacterHealed`——治疗触发（光明之泉侍女），任何角色被
+  治疗都触发；只在**真的治疗到**时触发（满血角色不是治疗事件）。
+- `TriggerEvent::Attacked`——实体攻击触发（智慧祝福把"本随从攻击时抽牌"
+  挂在目标随从身上，`CardEffect::AttachAttackDraw`）。
+- `TriggerEvent::CardPlayed`——打出卡牌触发（任务达人，友方作用域）。
+- `TriggerEvent::SecretPlayed`——奥秘打出触发（奥秘守护者，双方都触发）。
+- `TriggerEvent::MinionDied`——任意随从死亡变体（食尸鬼，双方都触发）。
+- 摧毁奥秘效果：`DestroyRandomEnemySecret`（SI:7 潜行者）、
+  `DestroyAllEnemySecretsAndGainStats`（吞秘巨蟒）、
+  `DestroyAllEnemySecretsAndDraw`（照明弹）。
 
-| ID | 卡名 | 真实效果 |
-| --- | --- | --- |
-| NEUTRAL_R04 | 光明之泉侍女 | 每当一个角色被治疗，+2 攻击 |
-| PALADIN_019 | 智慧祝福 | 每当目标随从攻击，抽一张牌 |
-| NEUTRAL_R17 | 任务达人 | 每当你打出一张牌，+1/+1 |
-| NEUTRAL_R06 | 奥秘守护者 | 每当一个奥秘被打出，+1/+1 |
-| NEUTRAL_R25 | SI:7 潜行者 | 战吼：摧毁一个随机的敌方奥秘 |
-| NEUTRAL_R26 | 吞秘巨蟒 | 战吼：摧毁所有敌方奥秘，+1/+1 |
-| HUNTER_017 | 照明弹 | 摧毁所有敌方奥秘并抽一张牌 |
-| NEUTRAL_C12 | 食尸鬼 | 每当**任意**随从死亡，+1 攻击 |
+| ID | 卡名 | 真实效果 | 场景 |
+| --- | --- | --- | --- |
+| NEUTRAL_R04 | 光明之泉侍女 | 每当一个角色被治疗，+2 攻击 | `w2_lightwarden_gains_attack_on_real_heals` |
+| PALADIN_019 | 智慧祝福 | 每当目标随从攻击，抽一张牌 | `w2_blessing_of_wisdom_draws_on_attacks` |
+| NEUTRAL_R17 | 任务达人 | 每当你打出一张牌，+1/+1 | `w2_questing_adventurer_grows_per_played_card` |
+| NEUTRAL_R06 | 奥秘守护者 | 每当一个奥秘被打出，+1/+1 | `w2_secretkeeper_grows_on_any_secret` |
+| NEUTRAL_R25 | SI:7 潜行者 | 战吼：摧毁一个随机的敌方奥秘 | `w2_si7_destroys_one_enemy_secret` |
+| NEUTRAL_R26 | 吞秘巨蟒 | 战吼：摧毁所有敌方奥秘，+1/+1 | `w2_eater_of_secrets_destroys_all_and_buffs` |
+| HUNTER_017 | 照明弹 | 摧毁所有敌方奥秘并抽一张牌 | `w2_flare_destroys_all_secrets_and_draws` |
+| NEUTRAL_C12 | 食尸鬼 | 每当**任意**随从死亡，+1 攻击 | `w2_flesheathing_ghoul_counts_every_death` |
 
-**验收**：8 个差分场景（逐卡核实 "after" vs "whenever" 时机）；RL 卡池 +8。
-
+**验收**：8 个差分场景（逐卡核实 after/whenever 时机）；RL 卡池 +8（346 → 354）。
 ## Wave 3 — 条件谓词（9 张）
 
 **原语**（扩展 `EffectTarget` / 效果条件）：
@@ -259,7 +261,7 @@
 | --- | --- | --- | --- |
 | W0 接线 ✅ PR #79 | 13 | `EventSubject` / `OtherFriendlyMinion` 目标；武器触发注册 + 摧毁后离场；法术死亡先于施法后触发 | +13 → **334** |
 | W1 种族 ✅ PR #81 | 11 | 种族字段 + 目标/光环/触发 + 字段驱动池 | +11 → **346** |
-| W2 触发 | 8 | 4 个触发类 + 摧毁奥秘 | +8 |
+| W2 触发 ✅ PR #82 | 8 | 5 个触发类 + 摧毁奥秘 | +8 → **354** |
 | W3 谓词 | 9 | 6+ 谓词 | +9 |
 | W4 费用/武器 | 8 | 6+ 原语 | +8 |
 | W5 目标结构 | 7 | 5+ 原语 | +7 |
