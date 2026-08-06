@@ -565,6 +565,109 @@ pub fn resolve_effect(
         CardEffect::AttachAttackDraw { count } => {
             resolve_attach_attack_draw(state, owner, count, explicit_target);
         }
+        CardEffect::GainStatsPerHandCard {
+            attack,
+            health_per_card,
+        } => {
+            let hand = state.world().zones().len(Zone::Hand, owner) as i32;
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack,
+                    health: health_per_card * hand,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::MortalStrike {
+            damage,
+            boosted,
+            threshold,
+        } => {
+            let hero = state.player(owner).hero;
+            let low = state
+                .world()
+                .effective_health(hero)
+                .is_some_and(|h| h.0 <= threshold);
+            let amount = if low { boosted } else { damage };
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                amount,
+                EffectTarget::AnyEnemy,
+                explicit_target,
+            );
+        }
+        CardEffect::DrawPerDamagedFriendlyCharacter => {
+            let damaged = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .filter(|&e| {
+                    state.world().damage(e).is_some_and(|d| d.0 > 0)
+                        && (state.world().card_type(e) == Some(CardType::Minion)
+                            || state.world().card_type(e) == Some(CardType::Hero))
+                })
+                .count() as u32;
+            for _ in 0..damaged {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::GainStatsIfOwnSecret { attack, health } => {
+            let owns_secret = state
+                .world()
+                .zones()
+                .iter(Zone::SetAside, owner)
+                .any(|e| state.world().secret(e).is_some());
+            if owns_secret {
+                state.world_mut().add_enchantment(
+                    source,
+                    Enchantment {
+                        attack,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::AbsorbDivineShields {
+            attack_per_shield,
+            health_per_shield,
+        } => {
+            let mut shields = 0;
+            let all_minions: SmallList<Entity> = [owner, owner.opponent()]
+                .iter()
+                .flat_map(|&pid| {
+                    state
+                        .world()
+                        .zones()
+                        .iter(Zone::Play, pid)
+                        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                        .collect::<Vec<_>>()
+                })
+                .collect();
+            for m in &all_minions {
+                if state.world().divine_shield(*m).is_some() {
+                    state.world_mut().remove_divine_shield(*m);
+                    shields += 1;
+                }
+            }
+            if shields > 0 {
+                state.world_mut().add_enchantment(
+                    source,
+                    Enchantment {
+                        attack: attack_per_shield * shields,
+                        health: health_per_shield * shields,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
     }
 }
 
@@ -755,7 +858,11 @@ fn resolve_deal_damage(
         | EffectTarget::EventSubject
         | EffectTarget::FriendlyRace(_)
         | EffectTarget::AllOtherFriendlyRace(_)
-        | EffectTarget::AnyRace(_) => {
+        | EffectTarget::AnyRace(_)
+        | EffectTarget::EnemyMinionAttackLE(_)
+        | EffectTarget::AnyMinionAttackGE(_)
+        | EffectTarget::DamagedFriendlyMinion
+        | EffectTarget::DamagedMinion => {
             return;
         }
     };
@@ -1116,6 +1223,30 @@ fn resolve_gain_stats(
             };
             state.world_mut().add_enchantment(m, buff);
         }
+        // A random damaged friendly minion (Rampage — friendly scope)
+        EffectTarget::DamagedFriendlyMinion => {
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| state.world().damage(e).is_some_and(|d| d.0 > 0))
+                .collect();
+            let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().add_enchantment(m, buff);
+        }
+        // A random damaged minion on either side (Rampage)
+        EffectTarget::DamagedMinion => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            let minions: SmallList<Entity> = all
+                .into_iter()
+                .filter(|&e| state.world().damage(e).is_some_and(|d| d.0 > 0))
+                .collect();
+            let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().add_enchantment(m, buff);
+        }
         // All friendly minions of the race, excluding the source
         // (Coldlight Seer — all other Murlocs)
         EffectTarget::AllOtherFriendlyRace(race) => {
@@ -1300,6 +1431,27 @@ fn resolve_destroy_minion(
             all.extend(collect_all_enemy_minions(state, owner));
             all.into_iter()
                 .filter(|&e| state.world().race(e) == Some(race))
+                .collect()
+        }
+        EffectTarget::EnemyMinionAttackLE(max_atk) => collect_enemy_minions(state, owner, None)
+            .into_iter()
+            .filter(|&e| {
+                state
+                    .world()
+                    .effective_attack(e)
+                    .is_some_and(|a| a.0 <= max_atk)
+            })
+            .collect(),
+        EffectTarget::AnyMinionAttackGE(min_atk) => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all.into_iter()
+                .filter(|&e| {
+                    state
+                        .world()
+                        .effective_attack(e)
+                        .is_some_and(|a| a.0 >= min_atk)
+                })
                 .collect()
         }
         EffectTarget::DamagedEnemyMinion => collect_enemy_minions(state, owner, Some(source))

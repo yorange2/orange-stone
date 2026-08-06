@@ -677,7 +677,7 @@ pub const BRAWL: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Mortal Strike — deal 4 damage; if you have 12 or less Health, deal 6 instead (simplified: deal 4)
+/// Mortal Strike — deal 4 damage; 6 instead if your hero has 12 or less Health
 pub const MORTAL_STRIKE: CardDef = CardDef {
     id: "WARRIOR_021",
     name: "Mortal Strike",
@@ -686,9 +686,10 @@ pub const MORTAL_STRIKE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage {
-        amount: 4,
-        target: EffectTarget::AnyEnemy,
+    battlecry: Some(CardEffect::MortalStrike {
+        damage: 4,
+        boosted: 6,
+        threshold: 12,
     }),
     deathrattle: None,
     taunt: false,
@@ -714,7 +715,7 @@ pub const MORTAL_STRIKE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Battle Rage — draw a card for each damaged friendly character (simplified: draw 2)
+/// Battle Rage — draw a card for each damaged friendly character
 pub const BATTLE_RAGE: CardDef = CardDef {
     id: "WARRIOR_022",
     name: "Battle Rage",
@@ -723,7 +724,7 @@ pub const BATTLE_RAGE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DrawCard { count: 2 }),
+    battlecry: Some(CardEffect::DrawPerDamagedFriendlyCharacter),
     deathrattle: None,
     taunt: false,
     stealth: false,
@@ -748,7 +749,7 @@ pub const BATTLE_RAGE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Rampage — give a damaged minion +3/+3 (simplified: +3/+3 to a friendly minion)
+/// Rampage — give a damaged minion +3/+3
 pub const RAMPAGE: CardDef = CardDef {
     id: "WARRIOR_023",
     name: "Rampage",
@@ -760,7 +761,7 @@ pub const RAMPAGE: CardDef = CardDef {
     battlecry: Some(CardEffect::GainStats {
         attack: 3,
         health: 3,
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::DamagedMinion,
     }),
     deathrattle: None,
     taunt: false,

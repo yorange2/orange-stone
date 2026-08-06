@@ -1,6 +1,6 @@
 # 保真债实现路线图 — 67 张简化卡
 
-> **状态：W2 完成（PR #81）；W3 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
+> **状态：W3 完成（PR #83）；W4 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
 > 的 F4 持续 / F5 持续条目。[fidelity-debt.md](fidelity-debt-zh.md) 账本是卡名单的
 > 权威来源，本文档是执行计划。一张卡只有在"实现 **且** 通过 F5 差分测试验证"后
 > 才离开账本——见账本的 [F5 验收](fidelity-debt-zh.md#每张卡的-f5-验收) 与
@@ -47,12 +47,11 @@
 | `CardDef.race` 字段 + 种族目标/光环/触发（W1） | `def.rs` / `core/effect.rs` / `core/component.rs` | 11 张种族卡 |
 | 字段驱动种族池（W1） | `cards/pool.rs` | Barrens Stablehand 等 |
 | 触发类补全（W2）：`CharacterHealed` / `Attacked` / `CardPlayed` / `SecretPlayed` / `MinionDied`（任意）+ 摧毁奥秘 | `core/component.rs` / `rules.rs` / `trigger.rs` | 光明之泉侍女、智慧祝福、任务达人、奥秘守护者、食尸鬼、SI:7、吞秘巨蟒、照明弹 |
+| 条件谓词（W3）：攻击区间 / 手牌数 / 英雄血量 / 受伤 / 控制奥秘 / 首个随从 / 圣盾吸收 | `core/effect.rs` / `trigger.rs` / `engine/cost.rs` | 科多兽、猎潮驯兽师、暮光幼龙、致死打击、狂暴、战斗怒火、以太奥秘学者、微型召唤师、血骑士 |
 
 **缺失**（按 wave 分组的原语）：
 
-1. 目标/状态谓词：攻击区间、手牌数、英雄血量、受伤友方、受伤计数、控制奥秘、
-   "每回合首个随从"、武器装备 → W3；圣盾吸收 → W3
-4. 手牌区费用光环（全体随从）、按武器攻击减费、武器耐久削减、敌方法术 0 费、
+1. 手牌区费用光环（全体随从）、按武器攻击减费、武器耐久削减、敌方法术 0 费、
    给对手水晶 → W4
 5. 生命设为 1、交换攻击/生命、邻位增益/冻结、双效果组合（含授嘲讽）→ W5
 6. 概率、本回合临时增益、群体圣盾、排除自身的全场伤害、抽牌-按费用伤害、
@@ -154,26 +153,35 @@
 | NEUTRAL_C12 | 食尸鬼 | 每当**任意**随从死亡，+1 攻击 | `w2_flesheathing_ghoul_counts_every_death` |
 
 **验收**：8 个差分场景（逐卡核实 after/whenever 时机）；RL 卡池 +8（346 → 354）。
-## Wave 3 — 条件谓词（9 张）
+## Wave 3 — 条件谓词（9 张）✅ 完成（PR #83）
 
-**原语**（扩展 `EffectTarget` / 效果条件）：
-- 攻击区间谓词（≤2、≥7）、手牌数计数、英雄血量阈值、受伤友方目标 +
-  受伤计数、控制奥秘、"每回合首个随从"状态、圣盾吸收并增益。
+**原语**——全部落地：
+- 攻击区间目标：`EffectTarget::EnemyMinionAttackLE`（狂奔科多兽 ≤2）、
+  `AnyMinionAttackGE`（猎潮驯兽师 ≥7，双方）。
+- 手牌数计数：`CardEffect::GainStatsPerHandCard`（暮光幼龙）。
+- 英雄血量阈值：`CardEffect::MortalStrike`（≤12 生命时 6 伤）。
+- 受伤目标：`DamagedFriendlyMinion` / `DamagedMinion`（狂暴，双方）。
+- 受伤计数：`CardEffect::DrawPerDamagedFriendlyCharacter`（战斗怒火，
+  英雄 + 随从都算）。
+- 控制奥秘：`CardEffect::GainStatsIfOwnSecret`（以太奥秘学者）。
+- "每回合首个随从"状态：`AuraEffect::FirstMinionDiscount` + 每玩家
+  `minions_played_this_turn` 计数器（微型召唤师；静默召唤师会移除光环）。
+- 圣盾吸收：`CardEffect::AbsorbDivineShields`（血骑士，每盾 +3/+3，
+  双方圣盾都吸收）。
 
-| ID | 卡名 | 真实效果 |
-| --- | --- | --- |
-| NEUTRAL_R20 | 狂奔科多兽 | 摧毁一个攻击力 ≤2 的随机敌方随从 |
-| NEUTRAL_E06 | 猎潮驯兽师 | 摧毁一个攻击力 ≥7 的随从 |
-| NEUTRAL_R19 | 暮光幼龙 | 每有一张手牌便 +1 生命 |
-| WARRIOR_021 | 致死打击 | 4 点伤害；若你 ≤12 生命则 6 点 |
-| WARRIOR_023 | 狂暴 | 使一个**受伤**的随从 +3/+3 |
-| WARRIOR_022 | 战斗怒火 | 每有一个受伤的友方角色抽一张牌 |
-| MAGE_017 | 以太奥秘学者 | 回合结束：若你控制一个奥秘，+2/+2 |
-| NEUTRAL_R24 | 微型召唤师 | 每回合第一个随从费用 −1 |
-| NEUTRAL_E05 | 血骑士 | 吸收所有圣盾，+3/+3 |
+| ID | 卡名 | 真实效果 | 场景 |
+| --- | --- | --- | --- |
+| NEUTRAL_R20 | 狂奔科多兽 | 摧毁一个攻击力 ≤2 的随机敌方随从 | `w3_stampeding_kodo_destroys_low_attack_minion` |
+| NEUTRAL_E06 | 猎潮驯兽师 | 摧毁一个攻击力 ≥7 的随从 | `w3_big_game_hunter_destroys_high_attack_minion` |
+| NEUTRAL_R19 | 暮光幼龙 | 每有一张手牌便 +1 生命 | `w3_twilight_drake_gains_health_per_hand_card` |
+| WARRIOR_021 | 致死打击 | 4 点伤害；若你 ≤12 生命则 6 点 | `w3_mortal_strike_boosts_at_low_health` |
+| WARRIOR_023 | 狂暴 | 使一个**受伤**的随从 +3/+3 | `w3_rampage_targets_only_damaged_minions` |
+| WARRIOR_022 | 战斗怒火 | 每有一个受伤的友方角色抽一张牌 | `w3_battle_rage_draws_per_damaged_friendly_character` |
+| MAGE_017 | 以太奥秘学者 | 回合结束：若你控制一个奥秘，+2/+2 | `w3_ethereal_arcanist_requires_a_secret` |
+| NEUTRAL_R24 | 微型召唤师 | 每回合第一个随从费用 −1 | `w3_pint_sized_summoner_discounts_first_minion` |
+| NEUTRAL_E05 | 血骑士 | 吸收所有圣盾，+3/+3 | `w3_blood_knight_absorbs_all_divine_shields` |
 
-**验收**：9 个差分场景；RL 卡池 +9。
-
+**验收**：9 个差分场景；RL 卡池 +9（354 → 363）。
 ## Wave 4 — 费用与武器互动（8 张）
 
 **原语**：
@@ -262,7 +270,7 @@
 | W0 接线 ✅ PR #79 | 13 | `EventSubject` / `OtherFriendlyMinion` 目标；武器触发注册 + 摧毁后离场；法术死亡先于施法后触发 | +13 → **334** |
 | W1 种族 ✅ PR #80 | 11 | 种族字段 + 目标/光环/触发 + 字段驱动池 | +11 → **346** |
 | W2 触发 ✅ PR #81 | 8 | 5 个触发类 + 摧毁奥秘 | +8 → **354** |
-| W3 谓词 | 9 | 6+ 谓词 | +9 |
+| W3 谓词 ✅ PR #83 | 9 | 攻击区间/手牌数/血量/受伤/奥秘/首个随从/圣盾 谓词 | +9 → **363** |
 | W4 费用/武器 | 8 | 6+ 原语 | +8 |
 | W5 目标结构 | 7 | 5+ 原语 | +7 |
 | W6 特殊机制 | 8 | 6 个原语 | +8 |

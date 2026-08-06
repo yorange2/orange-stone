@@ -638,7 +638,7 @@ pub const MIRROR_IMAGE_MINION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Ethereal Arcanist — at end of turn, if you control a Secret, gain +2/+2 (simplified: +2/+2 at end of turn)
+/// Ethereal Arcanist — at the end of your turn, if you control a Secret, gain +2/+2
 pub const ETHEREAL_ARCANIST: CardDef = CardDef {
     id: "MAGE_017",
     name: "Ethereal Arcanist",
@@ -662,10 +662,9 @@ pub const ETHEREAL_ARCANIST: CardDef = CardDef {
     spell_damage: 0,
     cant_attack: false,
     spell_effect: None,
-    end_turn_effect: Some(CardEffect::GainStats {
+    end_turn_effect: Some(CardEffect::GainStatsIfOwnSecret {
         attack: 2,
         health: 2,
-        target: EffectTarget::Self_,
     }),
     start_turn_effect: None,
     spell_trigger: None,

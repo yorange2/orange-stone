@@ -2127,3 +2127,498 @@ fn w2_flare_destroys_all_secrets_and_draws() {
         "Flare drew a card"
     );
 }
+
+// ============================================================
+// Wave 3 — conditional targets & states (fidelity-debt-roadmap W3):
+// attack-range, hand-size, hero-health, damaged-friendly, damaged-count,
+// owns-secret, first-minion-cost, divine-shield absorb.
+// ============================================================
+
+/// W3-1 Stampeding Kodo — Battlecry: destroy a random enemy minion with 2 or
+/// less Attack (attack ≤ N predicate).
+#[test]
+fn w3_stampeding_kodo_destroys_low_attack_minion() {
+    use orange_stone::cards::def::STAMPEDING_KODO;
+    let mut builder = GameBuilder::new();
+    let weak = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    let strong = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    builder.add_minion_to_hand(PlayerId1(), &STAMPEDING_KODO);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let kodo = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("kodo in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: kodo,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(weak), Some(Zone::Graveyard));
+    assert_eq!(state.world().zone(strong), Some(Zone::Play));
+}
+
+/// W3-2 Big Game Hunter — Battlecry: destroy a minion with 7 or more Attack
+/// (attack ≥ N predicate, either side).
+#[test]
+fn w3_big_game_hunter_destroys_high_attack_minion() {
+    use orange_stone::cards::def::BIG_GAME_HUNTER;
+    let mut builder = GameBuilder::new();
+    let big = builder.add_custom_minion_to_board(PlayerId2(), 8, 8, 8);
+    let small = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    builder.add_minion_to_hand(PlayerId1(), &BIG_GAME_HUNTER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let bgh = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("bgh in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bgh,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(big), Some(Zone::Graveyard));
+    assert_eq!(state.world().zone(small), Some(Zone::Play));
+}
+
+/// W3-3 Twilight Drake — Battlecry: gain +1 Health for each card in hand.
+#[test]
+fn w3_twilight_drake_gains_health_per_hand_card() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, TWILIGHT_DRAKE, WORGEN_INFILTRATOR};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_hand(PlayerId1(), &WORGEN_INFILTRATOR);
+    builder.add_minion_to_hand(PlayerId1(), &TWILIGHT_DRAKE);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let drake = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "NEUTRAL_R19")
+        })
+        .expect("drake in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: drake,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(drake),
+        Some(Health(3)),
+        "two cards left in hand → 1 + 2 health"
+    );
+}
+
+/// W3-4 Mortal Strike — 4 damage; 6 instead when your hero has 12 or less
+/// Health (owner-health predicate).
+#[test]
+fn w3_mortal_strike_boosts_at_low_health() {
+    use orange_stone::cards::def::MORTAL_STRIKE;
+    // High-health hero: 4 damage
+    let mut builder = GameBuilder::new();
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 1, 5, 5);
+    builder.add_minion_to_hand(PlayerId1(), &MORTAL_STRIKE);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let strike = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("strike in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: strike,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The random target is the enemy minion or the enemy hero — either way the
+    // enemy took exactly 4 damage
+    let enemy_damage = {
+        let minion_dmg = state.world().damage(enemy).map_or(0, |d| d.0);
+        let hero_dmg = state
+            .world()
+            .damage(state.player(PlayerId2()).hero)
+            .map_or(0, |d| d.0);
+        minion_dmg + hero_dmg
+    };
+    assert_eq!(enemy_damage, 4);
+
+    // Low-health hero (10 ≤ 12): 6 damage kills the 5/5
+    let mut builder = GameBuilder::new();
+    let enemy2 = builder.add_custom_minion_to_board(PlayerId2(), 1, 5, 5);
+    let attacker = builder.add_custom_minion_to_board(PlayerId2(), 20, 20, 2);
+    builder.add_minion_to_hand(PlayerId1(), &MORTAL_STRIKE);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId2());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero = state.player(PlayerId1()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero), Some(Health(10)));
+    state.set_active_player(PlayerId1());
+    let strike = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("strike in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: strike,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(enemy2),
+        Some(Zone::Graveyard),
+        "at 10 hero health the strike deals 6 — enough to kill the 5/5"
+    );
+}
+
+/// W3-5 Rampage — give a damaged minion +3/+3 (damaged predicate).
+#[test]
+fn w3_rampage_targets_only_damaged_minions() {
+    use orange_stone::cards::def::RAMPAGE;
+    let mut builder = GameBuilder::new();
+    let damaged = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let fresh = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &RAMPAGE);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Damage one friendly minion (enemy attacks it)
+    let attacker = {
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_health(e, Health(1));
+        world.set_attack(e, Attack(1));
+        world.set_cost(e, orange_stone::core::component::Cost(1));
+        world.set_card_type(e, CardType::Minion);
+        world.set_player(e, PlayerId2());
+        world.set_attacks_used(e, orange_stone::core::component::AttacksUsed(0));
+        world.set_zone(e, Zone::Play);
+        world.zones_mut().insert(Zone::Play, PlayerId2(), e);
+        e
+    };
+    state.set_active_player(PlayerId2());
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: damaged,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(damaged), Some(Health(1)));
+    state.set_active_player(PlayerId1());
+    let rampage = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("rampage in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: rampage,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(damaged), Some(Attack(5)));
+    assert_eq!(state.world().effective_health(damaged), Some(Health(4)));
+    assert_eq!(state.world().effective_attack(fresh), Some(Attack(2)));
+}
+
+/// W3-6 Battle Rage — draw a card for each damaged friendly character
+/// (hero + minions).
+#[test]
+fn w3_battle_rage_draws_per_damaged_friendly_character() {
+    use orange_stone::cards::def::{BATTLE_RAGE, BLOODFEN_RAPTOR};
+    let mut builder = GameBuilder::new();
+    let a = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let b = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &BATTLE_RAGE);
+    builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Damage both friendly minions and the hero
+    let attacker1 = {
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_health(e, Health(1));
+        world.set_attack(e, Attack(1));
+        world.set_cost(e, orange_stone::core::component::Cost(1));
+        world.set_card_type(e, CardType::Minion);
+        world.set_player(e, PlayerId2());
+        world.set_attacks_used(e, orange_stone::core::component::AttacksUsed(0));
+        world.set_zone(e, Zone::Play);
+        world.zones_mut().insert(Zone::Play, PlayerId2(), e);
+        e
+    };
+    let attacker2 = {
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_health(e, Health(1));
+        world.set_attack(e, Attack(1));
+        world.set_cost(e, orange_stone::core::component::Cost(1));
+        world.set_card_type(e, CardType::Minion);
+        world.set_player(e, PlayerId2());
+        world.set_attacks_used(e, orange_stone::core::component::AttacksUsed(0));
+        world.set_zone(e, Zone::Play);
+        world.zones_mut().insert(Zone::Play, PlayerId2(), e);
+        e
+    };
+    let attacker3 = {
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_health(e, Health(1));
+        world.set_attack(e, Attack(1));
+        world.set_cost(e, orange_stone::core::component::Cost(1));
+        world.set_card_type(e, CardType::Minion);
+        world.set_player(e, PlayerId2());
+        world.set_attacks_used(e, orange_stone::core::component::AttacksUsed(0));
+        world.set_zone(e, Zone::Play);
+        world.zones_mut().insert(Zone::Play, PlayerId2(), e);
+        e
+    };
+    state.set_active_player(PlayerId2());
+    let hero = state.player(PlayerId1()).hero;
+    for (attacker, target) in [(attacker1, a), (attacker2, b), (attacker3, hero)] {
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker,
+                    defender: target,
+                },
+            )
+            .unwrap();
+    }
+    assert_eq!(state.world().effective_health(hero), Some(Health(29)));
+    state.set_active_player(PlayerId1());
+    let rage = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("battle rage in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: rage,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        3,
+        "three damaged friendly characters (2 minions + hero) → three draws"
+    );
+}
+
+/// W3-7 Ethereal Arcanist — at the end of your turn, +2/+2 only while you
+/// control a Secret (owns-secret predicate).
+#[test]
+fn w3_ethereal_arcanist_requires_a_secret() {
+    use orange_stone::cards::def::{COUNTERSPELL, ETHEREAL_ARCANIST};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &ETHEREAL_ARCANIST);
+    builder.add_minion_to_hand(PlayerId1(), &COUNTERSPELL);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let arcanist = find_entity(&state, PlayerId1(), "MAGE_017");
+    // End the turn WITHOUT a secret — no buff
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.world().effective_attack(arcanist), Some(Attack(3)));
+    assert_eq!(state.world().effective_health(arcanist), Some(Health(3)));
+    // Play a secret and end the turn — +2/+2
+    engine.apply(&mut state, Action::EndTurn).unwrap(); // back to P1
+    let secret = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("counterspell in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: secret,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.world().effective_attack(arcanist), Some(Attack(5)));
+    assert_eq!(state.world().effective_health(arcanist), Some(Health(5)));
+}
+
+/// W3-8 Pint-Sized Summoner — the first minion you play each turn costs (1)
+/// less.
+#[test]
+fn w3_pint_sized_summoner_discounts_first_minion() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, PINT_SIZED_SUMMONER, WORGEN_INFILTRATOR};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &PINT_SIZED_SUMMONER);
+    builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_hand(PlayerId1(), &WORGEN_INFILTRATOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // First minion (2-cost): pays 1
+    let raptor = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CLASSIC_001")
+        })
+        .expect("raptor in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: raptor,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId1()).current_mana,
+        9,
+        "the first minion cost (1) less"
+    );
+    // Second minion: full price
+    let worgen = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("worgen in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: worgen,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId1()).current_mana,
+        8,
+        "the second minion costs its full price (1 mana, no discount)"
+    );
+}
+
+/// W3-9 Blood Knight — Battlecry: destroy all Divine Shields (both sides)
+/// and gain +3/+3 for each.
+#[test]
+fn w3_blood_knight_absorbs_all_divine_shields() {
+    use orange_stone::cards::def::BLOOD_KNIGHT;
+    let mut builder = GameBuilder::new();
+    let friendly_shielded = builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    let enemy_shielded = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    let enemy_plain = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    {
+        use orange_stone::core::component::DivineShield;
+        let world = builder.state_mut().world_mut();
+        world.set_divine_shield(friendly_shielded, DivineShield);
+        world.set_divine_shield(enemy_shielded, DivineShield);
+    }
+    builder.add_minion_to_hand(PlayerId1(), &BLOOD_KNIGHT);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let knight = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("knight in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: knight,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(knight),
+        Some(Attack(9)),
+        "two shields absorbed → +6/+6"
+    );
+    assert_eq!(state.world().effective_health(knight), Some(Health(9)));
+    assert_eq!(
+        state.world().divine_shield(friendly_shielded).is_some(),
+        false
+    );
+    assert_eq!(state.world().divine_shield(enemy_shielded).is_some(), false);
+    assert_eq!(state.world().divine_shield(enemy_plain).is_some(), false);
+}

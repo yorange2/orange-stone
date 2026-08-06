@@ -49,6 +49,14 @@ pub enum EffectTarget {
     /// A random minion of the given race on either side of the board
     /// (Hungry Crab — destroy a Murloc)
     AnyRace(crate::core::component::Race),
+    /// A random enemy minion with attack ≤ N (Stampeding Kodo)
+    EnemyMinionAttackLE(i32),
+    /// A random minion on either side with attack ≥ N (Big Game Hunter)
+    AnyMinionAttackGE(i32),
+    /// A random damaged friendly minion (Rampage)
+    DamagedFriendlyMinion,
+    /// A random damaged minion on either side (Rampage)
+    DamagedMinion,
 }
 
 /// Card effect — an action executed when triggered.
@@ -439,6 +447,42 @@ pub enum CardEffect {
         /// Number of cards drawn per attack
         count: u32,
     },
+    /// Gain stats equal to the number of cards in hand (Twilight Drake —
+    /// +1 Health per card in hand)
+    GainStatsPerHandCard {
+        /// Flat attack gain
+        attack: i32,
+        /// Health gained per hand card
+        health_per_card: i32,
+    },
+    /// Deal damage; boosted when the caster's hero has ≤ N health
+    /// (Mortal Strike — 4 damage, or 6 at 12 or less health)
+    MortalStrike {
+        /// Normal damage
+        damage: i32,
+        /// Damage at the health threshold
+        boosted: i32,
+        /// Hero-health threshold
+        threshold: i32,
+    },
+    /// Draw a card for each damaged friendly character (Battle Rage)
+    DrawPerDamagedFriendlyCharacter,
+    /// Gain stats at end of turn only while the owner controls a Secret
+    /// (Ethereal Arcanist)
+    GainStatsIfOwnSecret {
+        /// Attack gain
+        attack: i32,
+        /// Health gain
+        health: i32,
+    },
+    /// Absorb all Divine Shields on the board and gain stats per shield
+    /// (Blood Knight — +3/+3 for each destroyed shield)
+    AbsorbDivineShields {
+        /// Attack gained per absorbed shield
+        attack_per_shield: i32,
+        /// Health gained per absorbed shield
+        health_per_shield: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -662,6 +706,24 @@ enum CardEffectDe {
     AttachAttackDraw {
         count: u32,
     },
+    GainStatsPerHandCard {
+        attack: i32,
+        health_per_card: i32,
+    },
+    MortalStrike {
+        damage: i32,
+        boosted: i32,
+        threshold: i32,
+    },
+    DrawPerDamagedFriendlyCharacter,
+    GainStatsIfOwnSecret {
+        attack: i32,
+        health: i32,
+    },
+    AbsorbDivineShields {
+        attack_per_shield: i32,
+        health_per_shield: i32,
+    },
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -876,6 +938,35 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 CardEffect::DestroyAllEnemySecretsAndDraw { count }
             }
             CardEffectDe::AttachAttackDraw { count } => CardEffect::AttachAttackDraw { count },
+            CardEffectDe::GainStatsPerHandCard {
+                attack,
+                health_per_card,
+            } => CardEffect::GainStatsPerHandCard {
+                attack,
+                health_per_card,
+            },
+            CardEffectDe::MortalStrike {
+                damage,
+                boosted,
+                threshold,
+            } => CardEffect::MortalStrike {
+                damage,
+                boosted,
+                threshold,
+            },
+            CardEffectDe::DrawPerDamagedFriendlyCharacter => {
+                CardEffect::DrawPerDamagedFriendlyCharacter
+            }
+            CardEffectDe::GainStatsIfOwnSecret { attack, health } => {
+                CardEffect::GainStatsIfOwnSecret { attack, health }
+            }
+            CardEffectDe::AbsorbDivineShields {
+                attack_per_shield,
+                health_per_shield,
+            } => CardEffect::AbsorbDivineShields {
+                attack_per_shield,
+                health_per_shield,
+            },
         })
     }
 }
