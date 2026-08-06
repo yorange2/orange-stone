@@ -601,7 +601,7 @@ pub const TUNDRA_RHINO: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Flare — destroy all enemy secrets, draw a card (simplified: draw a card)
+/// Flare — destroy all enemy Secrets, draw a card
 pub const FLARE: CardDef = CardDef {
     id: "HUNTER_017",
     name: "Flare",
@@ -610,7 +610,7 @@ pub const FLARE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DrawCard { count: 1 }),
+    battlecry: Some(CardEffect::DestroyAllEnemySecretsAndDraw { count: 1 }),
     deathrattle: None,
     taunt: false,
     stealth: false,

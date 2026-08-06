@@ -1,6 +1,6 @@
 # Fidelity-Debt Implementation Roadmap — the 67 simplified cards
 
-> **Status: W1 done (PR #81); W2 next.** This roadmap executes the F4-ongoing /
+> **Status: W2 done (PR #82); W3 next.** This roadmap executes the F4-ongoing /
 > F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
 > [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
@@ -146,31 +146,34 @@ buff persists); RL pool grows by 13.
 **Acceptance**: 12 scenarios (11 cards + the pool-parity test); race pools match
 the hardcoded lists bit-for-bit (old members all stay; additions = genuine
 Beasts/Demons the old lists missed); RL pool grows by 11 (335 → 346).
-## Wave 2 — Trigger classes (8 cards)
+## Wave 2 — Trigger classes (8 cards) ✅ done (PR #82)
 
-**Primitives**:
-- `heal_trigger` → `FriendlyCharacterHealed` (Lightwarden)
-- `attack_trigger` on a target entity → `Attacked` (Blessing of Wisdom)
-- `played_trigger` → `CardPlayed` (Questing Adventurer)
-- `secret_played_trigger` → `SecretPlayed` (Secretkeeper)
-- `any-minion-died` variant of `FriendlyMinionDied` (Flesheathing Ghoul)
-- `DestroySecrets` effect (SI:7 — one random enemy secret; Eater of Secrets /
-  Flare — all enemy secrets; Flare also draws → composition, see W5)
+**Primitives** — all landed:
+- `TriggerEvent::CharacterHealed` — heal trigger (Lightwarden); fires for any
+  healed character, and only on REAL heals (an undamaged character is not a
+  heal event).
+- `TriggerEvent::Attacked` — entity-attack trigger (Blessing of Wisdom attaches
+  "draw when this minion attacks" to the target via `CardEffect::AttachAttackDraw`).
+- `TriggerEvent::CardPlayed` — card-played trigger (Questing Adventurer; friendly scope).
+- `TriggerEvent::SecretPlayed` — secret-played trigger (Secretkeeper; both players).
+- `TriggerEvent::MinionDied` — any-minion-died variant (Flesheathing Ghoul; both players).
+- Destroy-secret effects: `DestroyRandomEnemySecret` (SI:7 Infiltrator),
+  `DestroyAllEnemySecretsAndGainStats` (Eater of Secrets),
+  `DestroyAllEnemySecretsAndDraw` (Flare).
 
-| ID | Card | Real effect |
-| --- | --- | --- |
-| NEUTRAL_R04 | Lightwarden | Whenever a character is healed, +2 Attack |
-| PALADIN_019 | Blessing of Wisdom | Whenever the target minion attacks, draw |
-| NEUTRAL_R17 | Questing Adventurer | Whenever you play a card, +1/+1 |
-| NEUTRAL_R06 | Secretkeeper | Whenever a Secret is played, +1/+1 |
-| NEUTRAL_R25 | SI:7 Infiltrator | Battlecry: destroy a random enemy Secret |
-| NEUTRAL_R26 | Eater of Secrets | Battlecry: destroy all enemy Secrets, +1/+1 |
-| HUNTER_017 | Flare | Destroy all enemy secrets, draw a card |
-| NEUTRAL_C12 | Flesheathing Ghoul | Whenever **any** minion dies, +1 Attack |
+| ID | Card | Real effect | Scenario |
+| --- | --- | --- | --- |
+| NEUTRAL_R04 | Lightwarden | Whenever a character is healed, +2 Attack | `w2_lightwarden_gains_attack_on_real_heals` |
+| PALADIN_019 | Blessing of Wisdom | Whenever the target minion attacks, draw a card | `w2_blessing_of_wisdom_draws_on_attacks` |
+| NEUTRAL_R17 | Questing Adventurer | Whenever you play a card, +1/+1 | `w2_questing_adventurer_grows_per_played_card` |
+| NEUTRAL_R06 | Secretkeeper | Whenever a Secret is played, +1/+1 | `w2_secretkeeper_grows_on_any_secret` |
+| NEUTRAL_R25 | SI:7 Infiltrator | Battlecry: destroy a random enemy Secret | `w2_si7_destroys_one_enemy_secret` |
+| NEUTRAL_R26 | Eater of Secrets | Battlecry: destroy all enemy Secrets, +1/+1 | `w2_eater_of_secrets_destroys_all_and_buffs` |
+| HUNTER_017 | Flare | Destroy all enemy Secrets and draw a card | `w2_flare_destroys_all_secrets_and_draws` |
+| NEUTRAL_C12 | Flesheathing Ghoul | Whenever a minion dies, +1 Attack | `w2_flesheathing_ghoul_counts_every_death` |
 
-**Acceptance**: 8 differential scenarios (trigger timing: "after" vs "whenever"
-per card); RL pool grows by 8.
-
+**Acceptance**: 8 differential scenarios (per-card after/whenever timing
+verified); RL pool grows by 8 (346 → 354).
 ## Wave 3 — Conditional predicates (9 cards)
 
 **Primitives** (extend `EffectTarget` / add effect conditions):
@@ -285,7 +288,7 @@ constructible size; final sweep + full SabberStone parity run.
 | --- | --- | --- | --- |
 | W0 wiring ✅ PR #79 | 13 | `EventSubject` / `OtherFriendlyMinion` targets; weapon trigger registration + destroy-leaves-play; spell-cast death-before-after-cast | +13 → **334** |
 | W1 race ✅ PR #81 | 11 | race field + targets/auras/triggers + field-driven pools | +11 → **346** |
-| W2 triggers | 8 | 4 trigger classes + destroy-secret | +8 |
+| W2 triggers ✅ PR #82 | 8 | 5 trigger classes + destroy-secret | +8 → **354** |
 | W3 predicates | 9 | 6+ predicates | +9 |
 | W4 cost/weapon | 8 | 6+ primitives | +8 |
 | W5 target structure | 7 | 5+ primitives | +7 |

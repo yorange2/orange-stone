@@ -1,7 +1,7 @@
 # 保真债 — 简化卡清单（F4/F5 持续审计账本）
 
-> **现状：`src/cards/` 里有 43 处简化标记**（2026-08-06 审计，修复轮 PR #77；
-> W0 接线轮 PR #79 清掉 13 张；W1 种族轮 PR #81 清掉 11 张）。
+> **现状：`src/cards/` 里有 35 处简化标记**（2026-08-06 审计，修复轮 PR #77；
+> W0 接线轮 PR #79 清掉 13 张；W1 种族轮 PR #81 清掉 11 张；W2 触发轮 PR #82 清掉 8 张）。
 > 本账本是 F4 逐效果保真审计的**权威记录**。一张卡**离开账本**的唯一条件：
 > 真实炉石效果已实现**且**通过 F5 差分测试验证。不要静默重写卡牌——改动必须
 > 同时更新本账本、代码注释和下游简化债提取器（见[维护约定](#维护约定)）。
@@ -27,6 +27,14 @@
 > `DEMON_POOL` 换成字段驱动池（含逐位一致测试，`w1_race_pools_are_field_driven`）。
 > 对应 12 个差分场景（`tests/differential.rs` 的 `w1_*`）。
 >
+> **2026-08-06 W2 触发轮（PR #82）**：8 张触发/奥秘卡全部落地——5 个新触发类：
+> `CharacterHealed`（治疗，任何角色被治疗都触发）、`Attacked`（实体攻击——
+> 智慧祝福把"本随从攻击时抽牌"挂在目标随从身上）、`CardPlayed`（打出卡牌，
+> 友方作用域）、`SecretPlayed`（奥秘打出，双方都触发）、`MinionDied`（任意
+> 随从死亡，双方都触发）；以及 3 个摧毁奥秘效果（SI:7 随机一个、吞秘巨蟒 /
+> 照明弹全部 + 组合增益/抽牌）。治疗触发只在"真的治疗到"时触发（满血角色
+> 不是治疗事件）。对应 8 个差分场景（`tests/differential.rs` 的 `w2_*`）。
+>
 > **执行计划**：[docs/fidelity-debt-roadmap-zh.md](fidelity-debt-roadmap-zh.md)
 > （英文版 `fidelity-debt-roadmap.md`）——按依赖排序的 8 个 wave（W0 接线 …
 > W7 收尾）覆盖全部 67 张卡；一张卡完成 = 账本行、代码注释、差分场景三者
@@ -41,7 +49,8 @@ Python 侧（`orange-reinforcement/hearthstone_os/decks.py::_load_debt_ids`）�
 Repentance / Lightwell）已改成官方 ID（EX1_365 / EX1_349 / EX1_341），
 Mass Dispel 现在可取了。67 张全部在 `ALL_CARDS` 里（补入 10 张、去重 7 个
 重复条目后共 413 个唯一条目，PR #77）。其中 4 处是过期注释（卡已忠实，已
-清理，见 §10）；真实债务是 67 张，**W0 已清 13 张、W1 已清 11 张，剩 43 张**。
+清理，见 §10）；真实债务是 67 张，**W0 已清 13 张、W1 已清 11 张、
+W2 已清 8 张，剩 35 张**。
 
 ---
 
@@ -61,22 +70,16 @@ Mass Dispel 现在可取了。67 张全部在 `ALL_CARDS` 里（补入 10 张、
 F-A6 补注的 Starving Buzzard（HUNTER_013）与 Scavenging Hyena（HUNTER_014）
 也随本轮离开账本。
 
-### 3. 事件触发 — 召唤 / 治疗 / 死亡 / 奥秘 / 攻击 / 打出（9 张）
+### 3. 事件触发 — 召唤 / 治疗 / 死亡 / 奥秘 / 攻击 / 打出（2 张）
 
-`summon_trigger`、`spell_trigger`、`death_trigger` 已存在且被其他卡使用；
-**缺：治疗触发、攻击触发、打出卡牌触发、奥秘打出触发**，以及"摧毁奥秘"效果
-（奥秘相关卡需要）。（W0 已清：Knife Juggler、Sword of Justice、Demolisher、
-Doomsayer、Wild Pyromancer、Young Priestess、Master Swordsmith。）
+触发类已补全（W0 接线 + W2 触发轮）：治疗、攻击（目标身上）、打出卡牌、
+奥秘打出、任意随从死亡全部落地；摧毁奥秘效果（随机一个 / 全部 + 组合）也已
+落地。剩下两张缺的是非触发机制。（W2 已清：Flesheathing Ghoul、Lightwarden、
+Secretkeeper、SI:7 Infiltrator、Eater of Secrets、Blessing of Wisdom、
+Questing Adventurer；Flare 见 §9。）
 
 | ID | 卡名 | 现状 | 真实炉石效果 | 缺失机制 |
 | --- | --- | --- | --- | --- |
-| NEUTRAL_C12 | Flesheathing Ghoul | 白板 | 每当一个随从死亡，获得 +1 攻击 | 死亡触发 + 自身增益（机制已有） |
-| NEUTRAL_R04 | Lightwarden | 白板 | 每当一个角色被治疗，获得 +2 攻击 | 治疗触发（缺） |
-| NEUTRAL_R06 | Secretkeeper | 白板 | 每当一个**奥秘**被打出，获得 +1/+1 | 奥秘打出触发（缺） |
-| NEUTRAL_R25 | SI:7 Infiltrator | 白板 | 战吼：摧毁一个随机的敌方奥秘 | 摧毁奥秘效果（缺） |
-| NEUTRAL_R26 | Eater of Secrets | 白板 | 战吼：摧毁所有敌方奥秘并获得 +1/+1 | 摧毁奥秘效果 + 增益 |
-| PALADIN_019 | Blessing of Wisdom | 无效果 | 每当目标随从攻击，抽一张牌 | 目标上的攻击触发（缺）+ 实体光环 |
-| NEUTRAL_R17 | Questing Adventurer | 白板 | 每当你打出一张牌，获得 +1/+1 | 打出卡牌触发（缺） |
 | NEUTRAL_R13 | Alarm-o-Bot | 白板 | 在你的回合开始时，与手牌中一个随机随从交换 | 手牌区交换效果（缺） |
 | MAGE_017 | Ethereal Arcanist | 回合结束无条件 +2/+2 | 在你的回合结束时，若你控制一个奥秘，获得 +2/+2 | 条件回合结束（控制奥秘谓词） |
 
@@ -138,10 +141,10 @@ Doomsayer、Wild Pyromancer、Young Priestess、Master Swordsmith。）
 | --- | --- | --- | --- | --- |
 | LEGENDARY_022 | Nat Pagle | 回合结束必抽牌 | 你的回合结束时，50% 几率抽一张牌 | 概率效果 |
 
-### 9. 复合与其他（9 张）
+### 9. 复合与其他（8 张）
 
-（W0 已清：Kul Tiran Chaplain——目标改为 FriendlyMinion；Emperor Cobra——
-接入已有 Poison 组件。）
+（W0 已清：Kul Tiran Chaplain、Emperor Cobra；W2 已清：Flare——摧毁所有
+敌方奥秘并抽牌。）
 
 | ID | 卡名 | 现状 | 真实炉石效果 | 缺失机制 |
 | --- | --- | --- | --- | --- |
@@ -152,7 +155,6 @@ Doomsayer、Wild Pyromancer、Young Priestess、Master Swordsmith。）
 | PRIEST_018 | Lightwell | 回合结束恢复 3 | 在你的回合开始时，为一个受伤的友方角色恢复 3 点生命 | 受伤友方谓词 + 回合开始（另有 ID 冲突，见审计发现） |
 | ROGUE_025 | Pilfer | 随机一张非潜行者卡 | 随机将一张其他职业的卡牌置入你的手牌 | 职业过滤（引擎无职业模型） |
 | NEUTRAL_T21e | Ysera Awakens | 伤害包含 Ysera 自身 | 对所有**其他**角色造成 5 点伤害（梦境卡牌） | AllCharacters 排除自身 |
-| HUNTER_017 | Flare | 仅抽牌 | 摧毁所有敌方奥秘并抽一张牌 | 摧毁奥秘效果（同 SI:7） |
 | NEUTRAL_R14 | Arcane Golem | 仅冲锋 | 冲锋；战吼：使你的对手获得一个法力水晶 | 给对手水晶效果 |
 
 ### 10. 已解决 — 标记简化但实际已忠实（4 张，PR #77 清理）
@@ -217,14 +219,15 @@ Doomsayer、Wild Pyromancer、Young Priestess、Master Swordsmith。）
 `OtherFriendlyMinion`（W0）/ 武器实体触发注册 + 摧毁后离场（W0）/ 法术结算后
 先处理死亡再触发施法触发（W0）/ `CardDef.race` 字段 + 种族条件目标
 （`FriendlyRace`/`AllOtherFriendlyRace`/`AnyRace`）+ 种族条件光环
-（`GrantCharge` 冲锋光环）+ `Trigger.race` 种族条件触发 + 字段驱动种族池（W1）。
+（`GrantCharge` 冲锋光环）+ `Trigger.race` 种族条件触发 + 字段驱动种族池（W1）/
+触发类补全：`CharacterHealed`、`Attacked`（实体攻击）、`CardPlayed`、
+`SecretPlayed`、`MinionDied`（任意死亡）+ 摧毁奥秘效果（W2）。
 
 **缺**（先补原语，遵守 Review II 的"先 G 后 F4/F5"纪律）：
-1. 触发类：治疗、攻击、打出卡牌、奥秘打出——§3
-2. 目标谓词：攻击区间、手牌数、英雄血量、受伤友方、控制奥秘、武器装备；
+1. 目标谓词：攻击区间、手牌数、英雄血量、受伤友方、控制奥秘、武器装备；
    "每回合首个随从"状态——§4、§6
-3. 效果：生命设为 1、交换攻击/生命、群体圣盾、敌方法术 0 费、
-   摧毁奥秘、武器耐久削减、邻位增益/冻结、双随机伤害、本回合临时增益、
+2. 效果：生命设为 1、交换攻击/生命、群体圣盾、敌方法术 0 费、
+   武器耐久削减、邻位增益/冻结、双随机伤害、本回合临时增益、
    概率效果——§5、§6、§7、§8、§9
 
 ## 每张卡的 F5 验收

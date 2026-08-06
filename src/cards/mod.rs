@@ -222,6 +222,58 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
             },
         );
     }
+    // W2 trigger classes (fidelity-debt): heal / card-played / secret-played /
+    // any-minion-died — registered per card ID via the unified Trigger component.
+    let w2_trigger: Option<(TriggerEvent, CardEffect)> = match card_def.id {
+        // Lightwarden — whenever a character is healed, gain +2 Attack
+        "NEUTRAL_R04" => Some((
+            TriggerEvent::CharacterHealed,
+            CardEffect::GainStats {
+                attack: 2,
+                health: 0,
+                target: EffectTarget::Self_,
+            },
+        )),
+        // Questing Adventurer — whenever you play a card, gain +1/+1
+        "NEUTRAL_R17" => Some((
+            TriggerEvent::CardPlayed,
+            CardEffect::GainStats {
+                attack: 1,
+                health: 1,
+                target: EffectTarget::Self_,
+            },
+        )),
+        // Secretkeeper — whenever a Secret is played, gain +1/+1
+        "NEUTRAL_R06" => Some((
+            TriggerEvent::SecretPlayed,
+            CardEffect::GainStats {
+                attack: 1,
+                health: 1,
+                target: EffectTarget::Self_,
+            },
+        )),
+        // Flesheating Ghoul — whenever a minion dies, gain +1 Attack
+        "NEUTRAL_C12" => Some((
+            TriggerEvent::MinionDied,
+            CardEffect::GainStats {
+                attack: 1,
+                health: 0,
+                target: EffectTarget::Self_,
+            },
+        )),
+        _ => None,
+    };
+    if let Some((event, effect)) = w2_trigger {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event,
+                timing: TriggerTiming::Whenever,
+                effect,
+                race: None,
+            },
+        );
+    }
 }
 
 /// Clears all effect components of a minion (resets the entity before transform).

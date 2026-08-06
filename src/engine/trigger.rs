@@ -126,7 +126,7 @@ pub fn resolve_effect(
             resolve_set_attack(state, owner, attack, target, explicit_target);
         }
         CardEffect::RestoreHealth { amount, target } => {
-            resolve_restore_health(state, owner, amount, target);
+            resolve_restore_health(state, queue, owner, amount, target);
         }
         CardEffect::FreezeCharacter { target } => {
             resolve_freeze(state, owner, target, explicit_target);
@@ -161,7 +161,7 @@ pub fn resolve_effect(
             resolve_deal_hero_attack_damage(state, queue, source, owner, target, explicit_target);
         }
         CardEffect::FullHeal { target } => {
-            resolve_full_heal(state, owner, target, explicit_target);
+            resolve_full_heal(state, queue, owner, target, explicit_target);
         }
         CardEffect::GrantWindfury { target } => {
             resolve_grant_windfury(state, owner, target, explicit_target);
@@ -541,6 +541,30 @@ pub fn resolve_effect(
                 explicit_target,
             );
         }
+        CardEffect::DestroyRandomEnemySecret => {
+            resolve_destroy_enemy_secrets(state, 1);
+        }
+        CardEffect::DestroyAllEnemySecretsAndGainStats { attack, health } => {
+            resolve_destroy_enemy_secrets(state, i32::MAX);
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack,
+                    health,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::DestroyAllEnemySecretsAndDraw { count } => {
+            resolve_destroy_enemy_secrets(state, i32::MAX);
+            for _ in 0..count {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::AttachAttackDraw { count } => {
+            resolve_attach_attack_draw(state, owner, count, explicit_target);
+        }
     }
 }
 
@@ -904,6 +928,54 @@ pub(crate) fn resolve_summon(
         minion: e,
     });
     Some(e)
+}
+
+/// Destroys up to `limit` random enemy Secrets (SI:7 Infiltrator — one;
+/// Eater of Secrets / Flare — all). Secrets live in the SetAside zone.
+fn resolve_destroy_enemy_secrets(state: &mut GameState, limit: i32) {
+    let enemy = state.active_player().opponent();
+    let secrets: SmallList<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::SetAside, enemy)
+        .filter(|&e| state.world().secret(e).is_some())
+        .collect();
+    if secrets.is_empty() {
+        return;
+    }
+    // Shuffle-pick: remove random secrets until the limit is reached
+    let mut remaining = secrets;
+    let mut destroyed = 0;
+    while !remaining.is_empty() && destroyed < limit {
+        let idx = state.rng_mut().next_usize(remaining.len());
+        let secret = remaining.remove(idx);
+        let _ = state.world_mut().move_to_zone(secret, Zone::Graveyard);
+        destroyed += 1;
+    }
+}
+
+/// Blessing of Wisdom — attach "Whenever this minion attacks, draw a card"
+/// to a random minion (any side, in self-play).
+fn resolve_attach_attack_draw(
+    state: &mut GameState,
+    owner: PlayerId,
+    count: u32,
+    explicit: Option<Entity>,
+) {
+    let mut minions = collect_friendly_minions(state, owner);
+    minions.extend(collect_all_enemy_minions(state, owner));
+    let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
+        return;
+    };
+    state.world_mut().set_trigger(
+        target,
+        Trigger {
+            event: TriggerEvent::Attacked,
+            timing: TriggerTiming::Whenever,
+            effect: CardEffect::DrawCard { count },
+            race: None,
+        },
+    );
 }
 
 /// Buffs a target AND grants it Taunt — one target selection shared by both
@@ -1359,37 +1431,70 @@ fn resolve_set_attack(
     state.world_mut().set_attack(m, Attack(attack));
 }
 
-/// Restores health.
+/// Restores health — fires `CharacterHealed` triggers (Lightwarden) for each
+/// character that actually healed (a heal that lands on an undamaged
+/// character is not a heal event).
 fn resolve_restore_health(
     state: &mut GameState,
+    queue: &mut EventQueue,
     owner: PlayerId,
     amount: i32,
     target: EffectTarget,
 ) {
-    // Healing reduces accumulated damage (roadmap G4)
-    fn heal(world: &mut crate::core::world::World, entity: Entity, amount: i32) {
+    // Healing reduces accumulated damage (roadmap G4); returns whether any
+    // damage was actually removed
+    fn heal(world: &mut crate::core::world::World, entity: Entity, amount: i32) -> bool {
         let dmg = world.damage(entity).unwrap_or(Damage(0)).0;
+        if dmg <= 0 {
+            return false;
+        }
         let new_dmg = (dmg - amount).max(0);
         if new_dmg > 0 {
             world.set_damage(entity, Damage(new_dmg));
         } else {
             world.remove_damage(entity);
         }
+        true
     }
+    let mut healed: SmallList<Entity> = SmallList::new();
     match target {
         EffectTarget::FriendlyHero | EffectTarget::Self_ => {
             let hero = state.player(owner).hero;
-            heal(state.world_mut(), hero, amount);
+            if heal(state.world_mut(), hero, amount) {
+                healed.push(hero);
+            }
         }
         EffectTarget::AllFriendlyMinions => {
             let minions = collect_friendly_minions(state, owner);
             let world = state.world_mut();
             for &m in &minions {
-                heal(world, m, amount);
+                if heal(world, m, amount) {
+                    healed.push(m);
+                }
             }
         }
         _ => {}
     }
+    for entity in healed {
+        fire_healed_trigger(state, queue, entity);
+    }
+}
+
+/// Fires `CharacterHealed` triggers for a healed entity (Lightwarden — any
+/// character healed, friendly or enemy).
+fn fire_healed_trigger(state: &mut GameState, queue: &mut EventQueue, entity: Entity) {
+    let owner = state
+        .world()
+        .player(entity)
+        .unwrap_or(state.active_player());
+    crate::engine::rules::fire_triggers(
+        state,
+        queue,
+        crate::core::component::TriggerEvent::CharacterHealed,
+        owner,
+        Some(entity),
+        None,
+    );
 }
 
 /// Freezes a character.
@@ -1474,6 +1579,7 @@ fn resolve_deal_hero_attack_damage(
 /// Restores a minion to full health (maximum health).
 fn resolve_full_heal(
     state: &mut GameState,
+    queue: &mut EventQueue,
     owner: PlayerId,
     target: EffectTarget,
     explicit: Option<Entity>,
@@ -1488,8 +1594,12 @@ fn resolve_full_heal(
     };
     // Get max health (based on the original definition; simplified here to 30 or the current max)
     // Simplified approach: heal from current health (use max_health if present, otherwise keep the current value)
-    // Full heal clears all accumulated damage (roadmap G4)
-    state.world_mut().remove_damage(m);
+    // Full heal clears all accumulated damage (roadmap G4) — a real heal
+    // event for the trigger system (Lightwarden)
+    if state.world().damage(m).is_some_and(|d| d.0 > 0) {
+        state.world_mut().remove_damage(m);
+        fire_healed_trigger(state, queue, m);
+    }
 }
 
 /// Grants a minion windfury.
