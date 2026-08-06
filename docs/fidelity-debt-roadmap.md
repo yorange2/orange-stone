@@ -1,6 +1,6 @@
 # Fidelity-Debt Implementation Roadmap — the 67 simplified cards
 
-> **Status: W4 done (PR #83); W5 next.** This roadmap executes the F4-ongoing /
+> **Status: W5 done (PR #85); W6 next.** This roadmap executes the F4-ongoing /
 > F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
 > [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
@@ -236,25 +236,35 @@ verified); RL pool grows by 8 (346 → 354).
 
 **Acceptance**: 9 differential scenarios (including stacking with existing
 cost auras); RL pool grows by 8 (363 → 371).
-## Wave 5 — Target structure & effect composition (7 cards)
+## Wave 5 — Target structure & effect composition (7 cards) ✅ done (PR #85)
 
-**Primitives**:
-- `SetHealthTo` effect (Repentance), swap attack/health effect (Crazed Alchemist),
-  adjacent-target buff/freeze targets, two-effect composition
-  (`SilenceAllAndDraw`, `FullHealAndTaunt` — or a generic chain), `GrantTaunt`.
+**Primitives** — all landed:
+- `CardEffect::SetPlayedMinionHealth` (Repentance — the secret sets the played
+  enemy minion's health to 1; resolved by the secret system with the event
+  context, same pattern as Snipe).
+- `CardEffect::SilenceAllEnemyMinionsAndDraw` (Mass Dispel — silence + draw
+  composition).
+- `CardEffect::SwapAttackAndHealth` (Crazed Alchemist — expressed as
+  enchantment deltas; silencing a swapped minion reverts to the base stats).
+- `CardEffect::FreezeAdjacent` (Cone of Cold — a random enemy minion and its
+  left/right neighbors).
+- `CardEffect::GrantAdjacentTaunt` (Sunfury Protector) and
+  `GrantAdjacentSpellDamage` (Ancient Mage) — adjacent-target buffs.
+- `CardEffect::FullHealAndTaunt` (Ancestral Healing — full-heal + taunt).
+- New `EffectTarget::AnyMinion` (either side — Crazed Alchemist / Ancestral
+  Healing target scope).
 
-| ID | Card | Real effect |
-| --- | --- | --- |
-| EX1_349 | Repentance | Secret: opponent's minion's Health set to 1 |
-| PRIEST_018 | Mass Dispel | Silence ALL enemy minions, draw a card |
-| NEUTRAL_R08 | Crazed Alchemist | Swap a minion's Attack and Health |
-| MAGE_016 | Cone of Cold | Freeze a minion and its neighbors |
-| NEUTRAL_R11 | Sunfury Protector | Give adjacent minions Taunt |
-| NEUTRAL_R18 | Ancient Mage | Give adjacent minions Spell Damage +1 |
-| SHAMAN_018 | Ancestral Healing | Full-heal a minion and give it Taunt |
+| ID | Card | Real effect | Scenario |
+| --- | --- | --- | --- |
+| EX1_349 | Repentance | Secret: when the opponent plays a minion, set its Health to 1 | `w5_repentance_sets_played_minion_health_to_1` |
+| PRIEST_018 | Mass Dispel | Silence all enemy minions, draw a card | `w5_mass_dispel_silences_all_enemy_minions` |
+| NEUTRAL_R08 | Crazed Alchemist | Swap a minion's Attack and Health | `w5_crazed_alchemist_swaps_stats` |
+| MAGE_016 | Cone of Cold | Freeze a minion and its neighbors | `w5_cone_of_cold_freezes_adjacent` |
+| NEUTRAL_R11 | Sunfury Protector | Give adjacent minions Taunt | `w5_sunfury_protector_taunts_adjacent` |
+| NEUTRAL_R18 | Ancient Mage | Give adjacent minions Spell Damage +1 | `w5_ancient_mage_gives_adjacent_spell_damage` |
+| SHAMAN_018 | Ancestral Healing | Restore a minion to full Health and give it Taunt | `w5_ancestral_healing_full_heals_and_taunts` |
 
-**Acceptance**: 7 differential scenarios; RL pool grows by 7.
-
+**Acceptance**: 7 differential scenarios; RL pool grows by 7 (371 → 378).
 ## Wave 6 — Special mechanics (8 cards)
 
 **Primitives**: probabilistic effect (Nat Pagle), this-turn temporary buff with
@@ -310,7 +320,7 @@ constructible size; final sweep + full SabberStone parity run.
 | W2 triggers ✅ PR #81 | 8 | 5 trigger classes + destroy-secret | +8 → **354** |
 | W3 predicates ✅ PR #82 | 9 | attack-range/hand-size/health/damaged/secret/first-minion/shield predicates | +9 → **363** |
 | W4 cost/weapon ✅ PR #83 | 8 | cost auras/weapon-attack cost/durability/conditional charge/spells-0/mana gift | +8 → **371** |
-| W5 target structure | 7 | 5+ primitives | +7 |
+| W5 target structure ✅ PR #85 | 7 | set-health/swap/adjacent targets/effect composition | +7 → **378** |
 | W6 special mechanics | 8 | 6 primitives | +8 |
 | W7 wrap-up | 3 | 3 primitives | +3 |
 | **Total** | **67** | | **321 → 388** |

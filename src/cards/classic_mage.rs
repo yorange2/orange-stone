@@ -493,7 +493,7 @@ pub const BLIZZARD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Cone of Cold — Freeze a minion and its neighbors (simplified: freeze one random enemy minion)
+/// Cone of Cold — Freeze a minion and its neighbors
 pub const CONE_OF_COLD: CardDef = CardDef {
     id: "MAGE_016",
     name: "Cone of Cold",
@@ -502,9 +502,8 @@ pub const CONE_OF_COLD: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::FreezeCharacter {
-        target: EffectTarget::AnyEnemyMinion,
-    }),
+    battlecry: Some(CardEffect::FreezeAdjacent),
+
     deathrattle: None,
     taunt: false,
     stealth: false,

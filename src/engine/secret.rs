@@ -185,6 +185,22 @@ fn resolve_secret_effect(
                 });
             }
         }
+        CardEffect::SetPlayedMinionHealth { health } => {
+            // Repentance: set the just-played enemy minion's health to 1 —
+            // damage is applied so the effective health equals the value
+            if let Event::MinionSummoned { minion, .. } = event {
+                let cur = state
+                    .world()
+                    .effective_health(*minion)
+                    .unwrap_or(crate::core::component::Health(1));
+                let dmg = cur.0 - health;
+                if dmg > 0 {
+                    let world = state.world_mut();
+                    let existing = world.damage(*minion).map_or(0, |d| d.0);
+                    world.set_damage(*minion, crate::core::component::Damage(existing + dmg));
+                }
+            }
+        }
         CardEffect::RedirectAttackToRandomCharacter => {
             resolve_misdirection(state, queue, event, player);
         }

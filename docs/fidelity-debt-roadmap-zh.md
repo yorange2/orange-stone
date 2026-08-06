@@ -1,6 +1,6 @@
 # 保真债实现路线图 — 67 张简化卡
 
-> **状态：W4 完成（PR #83）；W5 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
+> **状态：W5 完成（PR #85）；W6 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
 > 的 F4 持续 / F5 持续条目。[fidelity-debt.md](fidelity-debt-zh.md) 账本是卡名单的
 > 权威来源，本文档是执行计划。一张卡只有在"实现 **且** 通过 F5 差分测试验证"后
 > 才离开账本——见账本的 [F5 验收](fidelity-debt-zh.md#每张卡的-f5-验收) 与
@@ -49,11 +49,11 @@
 | 触发类补全（W2）：`CharacterHealed` / `Attacked` / `CardPlayed` / `SecretPlayed` / `MinionDied`（任意）+ 摧毁奥秘 | `core/component.rs` / `rules.rs` / `trigger.rs` | 光明之泉侍女、智慧祝福、任务达人、奥秘守护者、食尸鬼、SI:7、吞秘巨蟒、照明弹 |
 | 条件谓词（W3）：攻击区间 / 手牌数 / 英雄血量 / 受伤 / 控制奥秘 / 首个随从 / 圣盾吸收 | `core/effect.rs` / `trigger.rs` / `engine/cost.rs` | 科多兽、猎潮驯兽师、暮光幼龙、致死打击、狂暴、战斗怒火、以太奥秘学者、微型召唤师、血骑士 |
 | 费用/武器（W4）：手牌区费用光环 / 按武器攻击减费 / 武器耐久削减 / `ChargeWithWeapon` / 敌方法术 0 费 / 给对手水晶 | `core/component.rs` / `core/world.rs` / `engine/cost.rs` / `trigger.rs` | 法力怨魂、雇佣兵、船工、恐怖海盗、血帆袭击者、血帆海盗、米米尔隆、奥术傀儡 |
+| 目标结构/组合（W5）：生命设为 1 / 交换攻击生命 / 邻位增益冻结 / 双效果组合 | `core/effect.rs` / `trigger.rs` / `secret.rs` | 忏悔、群体驱散、疯狂炼金师、冰锥术、日怒保卫者、远古法师、先祖治疗 |
 
 **缺失**（按 wave 分组的原语）：
 
-1. 生命设为 1、交换攻击/生命、邻位增益/冻结、双效果组合（含授嘲讽）→ W5
-6. 概率、本回合临时增益、群体圣盾、排除自身的全场伤害、抽牌-按费用伤害、
+1. 概率、本回合临时增益、群体圣盾、排除自身的全场伤害、抽牌-按费用伤害、
    职业过滤 → W6
 7. 手牌区交换、伤害反射奥秘、1 生命复活奥秘 → W7
 
@@ -208,25 +208,31 @@
 | NEUTRAL_R14 | 奥术傀儡 | 冲锋；对手获得一个法力水晶 | `w4_arcane_golem_gives_opponent_crystal` |
 
 **验收**：9 个差分场景（含与既有光环的费用修正叠加）；RL 卡池 +8（363 → 371）。
-## Wave 5 — 目标结构与效果组合（7 张）
+## Wave 5 — 目标结构与效果组合（7 张）✅ 完成（PR #85）
 
-**原语**：
-- `SetHealthTo` 效果（忏悔）、交换攻击/生命效果（疯狂炼金师）、邻位增益/冻结
-  目标、双效果组合（`SilenceAllAndDraw`、`FullHealAndTaunt`——或通用链式）、
-  `GrantTaunt`。
+**原语**——全部落地：
+- `CardEffect::SetPlayedMinionHealth`（忏悔——奥秘把打出的敌方随从生命设为 1，
+  由奥秘系统带事件上下文解析，同 Snipe 模式）。
+- `CardEffect::SilenceAllEnemyMinionsAndDraw`（群体驱散——沉默 + 抽牌组合）。
+- `CardEffect::SwapAttackAndHealth`（疯狂炼金师——用附魔差量表达交换，
+  交换后沉默会回到基础值）。
+- `CardEffect::FreezeAdjacent`（冰锥术——随机敌方随从 + 左右邻位冻结）。
+- `CardEffect::GrantAdjacentTaunt`（日怒保卫者）与
+  `GrantAdjacentSpellDamage`（远古法师）——邻位增益目标。
+- `CardEffect::FullHealAndTaunt`（先祖治疗——满血 + 嘲讽组合）。
+- 新增 `EffectTarget::AnyMinion`（任意随从，疯狂炼金师 / 先祖治疗的目标域）。
 
-| ID | 卡名 | 真实效果 |
-| --- | --- | --- |
-| EX1_349 | 忏悔 | 奥秘：对手随从的生命设为 1 |
-| PRIEST_018 | 群体驱散 | 沉默所有敌方随从并抽一张牌 |
-| NEUTRAL_R08 | 疯狂炼金师 | 交换一个随从的攻击与生命 |
-| MAGE_016 | 冰霜新星锥 | 冻结一个随从及其相邻随从 |
-| NEUTRAL_R11 | 日怒保卫者 | 使相邻随从获得嘲讽 |
-| NEUTRAL_R18 | 远古法师 | 使相邻随从获得法术伤害 +1 |
-| SHAMAN_018 | 先祖治疗 | 将一个随从恢复至满血并获得嘲讽 |
+| ID | 卡名 | 真实效果 | 场景 |
+| --- | --- | --- | --- |
+| EX1_349 | 忏悔 | 奥秘：对手随从的生命设为 1 | `w5_repentance_sets_played_minion_health_to_1` |
+| PRIEST_018 | 群体驱散 | 沉默所有敌方随从并抽一张牌 | `w5_mass_dispel_silences_all_enemy_minions` |
+| NEUTRAL_R08 | 疯狂炼金师 | 交换一个随从的攻击与生命 | `w5_crazed_alchemist_swaps_stats` |
+| MAGE_016 | 冰霜新星锥 | 冻结一个随从及其相邻随从 | `w5_cone_of_cold_freezes_adjacent` |
+| NEUTRAL_R11 | 日怒保卫者 | 使相邻随从获得嘲讽 | `w5_sunfury_protector_taunts_adjacent` |
+| NEUTRAL_R18 | 远古法师 | 使相邻随从获得法术伤害 +1 | `w5_ancient_mage_gives_adjacent_spell_damage` |
+| SHAMAN_018 | 先祖治疗 | 将一个随从恢复至满血并获得嘲讽 | `w5_ancestral_healing_full_heals_and_taunts` |
 
-**验收**：7 个差分场景；RL 卡池 +7。
-
+**验收**：7 个差分场景；RL 卡池 +7（371 → 378）。
 ## Wave 6 — 特殊机制（8 张）
 
 **原语**：概率效果（纳特·帕格）、本回合临时增益（法力沸腾者；G4 附魔层已有
@@ -279,7 +285,7 @@
 | W2 触发 ✅ PR #81 | 8 | 5 个触发类 + 摧毁奥秘 | +8 → **354** |
 | W3 谓词 ✅ PR #82 | 9 | 攻击区间/手牌数/血量/受伤/奥秘/首个随从/圣盾 谓词 | +9 → **363** |
 | W4 费用/武器 ✅ PR #83 | 8 | 费用光环/武器攻击减费/耐久削减/条件冲锋/法术0费/给水晶 | +8 → **371** |
-| W5 目标结构 | 7 | 5+ 原语 | +7 |
+| W5 目标结构 ✅ PR #85 | 7 | 生命设为1/交换攻防/邻位目标/双效果组合 | +7 → **378** |
 | W6 特殊机制 | 8 | 6 个原语 | +8 |
 | W7 收尾 | 3 | 3 个原语 | +3 |
 | **合计** | **67** | | **321 → 388** |

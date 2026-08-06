@@ -2860,8 +2860,41 @@ pub const ANCIENT_WATCHER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Crazed Alchemist — Battlecry: swap a minion's Attack and Health (simplified: vanilla)
-pub const CRAZED_ALCHEMIST: CardDef = vanilla!("NEUTRAL_R08", "Crazed Alchemist", 2, 2, 2);
+/// Crazed Alchemist — Battlecry: swap a minion's Attack and Health
+pub const CRAZED_ALCHEMIST: CardDef = CardDef {
+    id: "NEUTRAL_R08",
+    name: "Crazed Alchemist",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 2,
+    durability: 0,
+    battlecry: Some(CardEffect::SwapAttackAndHealth {
+        target: EffectTarget::AnyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Knife Juggler — after you summon a minion, deal 1 damage to a random enemy
 pub const KNIFE_JUGGLER: CardDef = CardDef {
     id: "NEUTRAL_R09",
@@ -2900,8 +2933,39 @@ pub const KNIFE_JUGGLER: CardDef = CardDef {
 };
 /// Mana Addict — +2 Attack this turn after casting a spell (simplified: vanilla)
 pub const MANA_ADDICT: CardDef = vanilla!("NEUTRAL_R10", "Mana Addict", 2, 1, 3);
-/// Sunfury Protector — Battlecry: give adjacent minions Taunt (simplified: vanilla)
-pub const SUNFURY_PROTECTOR: CardDef = vanilla!("NEUTRAL_R11", "Sunfury Protector", 2, 2, 3);
+/// Sunfury Protector — Battlecry: give adjacent minions Taunt
+pub const SUNFURY_PROTECTOR: CardDef = CardDef {
+    id: "NEUTRAL_R11",
+    name: "Sunfury Protector",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::GrantAdjacentTaunt),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Wild Pyromancer — after you cast a spell, deal 1 damage to all minions
 pub const WILD_PYROMANCER: CardDef = CardDef {
     id: "NEUTRAL_R12",
@@ -3045,8 +3109,39 @@ pub const QUESTING_ADVENTURER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Ancient Mage — Battlecry: give adjacent minions Spell Damage +1 (simplified: vanilla)
-pub const ANCIENT_MAGE: CardDef = vanilla!("NEUTRAL_R18", "Ancient Mage", 4, 2, 5);
+/// Ancient Mage — Battlecry: give adjacent minions Spell Damage +1
+pub const ANCIENT_MAGE: CardDef = CardDef {
+    id: "NEUTRAL_R18",
+    name: "Ancient Mage",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 2,
+    health: 5,
+    durability: 0,
+    battlecry: Some(CardEffect::GrantAdjacentSpellDamage { amount: 1 }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Twilight Drake — Battlecry: gain +1 Health for each card in your hand
 pub const TWILIGHT_DRAKE: CardDef = CardDef {
     id: "NEUTRAL_R19",
