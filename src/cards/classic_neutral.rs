@@ -2409,14 +2409,15 @@ pub const MURLOC_WARLEADER: CardDef = CardDef {
 };
 
 // ============================================================
-// Classic set — simplified cards (effects need new engine support; simplified to vanilla or partial effects)
+// Classic set — fidelity-debt wave cards (all effects implemented;
+// per-card debt cleared via docs/finished/fidelity-debt-roadmap.md)
 // ============================================================
 
-// Neutral Basic — minions not fully implementable
+// Neutral Basic
 /// Gurubashi Berserker — Enrage: whenever this minion takes damage, gain +3 Attack
 pub const GURUBASHI_BERSERKER: CardDef = vanilla!("NEUTRAL_B19", "Gurubashi Berserker", 5, 2, 8);
 
-// Neutral Common — simplified
+// Neutral Common
 /// Southsea Deckhand — has Charge while you have a weapon equipped
 pub const SOUTHSHORE_DECKHAND: CardDef = CardDef {
     id: "NEUTRAL_C07",
@@ -2689,7 +2690,7 @@ pub const VENTURE_CO_MERCENARY: CardDef = CardDef {
 /// gains +2 Attack
 pub const SPITEFUL_SMITH: CardDef = vanilla!("NEUTRAL_C15", "Spiteful Smith", 5, 4, 6);
 
-// Neutral Rare — simplified
+// Neutral Rare
 /// Angry Chicken — Enrage: whenever this minion takes damage, gain +5 Attack
 pub const ANGRY_CHICKEN: CardDef = vanilla!("NEUTRAL_R02", "Angry Chicken", 1, 1, 1);
 /// Bloodsail Corsair — Battlecry: remove 1 Durability from the opponent's weapon
@@ -3246,7 +3247,7 @@ pub const STAMPEDING_KODO: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Neutral Epic — simplified
+// Neutral Epic
 /// Hungry Crab — Battlecry: destroy a Murloc and gain +2/+2
 pub const HUNGRY_CRAB: CardDef = CardDef {
     id: "NEUTRAL_E03",

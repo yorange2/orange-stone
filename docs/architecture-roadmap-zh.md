@@ -160,9 +160,9 @@
 - [x] **F2** — 潜行完整保真：角色攻击后移除潜行；单目标效果不能指定潜行角色（目前只阻止了攻击）。*(目标侧随 G9 落地)* *(PR #61：攻击移除潜行；目标侧随 G9)*
 - [x] **F3** — 抉择的玩家选择：在 `Action` 中暴露抉择（引擎随机选择不保真）。*(⏩ 由 G6 取代：抉择系统覆盖——经 G6 完成，PR #57)*
 - [x] **F4** — 保真审计：逐 `CardEffect` 对照真实炉石语义排查；修复已知偏差（例如单体消灭目前会消灭*全部*匹配随从；消灭受伤随从同理；核验目标集合、伤害时序、光环叠加规则）。*(被 G2–G5 阻塞：先有结算/附魔原语，逐效果修复才有意义)* *(PR #63：单体消灭随机一个 + 受伤判定修复 + 光环叠加测试；持续审计由 F5 承载)*
-- [ ] **F4 持续** — 逐卡保真积压：`src/cards/` 里 **67 处简化卡标记**（权威清单见 [docs/finished/fidelity-debt-zh.md](finished/fidelity-debt-zh.md)，英文版 `fidelity-debt.md`）。一张卡只有在"实现 + F5 验证"后才离开账本。2026-08-06 核对的结构性发现（过期注释、Worgen 一行、3 处卡 ID 冲突、10 张不在 `ALL_CARDS`、7 个重复条目、简化债提取器错配）**已解决（PR #77）**；剩下的是逐机制工作：Enrage、种族字段、缺失触发类、条件谓词与账本机制盘点里列的效果原语。**执行计划：[docs/finished/fidelity-debt-roadmap-zh.md](finished/fidelity-debt-roadmap-zh.md)**（英文版 `fidelity-debt-roadmap.md`）——按依赖排序的 8 个 wave（W0 接线 … W7 收尾）。RL 训练卡池（`hearthstone_os/decks.py`）排除本集合，卡池成员的变动都走账本。
+- [x] **F4 持续** — 逐卡保真积压：`src/cards/` 里 **67 处简化卡标记**（权威清单见 [docs/finished/fidelity-debt-zh.md](finished/fidelity-debt-zh.md)，英文版 `fidelity-debt.md`）。一张卡只有在"实现 + F5 验证"后才离开账本。2026-08-06 核对的结构性发现（过期注释、Worgen 一行、3 处卡 ID 冲突、10 张不在 `ALL_CARDS`、7 个重复条目、简化债提取器错配）**已解决（PR #77）**。**全部清偿（2026-08-06，PR #79–#86）**：8 个 wave（W0 接线 … W7 收尾，[docs/finished/fidelity-debt-roadmap-zh.md](finished/fidelity-debt-roadmap-zh.md)）全部落地，账本为空，RL 卡池到全经典构筑规模（391）；每张卡离账本时都带 F5 差分场景。事后修正：顺手牵羊的 `OtherClass` 卡池从"任意非潜行者"收窄为另外 8 个职业的职业卡（中立不算职业卡，`is_other_class_card` 钉住）。
 - [x] **F5** — 差分验证：以 SabberStone（及/或 RosettaStone）为参考实现，对局结果 / 事件序列的符合性测试，使保真回归可被机械捕获。*(依赖 G1–G9：差分对比的是步骤级结算)* *(PR #63：`tests/differential.rs` 参考场景 + 转录协议文档；PR #75：外部 SabberStone 对照——dotnet 驱动镜像 attack-trade 场景，`docs/differential_sabberstone.md`)*
-- [ ] **F5 持续** — 保真债账本的差分覆盖：每张离开 [docs/finished/fidelity-debt-zh.md](finished/fidelity-debt-zh.md) 的卡必须带一个 `tests/differential.rs` 场景（精确目标集合 / 触发时机 / 死亡阶段交互），语义可镜像的另按 `docs/differential_sabberstone.md` 做 SabberStone 牌组级一致性对照——让 F4 积压可机械验证。
+- [x] **F5 持续** — 保真债账本的差分覆盖：**随账本一起完成（PR #79–#86）**——每张离开 [docs/finished/fidelity-debt-zh.md](finished/fidelity-debt-zh.md) 的卡都带一个 `tests/differential.rs` 场景（`w0_*`–`w7_*` 共 72 个：精确目标集合 / 触发时机 / 死亡阶段交互），语义可镜像的另按 `docs/differential_sabberstone.md` 做 SabberStone 牌组级一致性对照；机制保留，供未来新增卡使用。
 
 ---
 

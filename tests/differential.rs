@@ -3604,10 +3604,11 @@ fn w6_lightwell_heals_at_turn_start() {
     );
 }
 
-/// W6-8 Pilfer — add a random card from another class to your hand (the
-/// OtherClass pool filters the Rogue class group).
+/// W6-8 Pilfer — add a random card from another class to your hand: the
+/// OtherClass pool is the other eight classes' class cards (neutrals are not
+/// class cards — 2026-08 fidelity fix).
 #[test]
-fn w6_pilfer_adds_non_rogue_card() {
+fn w6_pilfer_adds_other_class_card() {
     use orange_stone::cards::def::PILFER;
     let mut builder = GameBuilder::new();
     builder.with_rng_seed(42);
@@ -3639,11 +3640,21 @@ fn w6_pilfer_adds_non_rogue_card() {
     assert_eq!(hand.len(), 1, "one card added");
     let added = hand[0];
     let id = state.world().card_id(added).map(|c| c.0).expect("card id");
+    let other_classes = [
+        orange_stone::cards::sets::DRUID_CLASSIC,
+        orange_stone::cards::sets::HUNTER_CLASSIC,
+        orange_stone::cards::sets::MAGE_CLASSIC,
+        orange_stone::cards::sets::PALADIN_CLASSIC,
+        orange_stone::cards::sets::PRIEST_CLASSIC,
+        orange_stone::cards::sets::SHAMAN_CLASSIC,
+        orange_stone::cards::sets::WARLOCK_CLASSIC,
+        orange_stone::cards::sets::WARRIOR_CLASSIC,
+    ];
     assert!(
-        !orange_stone::cards::sets::ROGUE_CLASSIC
+        other_classes
             .iter()
-            .any(|r| r.id == id),
-        "the added card {id} is not a Rogue card"
+            .any(|class| class.iter().any(|r| r.id == id)),
+        "the added card {id} is a class card of another class (not neutral, not Rogue)"
     );
 }
 

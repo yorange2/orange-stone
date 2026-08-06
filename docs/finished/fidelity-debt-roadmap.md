@@ -278,8 +278,12 @@ cost auras); RL pool grows by 8 (363 → 371).
 - Damaged-friendly start-of-turn heal: `CardEffect::RestoreDamagedFriendly`
   (Lightwell — moved from end-of-turn).
 - Mass buff+Taunt: `CardEffect::GainStatsAndTauntAllFriendly` (Gift of the Wild).
-- Class-filtered draw: Pilfer verified already-faithful — the OtherClass pool
-  filters the Rogue class group; only the stale comment was cleaned.
+- Class-filtered draw: Pilfer's OtherClass pool was *claimed* already-faithful
+  in W6, but the filter (`!ROGUE_CLASSIC`) also admitted every neutral card.
+  **Corrected 2026-08-06**: the pool is now exactly the other eight classes'
+  class cards (`is_other_class_card` in `pool.rs`, pinned by
+  `other_class_pool_is_class_cards_of_other_classes` + strengthened
+  `w6_pilfer_adds_other_class_card`).
 
 | ID | Card | Real effect | Scenario |
 | --- | --- | --- | --- |
@@ -290,10 +294,11 @@ cost auras); RL pool grows by 8 (363 → 371).
 | DRUID_016 | Gift of the Wild | Give your minions +2/+2 and Taunt | `w6_gift_of_the_wild_buffs_and_taunts` |
 | PALADIN_017 | Holy Wrath | Draw a card, deal damage equal to its mana cost | `w6_holy_wrath_damages_by_drawn_cost` |
 | EX1_341 | Lightwell | Start of turn: restore 3 to a damaged friendly character | `w6_lightwell_heals_at_turn_start` |
-| ROGUE_025 | Pilfer | Add a random card from another class to your hand | `w6_pilfer_adds_non_rogue_card` |
+| ROGUE_025 | Pilfer | Add a random card from another class to your hand | `w6_pilfer_adds_other_class_card` |
 
 **Acceptance**: 8 differential scenarios; RL pool grows by 8 (378 → 388,
-including the Pilfer comment cleanup).
+including the Pilfer comment cleanup). *(Post-hoc correction 2026-08-06: the
+Pilfer pool filter itself was not faithful — see the mechanism note above.)*
 ## Wave 7 — Wrap-up: complex leftovers (3 cards) ✅ done (PR #86)
 
 **Primitives** — all landed:

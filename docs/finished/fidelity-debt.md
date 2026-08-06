@@ -84,9 +84,11 @@
 > (`YseraAwakens` — spares Ysera), draw-damage-by-cost (`DrawAndDamageByCost`
 > Holy Wrath), damaged-friendly start-of-turn heal (`RestoreDamagedFriendly`
 > Lightwell), mass buff+Taunt (`GainStatsAndTauntAllFriendly` Gift of the
-> Wild). Pilfer was verified already-faithful (the OtherClass pool filters the
-> Rogue class group) — only the stale comment was cleaned. 8 scenarios
-> (`w6_*`).
+> Wild). Pilfer was *claimed* verified already-faithful in W6, but the
+> OtherClass filter (`!ROGUE_CLASSIC`) also admitted every neutral card;
+> **corrected 2026-08-06** — the pool is now exactly the other eight classes'
+> class cards (`is_other_class_card`, pinned by a `pool.rs` unit test +
+> strengthened `w6_pilfer_adds_other_class_card`). 8 scenarios (`w6_*`).
 >
 > **2026-08-06 W7 wrap-up pass (PR #86)**: the last 3 cards landed — hand-zone
 > swap (`SwapWithHandMinion` Alarm-o-Bot), the damage-reflection secret
@@ -175,7 +177,9 @@ W5 cleared: Holy Wrath (draw-damage-by-cost), Ancestral Healing
 (full-heal + Taunt). W6 cleared: Righteousness (mass Divine Shield), Ysera
 Awakens (self-exclusion AOE), Lightwell (damaged-friendly start-of-turn
 heal), Gift of the Wild (mass buff+Taunt), Pilfer (class-filtered draw —
-verified already-faithful, stale comment cleaned). Scenarios `w5_*` / `w6_*`.
+W6 marked it verified already-faithful; the 2026-08-06 correction narrowed
+the pool from "any non-Rogue" to the other eight classes' class cards).
+Scenarios `w5_*` / `w6_*`.
 
 ### 10. Resolved — marked simplified but already faithful (4, cleaned in PR #77)
 
