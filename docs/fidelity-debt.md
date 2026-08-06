@@ -316,6 +316,47 @@ gone with the renumber); F5 differential scenes `f8_*` pin the new behavior;
 side references none of the touched IDs — no RL deck config changes. Full
 `cargo test` green (402 tests).
 
+## F-A9 — first player missing the turn-1 draw ✅ resolved (official rule, 2026-08-06)
+
+Official Hearthstone rule (Blizzard, *Opening Moves: Mulligans*): the first
+player draws the 4th card as their turn 1 starts; the second player draws on
+their own first turn too. `Step::DrawStep` carried a turn-1 guard that skipped
+the first player's draw (`src/engine/rules.rs`), and a unit test
+(`first_player_does_not_draw_on_turn_one`) pinned the wrong behavior; the
+shipped opening (`sim::battle::build_game_state`) dealt the first player only
+`hand_size` cards, so P1 opened at 3 instead of the official 4 — inflating the
+second player's advantage (parity: P1 winrate ~23% vs the simplified engine's
+~34%, which already drew the turn-1 card).
+
+Fix applied: `build_game_state` deals `hand_size + 1` to the first player
+(opening + turn-1 draw); the DrawStep turn-1 guard is removed (a state entering
+DrawStep on turn 1 draws normally); the `begin_game`/mulligan flow draws the
+4th card when the opening finishes (both mulligans resolved). Tests re-pinned:
+`first_player_draws_on_turn_one`, `second_player_draws_on_first_turn_first_player_from_turn_two`,
+the mulligan-completion hand size, and the env opening-shape tests (default
+4/3, `hand_size 4` → 5/4, with coin → 4/5). Parity re-measured (48 seeds):
+P1 winrate os 23% → 46% (简版 33%), same-seed agreement 58%. Full
+`cargo test` green (405 tests).
+
+## F-A10 — env step-limit draw never fired for EndTurn-only stalls ✅ resolved (2026-08-06)
+
+The engine has no fatigue yet (`trigger.rs` — "fatigue in Phase 3+"), so a game
+that drains both decks stalls forever; the env bounds it with `max_steps`
+(default 5000, ends the episode in a draw). But the limit check sat in an
+`else if` chain *after* the EndTurn branch — in a stall state every action is
+EndTurn, so the check was unreachable and the episode ran forever
+(`test_batched_matches_single_per_seed`, seed 3). Second flaw: the structured
+observation's `done` flag was derived from `state.step() == GameOver`, while a
+limit draw leaves the step machine in Main — so even a correctly-flagged env
+never surfaced `done` to Python.
+
+Fix applied: the limit check now runs before the EndTurn branch
+(`rl/env.rs::step`); `GameEnv::is_done()` returns the env's episode flag
+instead of re-deriving it from the step; `rl::views::observation` takes the
+done flag as a parameter (the state alone cannot express a limit draw).
+Pinned by `step_limit_ends_end_turn_stall_in_draw`. Both `GameEnv` and
+`BatchEnv` structured observations now report limit draws as done.
+
 ## Mechanism inventory (what the engine has vs. what's missing)
 
 **Exists** (so the corresponding cards are mostly *wiring* work):

@@ -172,7 +172,9 @@ impl GameState {
             players: [
                 // The first player's opening turn starts with 1 mana crystal
                 // (their turn-1 refill; the step machine's ManaRefill step only
-                // runs for turns entered via a TurnStarted event).
+                // runs for turns entered via a TurnStarted event). The turn-1
+                // draw (official rule) is likewise dealt during the opening —
+                // battle.rs draws it along with the starting hands.
                 Player::new(PlayerId::Player1, hero1, 1),
                 Player::new(PlayerId::Player2, hero2, 0),
             ],
@@ -274,9 +276,11 @@ impl GameState {
     /// surfaces the first player's mulligan as a pending choice (roadmap G6).
     ///
     /// The mulligan options are "Keep all" plus one "Replace card N" per
-    /// starting card; resolving P1's mulligan surfaces P2's, and P2's finishes
-    /// the opening. `GameEngine::apply` resolves the mulligans with the default
-    /// (random) policy; `apply_choices` lets an agent decide.
+    /// starting card; resolving P1's mulligan surfaces P2's, and resolving P2's
+    /// finishes the opening — the engine then draws the first player's 4th
+    /// card as their turn 1 starts (official rule). `GameEngine::apply` resolves
+    /// the mulligans with the default (random) policy; `apply_choices` lets an
+    /// agent decide.
     pub fn begin_game(&mut self) {
         self.shuffle_decks();
         // Deal starting hands: 3 for the first player, 4 + coin for the second

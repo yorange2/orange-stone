@@ -116,7 +116,7 @@ pub struct Observation {
     pub turn: u32,
     /// Whether it is the perspective player's turn
     pub my_turn: bool,
-    /// Whether the game has ended
+    /// Whether the episode has ended (game over or the env's step-limit draw)
     pub done: bool,
     /// Winner: `0` = not over / draw, `1` = player 1, `2` = player 2
     pub winner: u8,
@@ -323,8 +323,12 @@ pub fn player_view(state: &GameState, player: PlayerId, reveal_hand: bool) -> Pl
 }
 
 /// Builds the structured observation from the perspective player's side.
+///
+/// `done` is the env's episode-end flag (game over, or the step-limit draw) —
+/// the state alone cannot express the limit draw, which leaves the step
+/// machine in Main.
 #[must_use]
-pub fn observation(state: &GameState, perspective: PlayerId) -> Observation {
+pub fn observation(state: &GameState, perspective: PlayerId, done: bool) -> Observation {
     let winner = match state.step() {
         Step::GameOver { winner } => winner.index() as u8 + 1,
         _ => 0,
@@ -332,7 +336,7 @@ pub fn observation(state: &GameState, perspective: PlayerId) -> Observation {
     Observation {
         turn: state.turn(),
         my_turn: state.active_player() == perspective,
-        done: matches!(state.step(), Step::GameOver { .. }),
+        done,
         winner,
         awaiting_choice: state.pending_choice().is_some(),
         me: player_view(state, perspective, true),
@@ -372,7 +376,7 @@ mod tests {
     #[test]
     fn fresh_state_observation() {
         let state = GameState::new();
-        let obs = observation(&state, PlayerId::Player1);
+        let obs = observation(&state, PlayerId::Player1, false);
         assert!(obs.my_turn, "player 1 opens");
         assert!(!obs.done);
         assert_eq!(obs.winner, 0);
@@ -387,7 +391,7 @@ mod tests {
         assert!(obs.me.hand.is_empty());
         assert!(obs.opponent.hand.is_empty(), "opponent hand is hidden");
         // Perspective swap: heroes swap, `my_turn` flips
-        let obs2 = observation(&state, PlayerId::Player2);
+        let obs2 = observation(&state, PlayerId::Player2, false);
         assert!(!obs2.my_turn);
         assert_eq!(obs2.me.hero_health, 30);
     }
@@ -447,7 +451,7 @@ mod tests {
             winner: PlayerId::Player2,
         });
         let state = builder.build();
-        let obs = observation(&state, PlayerId::Player1);
+        let obs = observation(&state, PlayerId::Player1, true);
         assert!(obs.done);
         assert_eq!(obs.winner, 2, "player 2 wins → winner=2");
     }
