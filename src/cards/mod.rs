@@ -306,6 +306,47 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
             },
         );
     }
+    // W9 weapon-attack triggers (fidelity-debt): the trigger rides the weapon
+    // entity — trigger_applies pins `Attacked`/`AttackedMinion` to the
+    // attacker OR the attacking hero's equipped weapon.
+    let weapon_trigger: Option<(TriggerEvent, CardEffect)> = match card_def.id {
+        // Truesilver Champion — whenever your hero attacks, restore 2 Health
+        "PALADIN_006" => Some((
+            TriggerEvent::Attacked,
+            CardEffect::RestoreHealth {
+                amount: 2,
+                target: EffectTarget::FriendlyHero,
+            },
+        )),
+        // Gorehowl — attacking a minion costs 1 Attack instead of 1 Durability
+        "WARRIOR_009" => Some((
+            TriggerEvent::AttackedMinion,
+            CardEffect::BuffWeapon {
+                attack: -1,
+                durability: 0,
+            },
+        )),
+        // Eaglehorn Bow — +1 Durability whenever a friendly Secret is revealed
+        "HUNTER_007" => Some((
+            TriggerEvent::FriendlySecretRevealed,
+            CardEffect::BuffWeapon {
+                attack: 0,
+                durability: 1,
+            },
+        )),
+        _ => None,
+    };
+    if let Some((event, effect)) = weapon_trigger {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event,
+                timing: TriggerTiming::Whenever,
+                effect,
+                race: None,
+            },
+        );
+    }
     // Mana Addict (W6) — whenever you cast a spell, gain +2 Attack THIS TURN
     // (the temporary buff expires at the end of the turn)
     if card_def.id == "NEUTRAL_R10" {

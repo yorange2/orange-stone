@@ -101,8 +101,9 @@
 > and the 1-Health resummon secret (`ResurrectDiedMinion` Redemption).
 > 3 scenarios (`w7_*`). **The ledger was EMPTY and the RL pool was the full 391-card
 > classic pool — until the 2026-08-06 registration pass re-opened it with 27
-> pre-existing simplifications (§11); the pool is now 372 (413 − 19 debt − 21 tokens − coin,
-> W8 clears 5: Amani Berserker / Raging Worgen / Grommash / Warsong Commander / Northshire Cleric).**
+> pre-existing simplifications (§11); the pool is now 376 (413 − 15 debt − 21 tokens − coin,
+> W8 clears 5: Amani Berserker / Raging Worgen / Grommash / Warsong Commander / Northshire Cleric;
+> W9 clears 4: Truesilver Champion / Gorehowl / Eaglehorn Bow / Bestial Wrath).**
 >
 > **Execution plan**: [docs/fidelity-debt-roadmap.md](../finished/fidelity-debt-roadmap.md)
 > (zh: `finished/fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
@@ -206,35 +207,32 @@ which also removes them from the Python debt set (4 cards re-enter the RL pool).
 ---
 
 
-### 11. Pre-existing simplifications registered 2026-08-06 (27 → 24 → 19 cards)
+### 11. Pre-existing simplifications registered 2026-08-06 (27 → 24 → 19 → 15 cards)
 
 The 2026-08-06 status audit (`docs/classic-cards-zh.md` vs. the code) found 27
 cards with known simplifications that carried no `(simplified: …)` marker — they
 were silently in the RL pool. All 27 defs now have comments (debt set = 27);
 cards leave the ledger only via the [Maintenance](#maintenance) flow
 (implement → F5 differential → drop comment → invalidate cache). W8 (roadmap
-PR) cleared 5: Amani Berserker / Raging Worgen / Grommash Hellscream / Warsong
-Commander / Northshire Cleric (19 remain).
+PR #97) cleared 5: Amani Berserker / Raging Worgen / Grommash Hellscream /
+Warsong Commander / Northshire Cleric; W9 (PR #98) cleared 4: Truesilver
+Champion / Gorehowl / Eaglehorn Bow / Bestial Wrath (15 remain).
 
 | ID | Card | Debt |
 | --- | --- | --- |
-| HUNTER_021 | Bestial Wrath | grants to any friendly minion (Beast only) |
 | NEUTRAL_026 | Sea Giant | no cost reduction — vanilla 8/8 |
 | DRUID_004 | Wrath | 3-damage branch only |
 | DRUID_007 | Druid of the Claw | fixed 4/6 Taunt, no Choose One |
 | DRUID_008 | Ancient of Lore | draw-2 branch only |
 | DRUID_009 | Ancient of War | vanilla 5/5, no Choose One |
 | HUNTER_003 | Tracking | no Discover — vanilla |
-| HUNTER_007 | Eaglehorn Bow | no +1 Durability |
 | PRIEST_011 | Cabal Shadow Priest | no Mind Control — vanilla |
 | PRIEST_012 | Prophet Velen | spell damage only, healing not doubled |
-| WARRIOR_009 | Gorehowl | no attack-loss mechanic — vanilla 7/1 |
 | ROGUE_009 | Preparation | no next-spell cost reduction — vanilla |
 | ROGUE_010 | Cold Blood | Combo branch only, no base +2 |
 | LEGENDARY_010 | Onyxia | no Battlecry — vanilla 9/8 |
 | LEGENDARY_011 | Deathwing | no hand discard |
 | MAGE_007 | Water Elemental | no freeze-on-damage — vanilla 3/6 |
-| PALADIN_006 | Truesilver Champion | no heal-on-attack — vanilla 4/2 |
 | PALADIN_016 | Argent Protector | no Battlecry Divine Shield — vanilla 2/2 (id shared, F-A8) |
 | ROGUE_014 | Shiv | no effect — vanilla |
 
@@ -386,13 +384,13 @@ adjacent-target buff/freeze (Sunfury Protector / Ancient Mage / Cone of Cold),
 two-effect composition (Mass Dispel, Ancestral Healing) (W5).
 
 **Missing** (2026-08-06 refresh — the 27 registered debts in §11, grouped;
-W8 cleared groups 1–3):
+W8 cleared groups 1–3, W9 cleared group 4):
 1. ~~Enrage wiring (Amani Berserker, Raging Worgen, Grommash — `ThisMinionDamaged`
    exists, pure wiring per W0)~~ ✅ W8
 2. ~~Charge aura (Warsong Commander)~~ ✅ W8
 3. ~~Heal-draw trigger (Northshire Cleric)~~ ✅ W8
-4. Weapon attack effects (Truesilver heal, Gorehowl attack-loss, Eaglehorn
-   Durability)
+4. ~~Weapon attack effects (Truesilver heal, Gorehowl attack-loss, Eaglehorn
+   Durability)~~ ✅ W9
 5. Discover (Tracking); Choose One second branches (Wrath, Druid of the Claw,
    Ancient of Lore, Ancient of War)
 6. Battlecries (Onyxia, Argent Protector, Deathwing hand discard);

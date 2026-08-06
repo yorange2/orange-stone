@@ -253,7 +253,8 @@ pub const HYENA: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Eaglehorn Bow — +1 Durability whenever a friendly Secret is revealed (simplified: no +1 Durability)
+/// Eaglehorn Bow — +1 Durability whenever a friendly Secret is revealed
+/// (reveal trigger registered in `apply_card_keywords`, not the played event)
 pub const EAGLEHORN_BOW: CardDef = CardDef {
     id: "HUNTER_007",
     name: "Eaglehorn Bow",
@@ -828,8 +829,7 @@ pub const SNIPE: CardDef = CardDef {
 /// Gladiator's Longbow card ID — the engine uses it to check hero immunity while attacking.
 pub const GLADIATORS_LONGBOW_ID: &str = "HUNTER_022";
 
-/// Bestial Wrath — give a Beast +2 Attack and Immune until end of turn.
-/// (simplified: grants to any friendly minion instead of Beast only)
+/// Bestial Wrath — give a friendly Beast +2 Attack and Immune until end of turn
 pub const BESTIAL_WRATH: CardDef = CardDef {
     id: "HUNTER_021",
     name: "Bestial Wrath",
@@ -838,7 +838,10 @@ pub const BESTIAL_WRATH: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::GrantAttackAndImmune { attack: 2 }),
+    battlecry: Some(CardEffect::GrantAttackAndImmune {
+        attack: 2,
+        target: EffectTarget::FriendlyRace(crate::core::component::Race::Beast),
+    }),
     deathrattle: None,
     taunt: false,
     stealth: false,

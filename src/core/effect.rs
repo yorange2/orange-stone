@@ -365,6 +365,8 @@ pub enum CardEffect {
     GrantAttackAndImmune {
         /// Attack bonus
         attack: i32,
+        /// Target selection (Bestial Wrath — a friendly Beast)
+        target: EffectTarget,
     },
     /// Prevent the fatal damage that triggered this secret and become Immune
     /// until the end of the turn (Ice Block — the hero survives at 1 health)
@@ -762,6 +764,7 @@ enum CardEffectDe {
     DestroyAndGainHealth,
     GrantAttackAndImmune {
         attack: i32,
+        target: EffectTarget,
     },
     PreventFatalDamageAndImmune,
     TakeControlUntilEndOfTurn,
@@ -1046,8 +1049,8 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             },
             CardEffectDe::FreezeOrDamage { amount } => CardEffect::FreezeOrDamage { amount },
             CardEffectDe::DestroyAndGainHealth => CardEffect::DestroyAndGainHealth,
-            CardEffectDe::GrantAttackAndImmune { attack } => {
-                CardEffect::GrantAttackAndImmune { attack }
+            CardEffectDe::GrantAttackAndImmune { attack, target } => {
+                CardEffect::GrantAttackAndImmune { attack, target }
             }
             CardEffectDe::PreventFatalDamageAndImmune => CardEffect::PreventFatalDamageAndImmune,
             CardEffectDe::TakeControlUntilEndOfTurn => CardEffect::TakeControlUntilEndOfTurn,

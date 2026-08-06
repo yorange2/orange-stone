@@ -288,9 +288,15 @@ pub const WARSONG_COMMANDER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Gorehowl — attacking a minion costs 1 Attack instead of 1 Durability (simplified: no attack-loss mechanic — vanilla 7/1)
+/// Gorehowl — attacking a minion costs 1 Attack instead of 1 Durability
+/// (weapon-attack trigger registered in `apply_card_keywords`; rules.rs skips
+/// the durability decrement for minion hits via GOREHOWL_ID)
+/// Gorehowl's card ID — rules.rs skips the durability decrement when the
+/// hero attacks a minion with it (the attack loss replaces the durability).
+pub const GOREHOWL_ID: &str = "WARRIOR_009";
+
 pub const GOREHOWL: CardDef = CardDef {
-    id: "WARRIOR_009",
+    id: GOREHOWL_ID,
     name: "Gorehowl",
     card_type: CardType::Weapon,
     cost: 7,

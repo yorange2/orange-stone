@@ -20,6 +20,25 @@ use crate::core::small_list::SmallList;
 use crate::core::state::GameState;
 use crate::core::zone::Zone;
 
+/// Reveals a secret: moves it to the graveyard, emits `Event::SecretRevealed`,
+/// and fires `FriendlySecretRevealed` triggers (Eaglehorn Bow — +1 Durability
+/// whenever a friendly Secret is revealed).
+fn reveal_secret(state: &mut GameState, queue: &mut EventQueue, owner: PlayerId, entity: Entity) {
+    let _ = state.world_mut().move_to_zone(entity, Zone::Graveyard);
+    queue.push(Event::SecretRevealed {
+        player: owner,
+        secret: entity,
+    });
+    crate::engine::rules::fire_triggers(
+        state,
+        queue,
+        crate::core::component::TriggerEvent::FriendlySecretRevealed,
+        owner,
+        Some(entity),
+        None,
+    );
+}
+
 /// Checks all secrets, triggering those matching the current event.
 ///
 /// Called after `apply_event` processes each event.
@@ -53,12 +72,9 @@ pub fn check_secrets(state: &mut GameState, queue: &mut EventQueue, event: &Even
 
     for (entity, player, secret) in &secrets {
         if matches_trigger(secret.trigger, event, state, *player) {
-            // Reveal the secret: move from SetAside to Graveyard
-            let _ = state.world_mut().move_to_zone(*entity, Zone::Graveyard);
-            queue.push(Event::SecretRevealed {
-                player: *player,
-                secret: *entity,
-            });
+            // Reveal the secret (moves it, emits SecretRevealed, fires
+            // FriendlySecretRevealed triggers — Eaglehorn Bow)
+            reveal_secret(state, queue, *player, *entity);
             // Resolve the secret effect (some effects need trigger event context,
             // e.g. Snipe/Misdirection; negation-only secrets have no effect)
             if let Some(effect) = secret.effect {
@@ -334,11 +350,7 @@ pub fn intercept_counter_secrets(
     // Only the first matching secret fires (HS: one counter-secret per event)
     if let Some(entity) = secrets.into_iter().next() {
         // Reveal the secret and resolve its interception effect
-        let _ = state.world_mut().move_to_zone(entity, Zone::Graveyard);
-        queue.push(Event::SecretRevealed {
-            player: owner,
-            secret: entity,
-        });
+        reveal_secret(state, queue, owner, entity);
         let effect = state.world().battlecry(entity).map(|b| b.0);
         if matches!(effect, Some(CardEffect::SummonSpellbender)) {
             let token = resolve_spellbender(state, queue, &event, owner);
