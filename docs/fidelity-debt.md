@@ -1,11 +1,17 @@
 # Fidelity Debt — Simplified Cards (F4/F5 Audit Ledger)
 
-> **Status: 68 simplified-card markers** in `src/cards/` (audit pass 2026-08-06).
+> **Status: 67 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77).
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
 > update this ledger, the code comment, and the downstream debt extractor on the
 > same change (see [Maintenance](#maintenance)).
+>
+> **2026-08-06 fix pass (PR #77)**: the structural findings below (F-A1…F-A7) are
+> resolved — 4 stale comments cleaned, Worgen Infiltrator fixed, 3 card-ID
+> collisions fixed, 10 cards added to `ALL_CARDS` (7 duplicated entries deduped),
+> and the Python extractor rewritten (PR #31). What remains is the per-mechanism
+> implementation work in the groups below and the F5 verification protocol.
 
 **Source of truth**: the `(simplified: ...)` doc comments on card consts in
 `src/cards/classic_*.rs`. The Python side
@@ -14,12 +20,12 @@ by parsing those comments and excludes it from the RL training pool — so comme
 wording changes ripple into the training pool (invalidate
 `~/.cache/orange_stone_debt_ids.txt` after any edit here).
 
-The 68 markers resolve to 65 unique card IDs (3 cards share an ID with another —
-see [Findings](#findings-from-the-2026-08-06-audit-pass)). 62 are in `ALL_CARDS`;
-of those, 61 are reachable by ID — Mass Dispel's `PRIEST_018` resolves to Lightwell
-(Lightwell appears earlier in the array). 6 exist only in class lists and are
-unreachable by ID. 4 markers are stale comments on already-faithful cards (§10);
-the genuine debt is 64 cards.
+The 67 markers are 67 unique card IDs — the 3 pre-fix ID collisions
+(Sword of Justice / Repentance / Lightwell) were resolved to their official IDs
+(EX1_365 / EX1_349 / EX1_341), so Mass Dispel is now reachable. All 67 are in
+`ALL_CARDS` (413 unique entries after the 10-card addition and the 7-entry dedup,
+PR #77). 4 markers were stale comments on already-faithful cards and are cleaned
+(§10); the genuine debt is 67 cards.
 
 ---
 
@@ -140,7 +146,7 @@ Charge / weapon-attack cost reduction / weapon-durability damage**.
 | --- | --- | --- | --- | --- |
 | LEGENDARY_022 | Nat Pagle | draw at end of turn (always) | 50% chance to draw a card at the end of your turn | probabilistic effect |
 
-### 9. Composite & miscellaneous (12)
+### 9. Composite & miscellaneous (11)
 
 | ID | Card | Current | Real Hearthstone | Missing mechanism |
 | --- | --- | --- | --- | --- |
@@ -153,71 +159,63 @@ Charge / weapon-attack cost reduction / weapon-durability damage**.
 | ROGUE_025 | Pilfer | random non-Rogue card | Add a random card from another class to your hand | class filter (no class model) |
 | NEUTRAL_T21e | Ysera Awakens | damage includes Ysera | Deal 5 damage to all **other** characters (Dream token) | self-exclusion on AllCharacters |
 | HUNTER_017 | Flare | draw only | Destroy all enemy secrets, draw a card | destroy-secret effect (same as SI:7) |
-| NEUTRAL_C08 | Worgen Infiltrator | vanilla | **Stealth** | none — `stealth: true` one-liner (field exists since #72) |
 | NEUTRAL_R14 | Arcane Golem | Charge only | Charge; Battlecry: give your opponent a Mana Crystal | give-opponent-mana effect |
 | NEUTRAL_R16 | Emperor Cobra | vanilla | **Poison** (destroy any minion damaged by it) | poison mechanic (missing entirely) |
 
-### 10. Marked simplified but already faithful (4 — stale comments)
+### 10. Resolved — marked simplified but already faithful (4, cleaned in PR #77)
 
-Comments predate the implementing PRs (PR #72 Stealth for the first three;
-Multi-Shot's `DealDamageToTwo` lands with the two-random-target effect). Defs
-already carry the real effect; the "simplified" wording is wrong and should be
-dropped (removing them from the Python debt set).
+Comments predated the implementing PRs (PR #72 Stealth for the first three;
+Multi-Shot's `DealDamageToTwo` lands with the two-random-target effect). The defs
+already carried the real effect; the stale "simplified" wording has been dropped,
+which also removes them from the Python debt set (4 cards re-enter the RL pool).
 
-| ID | Card | Comment says | Reality |
-| --- | --- | --- | --- |
-| NEUTRAL_C10 | Jungle Panther | "Stealth (simplified: vanilla)" | `stealth: true` in def |
-| NEUTRAL_T14 | Stranglethorn Tiger | "simplified: vanilla; engine does not implement Stealth yet" | `stealth: true` in def |
-| NEUTRAL_T15 | Ravenholdt Assassin | "simplified: vanilla; engine does not implement Stealth yet" | `stealth: true` in def |
-| HUNTER_012 | Multi-Shot | "simplified: 3 damage to one random enemy minion" | `battlecry: DealDamageToTwo { amount: 3 }` — the real effect |
+| ID | Card | What was fixed |
+| --- | --- | --- |
+| NEUTRAL_C10 | Jungle Panther | comment cleaned — `stealth: true` in def |
+| NEUTRAL_T14 | Stranglethorn Tiger | comment cleaned — `stealth: true` in def |
+| NEUTRAL_T15 | Ravenholdt Assassin | comment cleaned — `stealth: true` in def |
+| HUNTER_012 | Multi-Shot | comment cleaned — `DealDamageToTwo` is the real effect |
 
 ---
 
-## Findings from the 2026-08-06 audit pass
+## Findings from the 2026-08-06 audit pass (all resolved in PR #77 / PR #31)
 
-These are F4 work items discovered while compiling the ledger; each needs a decision
-and (for the reachable-pool changes) a pool-size check against the RL side.
+These were F4 work items discovered while compiling the ledger. All structural
+findings are resolved; what remains is the per-mechanism implementation work in the
+groups above plus the F5 verification protocol.
 
-- **F-A1 — 4 stale comments** (§10 above). Action: drop "(simplified…)" from the
-  comments; then the Python extractor stops excluding the cards. Invalidate
-  `~/.cache/orange_stone_debt_ids.txt`; the RL pool grows by 4 (3 stealth minions +
-  Multi-Shot).
-- **F-A2 — Worgen Infiltrator (NEUTRAL_C08)**: still vanilla though Stealth exists.
-  One-line fix (`stealth: true`). Pairs naturally with F-A1.
-- **F-A3 — Card-ID collisions (3)**:
-  - `SWORD_OF_JUSTICE` uses `"PALADIN_017"` (= Holy Wrath; real ID EX1_365)
-  - `REPENTANCE` uses `"PALADIN_018"` (= Righteousness; real ID EX1_349)
-  - `LIGHTWELL` uses `"PRIEST_018"` (= Mass Dispel; real ID EX1_341). Lightwell is
-    earlier in `ALL_CARDS`, so `card_by_id("PRIEST_018")` resolves to Lightwell and
-    **Mass Dispel is unreachable**. Action: assign real IDs, then re-check the
-    reachable pool (Mass Dispel becomes reachable once fixed).
-- **F-A4 — 10 cards absent from `ALL_CARDS`** (unreachable by ID and by random deck
-  sampling). They exist in `HUNTER_CLASSIC`/`PALADIN_CLASSIC` only:
-  - simplified: Houndmaster (HUNTER_015), Tundra Rhino (HUNTER_016), Flare
-    (HUNTER_017), Sword of Justice, Repentance, Blessing of Wisdom (PALADIN_019)
-  - also absent (not simplified-marked): Scavenging Hyena (HUNTER_013), Starving
-    Buzzard (HUNTER_014), Eye for an Eye (PALADIN_020), Redemption (PALADIN_021)
-  Decide: intended exclusion (document it) or omission (add after F-A3 ID fixes).
-- **F-A5 — `ALL_CARDS` has 7 duplicated const entries** (410 entries, 403 unique).
-  Harmless for `card_by_id` (first match wins) but confusing for the 410 count that
-  the workspace roadmap quotes; dedupe when convenient.
-- **F-A6 — Undocumented simplifications**: Starving Buzzard (HUNTER_014) and
-  Scavenging Hyena (HUNTER_013) are tribe-simplified ("summon a minion"/"a friendly
-  minion dies" vs. real "**Beast**") without a "simplified" marker; Eye for an Eye /
-  Redemption (PALADIN_020/021) secret semantics need an audit pass. The `simplified`
-  comment discipline is incomplete — this audit pass caught them only by cross-
-  checking class lists against `ALL_CARDS`. All four are absent from `ALL_CARDS`, so
-  no pool impact today; they are still fidelity debt.
-- **F-A7 — (fixed 2026-08-06) Python debt extractor was misattributing cards**:
+- ✅ **F-A1 — 4 stale comments** (§10 above). Resolved: "(simplified…)" dropped from
+  the comments; the Python extractor stops excluding the cards (cache invalidated);
+  the RL pool gains 4 cards (3 stealth minions + Multi-Shot).
+- ✅ **F-A2 — Worgen Infiltrator (NEUTRAL_C08)**: was still vanilla though Stealth
+  exists. Resolved: hand-written def with `stealth: true`.
+- ✅ **F-A3 — Card-ID collisions (3)**:
+  - `SWORD_OF_JUSTICE` used `"PALADIN_017"` (= Holy Wrath) → now EX1_365
+  - `REPENTANCE` used `"PALADIN_018"` (= Righteousness) → now EX1_349
+  - `LIGHTWELL` used `"PRIEST_018"` (= Mass Dispel) → now EX1_341; **Mass Dispel is
+    now reachable** (previously `card_by_id("PRIEST_018")` resolved to Lightwell).
+- ✅ **F-A4 — 10 cards absent from `ALL_CARDS`** (Houndmaster, Tundra Rhino, Flare,
+  Sword of Justice, Repentance, Blessing of Wisdom, Scavenging Hyena, Starving
+  Buzzard, Eye for an Eye, Redemption). Resolved as *omission*: all 10 added to
+  `ALL_CARDS` (413 unique entries). The RL pool is unaffected — the 6 simplified
+  cards and the 4 newly-documented ones (F-A6) are all excluded by the debt set.
+- ✅ **F-A5 — `ALL_CARDS` had 7 duplicated const entries** (410 entries, 403 unique).
+  Resolved: deduped to 413 unique entries (403 + 10 additions).
+- ✅ **F-A6 — Undocumented simplifications**: Starving Buzzard (HUNTER_013) and
+  Scavenging Hyena (HUNTER_014) were tribe-simplified ("summon a minion" / "a
+  friendly minion dies" vs. real "**Beast**") without a marker; Eye for an Eye and
+  Redemption (PALADIN_020/021) are secret triggers with no effect wired. Resolved:
+  all four now carry explicit `(simplified: …)` comments, so they are documented
+  debt and stay out of the RL pool.
+- ✅ **F-A7 — Python debt extractor was misattributing cards** (fixed in PR #31):
   `hearthstone_os/decks.py::_load_debt_ids` split the source on `pub const` blocks,
   so each `simplified` comment was matched to the *preceding* const's ID. The RL
   training pool therefore contained ~12 real simplified cards (Nat Pagle, Multi-Shot,
   Secretkeeper, Mass Dispel, Rampage, Cone of Cold, Ancestral Healing, …) and
   excluded ~15 clean ones; the 321-pool size was coincidental. Rewritten to resolve
-  the comment to the const directly below it (verified: 65 unique IDs, matches this
-  ledger; no simplified card left in the pool). Cache
-  `~/.cache/orange_stone_debt_ids.txt` invalidated; note that M5's training numbers
-  were produced on the pre-fix pool and will drift once re-trained.
+  the comment to the const directly below it. Cache `~/.cache/orange_stone_debt_ids.txt`
+  invalidated; M5's training numbers were produced on the pre-fix pool and will
+  drift once re-trained.
 
 ## Mechanism inventory (what the engine has vs. what's missing)
 
