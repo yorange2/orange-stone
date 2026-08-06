@@ -1,6 +1,6 @@
 # Fidelity Debt — Simplified Cards (F4/F5 Audit Ledger)
 
-> **Status: no simplified-card markers — all 67 fidelity-debt cards cleared (W7 wrap-up PR #87 closed the last 3).
+> **Status: no simplified-card markers — all 67 fidelity-debt cards cleared (W7 wrap-up PR #86 closed the last 3).
 > W0 wiring PR #79 cleared 13; W1 race PR #80 cleared 11; W2 triggers PR #81 cleared 8;
 > W3 predicates PR #82 cleared 9; W4 cost/weapon PR #83 cleared 8; W5 target structure PR #84 cleared 7;
 > W6 special mechanics PR #85 cleared 8. The ledger is EMPTY; the RL pool reaches the full classic constructed size (391).**
@@ -88,7 +88,7 @@
 > Rogue class group) — only the stale comment was cleaned. 8 scenarios
 > (`w6_*`).
 >
-> **2026-08-06 W7 wrap-up pass (PR #87)**: the last 3 cards landed — hand-zone
+> **2026-08-06 W7 wrap-up pass (PR #86)**: the last 3 cards landed — hand-zone
 > swap (`SwapWithHandMinion` Alarm-o-Bot), the damage-reflection secret
 > (`ReflectDamage` Eye for an Eye — new `SecretTrigger::WhenFriendlyHeroDamaged`),
 > and the 1-Health resummon secret (`ResurrectDiedMinion` Redemption).
@@ -114,7 +114,7 @@ The 67 markers are 67 unique card IDs — the 3 pre-fix ID collisions
 PR #77). 4 markers were stale comments on already-faithful cards and are cleaned
 (§10); the genuine debt is 67 cards — **all 67 cleared (W0 13 + W1 11 +
 W2 8 + W3 9 + W4 8 + W5 7 + W6 8 + W7 3); the ledger is EMPTY (2026-08-06
-W7 wrap-up PR #87)**.
+W7 wrap-up PR #86)**.
 
 ---
 
@@ -135,7 +135,7 @@ race-filtered deck draw + field-driven pools (`w1_*` scenarios; pool parity
 pinned by `w1_race_pools_are_field_driven`). The F-A6-annotated Starving
 Buzzard (HUNTER_013) and Scavenging Hyena (HUNTER_014) also left the ledger. 
 
-### 3. Event triggers — summon / heal / death / secret / attack / play (2) ✅ resolved (W7, PR #87)
+### 3. Event triggers — summon / heal / death / secret / attack / play (2) ✅ resolved (W7, PR #86)
 
 Alarm-o-Bot (hand-zone swap) landed in W7; Ethereal Arcanist (owns-secret
 predicate) landed in W3 — this section is empty

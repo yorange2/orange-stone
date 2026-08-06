@@ -1,6 +1,6 @@
 # Fidelity-Debt Implementation Roadmap — the 67 simplified cards
 
-> **Status: ALL DONE (W7 wrap-up PR #87) — all 67 fidelity-debt cards cleared.** This roadmap executes the F4-ongoing /
+> **Status: ALL DONE (W7 wrap-up PR #86) — all 67 fidelity-debt cards cleared.** This roadmap executes the F4-ongoing /
 > F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
 > [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
@@ -294,7 +294,7 @@ cost auras); RL pool grows by 8 (363 → 371).
 
 **Acceptance**: 8 differential scenarios; RL pool grows by 8 (378 → 388,
 including the Pilfer comment cleanup).
-## Wave 7 — Wrap-up: complex leftovers (3 cards) ✅ done (PR #87)
+## Wave 7 — Wrap-up: complex leftovers (3 cards) ✅ done (PR #86)
 
 **Primitives** — all landed:
 - Hand-zone swap: `CardEffect::SwapWithHandMinion` (Alarm-o-Bot — swaps with
@@ -327,5 +327,5 @@ SabberStone parity.
 | W4 cost/weapon ✅ PR #83 | 8 | cost auras/weapon-attack cost/durability/conditional charge/spells-0/mana gift | +8 → **371** |
 | W5 target structure ✅ PR #84 | 7 | set-health/swap/adjacent targets/effect composition | +7 → **378** |
 | W6 special mechanics ✅ PR #85 | 8 | probability/temp-buff/mass-shield/self-exclusion/cost-damage/class-filter | +8 → **388** |
-| W7 wrap-up ✅ PR #87 | 3 | hand-zone swap / damage-reflection / 1-Health resummon | +3 → **391 (ledger empty)** |
+| W7 wrap-up ✅ PR #86 | 3 | hand-zone swap / damage-reflection / 1-Health resummon | +3 → **391 (ledger empty)** |
 | **Total** | **67 ✅ all done** | | **321 → 391 (full classic constructed pool)** |
