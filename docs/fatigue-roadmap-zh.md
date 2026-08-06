@@ -64,10 +64,10 @@
 ## 5. 里程碑
 
 ### M1 — 核心规则（引擎） ✅
-- [ ] `Player.fatigue: u32`（1 起）加入 `src/core/player.rs`
-- [ ] `draw_card_no_queue` 增加 `&mut EventQueue` 参数；空牌库 → `DamageDealt`（source = 英雄，amount = 计数器），计数器 +1，返回 `None`
-- [ ] 三处开局/换牌调用点改用 `draw_top_card_no_queue` 助手（带非空 `debug_assert!`）
-- [ ] 测试（新 `tests/fatigue.rs` 或并入 `tests/gameplay.rs`）：
+- [x] `Player.fatigue: u32`（1 起）加入 `src/core/player.rs`
+- [x] `draw_card_no_queue` 增加 `&mut EventQueue` 参数；空牌库 → `DamageDealt`（source = 英雄，amount = 计数器），计数器 +1，返回 `None`
+- [x] 三处开局/换牌调用点改用 `draw_top_card_no_queue` 助手（带非空 `debug_assert!`）
+- [x] 测试（新 `tests/fatigue.rs` 或并入 `tests/gameplay.rs`）：
   - 首次空牌库抽牌 1 点、第二次 2 点
   - 空牌库多张抽牌（抽 2）造成 1 + 2 = 3 点
   - 回合抽牌疲劳（DrawStep 空牌库）

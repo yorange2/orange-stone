@@ -64,10 +64,10 @@ Fatigue lives in `draw_card_no_queue` — every draw path (turn draw, card effec
 ## 5. Milestones
 
 ### M1 — Core rule (engine) ✅
-- [ ] `Player.fatigue: u32` (1-based) in `src/core/player.rs`
-- [ ] `draw_card_no_queue` takes `&mut EventQueue`; empty deck → `DamageDealt` (source = hero, amount = counter), counter += 1, return `None`
-- [ ] `draw_top_card_no_queue` helper for the 3 opening/mulligan sites (with non-empty `debug_assert!`)
-- [ ] Tests (new `tests/fatigue.rs` or `tests/gameplay.rs` additions):
+- [x] `Player.fatigue: u32` (1-based) in `src/core/player.rs`
+- [x] `draw_card_no_queue` takes `&mut EventQueue`; empty deck → `DamageDealt` (source = hero, amount = counter), counter += 1, return `None`
+- [x] `draw_top_card_no_queue` helper for the 3 opening/mulligan sites (with non-empty `debug_assert!`)
+- [x] Tests (new `tests/fatigue.rs` or `tests/gameplay.rs` additions):
   - first empty-deck draw deals 1, second deals 2
   - multi-draw (draw 2) on empty deck deals 1 + 2 = 3
   - turn-draw fatigue (DrawStep on empty deck)
