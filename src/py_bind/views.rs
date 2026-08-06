@@ -157,6 +157,9 @@ pub struct PyPlayerView {
     /// Hero armor
     #[pyo3(get)]
     pub hero_armor: i32,
+    /// Fatigue counter (1-based; the next empty-deck draw's damage)
+    #[pyo3(get)]
+    pub fatigue: u32,
     /// Hero attack (weapon + buffs)
     #[pyo3(get)]
     pub hero_attack: i32,
@@ -197,6 +200,7 @@ impl From<&rviews::PlayerView> for PyPlayerView {
         Self {
             hero_health: v.hero_health,
             hero_armor: v.hero_armor,
+            fatigue: v.fatigue,
             hero_attack: v.hero_attack,
             remaining_mana: v.remaining_mana,
             total_mana: v.total_mana,

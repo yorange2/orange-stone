@@ -1,6 +1,6 @@
 # Fatigue Roadmap — empty-deck draw damage
 
-> Active roadmap (not yet archived). Status verified: 2026-08-06 (code cross-checked). This closes the registered fidelity debt **F-A10** (`docs/fidelity-debt.md`): the engine currently draws silently from an empty deck, so deck-draining games stall forever and the RL env needs a `max_steps=5000` limit-draw fallback. Chinese mirror: `fatigue-roadmap-zh.md`.
+> Archived 2026-08-06 — all milestones M1–M3 complete (PRs #92–#94); implementation details live in git history. This roadmap closed the registered fidelity debt **F-A10** (`docs/fidelity-debt.md`): empty-deck draws now deal official fatigue damage (1, 2, 3, …), so deck-draining games end with a real winner and `max_steps` / `max_turns` are demoted to backstops. Chinese mirror: `fatigue-roadmap-zh.md` (in `docs/finished/`).
 
 ---
 

@@ -85,6 +85,8 @@ pub struct PlayerView {
     pub hero_health: i32,
     /// Hero armor
     pub hero_armor: i32,
+    /// Fatigue counter (1-based; the next empty-deck draw's damage)
+    pub fatigue: u32,
     /// Hero attack (weapon + buffs)
     pub hero_attack: i32,
     /// Remaining mana this turn
@@ -293,6 +295,7 @@ pub fn player_view(state: &GameState, player: PlayerId, reveal_hand: bool) -> Pl
     PlayerView {
         hero_health: world.effective_health(hero).map_or(0, |h| h.0),
         hero_armor: state.player(player).armor,
+        fatigue: state.player(player).fatigue,
         hero_attack: world.effective_attack(hero).map_or(0, |a| a.0),
         remaining_mana: state.player(player).current_mana,
         total_mana: state.player(player).mana_crystals,

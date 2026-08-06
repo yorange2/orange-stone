@@ -357,6 +357,13 @@ done flag as a parameter (the state alone cannot express a limit draw).
 Pinned by `step_limit_ends_end_turn_stall_in_draw`. Both `GameEnv` and
 `BatchEnv` structured observations now report limit draws as done.
 
+**Fatigue closure (2026-08-06, roadmap PR #94)**: the underlying gap is
+closed — the engine implements official fatigue (an empty-deck draw attempt
+deals 1, 2, 3, … damage to the drawing hero;
+`docs/finished/fatigue-roadmap.md`). Deck-draining games now end with a real
+winner; `max_steps` / `max_turns` are demoted to backstops (only an
+armor/heal loop can outlive fatigue).
+
 ## Mechanism inventory (what the engine has vs. what's missing)
 
 **Exists** (so the corresponding cards are mostly *wiring* work):
