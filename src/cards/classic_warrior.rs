@@ -2,7 +2,7 @@
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
-use crate::core::component::CardType;
+use crate::core::component::{AuraEffect, AuraTarget, CardType};
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::vanilla;
 
@@ -254,7 +254,7 @@ pub const BATTLE_AXE: CardDef = CardDef {
 
 pub const FROTHING_BERSERKER: CardDef = vanilla!("WARRIOR_007", "Frothing Berserker", 3, 2, 4);
 
-/// Warsong Commander — your other minions with 3 or less Attack have Charge (simplified: no Charge aura — vanilla 2/3)
+/// Warsong Commander — your other minions have Charge
 pub const WARSONG_COMMANDER: CardDef = CardDef {
     id: "WARRIOR_008",
     name: "Warsong Commander",
@@ -270,7 +270,7 @@ pub const WARSONG_COMMANDER: CardDef = CardDef {
     elusive: false,
     race: None,
     hero_power: None,
-    aura: None,
+    aura: Some((AuraEffect::GrantCharge, AuraTarget::OtherFriendlyMinions)),
     secret: None,
     divine_shield: false,
     windfury: false,
@@ -322,7 +322,7 @@ pub const GOREHOWL: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Grommash Hellscream — Charge. Enrage: +6 Attack (simplified: Charge only — no Enrage)
+/// Grommash Hellscream — Charge. Enrage: +6 Attack
 pub const GROMMASH_HELLSCREAM: CardDef = CardDef {
     id: "WARRIOR_010",
     name: "Grommash Hellscream",

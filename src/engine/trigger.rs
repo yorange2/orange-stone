@@ -166,6 +166,32 @@ pub fn resolve_effect(
         CardEffect::GrantWindfury { target } => {
             resolve_grant_windfury(state, owner, target, explicit_target);
         }
+        CardEffect::GainStatsAndGrantWindfury {
+            attack,
+            health,
+            target,
+        } => {
+            // Raging Worgen's Enrage — +1 Attack AND Windfury while damaged
+            resolve_gain_stats(
+                state,
+                queue,
+                source,
+                owner,
+                attack,
+                health,
+                target,
+                explicit_target,
+                event_subject,
+            );
+            match target {
+                EffectTarget::Self_ => {
+                    state
+                        .world_mut()
+                        .set_windfury(source, crate::core::component::Windfury);
+                }
+                _ => resolve_grant_windfury(state, owner, target, explicit_target),
+            }
+        }
         CardEffect::GrantCharge {
             target,
             attack_bonus,
@@ -2079,8 +2105,9 @@ fn resolve_restore_health(
     }
 }
 
-/// Fires `CharacterHealed` triggers for a healed entity (Lightwarden — any
-/// character healed, friendly or enemy).
+/// Fires heal triggers for a healed entity: `CharacterHealed` (Lightwarden —
+/// any character healed, friendly or enemy) and `FriendlyCharacterHealed`
+/// (Northshire Cleric — friendly-scoped via the healed entity's owner).
 fn fire_healed_trigger(state: &mut GameState, queue: &mut EventQueue, entity: Entity) {
     let owner = state
         .world()
@@ -2090,6 +2117,14 @@ fn fire_healed_trigger(state: &mut GameState, queue: &mut EventQueue, entity: En
         state,
         queue,
         crate::core::component::TriggerEvent::CharacterHealed,
+        owner,
+        Some(entity),
+        None,
+    );
+    crate::engine::rules::fire_triggers(
+        state,
+        queue,
+        crate::core::component::TriggerEvent::FriendlyCharacterHealed,
         owner,
         Some(entity),
         None,

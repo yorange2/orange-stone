@@ -118,7 +118,7 @@ pub const POWER_WORD_SHIELD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Northshire Cleric — draw a card whenever a minion is healed (simplified: no heal-draw — vanilla 1/3)
+/// Northshire Cleric — whenever a friendly character is healed, draw a card
 pub const NORTHSHIRE_CLERIC: CardDef = vanilla!("PRIEST_004", "Northshire Cleric", 1, 1, 3);
 
 pub const SHADOW_WORD_PAIN: CardDef = CardDef {

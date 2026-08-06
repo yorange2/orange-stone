@@ -394,6 +394,11 @@ pub enum TriggerEvent {
     /// Any character is healed (Lightwarden — gain +2 Attack whenever a
     /// character is healed; fires for friendly and enemy heals alike)
     CharacterHealed,
+    /// A character owned by the trigger's player is healed (Northshire
+    /// Cleric — draw a card whenever a friendly character is healed; the
+    /// event's owner is the healed character's owner, so the trigger fires
+    /// only for friendly heals)
+    FriendlyCharacterHealed,
     /// A card is played (Questing Adventurer — whenever YOU play a card;
     /// friendly scope)
     CardPlayed,
