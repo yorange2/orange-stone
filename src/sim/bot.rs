@@ -1211,6 +1211,14 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::SummonRandomMinion { .. } => 3.0,
         CardEffect::AddCardToHand { .. } => 3.0,
         CardEffect::DealDamageAndSummonIfKilled { amount, .. } => amount as f64 * 1.2 + 3.0,
+        CardEffect::DrawCardByRace { count, .. } => count as f64 * 3.0,
+        CardEffect::Demonfire { damage, .. } => damage as f64 * 1.2,
+        CardEffect::GainStatsAndTaunt { attack, health, .. } => {
+            (attack + health) as f64 * 0.8 + 1.0
+        }
+        CardEffect::DestroyAndGainStats { attack, health, .. } => {
+            (attack + health) as f64 * 0.8 + 2.0
+        }
     }
 }
 

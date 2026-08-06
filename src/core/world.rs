@@ -12,8 +12,8 @@ use serde::{Deserialize, Serialize};
 use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
     Charge, ChooseOneEffect, ComboEffect, Cost, CostModifier, CostModifierKind, Damage,
-    Deathrattle, DivineShield, Durability, Enchantment, Freeze, Health, HeroPowerDef,
-    Elusive, HeroPowerUsed, Immune, Overload, Poison, Secret, SpellDamage, Stealth, Taunt, Trigger,
+    Deathrattle, DivineShield, Durability, Elusive, Enchantment, Freeze, Health, HeroPowerDef,
+    HeroPowerUsed, Immune, Overload, Poison, Race, Secret, SpellDamage, Stealth, Taunt, Trigger,
     Windfury,
 };
 use crate::core::entity::Entity;
@@ -93,6 +93,8 @@ pub struct World {
     cost: SparseSet<Cost>,
     /// CardType component storage
     card_type: SparseSet<CardType>,
+    /// Race component storage (fidelity-debt W1)
+    race: SparseSet<Race>,
     /// Zone component storage (the entity's current zone)
     zone_comp: SparseSet<Zone>,
     /// PlayerId component storage
@@ -215,7 +217,9 @@ impl AuraIndex {
                     self.health[oi].push((entity, aura));
                 }
             }
-            AuraEffect::GainAttack(_) => self.attack[oi].push((entity, aura)),
+            AuraEffect::GainAttack(_) | AuraEffect::GrantCharge => {
+                self.attack[oi].push((entity, aura))
+            }
             AuraEffect::GainHealth(_) => self.health[oi].push((entity, aura)),
             AuraEffect::ReduceSpellCost(_) | AuraEffect::ReduceMinionCost { .. } => {
                 self.cost[oi].push((entity, aura))
@@ -236,6 +240,7 @@ impl World {
             attack: SparseSet::new(),
             cost: SparseSet::new(),
             card_type: SparseSet::new(),
+            race: SparseSet::new(),
             zone_comp: SparseSet::new(),
             player_comp: SparseSet::new(),
             attacks_used: SparseSet::new(),
@@ -308,6 +313,7 @@ impl World {
         self.attack.remove(entity);
         self.cost.remove(entity);
         self.card_type.remove(entity);
+        self.race.remove(entity);
         self.zone_comp.remove(entity);
         self.player_comp.remove(entity);
         self.attacks_used.remove(entity);
@@ -793,6 +799,29 @@ impl World {
         remove_overload,
         iter_overload
     );
+    component_accessors!(race, Race, race, set_race, remove_race, iter_race);
+    /// Whether an entity effectively has Charge — its base Charge component or
+    /// an applying Charge aura (Tundra Rhino — your Beasts have Charge).
+    #[must_use]
+    pub fn effective_charge(&self, entity: Entity) -> bool {
+        if self.charge(entity).is_some() {
+            return true;
+        }
+        let Some(player) = self.player(entity) else {
+            return false;
+        };
+        for owner in [player, player.opponent()] {
+            for (source, aura) in &self.aura_index.attack[owner.index()] {
+                if aura.effect == crate::core::component::AuraEffect::GrantCharge
+                    && aura_applies_to(aura, *source, owner, entity, player, self)
+                {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
     /// Get the maximum number of attacks an entity can make per turn.
     #[must_use]
     pub fn max_attacks(&self, entity: Entity) -> u8 {
@@ -953,6 +982,14 @@ fn aura_applies_to(
     match aura.target {
         AuraTarget::AllFriendlyMinions => target_player == aura_player,
         AuraTarget::OtherFriendlyMinions => target_player == aura_player && target != aura_source,
+        AuraTarget::FriendlyRace(race) => {
+            target_player == aura_player && world.race(target) == Some(race)
+        }
+        AuraTarget::OtherFriendlyRace(race) => {
+            target_player == aura_player
+                && target != aura_source
+                && world.race(target) == Some(race)
+        }
         AuraTarget::AdjacentMinions => {
             if target_player != aura_player || target == aura_source {
                 return false;
@@ -995,6 +1032,7 @@ const fn aura_attack_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::GainHealth(_) => 0,
         AuraEffect::ReduceSpellCost(_) => 0,
         AuraEffect::ReduceMinionCost { .. } => 0,
+        AuraEffect::GrantCharge => 0,
     }
 }
 
@@ -1007,6 +1045,7 @@ const fn aura_health_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::GainHealth(h) => h,
         AuraEffect::ReduceSpellCost(_) => 0,
         AuraEffect::ReduceMinionCost { .. } => 0,
+        AuraEffect::GrantCharge => 0,
     }
 }
 
@@ -1065,7 +1104,9 @@ mod tests {
                         idx.health[oi].push((source, *aura));
                     }
                 }
-                AuraEffect::GainAttack(_) => idx.attack[oi].push((source, *aura)),
+                AuraEffect::GainAttack(_) | AuraEffect::GrantCharge => {
+                    idx.attack[oi].push((source, *aura))
+                }
                 AuraEffect::GainHealth(_) => idx.health[oi].push((source, *aura)),
                 AuraEffect::ReduceSpellCost(_) | AuraEffect::ReduceMinionCost { .. } => {
                     idx.cost[oi].push((source, *aura))

@@ -2,7 +2,7 @@
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
-use crate::core::component::CardType;
+use crate::core::component::{AuraEffect, AuraTarget, CardType};
 use crate::core::effect::{CardEffect, EffectTarget};
 
 // Classic set — Warlock
@@ -24,6 +24,7 @@ pub const SOULFIRE: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -59,6 +60,7 @@ pub const FLAME_IMP: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: Some(crate::core::component::Race::Demon),
     hero_power: None,
     aura: None,
     secret: None,
@@ -94,6 +96,7 @@ pub const MORTAL_COIL: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -126,6 +129,7 @@ pub const VOIDWALKER: CardDef = CardDef {
     taunt: true,
     stealth: false,
     elusive: false,
+    race: Some(crate::core::component::Race::Demon),
     hero_power: None,
     aura: None,
     secret: None,
@@ -161,6 +165,7 @@ pub const HELLFIRE: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -196,6 +201,7 @@ pub const DRAIN_LIFE: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -228,6 +234,7 @@ pub const DOOMGUARD: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: Some(crate::core::component::Race::Demon),
     hero_power: None,
     aura: None,
     secret: None,
@@ -263,6 +270,7 @@ pub const SHADOW_BOLT: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -297,6 +305,7 @@ pub const TWISTING_NETHER: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -331,6 +340,7 @@ pub const LORD_JARAXXUS: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -362,6 +372,7 @@ pub const BLOOD_FURY: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -398,6 +409,7 @@ pub const DREAD_INFERNAL: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: Some(crate::core::component::Race::Demon),
     hero_power: None,
     aura: None,
     secret: None,
@@ -432,6 +444,7 @@ pub const PIT_LORD: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: Some(crate::core::component::Race::Demon),
     hero_power: None,
     aura: None,
     secret: None,
@@ -465,6 +478,7 @@ pub const FELSTALKER: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: Some(crate::core::component::Race::Demon),
     hero_power: None,
     aura: None,
     secret: None,
@@ -501,6 +515,7 @@ pub const SIPHON_SOUL: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -536,6 +551,7 @@ pub const SHADOWFLAME: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -569,6 +585,7 @@ pub const FELGUARD: CardDef = CardDef {
     taunt: true,
     stealth: false,
     elusive: false,
+    race: Some(crate::core::component::Race::Demon),
     hero_power: None,
     aura: None,
     secret: None,
@@ -588,7 +605,7 @@ pub const FELGUARD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Sense Demons — draw two Demons from your deck (simplified: draw 1 card)
+/// Sense Demons — draw two Demons from your deck
 pub const SENSE_DEMONS: CardDef = CardDef {
     id: "WARLOCK_020",
     name: "Sense Demons",
@@ -597,11 +614,15 @@ pub const SENSE_DEMONS: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DrawCard { count: 2 }),
+    battlecry: Some(CardEffect::DrawCardByRace {
+        count: 2,
+        race: crate::core::component::Race::Demon,
+    }),
     deathrattle: None,
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -621,7 +642,7 @@ pub const SENSE_DEMONS: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Demonfire — deal 2 damage to a minion; if it is a friendly Demon, give it +2/+2 instead (simplified: deal 2 damage)
+/// Demonfire — deal 2 damage to a minion; if it is a friendly Demon, give it +2/+2 instead
 pub const DEMONFIRE: CardDef = CardDef {
     id: "WARLOCK_021",
     name: "Demonfire",
@@ -630,14 +651,16 @@ pub const DEMONFIRE: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage {
-        amount: 2,
-        target: EffectTarget::AnyEnemyMinion,
+    battlecry: Some(CardEffect::Demonfire {
+        damage: 2,
+        attack_bonus: 2,
+        health_bonus: 2,
     }),
     deathrattle: None,
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -671,6 +694,7 @@ pub const VOID_TERROR: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: Some(crate::core::component::Race::Demon),
     hero_power: None,
     aura: None,
     secret: None,
@@ -694,7 +718,7 @@ pub const VOID_TERROR: CardDef = CardDef {
 // Tier 1 additions — Warlock (docs/classic-cards-roadmap.md)
 // ============================================================
 
-/// Siegebreaker — Taunt; your other Demons have +1 Attack (simplified: Taunt only; Demon aura not implemented)
+/// Siegebreaker — Taunt; your other Demons have +1 Attack
 pub const SIEGEBREAKER: CardDef = CardDef {
     id: "WARLOCK_T01",
     name: "Siegebreaker",
@@ -708,8 +732,12 @@ pub const SIEGEBREAKER: CardDef = CardDef {
     taunt: true,
     stealth: false,
     elusive: false,
+    race: Some(crate::core::component::Race::Demon),
     hero_power: None,
-    aura: None,
+    aura: Some((
+        AuraEffect::GainAttack(1),
+        AuraTarget::OtherFriendlyRace(crate::core::component::Race::Demon),
+    )),
     secret: None,
     divine_shield: false,
     windfury: false,
@@ -744,6 +772,7 @@ pub const SUMMONING_PORTAL: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: Some((
         crate::core::component::AuraEffect::ReduceMinionCost { amount: 2, min: 1 },
@@ -783,6 +812,7 @@ pub const CORRUPTION: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -821,6 +851,7 @@ pub const CALL_OF_THE_VOID: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -857,6 +888,7 @@ pub const BANE_OF_DOOM: CardDef = CardDef {
     taunt: false,
     stealth: false,
     elusive: false,
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,

@@ -764,8 +764,9 @@ pub fn apply_event(
             }
         }
         Event::MinionSummoned { player, minion } => {
-            // Summoning sickness: minions without charge cannot attack this turn
-            if state.world().charge(minion).is_none() {
+            // Summoning sickness: minions without charge cannot attack this
+            // turn (a Charge aura — Tundra Rhino — counts as charge)
+            if !state.world().effective_charge(minion) {
                 state.world_mut().set_attacks_used(minion, AttacksUsed(1));
             }
             // Check battlecry component (combo-aware). Choose One minions
@@ -1010,14 +1011,16 @@ pub fn apply_event(
             }
 
             // Death triggers: registered FriendlyMinionDied triggers fire in play
-            // order (the dead minion itself is excluded)
+            // order (the dead minion itself is excluded). The dead minion is the
+            // event subject — race-conditioned triggers (Scavenging Hyena — a
+            // friendly Beast died) check its race.
             if let Some(owner) = owner {
                 fire_triggers(
                     state,
                     queue,
                     TriggerEvent::FriendlyMinionDied,
                     owner,
-                    None,
+                    Some(minion),
                     Some(minion),
                 );
             }
@@ -1335,7 +1338,7 @@ pub fn fire_triggers(
                         && state.world().trigger(e).is_some_and(|t| {
                             t.event == event
                                 && t.timing == timing
-                                && trigger_applies(event, player, event_owner, subject, e)
+                                && trigger_applies(state, event, player, event_owner, subject, e, t)
                         })
                 })
                 .map(|e| {
@@ -1357,16 +1360,35 @@ pub fn fire_triggers(
 ///
 /// Most trigger classes are friendly-scoped (the trigger's owner must be the
 /// event's player); `ThisMinionDamaged` is pinned to the damaged minion itself.
+/// A race-conditioned trigger (fidelity-debt W1 — Murloc Tidecaller, Starving
+/// Buzzard, Scavenging Hyena) additionally requires the event subject to have
+/// the trigger's race.
 fn trigger_applies(
+    state: &GameState,
     event: TriggerEvent,
     trigger_player: PlayerId,
     event_owner: PlayerId,
     subject: Option<Entity>,
     entity: Entity,
+    trigger: crate::core::component::Trigger,
 ) -> bool {
     match event {
-        TriggerEvent::ThisMinionDamaged => Some(entity) == subject,
-        _ => trigger_player == event_owner,
+        TriggerEvent::ThisMinionDamaged => {
+            if Some(entity) != subject {
+                return false;
+            }
+        }
+        _ => {
+            if trigger_player != event_owner {
+                return false;
+            }
+        }
+    }
+    match trigger.race {
+        // The subject must exist and carry the required race (a dead subject
+        // keeps its components in the graveyard, so its race is still readable)
+        Some(race) => subject.is_some_and(|s| state.world().race(s) == Some(race)),
+        None => true,
     }
 }
 
@@ -1770,6 +1792,7 @@ mod tests {
             Trigger {
                 event: TriggerEvent::TurnStart,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect: crate::core::effect::CardEffect::GainStats {
                     attack: 1,
                     health: 1,
@@ -1807,6 +1830,7 @@ mod tests {
             Trigger {
                 event: TriggerEvent::TurnEnd,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect: crate::core::effect::CardEffect::DealHeroAttackDamage {
                     target: crate::core::effect::EffectTarget::AnyEnemy,
                 },
@@ -2060,6 +2084,7 @@ mod tests {
             Trigger {
                 event: TriggerEvent::FriendlyMinionSummoned,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect: CardEffect::DrawCard { count: 1 },
             },
         );
@@ -2068,6 +2093,7 @@ mod tests {
             Trigger {
                 event: TriggerEvent::FriendlyMinionSummoned,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect: CardEffect::DiscardRandomCard,
             },
         );
@@ -2115,6 +2141,7 @@ mod tests {
             Trigger {
                 event: TriggerEvent::FriendlyMinionSummoned,
                 timing: TriggerTiming::After,
+                race: None,
                 effect: CardEffect::DiscardRandomCard,
             },
         );
@@ -2123,6 +2150,7 @@ mod tests {
             Trigger {
                 event: TriggerEvent::FriendlyMinionSummoned,
                 timing: TriggerTiming::Whenever,
+                race: None,
                 effect: CardEffect::DrawCard { count: 1 },
             },
         );

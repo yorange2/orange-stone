@@ -3,43 +3,28 @@
 //! Pool closure is guaranteed: every sampling pool is a filtered subset of `ALL_CARDS`
 //! (all Classic cards) or built-in token pools, so no cards outside the Classic set are introduced.
 //!
-//! Races (Beast/Demon) are not modeled, so these pools are hardcoded by card ID;
+//! Beast/Demon pools are field-driven (fidelity-debt W1): `CardDef.race` decides
+//! membership, so the pools stay in sync with the card data automatically.
 //! Legendary/class filtering is computed dynamically from the group lists in `sets`.
 
 use crate::cards::def::{CardDef, card_by_id};
-use crate::core::component::CardType;
+use crate::core::component::{CardType, Race};
 use crate::core::effect::RandomPool;
 use crate::sim::rng::GameRng;
 
-/// Beast pool — Classic Beast card IDs.
-pub const BEAST_POOL: &[&str] = &[
-    "NEUTRAL_B08", // Bloodfen Raptor / Ironfur Grizzly
-    "NEUTRAL_B03", // River Crocolisk
-    "NEUTRAL_B11", // Silverback Patriarch
-    "NEUTRAL_C04", // Stonetusk Boar / Young Dragonhawk
-    "NEUTRAL_T14", // Stranglethorn Tiger
-    "NEUTRAL_C10", // Jungle Panther
-    "NEUTRAL_B13", // Oasis Snapjaw
-    "NEUTRAL_R20", // Stampeding Kodo
-    "NEUTRAL_T05", // River Crocolisk (Tier 1)
-    "HUNTER_010",  // Timber Wolf
-    "HUNTER_006",  // Savannah Highmane
-    "HUNTER_011",  // King Krush
-    "HUNTER_014",  // Starving Buzzard
-    "HUNTER_016",  // Tundra Rhino
-];
+/// All Classic cards of the given race (field-driven — `CardDef.race`).
+fn race_pool(race: Race) -> Vec<&'static CardDef> {
+    crate::cards::sets::ALL_CARDS
+        .iter()
+        .filter(|c| c.race == Some(race))
+        .collect()
+}
 
-/// Demon pool — Classic Demon card IDs.
-pub const DEMON_POOL: &[&str] = &[
-    "WARLOCK_004", // Voidwalker
-    "WARLOCK_002", // Flame Imp
-    "WARLOCK_007", // Doomguard
-    "WARLOCK_011", // Dread Infernal
-    "WARLOCK_012", // Pit Lord
-    "WARLOCK_016", // Felstalker
-    "WARLOCK_019", // Felguard
-    "WARLOCK_022", // Void Terror
-];
+/// Whether the card with the given ID has the given race (field-driven).
+#[must_use]
+pub fn card_has_race(id: &str, race: Race) -> bool {
+    card_by_id(id).is_some_and(|c| c.race == Some(race))
+}
 
 /// Dream card pool — Classic built-in tokens (Ysera).
 pub const DREAM_POOL: &[&str] = &[
@@ -67,8 +52,8 @@ pub(crate) fn random_from_pool(pool: &[&str], rng: &mut GameRng) -> Option<&'sta
 /// time.
 pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
     match pool {
-        RandomPool::Beast => BEAST_POOL.iter().filter_map(|id| card_by_id(id)).collect(),
-        RandomPool::Demon => DEMON_POOL.iter().filter_map(|id| card_by_id(id)).collect(),
+        RandomPool::Beast => race_pool(Race::Beast),
+        RandomPool::Demon => race_pool(Race::Demon),
         RandomPool::Dream => DREAM_POOL.iter().filter_map(|id| card_by_id(id)).collect(),
         RandomPool::Companion => COMPANION_POOL
             .iter()
@@ -132,8 +117,8 @@ fn card_by_id_ref(card: &CardDef) -> Option<&'static CardDef> {
 /// Draws a random card definition by pool type.
 pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'static CardDef> {
     match pool {
-        RandomPool::Beast => random_from_pool(BEAST_POOL, rng),
-        RandomPool::Demon => random_from_pool(DEMON_POOL, rng),
+        RandomPool::Beast => random_filtered(rng, |c| c.race == Some(Race::Beast)),
+        RandomPool::Demon => random_filtered(rng, |c| c.race == Some(Race::Demon)),
         RandomPool::Dream => random_from_pool(DREAM_POOL, rng),
         RandomPool::Companion => random_from_pool(COMPANION_POOL, rng),
         RandomPool::Legendary => random_filtered(rng, |c| {

@@ -51,9 +51,12 @@ pub struct PyEntityView {
     /// Windfury keyword
     #[pyo3(get)]
     pub windfury: bool,
-    /// Charge keyword
+    /// Charge keyword (effective — a Charge aura counts)
     #[pyo3(get)]
     pub charge: bool,
+    /// Race / tribe: 0=none, 1=Beast, 2=Murloc, 3=Demon (fidelity-debt W1)
+    #[pyo3(get)]
+    pub race: i32,
     /// Frozen this turn
     #[pyo3(get)]
     pub frozen: bool,
@@ -120,6 +123,7 @@ impl From<&rviews::EntityView> for PyEntityView {
             elusive: v.elusive,
             windfury: v.windfury,
             charge: v.charge,
+            race: v.race,
             frozen: v.frozen,
             playable: v.playable,
             card_type: v.card_type,

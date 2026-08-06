@@ -67,6 +67,7 @@ fn scenario_end_of_turn_before_wrap_up() {
         Trigger {
             event: TriggerEvent::TurnEnd,
             timing: TriggerTiming::Whenever,
+            race: None,
             effect: orange_stone::core::effect::CardEffect::DealHeroAttackDamage {
                 target: orange_stone::core::effect::EffectTarget::AnyEnemy,
             },
@@ -999,5 +1000,619 @@ fn w0_emperor_cobra_poison_kills_and_divine_shield_absorbs() {
         state.world().divine_shield(shielded).is_some(),
         false,
         "the shield is consumed"
+    );
+}
+
+// ============================================================
+// Wave 1 — race/tribe field (fidelity-debt-roadmap W1):
+// CardDef.race, race-conditioned targets/auras/triggers,
+// race-filtered deck draw, field-driven pools.
+// ============================================================
+
+/// W1-1 Houndmaster — Battlecry: give a friendly Beast +2/+2 and Taunt
+/// (target set: friendly Beasts only; buff + taunt land on the same minion).
+#[test]
+fn w1_houndmaster_buffs_only_a_friendly_beast() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, HOUNDMASTER};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &BLOODFEN_RAPTOR);
+    let human = builder.add_custom_minion_to_board(PlayerId1(), 2, 3, 2);
+    builder.add_minion_to_hand(PlayerId1(), &HOUNDMASTER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let raptor = find_entity(&state, PlayerId1(), "CLASSIC_001");
+    let houndmaster = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("houndmaster in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: houndmaster,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The single Beast candidate takes the +2/+2 AND the Taunt
+    assert_eq!(state.world().effective_attack(raptor), Some(Attack(5)));
+    assert_eq!(state.world().effective_health(raptor), Some(Health(4)));
+    assert_eq!(state.world().taunt(raptor).is_some(), true);
+    assert_eq!(state.world().effective_attack(human), Some(Attack(2)));
+    assert_eq!(state.world().effective_health(human), Some(Health(3)));
+    assert_eq!(state.world().taunt(human).is_some(), false);
+}
+
+/// W1-2 Tundra Rhino — your Beasts have Charge (aura; includes the Rhino).
+#[test]
+fn w1_tundra_rhino_gives_beasts_charge() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, TUNDRA_RHINO};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &TUNDRA_RHINO);
+    builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_custom_minion_to_hand(PlayerId1(), 2, 3, 2);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let raptor = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CLASSIC_001")
+        })
+        .expect("raptor in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: raptor,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_charge(raptor),
+        true,
+        "the rhino aura grants charge to a summoned Beast"
+    );
+    // The freshly summoned Beast can attack immediately
+    let hero = state.player(PlayerId2()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: raptor,
+                defender: hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(27)),
+        "the rhino-buffed Beast attacked despite summoning sickness"
+    );
+    // A non-Beast summoned the same turn has no charge and cannot attack
+    let human = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("custom minion in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: human,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero = state.player(PlayerId2()).hero;
+    assert_eq!(
+        engine.apply(
+            &mut state,
+            Action::Attack {
+                attacker: human,
+                defender: hero
+            }
+        ),
+        Err(orange_stone::engine::rules::EngineError::AttacksExhausted),
+        "non-Beast summoning sickness still applies"
+    );
+}
+
+/// W1-3 Coldlight Seer — Battlecry: give all other Murlocs +2 Health
+/// (excludes itself and non-Murlocs).
+#[test]
+fn w1_coldlight_seer_buffs_other_murlocs_only() {
+    use orange_stone::cards::def::{COLDLIGHT_SEER, MURLOC_RAIDER, MURLOC_TIDEHUNTER};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &MURLOC_RAIDER);
+    builder.add_minion_to_board(PlayerId1(), &MURLOC_TIDEHUNTER);
+    let human = builder.add_custom_minion_to_board(PlayerId1(), 2, 3, 2);
+    builder.add_minion_to_hand(PlayerId1(), &COLDLIGHT_SEER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let raider = find_entity(&state, PlayerId1(), "NEUTRAL_B02");
+    let tidehunter = find_entity(&state, PlayerId1(), "CLASSIC_006");
+    let seer = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("seer in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: seer,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(raider), Some(Health(3)));
+    assert_eq!(state.world().effective_health(tidehunter), Some(Health(3)));
+    assert_eq!(
+        state.world().effective_health(seer),
+        Some(Health(3)),
+        "the seer never buffs itself"
+    );
+    assert_eq!(state.world().effective_health(human), Some(Health(3)));
+}
+
+/// W1-4 Murloc Warleader — your other Murlocs have +2/+1 (aura; no self-buff).
+#[test]
+fn w1_murloc_warleader_aura_murloc_only() {
+    use orange_stone::cards::def::{MURLOC_RAIDER, MURLOC_WARLEADER};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &MURLOC_WARLEADER);
+    builder.add_minion_to_board(PlayerId1(), &MURLOC_RAIDER);
+    let human = builder.add_custom_minion_to_board(PlayerId1(), 2, 3, 2);
+    let state = builder.build();
+    let warleader = find_entity(&state, PlayerId1(), "NEUTRAL_E02");
+    let raider = find_entity(&state, PlayerId1(), "NEUTRAL_B02");
+    assert_eq!(state.world().effective_attack(raider), Some(Attack(4)));
+    assert_eq!(state.world().effective_health(raider), Some(Health(2)));
+    assert_eq!(
+        state.world().effective_attack(warleader),
+        Some(Attack(3)),
+        "the aura excludes its own source"
+    );
+    assert_eq!(state.world().effective_health(warleader), Some(Health(3)));
+    assert_eq!(state.world().effective_attack(human), Some(Attack(2)));
+}
+
+/// W1-5 Murloc Tidecaller — whenever you summon a Murloc, gain +1 Attack
+/// (race-conditioned summon trigger; non-Murloc summons do nothing).
+#[test]
+fn w1_murloc_tidecaller_gains_attack_on_murloc_summon() {
+    use orange_stone::cards::def::{MURLOC_RAIDER, MURLOC_TIDECALLER, WORGEN_INFILTRATOR};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &MURLOC_TIDECALLER);
+    builder.add_minion_to_hand(PlayerId1(), &MURLOC_RAIDER);
+    builder.add_minion_to_hand(PlayerId1(), &WORGEN_INFILTRATOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let tidecaller = find_entity(&state, PlayerId1(), "NEUTRAL_R05");
+    let raider = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "NEUTRAL_B02")
+        })
+        .expect("raider in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: raider,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(tidecaller), Some(Attack(2)));
+    // A non-Murloc summon does not trigger it
+    let worgen = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("worgen in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: worgen,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(tidecaller), Some(Attack(2)));
+}
+
+/// W1-6 Hungry Crab — Battlecry: destroy a Murloc (either side) and gain +2/+2.
+#[test]
+fn w1_hungry_crab_destroys_enemy_murloc_and_buffs() {
+    use orange_stone::cards::def::{HUNGRY_CRAB, MURLOC_RAIDER};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId2(), &MURLOC_RAIDER);
+    builder.add_minion_to_hand(PlayerId1(), &HUNGRY_CRAB);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let enemy_murloc = find_entity(&state, PlayerId2(), "NEUTRAL_B02");
+    let crab = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("crab in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: crab,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(enemy_murloc),
+        Some(Zone::Graveyard),
+        "the only Murloc candidate is destroyed"
+    );
+    assert_eq!(
+        state.world().effective_attack(crab),
+        Some(Attack(3)),
+        "the crab gained +2/+2"
+    );
+    assert_eq!(state.world().effective_health(crab), Some(Health(4)));
+}
+
+/// W1-7 Sense Demons — draw two Demons from your deck (race-filtered draw).
+#[test]
+fn w1_sense_demons_draws_two_demons_from_deck() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, SENSE_DEMONS, VOIDWALKER, WORGEN_INFILTRATOR};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(PlayerId1(), &VOIDWALKER);
+    builder.add_minion_to_deck(PlayerId1(), &VOIDWALKER);
+    builder.add_minion_to_deck(PlayerId1(), &VOIDWALKER);
+    builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(PlayerId1(), &WORGEN_INFILTRATOR);
+    builder.add_minion_to_hand(PlayerId1(), &SENSE_DEMONS);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let sense = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("sense demons in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: sense,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    assert_eq!(hand.len(), 2, "two demons drawn");
+    for card in &hand {
+        assert_eq!(
+            state.world().card_id(*card).map(|c| c.0),
+            Some("WARLOCK_004"),
+            "only Demons are drawn"
+        );
+    }
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, PlayerId1()),
+        3,
+        "the non-Demons stay in the deck"
+    );
+}
+
+/// W1-8 Demonfire — 2 damage to a minion; +2/+2 instead if it is a friendly Demon.
+#[test]
+fn w1_demonfire_buffs_friendly_demon_and_damages_others() {
+    use orange_stone::cards::def::{DEMONFIRE, VOIDWALKER};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &VOIDWALKER);
+    builder.add_minion_to_hand(PlayerId1(), &DEMONFIRE);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let demonfire = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("demonfire in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: demonfire,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let voidwalker = find_entity(&state, PlayerId1(), "WARLOCK_004");
+    assert_eq!(
+        state.world().effective_attack(voidwalker),
+        Some(Attack(3)),
+        "the friendly Demon was buffed +2/+2"
+    );
+    assert_eq!(state.world().effective_health(voidwalker), Some(Health(5)));
+
+    // Against an enemy minion: plain 2 damage
+    let mut builder = GameBuilder::new();
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &DEMONFIRE);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let demonfire = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("demonfire in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: demonfire,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(enemy),
+        Some(Zone::Graveyard),
+        "the 2-damage Demonfire kills the 2/2 enemy minion"
+    );
+}
+
+/// W1-9 Siegebreaker — Taunt; your other Demons have +1 Attack (aura).
+#[test]
+fn w1_siegebreaker_buffs_other_demons() {
+    use orange_stone::cards::def::{SIEGEBREAKER, VOIDWALKER};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &SIEGEBREAKER);
+    builder.add_minion_to_board(PlayerId1(), &VOIDWALKER);
+    let human = builder.add_custom_minion_to_board(PlayerId1(), 2, 3, 2);
+    let state = builder.build();
+    let siegebreaker = find_entity(&state, PlayerId1(), "WARLOCK_T01");
+    let voidwalker = find_entity(&state, PlayerId1(), "WARLOCK_004");
+    assert_eq!(state.world().effective_attack(voidwalker), Some(Attack(2)));
+    assert_eq!(
+        state.world().effective_attack(siegebreaker),
+        Some(Attack(5)),
+        "the aura excludes its own source"
+    );
+    assert_eq!(state.world().effective_attack(human), Some(Attack(2)));
+    assert_eq!(state.world().taunt(siegebreaker).is_some(), true);
+}
+
+/// W1-10 Scavenging Hyena — whenever a friendly Beast dies, gain +2/+1
+/// (race-conditioned death trigger; non-Beast deaths do nothing).
+#[test]
+fn w1_scavenging_hyena_only_counts_beast_deaths() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, SCAVENGING_HYENA};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &SCAVENGING_HYENA);
+    builder.add_minion_to_board(PlayerId1(), &BLOODFEN_RAPTOR);
+    let human = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 2);
+    let attacker1 = builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4);
+    let attacker2 = builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4);
+    builder.active_player(PlayerId2());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hyena = find_entity(&state, PlayerId1(), "HUNTER_013");
+    let raptor = find_entity(&state, PlayerId1(), "CLASSIC_001");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: attacker1,
+                defender: raptor,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(raptor),
+        Some(Zone::Graveyard),
+        "the Beast dies to the 4/4"
+    );
+    assert_eq!(state.world().effective_attack(hyena), Some(Attack(4)));
+    assert_eq!(state.world().effective_health(hyena), Some(Health(3)));
+    // A non-Beast death does not trigger the hyena
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: attacker2,
+                defender: human,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(human), Some(Zone::Graveyard));
+    assert_eq!(state.world().effective_attack(hyena), Some(Attack(4)));
+    assert_eq!(state.world().effective_health(hyena), Some(Health(3)));
+}
+
+/// W1-11 Starving Buzzard — whenever you summon a Beast, draw a card.
+#[test]
+fn w1_starving_buzzard_draws_on_beast_summon() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, STARVING_BUZZARD, WORGEN_INFILTRATOR};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &STARVING_BUZZARD);
+    builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_hand(PlayerId1(), &WORGEN_INFILTRATOR);
+    builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let raptor = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CLASSIC_001")
+        })
+        .expect("raptor in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: raptor,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        2,
+        "summoning a Beast drew the deck card (worgen + drawn)"
+    );
+    // A non-Beast summon does not draw
+    let worgen = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("worgen in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: worgen,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        1,
+        "the drawn card is still in hand; the non-Beast summon drew nothing"
+    );
+}
+
+/// W1-12 Race pools — the field-driven Beast/Demon pools (fidelity-debt W1)
+/// replace the old hardcoded ID lists; the delta is exactly the genuine
+/// Beasts/Demons the old lists missed.
+#[test]
+fn w1_race_pools_are_field_driven() {
+    use orange_stone::cards::sets::ALL_CARDS;
+    use orange_stone::core::component::Race;
+
+    let ids = |race: Race| {
+        let mut v: Vec<&str> = ALL_CARDS
+            .iter()
+            .filter(|c| c.race == Some(race))
+            .map(|c| c.id)
+            .collect();
+        v.sort_unstable();
+        v
+    };
+    // The old hardcoded Beast pool (deleted in W1)
+    let old_beasts = [
+        "NEUTRAL_B08",
+        "NEUTRAL_B03",
+        "NEUTRAL_B11",
+        "NEUTRAL_C04",
+        "NEUTRAL_T14",
+        "NEUTRAL_C10",
+        "NEUTRAL_B13",
+        "NEUTRAL_R20",
+        "NEUTRAL_T05",
+        "HUNTER_010",
+        "HUNTER_006",
+        "HUNTER_011",
+        "HUNTER_014",
+        "HUNTER_016",
+    ];
+    let new_beasts = ids(Race::Beast);
+    for id in old_beasts {
+        assert!(
+            new_beasts.contains(&id),
+            "old Beast-pool member {id} must stay in the field-driven pool"
+        );
+    }
+    // The additions are exactly the Beasts the old list missed
+    let additions: Vec<_> = new_beasts
+        .iter()
+        .filter(|id| !old_beasts.contains(id))
+        .copied()
+        .collect();
+    assert_eq!(
+        additions,
+        vec![
+            "CLASSIC_001", // Bloodfen Raptor
+            "HUNTER_006t", // Hyena (Savannah Highmane token)
+            "HUNTER_013",  // Scavenging Hyena
+            "HUNTER_023a", // Huffer
+            "HUNTER_023b", // Leokk
+            "HUNTER_023c", // Misha
+            "NEUTRAL_E03", // Hungry Crab
+        ]
+    );
+    // Demons: the old 8 + Siegebreaker
+    let demons = ids(Race::Demon);
+    let old_demons = [
+        "WARLOCK_004",
+        "WARLOCK_002",
+        "WARLOCK_007",
+        "WARLOCK_011",
+        "WARLOCK_012",
+        "WARLOCK_016",
+        "WARLOCK_019",
+        "WARLOCK_022",
+    ];
+    for id in old_demons {
+        assert!(demons.contains(&id), "old Demon-pool member {id} must stay");
+    }
+    assert_eq!(
+        demons
+            .iter()
+            .filter(|id| !old_demons.contains(id))
+            .copied()
+            .collect::<Vec<_>>(),
+        vec!["WARLOCK_T01"] // Siegebreaker
     );
 }

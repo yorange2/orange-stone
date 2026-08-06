@@ -1,7 +1,7 @@
 # Fidelity Debt — Simplified Cards (F4/F5 Audit Ledger)
 
-> **Status: 54 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
-> W0 wiring pass PR #79 cleared 13).
+> **Status: 43 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
+> W0 wiring pass PR #79 cleared 13; W1 race pass PR #81 cleared 11).
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
@@ -24,6 +24,17 @@
 > (a Wild Pyromancer killed by its own spell does not fire). 16 scenarios in
 > `tests/differential.rs` (`w0_*`).
 >
+> **2026-08-06 W1 race pass (PR #81)**: all 11 race cards landed — a `CardDef.race`
+> field (Beast/Murloc/Demon, applied on spawn, exposed in `EntityView`/Python
+> bindings), race-conditioned targets (`FriendlyRace` / `AllOtherFriendlyRace` /
+> `AnyRace`), race-conditioned auras (`FriendlyRace` / `OtherFriendlyRace`
+> targets + a `GrantCharge` Charge aura — Tundra Rhino), race-conditioned
+> triggers (`Trigger.race` — Murloc Tidecaller / Scavenging Hyena / Starving
+> Buzzard), race-filtered deck draw (Sense Demons), and the hardcoded
+> `BEAST_POOL` / `DEMON_POOL` replaced by field-driven pools (parity pinned by
+> `w1_race_pools_are_field_driven`). 12 scenarios in `tests/differential.rs`
+> (`w1_*`).
+>
 > **Execution plan**: [docs/fidelity-debt-roadmap.md](fidelity-debt-roadmap.md)
 > (zh: `fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
 > W7 wrap-up) covering all 67 cards; a card is done when its ledger row, its code
@@ -41,7 +52,8 @@ The 67 markers are 67 unique card IDs — the 3 pre-fix ID collisions
 (EX1_365 / EX1_349 / EX1_341), so Mass Dispel is now reachable. All 67 are in
 `ALL_CARDS` (413 unique entries after the 10-card addition and the 7-entry dedup,
 PR #77). 4 markers were stale comments on already-faithful cards and are cleaned
-(§10); the genuine debt is 67 cards — **W0 cleared 13, leaving 54**.
+(§10); the genuine debt is 67 cards — **W0 cleared 13 and W1 cleared 11,
+leaving 43**.
 
 ---
 
@@ -55,22 +67,12 @@ permanent enchantment. Scenarios: `w0_gurubashi_berserker_enrage_permanent`,
 `w0_tauren_warrior_enrage_with_taunt`, `w0_angry_chicken_enrage_fires_before_death`,
 `w0_spiteful_smith_buffs_weapon_on_damage`.
 
-### 2. Tribes — Beast / Murloc / Demon (9)
+### 2. Tribes — Beast / Murloc / Demon (9) ✅ resolved (W1, PR #81)
 
-Needs a **race/tribe field on `CardDef`** (none exists; `RandomPool::Beast/Demon`
-are hardcoded ID lists) plus tribe-conditioned targets and auras.
-
-| ID | Card | Current | Real Hearthstone | Missing mechanism |
-| --- | --- | --- | --- | --- |
-| HUNTER_015 | Houndmaster | Battlecry: +2/+2 to a friendly minion | Battlecry: give a friendly **Beast** +2/+2 and Taunt | tribe predicate + two-effect battlecry |
-| HUNTER_016 | Tundra Rhino | Charge aura (all friendly) | Your **Beasts** have Charge | tribe-conditional aura |
-| NEUTRAL_R01 | Coldlight Seer | Battlecry: all friendly minions +2 Health | Battlecry: give all other **Murlocs** +2 Health | tribe predicate |
-| NEUTRAL_E02 | Murloc Warleader | aura: other friendly minions +2/+1 | Your other **Murlocs** have +2/+1 | tribe-conditional aura |
-| NEUTRAL_R05 | Murloc Tidecaller | vanilla | Whenever you summon a **Murloc**, gain +1 Attack | tribe predicate + summon-trigger |
-| NEUTRAL_E03 | Hungry Crab | vanilla | Battlecry: destroy a **Murloc** and gain +2/+2 | tribe predicate + destroy-buff combo |
-| WARLOCK_020 | Sense Demons | draw 1 card | Draw two **Demons** from your deck | tribe predicate + deck-filtered draw |
-| WARLOCK_021 | Demonfire | deal 2 damage | Deal 2 damage to a minion; if it's a friendly **Demon**, +2/+2 instead | tribe predicate + conditional branch |
-| WARLOCK_T01 | Siegebreaker | Taunt only | Taunt; your other **Demons** have +1 Attack | tribe-conditional aura |
+All landed: `CardDef.race` + race-conditioned targets/auras/triggers +
+race-filtered deck draw + field-driven pools (`w1_*` scenarios; pool parity
+pinned by `w1_race_pools_are_field_driven`). The F-A6-annotated Starving
+Buzzard (HUNTER_013) and Scavenging Hyena (HUNTER_014) also left the ledger. 
 
 ### 3. Event triggers — summon / heal / death / secret / attack / play (9)
 
@@ -235,14 +237,15 @@ targets incl. `DamagedEnemyMinion` / `DealDamageToTwo` / `DestroyAdjacent` /
 W0 wired all 4) / Poison component (W0 — Emperor Cobra) /
 `EffectTarget::EventSubject` + `OtherFriendlyMinion` (W0) / weapon triggers
 register + destroyed weapons leave play (W0) / spell-cast deaths resolve before
-"after you cast" triggers (W0).
+"after you cast" triggers (W0) / `CardDef.race` + race-conditioned targets
+(`FriendlyRace`/`AllOtherFriendlyRace`/`AnyRace`) + race-conditioned auras
+(`GrantCharge` Charge aura) + `Trigger.race` + field-driven race pools (W1).
 
 **Missing** (primitives first, per the Review-II "do G before F4/F5" discipline):
-1. race/tribe field on `CardDef` — unblocks §2 entirely
-2. trigger classes: heal, attack, card-played, secret-played — §3
-3. target predicates: attack-range, hand-size, hero-health, damaged-friendly,
+1. trigger classes: heal, attack, card-played, secret-played — §3
+2. target predicates: attack-range, hand-size, hero-health, damaged-friendly,
    owns-secret, weapon-equipped; "first minion this turn" state — §4, §6
-4. effects: set-health-to-1, swap attack/health, mass Divine Shield,
+3. effects: set-health-to-1, swap attack/health, mass Divine Shield,
    enemy-spells-cost-0, destroy-secret, weapon-durability damage,
    adjacent-target buff/freeze, two-random damage, this-turn temp buff,
    probabilistic effects — §5, §6, §7, §8, §9

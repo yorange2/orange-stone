@@ -114,6 +114,7 @@ fn main() {
         code.push_str(&format!("    taunt: {taunt},\n"));
         code.push_str(&format!("    stealth: {stealth},\n"));
         code.push_str(&format!("    elusive: {elusive},\n"));
+        code.push_str("    race: None,\n");
         code.push_str("    hero_power: None,\n    aura: None,\n    secret: None,\n");
         code.push_str(&format!("    divine_shield: {divine_shield},\n"));
         code.push_str(&format!("    windfury: {windfury},\n"));

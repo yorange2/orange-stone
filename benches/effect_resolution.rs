@@ -90,11 +90,14 @@ fn bench_play_minions(c: &mut Criterion) {
                     .entities(Zone::Hand, PlayerId::Player1);
                 for card in cards {
                     engine
-                        .apply(&mut state, Action::PlayCard {
-                            card,
-                            target: None,
-                            position: None,
-                        })
+                        .apply(
+                            &mut state,
+                            Action::PlayCard {
+                                card,
+                                target: None,
+                                position: None,
+                            },
+                        )
                         .expect("play should succeed");
                 }
                 black_box(state.turn());

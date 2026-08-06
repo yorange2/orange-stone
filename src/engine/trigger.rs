@@ -490,6 +490,57 @@ pub fn resolve_effect(
         CardEffect::DealDamageAndSummonIfKilled { amount, pool } => {
             resolve_damage_and_summon_if_killed(state, queue, source, owner, amount, pool);
         }
+        CardEffect::DrawCardByRace { count, race } => {
+            resolve_draw_by_race(state, queue, owner, count, race);
+        }
+        CardEffect::Demonfire {
+            damage,
+            attack_bonus,
+            health_bonus,
+        } => {
+            resolve_demonfire(
+                state,
+                queue,
+                source,
+                owner,
+                damage,
+                attack_bonus,
+                health_bonus,
+                explicit_target,
+            );
+        }
+        CardEffect::GainStatsAndTaunt {
+            attack,
+            health,
+            target,
+        } => {
+            resolve_gain_stats_and_taunt(
+                state,
+                source,
+                owner,
+                attack,
+                health,
+                target,
+                explicit_target,
+                event_subject,
+            );
+        }
+        CardEffect::DestroyAndGainStats {
+            attack,
+            health,
+            target,
+        } => {
+            resolve_destroy_and_gain_stats(
+                state,
+                queue,
+                source,
+                owner,
+                attack,
+                health,
+                target,
+                explicit_target,
+            );
+        }
     }
 }
 
@@ -530,6 +581,76 @@ fn draw_card_with_reduction(
 /// Draws a random card from the deck into hand.
 pub fn draw_card(state: &mut GameState, queue: &mut EventQueue, player: PlayerId) {
     draw_card_with_reduction(state, queue, player, 0);
+}
+
+/// Draws cards of the given race from the deck (Sense Demons — draw two
+/// Demons). Unlike a top-deck draw, the deck is scanned for matching cards —
+/// the first `count` matches in deck order (the deck is shuffled at game
+/// start, so the pick order is the deterministic shuffle order).
+fn resolve_draw_by_race(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    player: PlayerId,
+    count: u32,
+    race: crate::core::component::Race,
+) {
+    let mut drawn = 0;
+    // Collect matches first (the deck zone is borrowed); move them after.
+    let matches: SmallList<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, player)
+        .filter(|&e| state.world().race(e) == Some(race))
+        .take(count as usize)
+        .collect();
+    for card in matches {
+        if state.world_mut().move_to_zone(card, Zone::Hand).is_ok() {
+            queue.push(Event::CardDrawn { player, card });
+            drawn += 1;
+            if drawn >= count {
+                break;
+            }
+        }
+    }
+}
+
+/// Demonfire — deal damage to a minion; if the target is a friendly Demon,
+/// buff it instead (WARLOCK_021: 2 damage, or +2/+2 to a friendly Demon).
+fn resolve_demonfire(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+    damage: i32,
+    attack_bonus: i32,
+    health_bonus: i32,
+    explicit: Option<Entity>,
+) {
+    // Any minion (either side) is a legal target
+    let mut minions = collect_friendly_minions(state, owner);
+    minions.extend(collect_all_enemy_minions(state, owner));
+    let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
+        return;
+    };
+    let friendly_demon = state.world().player(target) == Some(owner)
+        && state.world().race(target) == Some(crate::core::component::Race::Demon);
+    if friendly_demon {
+        state.world_mut().add_enchantment(
+            target,
+            Enchantment {
+                attack: attack_bonus,
+                health: health_bonus,
+                cost: 0,
+                expiry: EnchantmentExpiry::Permanent,
+            },
+        );
+    } else {
+        queue.push(Event::DamageDealt {
+            source,
+            target,
+            amount: damage,
+        });
+    }
 }
 
 fn resolve_deal_damage(
@@ -607,7 +728,10 @@ fn resolve_deal_damage(
         | EffectTarget::FriendlyMinion
         | EffectTarget::OtherFriendlyMinion
         | EffectTarget::TauntEnemyMinion
-        | EffectTarget::EventSubject => {
+        | EffectTarget::EventSubject
+        | EffectTarget::FriendlyRace(_)
+        | EffectTarget::AllOtherFriendlyRace(_)
+        | EffectTarget::AnyRace(_) => {
             return;
         }
     };
@@ -682,6 +806,10 @@ pub(crate) fn resolve_summon(
         if card_def.taunt {
             world.set_taunt(e, crate::core::component::Taunt);
         }
+        // Race / tribe (fidelity-debt W1)
+        if let Some(race) = card_def.race {
+            world.set_race(e, race);
+        }
         // Set divine shield / windfury / charge / spell damage / cant-attack / end-of-turn effect
         if card_def.divine_shield {
             world.set_divine_shield(e, crate::core::component::DivineShield);
@@ -707,6 +835,7 @@ pub(crate) fn resolve_summon(
                 Trigger {
                     event: TriggerEvent::TurnEnd,
                     timing: TriggerTiming::Whenever,
+                    race: None,
                     effect: ete,
                 },
             );
@@ -717,6 +846,7 @@ pub(crate) fn resolve_summon(
                 Trigger {
                     event: TriggerEvent::TurnStart,
                     timing: TriggerTiming::Whenever,
+                    race: None,
                     effect: ste,
                 },
             );
@@ -727,6 +857,7 @@ pub(crate) fn resolve_summon(
                 Trigger {
                     event: TriggerEvent::FriendlySpellCast,
                     timing: TriggerTiming::Whenever,
+                    race: None,
                     effect: st,
                 },
             );
@@ -737,6 +868,7 @@ pub(crate) fn resolve_summon(
                 Trigger {
                     event: TriggerEvent::FriendlyMinionDied,
                     timing: TriggerTiming::Whenever,
+                    race: None,
                     effect: dt,
                 },
             );
@@ -747,6 +879,7 @@ pub(crate) fn resolve_summon(
                 Trigger {
                     event: TriggerEvent::FriendlyMinionSummoned,
                     timing: TriggerTiming::Whenever,
+                    race: None,
                     effect: st,
                 },
             );
@@ -771,6 +904,83 @@ pub(crate) fn resolve_summon(
         minion: e,
     });
     Some(e)
+}
+
+/// Buffs a target AND grants it Taunt — one target selection shared by both
+/// parts (Houndmaster: +2/+2 and Taunt to a friendly Beast). Reuses the
+/// single-target selection from `resolve_gain_stats` for the same target
+/// variants (FriendlyRace etc.).
+fn resolve_gain_stats_and_taunt(
+    state: &mut GameState,
+    source: Entity,
+    owner: PlayerId,
+    attack: i32,
+    health: i32,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+    subject: Option<Entity>,
+) {
+    let buff = Enchantment {
+        attack,
+        health,
+        cost: 0,
+        expiry: EnchantmentExpiry::Permanent,
+    };
+    let minions: SmallList<Entity> = match target {
+        EffectTarget::FriendlyRace(race) => collect_friendly_minions(state, owner)
+            .into_iter()
+            .filter(|&e| state.world().race(e) == Some(race))
+            .collect(),
+        _ => return,
+    };
+    let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
+        return;
+    };
+    let world = state.world_mut();
+    world.add_enchantment(m, buff);
+    world.set_taunt(m, crate::core::component::Taunt);
+}
+
+/// Destroys a minion of the target scope, then grants the source fixed stats
+/// (Hungry Crab — destroy a Murloc and gain +2/+2).
+fn resolve_destroy_and_gain_stats(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+    attack: i32,
+    health: i32,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+) {
+    let minions: SmallList<Entity> = match target {
+        EffectTarget::AnyRace(race) => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all.into_iter()
+                .filter(|&e| state.world().race(e) == Some(race))
+                .collect()
+        }
+        _ => return,
+    };
+    let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
+        return;
+    };
+    let hp = state.world().effective_health(m).unwrap_or(Health(1));
+    queue.push(Event::DamageDealt {
+        source: m,
+        target: m,
+        amount: hp.0.max(1),
+    });
+    state.world_mut().add_enchantment(
+        source,
+        Enchantment {
+            attack,
+            health,
+            cost: 0,
+            expiry: EnchantmentExpiry::Permanent,
+        },
+    );
 }
 
 /// Resolves a buff effect.
@@ -822,6 +1032,29 @@ fn resolve_gain_stats(
                 return;
             };
             state.world_mut().add_enchantment(m, buff);
+        }
+        // A random friendly minion of the given race (Houndmaster — a Beast)
+        EffectTarget::FriendlyRace(race) => {
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| state.world().race(e) == Some(race))
+                .collect();
+            let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().add_enchantment(m, buff);
+        }
+        // All friendly minions of the race, excluding the source
+        // (Coldlight Seer — all other Murlocs)
+        EffectTarget::AllOtherFriendlyRace(race) => {
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| e != source && state.world().race(e) == Some(race))
+                .collect();
+            let world = state.world_mut();
+            for minion in &minions {
+                world.add_enchantment(*minion, buff);
+            }
         }
         // The entity the triggering event happened to (Sword of Justice — the
         // just-summoned minion). Buffed directly; a subject that left play is
@@ -989,6 +1222,14 @@ fn resolve_destroy_minion(
 ) {
     let minions: SmallList<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner, Some(source)),
+        EffectTarget::AnyRace(race) => {
+            // Any minion of the race on either side (Hungry Crab — destroy a Murloc)
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all.into_iter()
+                .filter(|&e| state.world().race(e) == Some(race))
+                .collect()
+        }
         EffectTarget::DamagedEnemyMinion => collect_enemy_minions(state, owner, Some(source))
             .into_iter()
             .filter(|&e| {
