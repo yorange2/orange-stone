@@ -700,7 +700,7 @@ pub const BLESSED_CHAMPION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Sword of Justice — whenever you summon a minion, give it +1/+1 (simplified)
+/// Sword of Justice — whenever you summon a minion, give it +1/+1
 pub const SWORD_OF_JUSTICE: CardDef = CardDef {
     id: "EX1_365",
     name: "Sword of Justice",
@@ -730,7 +730,7 @@ pub const SWORD_OF_JUSTICE: CardDef = CardDef {
     summon_trigger: Some(CardEffect::GainStats {
         attack: 1,
         health: 1,
-        target: EffectTarget::Self_,
+        target: EffectTarget::EventSubject,
     }),
     choose_one_effect: None,
     combo_effect: None,

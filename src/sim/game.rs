@@ -6,7 +6,7 @@
 
 use crate::cards::def::CardDef;
 use crate::core::component::{
-    Attack, AttacksUsed, Aura, CardType, Cost, Durability, Health, HeroPowerDef, Secret,
+    Attack, AttacksUsed, Aura, CardType, Cost, Health, HeroPowerDef, Secret,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -169,15 +169,12 @@ impl GameBuilder {
 
     /// Equips a weapon to the hero.
     pub fn equip_weapon(&mut self, player: PlayerId, card: &CardDef) -> &mut Self {
+        // The full component set comes from `spawn_card_from_def` — weapon
+        // triggers (Sword of Justice) must be registered for the test harness
+        // too, not only for weapons played from hand.
+        let weapon = crate::cards::spawn_card_from_def(self.state.world_mut(), player, card);
         let inner = self.state.make_mut();
         let world = &mut inner.world;
-        let weapon = world.spawn();
-        world.set_card_id(weapon, crate::core::component::CardId(card.id));
-        world.set_attack(weapon, Attack(card.attack));
-        world.set_durability(weapon, Durability(card.durability));
-        world.set_cost(weapon, Cost(card.cost));
-        world.set_card_type(weapon, CardType::Weapon);
-        world.set_player(weapon, player);
         world.set_zone(weapon, Zone::Play);
         world.zones_mut().insert(Zone::Play, player, weapon);
         inner.players[player.index()].weapon = Some(weapon);

@@ -2223,7 +2223,7 @@ pub const MURLOC_WARLEADER: CardDef = CardDef {
 // ============================================================
 
 // Neutral Basic — minions not fully implementable
-/// Gurubashi Berserker — gains +3 Attack whenever damaged (Enrage simplified: vanilla)
+/// Gurubashi Berserker — Enrage: whenever this minion takes damage, gain +3 Attack
 pub const GURUBASHI_BERSERKER: CardDef = vanilla!("NEUTRAL_B19", "Gurubashi Berserker", 5, 2, 8);
 
 // Neutral Common — simplified
@@ -2325,7 +2325,7 @@ pub const JUNGLE_PANTHER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Tauren Warrior — Taunt, Enrage: +3 Attack (simplified: Taunt only)
+/// Tauren Warrior — Taunt; Enrage: whenever this minion takes damage, gain +3 Attack
 pub const TAUREN_WARRIOR: CardDef = CardDef {
     id: "NEUTRAL_C11",
     name: "Tauren Warrior",
@@ -2393,11 +2393,12 @@ pub const DREAD_CORSAIR: CardDef = CardDef {
 };
 /// Venture Co. Mercenary — your minions cost (3) more (simplified: vanilla)
 pub const VENTURE_CO_MERCENARY: CardDef = vanilla!("NEUTRAL_C14", "Venture Co. Mercenary", 5, 7, 6);
-/// Spiteful Smith — Enrage: your weapon gains +2 Attack (simplified: vanilla)
+/// Spiteful Smith — Enrage: whenever this minion takes damage, your weapon
+/// gains +2 Attack
 pub const SPITEFUL_SMITH: CardDef = vanilla!("NEUTRAL_C15", "Spiteful Smith", 5, 4, 6);
 
 // Neutral Rare — simplified
-/// Angry Chicken — Enrage: +5 Attack (simplified: vanilla)
+/// Angry Chicken — Enrage: whenever this minion takes damage, gain +5 Attack
 pub const ANGRY_CHICKEN: CardDef = vanilla!("NEUTRAL_R02", "Angry Chicken", 1, 1, 1);
 /// Bloodsail Corsair — Battlecry: remove 1 durability from the opponent's weapon (simplified: vanilla)
 pub const BLOODSAIL_CORSAIR: CardDef = vanilla!("NEUTRAL_R03", "Bloodsail Corsair", 1, 1, 2);
@@ -2441,14 +2442,80 @@ pub const ANCIENT_WATCHER: CardDef = CardDef {
 };
 /// Crazed Alchemist — Battlecry: swap a minion's Attack and Health (simplified: vanilla)
 pub const CRAZED_ALCHEMIST: CardDef = vanilla!("NEUTRAL_R08", "Crazed Alchemist", 2, 2, 2);
-/// Knife Juggler — deal 1 random damage after summoning a minion (simplified: vanilla)
-pub const KNIFE_JUGGLER: CardDef = vanilla!("NEUTRAL_R09", "Knife Juggler", 2, 3, 2);
+/// Knife Juggler — after you summon a minion, deal 1 damage to a random enemy
+pub const KNIFE_JUGGLER: CardDef = CardDef {
+    id: "NEUTRAL_R09",
+    name: "Knife Juggler",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 3,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: Some(CardEffect::DealDamage {
+        amount: 1,
+        target: EffectTarget::AnyEnemy,
+    }),
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Mana Addict — +2 Attack this turn after casting a spell (simplified: vanilla)
 pub const MANA_ADDICT: CardDef = vanilla!("NEUTRAL_R10", "Mana Addict", 2, 1, 3);
 /// Sunfury Protector — Battlecry: give adjacent minions Taunt (simplified: vanilla)
 pub const SUNFURY_PROTECTOR: CardDef = vanilla!("NEUTRAL_R11", "Sunfury Protector", 2, 2, 3);
-/// Wild Pyromancer — deal 1 AOE damage after casting a spell (simplified: vanilla)
-pub const WILD_PYROMANCER: CardDef = vanilla!("NEUTRAL_R12", "Wild Pyromancer", 2, 3, 2);
+/// Wild Pyromancer — after you cast a spell, deal 1 damage to all minions
+pub const WILD_PYROMANCER: CardDef = CardDef {
+    id: "NEUTRAL_R12",
+    name: "Wild Pyromancer",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 3,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: Some(CardEffect::DealDamage {
+        amount: 1,
+        target: EffectTarget::AllMinions,
+    }),
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Alarm-o-Bot — swap a hand minion at start of turn (simplified: vanilla)
 pub const ALARM_O_BOT: CardDef = vanilla!("NEUTRAL_R13", "Alarm-o-Bot", 3, 0, 3);
 /// Arcane Golem — Charge, Battlecry gives the opponent a mana crystal (simplified: Charge only)
@@ -2483,9 +2550,42 @@ pub const ARCANE_GOLEM: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Demolisher — deal 2 random damage at start of turn (simplified: vanilla)
-pub const DEMOLISHER: CardDef = vanilla!("NEUTRAL_R15", "Demolisher", 3, 1, 4);
-/// Emperor Cobra — Poison (destroy any minion damaged by it) (simplified: vanilla)
+/// Demolisher — at the start of your turn, deal 2 damage to a random enemy
+pub const DEMOLISHER: CardDef = CardDef {
+    id: "NEUTRAL_R15",
+    name: "Demolisher",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 1,
+    health: 4,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AnyEnemy,
+    }),
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+/// Emperor Cobra — Poison (destroy any minion damaged by it)
 pub const EMPEROR_COBRA: CardDef = vanilla!("NEUTRAL_R16", "Emperor Cobra", 3, 2, 3);
 /// Questing Adventurer — gains +1/+1 whenever you play a card (simplified: vanilla)
 pub const QUESTING_ADVENTURER: CardDef = vanilla!("NEUTRAL_R17", "Questing Adventurer", 3, 2, 2);
@@ -2499,18 +2599,120 @@ pub const STAMPEDING_KODO: CardDef = vanilla!("NEUTRAL_R20", "Stampeding Kodo", 
 // Neutral Epic — simplified
 /// Hungry Crab — Battlecry: destroy a Murloc and gain +2/+2 (simplified: vanilla)
 pub const HUNGRY_CRAB: CardDef = vanilla!("NEUTRAL_E03", "Hungry Crab", 1, 1, 2);
-/// Doomsayer — destroy all minions at start of turn (simplified: vanilla)
-pub const DOOMSAYER: CardDef = vanilla!("NEUTRAL_E04", "Doomsayer", 2, 0, 7);
+/// Doomsayer — at the start of your turn, destroy all minions (itself included)
+pub const DOOMSAYER: CardDef = CardDef {
+    id: "NEUTRAL_E04",
+    name: "Doomsayer",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 0,
+    health: 7,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::AllMinions,
+    }),
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Blood Knight — Battlecry: absorb all Divine Shields and gain +3/+3 (simplified: vanilla)
 pub const BLOOD_KNIGHT: CardDef = vanilla!("NEUTRAL_E05", "Blood Knight", 3, 3, 3);
 /// Big Game Hunter — Battlecry: destroy a minion with 7 or more Attack (simplified: vanilla)
 pub const BIG_GAME_HUNTER: CardDef = vanilla!("NEUTRAL_E06", "Big Game Hunter", 5, 4, 2);
-/// Young Priestess — give a random friendly minion +1 Health at end of turn (simplified: vanilla)
-pub const YOUNG_PRIESTESS: CardDef = vanilla!("NEUTRAL_R21", "Young Priestess", 1, 2, 1);
+/// Young Priestess — at the end of your turn, give ANOTHER random friendly
+/// minion +1 Health
+pub const YOUNG_PRIESTESS: CardDef = CardDef {
+    id: "NEUTRAL_R21",
+    name: "Young Priestess",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 2,
+    health: 1,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: Some(CardEffect::GainStats {
+        attack: 0,
+        health: 1,
+        target: EffectTarget::OtherFriendlyMinion,
+    }),
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Mana Wraith — all minions cost (1) more (simplified: vanilla)
 pub const MANA_WRAITH: CardDef = vanilla!("NEUTRAL_R22", "Mana Wraith", 2, 2, 2);
-/// Master Swordsmith — give a random friendly minion +1 Attack at end of turn (simplified: vanilla)
-pub const MASTER_SWORDSMITH: CardDef = vanilla!("NEUTRAL_R23", "Master Swordsmith", 2, 1, 3);
+/// Master Swordsmith — at the end of your turn, give ANOTHER random friendly
+/// minion +1 Attack
+pub const MASTER_SWORDSMITH: CardDef = CardDef {
+    id: "NEUTRAL_R23",
+    name: "Master Swordsmith",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 1,
+    health: 3,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: Some(CardEffect::GainStats {
+        attack: 1,
+        health: 0,
+        target: EffectTarget::OtherFriendlyMinion,
+    }),
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
 /// Pint-Sized Summoner — the first minion each turn costs (1) less (simplified: vanilla)
 pub const PINT_SIZED_SUMMONER: CardDef = vanilla!("NEUTRAL_R24", "Pint-Sized Summoner", 2, 2, 2);
 /// SI:7 Infiltrator — Battlecry: destroy a random enemy Secret (simplified: vanilla)

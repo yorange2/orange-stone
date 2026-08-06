@@ -194,7 +194,9 @@ fn resolve_secret_effect(
         CardEffect::SummonSpellbender => {
             resolve_spellbender(state, queue, event, player);
         }
-        _ => crate::engine::trigger::resolve_effect(state, queue, entity, player, effect, None),
+        _ => {
+            crate::engine::trigger::resolve_effect(state, queue, entity, player, effect, None, None)
+        }
     }
 }
 
