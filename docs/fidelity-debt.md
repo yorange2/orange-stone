@@ -12,6 +12,11 @@
 > collisions fixed, 10 cards added to `ALL_CARDS` (7 duplicated entries deduped),
 > and the Python extractor rewritten (PR #31). What remains is the per-mechanism
 > implementation work in the groups below and the F5 verification protocol.
+>
+> **Execution plan**: [docs/fidelity-debt-roadmap.md](fidelity-debt-roadmap.md)
+> (zh: `fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
+> W7 wrap-up) covering all 67 cards; a card is done when its ledger row, its code
+> comment, and its differential scenario all land together.
 
 **Source of truth**: the `(simplified: ...)` doc comments on card consts in
 `src/cards/classic_*.rs`. The Python side
