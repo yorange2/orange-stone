@@ -60,20 +60,27 @@
 charge aura grant, heal-draw timing vs the heal event); `cargo test` green
 (422); RL pool 367 → **372**; §11 loses 5 rows.
 
-### W9 — Weapon & race (4 cards): Truesilver Champion, Gorehowl, Eaglehorn Bow, Bestial Wrath
+### W9 — Weapon & race (4 cards): Truesilver Champion, Gorehowl, Eaglehorn Bow, Bestial Wrath ✅ (PR #98)
 
 - Truesilver Champion: heal 2 when the hero attacks with it (`Attacked`
-  precedent)
+  precedent — weapon triggers ride the weapon entity; `trigger_applies`
+  pins attack events to the attacker or the attacking hero's equipped
+  weapon)
 - Gorehowl: the equipped weapon loses 1 attack when the hero attacks a
-  minion (enchantment, not durability)
-- Eaglehorn Bow: +1 durability whenever a friendly Secret is played
-  (`SecretPlayed` precedent)
+  minion (new `AttackedMinion` event; rules.rs skips the durability
+  decrement for minion hits via `GOREHOWL_ID`; face hits drain durability
+  as usual)
+- Eaglehorn Bow: +1 durability whenever a friendly Secret is **revealed**
+  (new `FriendlySecretRevealed` event at both reveal sites — the real card
+  triggers on reveal, not on play; `SecretPlayed` was the roadmap's initial
+  suggestion, reveal is the faithful semantics)
 - Bestial Wrath: `FriendlyRace(Beast)` target for the existing
-  `GrantAttackAndImmune` effect
+  `GrantAttackAndImmune` effect (a non-Beast target fizzles, G9
+  re-validation)
 
-**Acceptance**: 4 `w9_*` scenarios (heal timing on attack, attack drain per
-minion hit, durability gain per secret, beast-only targeting); `cargo test`
-green; RL pool 372 → 376.
+**Acceptance**: ✅ 4 `w9_*` scenarios (heal timing on attack, attack drain per
+minion hit, durability gain per reveal, beast-only targeting); `cargo test`
+green (426); RL pool 372 → **376**.
 
 ### W10 — Choose-One & Discover (5 cards): Wrath, Druid of the Claw, Ancient of Lore, Ancient of War, Tracking
 
@@ -126,7 +133,7 @@ Sea Giant cost vs board state, Preparation window, Cold Blood base branch);
 | Wave | Cards | RL pool |
 | --- | --- | --- |
 | W8 trigger wiring ✅ (PR #97) | 5 | 367 → **372** |
-| W9 weapon & race | 4 | 372 → **376** |
+| W9 weapon & race ✅ (PR #98) | 4 | 372 → **376** |
 | W10 choose-one & discover | 5 | 376 → **381** |
 | W11 battlecries & cost | 6 | 381 → **387** |
 | W12 remaining mechanics | 4 | 387 → **391 (ledger empty)** |
