@@ -81,7 +81,8 @@ pub const HUNTERS_MARK: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Tracking — Discover a card from your deck (simplified: no Discover — vanilla)
+/// Tracking — Discover a card from the top 3 of your deck; pick one into
+/// hand, discard the other two
 pub const TRACKING: CardDef = CardDef {
     id: "HUNTER_003",
     name: "Tracking",
@@ -90,7 +91,7 @@ pub const TRACKING: CardDef = CardDef {
     attack: 0,
     health: 0,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::DiscoverDeckTop3),
     deathrattle: None,
     taunt: false,
     stealth: false,

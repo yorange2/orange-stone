@@ -196,7 +196,10 @@ pub fn resolve_effect(
             target,
             attack_bonus,
         } => {
-            resolve_grant_charge(state, owner, target, attack_bonus, explicit_target);
+            resolve_grant_charge(state, source, owner, target, attack_bonus, explicit_target);
+        }
+        CardEffect::DiscoverDeckTop3 => {
+            resolve_discover_deck_top3(state, source, owner);
         }
         CardEffect::DoubleAttack { target } => {
             resolve_double_attack(state, owner, target, explicit_target);
@@ -1124,6 +1127,46 @@ fn resolve_deal_damage(
     });
 }
 
+/// Tracking (W10): surfaces a Discover choice over the top 3 cards of the
+/// owner's deck. The choice carries `discard_rest` — ChoiceResolved moves the
+/// picked card's EXISTING entity to hand and discards the other two.
+fn resolve_discover_deck_top3(state: &mut GameState, source: Entity, owner: PlayerId) {
+    let deck: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, owner)
+        .take(3)
+        .collect();
+    if deck.is_empty() {
+        return;
+    }
+    let options: Vec<String> = deck
+        .iter()
+        .map(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .and_then(|c| crate::cards::def::card_by_id(c.0))
+                .map_or_else(|| String::from("?"), |c| format!("{} ({})", c.name, c.id))
+        })
+        .collect();
+    let pool_ids = deck
+        .iter()
+        .map(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .map_or_else(String::new, |c| c.0.to_string())
+        })
+        .collect();
+    state.set_pending_choice_discard_rest(
+        crate::core::state::ChoiceKind::Discover,
+        source,
+        options,
+        pool_ids,
+    );
+}
+
 /// Resolves a summon-minion effect.
 ///
 /// Returns the summoned minion entity, or `None` when the board is full or
@@ -1531,7 +1574,7 @@ fn resolve_attach_attack_draw(
 #[allow(clippy::too_many_arguments)]
 fn resolve_gain_stats_and_taunt(
     state: &mut GameState,
-    _source: Entity,
+    source: Entity,
     owner: PlayerId,
     attack: i32,
     health: i32,
@@ -1550,6 +1593,13 @@ fn resolve_gain_stats_and_taunt(
             .into_iter()
             .filter(|&e| state.world().race(e) == Some(race))
             .collect(),
+        // Choose One taunt branches (Druid of the Claw, Ancient of War) — the
+        // minion itself
+        EffectTarget::Self_ => {
+            let mut list = SmallList::new();
+            list.push(source);
+            list
+        }
         _ => return,
     };
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
@@ -2258,6 +2308,7 @@ fn resolve_grant_windfury(
 /// Grants a minion charge and an optional attack bonus.
 fn resolve_grant_charge(
     state: &mut GameState,
+    source: Entity,
     owner: PlayerId,
     target: EffectTarget,
     attack_bonus: i32,
@@ -2265,6 +2316,12 @@ fn resolve_grant_charge(
 ) {
     let minions: SmallList<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        // Druid of the Claw's Charge branch — the minion itself
+        EffectTarget::Self_ => {
+            let mut list = SmallList::new();
+            list.push(source);
+            list
+        }
         _ => return,
     };
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {

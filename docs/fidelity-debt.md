@@ -101,9 +101,10 @@
 > and the 1-Health resummon secret (`ResurrectDiedMinion` Redemption).
 > 3 scenarios (`w7_*`). **The ledger was EMPTY and the RL pool was the full 391-card
 > classic pool — until the 2026-08-06 registration pass re-opened it with 27
-> pre-existing simplifications (§11); the pool is now 376 (413 − 15 debt − 21 tokens − coin,
+> pre-existing simplifications (§11); the pool is now 381 (413 − 10 debt − 21 tokens − coin,
 > W8 clears 5: Amani Berserker / Raging Worgen / Grommash / Warsong Commander / Northshire Cleric;
-> W9 clears 4: Truesilver Champion / Gorehowl / Eaglehorn Bow / Bestial Wrath).**
+> W9 clears 4: Truesilver Champion / Gorehowl / Eaglehorn Bow / Bestial Wrath;
+> W10 clears 5: Wrath / Druid of the Claw / Ancient of Lore / Ancient of War / Tracking).**
 >
 > **Execution plan**: [docs/fidelity-debt-roadmap.md](../finished/fidelity-debt-roadmap.md)
 > (zh: `finished/fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
@@ -207,7 +208,7 @@ which also removes them from the Python debt set (4 cards re-enter the RL pool).
 ---
 
 
-### 11. Pre-existing simplifications registered 2026-08-06 (27 → 24 → 19 → 15 cards)
+### 11. Pre-existing simplifications registered 2026-08-06 (27 → 24 → 19 → 15 → 10 cards)
 
 The 2026-08-06 status audit (`docs/classic-cards-zh.md` vs. the code) found 27
 cards with known simplifications that carried no `(simplified: …)` marker — they
@@ -216,16 +217,13 @@ cards leave the ledger only via the [Maintenance](#maintenance) flow
 (implement → F5 differential → drop comment → invalidate cache). W8 (roadmap
 PR #97) cleared 5: Amani Berserker / Raging Worgen / Grommash Hellscream /
 Warsong Commander / Northshire Cleric; W9 (PR #98) cleared 4: Truesilver
-Champion / Gorehowl / Eaglehorn Bow / Bestial Wrath (15 remain).
+Champion / Gorehowl / Eaglehorn Bow / Bestial Wrath; W10 (PR #99) cleared 5:
+Wrath / Druid of the Claw / Ancient of Lore / Ancient of War / Tracking
+(10 remain).
 
 | ID | Card | Debt |
 | --- | --- | --- |
 | NEUTRAL_026 | Sea Giant | no cost reduction — vanilla 8/8 |
-| DRUID_004 | Wrath | 3-damage branch only |
-| DRUID_007 | Druid of the Claw | fixed 4/6 Taunt, no Choose One |
-| DRUID_008 | Ancient of Lore | draw-2 branch only |
-| DRUID_009 | Ancient of War | vanilla 5/5, no Choose One |
-| HUNTER_003 | Tracking | no Discover — vanilla |
 | PRIEST_011 | Cabal Shadow Priest | no Mind Control — vanilla |
 | PRIEST_012 | Prophet Velen | spell damage only, healing not doubled |
 | ROGUE_009 | Preparation | no next-spell cost reduction — vanilla |
@@ -391,8 +389,8 @@ W8 cleared groups 1–3, W9 cleared group 4):
 3. ~~Heal-draw trigger (Northshire Cleric)~~ ✅ W8
 4. ~~Weapon attack effects (Truesilver heal, Gorehowl attack-loss, Eaglehorn
    Durability)~~ ✅ W9
-5. Discover (Tracking); Choose One second branches (Wrath, Druid of the Claw,
-   Ancient of Lore, Ancient of War)
+5. ~~Discover (Tracking); Choose One second branches (Wrath, Druid of the Claw,
+   Ancient of Lore, Ancient of War)~~ ✅ W10
 6. Battlecries (Onyxia, Argent Protector, Deathwing hand discard);
    freeze-on-damage (Water Elemental); control (Cabal Shadow Priest); healing
    doubling (Prophet Velen); Shiv's 1-damage draw-1

@@ -1212,13 +1212,32 @@ pub fn apply_event(
                     }
                 }
                 ChoiceKind::Discover => {
-                    // Add the picked pool card to the owner's hand
-                    if let Some(card_id) = pending.pool.get(option as usize) {
+                    let player = state
+                        .world()
+                        .player(pending.card)
+                        .unwrap_or(state.active_player());
+                    if pending.discard_rest {
+                        // Tracking (W10): the pool IS the deck's top cards —
+                        // the picked card's existing entity moves to hand and
+                        // the unpicked ones are discarded.
+                        let deck: Vec<Entity> = state
+                            .world()
+                            .zones()
+                            .iter(Zone::Deck, player)
+                            .take(3)
+                            .collect();
+                        let Some(picked) = deck.get(option as usize).copied() else {
+                            return Ok(());
+                        };
+                        let _ = state.world_mut().move_to_zone(picked, Zone::Hand);
+                        for &e in &deck {
+                            if e != picked {
+                                let _ = state.world_mut().move_to_zone(e, Zone::Graveyard);
+                            }
+                        }
+                    } else if let Some(card_id) = pending.pool.get(option as usize) {
+                        // Add the picked pool card to the owner's hand
                         if let Some(card_def) = crate::cards::def::card_by_id(card_id) {
-                            let player = state
-                                .world()
-                                .player(pending.card)
-                                .unwrap_or(state.active_player());
                             trigger::add_card_to_hand(state, player, card_def);
                         }
                     }

@@ -53,6 +53,10 @@ pub struct PendingChoice {
     pub options: Vec<String>,
     /// The discover pool's card IDs, when `kind == Discover`
     pub pool: Vec<String>,
+    /// Discover over the deck's top cards (Tracking): the picked card's
+    /// EXISTING entity moves to hand and the unpicked pool entries are
+    /// discarded instead of being ignored
+    pub discard_rest: bool,
 }
 
 /// Game resolution step — the GameStep state machine (RS/SB analogue, roadmap G1).
@@ -232,6 +236,30 @@ impl GameState {
         options: Vec<String>,
         pool: Vec<String>,
     ) -> u64 {
+        self.set_pending_choice_with(kind, card, options, pool, false)
+    }
+
+    /// Creates a pending choice whose Discover resolution discards the
+    /// unpicked pool entries (Tracking — the deck-top-3 pool: the picked
+    /// card goes to hand, the other two are discarded).
+    pub fn set_pending_choice_discard_rest(
+        &mut self,
+        kind: ChoiceKind,
+        card: Entity,
+        options: Vec<String>,
+        pool: Vec<String>,
+    ) -> u64 {
+        self.set_pending_choice_with(kind, card, options, pool, true)
+    }
+
+    fn set_pending_choice_with(
+        &mut self,
+        kind: ChoiceKind,
+        card: Entity,
+        options: Vec<String>,
+        pool: Vec<String>,
+        discard_rest: bool,
+    ) -> u64 {
         let inner = self.make_mut();
         let id = inner.next_choice_id;
         inner.next_choice_id += 1;
@@ -241,6 +269,7 @@ impl GameState {
             card,
             options,
             pool,
+            discard_rest,
         });
         id
     }

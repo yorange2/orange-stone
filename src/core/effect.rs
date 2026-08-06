@@ -391,6 +391,9 @@ pub enum CardEffect {
         /// Pool type
         pool: RandomPool,
     },
+    /// Discover over the top 3 cards of the deck (Tracking): pick one into
+    /// hand, discard the rest
+    DiscoverDeckTop3,
     /// Summon a random minion (Animal Companion/Barrens Stablehand)
     SummonRandomMinion {
         /// Pool type
@@ -778,6 +781,7 @@ enum CardEffectDe {
     AddRandomCardToHand {
         pool: RandomPool,
     },
+    DiscoverDeckTop3,
     SummonRandomMinion {
         pool: RandomPool,
     },
@@ -1062,6 +1066,7 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 card_b: intern(card_b)?,
             },
             CardEffectDe::AddRandomCardToHand { pool } => CardEffect::AddRandomCardToHand { pool },
+            CardEffectDe::DiscoverDeckTop3 => CardEffect::DiscoverDeckTop3,
             CardEffectDe::SummonRandomMinion { pool } => CardEffect::SummonRandomMinion { pool },
             CardEffectDe::AddCardToHand { card_id } => CardEffect::AddCardToHand {
                 card_id: intern(card_id)?,
