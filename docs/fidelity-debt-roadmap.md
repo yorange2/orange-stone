@@ -1,6 +1,6 @@
 # Fidelity-Debt Implementation Roadmap — the 67 simplified cards
 
-> **Status: W3 done (PR #82); W4 next.** This roadmap executes the F4-ongoing /
+> **Status: W4 done (PR #84); W5 next.** This roadmap executes the F4-ongoing /
 > F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
 > [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
@@ -204,28 +204,38 @@ verified); RL pool grows by 8 (346 → 354).
 | NEUTRAL_E05 | Blood Knight | Destroy all Divine Shields, +3/+3 each | `w3_blood_knight_absorbs_all_divine_shields` |
 
 **Acceptance**: 9 differential scenarios; RL pool grows by 9 (354 → 363).
-## Wave 4 — Cost & weapon interactions (8 cards)
+## Wave 4 — Cost & weapon interactions (8 cards) ✅ done (PR #84)
 
-**Primitives**:
-- hand-zone cost aura targeting "all minions" / "your minions" (on top of the G5
-  modifier stack), weapon-attack cost modifier, weapon-durability damage,
-  weapon-equipped predicate (conditional Charge), enemy-spells-cost-0,
-  give-opponent-mana.
+**Primitives** — all landed:
+- Hand-zone cost auras: `AuraEffect::IncreaseMinionCost` (Mana Wraith — ALL
+  minions +1, both players) and `IncreaseMinionCostFriendly` (Venture Co. —
+  own minions only), stacked on the G5 modifier stack (`effective_cost` scans
+  both players' cost-aura buckets).
+- Weapon-attack cost reduction: Dread Corsair subtracts the weapon's Attack in
+  `play_cost`.
+- Weapon-durability damage: `CardEffect::RemoveWeaponDurability` (Bloodsail
+  Corsair) — a weapon at 0 durability is destroyed.
+- Weapon-equipped predicate: `AuraEffect::ChargeWithWeapon` (Southsea Deckhand)
+  — `effective_charge` grants Charge while a weapon is equipped (summoning
+  sickness is waived too).
+- Enemy-spells-cost-0: `CardEffect::EnemySpellsCostZero` (Millhouse Manastorm)
+  — a per-player `spells_cost_zero` flag read by `play_cost`, cleared at turn end.
+- Give-opponent-mana: `CardEffect::GiveOpponentManaCrystal` (Arcane Golem —
+  an empty crystal).
 
-| ID | Card | Real effect |
-| --- | --- | --- |
-| NEUTRAL_R22 | Mana Wraith | ALL minions cost (1) more |
-| NEUTRAL_C14 | Venture Co. Mercenary | Your minions cost (3) more |
-| NEUTRAL_C07 | Southsea Deckhand | Charge while you have a weapon |
-| NEUTRAL_C13 | Dread Corsair | Taunt; costs (1) less per weapon Attack |
-| NEUTRAL_C09 | Bloodsail Raider | Battlecry: gain Attack equal to weapon's |
-| NEUTRAL_R03 | Bloodsail Corsair | Battlecry: remove 1 durability from enemy weapon |
-| LEGENDARY_021 | Millhouse Manastorm | Enemy spells cost 0 next turn |
-| NEUTRAL_R14 | Arcane Golem | Charge; opponent gains a Mana Crystal |
+| ID | Card | Real effect | Scenario |
+| --- | --- | --- | --- |
+| NEUTRAL_R22 | Mana Wraith | ALL minions cost (1) more | `w4_mana_wraith_increases_all_minion_costs` |
+| NEUTRAL_C14 | Venture Co. Mercenary | Your minions cost (3) more | `w4_venture_co_increases_own_minion_costs` |
+| NEUTRAL_C07 | Southsea Deckhand | Has Charge while you have a weapon | `w4_southsea_deckhand_charge_with_weapon` |
+| NEUTRAL_C13 | Dread Corsair | Taunt; costs (1) less per weapon Attack | `w4_dread_corsair_cost_by_weapon_attack` |
+| NEUTRAL_C09 | Bloodsail Raider | Battlecry: gain Attack equal to your weapon's Attack | `w4_bloodsail_raider_gains_weapon_attack` |
+| NEUTRAL_R03 | Bloodsail Corsair | Battlecry: remove 1 Durability from the opponent's weapon | `w4_bloodsail_corsair_removes_weapon_durability` + `…_destroys_1_durability_weapon` |
+| LEGENDARY_021 | Millhouse Manastorm | Enemy spells cost 0 next turn | `w4_millhouse_makes_enemy_spells_free` |
+| NEUTRAL_R14 | Arcane Golem | Charge; Battlecry: give your opponent a Mana Crystal | `w4_arcane_golem_gives_opponent_crystal` |
 
-**Acceptance**: 8 differential scenarios (incl. cost-modifier stacking vs.
-existing auras); RL pool grows by 8.
-
+**Acceptance**: 9 differential scenarios (including stacking with existing
+cost auras); RL pool grows by 8 (363 → 371).
 ## Wave 5 — Target structure & effect composition (7 cards)
 
 **Primitives**:
@@ -299,7 +309,7 @@ constructible size; final sweep + full SabberStone parity run.
 | W1 race ✅ PR #80 | 11 | race field + targets/auras/triggers + field-driven pools | +11 → **346** |
 | W2 triggers ✅ PR #81 | 8 | 5 trigger classes + destroy-secret | +8 → **354** |
 | W3 predicates ✅ PR #82 | 9 | attack-range/hand-size/health/damaged/secret/first-minion/shield predicates | +9 → **363** |
-| W4 cost/weapon | 8 | 6+ primitives | +8 |
+| W4 cost/weapon ✅ PR #84 | 8 | cost auras/weapon-attack cost/durability/conditional charge/spells-0/mana gift | +8 → **371** |
 | W5 target structure | 7 | 5+ primitives | +7 |
 | W6 special mechanics | 8 | 6 primitives | +8 |
 | W7 wrap-up | 3 | 3 primitives | +3 |

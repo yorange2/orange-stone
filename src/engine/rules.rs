@@ -1458,6 +1458,8 @@ fn wrap_up_turn(state: &mut GameState) {
         let inner = state.make_mut();
         let p = &mut inner.players[player.index()];
         p.died_this_turn.clear();
+        // Millhouse Manastorm's zero-spell-cost window lasts one turn
+        p.spells_cost_zero = false;
         // Stack-buffered snapshot of entities holding expiring enchantments
         let expiring: SmallList<Entity> = inner
             .world

@@ -217,13 +217,15 @@ impl AuraIndex {
                     self.health[oi].push((entity, aura));
                 }
             }
-            AuraEffect::GainAttack(_) | AuraEffect::GrantCharge => {
+            AuraEffect::GainAttack(_) | AuraEffect::GrantCharge | AuraEffect::ChargeWithWeapon => {
                 self.attack[oi].push((entity, aura))
             }
             AuraEffect::GainHealth(_) => self.health[oi].push((entity, aura)),
             AuraEffect::ReduceSpellCost(_)
             | AuraEffect::ReduceMinionCost { .. }
-            | AuraEffect::FirstMinionDiscount { .. } => self.cost[oi].push((entity, aura)),
+            | AuraEffect::FirstMinionDiscount { .. }
+            | AuraEffect::IncreaseMinionCost { .. }
+            | AuraEffect::IncreaseMinionCostFriendly { .. } => self.cost[oi].push((entity, aura)),
         }
     }
 }
@@ -812,9 +814,23 @@ impl World {
         };
         for owner in [player, player.opponent()] {
             for (source, aura) in &self.aura_index.attack[owner.index()] {
-                if aura.effect == crate::core::component::AuraEffect::GrantCharge
-                    && aura_applies_to(aura, *source, owner, entity, player, self)
-                {
+                let grants = match aura.effect {
+                    crate::core::component::AuraEffect::GrantCharge => true,
+                    // Southsea Deckhand — Charge while the owner has a weapon
+                    // (the weapon entity sits in the owner's Play zone)
+                    crate::core::component::AuraEffect::ChargeWithWeapon => {
+                        self.player(*source).is_some_and(|p| {
+                            self.zones()
+                                .iter(crate::core::zone::Zone::Play, p)
+                                .any(|e| {
+                                    self.card_type(e)
+                                        == Some(crate::core::component::CardType::Weapon)
+                                })
+                        })
+                    }
+                    _ => false,
+                };
+                if grants && aura_applies_to(aura, *source, owner, entity, player, self) {
                     return true;
                 }
             }
@@ -930,23 +946,41 @@ impl World {
         }
 
         let mut reduction = 0i32;
+        let mut increase = 0i32;
         let mut min_cost = 0i32;
-        for (_, aura) in &self.aura_index.cost[player.index()] {
-            match aura.effect {
-                AuraEffect::ReduceSpellCost(amount) if in_hand && card_type == CardType::Spell => {
-                    reduction += amount;
+        // Friendly reductions come from the owner's bucket; global increases
+        // (Mana Wraith — ALL minions) from both buckets. The friendly-scoped
+        // variants only apply to the aura owner's own hand.
+        for owner in [player, player.opponent()] {
+            for (_, aura) in &self.aura_index.cost[owner.index()] {
+                match aura.effect {
+                    AuraEffect::ReduceSpellCost(amount)
+                        if owner == player && in_hand && card_type == CardType::Spell =>
+                    {
+                        reduction += amount;
+                    }
+                    AuraEffect::ReduceMinionCost { amount, min }
+                        if owner == player && in_hand && card_type == CardType::Minion =>
+                    {
+                        reduction += amount;
+                        min_cost = min_cost.max(min);
+                    }
+                    AuraEffect::IncreaseMinionCost { amount }
+                        if in_hand && card_type == CardType::Minion =>
+                    {
+                        increase += amount;
+                    }
+                    AuraEffect::IncreaseMinionCostFriendly { amount }
+                        if owner == player && in_hand && card_type == CardType::Minion =>
+                    {
+                        increase += amount;
+                    }
+                    _ => {}
                 }
-                AuraEffect::ReduceMinionCost { amount, min }
-                    if in_hand && card_type == CardType::Minion =>
-                {
-                    reduction += amount;
-                    min_cost = min_cost.max(min);
-                }
-                _ => {}
             }
         }
         // The cost can never go below 0 (and never below the aura's min floor)
-        Some(Cost((cost - reduction).max(min_cost.max(0))))
+        Some(Cost((cost + increase - reduction).max(min_cost.max(0))))
     }
 }
 
@@ -1034,6 +1068,9 @@ const fn aura_attack_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::ReduceMinionCost { .. } => 0,
         AuraEffect::GrantCharge => 0,
         AuraEffect::FirstMinionDiscount { .. } => 0,
+        AuraEffect::IncreaseMinionCost { .. } => 0,
+        AuraEffect::IncreaseMinionCostFriendly { .. } => 0,
+        AuraEffect::ChargeWithWeapon => 0,
     }
 }
 
@@ -1048,6 +1085,9 @@ const fn aura_health_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::ReduceMinionCost { .. } => 0,
         AuraEffect::GrantCharge => 0,
         AuraEffect::FirstMinionDiscount { .. } => 0,
+        AuraEffect::IncreaseMinionCost { .. } => 0,
+        AuraEffect::IncreaseMinionCostFriendly { .. } => 0,
+        AuraEffect::ChargeWithWeapon => 0,
     }
 }
 
@@ -1106,13 +1146,17 @@ mod tests {
                         idx.health[oi].push((source, *aura));
                     }
                 }
-                AuraEffect::GainAttack(_) | AuraEffect::GrantCharge => {
-                    idx.attack[oi].push((source, *aura))
-                }
+                AuraEffect::GainAttack(_)
+                | AuraEffect::GrantCharge
+                | AuraEffect::ChargeWithWeapon => idx.attack[oi].push((source, *aura)),
                 AuraEffect::GainHealth(_) => idx.health[oi].push((source, *aura)),
                 AuraEffect::ReduceSpellCost(_)
                 | AuraEffect::ReduceMinionCost { .. }
-                | AuraEffect::FirstMinionDiscount { .. } => idx.cost[oi].push((source, *aura)),
+                | AuraEffect::FirstMinionDiscount { .. }
+                | AuraEffect::IncreaseMinionCost { .. }
+                | AuraEffect::IncreaseMinionCostFriendly { .. } => {
+                    idx.cost[oi].push((source, *aura))
+                }
             }
         }
         idx

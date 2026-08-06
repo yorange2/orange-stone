@@ -565,6 +565,34 @@ pub fn resolve_effect(
         CardEffect::AttachAttackDraw { count } => {
             resolve_attach_attack_draw(state, owner, count, explicit_target);
         }
+        CardEffect::RemoveWeaponDurability { amount } => {
+            resolve_remove_weapon_durability(state, queue, owner, amount);
+        }
+        CardEffect::GainAttackEqualToWeapon => {
+            let atk = state
+                .player(owner)
+                .weapon
+                .and_then(|w| state.world().attack(w))
+                .map_or(0, |a| a.0);
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack: atk,
+                    health: 0,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::EnemySpellsCostZero => {
+            let inner = state.make_mut();
+            inner.players[owner.opponent().index()].spells_cost_zero = true;
+        }
+        CardEffect::GiveOpponentManaCrystal { count } => {
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.opponent().index()];
+            p.mana_crystals = (p.mana_crystals + count).min(10);
+        }
         CardEffect::GainStatsPerHandCard {
             attack,
             health_per_card,
@@ -1035,6 +1063,34 @@ pub(crate) fn resolve_summon(
         minion: e,
     });
     Some(e)
+}
+
+/// Removes durability from the opponent's weapon; a weapon at 0 durability
+/// is destroyed (Bloodsail Corsair).
+fn resolve_remove_weapon_durability(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    owner: PlayerId,
+    amount: i32,
+) {
+    let enemy = owner.opponent();
+    let Some(weapon) = state.player(enemy).weapon else {
+        return;
+    };
+    let dur = state.world().durability(weapon).unwrap_or(Durability(0)).0;
+    let new_dur = dur - amount;
+    if new_dur <= 0 {
+        let inner = state.make_mut();
+        inner.players[enemy.index()].weapon = None;
+        queue.push(Event::WeaponDestroyed {
+            player: enemy,
+            weapon,
+        });
+    } else {
+        state
+            .world_mut()
+            .set_durability(weapon, Durability(new_dur));
+    }
 }
 
 /// Destroys up to `limit` random enemy Secrets (SI:7 Infiltrator — one;

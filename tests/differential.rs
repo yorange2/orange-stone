@@ -372,6 +372,20 @@ fn scenario_attack_trade_event_sequence() {
     assert_eq!(state.world().effective_health(attacker), Some(Health(3)));
 }
 
+/// Finds the first Hand-zone entity with the given card ID (Wave 4 scenarios).
+fn find_hand_entity(
+    state: &GameState,
+    player: orange_stone::core::player::PlayerId,
+    card_id: &str,
+) -> Entity {
+    state
+        .world()
+        .zones()
+        .iter(Zone::Hand, player)
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == card_id))
+        .expect("entity with card id in hand")
+}
+
 /// Finds the first Play-zone entity with the given card ID (Wave 0 scenarios).
 fn find_entity(
     state: &GameState,
@@ -2621,4 +2635,371 @@ fn w3_blood_knight_absorbs_all_divine_shields() {
     );
     assert_eq!(state.world().divine_shield(enemy_shielded).is_some(), false);
     assert_eq!(state.world().divine_shield(enemy_plain).is_some(), false);
+}
+
+// ============================================================
+// Wave 4 — cost & weapon interactions (fidelity-debt-roadmap W4):
+// hand-cost auras, weapon-attack cost, weapon durability, conditional
+// charge, enemy-spells-zero, give-opponent-mana.
+// ============================================================
+
+/// W4-1 Mana Wraith — ALL minions cost (1) more (both players' hands; spells
+/// unaffected).
+#[test]
+fn w4_mana_wraith_increases_all_minion_costs() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, MANA_WRAITH, WORGEN_INFILTRATOR};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &MANA_WRAITH);
+    builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_hand(PlayerId2(), &WORGEN_INFILTRATOR);
+    let state = builder.build();
+    let p1_card = find_hand_entity(&state, PlayerId1(), "CLASSIC_001");
+    let p2_card = find_hand_entity(&state, PlayerId2(), "NEUTRAL_C08");
+    assert_eq!(
+        state.world().effective_cost(p1_card).map(|c| c.0),
+        Some(3),
+        "P1's 2-cost minion costs 3"
+    );
+    assert_eq!(
+        state.world().effective_cost(p2_card).map(|c| c.0),
+        Some(2),
+        "P2's 1-cost minion costs 2 — the aura hits both players"
+    );
+}
+
+/// W4-2 Venture Co. Mercenary — YOUR minions cost (3) more (the opponent's
+/// hand is untouched).
+#[test]
+fn w4_venture_co_increases_own_minion_costs() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, VENTURE_CO_MERCENARY, WORGEN_INFILTRATOR};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &VENTURE_CO_MERCENARY);
+    builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_hand(PlayerId2(), &WORGEN_INFILTRATOR);
+    let state = builder.build();
+    let p1_card = find_hand_entity(&state, PlayerId1(), "CLASSIC_001");
+    let p2_card = find_hand_entity(&state, PlayerId2(), "NEUTRAL_C08");
+    assert_eq!(
+        state.world().effective_cost(p1_card).map(|c| c.0),
+        Some(5),
+        "P1's 2-cost minion costs 5"
+    );
+    assert_eq!(
+        state.world().effective_cost(p2_card).map(|c| c.0),
+        Some(1),
+        "the opponent's minions are unaffected"
+    );
+}
+
+/// W4-3 Southsea Deckhand — has Charge while you have a weapon equipped.
+#[test]
+fn w4_southsea_deckhand_charge_with_weapon() {
+    use orange_stone::cards::def::{SOUTHSHORE_DECKHAND, TRUESILVER_CHAMPION};
+    // No weapon: no charge — the freshly played deckhand cannot attack
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &SOUTHSHORE_DECKHAND);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let deckhand = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("deckhand in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: deckhand,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero = state.player(PlayerId2()).hero;
+    assert_eq!(
+        engine.apply(
+            &mut state,
+            Action::Attack {
+                attacker: deckhand,
+                defender: hero
+            }
+        ),
+        Err(orange_stone::engine::rules::EngineError::AttacksExhausted),
+        "no weapon — summoning sickness applies"
+    );
+    // With a weapon equipped the deckhand gains Charge
+    let mut builder = GameBuilder::new();
+    builder.equip_weapon(PlayerId1(), &TRUESILVER_CHAMPION);
+    builder.add_minion_to_hand(PlayerId1(), &SOUTHSHORE_DECKHAND);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let deckhand = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("deckhand in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: deckhand,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_charge(deckhand), true);
+    let hero = state.player(PlayerId2()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: deckhand,
+                defender: hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(28)),
+        "the deckhand attacked despite summoning sickness"
+    );
+}
+
+/// W4-4 Dread Corsair — Taunt; costs (1) less per Attack of your weapon.
+#[test]
+fn w4_dread_corsair_cost_by_weapon_attack() {
+    use orange_stone::cards::def::{DREAD_CORSAIR, TRUESILVER_CHAMPION};
+    // No weapon: full 4 cost
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &DREAD_CORSAIR);
+    let state = builder.build();
+    let corsair = find_hand_entity(&state, PlayerId1(), "NEUTRAL_C13");
+    assert_eq!(state.world().effective_cost(corsair).map(|c| c.0), Some(4));
+    // 4-attack weapon: 4 - 4 = 0
+    let mut builder = GameBuilder::new();
+    builder.equip_weapon(PlayerId1(), &TRUESILVER_CHAMPION);
+    builder.add_minion_to_hand(PlayerId1(), &DREAD_CORSAIR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let state = builder.build();
+    let corsair = find_hand_entity(&state, PlayerId1(), "NEUTRAL_C13");
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, corsair, PlayerId1()).0,
+        0,
+        "Truesilver's 4 Attack discounts the full cost"
+    );
+}
+
+/// W4-5 Bloodsail Raider — Battlecry: gain Attack equal to your weapon's
+/// Attack.
+#[test]
+fn w4_bloodsail_raider_gains_weapon_attack() {
+    use orange_stone::cards::def::{BLOODSAIL_RAIDER, TRUESILVER_CHAMPION};
+    let mut builder = GameBuilder::new();
+    builder.equip_weapon(PlayerId1(), &TRUESILVER_CHAMPION);
+    builder.add_minion_to_hand(PlayerId1(), &BLOODSAIL_RAIDER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let raider = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("raider in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: raider,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(raider),
+        Some(Attack(6)),
+        "2 base + 4 weapon attack"
+    );
+}
+
+/// W4-6 Bloodsail Corsair — Battlecry: remove 1 Durability from the
+/// opponent's weapon (a weapon at 0 durability is destroyed).
+#[test]
+fn w4_bloodsail_corsair_removes_weapon_durability() {
+    use orange_stone::cards::def::{BLOODSAIL_CORSAIR, TRUESILVER_CHAMPION};
+    let mut builder = GameBuilder::new();
+    builder.equip_weapon(PlayerId2(), &TRUESILVER_CHAMPION);
+    builder.add_minion_to_hand(PlayerId1(), &BLOODSAIL_CORSAIR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let corsair = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("corsair in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: corsair,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let weapon = state.player(PlayerId2()).weapon.expect("weapon alive");
+    assert_eq!(
+        state.world().durability(weapon).map(|d| d.0),
+        Some(1),
+        "Truesilver 2 durability - 1"
+    );
+}
+
+#[test]
+fn w4_bloodsail_corsair_destroys_1_durability_weapon() {
+    use orange_stone::cards::def::{BLOODSAIL_CORSAIR, TRUESILVER_CHAMPION};
+    let mut builder = GameBuilder::new();
+    builder.equip_weapon(PlayerId2(), &TRUESILVER_CHAMPION);
+    let fodder = builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    builder.add_minion_to_hand(PlayerId1(), &BLOODSAIL_CORSAIR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId2());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // The enemy hero attacks once: Truesilver 2 -> 1 durability
+    let hero = state.player(PlayerId2()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: fodder,
+            },
+        )
+        .unwrap();
+    let weapon = state.player(PlayerId2()).weapon.expect("weapon alive");
+    assert_eq!(state.world().durability(weapon).map(|d| d.0), Some(1));
+    state.set_active_player(PlayerId1());
+    let corsair = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("corsair in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: corsair,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId2()).weapon,
+        None,
+        "a 1-durability weapon is destroyed"
+    );
+}
+
+/// W4-7 Millhouse Manastorm — Battlecry: the opponent's spells cost 0 next
+/// turn.
+#[test]
+fn w4_millhouse_makes_enemy_spells_free() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, MILLHOUSE_MANASTORM, PYROBLAST};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &MILLHOUSE_MANASTORM);
+    builder.add_minion_to_hand(PlayerId2(), &PYROBLAST);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.set_mana(PlayerId2(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let millhouse = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("millhouse in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: millhouse,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The opponent's turn: a 10-cost spell costs 0
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.player(PlayerId2()).current_mana, 10);
+    let pyro = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .next()
+        .expect("pyroblast in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: pyro,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId2()).current_mana,
+        10,
+        "the enemy spell was free"
+    );
+}
+
+/// W4-8 Arcane Golem — Charge; Battlecry: give your opponent a mana crystal.
+#[test]
+fn w4_arcane_golem_gives_opponent_crystal() {
+    use orange_stone::cards::def::ARCANE_GOLEM;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &ARCANE_GOLEM);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.set_mana(PlayerId2(), 5, 5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let golem = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("golem in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: golem,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId2()).mana_crystals,
+        6,
+        "the opponent gained an empty crystal"
+    );
+    assert_eq!(
+        state.player(PlayerId2()).current_mana,
+        5,
+        "the crystal is empty — current mana unchanged"
+    );
+    assert_eq!(state.world().effective_charge(golem), true);
 }

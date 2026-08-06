@@ -1,8 +1,8 @@
 # Fidelity Debt — Simplified Cards (F4/F5 Audit Ledger)
 
-> **Status: 26 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
+> **Status: 18 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
 > W0 wiring pass PR #79 cleared 13; W1 race pass PR #80 cleared 11; W2 triggers PR #81 cleared 8;
-> W3 predicates PR #82 cleared 9).
+> W3 predicates PR #82 cleared 9; W4 cost/weapon PR #84 cleared 8).
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
@@ -58,6 +58,17 @@
 > absorb (`AbsorbDivineShields` Blood Knight — +3/+3 per shield, both sides).
 > 9 scenarios in `tests/differential.rs` (`w3_*`).
 >
+> **2026-08-06 W4 cost/weapon pass (PR #84)**: all 8 cost & weapon cards
+> landed — hand-zone cost auras (`IncreaseMinionCost` Mana Wraith — both
+> players; `IncreaseMinionCostFriendly` Venture Co. — own minions only; both
+> stack on the G5 modifier stack), weapon-attack cost reduction (Dread Corsair
+> in `play_cost`), weapon-durability damage (Bloodsail Corsair — a weapon at 0
+> durability is destroyed), the weapon-equipped predicate (`ChargeWithWeapon`
+> aura — Southsea Deckhand; `effective_charge` checks for an equipped weapon),
+> enemy-spells-cost-0 (Millhouse Manastorm — a per-player `spells_cost_zero`
+> flag, cleared at turn end), and give-opponent-mana (Arcane Golem — an empty
+> crystal). 9 scenarios in `tests/differential.rs` (`w4_*`).
+>
 > **Execution plan**: [docs/fidelity-debt-roadmap.md](fidelity-debt-roadmap.md)
 > (zh: `fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
 > W7 wrap-up) covering all 67 cards; a card is done when its ledger row, its code
@@ -76,7 +87,7 @@ The 67 markers are 67 unique card IDs — the 3 pre-fix ID collisions
 `ALL_CARDS` (413 unique entries after the 10-card addition and the 7-entry dedup,
 PR #77). 4 markers were stale comments on already-faithful cards and are cleaned
 (§10); the genuine debt is 67 cards — **W0 cleared 13, W1 cleared 11,
-W2 cleared 8 and W3 cleared 9, leaving 26**.
+W2 cleared 8, W3 cleared 9 and W4 cleared 8, leaving 18**.
 
 ---
 
@@ -130,22 +141,11 @@ used by Cleave; Multi-Shot is faithful but its comment is stale, see §10).
 | NEUTRAL_R18 | Ancient Mage | vanilla | Battlecry: give adjacent minions Spell Damage +1 | adjacent-target spell-damage buff |
 | NEUTRAL_R08 | Crazed Alchemist | vanilla | Battlecry: swap a minion's Attack and Health | swap effect (missing; only Set/Double variants) |
 
-### 6. Cost & weapon-condition auras (8)
+### 6. Cost & weapon-condition auras (8) ✅ resolved (W4, PR #84)
 
-The cost-modifier stack (G5) exists; **missing: hand-zone cost auras on all
-minions / "first minion this turn" state / conditional (while weapon equipped)
-Charge / weapon-attack cost reduction / weapon-durability damage**.
-
-| ID | Card | Current | Real Hearthstone | Missing mechanism |
-| --- | --- | --- | --- | --- |
-| NEUTRAL_R22 | Mana Wraith | vanilla | ALL minions cost (1) more | hand-cost aura (all minions) |
-| NEUTRAL_C14 | Venture Co. Mercenary | vanilla | Your minions cost (3) more | hand-cost aura (own minions) |
-| NEUTRAL_R24 | Pint-Sized Summoner | vanilla | The first minion you play each turn costs (1) less | "first minion this turn" state |
-| NEUTRAL_C07 | Southsea Deckhand | always has Charge | Has Charge while you have a weapon equipped | weapon-equipped predicate on Charge |
-| NEUTRAL_C13 | Dread Corsair | Taunt only | Taunt; costs (1) less per Attack of your weapon | weapon-attack cost modifier |
-| NEUTRAL_C09 | Bloodsail Raider | vanilla | Battlecry: gain Attack equal to your weapon's Attack | weapon-attack predicate |
-| NEUTRAL_R03 | Bloodsail Corsair | vanilla | Battlecry: remove 1 Durability from your opponent's weapon | weapon-durability damage (only DestroyWeapon exists) |
-| LEGENDARY_021 | Millhouse Manastorm | no drawback | Battlecry: enemy spells cost 0 next turn | enemy-spells-cost-0 effect (missing) |
+All landed: hand-zone cost auras (global / own), weapon-attack cost reduction,
+weapon-durability damage, weapon-equipped predicate (conditional Charge),
+enemy-spells-cost-0, give-opponent-mana (`w4_*` scenarios).
 
 ### 7. This-turn temporary buff (1)
 
@@ -245,15 +245,15 @@ register + destroyed weapons leave play (W0) / spell-cast deaths resolve before
 (`FriendlyRace`/`AllOtherFriendlyRace`/`AnyRace`) + race-conditioned auras
 (`GrantCharge` Charge aura) + `Trigger.race` + field-driven race pools (W1) /
 trigger classes complete: `CharacterHealed`, `Attacked`, `CardPlayed`,
-`SecretPlayed`, `MinionDied` (any) + destroy-secret effects (W2).
+`SecretPlayed`, `MinionDied` (any) + destroy-secret effects (W2) /
+hand-zone cost auras (`IncreaseMinionCost` / `IncreaseMinionCostFriendly`) +
+weapon-attack cost reduction + weapon-durability damage + `ChargeWithWeapon`
+conditional Charge + enemy-spells-cost-0 + give-opponent-mana (W4).
 
 **Missing** (primitives first, per the Review-II "do G before F4/F5" discipline):
-1. target predicates: attack-range, hand-size, hero-health, damaged-friendly,
-   owns-secret, weapon-equipped; "first minion this turn" state — §4, §6
-2. effects: set-health-to-1, swap attack/health, mass Divine Shield,
-   enemy-spells-cost-0, weapon-durability damage,
+1. effects: set-health-to-1, swap attack/health, mass Divine Shield,
    adjacent-target buff/freeze, two-random damage, this-turn temp buff,
-   probabilistic effects — §5, §6, §7, §8, §9
+   probabilistic effects — §5, §7, §8, §9
 
 ## F5 verification per fix
 

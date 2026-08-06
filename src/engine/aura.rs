@@ -148,6 +148,9 @@ const fn aura_attack_value(effect: AuraEffect) -> i32 {
         AuraEffect::ReduceMinionCost { .. } => 0,
         AuraEffect::GrantCharge => 0,
         AuraEffect::FirstMinionDiscount { .. } => 0,
+        AuraEffect::IncreaseMinionCost { .. } => 0,
+        AuraEffect::IncreaseMinionCostFriendly { .. } => 0,
+        AuraEffect::ChargeWithWeapon => 0,
     }
 }
 
@@ -161,5 +164,8 @@ const fn aura_health_value(effect: AuraEffect) -> i32 {
         AuraEffect::ReduceMinionCost { .. } => 0,
         AuraEffect::GrantCharge => 0,
         AuraEffect::FirstMinionDiscount { .. } => 0,
+        AuraEffect::IncreaseMinionCost { .. } => 0,
+        AuraEffect::IncreaseMinionCostFriendly { .. } => 0,
+        AuraEffect::ChargeWithWeapon => 0,
     }
 }

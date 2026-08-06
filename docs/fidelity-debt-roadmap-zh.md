@@ -1,6 +1,6 @@
 # 保真债实现路线图 — 67 张简化卡
 
-> **状态：W3 完成（PR #82）；W4 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
+> **状态：W4 完成（PR #84）；W5 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
 > 的 F4 持续 / F5 持续条目。[fidelity-debt.md](fidelity-debt-zh.md) 账本是卡名单的
 > 权威来源，本文档是执行计划。一张卡只有在"实现 **且** 通过 F5 差分测试验证"后
 > 才离开账本——见账本的 [F5 验收](fidelity-debt-zh.md#每张卡的-f5-验收) 与
@@ -48,12 +48,11 @@
 | 字段驱动种族池（W1） | `cards/pool.rs` | Barrens Stablehand 等 |
 | 触发类补全（W2）：`CharacterHealed` / `Attacked` / `CardPlayed` / `SecretPlayed` / `MinionDied`（任意）+ 摧毁奥秘 | `core/component.rs` / `rules.rs` / `trigger.rs` | 光明之泉侍女、智慧祝福、任务达人、奥秘守护者、食尸鬼、SI:7、吞秘巨蟒、照明弹 |
 | 条件谓词（W3）：攻击区间 / 手牌数 / 英雄血量 / 受伤 / 控制奥秘 / 首个随从 / 圣盾吸收 | `core/effect.rs` / `trigger.rs` / `engine/cost.rs` | 科多兽、猎潮驯兽师、暮光幼龙、致死打击、狂暴、战斗怒火、以太奥秘学者、微型召唤师、血骑士 |
+| 费用/武器（W4）：手牌区费用光环 / 按武器攻击减费 / 武器耐久削减 / `ChargeWithWeapon` / 敌方法术 0 费 / 给对手水晶 | `core/component.rs` / `core/world.rs` / `engine/cost.rs` / `trigger.rs` | 法力怨魂、雇佣兵、船工、恐怖海盗、血帆袭击者、血帆海盗、米米尔隆、奥术傀儡 |
 
 **缺失**（按 wave 分组的原语）：
 
-1. 手牌区费用光环（全体随从）、按武器攻击减费、武器耐久削减、敌方法术 0 费、
-   给对手水晶 → W4
-5. 生命设为 1、交换攻击/生命、邻位增益/冻结、双效果组合（含授嘲讽）→ W5
+1. 生命设为 1、交换攻击/生命、邻位增益/冻结、双效果组合（含授嘲讽）→ W5
 6. 概率、本回合临时增益、群体圣盾、排除自身的全场伤害、抽牌-按费用伤害、
    职业过滤 → W6
 7. 手牌区交换、伤害反射奥秘、1 生命复活奥秘 → W7
@@ -182,25 +181,33 @@
 | NEUTRAL_E05 | 血骑士 | 吸收所有圣盾，+3/+3 | `w3_blood_knight_absorbs_all_divine_shields` |
 
 **验收**：9 个差分场景；RL 卡池 +9（354 → 363）。
-## Wave 4 — 费用与武器互动（8 张）
+## Wave 4 — 费用与武器互动（8 张）✅ 完成（PR #84）
 
-**原语**：
-- 手牌区费用光环（"所有随从"/"你的随从"，叠在 G5 修正栈上）、按武器攻击减费、
-  武器耐久削减、武器装备谓词（条件冲锋）、敌方法术 0 费、给对手水晶。
+**原语**——全部落地：
+- 手牌区费用光环：`AuraEffect::IncreaseMinionCost`（法力怨魂——所有随从 +1，
+  双方手牌都生效）与 `IncreaseMinionCostFriendly`（风险投资公司雇佣兵——只加
+  自己的），叠在 G5 修正栈上（`effective_cost` 同时扫双方费用光环桶）。
+- 按武器攻击减费：恐怖海盗在 `play_cost` 中减去武器攻击力。
+- 武器耐久削减：`CardEffect::RemoveWeaponDurability`（血帆海盗），耐久归零
+  即摧毁。
+- 武器装备谓词：`AuraEffect::ChargeWithWeapon`（南海船工）——
+  `effective_charge` 在武器在场时授予冲锋（召唤失调也被豁免）。
+- 敌方法术 0 费：`CardEffect::EnemySpellsCostZero`（米米尔隆）——玩家级
+  `spells_cost_zero` 标志，`play_cost` 读取、回合结束清除。
+- 给对手水晶：`CardEffect::GiveOpponentManaCrystal`（奥术傀儡——空水晶）。
 
-| ID | 卡名 | 真实效果 |
-| --- | --- | --- |
-| NEUTRAL_R22 | 法力怨魂 | 所有随从的法力值消耗 +1 |
-| NEUTRAL_C14 | 风险投资公司雇佣兵 | 你的随从法力值消耗 +3 |
-| NEUTRAL_C07 | 南海船工 | 装备武器时具有冲锋 |
-| NEUTRAL_C13 | 恐怖海盗 | 嘲讽；武器每有 1 攻击力减 1 费 |
-| NEUTRAL_C09 | 血帆袭击者 | 战吼：获得与武器攻击力相等的攻击力 |
-| NEUTRAL_R03 | 血帆海盗 | 战吼：从对手武器移除 1 点耐久 |
-| LEGENDARY_021 | 米米尔隆的头部 | 敌方法术下回合费用为 0 |
-| NEUTRAL_R14 | 奥术傀儡 | 冲锋；对手获得一个法力水晶 |
+| ID | 卡名 | 真实效果 | 场景 |
+| --- | --- | --- | --- |
+| NEUTRAL_R22 | 法力怨魂 | 所有随从的法力值消耗 +1 | `w4_mana_wraith_increases_all_minion_costs` |
+| NEUTRAL_C14 | 风险投资公司雇佣兵 | 你的随从法力值消耗 +3 | `w4_venture_co_increases_own_minion_costs` |
+| NEUTRAL_C07 | 南海船工 | 装备武器时具有冲锋 | `w4_southsea_deckhand_charge_with_weapon` |
+| NEUTRAL_C13 | 恐怖海盗 | 嘲讽；武器每有 1 攻击力减 1 费 | `w4_dread_corsair_cost_by_weapon_attack` |
+| NEUTRAL_C09 | 血帆袭击者 | 战吼：获得与武器攻击力相等的攻击力 | `w4_bloodsail_raider_gains_weapon_attack` |
+| NEUTRAL_R03 | 血帆海盗 | 战吼：从对手武器移除 1 点耐久 | `w4_bloodsail_corsair_removes_weapon_durability` + `…_destroys_1_durability_weapon` |
+| LEGENDARY_021 | 米米尔隆的头部 | 敌方法术下回合费用为 0 | `w4_millhouse_makes_enemy_spells_free` |
+| NEUTRAL_R14 | 奥术傀儡 | 冲锋；对手获得一个法力水晶 | `w4_arcane_golem_gives_opponent_crystal` |
 
-**验收**：8 个差分场景（含与既有光环的费用修正叠加）；RL 卡池 +8。
-
+**验收**：9 个差分场景（含与既有光环的费用修正叠加）；RL 卡池 +8（363 → 371）。
 ## Wave 5 — 目标结构与效果组合（7 张）
 
 **原语**：
@@ -271,7 +278,7 @@
 | W1 种族 ✅ PR #80 | 11 | 种族字段 + 目标/光环/触发 + 字段驱动池 | +11 → **346** |
 | W2 触发 ✅ PR #81 | 8 | 5 个触发类 + 摧毁奥秘 | +8 → **354** |
 | W3 谓词 ✅ PR #82 | 9 | 攻击区间/手牌数/血量/受伤/奥秘/首个随从/圣盾 谓词 | +9 → **363** |
-| W4 费用/武器 | 8 | 6+ 原语 | +8 |
+| W4 费用/武器 ✅ PR #84 | 8 | 费用光环/武器攻击减费/耐久削减/条件冲锋/法术0费/给水晶 | +8 → **371** |
 | W5 目标结构 | 7 | 5+ 原语 | +7 |
 | W6 特殊机制 | 8 | 6 个原语 | +8 |
 | W7 收尾 | 3 | 3 个原语 | +3 |
