@@ -78,13 +78,13 @@ Fatigue lives in `draw_card_no_queue` — every draw path (turn draw, card effec
 
 **Acceptance**: `cargo test` all green (405 baseline); every behavior above pinned by a named test.
 
-### M2 — Coverage & interactions
-- [ ] Audit pass over every draw path confirming it funnels through the choke point (turn draw, `DrawCard`, `ChanceDraw`, `DrawAndDamageByCost`, deathrattles, life tap, Far Sight, Battle Rage, Flare); any direct `zones().iter(Zone::Deck)` move not covered gets a decision (likely D4-style "no fatigue" or refactor)
-- [ ] **F-A10 scenario pinned properly**: both decks empty → game ends with a real winner well before `max_steps` (replaces the old "limit draw" expectation with a fatigue-death test)
-- [ ] Ice Block: fatigue lethal is prevented, game continues
-- [ ] Determinism: fatigue uses no RNG — same-seed replay remains byte-identical (existing determinism test must pass unchanged)
-- [ ] SabberStone differential cases for exhausted-deck games (`tests/differential.rs`, if the parity matrix reaches fatigue lines)
-- [ ] `cargo bench` sanity: fatigue is a cold path (≤ ~30 hits/game), no hot-path regression
+### M2 — Coverage & interactions ✅
+- [x] Audit pass over every draw path confirming it funnels through the choke point (turn draw, `DrawCard`, `ChanceDraw`, `DrawAndDamageByCost`, deathrattles, life tap, Far Sight, Battle Rage, Flare); any direct `zones().iter(Zone::Deck)` move not covered gets a decision (likely D4-style "no fatigue" or refactor)
+- [x] **F-A10 scenario pinned properly**: both decks empty → game ends with a real winner well before `max_steps` (replaces the old "limit draw" expectation with a fatigue-death test)
+- [x] Ice Block: fatigue lethal is prevented, game continues
+- [x] Determinism: fatigue uses no RNG — same-seed replay remains byte-identical (existing determinism test must pass unchanged)
+- [x] SabberStone differential cases for exhausted-deck games (`tests/differential.rs`, if the parity matrix reaches fatigue lines)
+- [x] `cargo bench` sanity: fatigue is a cold path (≤ ~30 hits/game), no hot-path regression
 
 **Acceptance**: full test suite green; a two-empty-deck game terminates with a winner in both `GameEnv` and `battle` paths.
 
