@@ -117,6 +117,7 @@ pub const MARK_OF_THE_WILD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Wrath — Choose One: deal 3 damage, or 1 damage + draw a card (simplified: 3-damage branch only)
 pub const WRATH: CardDef = CardDef {
     id: "DRUID_004",
     name: "Wrath",
@@ -225,6 +226,7 @@ pub const STARFIRE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Druid of the Claw — Choose One: Charge or +2 Health and Taunt (simplified: fixed 4/6 Taunt — no Choose One)
 pub const DRUID_OF_THE_CLAW: CardDef = CardDef {
     id: "DRUID_007",
     name: "Druid of the Claw",
@@ -258,6 +260,7 @@ pub const DRUID_OF_THE_CLAW: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Ancient of Lore — Choose One: draw 2 or restore 5 Health (simplified: draw-2 branch only)
 pub const ANCIENT_OF_LORE: CardDef = CardDef {
     id: "DRUID_008",
     name: "Ancient of Lore",
@@ -291,6 +294,7 @@ pub const ANCIENT_OF_LORE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Ancient of War — Choose One: +5 Attack or +5 Health and Taunt (simplified: vanilla 5/5 — no Choose One)
 pub const ANCIENT_OF_WAR: CardDef = CardDef {
     id: "DRUID_009",
     name: "Ancient of War",

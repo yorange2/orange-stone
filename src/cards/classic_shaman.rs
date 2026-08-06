@@ -358,6 +358,7 @@ pub const MANA_TIDE_TOTEM: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Doomhammer — Windfury. Overload: (2) (simplified: no Overload)
 pub const DOOMHAMMER: CardDef = CardDef {
     id: "SHAMAN_011",
     name: "Doomhammer",
@@ -528,6 +529,7 @@ pub const DUST_DEVIL: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+/// Forked Lightning — deal 2 damage to 2 random enemy minions. Overload: (2) (simplified: Overload amount 1, not 2 — id collision with Windfury, see fidelity-debt F-A8)
 pub const FORKED_LIGHTNING: CardDef = CardDef {
     id: "SHAMAN_016",
     name: "Forked Lightning",
@@ -595,6 +597,7 @@ pub const LAVA_BURST: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+/// Stormforged Axe — 2/3 weapon. Overload: (1) (simplified: no Overload)
 pub const STORMFORGED_AXE: CardDef = CardDef {
     id: "SHAMAN_018",
     name: "Stormforged Axe",

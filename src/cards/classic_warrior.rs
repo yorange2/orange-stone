@@ -254,6 +254,7 @@ pub const BATTLE_AXE: CardDef = CardDef {
 
 pub const FROTHING_BERSERKER: CardDef = vanilla!("WARRIOR_007", "Frothing Berserker", 3, 2, 4);
 
+/// Warsong Commander — your other minions with 3 or less Attack have Charge (simplified: no Charge aura — vanilla 2/3)
 pub const WARSONG_COMMANDER: CardDef = CardDef {
     id: "WARRIOR_008",
     name: "Warsong Commander",
@@ -287,6 +288,7 @@ pub const WARSONG_COMMANDER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Gorehowl — attacking a minion costs 1 Attack instead of 1 Durability (simplified: no attack-loss mechanic — vanilla 7/1)
 pub const GOREHOWL: CardDef = CardDef {
     id: "WARRIOR_009",
     name: "Gorehowl",
@@ -320,6 +322,7 @@ pub const GOREHOWL: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Grommash Hellscream — Charge. Enrage: +6 Attack (simplified: Charge only — no Enrage)
 pub const GROMMASH_HELLSCREAM: CardDef = CardDef {
     id: "WARRIOR_010",
     name: "Grommash Hellscream",

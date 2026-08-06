@@ -619,6 +619,7 @@ pub const WOLFRIDER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Amani Berserker — Enrage: +3 Attack (simplified: no Enrage — vanilla 2/3)
 pub const AMANI_BERSERKER: CardDef = vanilla!("CLASSIC_018", "Amani Berserker", 2, 2, 3);
 
 pub const FAERIE_DRAGON: CardDef = CardDef {
@@ -907,6 +908,7 @@ pub const IMP_MASTER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Raging Worgen — Enrage: +1 Attack and Windfury (simplified: Windfury only — no Enrage)
 pub const RAGING_WORGEN: CardDef = CardDef {
     id: "NEUTRAL_008",
     name: "Raging Worgen",
@@ -1486,6 +1488,7 @@ pub const ARCHMAGE: CardDef = CardDef {
 
 pub const CORE_HOUND: CardDef = vanilla!("NEUTRAL_025", "Core Hound", 7, 9, 5);
 
+/// Sea Giant — costs (1) less for each other minion on the battlefield (simplified: no cost reduction — vanilla 8/8)
 pub const SEA_GIANT: CardDef = vanilla!("NEUTRAL_026", "Sea Giant", 10, 8, 8);
 pub const MOLTEN_GIANT: CardDef = vanilla!("NEUTRAL_027", "Molten Giant", 20, 8, 8);
 pub const MOUNTAIN_GIANT: CardDef = vanilla!("NEUTRAL_028", "Mountain Giant", 12, 8, 8);

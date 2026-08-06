@@ -220,6 +220,7 @@ pub const POLYMORPH: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Water Elemental — freeze any character damaged by this minion (simplified: no freeze-on-damage — vanilla 3/6)
 pub const WATER_ELEMENTAL: CardDef = CardDef {
     id: "MAGE_007",
     name: "Water Elemental",
