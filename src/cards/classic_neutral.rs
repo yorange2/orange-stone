@@ -619,6 +619,7 @@ pub const WOLFRIDER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Amani Berserker — Enrage: +3 Attack (simplified: no Enrage — vanilla 2/3)
 pub const AMANI_BERSERKER: CardDef = vanilla!("CLASSIC_018", "Amani Berserker", 2, 2, 3);
 
 pub const FAERIE_DRAGON: CardDef = CardDef {
@@ -907,6 +908,7 @@ pub const IMP_MASTER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Raging Worgen — Enrage: +1 Attack and Windfury (simplified: Windfury only — no Enrage)
 pub const RAGING_WORGEN: CardDef = CardDef {
     id: "NEUTRAL_008",
     name: "Raging Worgen",
@@ -1486,6 +1488,7 @@ pub const ARCHMAGE: CardDef = CardDef {
 
 pub const CORE_HOUND: CardDef = vanilla!("NEUTRAL_025", "Core Hound", 7, 9, 5);
 
+/// Sea Giant — costs (1) less for each other minion on the battlefield (simplified: no cost reduction — vanilla 8/8)
 pub const SEA_GIANT: CardDef = vanilla!("NEUTRAL_026", "Sea Giant", 10, 8, 8);
 pub const MOLTEN_GIANT: CardDef = vanilla!("NEUTRAL_027", "Molten Giant", 20, 8, 8);
 pub const MOUNTAIN_GIANT: CardDef = vanilla!("NEUTRAL_028", "Mountain Giant", 12, 8, 8);
@@ -2409,14 +2412,15 @@ pub const MURLOC_WARLEADER: CardDef = CardDef {
 };
 
 // ============================================================
-// Classic set — simplified cards (effects need new engine support; simplified to vanilla or partial effects)
+// Classic set — fidelity-debt wave cards (all effects implemented;
+// per-card debt cleared via docs/finished/fidelity-debt-roadmap.md)
 // ============================================================
 
-// Neutral Basic — minions not fully implementable
+// Neutral Basic
 /// Gurubashi Berserker — Enrage: whenever this minion takes damage, gain +3 Attack
 pub const GURUBASHI_BERSERKER: CardDef = vanilla!("NEUTRAL_B19", "Gurubashi Berserker", 5, 2, 8);
 
-// Neutral Common — simplified
+// Neutral Common
 /// Southsea Deckhand — has Charge while you have a weapon equipped
 pub const SOUTHSHORE_DECKHAND: CardDef = CardDef {
     id: "NEUTRAL_C07",
@@ -2689,7 +2693,7 @@ pub const VENTURE_CO_MERCENARY: CardDef = CardDef {
 /// gains +2 Attack
 pub const SPITEFUL_SMITH: CardDef = vanilla!("NEUTRAL_C15", "Spiteful Smith", 5, 4, 6);
 
-// Neutral Rare — simplified
+// Neutral Rare
 /// Angry Chicken — Enrage: whenever this minion takes damage, gain +5 Attack
 pub const ANGRY_CHICKEN: CardDef = vanilla!("NEUTRAL_R02", "Angry Chicken", 1, 1, 1);
 /// Bloodsail Corsair — Battlecry: remove 1 Durability from the opponent's weapon
@@ -3246,7 +3250,7 @@ pub const STAMPEDING_KODO: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-// Neutral Epic — simplified
+// Neutral Epic
 /// Hungry Crab — Battlecry: destroy a Murloc and gain +2/+2
 pub const HUNGRY_CRAB: CardDef = CardDef {
     id: "NEUTRAL_E03",

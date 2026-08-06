@@ -81,6 +81,7 @@ pub const HUNTERS_MARK: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Tracking — Discover a card from your deck (simplified: no Discover — vanilla)
 pub const TRACKING: CardDef = CardDef {
     id: "HUNTER_003",
     name: "Tracking",
@@ -252,6 +253,7 @@ pub const HYENA: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Eaglehorn Bow — +1 Durability whenever a friendly Secret is revealed (simplified: no +1 Durability)
 pub const EAGLEHORN_BOW: CardDef = CardDef {
     id: "HUNTER_007",
     name: "Eaglehorn Bow",
@@ -827,7 +829,7 @@ pub const SNIPE: CardDef = CardDef {
 pub const GLADIATORS_LONGBOW_ID: &str = "HUNTER_022";
 
 /// Bestial Wrath — give a Beast +2 Attack and Immune until end of turn.
-/// (This engine simplifies it to any friendly minion)
+/// (simplified: grants to any friendly minion instead of Beast only)
 pub const BESTIAL_WRATH: CardDef = CardDef {
     id: "HUNTER_021",
     name: "Bestial Wrath",

@@ -3,7 +3,12 @@
 > **Status: no simplified-card markers — all 67 fidelity-debt cards cleared (W7 wrap-up PR #86 closed the last 3).
 > W0 wiring PR #79 cleared 13; W1 race PR #80 cleared 11; W2 triggers PR #81 cleared 8;
 > W3 predicates PR #82 cleared 9; W4 cost/weapon PR #83 cleared 8; W5 target structure PR #84 cleared 7;
-> W6 special mechanics PR #85 cleared 8. The ledger is EMPTY; the RL pool reaches the full classic constructed size (391).**
+> W6 special mechanics PR #85 cleared 8. The ledger was EMPTY after W7 and the RL pool reached
+> the full classic constructed size (391). **2026-08-06 registration pass: the status audit found
+> 27 more cards implemented with known simplifications but **without** `(simplified: …)` markers —
+> silently in the RL pool. All 27 now carry comments and are registered below (§11); the debt set
+> grows from 0 to 27 and the RL pool drops to 361 (413 − 27 debt − coin/tokens). Retraining needed. F-A8 (8 duplicate
+> card IDs) remains open.**
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
@@ -84,18 +89,21 @@
 > (`YseraAwakens` — spares Ysera), draw-damage-by-cost (`DrawAndDamageByCost`
 > Holy Wrath), damaged-friendly start-of-turn heal (`RestoreDamagedFriendly`
 > Lightwell), mass buff+Taunt (`GainStatsAndTauntAllFriendly` Gift of the
-> Wild). Pilfer was verified already-faithful (the OtherClass pool filters the
-> Rogue class group) — only the stale comment was cleaned. 8 scenarios
-> (`w6_*`).
+> Wild). Pilfer was *claimed* verified already-faithful in W6, but the
+> OtherClass filter (`!ROGUE_CLASSIC`) also admitted every neutral card;
+> **corrected 2026-08-06** — the pool is now exactly the other eight classes'
+> class cards (`is_other_class_card`, pinned by a `pool.rs` unit test +
+> strengthened `w6_pilfer_adds_other_class_card`). 8 scenarios (`w6_*`).
 >
 > **2026-08-06 W7 wrap-up pass (PR #86)**: the last 3 cards landed — hand-zone
 > swap (`SwapWithHandMinion` Alarm-o-Bot), the damage-reflection secret
 > (`ReflectDamage` Eye for an Eye — new `SecretTrigger::WhenFriendlyHeroDamaged`),
 > and the 1-Health resummon secret (`ResurrectDiedMinion` Redemption).
-> 3 scenarios (`w7_*`). **The ledger is EMPTY; the RL pool is 391 — the full
-> classic constructed pool.**
+> 3 scenarios (`w7_*`). **The ledger was EMPTY and the RL pool was the full 391-card
+> classic pool — until the 2026-08-06 registration pass re-opened it with 27
+> pre-existing simplifications (§11); the pool is now 364 (391 − 27).**
 >
-> **Execution plan**: [docs/fidelity-debt-roadmap.md](finished/fidelity-debt-roadmap.md)
+> **Execution plan**: [docs/fidelity-debt-roadmap.md](../finished/fidelity-debt-roadmap.md)
 > (zh: `finished/fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
 > W7 wrap-up) covering all 67 cards; a card is done when its ledger row, its code
 > comment, and its differential scenario all land together.
@@ -113,8 +121,9 @@ The 67 markers are 67 unique card IDs — the 3 pre-fix ID collisions
 `ALL_CARDS` (413 unique entries after the 10-card addition and the 7-entry dedup,
 PR #77). 4 markers were stale comments on already-faithful cards and are cleaned
 (§10); the genuine debt is 67 cards — **all 67 cleared (W0 13 + W1 11 +
-W2 8 + W3 9 + W4 8 + W5 7 + W6 8 + W7 3); the ledger is EMPTY (2026-08-06
-W7 wrap-up PR #86)**.
+W2 8 + W3 9 + W4 8 + W5 7 + W6 8 + W7 3); the ledger was EMPTY after the
+2026-08-06 W7 wrap-up PR #86, then re-opened with 27 registered simplifications
+(§11) on the same day**.
 
 ---
 
@@ -175,7 +184,9 @@ W5 cleared: Holy Wrath (draw-damage-by-cost), Ancestral Healing
 (full-heal + Taunt). W6 cleared: Righteousness (mass Divine Shield), Ysera
 Awakens (self-exclusion AOE), Lightwell (damaged-friendly start-of-turn
 heal), Gift of the Wild (mass buff+Taunt), Pilfer (class-filtered draw —
-verified already-faithful, stale comment cleaned). Scenarios `w5_*` / `w6_*`.
+W6 marked it verified already-faithful; the 2026-08-06 correction narrowed
+the pool from "any non-Rogue" to the other eight classes' class cards).
+Scenarios `w5_*` / `w6_*`.
 
 ### 10. Resolved — marked simplified but already faithful (4, cleaned in PR #77)
 
@@ -192,6 +203,45 @@ which also removes them from the Python debt set (4 cards re-enter the RL pool).
 | HUNTER_012 | Multi-Shot | comment cleaned — `DealDamageToTwo` is the real effect |
 
 ---
+
+
+### 11. Pre-existing simplifications registered 2026-08-06 (27 cards, pending)
+
+The 2026-08-06 status audit (`docs/classic-cards-zh.md` vs. the code) found 27
+cards with known simplifications that carried no `(simplified: …)` marker — they
+were silently in the RL pool. All 27 defs now have comments (debt set = 27);
+cards leave the ledger only via the [Maintenance](#maintenance) flow
+(implement → F5 differential → drop comment → invalidate cache).
+
+| ID | Card | Debt |
+| --- | --- | --- |
+| CLASSIC_018 | Amani Berserker | no Enrage — vanilla 2/3 |
+| NEUTRAL_008 | Raging Worgen | Windfury only, no Enrage |
+| WARRIOR_010 | Grommash Hellscream | Charge only, no Enrage |
+| WARRIOR_008 | Warsong Commander | no Charge aura — vanilla 2/3 |
+| PRIEST_004 | Northshire Cleric | no heal-draw — vanilla 1/3 |
+| HUNTER_021 | Bestial Wrath | grants to any friendly minion (Beast only) |
+| NEUTRAL_026 | Sea Giant | no cost reduction — vanilla 8/8 |
+| SHAMAN_016 | Forked Lightning | Overload 1, real 2 (id collision, F-A8) |
+| SHAMAN_018 | Stormforged Axe | no Overload (1) |
+| SHAMAN_011 | Doomhammer | no Overload (2) |
+| DRUID_004 | Wrath | 3-damage branch only |
+| DRUID_007 | Druid of the Claw | fixed 4/6 Taunt, no Choose One |
+| DRUID_008 | Ancient of Lore | draw-2 branch only |
+| DRUID_009 | Ancient of War | vanilla 5/5, no Choose One |
+| HUNTER_003 | Tracking | no Discover — vanilla |
+| HUNTER_007 | Eaglehorn Bow | no +1 Durability |
+| PRIEST_011 | Cabal Shadow Priest | no Mind Control — vanilla |
+| PRIEST_012 | Prophet Velen | spell damage only, healing not doubled |
+| WARRIOR_009 | Gorehowl | no attack-loss mechanic — vanilla 7/1 |
+| ROGUE_009 | Preparation | no next-spell cost reduction — vanilla |
+| ROGUE_010 | Cold Blood | Combo branch only, no base +2 |
+| LEGENDARY_010 | Onyxia | no Battlecry — vanilla 9/8 |
+| LEGENDARY_011 | Deathwing | no hand discard |
+| MAGE_007 | Water Elemental | no freeze-on-damage — vanilla 3/6 |
+| PALADIN_006 | Truesilver Champion | no heal-on-attack — vanilla 4/2 |
+| PALADIN_016 | Argent Protector | no Battlecry Divine Shield — vanilla 2/2 (id shared, F-A8) |
+| ROGUE_014 | Shiv | no effect — vanilla |
 
 ## Findings from the 2026-08-06 audit pass (all resolved in PR #77 / PR #31)
 
@@ -232,6 +282,41 @@ groups above plus the F5 verification protocol.
   invalidated; M5's training numbers were produced on the pre-fix pool and will
   drift once re-trained.
 
+
+## F-A8 — 8 duplicate card IDs + mis-wired Overload map (open, found 2026-08-06)
+
+F-A3 fixed 3 ID collisions; this pass found 8 more. `card_by_id` resolves the
+first match, so one card of each pair is unreachable by ID, and the Overload
+wiring (`cards/mod.rs::apply_card_keywords`, keyed by raw IDs) is mis-wired:
+
+| ID | Card A | Card B |
+| --- | --- | --- |
+| MAGE_016 | Cone of Cold | Mana Wyrm |
+| PALADIN_016 | Argent Protector | Blessed Champion |
+| PRIEST_016 | Radiance | Divine Spirit |
+| PRIEST_017 | Kul Tiran Chaplain | Inner Fire |
+| SHAMAN_016 | Forked Lightning | Windfury |
+| SHAMAN_017 | Lava Burst | Windspeaker |
+| SHAMAN_018 | Stormforged Axe | Ancestral Healing |
+| SHAMAN_019 | Earth Elemental | Ancestral Spirit |
+
+Overload consequences today: Lightning Bolt / Lightning Storm / Feral Spirit /
+Dust Devil / Lava Burst / Earth Elemental receive the correct amount *by luck*
+(their IDs happen to line up with the match), Forked Lightning gets 1 instead of
+2 (registered §11), Windfury / Windspeaker / Ancestral Spirit wrongly gain
+Overload, Stormforged Axe / Doomhammer get none (registered §11). The match's
+comments are stale (naming Feral Spirit / Forked Lightning / Lightning Storm /
+Totem Golem — the last one is not in the card set at all).
+
+Fix plan (a code wave — not done silently, touches the engine + F5 scenes):
+renumber one card per pair with a unique ID (real HS IDs where known, per the
+F-A3 precedent), re-wire the Overload match by actual card IDs with correct
+amounts (Forked Lightning 2, add Stormforged Axe 1 + Doomhammer 2, drop the
+phantom Windfury / Windspeaker / Ancestral Spirit entries), add F5 differential
+scenes. Verified: the RL side references none of these 8 IDs
+(hearthstone_os / hearthstone use only CLASSIC_* / NEUTRAL_* ids) — no RL deck
+config changes needed.
+
 ## Mechanism inventory (what the engine has vs. what's missing)
 
 **Exists** (so the corresponding cards are mostly *wiring* work):
@@ -255,9 +340,20 @@ set-health-to-1 (Repentance), swap attack/health (Crazed Alchemist),
 adjacent-target buff/freeze (Sunfury Protector / Ancient Mage / Cone of Cold),
 two-effect composition (Mass Dispel, Ancestral Healing) (W5).
 
-**Missing** (primitives first, per the Review-II "do G before F4/F5" discipline):
-1. effects: (none remaining — the W7 wrap-up needs hand-zone swap and two
-   secret effects)
+**Missing** (2026-08-06 refresh — the 27 registered debts in §11, grouped):
+1. Enrage wiring (Amani Berserker, Raging Worgen, Grommash — `ThisMinionDamaged`
+   exists, pure wiring per W0)
+2. Charge aura (Warsong Commander)
+3. Heal-draw trigger (Northshire Cleric)
+4. Weapon attack effects (Truesilver heal, Gorehowl attack-loss, Eaglehorn
+   Durability)
+5. Discover (Tracking); Choose One second branches (Wrath, Druid of the Claw,
+   Ancient of Lore, Ancient of War)
+6. Battlecries (Onyxia, Argent Protector, Deathwing hand discard);
+   freeze-on-damage (Water Elemental); control (Cabal Shadow Priest); healing
+   doubling (Prophet Velen); Shiv's 1-damage draw-1
+7. Cost reduction (Sea Giant, Preparation); Combo base branch (Cold Blood);
+   Overload (Stormforged Axe, Doomhammer, Forked Lightning amount — see F-A8)
 
 ## F5 verification per fix
 

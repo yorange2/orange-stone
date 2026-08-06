@@ -1,10 +1,10 @@
 # 保真债实现路线图 — 67 张简化卡
 
-> **状态：W6 完成（PR #85）；W7 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
-> 的 F4 持续 / F5 持续条目。[fidelity-debt.md](fidelity-debt-zh.md) 账本是卡名单的
+> **状态：全部完成（W7 收尾 PR #86）。** 本路线图执行 [architecture-roadmap.md](../architecture-roadmap-zh.md)
+> 的 F4 持续 / F5 持续条目。[fidelity-debt.md](../fidelity-debt-zh.md) 账本是卡名单的
 > 权威来源，本文档是执行计划。一张卡只有在"实现 **且** 通过 F5 差分测试验证"后
-> 才离开账本——见账本的 [F5 验收](fidelity-debt-zh.md#每张卡的-f5-验收) 与
-> [维护约定](fidelity-debt-zh.md#维护约定)。
+> 才离开账本——见账本的 [F5 验收](../fidelity-debt-zh.md#每张卡的-f5-验收) 与
+> [维护约定](../fidelity-debt-zh.md#维护约定)。
 >
 > 2026-08-06 对照引擎核实：67 处标记、触发作用域语义、下面的机制盘点截至
 > PR #77 全部为最新。W0（13 张）已在 PR #79 落地，盘点已更新 W0 原语。
@@ -246,7 +246,11 @@
 - 受伤友方回合开始治疗：`CardEffect::RestoreDamagedFriendly`（光明之泉——
   从回合结束改为回合开始）。
 - 群体增益+嘲讽：`CardEffect::GainStatsAndTauntAllFriendly`（自然之力）。
-- 职业过滤：顺手牵羊核实已忠实——`OtherClass` 池用职业组表过滤，只清注释。
+- 职业过滤：顺手牵羊的 `OtherClass` 池在 W6 曾被判定"已忠实"，但实际
+  过滤器（`!ROGUE_CLASSIC`）把全部中立卡也算进去了。**2026-08-06 修正**：
+  卡池改为恰好是另外 8 个职业的职业卡（`pool.rs` 的 `is_other_class_card`，
+  由 `other_class_pool_is_class_cards_of_other_classes` 单元测试与加强后的
+  `w6_pilfer_adds_other_class_card` 场景钉住）。
 
 | ID | 卡名 | 真实效果 | 场景 |
 | --- | --- | --- | --- |
@@ -257,7 +261,7 @@
 | DRUID_016 | 自然之力 | 你的随从 +2/+2 并获得嘲讽 | `w6_gift_of_the_wild_buffs_and_taunts` |
 | PALADIN_017 | 神圣愤怒 | 抽一张牌；造成等同于其费用值的伤害 | `w6_holy_wrath_damages_by_drawn_cost` |
 | EX1_341 | 光明之泉 | 回合开始：为一个受伤的友方角色恢复 3 点生命 | `w6_lightwell_heals_at_turn_start` |
-| ROGUE_025 | 顺手牵羊 | 随机将一张其他职业的卡牌置入你的手牌 | `w6_pilfer_adds_non_rogue_card` |
+| ROGUE_025 | 顺手牵羊 | 随机将一张其他职业的卡牌置入你的手牌 | `w6_pilfer_adds_other_class_card` |
 
 **验收**：8 个差分场景；RL 卡池 +8（378 → 388，含顺手牵羊注释清理）。
 ## Wave 7 — 收尾：复杂遗留（3 张）✅ 完成（PR #86）

@@ -192,6 +192,7 @@ pub const CONSECRATION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Truesilver Champion — your hero restores 2 Health when attacking (simplified: no heal-on-attack — vanilla 4/2)
 pub const TRUESILVER_CHAMPION: CardDef = CardDef {
     id: "PALADIN_006",
     name: "Truesilver Champion",
@@ -644,6 +645,7 @@ pub const LIGHTS_JUSTICE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+/// Argent Protector — Battlecry: give a friendly minion Divine Shield (simplified: no Battlecry — vanilla 2/2)
 pub const ARGENT_PROTECTOR: CardDef = CardDef {
     id: "PALADIN_016",
     name: "Argent Protector",

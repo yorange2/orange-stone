@@ -26,6 +26,25 @@ pub fn card_has_race(id: &str, race: Race) -> bool {
     card_by_id(id).is_some_and(|c| c.race == Some(race))
 }
 
+/// Pilfer (and friends): "a random card from another class" — the card must
+/// belong to one of the other eight classes' groups in `sets`; neutral cards
+/// are not class cards. (2026-08 fidelity fix: the previous "any non-Rogue
+/// card" filter also pulled neutral cards into the pool.)
+fn is_other_class_card(card: &CardDef) -> bool {
+    [
+        crate::cards::sets::DRUID_CLASSIC,
+        crate::cards::sets::HUNTER_CLASSIC,
+        crate::cards::sets::MAGE_CLASSIC,
+        crate::cards::sets::PALADIN_CLASSIC,
+        crate::cards::sets::PRIEST_CLASSIC,
+        crate::cards::sets::SHAMAN_CLASSIC,
+        crate::cards::sets::WARLOCK_CLASSIC,
+        crate::cards::sets::WARRIOR_CLASSIC,
+    ]
+    .iter()
+    .any(|class| class.iter().any(|c| c.id == card.id))
+}
+
 /// Dream card pool — Classic built-in tokens (Ysera).
 pub const DREAM_POOL: &[&str] = &[
     "NEUTRAL_T21a", // Emerald Drake
@@ -95,12 +114,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .collect(),
         RandomPool::OtherClass => crate::cards::sets::ALL_CARDS
             .iter()
-            .filter(|c| {
-                // Pilfer: a random card from another class — simplified to any non-Rogue card
-                !crate::cards::sets::ROGUE_CLASSIC
-                    .iter()
-                    .any(|r| r.id == c.id)
-            })
+            .filter(|c| is_other_class_card(c))
             .copied()
             .collect::<Vec<CardDef>>()
             .iter()
@@ -136,12 +150,7 @@ pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'stati
         RandomPool::ShadowSpell => random_filtered(rng, |c| {
             c.card_type == CardType::Spell && c.name.contains("Shadow")
         }),
-        RandomPool::OtherClass => random_filtered(rng, |c| {
-            // Pilfer: a random card from another class — simplified to any non-Rogue card
-            !crate::cards::sets::ROGUE_CLASSIC
-                .iter()
-                .any(|r| r.id == c.id)
-        }),
+        RandomPool::OtherClass => random_filtered(rng, is_other_class_card),
     }
 }
 
@@ -159,4 +168,56 @@ fn random_filtered(
     }
     let idx = rng.next_usize(pool.len());
     Some(pool[idx])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cards::sets;
+
+    /// OtherClass (Pilfer) — "another class" is exactly the other eight
+    /// classes' class cards: every class-list member is reachable, and no
+    /// neutral (NEUTRAL_CLASSIC / LEGENDARY_CLASSIC) or Rogue card is.
+    #[test]
+    fn other_class_pool_is_class_cards_of_other_classes() {
+        let pool = pool_cards(RandomPool::OtherClass);
+        assert!(!pool.is_empty(), "the OtherClass pool must not be empty");
+        let ids: Vec<&str> = pool.iter().map(|c| c.id).collect();
+        let other_classes = [
+            sets::DRUID_CLASSIC,
+            sets::HUNTER_CLASSIC,
+            sets::MAGE_CLASSIC,
+            sets::PALADIN_CLASSIC,
+            sets::PRIEST_CLASSIC,
+            sets::SHAMAN_CLASSIC,
+            sets::WARLOCK_CLASSIC,
+            sets::WARRIOR_CLASSIC,
+        ];
+        for class in other_classes {
+            for card in class {
+                assert!(
+                    ids.contains(&card.id),
+                    "{} must be in the OtherClass pool",
+                    card.id
+                );
+            }
+        }
+        for card in pool {
+            assert!(
+                !sets::NEUTRAL_CLASSIC.iter().any(|c| c.id == card.id),
+                "{} is a neutral card — not 'another class'",
+                card.id
+            );
+            assert!(
+                !sets::LEGENDARY_CLASSIC.iter().any(|c| c.id == card.id),
+                "{} is a neutral legendary — not 'another class'",
+                card.id
+            );
+            assert!(
+                !sets::ROGUE_CLASSIC.iter().any(|c| c.id == card.id),
+                "{} is a Rogue card — not 'another class'",
+                card.id
+            );
+        }
+    }
 }

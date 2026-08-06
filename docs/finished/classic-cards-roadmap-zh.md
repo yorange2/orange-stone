@@ -2,7 +2,7 @@
 
 > 最后更新：2026-08-05（全部卡牌已实现）
 > 覆盖 Classic/Basic（怀旧）系列尚未实现的卡牌。
-> 关联文档：[classic-cards.md](classic-cards.md)（完整卡牌列表）· [classic-cards-zh.md](classic-cards-zh.md)
+> 关联文档：[classic-cards.md](../classic-cards.md)（完整卡牌列表）· [classic-cards-zh.md](../classic-cards-zh.md)
 
 ## 摘要
 

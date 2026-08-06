@@ -118,6 +118,7 @@ pub const POWER_WORD_SHIELD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Northshire Cleric — draw a card whenever a minion is healed (simplified: no heal-draw — vanilla 1/3)
 pub const NORTHSHIRE_CLERIC: CardDef = vanilla!("PRIEST_004", "Northshire Cleric", 1, 1, 3);
 
 pub const SHADOW_WORD_PAIN: CardDef = CardDef {
@@ -331,6 +332,7 @@ pub const AUCHENAI_SOULPRIEST: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Cabal Shadow Priest — Battlecry: take control of an enemy minion with 2 or less Attack (simplified: no Mind Control — vanilla)
 pub const CABAL_SHADOW_PRIEST: CardDef = CardDef {
     id: "PRIEST_011",
     name: "Cabal Shadow Priest",
@@ -364,6 +366,7 @@ pub const CABAL_SHADOW_PRIEST: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Prophet Velen — double damage and healing (simplified: spell damage only — healing not doubled)
 pub const PROPHET_VELEN: CardDef = CardDef {
     id: "PRIEST_012",
     name: "Prophet Velen",

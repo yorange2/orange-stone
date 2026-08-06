@@ -297,6 +297,7 @@ pub const FAN_OF_KNIVES: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Preparation — your next spell costs (3) less (simplified: no cost reduction — vanilla)
 pub const PREPARATION: CardDef = CardDef {
     id: "ROGUE_009",
     name: "Preparation",
@@ -330,6 +331,7 @@ pub const PREPARATION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Cold Blood — +2 Attack; Combo: +4 instead (simplified: Combo branch only — no base +2)
 pub const COLD_BLOOD: CardDef = CardDef {
     id: "ROGUE_010",
     name: "Cold Blood",
@@ -473,6 +475,7 @@ pub const SINISTER_STRIKE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+/// Shiv — deal 1 damage, draw a card (simplified: no effect — vanilla)
 pub const SHIV: CardDef = CardDef {
     id: "ROGUE_014",
     name: "Shiv",
@@ -862,7 +865,8 @@ pub const MASTER_OF_DISGUISE: CardDef = CardDef {
 // ============================================================
 
 /// Pilfer — add a random card from another class to your hand (the
-/// OtherClass pool filters the Rogue class group — the engine's class model)
+/// OtherClass pool is the other eight classes' class cards — neutrals are
+/// not class cards)
 pub const PILFER: CardDef = CardDef {
     id: "ROGUE_025",
     name: "Pilfer",

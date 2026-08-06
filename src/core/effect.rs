@@ -1168,7 +1168,8 @@ pub enum RandomPool {
     ShadowSpell,
     /// A random Demon (Voidcaller/Bane of Doom)
     Demon,
-    /// A random card of another class (Pilfer — simplified to non-Rogue cards)
+    /// A random card of another class (Pilfer — the other eight classes'
+    /// class cards; neutrals are not class cards)
     OtherClass,
     /// A random Dream card (Ysera)
     Dream,

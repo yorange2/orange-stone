@@ -362,6 +362,7 @@ pub const MALYGOS: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Onyxia — Battlecry: summon 1/1 Whelps until your board is full (simplified: no Battlecry — vanilla 9/8)
 pub const ONYXIA: CardDef = CardDef {
     id: "LEGENDARY_010",
     name: "Onyxia",
@@ -395,6 +396,7 @@ pub const ONYXIA: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Deathwing — Battlecry: destroy all other minions and discard your hand (simplified: no hand discard)
 pub const DEATHWING: CardDef = CardDef {
     id: "LEGENDARY_011",
     name: "Deathwing",
