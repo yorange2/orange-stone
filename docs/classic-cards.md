@@ -1,7 +1,7 @@
 # Classic/Basic Set Card List
 
 > Source: [Hearthstone Wiki - Classic (2014-2021)](https://hearthstone.wiki.gg/wiki/Classic_(2014-2021)), [Basic card list](https://hearthstone.wiki.gg/wiki/Basic_card_list)
-> Total: 375 | ✅ fully implemented: 346 | ✅ simplified: 24 | ⬜ pending: 0 | 🔧 needs new mechanic: 1 | ⏸️ skipped: 4（status column refreshed 2026-08-06 against the code）
+> Total: 375 | ✅ fully implemented: 347 | ✅ simplified: 24 | ⬜ pending: 0 | 🔧 needs new mechanic: 0 | ⏸️ skipped: 4（status column refreshed 2026-08-06 against the code）
 
 Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications (tracked in fidelity-debt) | ⬜ Pending (engine supports) | 🔧 Needs new engine mechanic | ⏸️ Skipped (opponent hand/deck, may introduce other-set cards)
 
@@ -479,7 +479,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 
 | # | Card | Cost | Atk/HP | Text | Status |
 |---|------|------|--------|------|--------|
-| 1 | Blood Imp | 1 | 0/1 | Demon Minion | **Stealth.** At the end of your turn, give another random friendly minion +1 Health. | 🔧 |
+| 1 | Blood Imp | 1 | 0/1 | Demon Minion | **Stealth.** At the end of your turn, give another random friendly minion +1 Health. | ✅ |
 | 2 | Call of the Void | 1 | — | Shadow Spell | Add a random Demon to your hand. | ✅ |
 | 3 | Flame Imp | 1 | 3/2 | Demon Minion | **Battlecry:** Deal 3 damage to your hero. | ✅ |
 | 4 | Demonfire | 2 | — | Shadow Spell | Deal 2 damage to a minion. If it's a friendly Demon, give it +2/+2 instead. | ✅ |
@@ -551,6 +551,6 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | Priest | 27 | 21 | 3 | 0 | 0 | 3 |
 | Rogue | 25 | 22 | 3 | 0 | 0 | 0 |
 | Shaman | 25 | 25 | 0 | 0 | 0 | 0 |
-| Warlock | 24 | 23 | 0 | 0 | 1 | 0 |
+| Warlock | 24 | 24 | 0 | 0 | 0 | 0 |
 | Warrior | 25 | 22 | 3 | 0 | 0 | 0 |
-| **Grand Total** | **375** | **346** | **24** | **0** | **1** | **4** |
+| **Grand Total** | **375** | **347** | **24** | **0** | **0** | **4** |

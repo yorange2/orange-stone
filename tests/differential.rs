@@ -1606,7 +1606,7 @@ fn w1_race_pools_are_field_driven() {
             "NEUTRAL_E03", // Hungry Crab
         ]
     );
-    // Demons: the old 8 + Siegebreaker
+    // Demons: the old 8 + Siegebreaker + Blood Imp
     let demons = ids(Race::Demon);
     let old_demons = [
         "WARLOCK_004",
@@ -1621,14 +1621,13 @@ fn w1_race_pools_are_field_driven() {
     for id in old_demons {
         assert!(demons.contains(&id), "old Demon-pool member {id} must stay");
     }
-    assert_eq!(
-        demons
-            .iter()
-            .filter(|id| !old_demons.contains(id))
-            .copied()
-            .collect::<Vec<_>>(),
-        vec!["WARLOCK_T01"] // Siegebreaker
-    );
+    let mut extra = demons
+        .iter()
+        .filter(|id| !old_demons.contains(id))
+        .copied()
+        .collect::<Vec<_>>();
+    extra.sort_unstable();
+    assert_eq!(extra, vec!["CS2_064", "WARLOCK_T01"]); // Blood Imp, Siegebreaker
 }
 
 // ============================================================
@@ -3943,5 +3942,33 @@ fn f8_windfury_spell_no_overload() {
         state.player(PlayerId1()).overload_locked,
         0,
         "Windfury the spell has no Overload"
+    );
+}
+
+/// Blood Imp — Stealth; at the end of your turn, give another random friendly
+/// minion +1 Health (the buff never lands on itself).
+#[test]
+fn f8_blood_imp_buffs_another_minion_at_turn_end() {
+    use orange_stone::cards::def::BLOOD_IMP;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &BLOOD_IMP);
+    let target = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let imp = find_entity(&state, PlayerId1(), "CS2_064");
+    assert!(
+        state.world().stealth(imp).is_some(),
+        "Blood Imp has Stealth from the def"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_health(target),
+        Some(Health(3)),
+        "the other friendly minion was buffed to 3 Health"
+    );
+    assert_eq!(
+        state.world().effective_health(imp),
+        Some(Health(1)),
+        "Blood Imp does not buff itself"
     );
 }

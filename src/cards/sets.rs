@@ -459,6 +459,7 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     // Tier 3 additions
     CALL_OF_THE_VOID,
     BANE_OF_DOOM,
+    BLOOD_IMP,
 ];
 
 pub const WARRIOR_CLASSIC: &[CardDef] = &[
@@ -919,6 +920,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     PILFER,
     CALL_OF_THE_VOID,
     BANE_OF_DOOM,
+    BLOOD_IMP,
     // F-A4 additions (2026-08-06): implemented class cards that were missing from ALL_CARDS
     SCAVENGING_HYENA,
     STARVING_BUZZARD,
