@@ -88,11 +88,11 @@
 
 **验收**：全套测试通过；`GameEnv` 与 `battle` 两条路径下，双方空牌库对局都以真实胜者结束。
 
-### M3 — RL 接口与文档
-- [ ] `src/rl/views.rs` + `src/py_bind/views.rs` 加 `PlayerView.fatigue`，绑定冒烟测试（工具侧）
-- [ ] `docs/fidelity-debt.md` F-A10 条目标记已解决（保留"上限降级为兜底"的说明）
-- [ ] `trigger.rs` 的 "fatigue in Phase 3+" 注释替换为真实语义
-- [ ] 本路线图对（中英）归档到 `docs/finished/`，去掉"活跃"标注
+### M3 — RL 接口与文档 ✅
+- [x] `src/rl/views.rs` + `src/py_bind/views.rs` 加 `PlayerView.fatigue`，绑定冒烟测试（工具侧）
+- [x] `docs/fidelity-debt.md` F-A10 条目标记已解决（保留"上限降级为兜底"的说明）
+- [x] `trigger.rs` 的 "fatigue in Phase 3+" 注释替换为真实语义
+- [x] 本路线图对（中英）归档到 `docs/finished/`，去掉"活跃"标注
 
 **验收**：Python 绑定能读到计数器并在疲劳对局中正确取值；两份文档语言一致。
 

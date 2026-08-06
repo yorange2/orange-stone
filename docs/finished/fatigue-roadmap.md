@@ -88,11 +88,11 @@ Fatigue lives in `draw_card_no_queue` — every draw path (turn draw, card effec
 
 **Acceptance**: full test suite green; a two-empty-deck game terminates with a winner in both `GameEnv` and `battle` paths.
 
-### M3 — RL surface + docs
-- [ ] `PlayerView.fatigue` in `src/rl/views.rs` + `src/py_bind/views.rs`, binding smoke test (tool side)
-- [ ] `docs/fidelity-debt.md` F-A10 entry marked resolved (keep the caps-as-backstops note)
-- [ ] `trigger.rs` comment ("fatigue in Phase 3+") replaced by the real semantics
-- [ ] Archive this roadmap pair to `docs/finished/` (en + zh) and drop the "active" header
+### M3 — RL surface + docs ✅
+- [x] `PlayerView.fatigue` in `src/rl/views.rs` + `src/py_bind/views.rs`, binding smoke test (tool side)
+- [x] `docs/fidelity-debt.md` F-A10 entry marked resolved (keep the caps-as-backstops note)
+- [x] `trigger.rs` comment ("fatigue in Phase 3+") replaced by the real semantics
+- [x] Archive this roadmap pair to `docs/finished/` (en + zh) and drop the "active" header
 
 **Acceptance**: Python binding exposes the counter and reads it correctly in a fatigue game; docs consistent in both languages.
 
