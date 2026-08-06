@@ -1,6 +1,6 @@
 # Fidelity-Debt Implementation Roadmap — the 67 simplified cards
 
-> **Status: W3 done (PR #83); W4 next.** This roadmap executes the F4-ongoing /
+> **Status: W3 done (PR #82); W4 next.** This roadmap executes the F4-ongoing /
 > F5-ongoing items of [architecture-roadmap.md](architecture-roadmap.md). The
 > [fidelity-debt.md](fidelity-debt.md) ledger is the source of truth for the card
 > list; this document is the execution plan. A card **leaves the ledger** only when
@@ -174,7 +174,7 @@ Beasts/Demons the old lists missed); RL pool grows by 11 (335 → 346).
 
 **Acceptance**: 8 differential scenarios (per-card after/whenever timing
 verified); RL pool grows by 8 (346 → 354).
-## Wave 3 — Conditional predicates (9 cards) ✅ done (PR #83)
+## Wave 3 — Conditional predicates (9 cards) ✅ done (PR #82)
 
 **Primitives** — all landed:
 - Attack-range targets: `EffectTarget::EnemyMinionAttackLE` (Kodo, ≤2),
@@ -298,7 +298,7 @@ constructible size; final sweep + full SabberStone parity run.
 | W0 wiring ✅ PR #79 | 13 | `EventSubject` / `OtherFriendlyMinion` targets; weapon trigger registration + destroy-leaves-play; spell-cast death-before-after-cast | +13 → **334** |
 | W1 race ✅ PR #80 | 11 | race field + targets/auras/triggers + field-driven pools | +11 → **346** |
 | W2 triggers ✅ PR #81 | 8 | 5 trigger classes + destroy-secret | +8 → **354** |
-| W3 predicates ✅ PR #83 | 9 | attack-range/hand-size/health/damaged/secret/first-minion/shield predicates | +9 → **363** |
+| W3 predicates ✅ PR #82 | 9 | attack-range/hand-size/health/damaged/secret/first-minion/shield predicates | +9 → **363** |
 | W4 cost/weapon | 8 | 6+ primitives | +8 |
 | W5 target structure | 7 | 5+ primitives | +7 |
 | W6 special mechanics | 8 | 6 primitives | +8 |

@@ -2,7 +2,7 @@
 
 > **Status: 26 simplified-card markers** in `src/cards/` (audit 2026-08-06, fix pass PR #77;
 > W0 wiring pass PR #79 cleared 13; W1 race pass PR #80 cleared 11; W2 triggers PR #81 cleared 8;
-> W3 predicates PR #83 cleared 9).
+> W3 predicates PR #82 cleared 9).
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
@@ -46,7 +46,7 @@
 > fire only on real heals (an undamaged character is not a heal event).
 > 8 scenarios in `tests/differential.rs` (`w2_*`).
 >
-> **2026-08-06 W3 predicate pass (PR #83)**: all 9 conditional cards landed —
+> **2026-08-06 W3 predicate pass (PR #82)**: all 9 conditional cards landed —
 > attack-range targets (`EnemyMinionAttackLE` Kodo, `AnyMinionAttackGE` Big
 > Game Hunter), hand-size counting (`GainStatsPerHandCard` Twilight Drake),
 > hero-health threshold (`MortalStrike`), damaged-friendly/any targets
@@ -111,7 +111,7 @@ Questing Adventurer; Flare is in §9.)
 | NEUTRAL_R13 | Alarm-o-Bot | vanilla | At the start of your turn, swap this with a random hand minion | hand-zone swap effect (missing) |
 | MAGE_017 | Ethereal Arcanist | +2/+2 at end of turn, unconditional | At the end of your turn, if you control a Secret, gain +2/+2 | conditional end-turn (owns-secret predicate) |
 
-### 4. Conditional targets & states (9) ✅ resolved (W3, PR #83)
+### 4. Conditional targets & states (9) ✅ resolved (W3, PR #82)
 
 All landed: attack-range (≤2 / ≥7), hand-size, hero-health threshold,
 damaged-friendly/any targets, damaged-counting, owns-secret, the "first

@@ -1,6 +1,6 @@
 # 保真债实现路线图 — 67 张简化卡
 
-> **状态：W3 完成（PR #83）；W4 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
+> **状态：W3 完成（PR #82）；W4 待做。** 本路线图执行 [architecture-roadmap.md](architecture-roadmap-zh.md)
 > 的 F4 持续 / F5 持续条目。[fidelity-debt.md](fidelity-debt-zh.md) 账本是卡名单的
 > 权威来源，本文档是执行计划。一张卡只有在"实现 **且** 通过 F5 差分测试验证"后
 > 才离开账本——见账本的 [F5 验收](fidelity-debt-zh.md#每张卡的-f5-验收) 与
@@ -153,7 +153,7 @@
 | NEUTRAL_C12 | 食尸鬼 | 每当**任意**随从死亡，+1 攻击 | `w2_flesheathing_ghoul_counts_every_death` |
 
 **验收**：8 个差分场景（逐卡核实 after/whenever 时机）；RL 卡池 +8（346 → 354）。
-## Wave 3 — 条件谓词（9 张）✅ 完成（PR #83）
+## Wave 3 — 条件谓词（9 张）✅ 完成（PR #82）
 
 **原语**——全部落地：
 - 攻击区间目标：`EffectTarget::EnemyMinionAttackLE`（狂奔科多兽 ≤2）、
@@ -270,7 +270,7 @@
 | W0 接线 ✅ PR #79 | 13 | `EventSubject` / `OtherFriendlyMinion` 目标；武器触发注册 + 摧毁后离场；法术死亡先于施法后触发 | +13 → **334** |
 | W1 种族 ✅ PR #80 | 11 | 种族字段 + 目标/光环/触发 + 字段驱动池 | +11 → **346** |
 | W2 触发 ✅ PR #81 | 8 | 5 个触发类 + 摧毁奥秘 | +8 → **354** |
-| W3 谓词 ✅ PR #83 | 9 | 攻击区间/手牌数/血量/受伤/奥秘/首个随从/圣盾 谓词 | +9 → **363** |
+| W3 谓词 ✅ PR #82 | 9 | 攻击区间/手牌数/血量/受伤/奥秘/首个随从/圣盾 谓词 | +9 → **363** |
 | W4 费用/武器 | 8 | 6+ 原语 | +8 |
 | W5 目标结构 | 7 | 5+ 原语 | +7 |
 | W6 特殊机制 | 8 | 6 个原语 | +8 |
