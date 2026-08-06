@@ -272,6 +272,43 @@ Lightning Storm / Totem Golem——最后一张根本不在卡池里）。
 §11 移除 3 张已修复的过载卡（剩 24 张）。RL 侧不引用所动 ID——无需改 RL
 卡组配置。全量 `cargo test` 通过（402 个）。
 
+## F-A9 — 先手玩家缺少回合 1 抽牌 ✅ 已解决（官方规则，2026-08-06）
+
+炉石官方规则（暴雪《开局：换牌》）：先手玩家的第 4 张牌在其回合 1 开始时抽入；
+后手玩家在自己的第一个回合也正常抽牌。`Step::DrawStep` 曾带回合 1 守卫跳过先手
+抽牌（`src/engine/rules.rs`），单元测试 `first_player_does_not_draw_on_turn_one`
+钉住的是错误行为；正式开局（`sim::battle::build_game_state`）只给先手发
+`hand_size` 张，P1 以 3 张开局而非官方 4 张——放大了后手优势（对照：P1 胜率
+约 23%，而简化引擎约 34%——后者本来就抽了回合 1 的牌）。
+
+修复已落地：`build_game_state` 给先手发 `hand_size + 1` 张（开局 + 回合 1 抽牌）；
+移除 DrawStep 的回合 1 守卫（回合 1 进入 DrawStep 的状态正常抽牌）；`begin_game`/
+换牌流程在开局完成（双方换牌都已解决）后抽第 4 张。测试重钉：
+`first_player_draws_on_turn_one`、`second_player_draws_on_first_turn_first_player_from_turn_two`、
+换牌完成时的手牌数、env 开局形态测试（默认 4/3，`hand_size 4` → 5/4，带硬币 →
+4/5）。对照重测（48 seed）：P1 胜率 23% → 46%（简版 33%），同 seed 一致率 58%。
+全量 `cargo test` 通过（405 项）。
+
+## F-A10 — env 限步平局对纯 EndTurn 僵局从不生效 ✅ 已解决（2026-08-06）
+
+引擎当时还没有疲劳（`trigger.rs` — "fatigue in Phase 3+"），抽干双方牌库的对局
+永远僵住；env 用 `max_steps`（默认 5000，以平局结束回合）兜底。但限步检查挂在
+EndTurn 分支**之后**的 `else if` 链里——僵局状态下每个动作都是 EndTurn，检查
+永远不可达，回合无限跑下去（`test_batched_matches_single_per_seed`，seed 3）。
+第二个缺陷：结构化观测的 `done` 标志由 `state.step() == GameOver` 推导，而限步
+平局把状态机留在 Main——即使 env 正确标记了也不会把 `done` 暴露给 Python。
+
+修复已落地：限步检查移到 EndTurn 分支之前（`rl/env.rs::step`）；
+`GameEnv::is_done()` 返回 env 的回合标志而非重新推导；`rl::views::observation`
+把 done 标志作为参数（状态本身无法表达限步平局）。由
+`step_limit_ends_end_turn_stall_in_draw` 钉住；`GameEnv` 与 `BatchEnv` 的结构化
+观测现在都把限步平局报为 done。
+
+**疲劳闭环（2026-08-06，路线图 PR #94）**：底层缺口已闭合——引擎实现官方疲劳
+（空牌库抽牌尝试对抽牌英雄造成 1、2、3、……递增伤害；
+`docs/finished/fatigue-roadmap.md`）。抽干牌库的对局现在以真实胜者结束；
+`max_steps` / `max_turns` 降级为兜底（只有护甲/治疗循环理论上能熬过疲劳）。
+
 ## 机制盘点（引擎有 vs 缺）
 
 **已有**（对应卡基本是接线活）：
