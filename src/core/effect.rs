@@ -184,6 +184,16 @@ pub enum CardEffect {
         /// Target selection
         target: EffectTarget,
     },
+    /// Gain stats AND Windfury in one effect (Raging Worgen's Enrage — +1
+    /// Attack and Windfury while damaged)
+    GainStatsAndGrantWindfury {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
     /// Grant a minion Charge and optional attack
     GrantCharge {
         /// Target selection
@@ -650,6 +660,11 @@ enum CardEffectDe {
     GrantWindfury {
         target: EffectTarget,
     },
+    GainStatsAndGrantWindfury {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+    },
     GrantCharge {
         target: EffectTarget,
         attack_bonus: i32,
@@ -922,6 +937,15 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             }
             CardEffectDe::FullHeal { target } => CardEffect::FullHeal { target },
             CardEffectDe::GrantWindfury { target } => CardEffect::GrantWindfury { target },
+            CardEffectDe::GainStatsAndGrantWindfury {
+                attack,
+                health,
+                target,
+            } => CardEffect::GainStatsAndGrantWindfury {
+                attack,
+                health,
+                target,
+            },
             CardEffectDe::GrantCharge {
                 target,
                 attack_bonus,

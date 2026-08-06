@@ -1155,6 +1155,9 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DealHeroAttackDamage { .. } => 3.0,
         CardEffect::FullHeal { .. } => 3.0,
         CardEffect::GrantWindfury { .. } => 3.0,
+        CardEffect::GainStatsAndGrantWindfury { attack, health, .. } => {
+            (attack + health) as f64 * 0.8 + 3.0
+        }
         CardEffect::GrantCharge { attack_bonus, .. } => 2.0 + attack_bonus as f64 * 1.5,
         CardEffect::DoubleAttack { .. } => 3.0,
         CardEffect::DoubleHealth { .. } => 3.0,

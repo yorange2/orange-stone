@@ -619,7 +619,7 @@ pub const WOLFRIDER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Amani Berserker — Enrage: +3 Attack (simplified: no Enrage — vanilla 2/3)
+/// Amani Berserker — Enrage: +3 Attack
 pub const AMANI_BERSERKER: CardDef = vanilla!("CLASSIC_018", "Amani Berserker", 2, 2, 3);
 
 pub const FAERIE_DRAGON: CardDef = CardDef {
@@ -908,7 +908,8 @@ pub const IMP_MASTER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Raging Worgen — Enrage: +1 Attack and Windfury (simplified: Windfury only — no Enrage)
+/// Raging Worgen — Enrage: +1 Attack and Windfury (the Windfury is part of
+/// the Enrage, granted only while damaged)
 pub const RAGING_WORGEN: CardDef = CardDef {
     id: "NEUTRAL_008",
     name: "Raging Worgen",
@@ -927,7 +928,7 @@ pub const RAGING_WORGEN: CardDef = CardDef {
     aura: None,
     secret: None,
     divine_shield: false,
-    windfury: true,
+    windfury: false,
     charge: false,
     spell_damage: 0,
     cant_attack: false,

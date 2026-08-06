@@ -3997,3 +3997,265 @@ fn f8_blood_imp_buffs_another_minion_at_turn_end() {
         "Blood Imp does not buff itself"
     );
 }
+
+/// W8-1 Amani Berserker — Enrage: +3 Attack. Damage fires the permanent
+/// enrage buff (2/3 → 5/3, health 3 − 1).
+#[test]
+fn w8_amani_berserker_enrage() {
+    use orange_stone::cards::def::AMANI_BERSERKER;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &AMANI_BERSERKER);
+    let attacker = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    builder.active_player(PlayerId2());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let amani = find_entity(&state, PlayerId1(), "CLASSIC_018");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: amani,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(amani), Some(Attack(5)));
+    assert_eq!(state.world().effective_health(amani), Some(Health(2)));
+}
+
+/// W8-2 Raging Worgen — Enrage: +1 Attack and Windfury. The damaged 3/3
+/// reaches 4 attack and GAINS Windfury (the keyword is part of the Enrage,
+/// not a permanent stat).
+#[test]
+fn w8_raging_worgen_enrage_and_windfury() {
+    use orange_stone::cards::def::RAGING_WORGEN;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &RAGING_WORGEN);
+    let attacker = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    builder.active_player(PlayerId2());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let worgen = find_entity(&state, PlayerId1(), "NEUTRAL_008");
+    // Before damage: 3/3 without Windfury
+    assert_eq!(state.world().effective_attack(worgen), Some(Attack(3)));
+    assert!(state.world().windfury(worgen).is_none());
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: worgen,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(worgen), Some(Attack(4)));
+    assert_eq!(state.world().effective_health(worgen), Some(Health(2)));
+    assert!(
+        state.world().windfury(worgen).is_some(),
+        "the Enrage grants Windfury while damaged"
+    );
+}
+
+/// W8-3 Grommash Hellscream — Charge. Enrage: +6 Attack. The damaged 4/9
+/// reaches 7 attack; Charge remains.
+#[test]
+fn w8_grommash_hellscream_enrage() {
+    use orange_stone::cards::def::GROMMASH_HELLSCREAM;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &GROMMASH_HELLSCREAM);
+    let attacker = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    builder.active_player(PlayerId2());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let grommash = find_entity(&state, PlayerId1(), "WARRIOR_010");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: grommash,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(grommash), Some(Attack(10)));
+    assert_eq!(state.world().effective_health(grommash), Some(Health(8)));
+    assert!(
+        state.world().effective_charge(grommash),
+        "Charge survives the enrage"
+    );
+}
+
+/// W8-4 Warsong Commander — your OTHER minions have Charge (the aura excludes
+/// the commander itself). Both minions are played this turn so the summoning
+/// sickness is real: the aura-buffed minion can attack, the commander cannot.
+#[test]
+fn w8_warsong_commander_grants_charge_to_other_minions() {
+    use orange_stone::cards::def::WARSONG_COMMANDER;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &WARSONG_COMMANDER);
+    builder.add_custom_minion_to_hand(PlayerId1(), 2, 3, 2);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    let commander = hand[0];
+    let vanilla = hand[1];
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: commander,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: vanilla,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.world().effective_charge(vanilla),
+        "the aura grants charge to a summoned friendly minion"
+    );
+    assert!(
+        !state.world().effective_charge(commander),
+        "the aura excludes the source"
+    );
+    // The charged minion attacks immediately despite summoning sickness
+    let hero = state.player(PlayerId2()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: vanilla,
+                defender: hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(28)),
+        "the charged minion attacked the enemy hero"
+    );
+    // The commander itself has no charge: summoning sickness blocks it
+    assert_eq!(
+        engine.apply(
+            &mut state,
+            Action::Attack {
+                attacker: commander,
+                defender: hero,
+            }
+        ),
+        Err(orange_stone::engine::rules::EngineError::AttacksExhausted),
+        "the commander cannot attack while its own aura is up"
+    );
+}
+
+/// W8-5 Northshire Cleric — draw a card whenever a FRIENDLY character is
+/// healed (friendly heal draws; an enemy heal does not).
+#[test]
+fn w8_northshire_cleric_draws_on_friendly_heal() {
+    use orange_stone::cards::def::{HOLY_LIGHT, NORTHSHIRE_CLERIC};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &NORTHSHIRE_CLERIC);
+    builder.add_minion_to_hand(PlayerId1(), &HOLY_LIGHT);
+    // Two deck cards: one for the turn-start draw, one for Northshire's draw
+    builder.add_minion_to_deck(PlayerId1(), &HOLY_LIGHT);
+    builder.add_minion_to_deck(PlayerId1(), &HOLY_LIGHT);
+    let p2_attacker = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    builder.add_minion_to_hand(PlayerId2(), &HOLY_LIGHT);
+    builder.add_minion_to_deck(PlayerId2(), &HOLY_LIGHT);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.set_mana(PlayerId2(), 10, 10);
+    builder.active_player(PlayerId2());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p1_hero = state.player(PlayerId1()).hero;
+    let p2_hero = state.player(PlayerId2()).hero;
+    // Enemy minion damages the friendly hero
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: p2_attacker,
+                defender: p1_hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(p1_hero), Some(Health(29)));
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Friendly Holy Light heals the damaged friendly hero → draw a card
+    let holy_light = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Holy Light in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: holy_light,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(p1_hero),
+        Some(Health(30)),
+        "the friendly hero was healed"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        2,
+        "Northshire drew a card from the friendly heal"
+    );
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 0);
+    // The Cleric damages the enemy hero so the enemy has something to heal
+    let cleric = find_entity(&state, PlayerId1(), "PRIEST_004");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: cleric,
+                defender: p2_hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(29)));
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Enemy Holy Light heals the ENEMY hero — no draw for our Cleric
+    let enemy_holy_light = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .next()
+        .expect("enemy Holy Light in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: enemy_holy_light,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        2,
+        "an enemy heal does not trigger the friendly Cleric"
+    );
+}

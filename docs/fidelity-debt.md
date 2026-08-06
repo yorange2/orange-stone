@@ -101,7 +101,8 @@
 > and the 1-Health resummon secret (`ResurrectDiedMinion` Redemption).
 > 3 scenarios (`w7_*`). **The ledger was EMPTY and the RL pool was the full 391-card
 > classic pool — until the 2026-08-06 registration pass re-opened it with 27
-> pre-existing simplifications (§11); the pool is now 367 (413 − 24 debt − 21 tokens − coin).**
+> pre-existing simplifications (§11); the pool is now 372 (413 − 19 debt − 21 tokens − coin,
+> W8 clears 5: Amani Berserker / Raging Worgen / Grommash / Warsong Commander / Northshire Cleric).**
 >
 > **Execution plan**: [docs/fidelity-debt-roadmap.md](../finished/fidelity-debt-roadmap.md)
 > (zh: `finished/fidelity-debt-roadmap-zh.md`) — 8 dependency-ordered waves (W0 wiring …
@@ -205,21 +206,18 @@ which also removes them from the Python debt set (4 cards re-enter the RL pool).
 ---
 
 
-### 11. Pre-existing simplifications registered 2026-08-06 (27 → 24 cards)
+### 11. Pre-existing simplifications registered 2026-08-06 (27 → 24 → 19 cards)
 
 The 2026-08-06 status audit (`docs/classic-cards-zh.md` vs. the code) found 27
 cards with known simplifications that carried no `(simplified: …)` marker — they
 were silently in the RL pool. All 27 defs now have comments (debt set = 27);
 cards leave the ledger only via the [Maintenance](#maintenance) flow
-(implement → F5 differential → drop comment → invalidate cache).
+(implement → F5 differential → drop comment → invalidate cache). W8 (roadmap
+PR) cleared 5: Amani Berserker / Raging Worgen / Grommash Hellscream / Warsong
+Commander / Northshire Cleric (19 remain).
 
 | ID | Card | Debt |
 | --- | --- | --- |
-| CLASSIC_018 | Amani Berserker | no Enrage — vanilla 2/3 |
-| NEUTRAL_008 | Raging Worgen | Windfury only, no Enrage |
-| WARRIOR_010 | Grommash Hellscream | Charge only, no Enrage |
-| WARRIOR_008 | Warsong Commander | no Charge aura — vanilla 2/3 |
-| PRIEST_004 | Northshire Cleric | no heal-draw — vanilla 1/3 |
 | HUNTER_021 | Bestial Wrath | grants to any friendly minion (Beast only) |
 | NEUTRAL_026 | Sea Giant | no cost reduction — vanilla 8/8 |
 | DRUID_004 | Wrath | 3-damage branch only |
@@ -387,11 +385,12 @@ set-health-to-1 (Repentance), swap attack/health (Crazed Alchemist),
 adjacent-target buff/freeze (Sunfury Protector / Ancient Mage / Cone of Cold),
 two-effect composition (Mass Dispel, Ancestral Healing) (W5).
 
-**Missing** (2026-08-06 refresh — the 27 registered debts in §11, grouped):
-1. Enrage wiring (Amani Berserker, Raging Worgen, Grommash — `ThisMinionDamaged`
-   exists, pure wiring per W0)
-2. Charge aura (Warsong Commander)
-3. Heal-draw trigger (Northshire Cleric)
+**Missing** (2026-08-06 refresh — the 27 registered debts in §11, grouped;
+W8 cleared groups 1–3):
+1. ~~Enrage wiring (Amani Berserker, Raging Worgen, Grommash — `ThisMinionDamaged`
+   exists, pure wiring per W0)~~ ✅ W8
+2. ~~Charge aura (Warsong Commander)~~ ✅ W8
+3. ~~Heal-draw trigger (Northshire Cleric)~~ ✅ W8
 4. Weapon attack effects (Truesilver heal, Gorehowl attack-loss, Eaglehorn
    Durability)
 5. Discover (Tracking); Choose One second branches (Wrath, Druid of the Claw,

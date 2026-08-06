@@ -146,12 +146,32 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         world.set_poison(entity, Poison);
         world.set_stealth(entity, Stealth);
     }
-    // Enrage cards (fidelity-debt W0): permanent +Attack whenever this minion
-    // takes damage — wired to the existing ThisMinionDamaged trigger slot.
+    // Enrage cards (fidelity-debt W0 + W8): permanent +Attack whenever this
+    // minion takes damage — wired to the existing ThisMinionDamaged trigger
+    // slot.
     let enrage_effect: Option<CardEffect> = match card_def.id {
         "NEUTRAL_B19" | "NEUTRAL_C11" => Some(CardEffect::GainStats {
             // Gurubashi Berserker / Tauren Warrior — +3 Attack
             attack: 3,
+            health: 0,
+            target: EffectTarget::Self_,
+        }),
+        // W8: Amani Berserker / Raging Worgen / Grommash Hellscream — the
+        // §11 Enrage trio (2/3→5/3, 3/3→4/3, 4/9→10/9)
+        "CLASSIC_018" => Some(CardEffect::GainStats {
+            attack: 3,
+            health: 0,
+            target: EffectTarget::Self_,
+        }),
+        // Raging Worgen's Enrage also grants Windfury (the keyword is part of
+        // the Enrage, not a permanent stat)
+        "NEUTRAL_008" => Some(CardEffect::GainStatsAndGrantWindfury {
+            attack: 1,
+            health: 0,
+            target: EffectTarget::Self_,
+        }),
+        "WARRIOR_010" => Some(CardEffect::GainStats {
+            attack: 6,
             health: 0,
             target: EffectTarget::Self_,
         }),
@@ -239,6 +259,12 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 health: 0,
                 target: EffectTarget::Self_,
             },
+        )),
+        // Northshire Cleric (W8) — whenever a friendly character is healed,
+        // draw a card (friendly scope via the FriendlyCharacterHealed event)
+        "PRIEST_004" => Some((
+            TriggerEvent::FriendlyCharacterHealed,
+            CardEffect::DrawCard { count: 1 },
         )),
         // Questing Adventurer — whenever you play a card, gain +1/+1
         "NEUTRAL_R17" => Some((
@@ -528,7 +554,6 @@ mod generated_tests {
             "Natalie Seline" => &["attack", "cost", "health"],
             "Patient Assassin" => &["health"],
             "Prophet Velen" => &["spell_damage"],
-            "Raging Worgen" => &["windfury"],
             "Savannah Highmane" => &["attack"],
             "Shadow Madness" => &["cost"],
             "Shadow Word: Death" => &["cost"],
