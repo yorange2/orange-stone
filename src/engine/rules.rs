@@ -1224,10 +1224,14 @@ pub fn apply_event(
                         }
                     }
                     state.make_mut().mulliganed[owner.index()] = true;
-                    // Surface the opponent's mulligan, or finish the opening
+                    // Surface the opponent's mulligan; when both are resolved the
+                    // opening is finished and the first player draws the 4th card
+                    // as their turn 1 starts (official rule).
                     let next = owner.opponent();
                     if !state.make_mut().mulliganed[next.index()] {
                         state.surface_mulligan(next);
+                    } else {
+                        trigger::draw_card_no_queue(state, PlayerId::Player1);
                     }
                 }
             }
@@ -1288,12 +1292,13 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
             true
         }
         Step::DrawStep => {
-            // The first player does not draw on turn 1 (the initial state never
-            // runs a DrawStep for it; the guard covers constructed states too).
+            // The turn's draw. Every player draws at the start of every turn,
+            // including the first player's turn 1 (official rule) — the shipped
+            // opening (sim::battle::build_game_state) deals that 4th card during
+            // construction, so a DrawStep on turn 1 only appears in constructed
+            // states, where the draw runs normally (no turn-1 skip).
             let active = state.active_player();
-            if !(state.turn() == 1 && active == PlayerId::Player1) {
-                trigger::draw_card(state, queue, active);
-            }
+            trigger::draw_card(state, queue, active);
             state.set_step(Step::Main);
             true
         }
@@ -1810,9 +1815,30 @@ mod tests {
     }
 
     #[test]
-    fn first_player_does_not_draw_on_turn_one() {
-        // The first player does not draw on turn 1; the second player draws on
-        // their first turn; the first player draws from turn 2 on.
+    fn first_player_draws_on_turn_one() {
+        // Official rule: the first player draws the 4th card as their turn 1
+        // starts. The shipped opening (sim::battle::build_game_state) deals it
+        // during construction; a state entering DrawStep on turn 1 (e.g. a
+        // constructed state) must draw as well — there is no turn-1 skip.
+        use crate::cards::def::BLOODFEN_RAPTOR;
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_deck(PlayerId::Player1, &BLOODFEN_RAPTOR);
+        let mut state = builder.build();
+        assert_eq!(state.turn(), 1);
+        state.set_step(Step::DrawStep);
+        let mut queue = crate::core::event::EventQueue::new();
+        assert!(advance_step(&mut state, &mut queue));
+        assert_eq!(state.step(), Step::Main);
+        assert_eq!(state.world().zones().len(Zone::Hand, PlayerId::Player1), 1);
+        assert_eq!(state.world().zones().len(Zone::Deck, PlayerId::Player1), 0);
+    }
+
+    #[test]
+    fn second_player_draws_on_first_turn_first_player_from_turn_two() {
+        // Step-machine draw schedule: the second player draws on their first
+        // turn (entered via TurnStarted); the first player draws from turn 2 on
+        // (its turn-1 card is dealt during the opening construction).
         use crate::cards::def::BLOODFEN_RAPTOR;
         use crate::sim::game::GameBuilder;
         let mut builder = GameBuilder::new();
@@ -1821,13 +1847,9 @@ mod tests {
         let mut state = builder.build();
         let engine = crate::engine::game::GameEngine::new();
 
-        // End Player1's opening turn: Player2 draws, Player1's deck is untouched
+        // End Player1's opening turn: Player2 draws on its first turn
         engine.apply(&mut state, Action::EndTurn).unwrap();
-        assert_eq!(
-            state.world().zones().len(Zone::Deck, PlayerId::Player1),
-            1,
-            "first player must not draw on turn 1"
-        );
+        assert_eq!(state.world().zones().len(Zone::Deck, PlayerId::Player1), 1);
         assert_eq!(state.world().zones().len(Zone::Deck, PlayerId::Player2), 0);
 
         // End Player2's turn: Player1 draws on turn 2
@@ -3069,6 +3091,9 @@ mod tests {
             .unwrap();
         assert!(state.pending_choice().is_none(), "opening complete");
         assert_eq!(state.step(), Step::Main);
+        // Official rule: as the opening finishes, the first player draws the
+        // 4th card as their turn 1 starts
+        assert_eq!(state.world().zones().len(Zone::Hand, PlayerId::Player1), 4);
     }
 
     #[test]

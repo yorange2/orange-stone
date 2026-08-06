@@ -178,7 +178,11 @@ impl PyGameEnv {
         // The view mirror is pure Rust (rviews); build it with the GIL released
         // and convert to PyO3 objects afterwards (they need the GIL).
         let view = py.allow_threads(|| {
-            crate::rl::views::observation(self.env.game_state(), self.env.perspective())
+            crate::rl::views::observation(
+                self.env.game_state(),
+                self.env.perspective(),
+                self.env.is_done(),
+            )
         });
         PyObservation::from(&view)
     }
@@ -348,6 +352,7 @@ impl PyBatchEnv {
                     crate::rl::views::observation(
                         env.game_state(),
                         env.game_state().active_player(),
+                        env.is_done(),
                     )
                 })
                 .collect()

@@ -220,6 +220,12 @@ impl GameEnv {
         if matches!(self.state.step(), Step::GameOver { .. }) {
             self.done = true;
             reward += reward::final_reward(&self.config.reward, &self.state, self.perspective);
+        } else if self.steps >= self.config.max_steps {
+            // Step limit reached: game ends in a draw. Checked before the
+            // EndTurn branch — in a stall state (empty decks, no fatigue yet)
+            // every action is EndTurn, and the old check after that branch
+            // was unreachable, so such games stalled forever.
+            self.done = true;
         } else if ok && matches!(action, Action::EndTurn) {
             // Opponent's turn: the bot advances automatically until turn end or game over
             self.run_bot_turn();
@@ -227,9 +233,6 @@ impl GameEnv {
                 self.done = true;
                 reward += reward::final_reward(&self.config.reward, &self.state, self.perspective);
             }
-        } else if self.steps >= self.config.max_steps {
-            // Step limit reached: game ends in a draw
-            self.done = true;
         }
 
         StepResult {
@@ -279,10 +282,11 @@ impl GameEnv {
         }
     }
 
-    /// Whether the game has ended (M4 batch API).
+    /// Whether the episode has ended: real game over, or cut short by the
+    /// step limit (which ends the game in a draw without a `GameOver` step).
     #[must_use]
     pub fn is_done(&self) -> bool {
-        matches!(self.state.step(), Step::GameOver { .. })
+        self.done
     }
 }
 
@@ -600,7 +604,7 @@ mod tests {
         );
         let mut env = env;
         env.reset(3);
-        let view = crate::rl::views::observation(&env.state, PlayerId::Player1);
+        let view = crate::rl::views::observation(&env.state, PlayerId::Player1, env.is_done());
         let stealth_cards: Vec<&str> = view
             .me
             .hand
@@ -626,7 +630,7 @@ mod tests {
             EnvConfig::default_with(BotType::Greedy, 30).with_fixed_deck(deck),
         );
         env.reset(4);
-        let view = crate::rl::views::observation(&env.state, PlayerId::Player1);
+        let view = crate::rl::views::observation(&env.state, PlayerId::Player1, env.is_done());
         let faeries: Vec<&crate::rl::views::EntityView> =
             view.me.hand.iter().filter(|c| c.card_id == "CLASSIC_019").collect();
         assert!(!faeries.is_empty(), "Faerie Dragon must be in the opening hand");
@@ -709,10 +713,12 @@ mod tests {
     #[test]
     fn fixed_deck_env_deals_only_deck_cards() {
         let env = fixed_deck_env(1);
-        // Both players' decks have exactly 10 cards, hand 3 each → 7 remaining each
+        // Both players' decks have exactly 10 cards. P1 hand 4 (opening 3 +
+        // the turn-1 draw) → 6 remaining; P2 hand 3 → 7 remaining (P2 draws
+        // its own first-turn card via the step machine's DrawStep)
         assert_eq!(
             env.state.world().zones().len(Zone::Deck, PlayerId::Player1),
-            7
+            6
         );
         assert_eq!(
             env.state.world().zones().len(Zone::Deck, PlayerId::Player2),
@@ -846,6 +852,39 @@ mod tests {
     }
 
     #[test]
+    fn step_limit_ends_end_turn_stall_in_draw() {
+        // EndTurn-only play drains the decks, then stalls (no fatigue damage
+        // in the engine yet). The step limit must still terminate the game as
+        // a draw — the check used to sit after the EndTurn branch and was
+        // never reached for an all-EndTurn loop.
+        let mut env = GameEnv::new(
+            PlayerId::Player1,
+            EnvConfig::default_with(BotType::None, 20),
+        );
+        env.reset(9);
+        let mut guard = 0;
+        while !env.done && guard < 6000 {
+            let idx = env
+                .legal_actions()
+                .iter()
+                .position(|a| matches!(a, Action::EndTurn))
+                .expect("EndTurn is always legal");
+            let r = env.step_indexed(idx);
+            guard += 1;
+            if r.done {
+                break;
+            }
+        }
+        assert!(env.done, "EndTurn-only play must terminate at the step limit");
+        // The limit draw names no winner and leaves the state machine in Main
+        assert_eq!(env.winner(), None, "the step limit ends the game in a draw");
+        assert!(
+            !matches!(env.state.step(), Step::GameOver { .. }),
+            "a limit draw is not a GameOver step"
+        );
+    }
+
+    #[test]
     fn no_bot_with_perspective_two_is_symmetric() {
         // Same setup with the agent fixed as the second player
         let mut env = GameEnv::new(
@@ -911,13 +950,14 @@ mod tests {
     }
 
     #[test]
-    fn default_opening_is_three_and_three_no_coin() {
+    fn default_opening_is_four_and_three_no_coin() {
         let mut env = GameEnv::new(
             PlayerId::Player1,
             EnvConfig::default_with(BotType::None, 20),
         );
         env.reset(1);
-        assert_eq!(hand_size_of(&env, PlayerId::Player1), 3);
+        // Official rule: the first player draws the 4th card as turn 1 starts
+        assert_eq!(hand_size_of(&env, PlayerId::Player1), 4);
         assert_eq!(hand_size_of(&env, PlayerId::Player2), 3);
     }
 
@@ -928,7 +968,8 @@ mod tests {
             EnvConfig::default_with(BotType::None, 20).with_opening(4, false),
         );
         env.reset(2);
-        assert_eq!(hand_size_of(&env, PlayerId::Player1), 4);
+        // hand_size 4 opening + the first player's turn-1 draw
+        assert_eq!(hand_size_of(&env, PlayerId::Player1), 5);
         assert_eq!(hand_size_of(&env, PlayerId::Player2), 4);
     }
 
@@ -939,7 +980,8 @@ mod tests {
             EnvConfig::default_with(BotType::None, 20).with_opening(3, true),
         );
         env.reset(3);
-        assert_eq!(hand_size_of(&env, PlayerId::Player1), 3);
+        // Official first-player shape: opening 3 + the turn-1 draw (4th card)
+        assert_eq!(hand_size_of(&env, PlayerId::Player1), 4);
         // Official second-player shape: hand_size + 1 draw + The Coin
         assert_eq!(hand_size_of(&env, PlayerId::Player2), 5);
         let has_coin = env

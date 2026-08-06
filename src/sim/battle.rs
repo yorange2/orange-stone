@@ -288,9 +288,10 @@ impl BattleRunner {
     /// recorded in the tracker and shuffled by the builder (deterministic per seed).
     /// The game RNG is reseeded from the runner's RNG, keeping per-battle reproducibility.
     ///
-    /// `hand_size` — cards dealt to the first player (roadmap M1-G6); with
-    /// `second_player_coin` the second player draws one extra card and gets
-    /// The Coin (the official opening shape).
+    /// `hand_size` — starting cards dealt to the first player (roadmap M1-G6;
+    /// the official turn-1 draw adds one more); with `second_player_coin` the
+    /// second player draws one extra card and gets The Coin (the official
+    /// opening shape).
     pub fn create_game_state_with_decks(
         &mut self,
         deck1: &[&'static CardDef],
@@ -378,9 +379,11 @@ impl BattleRunner {
     /// opening hands differ per seed. This matters for explicit decks (M1-G2):
     /// with a fixed deck the deck content alone no longer varies the opening.
     ///
-    /// Opening shape (roadmap M1-G6): the first player draws `hand_size`;
-    /// with `second_player_coin` the second player draws `hand_size + 1` and
-    /// receives The Coin as an extra hand card (official second-player shape).
+    /// Opening shape (roadmap M1-G6 + official rule): the first player draws
+    /// `hand_size` starting cards plus the turn-1 draw (the 4th card as their
+    /// first turn starts); with `second_player_coin` the second player draws
+    /// `hand_size + 1` and receives The Coin as an extra hand card, then draws
+    /// its own first-turn card via the step machine's DrawStep.
     fn build_game_state(
         &mut self,
         deck1: &[&'static CardDef],
@@ -412,9 +415,12 @@ impl BattleRunner {
 
         // Opening hand — draw from the *current* deck length (the deck shrinks
         // with every draw, so an index into the original length can miss).
+        // The first player's `hand_size + 1` is the official opening plus the
+        // turn-1 draw (their 4th card as the turn starts); the second player
+        // draws its own first-turn card via the step machine (DrawStep).
         let p2_bonus = if second_player_coin { 1 } else { 0 };
         for (pid, draw_count) in [
-            (PlayerId::Player1, hand_size),
+            (PlayerId::Player1, hand_size + 1),
             (PlayerId::Player2, hand_size + p2_bonus),
         ] {
             let deck_count = state.world().zones().len(Zone::Deck, pid);
