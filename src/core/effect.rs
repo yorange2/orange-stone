@@ -65,6 +65,11 @@ pub enum EffectTarget {
     AnyCharacter,
     /// Either hero — Alexstrasza
     AnyHero,
+    /// A random ENEMY minion with attack ≥ N (Big Game Hunter — enemy-only,
+    /// mirroring `EnemyMinionAttackLE`)
+    EnemyMinionAttackGE(i32),
+    /// All friendly characters, hero included (Darkscale Healer)
+    AllFriendlyCharacters,
 }
 
 /// Card effect — an action executed when triggered.
@@ -141,6 +146,13 @@ pub enum CardEffect {
     SetAttack {
         /// Target attack value
         attack: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Set health to a fixed value (Alexstrasza — a hero's Health to 15)
+    SetHealth {
+        /// Target health value
+        health: i32,
         /// Target selection
         target: EffectTarget,
     },
@@ -673,6 +685,10 @@ enum CardEffectDe {
         attack: i32,
         target: EffectTarget,
     },
+    SetHealth {
+        health: i32,
+        target: EffectTarget,
+    },
     RestoreHealth {
         amount: i32,
         target: EffectTarget,
@@ -979,6 +995,7 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::DestroyMinion { target } => CardEffect::DestroyMinion { target },
             CardEffectDe::SilenceMinion { target } => CardEffect::SilenceMinion { target },
             CardEffectDe::SetAttack { attack, target } => CardEffect::SetAttack { attack, target },
+            CardEffectDe::SetHealth { health, target } => CardEffect::SetHealth { health, target },
             CardEffectDe::RestoreHealth { amount, target } => {
                 CardEffect::RestoreHealth { amount, target }
             }

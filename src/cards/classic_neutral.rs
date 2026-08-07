@@ -108,7 +108,7 @@ pub const ACIDIC_SWAMP_OOZE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Ironbeak Owl — Battlecry: silence a minion (simplified: enemy minions only)
+/// Ironbeak Owl — Battlecry: silence a minion
 pub const IRONBEAK_OWL: CardDef = CardDef {
     id: "CLASSIC_004",
     name: "Ironbeak Owl",
@@ -118,7 +118,7 @@ pub const IRONBEAK_OWL: CardDef = CardDef {
     health: 1,
     durability: 0,
     battlecry: Some(CardEffect::SilenceMinion {
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -421,7 +421,7 @@ pub const GNOMISH_INVENTOR: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Spellbreaker — Battlecry: silence a minion (simplified: enemy minions only)
+/// Spellbreaker — Battlecry: silence a minion
 pub const SPELLBREAKER: CardDef = CardDef {
     id: "CLASSIC_012",
     name: "Spellbreaker",
@@ -431,7 +431,7 @@ pub const SPELLBREAKER: CardDef = CardDef {
     health: 3,
     durability: 0,
     battlecry: Some(CardEffect::SilenceMinion {
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -1704,7 +1704,7 @@ pub const DALARAN_MAGE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Ironforge Rifleman — Battlecry: deal 1 damage to an enemy minion (simplified: may hit the enemy hero too)
+/// Ironforge Rifleman — Battlecry: deal 1 damage to an enemy minion
 pub const IRONFORGE_RIFLEMAN: CardDef = CardDef {
     id: "NEUTRAL_B07",
     name: "Ironforge Rifleman",
@@ -1715,7 +1715,7 @@ pub const IRONFORGE_RIFLEMAN: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 1,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyEnemyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -1972,7 +1972,7 @@ pub const BOOTY_BAY_BODYGUARD: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Darkscale Healer — Battlecry: restore 2 Health to all friendly characters (simplified: friendly minions only — the hero is not healed)
+/// Darkscale Healer — Battlecry: restore 2 Health to all friendly characters
 pub const DARKSCALE_HEALER: CardDef = CardDef {
     id: "NEUTRAL_B16",
     name: "Darkscale Healer",
@@ -1983,7 +1983,7 @@ pub const DARKSCALE_HEALER: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::RestoreHealth {
         amount: 2,
-        target: EffectTarget::AllFriendlyMinions,
+        target: EffectTarget::AllFriendlyCharacters,
     }),
     deathrattle: None,
     taunt: false,
@@ -3374,7 +3374,7 @@ pub const BLOOD_KNIGHT: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Big Game Hunter — Battlecry: destroy a minion with 7 or more Attack (simplified: a minion on either side, not enemy-only)
+/// Big Game Hunter — Battlecry: destroy an enemy minion with 7 or more Attack
 pub const BIG_GAME_HUNTER: CardDef = CardDef {
     id: "NEUTRAL_E06",
     name: "Big Game Hunter",
@@ -3384,7 +3384,7 @@ pub const BIG_GAME_HUNTER: CardDef = CardDef {
     health: 2,
     durability: 0,
     battlecry: Some(CardEffect::DestroyMinion {
-        target: EffectTarget::AnyMinionAttackGE(7),
+        target: EffectTarget::EnemyMinionAttackGE(7),
     }),
     deathrattle: None,
     taunt: false,

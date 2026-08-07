@@ -229,25 +229,15 @@ W12 (PR #101) cleared the last 5: Water Elemental / Cabal Shadow Priest /
 Prophet Velen / Shiv / Argent Protector — **the ledger is EMPTY and the RL
 pool is the full 391-card classic pool**.
 
-### 12. Battlecry target sets — M1 audit (20 → 16 cards, registered 2026-08-07)
+### 12. Battlecry target sets — M1 audit (20 → 16 → 9 cards, registered 2026-08-07)
 
 The engine-mechanics roadmap M1 audit (minion battlecry explicit targets)
 walked every minion battlecry with a target-bearing effect and checked the
 engine's `EffectTarget` against real HS. 20 cards do not match and are
 registered here per the maintenance contract (each carries a
 `(simplified: …)` comment in `src/cards/`; the RL pool drops to 371 until
-they are cleared). Wrong target *scope* (engine can target what HS cannot —
-or the wrong side):
-
-- Cruel Taskmaster (WARRIOR_004) — targets a random enemy minion; HS: a
-  friendly minion
-- Ironforge Rifleman (NEUTRAL_B07) — may hit the enemy hero; HS: enemy minion
-- Alexstrasza (LEGENDARY_008) — any enemy character; HS: a hero
-- Ironbeak Owl (CLASSIC_004) / Spellbreaker (CLASSIC_012) — enemy minions
-  only; HS: any minion
-- Big Game Hunter (NEUTRAL_E06) — a minion on either side; HS: enemy minion
-- Darkscale Healer (NEUTRAL_B16) — friendly minions only; HS: all friendly
-  characters (hero included)
+they are cleared). The wrong-scope rows were cleared in W13 (PR #104) and
+W14 (PR #105); what remains:
 
 Targeted battlecries modeled as `Self_` (the chosen target is dropped — the
 effect always hits the minion itself):
