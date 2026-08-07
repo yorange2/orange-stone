@@ -129,7 +129,7 @@ pub fn resolve_effect(
             resolve_set_health(state, owner, health, target, explicit_target);
         }
         CardEffect::RestoreHealth { amount, target } => {
-            resolve_restore_health(state, queue, owner, amount, target);
+            resolve_restore_health(state, queue, owner, amount, target, explicit_target);
         }
         CardEffect::FreezeCharacter { target } => {
             resolve_freeze(state, owner, target, explicit_target);
@@ -1974,6 +1974,9 @@ fn resolve_return_to_hand(
     let minions = match target {
         EffectTarget::AnyEnemy => collect_enemy_minions(state, owner, Some(source)),
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner, Some(source)),
+        // Brewmasters (W15): return a FRIENDLY minion (the source included,
+        // when chosen) to its owner's hand.
+        EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         _ => return,
     };
 
@@ -2264,6 +2267,7 @@ fn resolve_restore_health(
     owner: PlayerId,
     amount: i32,
     target: EffectTarget,
+    explicit: Option<Entity>,
 ) {
     // Prophet Velen (W12, D3 — pipeline hook): while Velen is on the owner's
     // board, healing is doubled (mirroring the spell-damage modifier; the
@@ -2291,37 +2295,49 @@ fn resolve_restore_health(
         true
     }
     let mut healed: SmallList<Entity> = SmallList::new();
-    match target {
-        EffectTarget::FriendlyHero | EffectTarget::Self_ => {
-            let hero = state.player(owner).hero;
-            if heal(state.world_mut(), hero, amount) {
-                healed.push(hero);
+    // Single-pick scope (Earthen Ring Farseer, Voodoo Doctor — W15: any
+    // character): explicit target wins, random at resolution, G9 fizzle.
+    if target == EffectTarget::AnyCharacter {
+        let mut chars = collect_friendly_characters(state, owner, None);
+        chars.extend(collect_enemy_characters(state, owner, None));
+        if let Some(c) = select_target(explicit, &chars, state.rng_mut()) {
+            if heal(state.world_mut(), c, amount) {
+                healed.push(c);
             }
         }
-        EffectTarget::AllFriendlyMinions => {
-            let minions = collect_friendly_minions(state, owner);
-            let world = state.world_mut();
-            for &m in &minions {
-                if heal(world, m, amount) {
-                    healed.push(m);
+    } else {
+        match target {
+            EffectTarget::FriendlyHero | EffectTarget::Self_ => {
+                let hero = state.player(owner).hero;
+                if heal(state.world_mut(), hero, amount) {
+                    healed.push(hero);
                 }
             }
-        }
-        // Darkscale Healer (W14): all friendly characters, hero included.
-        EffectTarget::AllFriendlyCharacters => {
-            let hero = state.player(owner).hero;
-            let minions = collect_friendly_minions(state, owner);
-            let world = state.world_mut();
-            if heal(world, hero, amount) {
-                healed.push(hero);
-            }
-            for &m in &minions {
-                if heal(world, m, amount) {
-                    healed.push(m);
+            EffectTarget::AllFriendlyMinions => {
+                let minions = collect_friendly_minions(state, owner);
+                let world = state.world_mut();
+                for &m in &minions {
+                    if heal(world, m, amount) {
+                        healed.push(m);
+                    }
                 }
             }
+            // Darkscale Healer (W14): all friendly characters, hero included.
+            EffectTarget::AllFriendlyCharacters => {
+                let hero = state.player(owner).hero;
+                let minions = collect_friendly_minions(state, owner);
+                let world = state.world_mut();
+                if heal(world, hero, amount) {
+                    healed.push(hero);
+                }
+                for &m in &minions {
+                    if heal(world, m, amount) {
+                        healed.push(m);
+                    }
+                }
+            }
+            _ => {}
         }
-        _ => {}
     }
     for entity in healed {
         fire_healed_trigger(state, queue, entity);

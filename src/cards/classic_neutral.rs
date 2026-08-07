@@ -313,7 +313,7 @@ pub const SENJIN_SHIELDMASTA: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Dark Iron Dwarf — Battlecry: give a friendly minion +2 Attack this turn (simplified: the chosen target is dropped — it buffs itself)
+/// Dark Iron Dwarf — Battlecry: give a friendly minion +2 Attack this turn
 pub const DARK_IRON_DWARF: CardDef = CardDef {
     id: "CLASSIC_009",
     name: "Dark Iron Dwarf",
@@ -322,10 +322,10 @@ pub const DARK_IRON_DWARF: CardDef = CardDef {
     attack: 4,
     health: 4,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats {
+    battlecry: Some(CardEffect::GainStatsThisTurn {
         attack: 2,
         health: 0,
-        target: EffectTarget::Self_,
+        target: EffectTarget::FriendlyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -661,7 +661,7 @@ pub const FAERIE_DRAGON: CardDef = CardDef {
 // Classic set — more neutral minions (2)
 // ============================================================
 
-/// Abusive Sergeant — Battlecry: give a friendly minion +2 Attack this turn (simplified: the chosen target is dropped — it buffs itself)
+/// Abusive Sergeant — Battlecry: give a friendly minion +2 Attack this turn
 pub const ABUSIVE_SERGEANT: CardDef = CardDef {
     id: "NEUTRAL_001",
     name: "Abusive Sergeant",
@@ -670,10 +670,10 @@ pub const ABUSIVE_SERGEANT: CardDef = CardDef {
     attack: 2,
     health: 1,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats {
+    battlecry: Some(CardEffect::GainStatsThisTurn {
         attack: 2,
         health: 0,
-        target: EffectTarget::Self_,
+        target: EffectTarget::FriendlyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -699,7 +699,7 @@ pub const ABUSIVE_SERGEANT: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Youthful Brewmaster — Battlecry: return a friendly minion to your hand (simplified: the chosen target is dropped — it returns itself)
+/// Youthful Brewmaster — Battlecry: return a friendly minion to your hand
 pub const YOUTHFUL_BREWMASTER: CardDef = CardDef {
     id: "NEUTRAL_002",
     name: "Youthful Brewmaster",
@@ -709,7 +709,7 @@ pub const YOUTHFUL_BREWMASTER: CardDef = CardDef {
     health: 2,
     durability: 0,
     battlecry: Some(CardEffect::ReturnToHand {
-        target: EffectTarget::Self_,
+        target: EffectTarget::FriendlyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -807,7 +807,7 @@ pub const ACOLYTE_OF_PAIN: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Earthen Ring Farseer — Battlecry: restore 3 Health to a character (simplified: the chosen target is dropped — it heals itself)
+/// Earthen Ring Farseer — Battlecry: restore 3 Health to a character
 pub const EARTHEN_RING_FARSEER: CardDef = CardDef {
     id: "NEUTRAL_005",
     name: "Earthen Ring Farseer",
@@ -818,7 +818,7 @@ pub const EARTHEN_RING_FARSEER: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::RestoreHealth {
         amount: 3,
-        target: EffectTarget::Self_,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -1016,7 +1016,7 @@ pub const THRALLMAR_FARSEER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Ancient Brewmaster — Battlecry: return a friendly minion to your hand (simplified: the chosen target is dropped — it returns itself)
+/// Ancient Brewmaster — Battlecry: return a friendly minion to your hand
 pub const ANCIENT_BREWMASTER: CardDef = CardDef {
     id: "NEUTRAL_011",
     name: "Ancient Brewmaster",
@@ -1026,7 +1026,7 @@ pub const ANCIENT_BREWMASTER: CardDef = CardDef {
     health: 4,
     durability: 0,
     battlecry: Some(CardEffect::ReturnToHand {
-        target: EffectTarget::Self_,
+        target: EffectTarget::FriendlyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -1604,7 +1604,7 @@ pub const STONETUSK_BOAR: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Voodoo Doctor — Battlecry: restore 2 Health to a character (simplified: the chosen target is dropped — it heals itself)
+/// Voodoo Doctor — Battlecry: restore 2 Health to a character
 pub const VOODOO_DOCTOR: CardDef = CardDef {
     id: "NEUTRAL_B04",
     name: "Voodoo Doctor",
@@ -1615,7 +1615,7 @@ pub const VOODOO_DOCTOR: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::RestoreHealth {
         amount: 2,
-        target: EffectTarget::Self_,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,

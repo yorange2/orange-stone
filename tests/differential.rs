@@ -6785,6 +6785,367 @@ fn w14_legal_actions_expose_corrected_target_sets() {
 }
 
 // ============================================================
+// Battlecry-target debt roadmap W15 — targeted battlecries modeled as
+// Self_: Temple Enforcer (friendly minion +3/+3), Abusive Sergeant /
+// Dark Iron Dwarf (friendly minion +2 Attack this turn), Youthful /
+// Ancient Brewmaster (return a friendly minion), Earthen Ring Farseer /
+// Voodoo Doctor (restore to any character — explicit target).
+// ============================================================
+
+/// W15-1 Temple Enforcer — buffs a chosen FRIENDLY minion +3/+3 (the
+/// source no longer buffs itself by default).
+#[test]
+fn w15_temple_enforcer_buffs_chosen_friendly_minion() {
+    use orange_stone::cards::def::TEMPLE_ENFORCER;
+    let mut builder = GameBuilder::new();
+    let friend = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &TEMPLE_ENFORCER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let enforcer = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("temple enforcer in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: enforcer,
+                target: Some(friend),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(friend),
+        Some(Attack(5)),
+        "the chosen friendly minion gets +3 Attack (2 → 5)"
+    );
+    assert_eq!(
+        state.world().effective_health(friend),
+        Some(Health(5)),
+        "and +3 Health (2 → 5)"
+    );
+}
+
+/// W15-2 Abusive Sergeant — +2 Attack THIS TURN lands on the chosen
+/// friendly minion and expires at the end of the turn.
+#[test]
+fn w15_abusive_sergeant_buffs_chosen_minion_this_turn() {
+    use orange_stone::cards::def::ABUSIVE_SERGEANT;
+    let mut builder = GameBuilder::new();
+    let friend = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 2);
+    builder.add_minion_to_hand(PlayerId1(), &ABUSIVE_SERGEANT);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let sergeant = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("sergeant in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: sergeant,
+                target: Some(friend),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(friend),
+        Some(Attack(5)),
+        "the chosen friendly minion gets +2 Attack this turn (3 → 5)"
+    );
+    // End the turn: the until-end-of-turn enchantment expires
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_attack(friend),
+        Some(Attack(3)),
+        "the +2 Attack expires at the end of the turn"
+    );
+}
+
+/// W15-3 Dark Iron Dwarf — same this-turn contract as the Sergeant.
+#[test]
+fn w15_dark_iron_dwarf_buffs_chosen_minion_this_turn() {
+    use orange_stone::cards::def::DARK_IRON_DWARF;
+    let mut builder = GameBuilder::new();
+    let friend = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &DARK_IRON_DWARF);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let dwarf = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("dark iron dwarf in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: dwarf,
+                target: Some(friend),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(friend),
+        Some(Attack(4)),
+        "the chosen friendly minion gets +2 Attack this turn (2 → 4)"
+    );
+}
+
+/// W15-4 Youthful Brewmaster — returns a chosen FRIENDLY minion to hand;
+/// the brewmaster itself stays on the board (it is no longer forced to
+/// bounce itself).
+#[test]
+fn w15_youthful_brewmaster_bounces_chosen_friendly_minion() {
+    use orange_stone::cards::def::YOUTHFUL_BREWMASTER;
+    let mut builder = GameBuilder::new();
+    let friend = builder.add_custom_minion_to_board(PlayerId1(), 4, 4, 2);
+    builder.add_minion_to_hand(PlayerId1(), &YOUTHFUL_BREWMASTER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let brewmaster = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("brewmaster in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: brewmaster,
+                target: Some(friend),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(friend),
+        Some(Zone::Hand),
+        "the chosen friendly minion returns to hand"
+    );
+    assert_eq!(
+        state.world().zone(brewmaster),
+        Some(Zone::Play),
+        "the brewmaster itself stays on the board"
+    );
+}
+
+/// W15-5 Ancient Brewmaster — same bounce contract.
+#[test]
+fn w15_ancient_brewmaster_bounces_chosen_friendly_minion() {
+    use orange_stone::cards::def::ANCIENT_BREWMASTER;
+    let mut builder = GameBuilder::new();
+    let friend = builder.add_custom_minion_to_board(PlayerId1(), 4, 4, 2);
+    builder.add_minion_to_hand(PlayerId1(), &ANCIENT_BREWMASTER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let brewmaster = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("brewmaster in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: brewmaster,
+                target: Some(friend),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(friend),
+        Some(Zone::Hand),
+        "the chosen friendly minion returns to hand"
+    );
+    assert_eq!(
+        state.world().zone(brewmaster),
+        Some(Zone::Play),
+        "the brewmaster itself stays on the board"
+    );
+}
+
+/// W15-6 Earthen Ring Farseer — restores 3 Health to a chosen character
+/// (here: a damaged ENEMY minion — the friendly hero heals itself no more).
+#[test]
+fn w15_earthen_ring_farseer_heals_chosen_character() {
+    use orange_stone::cards::def::EARTHEN_RING_FARSEER;
+    use orange_stone::core::component::Damage;
+    let mut builder = GameBuilder::new();
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 2);
+    builder.add_minion_to_hand(PlayerId1(), &EARTHEN_RING_FARSEER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    state.world_mut().set_damage(enemy, Damage(2));
+    let engine = GameEngine::new();
+    let farseer = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("farseer in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: farseer,
+                target: Some(enemy),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy),
+        Some(Health(4)),
+        "the chosen enemy minion is healed back to full (2/4 → 4/4)"
+    );
+    // The farseer itself took no heal (it came in undamaged)
+    assert_eq!(
+        state.world().damage(farseer),
+        None,
+        "the farseer itself is undamaged — no self-heal"
+    );
+}
+
+/// W15-7 Voodoo Doctor — restores 2 Health to a chosen character (a
+/// damaged friendly hero).
+#[test]
+fn w15_voodoo_doctor_heals_chosen_friendly_hero() {
+    use orange_stone::cards::def::VOODOO_DOCTOR;
+    use orange_stone::core::component::Damage;
+    let mut builder = GameBuilder::new();
+    let hero = builder.state_mut().player(PlayerId1()).hero;
+    builder.add_minion_to_hand(PlayerId1(), &VOODOO_DOCTOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    state.world_mut().set_damage(hero, Damage(5));
+    let engine = GameEngine::new();
+    let doctor = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("voodoo doctor in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: doctor,
+                target: Some(hero),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(27)),
+        "the chosen friendly hero is healed 2 (25 → 27)"
+    );
+}
+
+/// W15-8 G9 fizzle for a targeted battlecry — a stealthed enemy minion is
+/// not in the any-character heal set; the heal fizzles (no random fallback).
+#[test]
+fn w15_heal_fizzles_for_stealthed_enemy() {
+    use orange_stone::cards::def::EARTHEN_RING_FARSEER;
+    use orange_stone::core::component::{Damage, Stealth};
+    let mut builder = GameBuilder::new();
+    let stealthed = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 2);
+    builder.add_minion_to_hand(PlayerId1(), &EARTHEN_RING_FARSEER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    state.world_mut().set_stealth(stealthed, Stealth);
+    state.world_mut().set_damage(stealthed, Damage(2));
+    let engine = GameEngine::new();
+    let farseer = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("farseer in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: farseer,
+                target: Some(stealthed),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(stealthed),
+        Some(Health(1)),
+        "the stealthed target cannot be chosen — no heal lands (G9)"
+    );
+}
+
+/// W15-9 the RL path — legal_actions expose one PlayCard per friendly target
+/// for the Self_-converted battlecries (Temple Enforcer, Brewmaster).
+#[test]
+fn w15_legal_actions_expose_friendly_targets() {
+    use orange_stone::cards::def::{TEMPLE_ENFORCER, YOUTHFUL_BREWMASTER};
+    use orange_stone::rl::env::legal_actions;
+    let mut builder = GameBuilder::new();
+    let first = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let second = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 2);
+    builder.add_minion_to_hand(PlayerId1(), &TEMPLE_ENFORCER);
+    builder.add_minion_to_hand(PlayerId1(), &YOUTHFUL_BREWMASTER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let state = builder.build();
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    let find_card = |id: &str| {
+        *hand
+            .iter()
+            .find(|&&e| state.world().card_id(e).is_some_and(|c| c.0 == id))
+            .expect("card in hand")
+    };
+    let actions = legal_actions(&state);
+    let enforcer = find_card("PRIEST_015");
+    let brewmaster = find_card("NEUTRAL_002");
+    for target in [first, second] {
+        assert!(
+            actions.contains(&Action::PlayCard {
+                card: enforcer,
+                target: Some(target),
+                position: None,
+            }),
+            "temple enforcer: both friendly minions are targets"
+        );
+        assert!(
+            actions.contains(&Action::PlayCard {
+                card: brewmaster,
+                target: Some(target),
+                position: None,
+            }),
+            "brewmaster: both friendly minions are targets"
+        );
+    }
+}
+
+// ============================================================
 // Engine-mechanics roadmap M2 — freeze timing: the thaw moved
 // from Event::TurnStarted to the turn-end wrap-up. A character
 // frozen during the opponent's turn keeps Freeze through its
