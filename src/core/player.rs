@@ -67,6 +67,11 @@ pub struct Player {
     pub overload_locked: i32,
     /// Friendly minions that died this turn (for resurrection effects)
     pub died_this_turn: Vec<crate::core::entity::Entity>,
+    /// Entities frozen at the start of this player's turn (engine-mechanics
+    /// roadmap M2 — freeze timing): a character frozen during the opponent's
+    /// turn keeps Freeze through its owner's next turn (its attack is
+    /// blocked), then thaws in the turn-end wrap-up of that turn
+    pub frozen_at_turn_start: Vec<crate::core::entity::Entity>,
     /// The next secret costs 0 (Kirin Tor Mage, one-time)
     pub next_secret_free: bool,
     /// All spells cost 0 this turn (Millhouse Manastorm — the opponent's
@@ -105,6 +110,7 @@ impl Player {
             controlled_this_turn: Vec::new(),
             corrupted: Vec::new(),
             minion_min_health: 0,
+            frozen_at_turn_start: Vec::new(),
         }
     }
 }

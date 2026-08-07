@@ -360,15 +360,22 @@ impl_arith!(SpellDamage);
 
 /// Freeze — the character is frozen and skips its next attack opportunity.
 ///
-/// A frozen character thaws at the start of its turn (the Freeze component is removed).
-/// While frozen, the character cannot attack.
+/// Freeze timing (engine-mechanics roadmap M2): a character frozen during
+/// the opponent's turn keeps Freeze through its owner's next turn — the
+/// `AttackDeclared`/validation freeze check blocks its attacks — and thaws
+/// in the turn-end wrap-up of that turn (after the missed attack
+/// opportunity), matching HS. The turn-start snapshot
+/// (`Player::frozen_at_turn_start`) distinguishes "frozen at the start of
+/// the owner's turn" (thaws this wrap-up) from "frozen during the turn"
+/// (stays frozen into the next turn).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Freeze;
 
 /// Cannot attack — this minion cannot initiate attacks (e.g. Ragnaros, Ancient Watcher).
 ///
 /// `CantAttack` is checked during attack validation.
-/// Unlike Freeze, which is a temporary state (cleared at turn start), CantAttack is permanent.
+/// Unlike Freeze, which is a temporary state (thawed in the turn-end
+/// wrap-up), CantAttack is permanent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct CantAttack;
 

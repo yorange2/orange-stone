@@ -188,6 +188,13 @@ fn validate_attack(
         return Err(EngineError::NotOnBoard);
     }
 
+    // Freeze (engine-mechanics roadmap M2): a frozen character cannot attack.
+    // With the thaw moved to the turn-end wrap-up the freeze is actually
+    // present during the owner's next turn, so legal actions must exclude it.
+    if world.freeze(attacker).is_some() {
+        return Err(EngineError::InvalidTarget);
+    }
+
     // Check attack count (accounting for windfury)
     let max_atks = world.max_attacks(attacker);
     if world
@@ -484,6 +491,19 @@ pub fn apply_event(
                 .map(|(e, _)| e)
                 .collect();
             let new_turn = state.turn() + 1;
+            // Freeze timing (engine-mechanics roadmap M2): entities frozen at
+            // the START of this turn (i.e. during the opponent's turn) keep
+            // Freeze through the whole turn — the AttackDeclared check blocks
+            // their attacks — and thaw in the turn-end wrap-up. Entities
+            // frozen DURING this turn (by this player's own actions, e.g.
+            // Icicle) are not in the snapshot and stay frozen into the next
+            // turn, matching HS. The snapshot is taken before the attack
+            // resets below.
+            let frozen_at_start: SmallList<Entity> = player_entities
+                .iter()
+                .copied()
+                .filter(|&e| state.world().freeze(e).is_some())
+                .collect();
 
             // Then perform all modifications step by step
             {
@@ -492,9 +512,12 @@ pub fn apply_event(
                     world.set_attacks_used(entity, AttacksUsed(0));
                     // Reset the hero-power-used flag
                     world.set_hero_power_used(entity, HeroPowerUsed(false));
-                    // Clear freeze
-                    world.remove_freeze(entity);
                 }
+            }
+            {
+                let inner = state.make_mut();
+                inner.players[player.index()].frozen_at_turn_start =
+                    frozen_at_start.iter().copied().collect();
             }
             state.set_active_player(player);
             state.set_turn(new_turn);
@@ -1540,6 +1563,20 @@ fn trigger_applies(
 /// strength and deaths they cause are processed before buffs expire.
 fn wrap_up_turn(state: &mut GameState) {
     let player = state.active_player();
+    // Freeze timing (engine-mechanics roadmap M2): the entities this player
+    // had frozen at the start of their turn — their attacks were blocked by
+    // the AttackDeclared check — thaw here, in the turn-end wrap-up, so they
+    // are unfrozen for the opponent's turn (HS: thaw after the missed attack
+    // opportunity). Dead entities are skipped; the snapshot is drained.
+    {
+        let inner = state.make_mut();
+        let frozen = std::mem::take(&mut inner.players[player.index()].frozen_at_turn_start);
+        for e in frozen {
+            if inner.world.is_alive(e) {
+                inner.world.remove_freeze(e);
+            }
+        }
+    }
     // Expire "until end of turn" enchantments (temporary attack buffs/debuffs)
     // and clear per-turn state
     {
