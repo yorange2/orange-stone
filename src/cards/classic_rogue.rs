@@ -154,6 +154,7 @@ pub const SAP: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// SI:7 Agent — Combo: deal 2 damage to a character (simplified: enemy characters only)
 pub const SI7_AGENT: CardDef = CardDef {
     id: "ROGUE_005",
     name: "SI:7 Agent",

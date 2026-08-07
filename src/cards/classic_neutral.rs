@@ -108,6 +108,7 @@ pub const ACIDIC_SWAMP_OOZE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Ironbeak Owl — Battlecry: silence a minion (simplified: enemy minions only)
 pub const IRONBEAK_OWL: CardDef = CardDef {
     id: "CLASSIC_004",
     name: "Ironbeak Owl",
@@ -312,6 +313,7 @@ pub const SENJIN_SHIELDMASTA: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Dark Iron Dwarf — Battlecry: give a friendly minion +2 Attack this turn (simplified: the chosen target is dropped — it buffs itself)
 pub const DARK_IRON_DWARF: CardDef = CardDef {
     id: "CLASSIC_009",
     name: "Dark Iron Dwarf",
@@ -419,6 +421,7 @@ pub const GNOMISH_INVENTOR: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Spellbreaker — Battlecry: silence a minion (simplified: enemy minions only)
 pub const SPELLBREAKER: CardDef = CardDef {
     id: "CLASSIC_012",
     name: "Spellbreaker",
@@ -658,6 +661,7 @@ pub const FAERIE_DRAGON: CardDef = CardDef {
 // Classic set — more neutral minions (2)
 // ============================================================
 
+/// Abusive Sergeant — Battlecry: give a friendly minion +2 Attack this turn (simplified: the chosen target is dropped — it buffs itself)
 pub const ABUSIVE_SERGEANT: CardDef = CardDef {
     id: "NEUTRAL_001",
     name: "Abusive Sergeant",
@@ -695,6 +699,7 @@ pub const ABUSIVE_SERGEANT: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Youthful Brewmaster — Battlecry: return a friendly minion to your hand (simplified: the chosen target is dropped — it returns itself)
 pub const YOUTHFUL_BREWMASTER: CardDef = CardDef {
     id: "NEUTRAL_002",
     name: "Youthful Brewmaster",
@@ -730,6 +735,7 @@ pub const YOUTHFUL_BREWMASTER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Mad Bomber — Battlecry: deal 3 damage split randomly between all other characters (simplified: the battlecry is a no-op — no damage)
 pub const MAD_BOMBER: CardDef = CardDef {
     id: "NEUTRAL_003",
     name: "Mad Bomber",
@@ -801,6 +807,7 @@ pub const ACOLYTE_OF_PAIN: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Earthen Ring Farseer — Battlecry: restore 3 Health to a character (simplified: the chosen target is dropped — it heals itself)
 pub const EARTHEN_RING_FARSEER: CardDef = CardDef {
     id: "NEUTRAL_005",
     name: "Earthen Ring Farseer",
@@ -1009,6 +1016,7 @@ pub const THRALLMAR_FARSEER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Ancient Brewmaster — Battlecry: return a friendly minion to your hand (simplified: the chosen target is dropped — it returns itself)
 pub const ANCIENT_BREWMASTER: CardDef = CardDef {
     id: "NEUTRAL_011",
     name: "Ancient Brewmaster",
@@ -1247,6 +1255,7 @@ pub const ABOMINATION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Frostwolf Warlord — Battlecry: gain +1/+1 for each other friendly minion (simplified: a fixed +1/+1 self-buff)
 pub const FROSTWOLF_WARLORD: CardDef = CardDef {
     id: "NEUTRAL_018",
     name: "Frostwolf Warlord",
@@ -1489,7 +1498,6 @@ pub const ARCHMAGE: CardDef = CardDef {
 
 pub const CORE_HOUND: CardDef = vanilla!("NEUTRAL_025", "Core Hound", 7, 9, 5);
 
-/// Sea Giant — costs (1) less for each other minion on the battlefield (simplified: no cost reduction — vanilla 8/8)
 /// Sea Giant — costs (1) less for each minion on the battlefield (the
 /// board-count rule composes in `cost::play_cost`, Dread Corsair pattern)
 pub const SEA_GIANT: CardDef = vanilla!("NEUTRAL_026", "Sea Giant", 10, 8, 8);
@@ -1596,6 +1604,7 @@ pub const STONETUSK_BOAR: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+/// Voodoo Doctor — Battlecry: restore 2 Health to a character (simplified: the chosen target is dropped — it heals itself)
 pub const VOODOO_DOCTOR: CardDef = CardDef {
     id: "NEUTRAL_B04",
     name: "Voodoo Doctor",
@@ -1695,6 +1704,7 @@ pub const DALARAN_MAGE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+/// Ironforge Rifleman — Battlecry: deal 1 damage to an enemy minion (simplified: may hit the enemy hero too)
 pub const IRONFORGE_RIFLEMAN: CardDef = CardDef {
     id: "NEUTRAL_B07",
     name: "Ironforge Rifleman",
@@ -1962,6 +1972,7 @@ pub const BOOTY_BAY_BODYGUARD: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+/// Darkscale Healer — Battlecry: restore 2 Health to all friendly characters (simplified: friendly minions only — the hero is not healed)
 pub const DARKSCALE_HEALER: CardDef = CardDef {
     id: "NEUTRAL_B16",
     name: "Darkscale Healer",
@@ -2032,6 +2043,7 @@ pub const NIGHTBLADE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+/// Stormpike Commando — Battlecry: deal 2 damage to a character (simplified: enemy characters only)
 pub const STORMPIKE_COMMANDO: CardDef = CardDef {
     id: "NEUTRAL_B18",
     name: "Stormpike Commando",
@@ -3362,7 +3374,7 @@ pub const BLOOD_KNIGHT: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Big Game Hunter — Battlecry: destroy a minion with 7 or more Attack
+/// Big Game Hunter — Battlecry: destroy a minion with 7 or more Attack (simplified: a minion on either side, not enemy-only)
 pub const BIG_GAME_HUNTER: CardDef = CardDef {
     id: "NEUTRAL_E06",
     name: "Big Game Hunter",
@@ -3698,7 +3710,7 @@ pub const FACELESS_MANIPULATOR: CardDef = CardDef {
 
 /// Wisp — vanilla
 pub const WISP: CardDef = vanilla!("NEUTRAL_T01", "Wisp", 0, 1, 1);
-/// Elven Archer — Battlecry: deal 1 damage
+/// Elven Archer — Battlecry: deal 1 damage (simplified: enemy characters only, not any character)
 pub const ELVEN_ARCHER: CardDef = CardDef {
     id: "NEUTRAL_T02",
     name: "Elven Archer",

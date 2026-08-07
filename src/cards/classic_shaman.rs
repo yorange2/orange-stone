@@ -219,6 +219,7 @@ pub const LIGHTNING_STORM: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Fire Elemental — Battlecry: deal 3 damage to a character (simplified: enemy characters only)
 pub const FIRE_ELEMENTAL: CardDef = CardDef {
     id: "SHAMAN_007",
     name: "Fire Elemental",

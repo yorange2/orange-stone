@@ -472,6 +472,7 @@ pub const SHADOW_WORD_RUIN: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+/// Temple Enforcer — Battlecry: give a friendly minion +3/+3 (simplified: the chosen target is dropped — it buffs itself)
 pub const TEMPLE_ENFORCER: CardDef = CardDef {
     id: "PRIEST_015",
     name: "Temple Enforcer",

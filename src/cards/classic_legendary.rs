@@ -293,6 +293,7 @@ pub const RAGNAROS_THE_FIRELORD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Alexstrasza — Battlecry: set a HERO's health to 15 (simplified: targets a random enemy character instead)
 pub const ALEXSTRASZA: CardDef = CardDef {
     id: "LEGENDARY_008",
     name: "Alexstrasza",

@@ -5550,8 +5550,8 @@ fn w12_shiv_damages_and_draws() {
 /// W12-5 Argent Protector — Battlecry: give a friendly minion Divine Shield
 /// (the final §11 row — the roadmap's wave accounting swapped this card for
 /// the unregistered Defender of Argus; clearing it empties the ledger).
-/// Note: minion battlecries resolve without an explicit target in this
-/// engine (pre-existing), so the effect shields one random friendly minion.
+/// Played without an explicit target the battlecry shields one random
+/// friendly minion (the explicit-target path is pinned by `m1_*`).
 #[test]
 fn w12_argent_protector_grants_divine_shield() {
     use orange_stone::cards::def::ARGENT_PROTECTOR;
@@ -5590,5 +5590,489 @@ fn w12_argent_protector_grants_divine_shield() {
         shielded.len(),
         1,
         "exactly one friendly minion gained Divine Shield"
+    );
+}
+
+// ============================================================
+// Engine-mechanics roadmap M1 — minion battlecry explicit
+// targets: `PlayCard { target }` now threads into the battlecry
+// (Event::MinionSummoned carries it); re-validation stays G9
+// (an explicit target that left the legal set fizzles — no
+// random fallback); the RL `legal_actions` expose the targets.
+// ============================================================
+
+/// M1-1 Houndmaster — Battlecry: give a friendly Beast +2/+2 and Taunt.
+/// With two friendly Beasts on the board, the explicitly chosen Beast
+/// takes the buff and the Taunt; the other Beast is untouched.
+#[test]
+fn m1_houndmaster_battlecry_hits_chosen_beast() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, HOUNDMASTER, IRONFUR_GRIZZLY};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_board(PlayerId1(), &IRONFUR_GRIZZLY);
+    builder.add_minion_to_hand(PlayerId1(), &HOUNDMASTER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let raptor = find_entity(&state, PlayerId1(), "CLASSIC_001");
+    let grizzly = find_entity(&state, PlayerId1(), "NEUTRAL_B08");
+    let houndmaster = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("houndmaster in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: houndmaster,
+                target: Some(grizzly),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(grizzly),
+        Some(Attack(5)),
+        "the chosen Beast gets the +2 Attack"
+    );
+    assert_eq!(
+        state.world().effective_health(grizzly),
+        Some(Health(5)),
+        "the chosen Beast gets the +2 Health"
+    );
+    assert!(
+        state.world().taunt(grizzly).is_some(),
+        "the chosen Beast gets the Taunt"
+    );
+    assert_eq!(
+        state.world().effective_attack(raptor),
+        Some(Attack(3)),
+        "the other Beast is untouched (3/2 base)"
+    );
+    assert_eq!(
+        state.world().effective_health(raptor),
+        Some(Health(2)),
+        "the other Beast is untouched (3/2 base)"
+    );
+    assert!(
+        !state.world().taunt(raptor).is_some(),
+        "the other Beast gains no Taunt"
+    );
+}
+
+/// M1-2 Argent Protector — Battlecry: give a friendly minion Divine Shield.
+/// With two friendly minions, the explicitly chosen one gets the Shield.
+#[test]
+fn m1_argent_protector_shields_chosen_minion() {
+    use orange_stone::cards::def::ARGENT_PROTECTOR;
+    let mut builder = GameBuilder::new();
+    let first = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 3);
+    let second = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &ARGENT_PROTECTOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let protector = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Argent Protector in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: protector,
+                target: Some(first),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.world().divine_shield(first).is_some(),
+        "the chosen minion gains the Shield"
+    );
+    assert!(
+        !state.world().divine_shield(second).is_some(),
+        "the other minion gains nothing"
+    );
+}
+
+/// M1-2b Kul Tiran Chaplain — Battlecry: give a friendly minion +2 Health.
+/// With two friendly minions, the explicitly chosen one gets the Health.
+#[test]
+fn m1_kul_tiran_chaplain_buffs_chosen_minion() {
+    use orange_stone::cards::def::KUL_TIRAN_CHAPLAIN;
+    let mut builder = GameBuilder::new();
+    let first = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let second = builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    builder.add_minion_to_hand(PlayerId1(), &KUL_TIRAN_CHAPLAIN);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let chaplain = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("chaplain in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: chaplain,
+                target: Some(first),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(first),
+        Some(Health(4)),
+        "the chosen minion gets the +2 Health"
+    );
+    assert_eq!(
+        state.world().effective_health(second),
+        Some(Health(1)),
+        "the other minion is untouched"
+    );
+}
+
+/// M1-3 G9 re-validation — an explicit battlecry target that is not in the
+/// legal candidate set at resolution time fizzles the battlecry: no random
+/// fallback (Houndmaster targeting an enemy minion — never a friendly Beast).
+#[test]
+fn m1_battlecry_invalid_target_fizzles() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, HOUNDMASTER};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &BLOODFEN_RAPTOR);
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &HOUNDMASTER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let beast = find_entity(&state, PlayerId1(), "CLASSIC_001");
+    let houndmaster = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("houndmaster in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: houndmaster,
+                target: Some(enemy),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(beast),
+        Some(Attack(3)),
+        "the battlecry fizzles — the Beast takes no buff (3/2 base)"
+    );
+    assert_eq!(
+        state.world().effective_health(beast),
+        Some(Health(2)),
+        "no Health buff either"
+    );
+    assert!(
+        !state.world().taunt(beast).is_some(),
+        "no random-fallback Taunt"
+    );
+}
+
+/// M1-4 the RL path — `legal_actions` exposes one PlayCard action per legal
+/// battlecry target (and no targetless play), and the chosen action is
+/// honored when applied.
+#[test]
+fn m1_legal_actions_expose_battlecry_targets() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, HOUNDMASTER, IRONFUR_GRIZZLY};
+    use orange_stone::rl::env::legal_actions;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_board(PlayerId1(), &IRONFUR_GRIZZLY);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &HOUNDMASTER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let raptor = find_entity(&state, PlayerId1(), "CLASSIC_001");
+    let grizzly = find_entity(&state, PlayerId1(), "NEUTRAL_B08");
+    let houndmaster = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("houndmaster in hand");
+    let actions = legal_actions(&state);
+    assert!(
+        actions.contains(&Action::PlayCard {
+            card: houndmaster,
+            target: Some(raptor),
+            position: None,
+        }),
+        "each legal Beast is a target"
+    );
+    assert!(
+        actions.contains(&Action::PlayCard {
+            card: houndmaster,
+            target: Some(grizzly),
+            position: None,
+        }),
+        "each legal Beast is a target"
+    );
+    assert!(
+        !actions.contains(&Action::PlayCard {
+            card: houndmaster,
+            target: None,
+            position: None,
+        }),
+        "a targeted battlecry has no targetless play action"
+    );
+    // Apply the agent-style action: the chosen Beast takes the buff
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: houndmaster,
+                target: Some(grizzly),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(grizzly),
+        Some(Attack(5)),
+        "the RL-chosen target is honored"
+    );
+}
+
+/// M1-5 The Black Knight — Battlecry: destroy an enemy minion with Taunt.
+/// With two enemy Taunts, the explicitly chosen one is destroyed.
+#[test]
+fn m1_black_knight_destroys_chosen_taunt() {
+    use orange_stone::cards::def::THE_BLACK_KNIGHT;
+    use orange_stone::core::component::Taunt;
+    let mut builder = GameBuilder::new();
+    let taunt_a = builder.add_custom_minion_to_board(PlayerId2(), 2, 6, 4);
+    let taunt_b = builder.add_custom_minion_to_board(PlayerId2(), 3, 5, 4);
+    {
+        let world = builder.state_mut().world_mut();
+        world.set_taunt(taunt_a, Taunt);
+        world.set_taunt(taunt_b, Taunt);
+    }
+    builder.add_minion_to_hand(PlayerId1(), &THE_BLACK_KNIGHT);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let knight = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("the knight in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: knight,
+                target: Some(taunt_b),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(taunt_b),
+        Some(Zone::Graveyard),
+        "the chosen Taunt is destroyed"
+    );
+    assert_eq!(
+        state.world().zone(taunt_a),
+        Some(Zone::Play),
+        "the other Taunt survives"
+    );
+}
+
+/// M1-6 Crazed Alchemist — Battlecry: swap a minion's Attack and Health.
+/// With candidates on both sides, the explicitly chosen enemy swaps.
+#[test]
+fn m1_crazed_alchemist_swaps_chosen_minion() {
+    use orange_stone::cards::def::CRAZED_ALCHEMIST;
+    let mut builder = GameBuilder::new();
+    builder.add_custom_minion_to_board(PlayerId1(), 1, 5, 2);
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 5, 1, 2);
+    builder.add_minion_to_hand(PlayerId1(), &CRAZED_ALCHEMIST);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let alchemist = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("alchemist in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: alchemist,
+                target: Some(enemy),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(enemy),
+        Some(Attack(1)),
+        "the chosen enemy minion swaps to 1/5"
+    );
+    assert_eq!(
+        state.world().effective_health(enemy),
+        Some(Health(5)),
+        "the chosen enemy minion swaps to 1/5"
+    );
+}
+
+/// M1-7 Hungry Crab — Battlecry: destroy a Murloc and gain +2/+2.
+/// With two enemy Murlocs, the explicitly chosen one is destroyed.
+#[test]
+fn m1_hungry_crab_destroys_chosen_murloc() {
+    use orange_stone::cards::def::{HUNGRY_CRAB, MURLOC_RAIDER};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId2(), &MURLOC_RAIDER);
+    builder.add_minion_to_board(PlayerId2(), &MURLOC_RAIDER);
+    builder.add_minion_to_hand(PlayerId1(), &HUNGRY_CRAB);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // The two P2 Murlocs in summon order — target the second one
+    let murlocs: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .collect();
+    let chosen = murlocs[1];
+    let crab = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("crab in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: crab,
+                target: Some(chosen),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(chosen),
+        Some(Zone::Graveyard),
+        "the chosen Murloc is destroyed"
+    );
+    let survivor = find_entity(&state, PlayerId2(), "NEUTRAL_B02");
+    assert_eq!(
+        state.world().zone(survivor),
+        Some(Zone::Play),
+        "the other Murloc survives"
+    );
+    assert_eq!(
+        state.world().effective_attack(crab),
+        Some(Attack(3)),
+        "the crab gains +2/+2"
+    );
+    assert_eq!(
+        state.world().effective_health(crab),
+        Some(Health(4)),
+        "the crab gains +2/+2"
+    );
+}
+
+/// M1-8 Big Game Hunter — Battlecry: destroy a minion with 7+ Attack.
+/// With two big enemy minions, the explicitly chosen one is destroyed.
+#[test]
+fn m1_big_game_hunter_destroys_chosen_big_minion() {
+    use orange_stone::cards::def::BIG_GAME_HUNTER;
+    let mut builder = GameBuilder::new();
+    let big_a = builder.add_custom_minion_to_board(PlayerId2(), 8, 8, 8);
+    let big_b = builder.add_custom_minion_to_board(PlayerId2(), 8, 8, 8);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &BIG_GAME_HUNTER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hunter = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("the hunter in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hunter,
+                target: Some(big_b),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(big_b),
+        Some(Zone::Graveyard),
+        "the chosen big minion is destroyed"
+    );
+    assert_eq!(
+        state.world().zone(big_a),
+        Some(Zone::Play),
+        "the other big minion survives"
+    );
+}
+
+/// M1-9 Stormpike Commando — Battlecry: deal 2 damage (AnyEnemy). The
+/// explicit target on the minion path is honored, not randomly re-picked.
+#[test]
+fn m1_stormpike_commando_hits_chosen_target() {
+    use orange_stone::cards::def::STORMPIKE_COMMANDO;
+    let mut builder = GameBuilder::new();
+    let hero = builder.state_mut().player(PlayerId2()).hero;
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &STORMPIKE_COMMANDO);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let commando = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("commando in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: commando,
+                target: Some(enemy),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(enemy),
+        Some(Zone::Graveyard),
+        "the chosen enemy minion takes the 2 damage and dies"
+    );
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(30)),
+        "the enemy hero is untouched"
     );
 }
