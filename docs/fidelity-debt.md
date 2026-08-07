@@ -496,3 +496,8 @@ Every card that leaves this ledger must land with:
 - **Comment wording**: the Python extractor keys on the word "simplified" in the
   card's doc block. Use "simplified" only for genuine debt; use "(verified)" or
   plain text once faithful.
+- **Pool-open ≠ debt**: the four pool-open cards (Mind Vision, Thoughtsteal,
+  Mindgames, Lorewalker Cho) carry `(pool-open: …)` comments, not
+  `(simplified: …)` — they are faithful implementations that read the
+  opponent's cards, not simplifications. The extractor keys on "simplified",
+  so they stay in the RL pool; their registry lives in `docs/pool-openness.md`.
