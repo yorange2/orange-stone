@@ -906,3 +906,158 @@ pub const MIND_CONTROL: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// ============================================================
+// Pool-open cards (pool-open-cards-roadmap M2) — read the
+// opponent's actual hand/deck instead of sampling a pool.
+// See docs/pool-openness.md; registry: sets::POOL_OPEN_CARDS.
+// ============================================================
+
+/// Mind Vision — copy a random card from the opponent's hand into your hand
+/// (pool-open: reads the enemy hand). An empty enemy hand copies nothing;
+/// the spell is still consumed.
+pub const MIND_VISION: CardDef = CardDef {
+    id: "PRIEST_024",
+    name: "Mind Vision",
+    card_type: CardType::Spell,
+    cost: 1,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::CopyRandomEnemyHandCard { count: 1 }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// Thoughtsteal — copy 2 cards from the opponent's deck into your hand
+/// (pool-open: reads the enemy deck). Sampling without replacement; a deck
+/// with fewer than 2 cards copies what exists; nothing is drawn, so no
+/// fatigue applies. Cost 3 per original Classic (the official JSON lists 2 —
+/// the 2021 Classic rebalance; deviation documented in `known_rebalanced`).
+pub const THOUGHTSTEAL: CardDef = CardDef {
+    id: "PRIEST_025",
+    name: "Thoughtsteal",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::CopyRandomEnemyDeckCards { count: 2 }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// Mindgames — put a copy of a random minion from the opponent's deck into
+/// the battlefield (pool-open: reads the enemy deck). The enemy deck is not
+/// modified; a deck with no minions summons Shadow of Nothing (PRIEST_026t)
+/// instead; a full board summons nothing.
+pub const MINDGAMES: CardDef = CardDef {
+    id: "PRIEST_026",
+    name: "Mindgames",
+    card_type: CardType::Spell,
+    cost: 4,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::SummonRandomEnemyDeckMinion {
+        fallback_card_id: "PRIEST_026t",
+    }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// Shadow of Nothing — Mindgames' fallback token: summoned when the
+/// opponent's deck holds no minions. Derivative token (id ends with 't'):
+/// excluded from the RL pool.
+pub const SHADOW_OF_NOTHING: CardDef = CardDef {
+    id: "PRIEST_026t",
+    name: "Shadow of Nothing",
+    card_type: CardType::Minion,
+    cost: 0,
+    attack: 0,
+    health: 1,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

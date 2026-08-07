@@ -670,6 +670,7 @@ mod generated_tests {
             "The Black Knight" => &["cost", "health"],
             "Timber Wolf" => &["health"],
             "Tirion Fordring" => &["attack", "health"],
+            "Thoughtsteal" => &["cost"],
             "Treant" => &["charge"],
             "Unbound Elemental" => &["attack"],
             "Void Terror" => &["health"],

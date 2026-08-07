@@ -13,7 +13,9 @@ hand or deck) or **copy a cast spell**:
 
 | Card | Class | Cost | Pool-open because | Since |
 | --- | --- | --- | --- | --- |
-| *(registry fills as cards land — see `pool-open-cards-roadmap.md` M2/M3)* | | | | |
+| Mind Vision (`PRIEST_024`) | Priest | 1 | copies a random card from the **enemy hand** | 2026-08-07, M2 |
+| Thoughtsteal (`PRIEST_025`) | Priest | 3 | copies 2 cards from the **enemy deck** | 2026-08-07, M2 |
+| Mindgames (`PRIEST_026`) | Priest | 4 | summons a copy of a random **enemy-deck minion** | 2026-08-07, M2 |
 
 The Classic pool is **closed** today: `ALL_CARDS` is Classic-only, so anything
 the opponent holds is already in the pool, and every other random generator

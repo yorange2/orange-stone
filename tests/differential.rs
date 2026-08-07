@@ -8154,3 +8154,405 @@ fn po_pool_open_resolvers_are_deterministic() {
         "a minion-less enemy deck summons the fallback token"
     );
 }
+
+// ============================================================
+// Pool-open M2 — Mind Vision / Thoughtsteal / Mindgames.
+// Full-game scenarios with the real cards; deterministic copy
+// picks pinned via same-seed replays.
+// ============================================================
+
+/// M2 Mind Vision — copies a random enemy hand card into the caster's hand;
+/// the enemy hand is untouched and the spell is consumed.
+#[test]
+fn po_mind_vision_copies_random_enemy_hand_card() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, CHILLWIND_YETI, MIND_VISION};
+    let mut builder = GameBuilder::new();
+    builder.with_rng_seed(7);
+    builder.add_minion_to_hand(PlayerId2(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_hand(PlayerId2(), &CHILLWIND_YETI);
+    builder.add_minion_to_hand(PlayerId1(), &MIND_VISION);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|e| {
+            state
+                .world()
+                .card_id(*e)
+                .is_some_and(|c| c.0 == "PRIEST_024")
+        })
+        .expect("mind vision in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let p1_hand: Vec<&str> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .map(|e| state.world().card_id(e).unwrap().0)
+        .collect();
+    assert_eq!(
+        p1_hand.len(),
+        1,
+        "the spell is consumed, exactly one copy lands"
+    );
+    assert!(
+        ["CLASSIC_001", "NEUTRAL_T08"].contains(&p1_hand[0]),
+        "the copy is one of the enemy's actual hand cards, got {}",
+        p1_hand[0]
+    );
+    let p2_hand: Vec<&str> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .map(|e| state.world().card_id(e).unwrap().0)
+        .collect();
+    assert_eq!(p2_hand.len(), 2, "the enemy hand is untouched");
+}
+
+/// M2 Mind Vision — an empty enemy hand copies nothing; the spell is still
+/// consumed.
+#[test]
+fn po_mind_vision_empty_enemy_hand_is_no_op() {
+    use orange_stone::cards::def::MIND_VISION;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &MIND_VISION);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("mind vision in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        0,
+        "no copy without an enemy hand"
+    );
+}
+
+/// M2 Mind Vision replay — same seed + same actions produce the identical
+/// copied card (the pick goes through the state RNG).
+#[test]
+fn po_mind_vision_replay_is_deterministic() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, CHILLWIND_YETI, MIND_VISION};
+    let play = |seed: u64| -> Vec<&'static str> {
+        let mut builder = GameBuilder::new();
+        builder.with_rng_seed(seed);
+        builder.add_minion_to_hand(PlayerId2(), &BLOODFEN_RAPTOR);
+        builder.add_minion_to_hand(PlayerId2(), &CHILLWIND_YETI);
+        builder.add_minion_to_hand(PlayerId1(), &MIND_VISION);
+        builder.set_mana(PlayerId1(), 10, 10);
+        let mut state = builder.build();
+        let engine = GameEngine::new();
+        let spell = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId1())
+            .next()
+            .expect("mind vision in hand");
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: spell,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId1())
+            .map(|e| state.world().card_id(e).unwrap().0)
+            .collect()
+    };
+    let run1 = play(42);
+    let run2 = play(42);
+    assert_eq!(run1, run2, "same seed → identical copy");
+}
+
+/// M2 Thoughtsteal — copies 2 random enemy deck cards; the deck is not
+/// modified; nothing is drawn (no fatigue).
+#[test]
+fn po_thoughtsteal_copies_two_from_enemy_deck() {
+    use orange_stone::cards::def::{
+        BLOODFEN_RAPTOR, CHILLWIND_YETI, SENJIN_SHIELDMASTA, THOUGHTSTEAL,
+    };
+    let mut builder = GameBuilder::new();
+    builder.with_rng_seed(7);
+    builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(PlayerId2(), &CHILLWIND_YETI);
+    builder.add_minion_to_deck(PlayerId2(), &SENJIN_SHIELDMASTA);
+    builder.add_minion_to_hand(PlayerId1(), &THOUGHTSTEAL);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("thoughtsteal in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let p1_hand: Vec<&str> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .map(|e| state.world().card_id(e).unwrap().0)
+        .collect();
+    assert_eq!(p1_hand.len(), 2, "exactly two copies");
+    assert!(
+        p1_hand
+            .iter()
+            .all(|id| ["CLASSIC_001", "NEUTRAL_T08", "CLASSIC_008"].contains(id)),
+        "both copies come from the enemy deck, got {p1_hand:?}"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, PlayerId2()),
+        3,
+        "the enemy deck is not modified"
+    );
+    assert_eq!(
+        state.player(PlayerId1()).hero,
+        state.player(PlayerId1()).hero,
+        "hero unchanged (no fatigue)"
+    );
+}
+
+/// M2 Thoughtsteal — a deck with a single card copies exactly one; an empty
+/// deck copies nothing and causes no fatigue.
+#[test]
+fn po_thoughtsteal_short_deck_and_no_fatigue() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, THOUGHTSTEAL};
+    // Deck with one card → one copy
+    let mut builder = GameBuilder::new();
+    builder.with_rng_seed(7);
+    builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_hand(PlayerId1(), &THOUGHTSTEAL);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("thoughtsteal in hand");
+    let hero_before = state.world().health(state.player(PlayerId1()).hero);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        1,
+        "a one-card deck yields exactly one copy"
+    );
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId2()), 1);
+
+    // Empty deck → no copies, and no fatigue damage (nothing was drawn)
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &THOUGHTSTEAL);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("thoughtsteal in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        0,
+        "an empty deck copies nothing"
+    );
+    assert_eq!(
+        state.world().health(state.player(PlayerId1()).hero),
+        hero_before,
+        "no fatigue — copying is not drawing"
+    );
+}
+
+/// M2 Mindgames — summons a copy of a random enemy-deck minion; the enemy
+/// deck is not modified.
+#[test]
+fn po_mindgames_summons_random_enemy_deck_minion() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, CHILLWIND_YETI, MINDGAMES};
+    let mut builder = GameBuilder::new();
+    builder.with_rng_seed(7);
+    builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(PlayerId2(), &CHILLWIND_YETI);
+    builder.add_minion_to_hand(PlayerId1(), &MINDGAMES);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("mindgames in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let p1_board: Vec<&str> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .map(|e| state.world().card_id(e).unwrap().0)
+        .collect();
+    assert_eq!(p1_board.len(), 1, "exactly one minion summoned");
+    assert!(
+        ["CLASSIC_001", "NEUTRAL_T08"].contains(&p1_board[0]),
+        "the summoned minion is a copy of an enemy-deck minion, got {}",
+        p1_board[0]
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, PlayerId2()),
+        2,
+        "the enemy deck is not modified"
+    );
+}
+
+/// M2 Mindgames — a deck with no minions summons Shadow of Nothing
+/// (PRIEST_026t, the 0/1 token).
+#[test]
+fn po_mindgames_no_minion_in_deck_summons_shadow_of_nothing() {
+    use orange_stone::cards::def::{ARCANE_INTELLECT, MINDGAMES};
+    let mut builder = GameBuilder::new();
+    builder.with_rng_seed(7);
+    builder.add_minion_to_deck(PlayerId2(), &ARCANE_INTELLECT);
+    builder.add_minion_to_hand(PlayerId1(), &MINDGAMES);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("mindgames in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let shadow = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("shadow of nothing on the board");
+    assert_eq!(
+        state.world().card_id(shadow).map(|c| c.0),
+        Some("PRIEST_026t"),
+        "a minion-less enemy deck summons the fallback token"
+    );
+    assert_eq!(state.world().attack(shadow), Some(Attack(0)));
+    assert_eq!(state.world().health(shadow), Some(Health(1)));
+}
+
+/// M2 Mindgames — a full board summons nothing (the board cap absorbs it).
+#[test]
+fn po_mindgames_full_board_summons_nothing() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, MINDGAMES};
+    let mut builder = GameBuilder::new();
+    builder.with_rng_seed(7);
+    builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_hand(PlayerId1(), &MINDGAMES);
+    for _ in 0..7 {
+        builder.add_minion_to_board(PlayerId1(), &BLOODFEN_RAPTOR);
+    }
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("mindgames in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId1())
+            .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+            .count(),
+        7,
+        "a full board summons nothing"
+    );
+}
