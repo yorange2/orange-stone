@@ -92,17 +92,17 @@ clean, and `cargo bench` at noise level. F5 differential scenarios go in
 
 ### M0 — Marking mechanism (no card behaviour yet)
 
-- [ ] `sets::POOL_OPEN_CARDS` registry (empty at first, filled by M2/M3).
-- [ ] `docs/pool-openness.md` + `-zh.md`: the contract above, the card table, and
+- [x] `sets::POOL_OPEN_CARDS` registry (empty at first, filled by M2/M3).
+- [x] `docs/pool-openness.md` + `-zh.md`: the contract above, the card table, and
       a maintenance section mirroring `fidelity-debt.md`'s (adding a pool-open
       card requires a registry row + comment + doc row on the same change).
-- [ ] Cross-reference line in `fidelity-debt.md` / `-zh.md` Maintenance:
+- [x] Cross-reference line in `fidelity-debt.md` / `-zh.md` Maintenance:
       pool-open ≠ simplified; do not use the word "simplified" for these.
-- [ ] `py_bind`: `GameEnv.pool_open_card_ids()` static method (mirrors
+- [x] `py_bind`: `GameEnv.pool_open_card_ids()` static method (mirrors
       `all_card_ids()`).
-- [ ] Rust test `pool_open_registry_is_well_formed`: every ID resolves; no ID is
+- [x] Rust test `pool_open_registry_is_well_formed`: every ID resolves; no ID is
       a token; registry has no duplicates.
-- [ ] RL side (separate PR in orange-reinforcement): `full_pool(include_pool_open=True)`
+- [x] RL side (separate PR in orange-reinforcement): `full_pool(include_pool_open=True)`
       + a test that the flag changes the pool size by exactly `len(registry)`.
 
 ### M1 — Engine primitives

@@ -80,15 +80,15 @@ M1 新增的 4 个「读区域」效果变体**只允许**出现在 `POOL_OPEN_C
 
 ### M0 —— 标记机制（先不动卡牌行为）
 
-- [ ] `sets::POOL_OPEN_CARDS` 注册表（初始为空，由 M2/M3 填充）。
-- [ ] `docs/pool-openness.md` + `-zh.md`：上述契约、卡表，以及对照
+- [x] `sets::POOL_OPEN_CARDS` 注册表（初始为空，由 M2/M3 填充）。
+- [x] `docs/pool-openness.md` + `-zh.md`：上述契约、卡表，以及对照
       `fidelity-debt.md` 的维护约定（新增开放池卡必须在同一次改动里同时补注册表行、
       代码注释、文档行）。
-- [ ] 在 `fidelity-debt.md` / `-zh.md` 的维护章节加交叉引用：pool-open ≠ simplified，
+- [x] 在 `fidelity-debt.md` / `-zh.md` 的维护章节加交叉引用：pool-open ≠ simplified，
       这些卡的注释里不许出现 "simplified" 字样。
-- [ ] `py_bind`：新增静态方法 `GameEnv.pool_open_card_ids()`（对照 `all_card_ids()`）。
-- [ ] Rust 测试 `pool_open_registry_is_well_formed`：ID 都能解析、都不是衍生物、无重复。
-- [ ] RL 侧（orange-reinforcement 单独 PR）：`full_pool(include_pool_open=True)`，
+- [x] `py_bind`：新增静态方法 `GameEnv.pool_open_card_ids()`（对照 `all_card_ids()`）。
+- [x] Rust 测试 `pool_open_registry_is_well_formed`：ID 都能解析、都不是衍生物、无重复。
+- [x] RL 侧（orange-reinforcement 单独 PR）：`full_pool(include_pool_open=True)`，
       并加一个测试断言开关正好让池大小变化 `len(registry)`。
 
 ### M1 —— 引擎原语
