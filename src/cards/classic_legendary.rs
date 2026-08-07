@@ -683,3 +683,47 @@ pub const ONYXIA_WHELP: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
+
+// ============================================================
+// Pool-open card (pool-open-cards-roadmap M3) — copies a cast
+// spell into the other player's hand. See docs/pool-openness.md;
+// registry: sets::POOL_OPEN_CARDS. The AnySpellCast trigger is
+// registered by card ID in cards::apply_card_keywords.
+// ============================================================
+
+/// Lorewalker Cho — whenever a player casts a spell, put a copy into the
+/// other player's hand (pool-open: copies a cast spell). The copy goes to
+/// the CASTER's opponent (whoever that is), not to Cho's owner; copies
+/// landing in hand are not casts, so two Chos never chain.
+pub const LOREWALKER_CHO: CardDef = CardDef {
+    id: "LEGENDARY_024",
+    name: "Lorewalker Cho",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 0,
+    health: 4,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    spell_effect: None,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};

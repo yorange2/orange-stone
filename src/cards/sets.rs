@@ -207,6 +207,8 @@ pub const LEGENDARY_CLASSIC: &[CardDef] = &[
     THE_BLACK_KNIGHT,
     MILLHOUSE_MANASTORM,
     NAT_PAGLE,
+    // Pool-open (pool-open-cards-roadmap M3) — copies a cast spell
+    LOREWALKER_CHO,
 ];
 pub const DRUID_CLASSIC: &[CardDef] = &[
     INNERVATE,
@@ -905,6 +907,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     THOUGHTSTEAL,
     MINDGAMES,
     SHADOW_OF_NOTHING,
+    LOREWALKER_CHO,
     CORRUPTION,
     COMMANDING_SHOUT,
     UNBOUND_ELEMENTAL,
@@ -962,9 +965,10 @@ pub const ALL_CARDS: &[CardDef] = &[
 pub const POOL_OPEN_CARDS: &[&str] = &[
     // Pool-open (pool-open-cards-roadmap M2/M3) — read the opponent's
     // actual hand/deck or copy a cast spell.
-    "PRIEST_024", // Mind Vision — enemy hand
-    "PRIEST_025", // Thoughtsteal — enemy deck
-    "PRIEST_026", // Mindgames — enemy deck
+    "PRIEST_024",    // Mind Vision — enemy hand
+    "PRIEST_025",    // Thoughtsteal — enemy deck
+    "PRIEST_026",    // Mindgames — enemy deck
+    "LEGENDARY_024", // Lorewalker Cho — copies a cast spell
 ];
 
 #[cfg(test)]
@@ -1024,8 +1028,11 @@ mod tests {
             .into_iter()
             .flatten()
             .any(|effect| is_pool_open_effect(&effect));
+            // Cho's pool-open trigger lives in the ID-keyword hook (no CardDef
+            // field) — its ID is the second source of truth.
+            let via_keyword_hook = crate::cards::POOL_OPEN_KEYWORD_IDS.contains(&card.id);
             assert_eq!(
-                uses_pool_open,
+                uses_pool_open || via_keyword_hook,
                 POOL_OPEN_CARDS.contains(&card.id),
                 "{}: a pool-open effect requires a POOL_OPEN_CARDS row (and vice versa)",
                 card.id

@@ -16,6 +16,7 @@ hand or deck) or **copy a cast spell**:
 | Mind Vision (`PRIEST_024`) | Priest | 1 | copies a random card from the **enemy hand** | 2026-08-07, M2 |
 | Thoughtsteal (`PRIEST_025`) | Priest | 3 | copies 2 cards from the **enemy deck** | 2026-08-07, M2 |
 | Mindgames (`PRIEST_026`) | Priest | 4 | summons a copy of a random **enemy-deck minion** | 2026-08-07, M2 |
+| Lorewalker Cho (`LEGENDARY_024`) | Neutral Legendary | 2 | copies a **cast spell** into the other player's hand | 2026-08-07, M3 |
 
 The Classic pool is **closed** today: `ALL_CARDS` is Classic-only, so anything
 the opponent holds is already in the pool, and every other random generator

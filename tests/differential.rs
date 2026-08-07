@@ -8556,3 +8556,250 @@ fn po_mindgames_full_board_summons_nothing() {
         "a full board summons nothing"
     );
 }
+
+// ============================================================
+// Pool-open M3 — Lorewalker Cho (LEGENDARY_024). The trigger is
+// registered by card ID in apply_card_keywords; these scenarios
+// pin the direction rule and the edge cases.
+// ============================================================
+
+/// M3 Cho (a) — Cho's owner casts a spell: the copy goes to the CASTER's
+/// opponent (Cho feeds the enemy when its own controller casts).
+#[test]
+fn po_cho_owner_cast_gives_enemy_the_copy() {
+    use orange_stone::cards::def::{ARCANE_INTELLECT, LOREWALKER_CHO};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &LOREWALKER_CHO);
+    builder.add_minion_to_hand(PlayerId1(), &ARCANE_INTELLECT);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("arcane intellect in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let p2_hand: Vec<&str> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .map(|e| state.world().card_id(e).unwrap().0)
+        .collect();
+    assert_eq!(p2_hand, vec!["MAGE_003"], "the enemy gains the copy");
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        0,
+        "the owner does not gain a copy of its own cast"
+    );
+}
+
+/// M3 Cho (b) — the ENEMY casts: Cho's owner receives the copy.
+#[test]
+fn po_cho_enemy_cast_gives_owner_the_copy() {
+    use orange_stone::cards::def::{ARCANE_INTELLECT, LOREWALKER_CHO};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &LOREWALKER_CHO);
+    builder.add_minion_to_hand(PlayerId2(), &ARCANE_INTELLECT);
+    builder.set_mana(PlayerId2(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    state.set_active_player(PlayerId2());
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .next()
+        .expect("arcane intellect in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let p1_hand: Vec<&str> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .map(|e| state.world().card_id(e).unwrap().0)
+        .collect();
+    assert_eq!(
+        p1_hand,
+        vec!["MAGE_003"],
+        "Cho's owner gains the enemy cast's copy"
+    );
+}
+
+/// M3 Cho (c) — two Chos (one per side): each fires once, both copies go to
+/// the caster's opponent, and copies landing in hand are not casts (no
+/// chaining).
+#[test]
+fn po_cho_two_chos_fire_once_and_do_not_chain() {
+    use orange_stone::cards::def::{ARCANE_INTELLECT, LOREWALKER_CHO};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &LOREWALKER_CHO);
+    builder.add_minion_to_board(PlayerId2(), &LOREWALKER_CHO);
+    builder.add_minion_to_hand(PlayerId1(), &ARCANE_INTELLECT);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("arcane intellect in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let p2_hand: Vec<&str> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .map(|e| state.world().card_id(e).unwrap().0)
+        .collect();
+    assert_eq!(
+        p2_hand,
+        vec!["MAGE_003", "MAGE_003"],
+        "each Cho gives the caster's opponent one copy"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        0,
+        "copies land in the hand — they are not casts, so nothing chains"
+    );
+}
+
+/// M3 Cho (d) — a spell that kills Cho copies nothing: the spell-caused
+/// death processes before the cast triggers fire (a dead Cho does not
+/// fire — same rule as Wild Pyromancer). The ENEMY casts the killing
+/// spell (Fireball only targets enemy characters).
+#[test]
+fn po_cho_killed_by_the_casting_spell_does_not_copy() {
+    use orange_stone::cards::def::{FIREBALL, LOREWALKER_CHO};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &LOREWALKER_CHO);
+    builder.add_minion_to_hand(PlayerId2(), &FIREBALL);
+    builder.set_mana(PlayerId2(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    state.set_active_player(PlayerId2());
+    let cho = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "LEGENDARY_024")
+        })
+        .expect("cho on board");
+    let fireball = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .next()
+        .expect("fireball in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: fireball,
+                target: Some(cho),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        0,
+        "a Cho killed by the casting spell fires no copy"
+    );
+}
+
+/// M3 Cho (e) — a silenced Cho stops copying.
+#[test]
+fn po_cho_silenced_does_not_copy() {
+    use orange_stone::cards::def::{ARCANE_INTELLECT, IRONBEAK_OWL, LOREWALKER_CHO};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &LOREWALKER_CHO);
+    builder.add_minion_to_hand(PlayerId1(), &IRONBEAK_OWL);
+    builder.add_minion_to_hand(PlayerId1(), &ARCANE_INTELLECT);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let cho = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("cho on board");
+    let owl = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CLASSIC_004")
+        })
+        .expect("ironbeak owl in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: owl,
+                target: Some(cho),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.world().trigger(cho).is_none(),
+        "silence strips the AnySpellCast trigger"
+    );
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("arcane intellect in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId2()),
+        0,
+        "a silenced Cho copies nothing"
+    );
+}

@@ -59,6 +59,13 @@ mod lookup_tests {
 /// These keywords do not add `CardDef` fields (to avoid large struct changes);
 /// instead they are mapped here centrally by card ID. Called when summoning minions
 /// (`trigger::resolve_summon`) and building cards (`GameBuilder::spawn_minion`).
+///
+/// Pool-open triggers registered through this hook (no `CardDef` field to live
+/// in): the sets.rs closure test treats these IDs as pool-open as well.
+pub(crate) const POOL_OPEN_KEYWORD_IDS: &[&str] = &[
+    "LEGENDARY_024", // Lorewalker Cho — AnySpellCast copy trigger
+];
+
 pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &CardDef) {
     // Shaman cards with Overload — the amount locks mana on the owner's next
     // turn (roadmap F1): Lightning Bolt 1, Lightning Storm 2, Feral Spirit 2,
@@ -233,15 +240,17 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // Emperor Cobra — Poison
         world.set_poison(entity, Poison);
     }
-    if card_def.id == "LEGENDARY_024" {
+    if POOL_OPEN_KEYWORD_IDS.contains(&card_def.id) {
         // Lorewalker Cho — whenever a player casts a spell, put a copy into
         // the other player's hand. Pool-open (reads the cast spell — it can
         // move a card across a pool boundary); registered here by ID because
-        // CardDef has no generic trigger field — the registry check below
-        // keeps the closure invariant testable.
+        // CardDef has no generic trigger field. The registry check below
+        // keeps the closure invariant testable: this ID list is the second
+        // source of truth the sets.rs closure test folds in.
         debug_assert!(
             crate::cards::sets::POOL_OPEN_CARDS.contains(&card_def.id),
-            "pool-open trigger (Lorewalker Cho) requires a POOL_OPEN_CARDS row"
+            "pool-open trigger ({}) requires a POOL_OPEN_CARDS row",
+            card_def.id
         );
         world.set_trigger(
             entity,
