@@ -430,4 +430,4 @@ W5）。
 - **开放池 ≠ 欠债**：4 张开放池卡（心灵视界、思维窃取、心灵游戏、游学者周卓）的
   注释写 `(pool-open: …)`，**不写** `(simplified: …)` —— 它们是读对手牌的忠实实现，
   不是简化。提取器认的是 "simplified"，所以它们留在 RL 卡池里；注册表在
-  `docs/pool-openness-zh.md`。
+  `pool-openness-zh.md`。

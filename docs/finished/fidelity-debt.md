@@ -519,4 +519,4 @@ Every card that leaves this ledger must land with:
   Mindgames, Lorewalker Cho) carry `(pool-open: …)` comments, not
   `(simplified: …)` — they are faithful implementations that read the
   opponent's cards, not simplifications. The extractor keys on "simplified",
-  so they stay in the RL pool; their registry lives in `docs/pool-openness.md`.
+  so they stay in the RL pool; their registry lives in `pool-openness.md`.
