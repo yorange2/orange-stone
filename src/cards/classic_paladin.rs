@@ -646,7 +646,6 @@ pub const LIGHTS_JUSTICE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Argent Protector — Battlecry: give a friendly minion Divine Shield (simplified: no Battlecry — vanilla 2/2)
 /// Argent Protector — Battlecry: give a friendly minion Divine Shield
 pub const ARGENT_PROTECTOR: CardDef = CardDef {
     id: "PALADIN_016",

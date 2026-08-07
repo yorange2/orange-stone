@@ -116,6 +116,7 @@ pub const SHIELD_BLOCK: CardDef = CardDef {
     attack_equals_health: false,
 };
 
+/// Cruel Taskmaster — Battlecry: deal 1 damage to a friendly minion and give it +2 Attack (simplified: targets a random enemy minion instead)
 pub const CRUEL_TASKMASTER: CardDef = CardDef {
     id: "WARRIOR_004",
     name: "Cruel Taskmaster",

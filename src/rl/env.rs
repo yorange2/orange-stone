@@ -429,6 +429,10 @@ fn play_targets(
         CardEffect::DoubleHealth { target } => target,
         CardEffect::SetAttackToHealth { target } => target,
         CardEffect::TempDebuff { target, .. } => target,
+        CardEffect::GainStatsAndTaunt { target, .. } => target,
+        CardEffect::DestroyAndGainStats { target, .. } => target,
+        CardEffect::SwapAttackAndHealth { target } => target,
+        CardEffect::GrantDivineShield { target } => target,
         _ => return Vec::new(),
     };
     let owner = state
@@ -486,6 +490,33 @@ fn candidates_for_target(
             .into_iter()
             .filter(|&e| world.taunt(e).is_some())
             .collect(),
+        // Minion-battlecry target kinds (engine-mechanics roadmap M1): these
+        // are single-pick targets, so the RL agent must be able to choose them
+        // explicitly. Elusive never filters battlecry targets (callers pass
+        // `exclude_elusive = false` for minions).
+        EffectTarget::FriendlyRace(race) => minions(owner)
+            .into_iter()
+            .filter(|&e| world.race(e) == Some(race))
+            .collect(),
+        EffectTarget::AnyRace(race) => {
+            let mut all = minions(owner);
+            all.extend(minions(enemy));
+            all.into_iter()
+                .filter(|&e| world.race(e) == Some(race))
+                .collect()
+        }
+        EffectTarget::AnyMinion => {
+            let mut all = minions(owner);
+            all.extend(minions(enemy));
+            all
+        }
+        EffectTarget::AnyMinionAttackGE(min_atk) => {
+            let mut all = minions(owner);
+            all.extend(minions(enemy));
+            all.into_iter()
+                .filter(|&e| world.effective_attack(e).is_some_and(|a| a.0 >= min_atk))
+                .collect()
+        }
         EffectTarget::Self_ => Vec::new(),
         // AOE/no-target effects — no explicit target
         _ => Vec::new(),

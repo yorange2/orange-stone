@@ -1344,10 +1344,12 @@ pub(crate) fn resolve_summon(
         e
     };
 
-    // Enqueue the MinionSummoned event (triggers battlecry and similar effects)
+    // Enqueue the MinionSummoned event (triggers battlecry and similar effects).
+    // Effect-summoned minions carry no explicit battlecry target (M1).
     queue.push(Event::MinionSummoned {
         player: owner,
         minion: e,
+        target: None,
     });
     Some(e)
 }
@@ -2068,24 +2070,10 @@ fn resolve_destroy_minion(
                 state.world().damage(e).is_some_and(|d| d.0 > 0)
             })
             .collect(),
-        EffectTarget::TauntEnemyMinion => {
-            let minions: SmallList<Entity> = collect_enemy_minions(state, owner, Some(source))
-                .into_iter()
-                .filter(|&e| state.world().taunt(e).is_some())
-                .collect();
-            if minions.is_empty() {
-                return;
-            }
-            let idx = state.rng_mut().next_usize(minions.len());
-            let m = minions[idx];
-            let hp = state.world().effective_health(m).unwrap_or(Health(1));
-            queue.push(Event::DamageDealt {
-                source: m,
-                target: m,
-                amount: hp.0.max(1),
-            });
-            return;
-        }
+        EffectTarget::TauntEnemyMinion => collect_enemy_minions(state, owner, Some(source))
+            .into_iter()
+            .filter(|&e| state.world().taunt(e).is_some())
+            .collect(),
         EffectTarget::AllMinions => {
             let mut all = collect_friendly_minions(state, owner);
             all.extend(collect_all_enemy_minions(state, owner));

@@ -358,6 +358,7 @@ pub fn enqueue(
                 queue.push(Event::MinionSummoned {
                     player,
                     minion: card,
+                    target,
                 });
             }
         }
@@ -792,7 +793,11 @@ pub fn apply_event(
                 None,
             );
         }
-        Event::MinionSummoned { player, minion } => {
+        Event::MinionSummoned {
+            player,
+            minion,
+            target,
+        } => {
             // Summoning sickness: minions without charge cannot attack this
             // turn (a Charge aura — Tundra Rhino — counts as charge)
             if !state.world().effective_charge(minion) {
@@ -812,7 +817,10 @@ pub fn apply_event(
                     state.world().battlecry(minion).map(|b| b.0)
                 };
                 if let Some(effect) = chosen_effect {
-                    trigger::resolve_effect(state, queue, minion, player, effect, None, None);
+                    // Explicit battlecry target (engine-mechanics roadmap M1):
+                    // forwarded from Action::PlayCard; re-validation stays G9 —
+                    // a target that left the legal candidate set fizzles.
+                    trigger::resolve_effect(state, queue, minion, player, effect, target, None);
                 }
             }
             // Summon triggers: registered FriendlyMinionSummoned triggers fire in

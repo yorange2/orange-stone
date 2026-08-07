@@ -41,6 +41,10 @@ pub enum Event {
         player: PlayerId,
         /// The summoned minion entity
         minion: Entity,
+        /// Explicit battlecry target (engine-mechanics roadmap M1 — forwarded
+        /// from `Action::PlayCard { target }`; `None` for summons without a
+        /// player-chosen target, e.g. minions summoned by effects)
+        target: Option<Entity>,
     },
     /// An attack is declared
     AttackDeclared {
