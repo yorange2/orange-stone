@@ -150,18 +150,18 @@ clean, and `cargo bench` at noise level. F5 differential scenarios go in
 
 ### M3 — Lorewalker Cho
 
-- [ ] `LEGENDARY_024` **Lorewalker Cho** (2 mana 0/4 neutral legendary).
-- [ ] Direction rule: the copy goes to the **caster's opponent**, not to Cho's
+- [x] `LEGENDARY_024` **Lorewalker Cho** (2 mana 0/4 neutral legendary).
+- [x] Direction rule: the copy goes to the **caster's opponent**, not to Cho's
       owner. Resolution reads the subject spell's owner
       (`world.player(subject)`) and hands the copy to `.opponent()` — so Cho
       feeds the enemy when its own controller casts.
-- [ ] Scenarios: (a) Cho's owner casts → enemy gains the copy; (b) enemy casts →
+- [x] Scenarios: (a) Cho's owner casts → enemy gains the copy; (b) enemy casts →
       Cho's owner gains it; (c) two Chos (one per side) → each fires once,
       copies do not chain (a copy put into hand is not a cast); (d) a spell that
       kills Cho still copies iff Cho was alive when the trigger fired — pin
       whichever way the SabberStone reference resolves it and document it;
       (e) Cho silenced → no copies.
-- [ ] Registry + comment + doc rows.
+- [x] Registry + comment + doc rows.
 
 ### M4 — Pool, docs and RL sync
 
