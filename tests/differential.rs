@@ -8803,3 +8803,243 @@ fn po_cho_silenced_does_not_copy() {
         "a silenced Cho copies nothing"
     );
 }
+
+// ============================================================
+// Pool-open M5 — hand-size cap (F-A11): draws past 10 burn,
+// generated cards past 10 are never created.
+// ============================================================
+
+/// M5 — a card drawn past the 10-card cap is burned: destroyed (graveyard),
+/// but the draw still counts for deck depletion.
+#[test]
+fn po_hand_cap_draw_burns() {
+    use orange_stone::cards::def::{ARCANE_INTELLECT, BLOODFEN_RAPTOR};
+    let mut builder = GameBuilder::new();
+    for _ in 0..10 {
+        builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+    }
+    builder.add_minion_to_hand(PlayerId1(), &ARCANE_INTELLECT);
+    builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR); // enemy deck untouched
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "MAGE_003"))
+        .expect("arcane intellect in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        10,
+        "the hand stays at the cap"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, PlayerId2()),
+        1,
+        "the enemy deck is untouched"
+    );
+    // P1's deck is empty — the two drawn cards burned into the graveyard
+    // (they were not fatigued: the draw still consumed the deck)
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 0);
+    // 3 = the two burned cards + the played spell itself (which goes to the
+    // graveyard after resolving)
+    assert_eq!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Graveyard, PlayerId1())
+            .count(),
+        3,
+        "both drawn cards are burned"
+    );
+}
+
+/// M5 — Mind Vision with a full hand copies nothing (the copy is never
+/// created).
+#[test]
+fn po_hand_cap_mind_vision_is_refused() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, MIND_VISION};
+    let mut builder = GameBuilder::new();
+    for _ in 0..10 {
+        builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+    }
+    builder.add_minion_to_hand(PlayerId1(), &MIND_VISION);
+    builder.add_minion_to_hand(PlayerId2(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "PRIEST_024")
+        })
+        .expect("mind vision in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        10,
+        "a full hand refuses the copy"
+    );
+}
+
+/// M5 — Thoughtsteal with 9 cards in hand: exactly one of the two copies
+/// lands (the second is refused by the cap).
+#[test]
+fn po_hand_cap_thoughtsteal_at_nine_copies_one() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, THOUGHTSTEAL};
+    let mut builder = GameBuilder::new();
+    for _ in 0..9 {
+        builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+    }
+    builder.add_minion_to_hand(PlayerId1(), &THOUGHTSTEAL);
+    builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "PRIEST_025")
+        })
+        .expect("thoughtsteal in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        10,
+        "one copy lands, the second is refused"
+    );
+}
+
+/// M5 — Mindgames is unaffected by the hand cap: it summons to the board.
+#[test]
+fn po_hand_cap_mindgames_still_summons() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, MINDGAMES};
+    let mut builder = GameBuilder::new();
+    for _ in 0..10 {
+        builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+    }
+    builder.add_minion_to_hand(PlayerId1(), &MINDGAMES);
+    builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "PRIEST_026")
+        })
+        .expect("mindgames in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId1())
+            .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+            .count(),
+        1,
+        "the summoned minion lands on the board regardless of the hand cap"
+    );
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId1()), 10);
+}
+
+/// M5 — Cho with full hands on both sides: both copies are refused, nothing
+/// changes hands.
+#[test]
+fn po_hand_cap_cho_refused_on_both_sides() {
+    use orange_stone::cards::def::{ARCANE_INTELLECT, BLOODFEN_RAPTOR, LOREWALKER_CHO};
+    let mut builder = GameBuilder::new();
+    for _ in 0..10 {
+        builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+        builder.add_minion_to_hand(PlayerId2(), &BLOODFEN_RAPTOR);
+    }
+    builder.add_minion_to_hand(PlayerId1(), &ARCANE_INTELLECT);
+    builder.add_minion_to_board(PlayerId1(), &LOREWALKER_CHO);
+    builder.add_minion_to_board(PlayerId2(), &LOREWALKER_CHO);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "MAGE_003"))
+        .expect("arcane intellect in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        10,
+        "P1's hand stays at the cap"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId2()),
+        10,
+        "P2's hand stays at the cap — both Cho copies are refused"
+    );
+}

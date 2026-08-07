@@ -148,6 +148,18 @@ mod tests {
         assert!(obs[10..168].iter().all(|&v| v == 0.0));
     }
 
+    /// The observation window is an exact bound, not a truncation: the engine
+    /// (F-A11 hand cap) never lets a hand exceed MAX_HAND, so every hand card
+    /// is always visible to the agent.
+    #[test]
+    fn hand_cap_makes_observation_window_exact() {
+        assert_eq!(
+            MAX_HAND,
+            crate::engine::trigger::MAX_HAND_SIZE,
+            "the engine hand cap and the observation window must stay in lockstep"
+        );
+    }
+
     #[test]
     fn board_and_hand_are_encoded_positionally() {
         use crate::cards::def::BLOODFEN_RAPTOR;

@@ -564,6 +564,15 @@ pub fn apply_event(
             // Detect combo: another card was played this turn (cards_played > 1 because it was just incremented)
             let combo_active = state.player(player).cards_played_this_turn > 1;
             if card_type == Some(CardType::Spell) {
+                // A played spell leaves the hand immediately (HS: the card is
+                // in play while its effect resolves). The hand-size cap
+                // (F-A11) counts it outside the hand, so a cast at 9 cards
+                // can still fit generated copies / draws; the spell then
+                // moves on to SetAside (secrets) or the graveyard below.
+                state
+                    .world_mut()
+                    .move_to_zone(card, Zone::Play)
+                    .expect("spell must leave the hand when played");
                 // Secret cards: attach the Secret component and move to the
                 // SetAside zone (revealed when the trigger condition is met).
                 // Secret effects are stored in the battlecry slot (consistent
@@ -722,7 +731,15 @@ pub fn apply_event(
                                     },
                                     Priority::Lowest,
                                 );
-                                if !returns_to_hand {
+                                if returns_to_hand {
+                                    // Headcrack bounce-back: the spell went to
+                                    // Zone::Play at cast time (F-A11 hand cap)
+                                    // and returns to the hand here.
+                                    state
+                                        .world_mut()
+                                        .move_to_zone(card, Zone::Hand)
+                                        .map_err(|_| EngineError::EntityGone(card))?;
+                                } else {
                                     state
                                         .world_mut()
                                         .move_to_zone(card, Zone::Graveyard)
