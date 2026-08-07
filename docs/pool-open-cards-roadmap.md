@@ -165,20 +165,20 @@ clean, and `cargo bench` at noise level. F5 differential scenarios go in
 
 ### M4 — Pool, docs and RL sync
 
-- [ ] `classic-cards.md` / `-zh.md`: 4 rows ⏸️ → ✅ 🔓, legend gains 🔓, the
+- [x] `classic-cards.md` / `-zh.md`: 4 rows ⏸️ → ✅ 🔓, legend gains 🔓, the
       per-class table and totals updated (Priest 24 → 27 implemented, Neutral
       Legendary 23 → 24, total 371 → 375 implemented / 4 → 0 skipped).
-- [ ] `ALL_CARDS` 415 → 420 IDs (4 collectible + 1 token); `battle_1000.rs`
+- [x] `ALL_CARDS` 415 → 420 IDs (4 collectible + 1 token); `battle_1000.rs`
       prints the new count.
-- [ ] Rebuild the wheel with the venv interpreter
+- [x] Rebuild the wheel with the venv interpreter
       (`maturin build --release --interpreter …/.venv/bin/python`), reinstall,
       re-measure `full_pool()` → expect **396**.
-- [ ] `tools/orange_stone_m5_smoke.py` pool stress pass (every card playable).
-- [ ] Throughput check: `cargo bench` + the ~970 games/s baseline. Cho's card
+- [x] `tools/orange_stone_m5_smoke.py` pool stress pass (every card playable).
+- [x] Throughput check: `cargo bench` + the ~970 games/s baseline. Cho's card
       generation lengthens games; report the delta rather than assuming none.
 - [ ] Register this roadmap in the workspace `CLAUDE.md` and, on completion,
       move both files to `docs/finished/`.
-- [ ] **No retrain required.** 392 → 396 is a 1% pool change with no engine
+- [x] **No retrain required.** 392 → 396 is a 1% pool change with no engine
       semantics change for existing cards, unlike PR #108. If a retrain is run
       anyway, it must use the same `--pool full` 30k × 3-seed protocol so the
       numbers stay comparable.
