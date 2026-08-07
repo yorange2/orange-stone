@@ -93,26 +93,26 @@ M1 新增的 4 个「读区域」效果变体**只允许**出现在 `POOL_OPEN_C
 
 ### M1 —— 引擎原语
 
-- [ ] **效果变体**（`core/effect.rs`）—— 注意每个都要在 `CardEffect` **和** serde 镜像
+- [x] **效果变体**（`core/effect.rs`）—— 注意每个都要在 `CardEffect` **和** serde 镜像
       `CardEffectDe` 里各加一个分支，外加 `From` 实现：
       - `CopyRandomEnemyHandCard { count }` —— 心灵视界。
       - `CopyRandomEnemyDeckCards { count }` —— 思维窃取；对牌库实体**不放回**抽样
         （同名卡的两张是两个实体，可以都被抽中；同一个实体不能被抽两次）。
       - `SummonRandomEnemyDeckMinion { fallback_card_id }` —— 心灵游戏。
       - `CopyCastSpellToOtherPlayerHand` —— 游学者周卓。
-- [ ] **复制辅助函数**（`engine/trigger.rs`）：`copy_card_to_hand(state, src_entity,
+- [x] **复制辅助函数**（`engine/trigger.rs`）：`copy_card_to_hand(state, src_entity,
       to_player)` —— 用 `card_by_id` 解析源实体的 `card_id`，复用 `add_card_to_hand`。
       复制的是**基础卡定义**，不带区域内的附魔（作为已知细节写进文档；符合经典时期
       行为，也让复制品与新产出的牌不可区分）。
-- [ ] **全局法术触发**：新增 `TriggerEvent::AnySpellCast`，在
+- [x] **全局法术触发**：新增 `TriggerEvent::AnySpellCast`，在
       `rules.rs::trigger_applies` 的全局分支里与 `SecretPlayed` / `MinionDied` 并列；
       `Event::SpellCast` 处理要把法术实体作为 `subject` 传下去 ——
       `fire_triggers(..., player, Some(spell), None)`。现有 `FriendlySpellCast` 触发都
       没有 `race` / `max_attack` 条件，所以由 `None` 改成传 subject 在行为上是中性的；
       用一个回归场景钉住这一点。
-- [ ] **注册钩子**：周卓的触发按卡 ID 在 `cards::apply_card_keywords` 里注册（现成的
+- [x] **注册钩子**：周卓的触发按卡 ID 在 `cards::apply_card_keywords` 里注册（现成的
       「按 ID 挂特殊关键词」钩子 —— 理由同 M0 否决的方案：不加 `CardDef` 字段）。
-- [ ] 确定性：所有随机挑选都走 `state.rng_mut()`；补一个回放测试（同 seed + 同动作
+- [x] 确定性：所有随机挑选都走 `state.rng_mut()`；补一个回放测试（同 seed + 同动作
       序列 → 复制结果逐位一致）。
 
 ### M2 —— 三张牧师法术

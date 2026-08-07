@@ -107,7 +107,7 @@ clean, and `cargo bench` at noise level. F5 differential scenarios go in
 
 ### M1 — Engine primitives
 
-- [ ] **Effect variants** (`core/effect.rs`) — note each needs an arm in *both*
+- [x] **Effect variants** (`core/effect.rs`) — note each needs an arm in *both*
       `CardEffect` and the serde mirror `CardEffectDe`, plus the `From` impl:
       - `CopyRandomEnemyHandCard { count }` — Mind Vision.
       - `CopyRandomEnemyDeckCards { count }` — Thoughtsteal; sampling **without
@@ -115,22 +115,22 @@ clean, and `cargo bench` at noise level. F5 differential scenarios go in
         distinct entities and may both be picked; the same entity may not).
       - `SummonRandomEnemyDeckMinion { fallback_card_id }` — Mindgames.
       - `CopyCastSpellToOtherPlayerHand` — Lorewalker Cho.
-- [ ] **Copy helper** (`engine/trigger.rs`): `copy_card_to_hand(state, src_entity,
+- [x] **Copy helper** (`engine/trigger.rs`): `copy_card_to_hand(state, src_entity,
       to_player)` — resolves `card_id(src)` through `card_by_id` and reuses
       `add_card_to_hand`. Copies the **base card definition**, not in-zone
       enchantments (documented nuance; matches Classic-era behaviour and keeps
       copies indistinguishable from freshly generated cards).
-- [ ] **Global spell trigger**: `TriggerEvent::AnySpellCast` + a global arm in
+- [x] **Global spell trigger**: `TriggerEvent::AnySpellCast` + a global arm in
       `rules.rs::trigger_applies` (next to `SecretPlayed` / `MinionDied`), and
       `Event::SpellCast` must thread the spell entity as `subject` —
       `fire_triggers(..., player, Some(spell), None)`. Existing
       `FriendlySpellCast` triggers carry no `race` / `max_attack`, so passing a
       subject where `None` was passed before is behaviour-neutral; pin that with
       a regression scenario.
-- [ ] **Registration hook**: Cho registers its trigger by card ID in
+- [x] **Registration hook**: Cho registers its trigger by card ID in
       `cards::apply_card_keywords` (the existing "special keywords by ID" hook —
       same reason as M0's rejected alternative: no new `CardDef` field).
-- [ ] Determinism: every pick goes through `state.rng_mut()`; add a replay test
+- [x] Determinism: every pick goes through `state.rng_mut()`; add a replay test
       (same seed + same actions → identical copies).
 
 ### M2 — The three Priest spells
