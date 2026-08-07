@@ -1,6 +1,6 @@
 # Pool-Open Cards Roadmap — implementing the 4 skipped copy cards (marked)
 
-> Status: **active** (created 2026-08-07). Chinese mirror: `pool-open-cards-roadmap-zh.md`.
+> **Archived 2026-08-07** — all milestones shipped: M0 (PRs #110/#38), M1 (#111), M2 (#112), M3 (#113), M4 (#114), M5 (#115). Created 2026-08-07. Chinese mirror: `pool-open-cards-roadmap-zh.md`.
 > Scope: the 4 cards `docs/classic-cards.md` marks ⏸️ — Mind Vision, Thoughtsteal,
 > Mindgames, Lorewalker Cho. They were removed from the classic-cards roadmap
 > under the [Pool Closure](finished/classic-cards-roadmap.md#pool-closure) rule.
@@ -195,18 +195,18 @@ Cho and Thoughtsteal make overfull hands routine rather than rare, and
 invisible to the agent while still being playable, i.e. a silent
 observation/action mismatch.
 
-- [ ] Register the gap in `fidelity-debt.md`'s mechanism inventory as F-A11
+- [x] Register the gap in `fidelity-debt.md`'s mechanism inventory as F-A11
       (this is genuine debt, unlike the pool-open marker).
-- [ ] Implement: hand caps at 10; a **drawn** card over the cap is destroyed
+- [x] Implement: hand caps at 10; a **drawn** card over the cap is destroyed
       (burn, goes to graveyard, still counts as drawn for deck depletion); a
       **generated** card over the cap is never created.
-- [ ] Scenarios: draw at 10 burns; Mind Vision at 10 does nothing; Thoughtsteal
+- [x] Scenarios: draw at 10 burns; Mind Vision at 10 does nothing; Thoughtsteal
       at 9 copies exactly 1; Mindgames is unaffected (it summons, never fills a
       hand); Cho at 10 does nothing on either side; fatigue interplay unchanged.
-- [ ] Clear F-A11 from the ledger the same way any debt row leaves it:
+- [x] Clear F-A11 from the ledger the same way any debt row leaves it:
       implementation + F5 scenario + row removal (no `(simplified: …)` comment
       is involved — F-A11 is a mechanism-inventory gap, not a per-card marker).
-- [ ] `rl/obs.rs` needs no change: with the cap in place `MAX_HAND = 10` stops
+- [x] `rl/obs.rs` needs no change: with the cap in place `MAX_HAND = 10` stops
       being a truncation and becomes an exact bound. Pin that with an assertion
       in the obs test — a hand can never exceed `MAX_HAND`.
 
