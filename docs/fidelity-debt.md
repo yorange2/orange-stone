@@ -437,6 +437,25 @@ deals 1, 2, 3, … damage to the drawing hero;
 winner; `max_steps` / `max_turns` are demoted to backstops (only an
 armor/heal loop can outlive fatigue).
 
+## F-A11 — no hand-size cap, no burn ✅ resolved (2026-08-07, pool-open-cards roadmap M5)
+
+The engine has no 10-card hand limit: `add_card_to_hand` and
+`draw_card_no_queue` append unconditionally (the fatigue roadmap explicitly
+deferred this gap here, `docs/finished/fatigue-roadmap.md` — "Hand-size burn
+… a separate pre-existing gap"). The pool-open cards (Lorewalker Cho,
+Thoughtsteal, Mind Vision) make overfull hands routine rather than rare, and
+`rl/obs.rs` truncates the hand at `MAX_HAND = 10` — cards past the tenth
+become invisible to the agent while still being playable, a silent
+observation/action mismatch.
+
+Fix applied: hands cap at 10. A **drawn** card over the cap is burned
+(destroyed — sent to the graveyard, still counts as drawn for deck
+depletion); a **generated** card over the cap is never created
+(`add_card_to_hand` refuses). All generation paths (Pilfer, Antonidas,
+Cho, Thoughtsteal, Mind Vision, random pools) route through the same two
+functions, so the cap is central. Pinned by `po_*` hand-cap scenarios in
+`tests/differential.rs`.
+
 ## Mechanism inventory (what the engine has vs. what's missing)
 
 **Exists** (so the corresponding cards are mostly *wiring* work):

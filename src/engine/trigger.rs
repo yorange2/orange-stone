@@ -23,6 +23,12 @@ use crate::core::entity::Entity;
 /// Prophet Velen's card ID — his doubling is looked up by ID on the owner's board.
 const VELEN_ID: &str = "PRIEST_012";
 
+/// Hand-size cap (official rule, F-A11): a hand holds at most 10 cards.
+/// Drawn cards past the cap are burned (destroyed, but the draw still counts
+/// for deck depletion); generated cards past the cap are never created.
+/// `rl::obs::MAX_HAND` must stay equal — pinned by the obs test.
+pub const MAX_HAND_SIZE: usize = 10;
+
 use crate::core::event::{Event, EventQueue};
 use crate::core::player::PlayerId;
 use crate::core::small_list::SmallList;
@@ -1114,9 +1120,18 @@ pub(crate) fn draw_card_no_queue(
         });
         return None;
     };
-    state
-        .world_mut()
-        .move_to_zone(card, Zone::Hand)
+    // Hand-size cap (F-A11): a card drawn past the 10-card limit is burned —
+    // destroyed (sent to the graveyard), while the draw still counts for deck
+    // depletion and the CardDrawn event still fires (the caller pushes it).
+    let world = state.world_mut();
+    let hand_full = world.zones().len(Zone::Hand, player) >= MAX_HAND_SIZE;
+    let zone = if hand_full {
+        Zone::Graveyard
+    } else {
+        Zone::Hand
+    };
+    world
+        .move_to_zone(card, zone)
         .expect("card should be movable to hand");
     Some(card)
 }
@@ -3378,6 +3393,11 @@ pub(crate) fn add_card_to_hand(
     player: PlayerId,
     card_def: &crate::cards::def::CardDef,
 ) {
+    // Hand-size cap (F-A11): a GENERATED card past the 10-card limit is never
+    // created (official rule — a full-hand add destroys the card).
+    if state.world().zones().len(Zone::Hand, player) >= MAX_HAND_SIZE {
+        return;
+    }
     let world = state.world_mut();
     let e = crate::cards::spawn_card_from_def(world, player, card_def);
     world.set_zone(e, Zone::Hand);
