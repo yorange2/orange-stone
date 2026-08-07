@@ -90,7 +90,7 @@ fizzle, resolvers with `explicit`):
 - **Acceptance**: `cargo test` green incl. `w13_*`; clippy clean; ledger
   drops 4 rows; pool 375.
 
-### W14 — enemy-scope corrections (one PR)
+### W14 — enemy-scope corrections ✅ done (PR #105)
 
 - **Ironforge Rifleman**: `AnyEnemy` → `AnyEnemyMinion`.
 - **Ironbeak Owl / Spellbreaker**: `AnyEnemyMinion` → `AnyMinion` (silence
@@ -141,7 +141,7 @@ fizzle, resolvers with `explicit`):
 | Wave | Scope | Cards | PR |
 | --- | --- | --- | --- |
 | W13 AnyCharacter/AnyHero mechanism | engine + F5 | 4 | PR #104 ✅ |
-| W14 enemy-scope corrections | engine + F5 | 7 | one PR |
+| W14 enemy-scope corrections | engine + F5 | 7 | PR #105 ✅ |
 | W15 Self_ targeted battlecries | engine + F5 | 7 | one PR |
 | W16 effect shapes + close-out | engine + F5 + docs | 2 | one PR (+ cross-repo docs) |
 
