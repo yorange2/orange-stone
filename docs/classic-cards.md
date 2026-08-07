@@ -1,9 +1,9 @@
 # Classic/Basic Set Card List
 
 > Source: [Hearthstone Wiki - Classic (2014-2021)](https://hearthstone.wiki.gg/wiki/Classic_(2014-2021)), [Basic card list](https://hearthstone.wiki.gg/wiki/Basic_card_list)
-> Total: 375 | ✅ fully implemented: 371 | ⬜ pending: 0 | 🔧 needs new mechanic: 0 | ⏸️ skipped: 4 (status column re-audited 2026-08-07 against the code)
+> Total: 375 | ✅ fully implemented: 375 | ⬜ pending: 0 | 🔧 needs new mechanic: 0 | ⏸️ skipped: 0 (status column re-audited 2026-08-07 against the code)
 
-Legend: ✅ fully implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine mechanic | ⏸️ Skipped (opponent hand/deck, may introduce other-set cards)
+Legend: ✅ fully implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine mechanic | ⏸️ Skipped (opponent hand/deck, may introduce other-set cards) | 🔓 Pool-open (reads opponent zones, registered in pool-openness.md)
 
 > **2026-08-07 re-audit.** The 24 rows that used to carry `✅ (simplified…)` notes
 > were written while fidelity-debt §11 was open. Both §11 and §12 are empty now
@@ -193,7 +193,7 @@ Legend: ✅ fully implemented | ⬜ Pending (engine supports) | 🔧 Needs new e
 |---|------|------|--------|------|--------|
 | 1 | Bloodmage Thalnos | 2 | 1/1 | **Spell Damage +1.** **Deathrattle:** Draw a card. | ✅ |
 | 2 | Brightwing | 2 | 3/2 | **Battlecry:** Add a random Legendary minion to your hand. | ✅ |
-| 3 | Lorewalker Cho | 2 | 0/4 | Whenever a player casts a spell, put a copy into the other player's hand. | ⏸️ may introduce cards from other sets |
+| 3 | Lorewalker Cho | 2 | 0/4 | Whenever a player casts a spell, put a copy into the other player's hand. | ✅ 🔓 |
 | 4 | Millhouse Manastorm | 2 | 4/4 | **Battlecry:** Enemy spells cost (0) next turn. | ✅ |
 | 5 | Nat Pagle | 2 | 0/4 | At the start of your turn, you have a 50% chance to draw an extra card. | ✅ |
 | 6 | King Mukla | 3 | 5/5 | **Battlecry:** Give your opponent 2 Bananas. | ✅ |
@@ -381,7 +381,7 @@ Legend: ✅ fully implemented | ⬜ Pending (engine supports) | 🔧 Needs new e
 | # | Card | Cost | Atk/HP | Type | Text | Status |
 |---|------|------|--------|------|------|--------|
 | 1 | Holy Smite | 1 | — | Holy Spell | Deal 3 damage to a minion. | ✅ |
-| 2 | Mind Vision | 1 | — | Shadow Spell | Put a copy of a random card in your opponent's hand into your hand. | ⏸️ opponent hand |
+| 2 | Mind Vision | 1 | — | Shadow Spell | Put a copy of a random card in your opponent's hand into your hand. | ✅ 🔓 |
 | 3 | Northshire Cleric | 1 | 1/3 | Minion | Whenever a minion is healed, draw a card. | ✅ |
 | 4 | Power Word: Shield | 1 | — | Holy Spell | Give a minion +2 Health. Draw a card. | ✅ |
 | 5 | Radiance | 1 | — | Holy Spell | Restore 5 Health to your hero. | ✅ |
@@ -401,11 +401,11 @@ Legend: ✅ fully implemented | ⬜ Pending (engine supports) | 🔧 Needs new e
 | 4 | Scarlet Subjugator | 1 | 2/1 | Minion | **Battlecry:** Give an enemy minion -2 Attack until your next turn. | ✅ |
 | 5 | Kul Tiran Chaplain | 2 | 2/3 | Minion | **Battlecry:** Give a friendly minion +2 Health. | ✅ |
 | 6 | Lightwell | 2 | 0/5 | Minion | At the start of your turn, restore 3 Health to a damaged friendly character. | ✅ |
-| 7 | Thoughtsteal | 3 | — | Shadow Spell | Copy 2 cards from your opponent's deck and put them into your hand. | ⏸️ opponent deck |
+| 7 | Thoughtsteal | 3 | — | Shadow Spell | Copy 2 cards from your opponent's deck and put them into your hand. | ✅ 🔓 |
 | 8 | Lightspawn | 4 | 0/5 | Minion | This minion's Attack is always equal to its Health. | ✅ |
 | 9 | Shadow Madness | 4 | — | Shadow Spell | Gain control of an enemy minion with 3 or less Attack until end of turn. | ✅ |
 | 10 | Mass Dispel | 4 | — | Holy Spell | **Silence** all enemy minions. Draw a card. | ✅ |
-| 11 | Mindgames | 4 | — | Shadow Spell | Put a copy of a random minion from your opponent's deck into the battlefield. | ⏸️ opponent deck |
+| 11 | Mindgames | 4 | — | Shadow Spell | Put a copy of a random minion from your opponent's deck into the battlefield. | ✅ 🔓 |
 | 12 | Shadow Word: Ruin | 4 | — | Shadow Spell | Destroy all minions with 5 or more Attack. | ✅ |
 | 13 | Temple Enforcer | 6 | 6/6 | Minion | **Battlecry:** Give a friendly minion +3 Health. | ✅ |
 | 14 | Cabal Shadow Priest | 6 | 4/5 | Minion | **Battlecry:** Take control of an enemy minion that has 2 or less Attack. | ✅ |
