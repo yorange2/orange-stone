@@ -59,6 +59,12 @@ pub enum EffectTarget {
     DamagedMinion,
     /// A random minion on either side (Crazed Alchemist, Ancestral Healing)
     AnyMinion,
+    /// A single character (hero or minion) on either side — Stormpike
+    /// Commando, Elven Archer, Fire Elemental, SI:7 Agent, Earthen Ring
+    /// Farseer, Voodoo Doctor
+    AnyCharacter,
+    /// Either hero — Alexstrasza
+    AnyHero,
 }
 
 /// Card effect — an action executed when triggered.

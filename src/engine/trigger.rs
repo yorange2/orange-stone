@@ -1111,6 +1111,20 @@ fn resolve_deal_damage(
             });
             return;
         }
+        // Battlecry-target kinds (battlecry-target-debt roadmap W13): a single
+        // character (hero + minion) on either side, or either hero. Friendly
+        // characters keep the friendly convention (stealth does not filter
+        // friendly targets); the enemy side keeps the stealth filter.
+        EffectTarget::AnyCharacter => {
+            let mut all = collect_friendly_characters(state, owner, Some(source));
+            all.extend(collect_enemy_characters(state, owner, Some(source)));
+            all
+        }
+        EffectTarget::AnyHero => {
+            let hero = state.player(owner).hero;
+            let enemy_hero = state.player(owner.opponent()).hero;
+            [hero, enemy_hero].into_iter().collect()
+        }
         EffectTarget::AllMinions => {
             let mut all = collect_friendly_minions(state, owner);
             all.extend(collect_all_enemy_minions(state, owner));
@@ -3196,4 +3210,35 @@ fn collect_friendly_minions(state: &GameState, owner: PlayerId) -> SmallList<Ent
         .iter(Zone::Play, owner)
         .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
         .collect()
+}
+
+/// Collects all friendly characters (hero + minions) for single-target picks.
+/// Stealth is NOT a filter on the friendly side — stealth only blocks enemy
+/// targeting (mirrors `collect_friendly_minions`; `collect_enemy_characters`
+/// keeps the enemy-side stealth filter).
+fn collect_friendly_characters(
+    state: &GameState,
+    owner: PlayerId,
+    source: Option<Entity>,
+) -> SmallList<Entity> {
+    let mut chars: SmallList<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, owner)
+        .filter(|&e| {
+            let ct = state.world().card_type(e);
+            if ct != Some(CardType::Minion) && ct != Some(CardType::Hero) {
+                return false;
+            }
+            // Elusive (M5): spells can't target elusive minions; battlecries can.
+            let spell = source.and_then(|s| state.world().card_type(s)) == Some(CardType::Spell);
+            !(spell && state.world().elusive(e).is_some())
+        })
+        .collect();
+    let hero = state.player(owner).hero;
+    if chars.iter().all(|&c| c != hero) {
+        chars.push(hero);
+    }
+    chars.sort_by_key(|e| (e.index, e.generation));
+    chars
 }

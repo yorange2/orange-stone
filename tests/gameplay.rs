@@ -1546,19 +1546,19 @@ fn elven_archer_battlecry_deals_one_damage() {
         .collect();
     let card = hand[0];
 
+    // AnyCharacter (W13): the player chooses the target — here the enemy hero.
+    let enemy_hero = state.player(PlayerId::Player2).hero;
     engine
         .apply(
             &mut state,
             Action::PlayCard {
                 card,
-                target: None,
+                target: Some(enemy_hero),
                 position: None,
             },
         )
         .unwrap();
 
-    // Enemy has only the hero, so 1 damage must hit the hero
-    let enemy_hero = state.player(PlayerId::Player2).hero;
     assert_eq!(
         state.world().effective_health(enemy_hero),
         Some(orange_stone::core::component::Health(29))

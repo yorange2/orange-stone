@@ -229,7 +229,7 @@ W12 (PR #101) cleared the last 5: Water Elemental / Cabal Shadow Priest /
 Prophet Velen / Shiv / Argent Protector — **the ledger is EMPTY and the RL
 pool is the full 391-card classic pool**.
 
-### 12. Battlecry target sets — M1 audit (20 cards, registered 2026-08-07)
+### 12. Battlecry target sets — M1 audit (20 → 16 cards, registered 2026-08-07)
 
 The engine-mechanics roadmap M1 audit (minion battlecry explicit targets)
 walked every minion battlecry with a target-bearing effect and checked the
@@ -242,9 +242,6 @@ or the wrong side):
 - Cruel Taskmaster (WARRIOR_004) — targets a random enemy minion; HS: a
   friendly minion
 - Ironforge Rifleman (NEUTRAL_B07) — may hit the enemy hero; HS: enemy minion
-- Stormpike Commando (NEUTRAL_B18) / Elven Archer (NEUTRAL_T02) / Fire
-  Elemental (SHAMAN_007) / SI:7 Agent (ROGUE_005) — enemy characters only;
-  HS: any character
 - Alexstrasza (LEGENDARY_008) — any enemy character; HS: a hero
 - Ironbeak Owl (CLASSIC_004) / Spellbreaker (CLASSIC_012) — enemy minions
   only; HS: any minion
