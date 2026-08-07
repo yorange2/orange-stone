@@ -19,6 +19,10 @@ use crate::core::component::{
 };
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
+
+/// Prophet Velen's card ID — his doubling is looked up by ID on the owner's board.
+const VELEN_ID: &str = "PRIEST_012";
+
 use crate::core::event::{Event, EventQueue};
 use crate::core::player::PlayerId;
 use crate::core::small_list::SmallList;
@@ -53,6 +57,123 @@ fn select_target(
     }
 }
 
+/// Whether an effect resolving from `source` is spell-powered — that is,
+/// whether Spell Damage and Prophet Velen apply to its numbers.
+///
+/// In Hearthstone that is true for spells and hero powers, and false for
+/// attacks, battlecries, deathrattles, and minion triggers. The source's card
+/// type carries the distinction: a Spell entity is a spell (including a Secret,
+/// which is a spell card), and a Hero entity reaching this function is a hero
+/// power — a hero's *attack* damage never routes through `resolve_effect`.
+fn is_spell_powered(state: &GameState, source: Entity) -> bool {
+    matches!(
+        state.world().card_type(source),
+        Some(CardType::Spell | CardType::Hero)
+    )
+}
+
+/// Rewrites an effect's damage and healing amounts for Spell Damage and
+/// Prophet Velen.
+///
+/// The order matches Hearthstone: the Spell Damage bonus is added first, then
+/// Velen doubles the result. Mind Blast (5) is 6 alongside a Kobold Geomancer,
+/// 10 alongside Velen, and 12 alongside both.
+///
+/// Only damage and healing amounts are touched. Card draw, summon counts,
+/// armor, and stat buffs are unaffected, as are effects whose source is not a
+/// spell or hero power.
+fn apply_spell_power(
+    state: &GameState,
+    source: Entity,
+    owner: PlayerId,
+    effect: CardEffect,
+) -> CardEffect {
+    if !is_spell_powered(state, source) {
+        return effect;
+    }
+    let bonus = state.world().total_spell_damage(owner);
+    let velen = state
+        .world()
+        .zones()
+        .iter(Zone::Play, owner)
+        .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == VELEN_ID));
+    if bonus == 0 && !velen {
+        return effect;
+    }
+    // Spell Damage adds, Velen then doubles. A 0-damage effect stays 0 — Spell
+    // Damage only boosts effects that already deal damage.
+    let adjust = |amount: i32| -> i32 {
+        if amount <= 0 {
+            return amount;
+        }
+        let with_bonus = amount + bonus;
+        if velen { with_bonus * 2 } else { with_bonus }
+    };
+    match effect {
+        CardEffect::DealDamage { amount, target } => CardEffect::DealDamage {
+            amount: adjust(amount),
+            target,
+        },
+        CardEffect::DealDamageToTwo { amount } => CardEffect::DealDamageToTwo {
+            amount: adjust(amount),
+        },
+        CardEffect::DealDamageAndDraw {
+            damage,
+            target,
+            draw,
+        } => CardEffect::DealDamageAndDraw {
+            damage: adjust(damage),
+            target,
+            draw,
+        },
+        CardEffect::DamageAndGainAttack {
+            damage,
+            attack_bonus,
+            target,
+        } => CardEffect::DamageAndGainAttack {
+            damage: adjust(damage),
+            attack_bonus,
+            target,
+        },
+        CardEffect::DealDamageAndReturnToHand { amount, target } => {
+            CardEffect::DealDamageAndReturnToHand {
+                amount: adjust(amount),
+                target,
+            }
+        }
+        CardEffect::DamagePlayedMinion { amount } => CardEffect::DamagePlayedMinion {
+            amount: adjust(amount),
+        },
+        CardEffect::FreezeOrDamage { amount } => CardEffect::FreezeOrDamage {
+            amount: adjust(amount),
+        },
+        CardEffect::DealDamageAndSummonIfKilled { amount, pool } => {
+            CardEffect::DealDamageAndSummonIfKilled {
+                amount: adjust(amount),
+                pool,
+            }
+        }
+        // Each missile is boosted individually, as in HS (Arcane Missiles with
+        // a Spell Damage minion fires the same number of stronger missiles).
+        CardEffect::DealDamageRandomly {
+            amount,
+            count,
+            target,
+        } => CardEffect::DealDamageRandomly {
+            amount: adjust(amount),
+            count,
+            target,
+        },
+        // Velen doubles healing too; Spell Damage does not, so the bonus is
+        // excluded here.
+        CardEffect::RestoreHealth { amount, target } => CardEffect::RestoreHealth {
+            amount: if velen { amount * 2 } else { amount },
+            target,
+        },
+        other => other,
+    }
+}
+
 /// Resolves a CardEffect into game events and enqueues them.
 ///
 /// `source` is the effect source entity (the minion owning the effect).
@@ -72,6 +193,9 @@ pub fn resolve_effect(
     explicit_target: Option<Entity>,
     event_subject: Option<Entity>,
 ) {
+    // Spell Damage and Prophet Velen adjust the numbers before anything else
+    // resolves — see `apply_spell_power`.
+    let effect = apply_spell_power(state, source, owner, effect);
     match effect {
         CardEffect::DealDamage { amount, target } => {
             resolve_deal_damage(state, queue, source, owner, amount, target, explicit_target);
@@ -199,7 +323,15 @@ pub fn resolve_effect(
             target,
             attack_bonus,
         } => {
-            resolve_grant_charge(state, source, owner, target, attack_bonus, explicit_target);
+            resolve_grant_charge(
+                state,
+                source,
+                owner,
+                target,
+                attack_bonus,
+                explicit_target,
+                event_subject,
+            );
         }
         CardEffect::DiscoverDeckTop3 => {
             resolve_discover_deck_top3(state, source, owner);
@@ -1334,6 +1466,7 @@ pub(crate) fn resolve_summon(
                     event: TriggerEvent::TurnEnd,
                     timing: TriggerTiming::Whenever,
                     race: None,
+                    max_attack: None,
                     effect: ete,
                 },
             );
@@ -1345,6 +1478,7 @@ pub(crate) fn resolve_summon(
                     event: TriggerEvent::TurnStart,
                     timing: TriggerTiming::Whenever,
                     race: None,
+                    max_attack: None,
                     effect: ste,
                 },
             );
@@ -1356,6 +1490,7 @@ pub(crate) fn resolve_summon(
                     event: TriggerEvent::FriendlySpellCast,
                     timing: TriggerTiming::Whenever,
                     race: None,
+                    max_attack: None,
                     effect: st,
                 },
             );
@@ -1367,6 +1502,7 @@ pub(crate) fn resolve_summon(
                     event: TriggerEvent::FriendlyMinionDied,
                     timing: TriggerTiming::Whenever,
                     race: None,
+                    max_attack: None,
                     effect: dt,
                 },
             );
@@ -1378,6 +1514,7 @@ pub(crate) fn resolve_summon(
                     event: TriggerEvent::FriendlyMinionSummoned,
                     timing: TriggerTiming::Whenever,
                     race: None,
+                    max_attack: None,
                     effect: st,
                 },
             );
@@ -1700,6 +1837,7 @@ fn resolve_attach_attack_draw(
             timing: TriggerTiming::Whenever,
             effect: CardEffect::DrawCard { count },
             race: None,
+            max_attack: None,
         },
     );
 }
@@ -2189,6 +2327,8 @@ fn silence_entity(world: &mut crate::core::world::World, e: Entity) {
     world.remove_windfury(e);
     world.remove_charge(e);
     world.remove_spell_damage(e);
+    // Enrage is an ability, so Silence takes it away too
+    world.remove_enrage(e);
     // Silence strips enchantments, keeping base stats and damage (roadmap G4)
     world.remove_enchantments(e);
 }
@@ -2296,16 +2436,10 @@ fn resolve_restore_health(
     target: EffectTarget,
     explicit: Option<Entity>,
 ) {
-    // Prophet Velen (W12, D3 — pipeline hook): while Velen is on the owner's
-    // board, healing is doubled (mirroring the spell-damage modifier; the
-    // spell-damage half stays a +1 rebalance per known_rebalanced).
-    let velen_present = state.world().zones().iter(Zone::Play, owner).any(|e| {
-        state
-            .world()
-            .card_id(e)
-            .is_some_and(|c| c.0 == "PRIEST_012")
-    });
-    let amount = if velen_present { amount * 2 } else { amount };
+    // Prophet Velen's doubling is applied by `apply_spell_power` before the
+    // effect reaches here, so that it covers only spell and hero-power healing
+    // — a minion battlecry heal (Voodoo Doctor) is not doubled in HS.
+    //
     // Healing reduces accumulated damage (roadmap G4); returns whether any
     // damage was actually removed
     fn heal(world: &mut crate::core::world::World, entity: Entity, amount: i32) -> bool {
@@ -2372,8 +2506,8 @@ fn resolve_restore_health(
 }
 
 /// Fires heal triggers for a healed entity: `CharacterHealed` (Lightwarden —
-/// any character healed, friendly or enemy) and `FriendlyCharacterHealed`
-/// (Northshire Cleric — friendly-scoped via the healed entity's owner).
+/// any character healed, hero or minion, either side) and `MinionHealed`
+/// (Northshire Cleric — any minion, either side, heroes excluded).
 fn fire_healed_trigger(state: &mut GameState, queue: &mut EventQueue, entity: Entity) {
     let owner = state
         .world()
@@ -2387,14 +2521,16 @@ fn fire_healed_trigger(state: &mut GameState, queue: &mut EventQueue, entity: En
         Some(entity),
         None,
     );
-    crate::engine::rules::fire_triggers(
-        state,
-        queue,
-        crate::core::component::TriggerEvent::FriendlyCharacterHealed,
-        owner,
-        Some(entity),
-        None,
-    );
+    if state.world().card_type(entity) == Some(CardType::Minion) {
+        crate::engine::rules::fire_triggers(
+            state,
+            queue,
+            crate::core::component::TriggerEvent::MinionHealed,
+            owner,
+            Some(entity),
+            None,
+        );
+    }
 }
 
 /// Freezes a character.
@@ -2529,6 +2665,7 @@ fn resolve_grant_charge(
     target: EffectTarget,
     attack_bonus: i32,
     explicit: Option<Entity>,
+    subject: Option<Entity>,
 ) {
     let minions: SmallList<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
@@ -2536,6 +2673,16 @@ fn resolve_grant_charge(
         EffectTarget::Self_ => {
             let mut list = SmallList::new();
             list.push(source);
+            list
+        }
+        // Warsong Commander — the minion that was just summoned. The Charge is
+        // granted permanently to that minion, so it survives the commander
+        // leaving play.
+        EffectTarget::EventSubject => {
+            let mut list = SmallList::new();
+            if let Some(s) = subject {
+                list.push(s);
+            }
             list
         }
         _ => return,

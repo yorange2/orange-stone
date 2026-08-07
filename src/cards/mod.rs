@@ -21,8 +21,8 @@ pub mod pool;
 pub mod sets;
 
 use crate::core::component::{
-    Attack, AttacksUsed, Aura, CardId, Cost, Deathrattle, Durability, Health, Overload, Poison,
-    Stealth, Trigger, TriggerEvent, TriggerTiming,
+    Attack, AttacksUsed, Aura, CardId, Cost, Deathrattle, Durability, Enrage, Health, Overload,
+    Poison, Stealth, Trigger, TriggerEvent, TriggerTiming,
 };
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
@@ -90,6 +90,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 event: TriggerEvent::FriendlyOverloadPlayed,
                 timing: TriggerTiming::Whenever,
                 race: None,
+                max_attack: None,
                 effect: CardEffect::GainStats {
                     attack: 1,
                     health: 1,
@@ -106,6 +107,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 event: TriggerEvent::ThisMinionDamaged,
                 timing: TriggerTiming::Whenever,
                 race: None,
+                max_attack: None,
                 effect: CardEffect::DrawCard { count: 1 },
             },
         );
@@ -118,6 +120,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 event: TriggerEvent::FriendlyMinionDamaged,
                 timing: TriggerTiming::Whenever,
                 race: None,
+                max_attack: None,
                 effect: CardEffect::GainStats {
                     attack: 1,
                     health: 0,
@@ -134,6 +137,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 event: TriggerEvent::FriendlyMinionDamaged,
                 timing: TriggerTiming::Whenever,
                 race: None,
+                max_attack: None,
                 effect: CardEffect::GainArmor {
                     amount: 1,
                     target: EffectTarget::FriendlyHero,
@@ -146,56 +150,82 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         world.set_poison(entity, Poison);
         world.set_stealth(entity, Stealth);
     }
-    // Enrage cards (fidelity-debt W0 + W8): permanent +Attack whenever this
-    // minion takes damage — wired to the existing ThisMinionDamaged trigger
-    // slot.
-    let enrage_effect: Option<CardEffect> = match card_def.id {
-        "NEUTRAL_B19" | "NEUTRAL_C11" => Some(CardEffect::GainStats {
-            // Gurubashi Berserker / Tauren Warrior — +3 Attack
+    if card_def.id == "WARRIOR_008" {
+        // Warsong Commander — whenever you summon a minion with 3 or less
+        // Attack, give it Charge. A trigger rather than an aura: the Charge is
+        // granted once, to that minion, and outlives the commander.
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionSummoned,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: Some(3),
+                effect: CardEffect::GrantCharge {
+                    target: EffectTarget::EventSubject,
+                    attack_bonus: 0,
+                },
+            },
+        );
+    }
+    // Enrage — a conditional state, not a buff. The bonus applies while the
+    // minion is damaged, does not stack across damage instances, and is gone
+    // the moment the minion is healed to full; `World::effective_attack` and
+    // `World::max_attacks` resolve it on read.
+    let enrage: Option<Enrage> = match card_def.id {
+        // Tauren Warrior — Taunt. Enrage: +3 Attack
+        "NEUTRAL_C11" => Some(Enrage {
             attack: 3,
-            health: 0,
-            target: EffectTarget::Self_,
+            ..Enrage::default()
         }),
-        // W8: Amani Berserker / Raging Worgen / Grommash Hellscream — the
-        // §11 Enrage trio (2/3→5/3, 3/3→4/3, 4/9→10/9)
-        "CLASSIC_018" => Some(CardEffect::GainStats {
+        // Amani Berserker — Enrage: +3 Attack (2/3 → 5/3 while damaged)
+        "CLASSIC_018" => Some(Enrage {
             attack: 3,
-            health: 0,
-            target: EffectTarget::Self_,
+            ..Enrage::default()
         }),
-        // Raging Worgen's Enrage also grants Windfury (the keyword is part of
-        // the Enrage, not a permanent stat)
-        "NEUTRAL_008" => Some(CardEffect::GainStatsAndGrantWindfury {
+        // Raging Worgen — Enrage: Windfury and +1 Attack. Both halves are part
+        // of the Enrage, so the Windfury goes away with the damage too.
+        "NEUTRAL_008" => Some(Enrage {
             attack: 1,
-            health: 0,
-            target: EffectTarget::Self_,
+            windfury: true,
+            ..Enrage::default()
         }),
-        "WARRIOR_010" => Some(CardEffect::GainStats {
+        // Grommash Hellscream — Charge. Enrage: +6 Attack (4/9 → 10/9)
+        "WARRIOR_010" => Some(Enrage {
             attack: 6,
-            health: 0,
-            target: EffectTarget::Self_,
+            ..Enrage::default()
         }),
-        "NEUTRAL_R02" => Some(CardEffect::GainStats {
-            // Angry Chicken — +5 Attack
+        // Angry Chicken — Enrage: +5 Attack (1/1 → 6/1)
+        "NEUTRAL_R02" => Some(Enrage {
             attack: 5,
-            health: 0,
-            target: EffectTarget::Self_,
+            ..Enrage::default()
         }),
-        "NEUTRAL_C15" => Some(CardEffect::BuffWeapon {
-            // Spiteful Smith — your weapon +2 Attack
-            attack: 2,
-            durability: 0,
+        // Spiteful Smith — Enrage: your weapon has +2 Attack
+        "NEUTRAL_C15" => Some(Enrage {
+            weapon_attack: 2,
+            ..Enrage::default()
         }),
         _ => None,
     };
-    if let Some(effect) = enrage_effect {
+    if let Some(enrage) = enrage {
+        world.set_enrage(entity, enrage);
+    }
+    // Gurubashi Berserker is deliberately NOT an Enrage minion: its real text
+    // is "Whenever this minion takes damage, gain +3 Attack", a permanent buff
+    // that stacks per damage instance and survives a full heal.
+    if card_def.id == "NEUTRAL_B19" {
         world.set_trigger(
             entity,
             Trigger {
                 event: TriggerEvent::ThisMinionDamaged,
                 timing: TriggerTiming::Whenever,
                 race: None,
-                effect,
+                max_attack: None,
+                effect: CardEffect::GainStats {
+                    attack: 3,
+                    health: 0,
+                    target: EffectTarget::Self_,
+                },
             },
         );
     }
@@ -245,6 +275,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 timing: TriggerTiming::Whenever,
                 effect,
                 race: Some(race),
+                max_attack: None,
             },
         );
     }
@@ -260,10 +291,10 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 target: EffectTarget::Self_,
             },
         )),
-        // Northshire Cleric (W8) — whenever a friendly character is healed,
-        // draw a card (friendly scope via the FriendlyCharacterHealed event)
+        // Northshire Cleric — whenever a MINION is healed, draw a card.
+        // Either player's minion counts; healing a hero does not.
         "PRIEST_004" => Some((
-            TriggerEvent::FriendlyCharacterHealed,
+            TriggerEvent::MinionHealed,
             CardEffect::DrawCard { count: 1 },
         )),
         // Questing Adventurer — whenever you play a card, gain +1/+1
@@ -303,6 +334,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 timing: TriggerTiming::Whenever,
                 effect,
                 race: None,
+                max_attack: None,
             },
         );
     }
@@ -344,6 +376,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 timing: TriggerTiming::Whenever,
                 effect,
                 race: None,
+                max_attack: None,
             },
         );
     }
@@ -361,6 +394,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                     target: EffectTarget::Self_,
                 },
                 race: None,
+                max_attack: None,
             },
         );
     }
@@ -388,6 +422,7 @@ pub(crate) fn clear_minion_effects(world: &mut World, entity: Entity) {
     world.remove_combo_effect(entity);
     world.remove_attack_equals_health(entity);
     world.remove_poison(entity);
+    world.remove_enrage(entity);
     world.remove_stealth(entity);
     world.remove_immune(entity);
     world.remove_freeze(entity);
@@ -471,6 +506,7 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
                 event: TriggerEvent::TurnEnd,
                 timing: TriggerTiming::Whenever,
                 race: None,
+                max_attack: None,
                 effect: ete,
             },
         );
@@ -482,6 +518,7 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
                 event: TriggerEvent::TurnStart,
                 timing: TriggerTiming::Whenever,
                 race: None,
+                max_attack: None,
                 effect: ste,
             },
         );
@@ -497,6 +534,7 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
                 event: TriggerEvent::FriendlySpellCast,
                 timing: TriggerTiming::Whenever,
                 race: None,
+                max_attack: None,
                 effect: st,
             },
         );
@@ -508,6 +546,7 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
                 event: TriggerEvent::FriendlyMinionDied,
                 timing: TriggerTiming::Whenever,
                 race: None,
+                max_attack: None,
                 effect: dt,
             },
         );
@@ -519,6 +558,7 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
                 event: TriggerEvent::FriendlyMinionSummoned,
                 timing: TriggerTiming::Whenever,
                 race: None,
+                max_attack: None,
                 effect: st,
             },
         );

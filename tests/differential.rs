@@ -68,6 +68,7 @@ fn scenario_end_of_turn_before_wrap_up() {
             event: TriggerEvent::TurnEnd,
             timing: TriggerTiming::Whenever,
             race: None,
+            max_attack: None,
             effect: orange_stone::core::effect::CardEffect::DealHeroAttackDamage {
                 target: orange_stone::core::effect::EffectTarget::AnyEnemy,
             },
@@ -954,9 +955,11 @@ fn w0_angry_chicken_enrage_fires_before_death() {
     );
 }
 
-/// W0-12 Spiteful Smith — Enrage: your weapon gains +2 Attack.
+/// W0-12 Spiteful Smith — Enrage: your weapon has +2 Attack. The bonus is
+/// conditional: it appears when the smith is damaged and disappears when it is
+/// healed back to full, and it never touches the weapon's base attack.
 #[test]
-fn w0_spiteful_smith_buffs_weapon_on_damage() {
+fn w0_spiteful_smith_buffs_weapon_while_damaged() {
     use orange_stone::cards::def::{SPITEFUL_SMITH, TRUESILVER_CHAMPION};
     let mut builder = GameBuilder::new();
     builder.add_minion_to_board(PlayerId1(), &SPITEFUL_SMITH);
@@ -967,6 +970,8 @@ fn w0_spiteful_smith_buffs_weapon_on_damage() {
     let engine = GameEngine::new();
     let smith = find_entity(&state, PlayerId1(), "NEUTRAL_C15");
     let weapon = find_entity(&state, PlayerId1(), "PALADIN_006");
+    // Undamaged: the weapon is a plain 4/2
+    assert_eq!(state.world().effective_attack(weapon), Some(Attack(4)));
     engine
         .apply(
             &mut state,
@@ -978,14 +983,26 @@ fn w0_spiteful_smith_buffs_weapon_on_damage() {
         .unwrap();
     assert_eq!(state.world().effective_health(smith), Some(Health(5)));
     assert_eq!(
-        state.world().attack(weapon),
+        state.world().effective_attack(weapon),
         Some(Attack(6)),
-        "Truesilver 4/2 + 2 weapon attack"
+        "Truesilver 4/2 + 2 while the smith is enraged"
+    );
+    assert_eq!(
+        state.world().attack(weapon),
+        Some(Attack(4)),
+        "the Enrage never writes into the weapon's base attack"
     );
     assert_eq!(
         state.world().durability(weapon),
         Some(orange_stone::core::component::Durability(2)),
         "durability is untouched"
+    );
+    // Healing the smith back to full takes the weapon bonus away again
+    state.world_mut().remove_damage(smith);
+    assert_eq!(
+        state.world().effective_attack(weapon),
+        Some(Attack(4)),
+        "the weapon bonus is gone once the smith is back to full Health"
     );
 }
 
@@ -3998,8 +4015,7 @@ fn f8_blood_imp_buffs_another_minion_at_turn_end() {
     );
 }
 
-/// W8-1 Amani Berserker — Enrage: +3 Attack. Damage fires the permanent
-/// enrage buff (2/3 → 5/3, health 3 − 1).
+/// W8-1 Amani Berserker — Enrage: +3 Attack. The 2/3 becomes 5/3 while damaged.
 #[test]
 fn w8_amani_berserker_enrage() {
     use orange_stone::cards::def::AMANI_BERSERKER;
@@ -4010,6 +4026,11 @@ fn w8_amani_berserker_enrage() {
     let mut state = builder.build();
     let engine = GameEngine::new();
     let amani = find_entity(&state, PlayerId1(), "CLASSIC_018");
+    assert_eq!(
+        state.world().effective_attack(amani),
+        Some(Attack(2)),
+        "undamaged, the berserker is a plain 2/3"
+    );
     engine
         .apply(
             &mut state,
@@ -4021,6 +4042,102 @@ fn w8_amani_berserker_enrage() {
         .unwrap();
     assert_eq!(state.world().effective_attack(amani), Some(Attack(5)));
     assert_eq!(state.world().effective_health(amani), Some(Health(2)));
+}
+
+/// Enrage is a state, not a buff: the bonus is flat no matter how many
+/// separate damage instances landed, and it is gone the moment the minion is
+/// healed back to full. Two hits on a 2/3 Amani Berserker leave it at 5/1, not
+/// 8/1, and a full heal returns it to 2/3.
+#[test]
+fn enrage_does_not_stack_and_ends_at_full_health() {
+    use orange_stone::cards::def::AMANI_BERSERKER;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &AMANI_BERSERKER);
+    let first = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    let second = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    builder.active_player(PlayerId2());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let amani = find_entity(&state, PlayerId1(), "CLASSIC_018");
+    for attacker in [first, second] {
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker,
+                    defender: amani,
+                },
+            )
+            .unwrap();
+    }
+    assert_eq!(
+        state.world().effective_health(amani),
+        Some(Health(1)),
+        "two 1-damage hits landed"
+    );
+    assert_eq!(
+        state.world().effective_attack(amani),
+        Some(Attack(5)),
+        "the Enrage bonus is flat +3, not +3 per damage instance"
+    );
+    // Healed back to full — the Enrage state ends
+    state.world_mut().remove_damage(amani);
+    assert_eq!(
+        state.world().effective_attack(amani),
+        Some(Attack(2)),
+        "back to a plain 2/3 at full Health"
+    );
+}
+
+/// Enrage is an ability, so Silence removes it — a silenced, damaged Amani
+/// Berserker is a 2/3 body again and stays that way when it takes more damage.
+#[test]
+fn enrage_is_removed_by_silence() {
+    use orange_stone::cards::def::{AMANI_BERSERKER, IRONBEAK_OWL};
+    let mut builder = GameBuilder::new();
+    let attacker = builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    builder.add_minion_to_board(PlayerId2(), &AMANI_BERSERKER);
+    builder.add_minion_to_hand(PlayerId1(), &IRONBEAK_OWL);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let amani = find_entity(&state, PlayerId2(), "CLASSIC_018");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: amani,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(amani),
+        Some(Attack(5)),
+        "enraged before the silence"
+    );
+    let owl = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Ironbeak Owl in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: owl,
+                target: Some(amani),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(amani),
+        Some(Attack(2)),
+        "Silence strips the Enrage even while the minion is still damaged"
+    );
 }
 
 /// W8-2 Raging Worgen — Enrage: +1 Attack and Windfury. The damaged 3/3
@@ -4050,9 +4167,19 @@ fn w8_raging_worgen_enrage_and_windfury() {
         .unwrap();
     assert_eq!(state.world().effective_attack(worgen), Some(Attack(4)));
     assert_eq!(state.world().effective_health(worgen), Some(Health(2)));
-    assert!(
-        state.world().windfury(worgen).is_some(),
+    assert_eq!(
+        state.world().max_attacks(worgen),
+        2,
         "the Enrage grants Windfury while damaged"
+    );
+    // Both halves are part of the Enrage: healing back to full removes the
+    // attack bonus AND the Windfury.
+    state.world_mut().remove_damage(worgen);
+    assert_eq!(state.world().effective_attack(worgen), Some(Attack(3)));
+    assert_eq!(
+        state.world().max_attacks(worgen),
+        1,
+        "the Windfury goes away with the damage"
     );
 }
 
@@ -4085,15 +4212,16 @@ fn w8_grommash_hellscream_enrage() {
     );
 }
 
-/// W8-4 Warsong Commander — your OTHER minions have Charge (the aura excludes
-/// the commander itself). Both minions are played this turn so the summoning
-/// sickness is real: the aura-buffed minion can attack, the commander cannot.
+/// W8-4 Warsong Commander — whenever you summon a minion with 3 or less
+/// Attack, give it Charge. A 3-Attack minion gets it and swings the turn it
+/// lands; a 4-Attack minion does not; the commander itself does not.
 #[test]
-fn w8_warsong_commander_grants_charge_to_other_minions() {
+fn w8_warsong_commander_charges_only_small_summons() {
     use orange_stone::cards::def::WARSONG_COMMANDER;
     let mut builder = GameBuilder::new();
     builder.add_minion_to_hand(PlayerId1(), &WARSONG_COMMANDER);
-    builder.add_custom_minion_to_hand(PlayerId1(), 2, 3, 2);
+    builder.add_custom_minion_to_hand(PlayerId1(), 3, 2, 2);
+    builder.add_custom_minion_to_hand(PlayerId1(), 4, 2, 2);
     builder.set_mana(PlayerId1(), 10, 10);
     let mut state = builder.build();
     let engine = GameEngine::new();
@@ -4103,34 +4231,31 @@ fn w8_warsong_commander_grants_charge_to_other_minions() {
         .iter(Zone::Hand, PlayerId1())
         .collect();
     let commander = hand[0];
-    let vanilla = hand[1];
-    engine
-        .apply(
-            &mut state,
-            Action::PlayCard {
-                card: commander,
-                target: None,
-                position: None,
-            },
-        )
-        .unwrap();
-    engine
-        .apply(
-            &mut state,
-            Action::PlayCard {
-                card: vanilla,
-                target: None,
-                position: None,
-            },
-        )
-        .unwrap();
+    let small = hand[1];
+    let big = hand[2];
+    for card in [commander, small, big] {
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+    }
     assert!(
-        state.world().effective_charge(vanilla),
-        "the aura grants charge to a summoned friendly minion"
+        state.world().effective_charge(small),
+        "a 3-Attack summon is at the ceiling and gets Charge"
+    );
+    assert!(
+        !state.world().effective_charge(big),
+        "a 4-Attack summon is over the ceiling and gets nothing"
     );
     assert!(
         !state.world().effective_charge(commander),
-        "the aura excludes the source"
+        "the commander does not charge itself"
     );
     // The charged minion attacks immediately despite summoning sickness
     let hero = state.player(PlayerId2()).hero;
@@ -4138,125 +4263,188 @@ fn w8_warsong_commander_grants_charge_to_other_minions() {
         .apply(
             &mut state,
             Action::Attack {
-                attacker: vanilla,
+                attacker: small,
                 defender: hero,
             },
         )
         .unwrap();
     assert_eq!(
         state.world().effective_health(hero),
-        Some(Health(28)),
-        "the charged minion attacked the enemy hero"
+        Some(Health(27)),
+        "the charged 3/2 attacked the enemy hero"
     );
-    // The commander itself has no charge: summoning sickness blocks it
+    // The 4-Attack minion is stuck with summoning sickness
     assert_eq!(
         engine.apply(
             &mut state,
             Action::Attack {
-                attacker: commander,
+                attacker: big,
                 defender: hero,
             }
         ),
         Err(orange_stone::engine::rules::EngineError::AttacksExhausted),
-        "the commander cannot attack while its own aura is up"
+        "no Charge, so summoning sickness still applies"
     );
 }
 
-/// W8-5 Northshire Cleric — draw a card whenever a FRIENDLY character is
-/// healed (friendly heal draws; an enemy heal does not).
+/// Warsong Commander's Charge is granted once, at summon time, to that minion
+/// — so it survives the commander dying, unlike the aura it replaced.
 #[test]
-fn w8_northshire_cleric_draws_on_friendly_heal() {
-    use orange_stone::cards::def::{HOLY_LIGHT, NORTHSHIRE_CLERIC};
+fn warsong_charge_outlives_the_commander() {
+    use orange_stone::cards::def::WARSONG_COMMANDER;
     let mut builder = GameBuilder::new();
-    builder.add_minion_to_board(PlayerId1(), &NORTHSHIRE_CLERIC);
-    builder.add_minion_to_hand(PlayerId1(), &HOLY_LIGHT);
-    // Two deck cards: one for the turn-start draw, one for Northshire's draw
-    builder.add_minion_to_deck(PlayerId1(), &HOLY_LIGHT);
-    builder.add_minion_to_deck(PlayerId1(), &HOLY_LIGHT);
-    let p2_attacker = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
-    builder.add_minion_to_hand(PlayerId2(), &HOLY_LIGHT);
-    builder.add_minion_to_deck(PlayerId2(), &HOLY_LIGHT);
+    builder.add_minion_to_board(PlayerId1(), &WARSONG_COMMANDER);
+    builder.add_custom_minion_to_hand(PlayerId1(), 2, 2, 2);
     builder.set_mana(PlayerId1(), 10, 10);
-    builder.set_mana(PlayerId2(), 10, 10);
-    builder.active_player(PlayerId2());
     let mut state = builder.build();
     let engine = GameEngine::new();
-    let p1_hero = state.player(PlayerId1()).hero;
-    let p2_hero = state.player(PlayerId2()).hero;
-    // Enemy minion damages the friendly hero
-    engine
-        .apply(
-            &mut state,
-            Action::Attack {
-                attacker: p2_attacker,
-                defender: p1_hero,
-            },
-        )
-        .unwrap();
-    assert_eq!(state.world().effective_health(p1_hero), Some(Health(29)));
-    engine.apply(&mut state, Action::EndTurn).unwrap();
-    // Friendly Holy Light heals the damaged friendly hero → draw a card
-    let holy_light = state
+    let commander = find_entity(&state, PlayerId1(), "WARRIOR_008");
+    let small = state
         .world()
         .zones()
         .iter(Zone::Hand, PlayerId1())
         .next()
-        .expect("Holy Light in hand");
+        .expect("vanilla minion in hand");
     engine
         .apply(
             &mut state,
             Action::PlayCard {
-                card: holy_light,
+                card: small,
                 target: None,
                 position: None,
             },
         )
         .unwrap();
-    assert_eq!(
-        state.world().effective_health(p1_hero),
-        Some(Health(30)),
-        "the friendly hero was healed"
+    assert!(state.world().effective_charge(small));
+    // Kill the commander — the Charge already landed on the minion
+    state.world_mut().despawn(commander);
+    assert!(
+        state.world().effective_charge(small),
+        "the Charge belongs to the minion now, not to a live aura source"
     );
-    assert_eq!(
-        state.world().zones().len(Zone::Hand, PlayerId1()),
-        2,
-        "Northshire drew a card from the friendly heal"
-    );
-    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 0);
-    // The Cleric damages the enemy hero so the enemy has something to heal
-    let cleric = find_entity(&state, PlayerId1(), "PRIEST_004");
-    engine
-        .apply(
-            &mut state,
-            Action::Attack {
-                attacker: cleric,
-                defender: p2_hero,
-            },
-        )
-        .unwrap();
-    assert_eq!(state.world().effective_health(p2_hero), Some(Health(29)));
-    engine.apply(&mut state, Action::EndTurn).unwrap();
-    // Enemy Holy Light heals the ENEMY hero — no draw for our Cleric
-    let enemy_holy_light = state
+}
+
+/// W8-5 Northshire Cleric — draw a card whenever a MINION is healed. The
+/// scope is any minion on either board; healing a hero is not a draw.
+#[test]
+fn w8_northshire_cleric_draws_on_any_minion_heal() {
+    use orange_stone::cards::def::{NORTHSHIRE_CLERIC, VOODOO_DOCTOR};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &NORTHSHIRE_CLERIC);
+    // Two damaged bodies to heal: one friendly, one enemy
+    let friendly = builder.add_custom_minion_to_board(PlayerId1(), 1, 5, 1);
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 1, 5, 1);
+    builder.add_minion_to_hand(PlayerId1(), &VOODOO_DOCTOR);
+    builder.add_minion_to_hand(PlayerId1(), &VOODOO_DOCTOR);
+    builder.add_minion_to_hand(PlayerId1(), &VOODOO_DOCTOR);
+    for _ in 0..4 {
+        builder.add_minion_to_deck(PlayerId1(), &VOODOO_DOCTOR);
+    }
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Damage everything that will be healed
+    let p1_hero = state.player(PlayerId1()).hero;
+    for e in [friendly, enemy, p1_hero] {
+        state
+            .world_mut()
+            .set_damage(e, orange_stone::core::component::Damage(2));
+    }
+    let doctors: Vec<Entity> = state
         .world()
         .zones()
-        .iter(Zone::Hand, PlayerId2())
-        .next()
-        .expect("enemy Holy Light in hand");
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    let hand_before = doctors.len();
+
+    // 1. Healing the friendly HERO draws nothing (heroes are not minions).
+    //    Playing the Voodoo Doctor spends a card and adds none.
     engine
         .apply(
             &mut state,
             Action::PlayCard {
-                card: enemy_holy_light,
-                target: None,
+                card: doctors[0],
+                target: Some(p1_hero),
                 position: None,
             },
         )
         .unwrap();
     assert_eq!(
         state.world().zones().len(Zone::Hand, PlayerId1()),
-        2,
-        "an enemy heal does not trigger the friendly Cleric"
+        hand_before - 1,
+        "healing a hero is not a minion heal — no draw"
+    );
+
+    // 2. Healing a FRIENDLY minion draws (played card out, drawn card in)
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: doctors[1],
+                target: Some(friendly),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        hand_before - 1,
+        "a friendly minion heal drew a card"
+    );
+
+    // 3. Healing an ENEMY minion draws too — the trigger is not friendly-scoped
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: doctors[2],
+                target: Some(enemy),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        hand_before - 1,
+        "an enemy minion heal drew a card as well"
+    );
+}
+
+/// A heal that lands on an undamaged minion is not a heal event, so Northshire
+/// draws nothing.
+#[test]
+fn northshire_cleric_ignores_a_heal_that_restores_nothing() {
+    use orange_stone::cards::def::{NORTHSHIRE_CLERIC, VOODOO_DOCTOR};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &NORTHSHIRE_CLERIC);
+    let healthy = builder.add_custom_minion_to_board(PlayerId1(), 1, 5, 1);
+    builder.add_minion_to_hand(PlayerId1(), &VOODOO_DOCTOR);
+    builder.add_minion_to_deck(PlayerId1(), &VOODOO_DOCTOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let doctor = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Voodoo Doctor in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: doctor,
+                target: Some(healthy),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        0,
+        "no damage was removed, so there was no heal and no draw"
     );
 }
 
@@ -4991,46 +5179,61 @@ fn w10_tracking_discards_rest() {
     );
 }
 
-/// W11-1 Onyxia — Battlecry: summon five 1/1 Whelps.
+/// W11-1 Onyxia — Battlecry: summon 1/1 Whelps until your side of the
+/// battlefield is full. From an empty board that is six Whelps (Onyxia takes
+/// the seventh slot); with minions already out it is however many fit.
 #[test]
-fn w11_onyxia_summons_whelps() {
+fn w11_onyxia_fills_the_board_with_whelps() {
     use orange_stone::cards::def::ONYXIA;
-    let mut builder = GameBuilder::new();
-    builder.add_minion_to_hand(PlayerId1(), &ONYXIA);
-    builder.set_mana(PlayerId1(), 10, 10);
-    let mut state = builder.build();
-    let engine = GameEngine::new();
-    let card = state
-        .world()
-        .zones()
-        .iter(Zone::Hand, PlayerId1())
-        .next()
-        .expect("Onyxia in hand");
-    engine
-        .apply(
-            &mut state,
-            Action::PlayCard {
-                card,
-                target: None,
-                position: None,
-            },
-        )
-        .unwrap();
-    let minions: Vec<Entity> = state
-        .world()
-        .zones()
-        .iter(Zone::Play, PlayerId1())
-        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
-        .collect();
-    assert_eq!(minions.len(), 6, "Onyxia + five Whelps");
-    let whelps: Vec<Entity> = minions
-        .into_iter()
-        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EX1_170t"))
-        .collect();
-    assert_eq!(whelps.len(), 5, "five Whelps were summoned");
-    for w in &whelps {
-        assert_eq!(state.world().effective_attack(*w), Some(Attack(1)));
-        assert_eq!(state.world().effective_health(*w), Some(Health(1)));
+    for preexisting in [0usize, 3, 6] {
+        let mut builder = GameBuilder::new();
+        for _ in 0..preexisting {
+            builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+        }
+        builder.add_minion_to_hand(PlayerId1(), &ONYXIA);
+        builder.set_mana(PlayerId1(), 10, 10);
+        let mut state = builder.build();
+        let engine = GameEngine::new();
+        let card = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId1())
+            .next()
+            .expect("Onyxia in hand");
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        let minions: Vec<Entity> = state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId1())
+            .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+            .collect();
+        assert_eq!(
+            minions.len(),
+            7,
+            "the board ends up full regardless of how many minions were already out ({preexisting})"
+        );
+        let whelps: Vec<Entity> = minions
+            .into_iter()
+            .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EX1_170t"))
+            .collect();
+        assert_eq!(
+            whelps.len(),
+            6 - preexisting,
+            "Whelps fill exactly the free slots ({preexisting} minions already out)"
+        );
+        for w in &whelps {
+            assert_eq!(state.world().effective_attack(*w), Some(Attack(1)));
+            assert_eq!(state.world().effective_health(*w), Some(Health(1)));
+        }
     }
 }
 
@@ -5498,6 +5701,164 @@ fn w12_prophet_velen_doubles_healing() {
         state.world().effective_health(p1_hero),
         Some(Health(30)),
         "Velen doubled the 8-point heal to 16"
+    );
+}
+
+/// Spell Damage +N boosts spell damage. Mind Blast is 5 on its own and 6
+/// alongside a Kobold Geomancer.
+#[test]
+fn spell_damage_boosts_spell_damage() {
+    use orange_stone::cards::def::{KOBOLD_GEOMANCER, MIND_BLAST};
+    for (geomancers, expected_hero_health) in [(0usize, 25), (1, 24), (2, 23)] {
+        let mut builder = GameBuilder::new();
+        for _ in 0..geomancers {
+            builder.add_minion_to_board(PlayerId1(), &KOBOLD_GEOMANCER);
+        }
+        builder.add_minion_to_hand(PlayerId1(), &MIND_BLAST);
+        builder.set_mana(PlayerId1(), 10, 10);
+        builder.active_player(PlayerId1());
+        let mut state = builder.build();
+        let engine = GameEngine::new();
+        let p2_hero = state.player(PlayerId2()).hero;
+        let spell = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId1())
+            .next()
+            .expect("Mind Blast in hand");
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: spell,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state.world().effective_health(p2_hero),
+            Some(Health(expected_hero_health)),
+            "Mind Blast 5 + {geomancers} Spell Damage"
+        );
+    }
+}
+
+/// Spell Damage does not touch minion damage: a battlecry, an attack, or a
+/// deathrattle deals its printed damage no matter how many Spell Damage
+/// minions are out.
+#[test]
+fn spell_damage_does_not_boost_battlecry_damage() {
+    use orange_stone::cards::def::{ELVEN_ARCHER, KOBOLD_GEOMANCER};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &KOBOLD_GEOMANCER);
+    builder.add_minion_to_hand(PlayerId1(), &ELVEN_ARCHER);
+    let target = builder.add_custom_minion_to_board(PlayerId2(), 1, 5, 1);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let archer = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Elven Archer in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: archer,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(target),
+        Some(Health(4)),
+        "the battlecry deals its printed 1 damage, not 2"
+    );
+}
+
+/// Prophet Velen doubles spell damage, and stacks with Spell Damage in the HS
+/// order: the bonus is added first, then doubled. Mind Blast is 5 → 10 with
+/// Velen → 12 with Velen and a Kobold Geomancer.
+#[test]
+fn prophet_velen_doubles_spell_damage_after_spell_damage() {
+    use orange_stone::cards::def::{KOBOLD_GEOMANCER, MIND_BLAST, PROPHET_VELEN};
+    for (with_geomancer, expected_hero_health) in [(false, 20), (true, 18)] {
+        let mut builder = GameBuilder::new();
+        builder.add_minion_to_board(PlayerId1(), &PROPHET_VELEN);
+        if with_geomancer {
+            builder.add_minion_to_board(PlayerId1(), &KOBOLD_GEOMANCER);
+        }
+        builder.add_minion_to_hand(PlayerId1(), &MIND_BLAST);
+        builder.set_mana(PlayerId1(), 10, 10);
+        builder.active_player(PlayerId1());
+        let mut state = builder.build();
+        let engine = GameEngine::new();
+        let p2_hero = state.player(PlayerId2()).hero;
+        let spell = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId1())
+            .next()
+            .expect("Mind Blast in hand");
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: spell,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state.world().effective_health(p2_hero),
+            Some(Health(expected_hero_health)),
+            "Velen with_geomancer={with_geomancer}: (5 + bonus) * 2"
+        );
+    }
+}
+
+/// Velen doubles spells and hero powers only — a minion battlecry heal is not
+/// doubled, and neither is battlecry damage.
+#[test]
+fn prophet_velen_leaves_minion_effects_alone() {
+    use orange_stone::cards::def::{PROPHET_VELEN, VOODOO_DOCTOR};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &PROPHET_VELEN);
+    let wounded = builder.add_custom_minion_to_board(PlayerId1(), 1, 10, 1);
+    builder.add_minion_to_hand(PlayerId1(), &VOODOO_DOCTOR);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    state
+        .world_mut()
+        .set_damage(wounded, orange_stone::core::component::Damage(6));
+    let doctor = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("Voodoo Doctor in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: doctor,
+                target: Some(wounded),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(wounded),
+        Some(Health(6)),
+        "the battlecry restored its printed 2, not 4"
     );
 }
 

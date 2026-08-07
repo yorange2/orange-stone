@@ -1,9 +1,44 @@
 # Classic/Basic Set Card List
 
 > Source: [Hearthstone Wiki - Classic (2014-2021)](https://hearthstone.wiki.gg/wiki/Classic_(2014-2021)), [Basic card list](https://hearthstone.wiki.gg/wiki/Basic_card_list)
-> Total: 375 | ✅ fully implemented: 347 | ✅ simplified: 24 | ⬜ pending: 0 | 🔧 needs new mechanic: 0 | ⏸️ skipped: 4（status column refreshed 2026-08-06 against the code）
+> Total: 375 | ✅ fully implemented: 371 | ⬜ pending: 0 | 🔧 needs new mechanic: 0 | ⏸️ skipped: 4 (status column re-audited 2026-08-07 against the code)
 
-Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications (tracked in fidelity-debt) | ⬜ Pending (engine supports) | 🔧 Needs new engine mechanic | ⏸️ Skipped (opponent hand/deck, may introduce other-set cards)
+Legend: ✅ fully implemented | ⬜ Pending (engine supports) | 🔧 Needs new engine mechanic | ⏸️ Skipped (opponent hand/deck, may introduce other-set cards)
+
+> **2026-08-07 re-audit.** The 24 rows that used to carry `✅ (simplified…)` notes
+> were written while fidelity-debt §11 was open. Both §11 and §12 are empty now
+> and `src/cards/` carries zero `(simplified: …)` markers, so those notes were
+> stale — 17 of them were already faithful. Reading the implementations turned up
+> 10 rows that still deviated from real HS; all 10 were fixed the same day and are
+> recorded in [fidelity-debt.md](fidelity-debt.md) §13. What changed:
+>
+> - **Enrage (6)** — Amani Berserker, Raging Worgen, Tauren Warrior, Spiteful
+>   Smith, Angry Chicken, Grommash Hellscream. Enrage was a *permanent* stat gain
+>   on the `ThisMinionDamaged` trigger, so it stacked per damage instance and
+>   survived a full heal. It is now an `Enrage` component resolved on read: a flat
+>   bonus while damaged, gone at full Health, and removed by Silence.
+>   (Gurubashi Berserker is *not* an Enrage minion — its real text is a permanent
+>   stacking buff — so it keeps the trigger.)
+> - **Warsong Commander** — was a `GrantCharge` aura on every other friendly
+>   minion. Now a summon trigger with a `max_attack` of 3, so only minions
+>   summoned with 3 or less Attack get Charge, and the Charge outlives the
+>   commander.
+> - **Northshire Cleric** — fired on friendly *character* heals. Now fires on the
+>   new `MinionHealed` event: any minion, either side, heroes excluded.
+> - **Onyxia** — summoned a fixed 5 Whelps. Now 6, which `resolve_summon`'s
+>   board-size check turns into "until your side of the battlefield is full".
+> - **Prophet Velen** — the spell half was modeled as +1 Spell Damage, which did
+>   nothing because Spell Damage was never applied to any damage in the engine
+>   (`total_spell_damage` had zero callers). Spell Damage is now wired, and Velen
+>   doubles spell and hero-power damage and healing on top of it.
+>
+> Wiring Spell Damage also fixed every Spell Damage card in the set — Kobold
+> Geomancer, Dalaran Mage, Ogre Magi, Archmage, Bloodmage Thalnos, Azure Drake,
+> Malygos and Ancient Mage were all effectively vanilla before.
+>
+> The Text column for Truesilver Champion said "restore 3 Health"; the card and
+> the code both restore 2, so the doc was corrected. The Neutral Legendary section
+> header said 23 while the table holds 24 rows (header fixed).
 
 ---
 
@@ -67,7 +102,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | 6 | Southsea Deckhand | 1 | 2/1 | Has **Charge** while you have a weapon equipped. | ✅ |
 | 7 | Worgen Infiltrator | 1 | 2/1 | **Stealth** | ✅ |
 | 8 | Young Dragonhawk | 1 | 1/1 | **Windfury** | ✅ |
-| 9 | Amani Berserker | 2 | 2/3 | **Enrage:** +3 Attack. | ✅ (no Enrage) |
+| 9 | Amani Berserker | 2 | 2/3 | **Enrage:** +3 Attack. | ✅ |
 | 10 | Bloodsail Raider | 2 | 2/3 | **Battlecry:** Gain Attack equal to the Attack of your weapon. | ✅ |
 | 11 | Dire Wolf Alpha | 2 | 2/2 | Adjacent minions have +1 Attack. | ✅ |
 | 12 | Faerie Dragon | 2 | 3/2 | Can't be targeted by spells or Hero Powers. | ✅ |
@@ -79,7 +114,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | 18 | Harvest Golem | 3 | 2/3 | **Deathrattle:** Summon a 2/1 Damaged Golem. | ✅ |
 | 19 | Ironbeak Owl | 2 | 2/1 | **Battlecry:** **Silence** a minion. | ✅ |
 | 20 | Jungle Panther | 3 | 4/2 | **Stealth** | ✅ |
-| 21 | Raging Worgen | 3 | 3/3 | **Enrage:** **Windfury** and +1 Attack. | ✅ (Windfury only (no Enrage)) |
+| 21 | Raging Worgen | 3 | 3/3 | **Enrage:** **Windfury** and +1 Attack. | ✅ |
 | 22 | Scarlet Crusader | 3 | 3/1 | **Divine Shield** | ✅ |
 | 23 | Tauren Warrior | 3 | 2/3 | **Taunt** **Enrage:** +3 Attack. | ✅ |
 | 24 | Thrallmar Farseer | 3 | 2/3 | **Windfury** | ✅ |
@@ -150,9 +185,9 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | 6 | Big Game Hunter | 5 | 4/2 | **Battlecry:** Destroy a minion with 7 or more Attack. | ✅ |
 | 7 | Faceless Manipulator | 5 | 3/3 | **Battlecry:** Choose a minion and become a copy of it. | ✅ |
 | 8 | Barrens Stablehand | 7 | 5/5 | **Battlecry:** Summon a random Beast. | ✅ |
-| 9 | Sea Giant | 10 | 8/8 | Costs (1) less for each other minion on the battlefield. | ✅ (no cost reduction) |
+| 9 | Sea Giant | 10 | 8/8 | Costs (1) less for each other minion on the battlefield. | ✅ |
 
-## Neutral — Classic Legendary (23)
+## Neutral — Classic Legendary (24)
 
 | # | Card | Cost | Atk/HP | Text | Status |
 |---|------|------|--------|------|--------|
@@ -177,9 +212,9 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | 19 | Alexstrasza | 9 | 8/8 | **Battlecry:** Set a hero's remaining Health to 15. | ✅ |
 | 20 | Malygos | 9 | 4/12 | **Spell Damage +5** | ✅ |
 | 21 | Nozdormu | 9 | 8/8 | Players only have 15 seconds to take their turns. | ✅ |
-| 22 | Onyxia | 9 | 8/8 | **Battlecry:** Summon 1/1 Whelps until your side of the battlefield is full. | ✅ (no Battlecry (vanilla)) |
+| 22 | Onyxia | 9 | 8/8 | **Battlecry:** Summon 1/1 Whelps until your side of the battlefield is full. | ✅ |
 | 23 | Ysera | 9 | 4/12 | At the end of your turn, draw a Dream Card. | ✅ |
-| 24 | Deathwing | 10 | 12/12 | **Battlecry:** Destroy all other minions and discard your hand. | ✅ (no hand discard) |
+| 24 | Deathwing | 10 | 12/12 | **Battlecry:** Destroy all other minions and discard your hand. | ✅ |
 
 ---
 
@@ -206,7 +241,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 |---|------|------|--------|------|--------|
 | 1 | Savagery | 1 | — | Spell | Deal damage equal to your hero's Attack to a minion. | ✅ |
 | 2 | Power of the Wild | 2 | — | Spell | **Choose One** - Give your minions +1/+1; or Summon a 3/2 Panther. | ✅ |
-| 3 | Wrath | 2 | — | Spell | **Choose One** - Deal 3 damage to a minion; or Deal 1 damage and draw a card. | ✅ (3-damage branch only) |
+| 3 | Wrath | 2 | — | Spell | **Choose One** - Deal 3 damage to a minion; or Deal 1 damage and draw a card. | ✅ |
 | 4 | Mark of Nature | 3 | — | Spell | **Choose One** - Give a minion +4 Attack; or +4 Health and **Taunt**. | ✅ |
 | 5 | Soul of the Forest | 4 | — | Spell | Give your minions "**Deathrattle:** Summon a 2/2 Treant." | ✅ |
 | 6 | Bite | 4 | — | Spell | Give your hero +4 Attack this turn. Gain 4 Armor. | ✅ |
@@ -214,9 +249,9 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | 8 | Force of Nature | 6 | — | Spell | Summon three 2/2 Treants with **Charge**. | ✅ |
 | 9 | Nourish | 5 | — | Spell | **Choose One** - Gain 2 Mana Crystals; or Draw 3 cards. | ✅ |
 | 10 | Starfall | 5 | — | Spell | **Choose One** - Deal 5 damage to a minion; or Deal 2 damage to all enemy minions. | ✅ |
-| 11 | Druid of the Claw | 5 | 4/4 | Minion | **Choose One** - **Charge**; or +2 Health and **Taunt**. | ✅ (fixed 4/6 Taunt (no Choose One)) |
-| 12 | Ancient of Lore | 7 | 5/5 | Minion | **Choose One** - Draw 2 cards; or Restore 5 Health. | ✅ (draw-2 only (no heal branch)) |
-| 13 | Ancient of War | 7 | 5/5 | Minion | **Choose One** - +5 Attack; or +5 Health and **Taunt**. | ✅ (vanilla (no Choose One)) |
+| 11 | Druid of the Claw | 5 | 4/4 | Minion | **Choose One** - **Charge**; or +2 Health and **Taunt**. | ✅ |
+| 12 | Ancient of Lore | 7 | 5/5 | Minion | **Choose One** - Draw 2 cards; or Restore 5 Health. | ✅ |
+| 13 | Ancient of War | 7 | 5/5 | Minion | **Choose One** - +5 Attack; or +5 Health and **Taunt**. | ✅ |
 | 14 | Cenarius | 9 | 5/8 | Minion | **Choose One** - Give your other minions +2/+2; or Summon two 2/2 Treants with **Taunt**. | ✅ |
 | 15 | Gift of the Wild | 8 | — | Nature Spell | Give your minions +2/+2 and **Taunt**. | ✅ |
 
@@ -231,7 +266,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | 1 | Arcane Shot | 1 | — | Arcane Spell | Deal 2 damage. | ✅ |
 | 2 | Hunter's Mark | 1 | — | Spell | Change a minion's Health to 1. | ✅ |
 | 3 | Timber Wolf | 1 | 1/1 | Beast Minion | Your other Beasts have +1 Attack. | ✅ |
-| 4 | Tracking | 1 | — | Spell | Discover a card from your deck. | ✅ (no Discover (vanilla)) |
+| 4 | Tracking | 1 | — | Spell | Discover a card from your deck. | ✅ |
 | 5 | Starving Buzzard | 2 | 2/1 | Beast Minion | Whenever you summon a Beast, draw a card. | ✅ |
 | 6 | Animal Companion | 3 | — | Spell | Summon a random Beast Companion. | ✅ |
 | 7 | Kill Command | 3 | — | Spell | Deal 3 damage. If you control a Beast, deal 5 damage instead. | ✅ |
@@ -243,7 +278,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 
 | # | Card | Cost | Atk/HP | Text | Status |
 |---|------|------|--------|------|--------|
-| 1 | Bestial Wrath | 1 | — | Spell | Give a friendly Beast +2 Attack and **Immune** this turn. | ✅ (Beast → any friendly minion) |
+| 1 | Bestial Wrath | 1 | — | Spell | Give a friendly Beast +2 Attack and **Immune** this turn. | ✅ |
 | 2 | Flare | 1 | — | Spell | Destroy all enemy **Secrets**. Draw a card. | ✅ |
 | 3 | Explosive Trap | 2 | — | Spell | **Secret:** When your hero is attacked, deal 2 damage to all enemies. | ✅ |
 | 4 | Freezing Trap | 2 | — | Spell | **Secret:** When an enemy minion attacks, return it to its owner's hand. It costs (2) more. | ✅ |
@@ -252,7 +287,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | 7 | Snake Trap | 2 | — | Spell | **Secret:** When one of your minions is attacked, summon three 1/1 Snakes. | ✅ |
 | 8 | Snipe | 2 | — | Spell | **Secret:** When your opponent plays a minion, deal 4 damage to it. | ✅ |
 | 9 | Deadly Shot | 3 | — | Spell | Destroy a random enemy minion. | ✅ |
-| 10 | Eaglehorn Bow | 3 | 3/2 | Weapon | Whenever a friendly **Secret** is revealed, gain +1 Durability. | ✅ (no +1 durability) |
+| 10 | Eaglehorn Bow | 3 | 3/2 | Weapon | Whenever a friendly **Secret** is revealed, gain +1 Durability. | ✅ |
 | 11 | Unleash the Hounds | 3 | — | Spell | For each enemy minion, summon a 1/1 Hound with **Charge**. | ✅ |
 | 12 | Explosive Shot | 5 | — | Spell | Deal 5 damage to a minion and 2 damage to adjacent ones. | ✅ |
 | 13 | Savannah Highmane | 6 | 6/5 | Beast Minion | **Deathrattle:** Summon two 2/2 Hyenas. | ✅ |
@@ -275,7 +310,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | 6 | Frost Nova | 3 | — | Frost Spell | **Freeze** all enemy minions. | ✅ |
 | 7 | Fireball | 4 | — | Fire Spell | Deal 6 damage. | ✅ |
 | 8 | Polymorph | 4 | — | Arcane Spell | Transform a minion into a 1/1 Sheep. | ✅ |
-| 9 | Water Elemental | 4 | 3/6 | Elemental Minion | **Freeze** any character damaged by this minion. | ✅ (no freeze-on-damage) |
+| 9 | Water Elemental | 4 | 3/6 | Elemental Minion | **Freeze** any character damaged by this minion. | ✅ |
 | 10 | Flamestrike | 7 | — | Fire Spell | Deal 4 damage to all enemy minions. | ✅ |
 
 ### Mage — Classic (15)
@@ -314,7 +349,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | 6 | Consecration | 4 | — | Holy Spell | Deal 2 damage to all enemies. | ✅ |
 | 7 | Hammer of Wrath | 4 | — | Holy Spell | Deal 3 damage. Draw a card. | ✅ |
 | 8 | Blessing of Kings | 4 | — | Holy Spell | Give a minion +4/+4. (+4 Attack/+4 Health) | ✅ |
-| 9 | Truesilver Champion | 4 | 4/2 | Weapon | Whenever your hero attacks, restore 3 Health to it. | ✅ (no heal-on-attack) |
+| 9 | Truesilver Champion | 4 | 4/2 | Weapon | Whenever your hero attacks, restore 2 Health to it. | ✅ |
 | 10 | Guardian of Kings | 7 | 5/6 | Minion | **Taunt.** **Battlecry:** Restore 6 Health to your hero. | ✅ |
 
 ### Paladin — Classic (15)
@@ -326,7 +361,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | 3 | Noble Sacrifice | 1 | — | Spell | **Secret:** When an enemy attacks, summon a 2/1 Defender as the new target. | ✅ |
 | 4 | Redemption | 1 | — | Spell | **Secret:** When a friendly minion dies, return it to life with 1 Health. | ✅ |
 | 5 | Repentance | 1 | — | Spell | **Secret:** When your opponent plays a minion, reduce its Health to 1. | ✅ |
-| 6 | Argent Protector | 2 | 2/2 | Minion | **Battlecry:** Give a friendly minion **Divine Shield**. | ✅ (no Battlecry Divine Shield) |
+| 6 | Argent Protector | 2 | 2/2 | Minion | **Battlecry:** Give a friendly minion **Divine Shield**. | ✅ |
 | 7 | Equality | 2 | — | Holy Spell | Change the Health of ALL minions to 1. | ✅ |
 | 8 | Aldor Peacekeeper | 3 | 3/3 | Minion | **Battlecry:** Change an enemy minion's Attack to 1. | ✅ |
 | 9 | Holy Wrath | 5 | — | Holy Spell | Draw a card and deal damage equal to its Cost. | ✅ |
@@ -347,7 +382,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 |---|------|------|--------|------|------|--------|
 | 1 | Holy Smite | 1 | — | Holy Spell | Deal 3 damage to a minion. | ✅ |
 | 2 | Mind Vision | 1 | — | Shadow Spell | Put a copy of a random card in your opponent's hand into your hand. | ⏸️ opponent hand |
-| 3 | Northshire Cleric | 1 | 1/3 | Minion | Whenever a minion is healed, draw a card. | ✅ (no heal-draw) |
+| 3 | Northshire Cleric | 1 | 1/3 | Minion | Whenever a minion is healed, draw a card. | ✅ |
 | 4 | Power Word: Shield | 1 | — | Holy Spell | Give a minion +2 Health. Draw a card. | ✅ |
 | 5 | Radiance | 1 | — | Holy Spell | Restore 5 Health to your hero. | ✅ |
 | 6 | Divine Spirit | 2 | — | Holy Spell | Double a minion's Health. | ✅ |
@@ -373,9 +408,9 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | 11 | Mindgames | 4 | — | Shadow Spell | Put a copy of a random minion from your opponent's deck into the battlefield. | ⏸️ opponent deck |
 | 12 | Shadow Word: Ruin | 4 | — | Shadow Spell | Destroy all minions with 5 or more Attack. | ✅ |
 | 13 | Temple Enforcer | 6 | 6/6 | Minion | **Battlecry:** Give a friendly minion +3 Health. | ✅ |
-| 14 | Cabal Shadow Priest | 6 | 4/5 | Minion | **Battlecry:** Take control of an enemy minion that has 2 or less Attack. | ✅ (no Mind Control (vanilla)) |
+| 14 | Cabal Shadow Priest | 6 | 4/5 | Minion | **Battlecry:** Take control of an enemy minion that has 2 or less Attack. | ✅ |
 | 15 | Natalie Seline | 7 | 7/1 | Minion | **Battlecry:** Destroy a minion and gain its Health. | ✅ |
-| 16 | Prophet Velen | 7 | 7/7 | Minion | Double the damage and healing of your spells and Hero Power. | ✅ (spell damage only) |
+| 16 | Prophet Velen | 7 | 7/7 | Minion | Double the damage and healing of your spells and Hero Power. | ✅ |
 | 17 | Mind Control | 10 | — | Shadow Spell | Take control of an enemy minion. | ✅ |
 
 ---
@@ -391,7 +426,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | 3 | Sinister Strike | 1 | — | Spell | Deal 3 damage to the enemy hero. | ✅ |
 | 4 | Fan of Knives | 3 | — | Spell | Deal 1 damage to all enemy minions. Draw a card. | ✅ |
 | 5 | Sap | 2 | — | Spell | Return an enemy minion to your opponent's hand. | ✅ |
-| 6 | Shiv | 2 | — | Spell | Deal 1 damage. Draw a card. | ✅ (no 1-damage draw-1) |
+| 6 | Shiv | 2 | — | Spell | Deal 1 damage. Draw a card. | ✅ |
 | 7 | Assassin's Blade | 5 | 3/4 | Weapon | — | ✅ |
 | 8 | Assassinate | 5 | — | Spell | Destroy an enemy minion. | ✅ |
 | 9 | Sprint | 7 | — | Spell | Draw 4 cards. | ✅ |
@@ -401,9 +436,9 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 
 | # | Card | Cost | Atk/HP | Text | Status |
 |---|------|------|--------|------|--------|
-| 1 | Preparation | 0 | — | Spell | The next spell you cast this turn costs (3) less. | ✅ (no cost reduction (vanilla)) |
+| 1 | Preparation | 0 | — | Spell | The next spell you cast this turn costs (3) less. | ✅ |
 | 2 | Shadowstep | 0 | — | Spell | Return a friendly minion to your hand. It costs (2) less. | ✅ |
-| 3 | Cold Blood | 1 | — | Spell | Give a minion +2 Attack. **Combo:** +4 Attack instead. | ✅ (no base +2 branch) |
+| 3 | Cold Blood | 1 | — | Spell | Give a minion +2 Attack. **Combo:** +4 Attack instead. | ✅ |
 | 4 | Pilfer | 1 | — | Spell | Add a random card from another class to your hand. | ✅ |
 | 5 | Betrayal | 2 | — | Spell | Force an enemy minion to deal its damage to the minions next to it. | ✅ |
 | 6 | Blade Flurry | 2 | — | Spell | Destroy your weapon and deal its damage to all enemy minions. | ✅ |
@@ -509,7 +544,7 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | 5 | Heroic Strike | 2 | — | Spell | Give your hero +4 Attack this turn. | ✅ |
 | 6 | Shield Block | 3 | — | Spell | Gain 5 Armor. Draw a card. | ✅ |
 | 7 | Charge | 3 | — | Spell | Give a friendly minion +2 Attack and **Charge**. | ✅ |
-| 8 | Warsong Commander | 3 | 2/3 | Minion | Whenever you summon a minion with 3 or less Attack, give it **Charge**. | ✅ (no Charge aura) |
+| 8 | Warsong Commander | 3 | 2/3 | Minion | Whenever you summon a minion with 3 or less Attack, give it **Charge**. | ✅ |
 | 9 | Kor'kron Elite | 4 | 4/3 | Minion | **Charge** | ✅ |
 | 10 | Arcanite Reaper | 5 | 5/2 | Weapon | — | ✅ |
 
@@ -530,27 +565,27 @@ Legend: ✅ fully implemented | ✅ (…) implemented with known simplifications
 | 11 | Arathi Weaponsmith | 4 | 3/3 | Minion | **Battlecry:** Equip a 2/2 Battle Axe. | ✅ |
 | 12 | Mortal Strike | 4 | — | Spell | Deal 4 damage. If you have 12 or less Health, deal 6 instead. | ✅ |
 | 13 | Brawl | 5 | — | Spell | Destroy all minions except one. (chosen randomly) | ✅ |
-| 14 | Gorehowl | 7 | 7/1 | Weapon | Attacking a minion costs 1 Attack instead of 1 Durability. | ✅ (no attack-loss mechanic) |
-| 15 | Grommash Hellscream | 8 | 4/9 | Minion | **Charge.** **Enrage:** +6 Attack. | ✅ (Charge only (no Enrage)) |
+| 14 | Gorehowl | 7 | 7/1 | Weapon | Attacking a minion costs 1 Attack instead of 1 Durability. | ✅ |
+| 15 | Grommash Hellscream | 8 | 4/9 | Minion | **Charge.** **Enrage:** +6 Attack. | ✅ |
 
 ---
 
 ## Statistics
 
-| Category | Total | ✅ fully | ✅ simplified | ⬜ | 🔧 | ⏸️ |
-|----------|-------|---------|--------------|-----|------|------|
-| Neutral Basic | 43 | 43 | 0 | 0 | 0 | 0 |
-| Neutral Common | 38 | 36 | 2 | 0 | 0 | 0 |
-| Neutral Rare | 35 | 35 | 0 | 0 | 0 | 0 |
-| Neutral Epic | 9 | 8 | 1 | 0 | 0 | 0 |
-| Neutral Legendary | 24 | 21 | 2 | 0 | 0 | 1 |
-| Druid | 25 | 21 | 4 | 0 | 0 | 0 |
-| Hunter | 25 | 22 | 3 | 0 | 0 | 0 |
-| Mage | 25 | 24 | 1 | 0 | 0 | 0 |
-| Paladin | 25 | 23 | 2 | 0 | 0 | 0 |
-| Priest | 27 | 21 | 3 | 0 | 0 | 3 |
-| Rogue | 25 | 22 | 3 | 0 | 0 | 0 |
-| Shaman | 25 | 25 | 0 | 0 | 0 | 0 |
-| Warlock | 24 | 24 | 0 | 0 | 0 | 0 |
-| Warrior | 25 | 22 | 3 | 0 | 0 | 0 |
-| **Grand Total** | **375** | **347** | **24** | **0** | **0** | **4** |
+| Category | Total | ✅ fully | ⬜ | 🔧 | ⏸️ |
+|----------|-------|---------|-----|------|------|
+| Neutral Basic | 43 | 43 | 0 | 0 | 0 |
+| Neutral Common | 38 | 38 | 0 | 0 | 0 |
+| Neutral Rare | 35 | 35 | 0 | 0 | 0 |
+| Neutral Epic | 9 | 9 | 0 | 0 | 0 |
+| Neutral Legendary | 24 | 23 | 0 | 0 | 1 |
+| Druid | 25 | 25 | 0 | 0 | 0 |
+| Hunter | 25 | 25 | 0 | 0 | 0 |
+| Mage | 25 | 25 | 0 | 0 | 0 |
+| Paladin | 25 | 25 | 0 | 0 | 0 |
+| Priest | 27 | 24 | 0 | 0 | 3 |
+| Rogue | 25 | 25 | 0 | 0 | 0 |
+| Shaman | 25 | 25 | 0 | 0 | 0 |
+| Warlock | 24 | 24 | 0 | 0 | 0 |
+| Warrior | 25 | 25 | 0 | 0 | 0 |
+| **Grand Total** | **375** | **371** | **0** | **0** | **4** |

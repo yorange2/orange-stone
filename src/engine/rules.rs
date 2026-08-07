@@ -306,11 +306,14 @@ fn validate_hero_power(state: &GameState, hero: Entity) -> Result<(), EngineErro
 fn compute_attacker_damage(state: &GameState, attacker: Entity) -> i32 {
     let world = state.world();
     let base = world.effective_attack(attacker).unwrap_or(Attack(0));
+    // `effective_attack` rather than the raw component so weapon enchantments
+    // and Spiteful Smith's Enrage (+2 Attack to your weapon while damaged)
+    // reach the hero's swing. Auras never apply to weapons.
     let weapon_bonus = if world.card_type(attacker) == Some(CardType::Hero) {
         world
             .player(attacker)
             .and_then(|pid| state.player(pid).weapon)
-            .and_then(|w| world.attack(w))
+            .and_then(|w| world.effective_attack(w))
             .unwrap_or(Attack(0))
             .0
     } else {
@@ -1540,21 +1543,40 @@ fn trigger_applies(
             }
         }
         // Global classes — fire regardless of who owns the event
-        // (Lightwarden: any character healed; Secretkeeper: any Secret played;
-        // Flesheathing Ghoul: any minion died)
-        TriggerEvent::CharacterHealed | TriggerEvent::SecretPlayed | TriggerEvent::MinionDied => {}
+        // (Lightwarden: any character healed; Northshire Cleric: any minion
+        // healed; Secretkeeper: any Secret played; Flesheating Ghoul: any
+        // minion died)
+        TriggerEvent::CharacterHealed
+        | TriggerEvent::MinionHealed
+        | TriggerEvent::SecretPlayed
+        | TriggerEvent::MinionDied => {}
         _ => {
             if trigger_player != event_owner {
                 return false;
             }
         }
     }
-    match trigger.race {
+    if let Some(race) = trigger.race {
         // The subject must exist and carry the required race (a dead subject
         // keeps its components in the graveyard, so its race is still readable)
-        Some(race) => subject.is_some_and(|s| state.world().race(s) == Some(race)),
-        None => true,
+        if !subject.is_some_and(|s| state.world().race(s) == Some(race)) {
+            return false;
+        }
     }
+    if let Some(max_attack) = trigger.max_attack {
+        // Warsong Commander — the summoned minion must have at most this much
+        // Attack. Read at fire time, so a minion summoned small and buffed
+        // afterwards still qualifies (and vice versa), matching HS.
+        if !subject.is_some_and(|s| {
+            state
+                .world()
+                .effective_attack(s)
+                .is_some_and(|a| a.0 <= max_attack)
+        }) {
+            return false;
+        }
+    }
+    true
 }
 
 /// Turn wrap-up: expires "until end of turn" effects and clears per-turn state.
@@ -1993,6 +2015,7 @@ mod tests {
                 event: TriggerEvent::TurnStart,
                 timing: TriggerTiming::Whenever,
                 race: None,
+                max_attack: None,
                 effect: crate::core::effect::CardEffect::GainStats {
                     attack: 1,
                     health: 1,
@@ -2031,6 +2054,7 @@ mod tests {
                 event: TriggerEvent::TurnEnd,
                 timing: TriggerTiming::Whenever,
                 race: None,
+                max_attack: None,
                 effect: crate::core::effect::CardEffect::DealHeroAttackDamage {
                     target: crate::core::effect::EffectTarget::AnyEnemy,
                 },
@@ -2285,6 +2309,7 @@ mod tests {
                 event: TriggerEvent::FriendlyMinionSummoned,
                 timing: TriggerTiming::Whenever,
                 race: None,
+                max_attack: None,
                 effect: CardEffect::DrawCard { count: 1 },
             },
         );
@@ -2294,6 +2319,7 @@ mod tests {
                 event: TriggerEvent::FriendlyMinionSummoned,
                 timing: TriggerTiming::Whenever,
                 race: None,
+                max_attack: None,
                 effect: CardEffect::DiscardRandomCard,
             },
         );
@@ -2342,6 +2368,7 @@ mod tests {
                 event: TriggerEvent::FriendlyMinionSummoned,
                 timing: TriggerTiming::After,
                 race: None,
+                max_attack: None,
                 effect: CardEffect::DiscardRandomCard,
             },
         );
@@ -2351,6 +2378,7 @@ mod tests {
                 event: TriggerEvent::FriendlyMinionSummoned,
                 timing: TriggerTiming::Whenever,
                 race: None,
+                max_attack: None,
                 effect: CardEffect::DrawCard { count: 1 },
             },
         );

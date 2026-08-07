@@ -622,7 +622,8 @@ pub const WOLFRIDER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Amani Berserker — Enrage: +3 Attack
+/// Amani Berserker — Enrage: +3 Attack (2/3, and 5/3 while damaged).
+/// The Enrage component is attached in `apply_card_keywords`.
 pub const AMANI_BERSERKER: CardDef = vanilla!("CLASSIC_018", "Amani Berserker", 2, 2, 3);
 
 pub const FAERIE_DRAGON: CardDef = CardDef {
@@ -916,8 +917,8 @@ pub const IMP_MASTER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Raging Worgen — Enrage: +1 Attack and Windfury (the Windfury is part of
-/// the Enrage, granted only while damaged)
+/// Raging Worgen — Enrage: +1 Attack and Windfury. Both halves are part of
+/// the Enrage, so both apply only while the worgen is damaged.
 pub const RAGING_WORGEN: CardDef = CardDef {
     id: "NEUTRAL_008",
     name: "Raging Worgen",
@@ -2568,7 +2569,7 @@ pub const JUNGLE_PANTHER: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Tauren Warrior — Taunt; Enrage: whenever this minion takes damage, gain +3 Attack
+/// Tauren Warrior — Taunt. Enrage: +3 Attack while damaged.
 pub const TAUREN_WARRIOR: CardDef = CardDef {
     id: "NEUTRAL_C11",
     name: "Tauren Warrior",
@@ -2704,12 +2705,13 @@ pub const VENTURE_CO_MERCENARY: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Spiteful Smith — Enrage: whenever this minion takes damage, your weapon
-/// gains +2 Attack
+/// Spiteful Smith — Enrage: your weapon has +2 Attack while the smith is
+/// damaged. The bonus lives on the smith and is read through the weapon's
+/// `effective_attack`, so it never writes into the weapon's base stats.
 pub const SPITEFUL_SMITH: CardDef = vanilla!("NEUTRAL_C15", "Spiteful Smith", 5, 4, 6);
 
 // Neutral Rare
-/// Angry Chicken — Enrage: whenever this minion takes damage, gain +5 Attack
+/// Angry Chicken — Enrage: +5 Attack while damaged (1/1, and 6/1 damaged).
 pub const ANGRY_CHICKEN: CardDef = vanilla!("NEUTRAL_R02", "Angry Chicken", 1, 1, 1);
 /// Bloodsail Corsair — Battlecry: remove 1 Durability from the opponent's weapon
 pub const BLOODSAIL_CORSAIR: CardDef = CardDef {

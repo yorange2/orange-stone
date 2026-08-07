@@ -1,14 +1,19 @@
 # Fidelity Debt — Simplified Cards (F4/F5 Audit Ledger)
 
-> **Status: no simplified-card markers — all 67 fidelity-debt cards cleared (W7 wrap-up PR #86 closed the last 3).
-> W0 wiring PR #79 cleared 13; W1 race PR #80 cleared 11; W2 triggers PR #81 cleared 8;
-> W3 predicates PR #82 cleared 9; W4 cost/weapon PR #83 cleared 8; W5 target structure PR #84 cleared 7;
-> W6 special mechanics PR #85 cleared 8. The ledger was EMPTY after W7 and the RL pool reached
-> the full classic constructed size (391). **2026-08-06 registration pass: the status audit found
-> 27 more cards implemented with known simplifications but **without** `(simplified: …)` markers —
-> silently in the RL pool. All 27 now carry comments and are registered below (§11); the debt set
-> grew to 27 (RL pool 361), then to 24 after the F-A8 overload fix (RL pool 367 — 413 − 24 debt −
-> 21 tokens − coin, fresh wheel). Retraining needed. F-A8 (8 duplicate card IDs) resolved (PR #88).**
+> **Status: the ledger is EMPTY — `src/cards/` carries no `(simplified: …)` markers
+> and the RL pool is the full 392 (415 card ids − 22 derivatives − coin).**
+>
+> How it got here: the original 67 fidelity-debt cards were cleared in W0–W7
+> (W0 wiring PR #79 cleared 13; W1 race PR #80 cleared 11; W2 triggers PR #81 cleared 8;
+> W3 predicates PR #82 cleared 9; W4 cost/weapon PR #83 cleared 8; W5 target structure PR #84
+> cleared 7; W6 special mechanics PR #85 cleared 8; W7 wrap-up PR #86 closed the last 3).
+> The 2026-08-06 registration pass then found 27 more cards implemented with known
+> simplifications but **without** markers — silently in the RL pool — and registered them as
+> §11 (24 after the F-A8 overload fix); §11 was cleared by W8–W12 (PRs #97–#101).
+> The engine-mechanics M1 battlecry-target audit registered 20 cards as §12, cleared by
+> W13–W16 (PRs #104–#107). The 2026-08-07 classic-cards status re-audit found 10 more
+> deviating cards and fixed them the same day as §13 (those never entered the debt set,
+> so the pool stayed at 392 throughout). F-A8 (8 duplicate card IDs) resolved (PR #88).
 > This ledger is the canonical record of the F4 per-effect fidelity audit backlog.
 > A card **leaves the ledger** only when its real Hearthstone effect is implemented
 > **and** verified by an F5 differential test. Do not reimplement a card silently —
@@ -244,6 +249,69 @@ was measured on a stale 414-card wheel, see PR #104).
 
 *(20 rows registered 2026-08-07 by the engine-mechanics M1 audit; all
 cleared 2026-08-07 by the battlecry-target-debt roadmap W13–W16)*
+
+### 13. classic-cards status re-audit — 2026-08-07 (10 cards) ✅ EMPTY
+
+Re-auditing `docs/classic-cards.md` against the code found 10 cards whose
+implementations still deviated from real Hearthstone. None carried a
+`(simplified: …)` marker and none were registered here, so none had ever been
+excluded from the RL pool — the pool stayed at 392 throughout. All 10 were
+fixed the same day rather than registered as debt.
+
+| ID | Card | Was | Now |
+| --- | --- | --- | --- |
+| CLASSIC_018 | Amani Berserker | permanent stacking +3 | conditional Enrage |
+| NEUTRAL_008 | Raging Worgen | permanent stacking +1 & Windfury | conditional Enrage |
+| NEUTRAL_C11 | Tauren Warrior | permanent stacking +3 | conditional Enrage |
+| NEUTRAL_C15 | Spiteful Smith | permanent weapon +2 | conditional Enrage |
+| NEUTRAL_R02 | Angry Chicken | permanent stacking +5 | conditional Enrage |
+| WARRIOR_010 | Grommash Hellscream | permanent stacking +6 | conditional Enrage |
+| WARRIOR_008 | Warsong Commander | Charge aura on all other friendlies | on-summon trigger, Attack ≤ 3 |
+| PRIEST_004 | Northshire Cleric | friendly *character* heals | any minion, either side |
+| LEGENDARY_010 | Onyxia | fixed 5 Whelps | fills the board (6 from empty) |
+| PRIEST_012 | Prophet Velen | +1 Spell Damage (a no-op) | doubles spell/hero-power damage & healing |
+
+Engine work behind those fixes:
+
+- **`Enrage` component** (`core/component.rs`) carrying an attack bonus, an
+  optional Windfury, and an optional weapon-attack bonus. It is resolved on read
+  in `World::effective_attack` and `World::max_attacks` rather than written into
+  an enchantment — that is what makes it non-stacking, makes it end the moment
+  the minion is healed to full, and lets Silence strip it. Gurubashi Berserker
+  keeps the old `ThisMinionDamaged` trigger because its real text genuinely is a
+  permanent stacking buff. `compute_attacker_damage` now reads the weapon through
+  `effective_attack` so Spiteful Smith's bonus reaches the hero's swing.
+- **`Trigger.max_attack`** — an attack ceiling on a trigger's event subject,
+  alongside the existing `race` condition. Warsong Commander uses it; the Charge
+  is granted once, to that minion, so it outlives the commander.
+- **`TriggerEvent::MinionHealed`** — replaces `FriendlyCharacterHealed` (which
+  only Northshire Cleric used). Global scope, minions only.
+- **Spell Damage pipeline.** `World::total_spell_damage` existed but had **zero
+  callers**: Spell Damage was stored on the board and never applied to any
+  damage, so every Spell Damage card in the set was effectively vanilla
+  (Kobold Geomancer, Dalaran Mage, Ogre Magi, Archmage, Bloodmage Thalnos,
+  Azure Drake, Malygos, Ancient Mage), and Velen's "+1 Spell Damage" rebalance
+  did nothing at all. `trigger::apply_spell_power` now rewrites damage and
+  healing amounts for effects whose source is a spell or hero power — Spell
+  Damage adds first, then Velen doubles, matching HS (Mind Blast 5 → 6 with a
+  Geomancer → 10 with Velen → 12 with both). Attacks, battlecries, and
+  deathrattles are untouched, which also narrowed Velen's heal doubling: it used
+  to double *every* heal the owner produced, including a Voodoo Doctor battlecry.
+
+F5 coverage: `w8_amani_berserker_enrage`, `enrage_does_not_stack_and_ends_at_full_health`,
+`enrage_is_removed_by_silence`, `w8_raging_worgen_enrage_and_windfury`,
+`w0_spiteful_smith_buffs_weapon_while_damaged`, `w8_grommash_hellscream_enrage`,
+`w8_warsong_commander_charges_only_small_summons`,
+`warsong_charge_outlives_the_commander`,
+`w8_northshire_cleric_draws_on_any_minion_heal`,
+`northshire_cleric_ignores_a_heal_that_restores_nothing`,
+`w11_onyxia_fills_the_board_with_whelps`, `spell_damage_boosts_spell_damage`,
+`spell_damage_does_not_boost_battlecry_damage`,
+`prophet_velen_doubles_spell_damage_after_spell_damage`,
+`prophet_velen_leaves_minion_effects_alone`. Full `cargo test` green (488);
+`cargo clippy --all-targets` clean; `cargo bench` shows no change on the touched
+paths (`effective_stats/aura_board_14_minions`, `effect_resolution/*`, all
+p > 0.05).
 
 ## Findings from the 2026-08-06 audit pass (all resolved in PR #77 / PR #31)
 
