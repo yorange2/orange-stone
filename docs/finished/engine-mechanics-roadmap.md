@@ -1,10 +1,13 @@
 # Engine-Mechanics Roadmap — battlecry targets & freeze timing
 
-> Active roadmap (not yet archived). Two engine-wide mechanics were left
+> **Archived 2026-08-07: M1 (PR #102) and M2 (PR #103) both landed.**
+> Two engine-wide mechanics were left
 > untouched during the W8–W12 fidelity-debt execution (PR #97–#101): both
 > predate the §11 ledger, affect whole card classes rather than single
 > cards, and therefore get their own milestones with F5 differential
 > coverage. Chinese mirror: `engine-mechanics-roadmap-zh.md`.
+> Note: the M1 audit registered 20 battlecry-target cards in the F4/F5
+> ledger (§12 — RL pool 391 → 371); clearing them is future work.
 
 ## Why
 
@@ -31,7 +34,7 @@
 hits the chosen target; invalid target fizzles; RL `legal_actions` targets
 are honored); `cargo test` green; clippy clean.
 
-### M2 — Freeze timing
+### M2 — Freeze timing ✅ (PR #103)
 
 - Move the thaw from `Event::TurnStarted` to the turn-end wrap-up: a
   frozen character keeps Freeze through its owner's next turn (its attack
@@ -51,7 +54,7 @@ hero freeze blocks the hero's attack; Icicle double-freeze interplay);
 | Milestone | Scope | PR |
 | --- | --- | --- |
 | M1 battlecry targets | engine + F5 | ✅ PR #102 |
-| M2 freeze timing | engine + F5 | one PR |
+| M2 freeze timing | engine + F5 | ✅ PR #103 |
 
 ## Out of scope
 
