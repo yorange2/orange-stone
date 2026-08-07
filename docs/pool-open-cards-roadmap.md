@@ -135,17 +135,17 @@ clean, and `cargo bench` at noise level. F5 differential scenarios go in
 
 ### M2 — The three Priest spells
 
-- [ ] `PRIEST_024` **Mind Vision** (1 mana). Empty enemy hand → no card, spell
+- [x] `PRIEST_024` **Mind Vision** (1 mana). Empty enemy hand → no card, spell
       still consumed.
-- [ ] `PRIEST_025` **Thoughtsteal** (3 mana). Deck with 1 card → 1 copy; empty
+- [x] `PRIEST_025` **Thoughtsteal** (3 mana). Deck with 1 card → 1 copy; empty
       deck → 0 copies; no fatigue (nothing is drawn).
-- [ ] `PRIEST_026` **Mindgames** (4 mana) + `PRIEST_026t` **Shadow of Nothing**
+- [x] `PRIEST_026` **Mindgames** (4 mana) + `PRIEST_026t` **Shadow of Nothing**
       (0/1 minion token, `t` suffix keeps it out of the RL pool). Real HS: the
       opponent's deck is **not** modified; a deck with no minions summons Shadow
       of Nothing; a full board (7) summons nothing — `resolve_summon`'s board cap
       already handles this.
-- [ ] Registry + `(pool-open: …)` comments + `docs/pool-openness.md` rows.
-- [ ] F5 scenarios `po_mind_vision_*`, `po_thoughtsteal_*`, `po_mindgames_*`
+- [x] Registry + `(pool-open: …)` comments + `docs/pool-openness.md` rows.
+- [x] F5 scenarios `po_mind_vision_*`, `po_thoughtsteal_*`, `po_mindgames_*`
       (one per edge case above).
 
 ### M3 — Lorewalker Cho
