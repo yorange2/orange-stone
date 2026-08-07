@@ -137,6 +137,18 @@ impl PyGameEnv {
             .collect()
     }
 
+    /// Pool-open card IDs — cards whose resolution reads the opponent's
+    /// hand/deck or copies a cast spell (Mind Vision, Thoughtsteal, Mindgames,
+    /// Lorewalker Cho). The RL pool can exclude them with one flag
+    /// (`full_pool(include_pool_open=False)`) if a second set ever lands.
+    #[staticmethod]
+    fn pool_open_card_ids() -> Vec<String> {
+        crate::cards::sets::POOL_OPEN_CARDS
+            .iter()
+            .map(|s| s.to_string())
+            .collect()
+    }
+
     /// Resets the environment, returning the initial observation.
     ///
     /// Releases the GIL while the engine works (M4): the engine is pure Rust

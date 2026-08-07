@@ -935,3 +935,41 @@ pub const ALL_CARDS: &[CardDef] = &[
     EYE_FOR_AN_EYE,
     REDEMPTION,
 ];
+
+// ============================================================
+// Pool-open registry
+// ============================================================
+
+/// Pool-open cards — cards whose resolution can move a card into a zone
+/// without that card having been sampled from a pool `cards/pool.rs` controls:
+/// they read the opponent's actual hand/deck, or copy a cast spell.
+///
+/// The Classic pool is closed today (`ALL_CARDS` is Classic-only, so anything
+/// in the opponent's zones is already in the pool), but this registry keeps the
+/// closure invariant auditable for the day a second set is supported: the
+/// zone-reading effect variants may appear only on registered cards (enforced
+/// by `pool_open_effects_require_registry` in `trigger.rs`), and any new
+/// zone-reading card must register here first. See `docs/pool-openness.md`.
+pub const POOL_OPEN_CARDS: &[&str] = &[];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cards::def::card_by_id;
+
+    /// The pool-open registry must be well-formed: every ID resolves to a real
+    /// card, none is a derivative token (tokens are never pool-open — they are
+    /// only produced by pools), and there are no duplicates.
+    #[test]
+    fn pool_open_registry_is_well_formed() {
+        let mut seen = std::collections::HashSet::new();
+        for id in POOL_OPEN_CARDS {
+            assert!(card_by_id(id).is_some(), "{id} must resolve via card_by_id");
+            assert!(
+                !id.ends_with('t'),
+                "{id} is a token — tokens are not pool-open"
+            );
+            assert!(seen.insert(id), "{id} is registered twice");
+        }
+    }
+}
