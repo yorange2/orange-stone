@@ -6076,3 +6076,238 @@ fn m1_stormpike_commando_hits_chosen_target() {
         "the enemy hero is untouched"
     );
 }
+
+// ============================================================
+// Engine-mechanics roadmap M2 — freeze timing: the thaw moved
+// from Event::TurnStarted to the turn-end wrap-up. A character
+// frozen during the opponent's turn keeps Freeze through its
+// owner's next turn (attack blocked), then thaws in the wrap-up
+// of that turn — official HS semantics.
+// ============================================================
+
+/// M2-1 the main freeze-timing contract: a minion frozen during the
+/// opponent's turn cannot attack on its owner's next turn (not offered by
+/// legal_actions; a direct Attack errors) and thaws afterwards.
+#[test]
+fn m2_frozen_minion_cannot_attack_next_turn_then_thaws() {
+    use orange_stone::cards::def::FROST_NOVA;
+    use orange_stone::rl::env::legal_actions;
+    let mut builder = GameBuilder::new();
+    let minion = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 2);
+    builder.add_minion_to_hand(PlayerId2(), &FROST_NOVA);
+    builder.set_mana(PlayerId2(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // P1 ends; P2 freezes the minion with Frost Nova; P2 ends
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let nova = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .next()
+        .expect("frost nova in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: nova,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.world().freeze(minion).is_some(),
+        "Frost Nova freezes the enemy minion"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // P1's turn: the minion is still frozen and cannot attack
+    assert!(
+        state.world().freeze(minion).is_some(),
+        "the freeze persists into the owner's next turn"
+    );
+    let p2_hero = state.player(PlayerId2()).hero;
+    let actions = legal_actions(&state);
+    assert!(
+        !actions.contains(&Action::Attack {
+            attacker: minion,
+            defender: p2_hero,
+        }),
+        "a frozen minion is not offered as an attacker"
+    );
+    let err = engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: minion,
+                defender: p2_hero,
+            },
+        )
+        .unwrap_err();
+    assert!(
+        matches!(err, orange_stone::engine::rules::EngineError::InvalidTarget),
+        "the engine rejects the frozen attack"
+    );
+    // P1 ends: the wrap-up thaws the minion (it missed its attack)
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert!(
+        state.world().freeze(minion).is_none(),
+        "the thaw lands in the turn-end wrap-up"
+    );
+    // P2 ends; P1's next turn: the minion can attack again
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let actions = legal_actions(&state);
+    assert!(
+        actions.contains(&Action::Attack {
+            attacker: minion,
+            defender: p2_hero,
+        }),
+        "after the missed attack opportunity the minion attacks normally"
+    );
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: minion,
+                defender: p2_hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().attacks_used(minion),
+        Some(orange_stone::core::component::AttacksUsed(1)),
+        "the attack lands on the following turn (empty-deck fatigue on the hero makes a health assert fragile)"
+    );
+}
+
+/// M2-2 hero freeze: a frozen hero cannot attack on its owner's next turn
+/// even with a weapon equipped, and thaws afterwards.
+#[test]
+fn m2_hero_freeze_blocks_attack() {
+    use orange_stone::cards::def::ARCANITE_REAPER;
+    use orange_stone::core::component::Freeze;
+    use orange_stone::rl::env::legal_actions;
+    let mut builder = GameBuilder::new();
+    builder.equip_weapon(PlayerId1(), &ARCANITE_REAPER);
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero = state.player(PlayerId1()).hero;
+    // P1 ends; P2's turn freezes the hero (Water Elemental-style hit)
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    state.world_mut().set_freeze(hero, Freeze);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // P1's turn: the frozen hero cannot attack despite the weapon
+    assert!(
+        state.world().freeze(hero).is_some(),
+        "the freeze persists into the hero's next turn"
+    );
+    let actions = legal_actions(&state);
+    assert!(
+        !actions.contains(&Action::Attack {
+            attacker: hero,
+            defender: enemy,
+        }),
+        "a frozen hero is not offered as an attacker"
+    );
+    let err = engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: enemy,
+            },
+        )
+        .unwrap_err();
+    assert!(
+        matches!(err, orange_stone::engine::rules::EngineError::InvalidTarget),
+        "the engine rejects the frozen hero's attack"
+    );
+    // P1 ends (wrap-up thaws the hero); P2 ends; P1's next turn: attacks
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert!(
+        state.world().freeze(hero).is_none(),
+        "the hero thaws in the wrap-up"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let actions = legal_actions(&state);
+    assert!(
+        actions.contains(&Action::Attack {
+            attacker: hero,
+            defender: enemy,
+        }),
+        "the unfrozen hero attacks normally with the weapon"
+    );
+}
+
+#[test]
+fn m2_icicle_damages_frozen_instead_of_refreezing() {
+    use orange_stone::cards::def::ICICLE;
+    use orange_stone::core::component::Freeze;
+    use orange_stone::rl::env::legal_actions;
+    let mut builder = GameBuilder::new();
+    let minion = builder.add_custom_minion_to_board(PlayerId2(), 2, 4, 2);
+    builder.add_minion_to_hand(PlayerId1(), &ICICLE);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // The minion is already frozen (e.g. by an earlier Water Elemental hit)
+    state.world_mut().set_freeze(minion, Freeze);
+    // P1's turn: Icicle on the frozen minion — 2 damage, no re-freeze needed
+    let icicle = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("icicle in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: icicle,
+                target: Some(minion),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(minion),
+        Some(Health(2)),
+        "Icicle deals 2 damage to the already-frozen minion"
+    );
+    assert!(
+        state.world().freeze(minion).is_some(),
+        "the freeze is preserved (no re-freeze, no removal)"
+    );
+    // P1 ends; P2's turn: the minion still cannot attack
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert!(
+        state.world().freeze(minion).is_some(),
+        "the freeze persists through the owner's turn"
+    );
+    let p1_hero = state.player(PlayerId1()).hero;
+    let actions = legal_actions(&state);
+    assert!(
+        !actions.contains(&Action::Attack {
+            attacker: minion,
+            defender: p1_hero,
+        }),
+        "the frozen minion cannot attack"
+    );
+    // P2 ends (wrap-up thaws); P2's next turn: attacks normally
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert!(
+        state.world().freeze(minion).is_none(),
+        "the minion thaws after missing its attack opportunity"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let actions = legal_actions(&state);
+    assert!(
+        actions.contains(&Action::Attack {
+            attacker: minion,
+            defender: p1_hero,
+        }),
+        "the thawed minion attacks on the following turn"
+    );
+}
