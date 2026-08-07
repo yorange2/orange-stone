@@ -64,7 +64,7 @@ G9 哑火被遵守——但这 20 张卡的目标仍然不对。审计分为三�
 
 ## Wave
 
-### W13 — AnyCharacter / AnyHero 目标机制 + 首批改目标（一个 PR）
+### W13 — AnyCharacter / AnyHero 目标机制 + 首批改目标 ✅ 完成（PR #104）
 
 - 新增 `EffectTarget::AnyCharacter` 和 `EffectTarget::AnyHero`；接
   `candidates_for_target`（legal 侧）与各解析器（解析侧，含 G9）；
@@ -116,7 +116,7 @@ G9 哑火被遵守——但这 20 张卡的目标仍然不对。审计分为三�
 
 | Wave | 范围 | 卡数 | PR |
 | --- | --- | --- | --- |
-| W13 AnyCharacter/AnyHero 机制 | 引擎 + F5 | 4 | 一个 PR |
+| W13 AnyCharacter/AnyHero 机制 | 引擎 + F5 | 4 | PR #104 ✅ |
 | W14 敌方范围修正 | 引擎 + F5 | 7 | 一个 PR |
 | W15 Self_ 指向性战吼 | 引擎 + F5 | 7 | 一个 PR |
 | W16 效果形状 + 收尾 | 引擎 + F5 + docs | 2 | 一个 PR（+ 跨仓库 docs） |

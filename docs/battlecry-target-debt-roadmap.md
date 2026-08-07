@@ -78,7 +78,7 @@ fizzle, resolvers with `explicit`):
 
 ## Waves
 
-### W13 — AnyCharacter / AnyHero target mechanism + first re-targets (one PR)
+### W13 — AnyCharacter / AnyHero target mechanism + first re-targets ✅ done (PR #104)
 
 - Add `EffectTarget::AnyCharacter` and `EffectTarget::AnyHero`; wire
   `candidates_for_target` (legal side) and the resolvers (resolution side,
@@ -140,7 +140,7 @@ fizzle, resolvers with `explicit`):
 
 | Wave | Scope | Cards | PR |
 | --- | --- | --- | --- |
-| W13 AnyCharacter/AnyHero mechanism | engine + F5 | 4 | one PR |
+| W13 AnyCharacter/AnyHero mechanism | engine + F5 | 4 | PR #104 ✅ |
 | W14 enemy-scope corrections | engine + F5 | 7 | one PR |
 | W15 Self_ targeted battlecries | engine + F5 | 7 | one PR |
 | W16 effect shapes + close-out | engine + F5 + docs | 2 | one PR (+ cross-repo docs) |
