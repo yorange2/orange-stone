@@ -2,7 +2,7 @@
 #![allow(missing_docs)]
 
 use crate::cards::def::CardDef;
-use crate::core::component::{AuraEffect, AuraTarget, CardType};
+use crate::core::component::CardType;
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::vanilla;
 
@@ -256,7 +256,14 @@ pub const BATTLE_AXE: CardDef = CardDef {
 
 pub const FROTHING_BERSERKER: CardDef = vanilla!("WARRIOR_007", "Frothing Berserker", 3, 2, 4);
 
-/// Warsong Commander — your other minions have Charge
+/// Warsong Commander — whenever you summon a minion with 3 or less Attack,
+/// give it Charge.
+///
+/// This is a trigger, not an aura: the Charge is granted once, at summon time,
+/// to that specific minion, and it stays with the minion even after the
+/// commander leaves play. A minion summoned with 4+ Attack never gets it, and
+/// buffing a minion above 3 Attack afterwards does not take it away. The
+/// trigger is registered in `apply_card_keywords` with a `max_attack` of 3.
 pub const WARSONG_COMMANDER: CardDef = CardDef {
     id: "WARRIOR_008",
     name: "Warsong Commander",
@@ -272,7 +279,7 @@ pub const WARSONG_COMMANDER: CardDef = CardDef {
     elusive: false,
     race: None,
     hero_power: None,
-    aura: Some((AuraEffect::GrantCharge, AuraTarget::OtherFriendlyMinions)),
+    aura: None,
     secret: None,
     divine_shield: false,
     windfury: false,
@@ -331,6 +338,8 @@ pub const GOREHOWL: CardDef = CardDef {
 };
 
 /// Grommash Hellscream — Charge. Enrage: +6 Attack
+/// Grommash Hellscream — Charge. Enrage: +6 Attack while damaged (4/9,
+/// and 10/9 damaged); the Charge is unconditional.
 pub const GROMMASH_HELLSCREAM: CardDef = CardDef {
     id: "WARRIOR_010",
     name: "Grommash Hellscream",

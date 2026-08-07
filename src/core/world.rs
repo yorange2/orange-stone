@@ -12,9 +12,9 @@ use serde::{Deserialize, Serialize};
 use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
     Charge, ChooseOneEffect, ComboEffect, Cost, CostModifier, CostModifierKind, Damage,
-    Deathrattle, DivineShield, Durability, Elusive, Enchantment, Freeze, Health, HeroPowerDef,
-    HeroPowerUsed, Immune, Overload, Poison, Race, Secret, SpellDamage, Stealth, Taunt, Trigger,
-    Windfury,
+    Deathrattle, DivineShield, Durability, Elusive, Enchantment, Enrage, Freeze, Health,
+    HeroPowerDef, HeroPowerUsed, Immune, Overload, Poison, Race, Secret, SpellDamage, Stealth,
+    Taunt, Trigger, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -149,6 +149,8 @@ pub struct World {
     card_id: SparseSet<CardId>,
     /// Poison component storage (poison)
     poison: SparseSet<Poison>,
+    /// Enrage component storage — the damaged-only conditional bonus
+    enrage: SparseSet<Enrage>,
     /// Stealth component storage (stealth)
     stealth: SparseSet<Stealth>,
     /// Elusive component storage (elusive; M5)
@@ -270,6 +272,7 @@ impl World {
             cost_modifier: SparseSet::new(),
             card_id: SparseSet::new(),
             poison: SparseSet::new(),
+            enrage: SparseSet::new(),
             stealth: SparseSet::new(),
             elusive: SparseSet::new(),
             immune: SparseSet::new(),
@@ -343,6 +346,7 @@ impl World {
         self.cost_modifier.remove(entity);
         self.card_id.remove(entity);
         self.poison.remove(entity);
+        self.enrage.remove(entity);
         self.stealth.remove(entity);
         self.elusive.remove(entity);
         self.immune.remove(entity);
@@ -770,6 +774,14 @@ impl World {
         iter_poison
     );
     component_accessors!(
+        enrage,
+        Enrage,
+        enrage,
+        set_enrage,
+        remove_enrage,
+        iter_enrage
+    );
+    component_accessors!(
         stealth,
         Stealth,
         stealth,
@@ -838,10 +850,32 @@ impl World {
         false
     }
 
+    /// Whether an entity currently sits below its maximum Health.
+    ///
+    /// This is the Enrage condition. Accumulated damage is the only thing that
+    /// can put a character below its maximum (roadmap G4 — buffs raise base
+    /// Health rather than lowering damage), so a non-zero `Damage` component is
+    /// exactly "damaged".
+    #[must_use]
+    pub fn is_damaged(&self, entity: Entity) -> bool {
+        self.damage(entity).is_some_and(|d| d.0 > 0)
+    }
+
+    /// The Enrage bonus this minion currently grants itself — zero unless it
+    /// has an `Enrage` component *and* is damaged.
+    #[must_use]
+    fn active_enrage(&self, entity: Entity) -> Option<crate::core::component::Enrage> {
+        self.enrage(entity).filter(|_| self.is_damaged(entity))
+    }
+
     /// Get the maximum number of attacks an entity can make per turn.
+    ///
+    /// Raging Worgen's Windfury is part of its Enrage, so it applies only while
+    /// the worgen is damaged.
     #[must_use]
     pub fn max_attacks(&self, entity: Entity) -> u8 {
-        if self.windfury(entity).is_some() {
+        let enraged_windfury = self.active_enrage(entity).is_some_and(|e| e.windfury);
+        if self.windfury(entity).is_some() || enraged_windfury {
             2
         } else {
             1
@@ -868,6 +902,10 @@ impl World {
     ///
     /// Uses the aura source index to scan only the auras that can affect attack
     /// (the friendly and enemy attack buckets) instead of iterating over all `Aura` components.
+    ///
+    /// Enrage is resolved here rather than being written into an enchantment,
+    /// which is what makes it non-stacking and makes it vanish the instant the
+    /// minion is healed to full.
     #[must_use]
     pub fn effective_attack(&self, entity: Entity) -> Option<Attack> {
         let base = self.attack(entity)?;
@@ -882,6 +920,29 @@ impl World {
             for (source, aura) in &self.aura_index.attack[owner.index()] {
                 if aura_applies_to(aura, *source, owner, entity, player, self) {
                     bonus += aura_attack_bonus(aura.effect);
+                }
+            }
+        }
+
+        // This minion's own Enrage (Amani Berserker, Raging Worgen, Tauren
+        // Warrior, Angry Chicken, Grommash Hellscream)
+        if let Some(enrage) = self.active_enrage(entity) {
+            bonus += enrage.attack;
+        }
+
+        // Spiteful Smith — a damaged Enrage minion buffs its owner's weapon.
+        // The bonus lives on the smith, so it is read from the weapon's side:
+        // auras never apply to weapons (`aura_applies_to` rejects non-minions),
+        // which is why this cannot ride the aura index.
+        if self.card_type(entity) == Some(CardType::Weapon) {
+            for (source, enrage) in self.iter_enrage() {
+                if enrage.weapon_attack != 0
+                    && self.player(source) == Some(player)
+                    && self.zone(source) == Some(crate::core::zone::Zone::Play)
+                    && self.is_alive(source)
+                    && self.is_damaged(source)
+                {
+                    bonus += enrage.weapon_attack;
                 }
             }
         }

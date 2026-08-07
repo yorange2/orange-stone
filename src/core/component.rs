@@ -401,11 +401,10 @@ pub enum TriggerEvent {
     /// Any character is healed (Lightwarden — gain +2 Attack whenever a
     /// character is healed; fires for friendly and enemy heals alike)
     CharacterHealed,
-    /// A character owned by the trigger's player is healed (Northshire
-    /// Cleric — draw a card whenever a friendly character is healed; the
-    /// event's owner is the healed character's owner, so the trigger fires
-    /// only for friendly heals)
-    FriendlyCharacterHealed,
+    /// A minion is healed (Northshire Cleric — draw a card whenever a minion
+    /// is healed). Unlike `CharacterHealed` this excludes heroes, and like it
+    /// the scope is global: either player's minion healing fires it.
+    MinionHealed,
     /// A card is played (Questing Adventurer — whenever YOU play a card;
     /// friendly scope)
     CardPlayed,
@@ -458,6 +457,11 @@ pub struct Trigger {
     /// subject has this race (Murloc Tidecaller — a friendly Murloc was
     /// summoned; Scavenging Hyena — a friendly Beast died).
     pub race: Option<Race>,
+    /// Optional attack ceiling: the trigger only fires when the event's subject
+    /// has at most this much Attack (Warsong Commander — "whenever you summon a
+    /// minion with 3 or less Attack"). Measured on the subject's effective
+    /// attack at the moment the event fires.
+    pub max_attack: Option<i32>,
 }
 
 /// Choose One effect — alternative effects for Druid Choose One cards.
@@ -546,6 +550,31 @@ impl<'de> serde::Deserialize<'de> for CardId {
 /// Divine Shield still absorbs Poison damage (the Divine Shield check comes first).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Poison;
+
+/// Enrage — a conditional bonus that is active only while the minion is damaged.
+///
+/// Real Hearthstone models Enrage as a state, not as a one-shot buff: the bonus
+/// applies while the minion sits below its maximum Health, it does **not** stack
+/// across separate damage instances, and it disappears the moment the minion is
+/// healed back to full. It is an ability, so Silence removes it.
+///
+/// The bonus is therefore resolved on read (`World::effective_attack` and
+/// `World::max_attacks`) rather than written into an enchantment, which is what
+/// keeps it from stacking or surviving a full heal.
+///
+/// Note that Gurubashi Berserker is *not* an Enrage minion — its real text is
+/// "Whenever this minion takes damage, gain +3 Attack", a permanent stacking
+/// buff — so it stays wired to the `ThisMinionDamaged` trigger instead.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct Enrage {
+    /// Attack granted to this minion while it is damaged.
+    pub attack: i32,
+    /// Whether the minion also has Windfury while damaged (Raging Worgen).
+    pub windfury: bool,
+    /// Attack granted to the owner's weapon while this minion is damaged
+    /// (Spiteful Smith — the bonus lives on the smith, not on the weapon).
+    pub weapon_attack: i32,
+}
 
 /// Stealth — the enemy cannot attack this character or target it with single-target effects.
 ///

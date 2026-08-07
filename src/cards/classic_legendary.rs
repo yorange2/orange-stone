@@ -363,7 +363,10 @@ pub const MALYGOS: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Onyxia — Battlecry: summon five 1/1 Whelps
+/// Onyxia — Battlecry: summon 1/1 Whelps until your side of the battlefield
+/// is full. Onyxia already occupies one of the seven slots when the battlecry
+/// resolves, so six is the most that can ever land; `resolve_summon` stops at
+/// `MAX_BOARD_SIZE`, which makes the fixed count behave as "until full".
 pub const ONYXIA: CardDef = CardDef {
     id: "LEGENDARY_010",
     name: "Onyxia",
@@ -374,7 +377,7 @@ pub const ONYXIA: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::SummonMultipleMinions {
         card_id: ONYXIA_WHELP_ID,
-        count: 5,
+        count: 6,
     }),
     deathrattle: None,
     taunt: false,

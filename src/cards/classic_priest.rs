@@ -368,8 +368,11 @@ pub const CABAL_SHADOW_PRIEST: CardDef = CardDef {
 };
 
 /// Prophet Velen — double the damage and healing of your spells and hero
-/// power (the heal doubling is wired at the restore-health pipeline; the
-/// spell-damage half is modeled as +1 Spell Damage — a documented rebalance)
+/// power.
+///
+/// Both halves run through the spell-power pre-pass in `trigger::resolve_effect`
+/// (Spell Damage is added first, then Velen doubles the result), so this is NOT
+/// a Spell Damage minion: `spell_damage` stays 0.
 pub const PROPHET_VELEN: CardDef = CardDef {
     id: "PRIEST_012",
     name: "Prophet Velen",
@@ -390,7 +393,7 @@ pub const PROPHET_VELEN: CardDef = CardDef {
     divine_shield: false,
     windfury: false,
     charge: false,
-    spell_damage: 1,
+    spell_damage: 0,
     cant_attack: false,
     spell_effect: None,
     end_turn_effect: None,
