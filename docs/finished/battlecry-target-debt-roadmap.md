@@ -1,12 +1,15 @@
-# Battlecry-Target Debt Roadmap — clearing ledger §12 (20 cards)
+# Battlecry-Target Debt Roadmap — clearing ledger §12 (20 cards) ✅ archived
 
-> Active roadmap (not yet archived). The M1 audit of the engine-mechanics
-> roadmap (PR #102) walked every minion battlecry with a target-bearing
-> effect and found 20 cards whose `EffectTarget` does not match real HS.
-> They are registered in the F4/F5 ledger `docs/fidelity-debt.md` §12, each
-> with a `(simplified: …)` comment — the RL pool dropped 391 → 371. This
-> roadmap clears them, wave by wave. Chinese mirror:
-> `battlecry-target-debt-roadmap-zh.md`.
+> Archived 2026-08-07 — all four waves shipped: W13 (PR #104), W14 (PR
+> #105), W15 (PR #106), W16 (PR #107). Ledger §12 is empty; the RL pool is
+> back to full (392 — 415 card ids − 22 derivatives − 1 coin; the 391 in
+> the text below was measured on a stale 414-card wheel, see PR #104).
+> The M1 audit of the engine-mechanics roadmap (PR #102) walked every
+> minion battlecry with a target-bearing effect and found 20 cards whose
+> `EffectTarget` does not match real HS. They were registered in the F4/F5
+> ledger `docs/fidelity-debt.md` §12, each with a `(simplified: …)` comment
+> — the RL pool dropped 391 → 371. This roadmap cleared them, wave by wave.
+> Chinese mirror: `battlecry-target-debt-roadmap-zh.md`.
 
 ## Why
 
@@ -119,7 +122,7 @@ fizzle, resolvers with `explicit`):
   bounced; G9 fizzle.
 - **Acceptance**: `cargo test` green; ledger drops 7 rows; pool 361.
 
-### W16 — effect-shape debts + pool close-out (one PR)
+### W16 — effect-shape debts + pool close-out ✅ done (PR #107)
 
 - **Mad Bomber**: replace the no-op `DealDamage AllCharacters` battlecry
   with three random 1-damage pings across all *other* characters
@@ -143,7 +146,7 @@ fizzle, resolvers with `explicit`):
 | W13 AnyCharacter/AnyHero mechanism | engine + F5 | 4 | PR #104 ✅ |
 | W14 enemy-scope corrections | engine + F5 | 7 | PR #105 ✅ |
 | W15 Self_ targeted battlecries | engine + F5 | 7 | PR #106 ✅ |
-| W16 effect shapes + close-out | engine + F5 + docs | 2 | one PR (+ cross-repo docs) |
+| W16 effect shapes + close-out | engine + F5 + docs | 2 | PR #107 ✅ (+ cross-repo docs) |
 
 ## Out of scope
 
