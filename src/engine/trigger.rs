@@ -899,6 +899,29 @@ pub fn resolve_effect(
         CardEffect::SwapWithHandMinion => {
             resolve_swap_with_hand_minion(state, source, owner);
         }
+        // ------------------------------------------------------------
+        // Pool-open effects (pool-open-cards roadmap M1) — read the
+        // opponent's actual zones; see docs/pool-openness.md.
+        // ------------------------------------------------------------
+        CardEffect::CopyRandomEnemyHandCard { count } => {
+            resolve_copy_random_enemy_zone(state, owner, count, Zone::Hand);
+        }
+        CardEffect::CopyRandomEnemyDeckCards { count } => {
+            resolve_copy_random_enemy_zone(state, owner, count, Zone::Deck);
+        }
+        CardEffect::SummonRandomEnemyDeckMinion { fallback_card_id } => {
+            resolve_summon_random_enemy_deck_minion(state, queue, source, owner, fallback_card_id);
+        }
+        CardEffect::CopyCastSpellToOtherPlayerHand => {
+            // Lorewalker Cho — the copy goes to the caster's opponent. The
+            // subject is the cast spell; a missing subject (e.g. the spell
+            // entity is gone) is a no-op.
+            if let Some(spell) = event_subject {
+                if let Some(caster) = state.world().player(spell) {
+                    copy_card_to_hand(state, spell, caster.opponent());
+                }
+            }
+        }
         CardEffect::ResurrectDiedMinion => {
             // Secret-context effect — resolved by the secret system with the
             // death event (Redemption)
@@ -3359,6 +3382,70 @@ pub(crate) fn add_card_to_hand(
     let e = crate::cards::spawn_card_from_def(world, player, card_def);
     world.set_zone(e, Zone::Hand);
     world.zones_mut().insert(Zone::Hand, player, e);
+}
+
+/// Copies a card entity's base definition into `to_player`'s hand
+/// (pool-open M1). Copies the base card definition, not in-zone
+/// enchantments — matches Classic-era behaviour and keeps copies
+/// indistinguishable from freshly generated cards.
+pub(crate) fn copy_card_to_hand(state: &mut GameState, src: Entity, to_player: PlayerId) {
+    let Some(card_id) = state.world().card_id(src) else {
+        return;
+    };
+    let Some(card_def) = crate::cards::def::card_by_id(card_id.0) else {
+        return;
+    };
+    add_card_to_hand(state, to_player, card_def);
+}
+
+/// Copies `count` random cards from one of the enemy's zones into this
+/// player's hand (Mind Vision — enemy hand; Thoughtsteal — enemy deck).
+/// Sampling is without replacement over zone entities: two copies of the
+/// same card are two distinct entities and may both be picked, the same
+/// entity may not. An empty zone copies nothing; nothing is drawn, so no
+/// fatigue applies.
+fn resolve_copy_random_enemy_zone(state: &mut GameState, owner: PlayerId, count: u32, zone: Zone) {
+    let enemy = owner.opponent();
+    let mut candidates: Vec<Entity> = state.world().zones().iter(zone, enemy).collect();
+    for _ in 0..count {
+        if candidates.is_empty() {
+            return;
+        }
+        let idx = state.rng_mut().next_usize(candidates.len());
+        let card = candidates.remove(idx);
+        copy_card_to_hand(state, card, owner);
+    }
+}
+
+/// Summons a copy of a random minion from the enemy deck (Mindgames). The
+/// enemy deck is not modified; a deck with no minions summons the
+/// `fallback_card_id` token instead; a full board summons nothing
+/// (`resolve_summon`'s board cap).
+fn resolve_summon_random_enemy_deck_minion(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+    fallback_card_id: &'static str,
+) {
+    let enemy = owner.opponent();
+    let minions: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, enemy)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    let chosen: &'static str = if minions.is_empty() {
+        fallback_card_id
+    } else {
+        let idx = state.rng_mut().next_usize(minions.len());
+        state
+            .world()
+            .card_id(minions[idx])
+            .expect("deck entity always carries a card id")
+            .0
+    };
+    let _ = resolve_summon(state, queue, source, owner, chosen);
 }
 
 /// Deals damage; if the target dies, summons a random minion (Bane of Doom).

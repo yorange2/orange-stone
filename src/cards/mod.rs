@@ -233,6 +233,27 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // Emperor Cobra — Poison
         world.set_poison(entity, Poison);
     }
+    if card_def.id == "LEGENDARY_024" {
+        // Lorewalker Cho — whenever a player casts a spell, put a copy into
+        // the other player's hand. Pool-open (reads the cast spell — it can
+        // move a card across a pool boundary); registered here by ID because
+        // CardDef has no generic trigger field — the registry check below
+        // keeps the closure invariant testable.
+        debug_assert!(
+            crate::cards::sets::POOL_OPEN_CARDS.contains(&card_def.id),
+            "pool-open trigger (Lorewalker Cho) requires a POOL_OPEN_CARDS row"
+        );
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::AnySpellCast,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::CopyCastSpellToOtherPlayerHand,
+            },
+        );
+    }
     // Race-conditioned triggers (fidelity-debt W1): the Trigger carries the
     // race requirement — the event's subject must match for the trigger to fire.
     let race_trigger: Option<(TriggerEvent, CardEffect)> = match card_def.id {

@@ -1215,6 +1215,20 @@ pub fn apply_event(
                 None,
                 None,
             );
+            // Global spell trigger (pool-open M1 — Lorewalker Cho): fires for
+            // either player, with the spell entity as the subject so the
+            // effect can hand the copy to the caster's opponent. The subject
+            // is behaviour-neutral for FriendlySpellCast triggers (none of
+            // them carry race/max_attack conditions) — pinned by
+            // `po_spellcast_subject_is_behaviour_neutral`.
+            fire_triggers(
+                state,
+                queue,
+                TriggerEvent::AnySpellCast,
+                player,
+                Some(spell),
+                None,
+            );
         }
         Event::ChoiceResolved { choice_id, option } => {
             // Resolve the pending choice (roadmap G6). The choice was validated
@@ -1545,11 +1559,12 @@ fn trigger_applies(
         // Global classes — fire regardless of who owns the event
         // (Lightwarden: any character healed; Northshire Cleric: any minion
         // healed; Secretkeeper: any Secret played; Flesheating Ghoul: any
-        // minion died)
+        // minion died; Lorewalker Cho: any player's spell cast)
         TriggerEvent::CharacterHealed
         | TriggerEvent::MinionHealed
         | TriggerEvent::SecretPlayed
-        | TriggerEvent::MinionDied => {}
+        | TriggerEvent::MinionDied
+        | TriggerEvent::AnySpellCast => {}
         _ => {
             if trigger_player != event_owner {
                 return false;

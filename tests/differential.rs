@@ -7948,3 +7948,209 @@ fn m2_icicle_damages_frozen_instead_of_refreezing() {
         "the thawed minion attacks on the following turn"
     );
 }
+
+// ============================================================
+// Pool-open (pool-open-cards-roadmap M1) — engine primitives
+// for the 4 skipped copy cards. Cards land in M2/M3; these
+// scenarios pin the primitives they rely on.
+// ============================================================
+
+/// M1 regression — threading the spell entity as the event subject must be
+/// behaviour-neutral for existing FriendlySpellCast triggers. Mana Wyrm gains
+/// +1 Attack per friendly spell cast: it must still fire for the owner's
+/// spell (now with a subject where none was passed before), and still NOT
+/// fire for the enemy's spell (friendly scope unchanged).
+#[test]
+fn po_spellcast_subject_is_behaviour_neutral() {
+    use orange_stone::cards::def::{ARCANE_INTELLECT, MANA_WYRM};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &MANA_WYRM);
+    builder.add_minion_to_hand(PlayerId1(), &ARCANE_INTELLECT);
+    builder.add_minion_to_hand(PlayerId2(), &ARCANE_INTELLECT);
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.set_mana(PlayerId2(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let wyrm = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("wyrm on board");
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("arcane intellect in hand");
+    // P1 casts its spell — the wyrm grows exactly as before the subject threading
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(wyrm), Some(Attack(2)));
+    // P2 casts a spell — still no friendly-spell trigger for P1's wyrm
+    state.set_active_player(PlayerId2());
+    let enemy_spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .next()
+        .expect("enemy arcane intellect in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: enemy_spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(wyrm),
+        Some(Attack(2)),
+        "an enemy spell must not fire a friendly spell trigger"
+    );
+}
+
+/// M1 primitives — the zone-copy resolvers pick deterministically through the
+/// state RNG (same seed → identical copies) and copy the base card
+/// definition. Exercises `resolve_effect` directly since the cards that use
+/// these effects land in M2.
+#[test]
+fn po_pool_open_resolvers_are_deterministic() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, CHILLWIND_YETI, SENJIN_SHIELDMASTA};
+    use orange_stone::core::effect::CardEffect;
+    use orange_stone::core::event::EventQueue;
+    use orange_stone::engine::trigger;
+
+    let build = |enemy_hand: bool| {
+        let mut b = GameBuilder::new();
+        b.with_rng_seed(7);
+        if enemy_hand {
+            b.add_minion_to_hand(PlayerId2(), &BLOODFEN_RAPTOR);
+            b.add_minion_to_hand(PlayerId2(), &CHILLWIND_YETI);
+        } else {
+            b.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+            b.add_minion_to_deck(PlayerId2(), &CHILLWIND_YETI);
+            b.add_minion_to_deck(PlayerId2(), &SENJIN_SHIELDMASTA);
+        }
+        b.build()
+    };
+
+    // Mind Vision path — copy 1 random enemy hand card
+    let mut s1 = build(true);
+    let mut s2 = build(true);
+    let hero = s1.player(PlayerId1()).hero;
+    for state in [&mut s1, &mut s2] {
+        let mut queue = EventQueue::new();
+        trigger::resolve_effect(
+            state,
+            &mut queue,
+            hero,
+            PlayerId1(),
+            CardEffect::CopyRandomEnemyHandCard { count: 1 },
+            None,
+            None,
+        );
+    }
+    let id_of = |state: &GameState| {
+        state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId1())
+            .map(|e| state.world().card_id(e).unwrap().0)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(id_of(&s1), id_of(&s2), "same seed → same copied card");
+    assert_eq!(id_of(&s1).len(), 1, "exactly one copy");
+    assert!(
+        ["CLASSIC_001", "NEUTRAL_T08"].contains(&id_of(&s1)[0]),
+        "the copy must be one of the enemy's actual hand cards, got {}",
+        id_of(&s1)[0]
+    );
+
+    // Thoughtsteal path — copy 2 random enemy deck cards without replacement
+    let mut s1 = build(false);
+    let mut s2 = build(false);
+    let hero = s1.player(PlayerId1()).hero;
+    for state in [&mut s1, &mut s2] {
+        let mut queue = EventQueue::new();
+        trigger::resolve_effect(
+            state,
+            &mut queue,
+            hero,
+            PlayerId1(),
+            CardEffect::CopyRandomEnemyDeckCards { count: 2 },
+            None,
+            None,
+        );
+    }
+    assert_eq!(id_of(&s1), id_of(&s2), "same seed → same copied cards");
+    assert_eq!(id_of(&s1).len(), 2, "exactly two copies");
+    assert!(
+        id_of(&s1)[0] != id_of(&s1)[1],
+        "without replacement: the same entity cannot be picked twice"
+    );
+    // The enemy deck is untouched (only 3 entities were there and none moved)
+    assert_eq!(
+        s1.world().zones().len(Zone::Deck, PlayerId2()),
+        3,
+        "copying from the deck does not modify it"
+    );
+
+    // Mindgames path — a deck with no minions summons the fallback token
+    let mut s1 = build(false);
+    let mut s2 = build(false);
+    let hero = s1.player(PlayerId1()).hero;
+    // Remove the minions so the deck holds no minions → fallback fires
+    for state in [&mut s1, &mut s2] {
+        for e in state
+            .world()
+            .zones()
+            .iter(Zone::Deck, PlayerId2())
+            .collect::<Vec<_>>()
+        {
+            state.world_mut().set_card_type(e, CardType::Spell);
+        }
+        let mut queue = EventQueue::new();
+        trigger::resolve_effect(
+            state,
+            &mut queue,
+            hero,
+            PlayerId1(),
+            CardEffect::SummonRandomEnemyDeckMinion {
+                fallback_card_id: "CLASSIC_001",
+            },
+            None,
+            None,
+        );
+    }
+    assert_eq!(id_of(&s1).len(), 0, "summoning does not touch the hand");
+    let summoned = |state: &GameState| {
+        state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId1())
+            .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+            .map(|e| state.world().card_id(e).unwrap().0)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(
+        summoned(&s1),
+        summoned(&s2),
+        "same seed → same summoned minion"
+    );
+    assert_eq!(
+        summoned(&s1),
+        vec!["CLASSIC_001"],
+        "a minion-less enemy deck summons the fallback token"
+    );
+}
