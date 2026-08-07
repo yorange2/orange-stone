@@ -369,6 +369,10 @@ pub const PRIEST_CLASSIC: &[CardDef] = &[
     NATALIE_SELINE,
     SHADOW_MADNESS,
     MIND_CONTROL,
+    // Pool-open (pool-open-cards-roadmap M2) — read the opponent's hand/deck
+    MIND_VISION,
+    THOUGHTSTEAL,
+    MINDGAMES,
 ];
 
 pub const ROGUE_CLASSIC: &[CardDef] = &[
@@ -896,6 +900,11 @@ pub const ALL_CARDS: &[CardDef] = &[
     // Tier 2 control/transform
     SHADOW_MADNESS,
     MIND_CONTROL,
+    // Pool-open (pool-open-cards-roadmap M2) — read the opponent's hand/deck
+    MIND_VISION,
+    THOUGHTSTEAL,
+    MINDGAMES,
+    SHADOW_OF_NOTHING,
     CORRUPTION,
     COMMANDING_SHOUT,
     UNBOUND_ELEMENTAL,
@@ -950,7 +959,13 @@ pub const ALL_CARDS: &[CardDef] = &[
 /// zone-reading effect variants may appear only on registered cards (enforced
 /// by `pool_open_effects_require_registry` in `trigger.rs`), and any new
 /// zone-reading card must register here first. See `docs/pool-openness.md`.
-pub const POOL_OPEN_CARDS: &[&str] = &[];
+pub const POOL_OPEN_CARDS: &[&str] = &[
+    // Pool-open (pool-open-cards-roadmap M2/M3) — read the opponent's
+    // actual hand/deck or copy a cast spell.
+    "PRIEST_024", // Mind Vision — enemy hand
+    "PRIEST_025", // Thoughtsteal — enemy deck
+    "PRIEST_026", // Mindgames — enemy deck
+];
 
 #[cfg(test)]
 mod tests {
