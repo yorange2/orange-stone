@@ -6078,6 +6078,255 @@ fn m1_stormpike_commando_hits_chosen_target() {
 }
 
 // ============================================================
+// Battlecry-target debt roadmap W13 — `EffectTarget::AnyCharacter`
+// (any hero or minion on either side) and `AnyHero` (either hero),
+// with the first re-targets: Stormpike Commando, Elven Archer,
+// Fire Elemental, SI:7 Agent. Friendly-side targets are now legal;
+// a target that leaves the legal set still fizzles (G9).
+// ============================================================
+
+/// W13-1 Stormpike Commando — the battlecry can now hit a FRIENDLY character
+/// (any character, both sides), not just enemies.
+#[test]
+fn w13_stormpike_commando_hits_friendly_character() {
+    use orange_stone::cards::def::STORMPIKE_COMMANDO;
+    let mut builder = GameBuilder::new();
+    let hero = builder.state_mut().player(PlayerId1()).hero;
+    let friend = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 2);
+    builder.add_minion_to_hand(PlayerId1(), &STORMPIKE_COMMANDO);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let commando = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("commando in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: commando,
+                target: Some(friend),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(friend),
+        Some(Health(1)),
+        "the chosen FRIENDLY minion takes the 2 damage (3/3 base)"
+    );
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(30)),
+        "the friendly hero is untouched"
+    );
+}
+
+/// W13-2 Elven Archer — the friendly HERO is a legal target (any character).
+#[test]
+fn w13_elven_archer_hits_friendly_hero() {
+    use orange_stone::cards::def::ELVEN_ARCHER;
+    let mut builder = GameBuilder::new();
+    let hero = builder.state_mut().player(PlayerId1()).hero;
+    builder.add_minion_to_hand(PlayerId1(), &ELVEN_ARCHER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let archer = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("archer in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: archer,
+                target: Some(hero),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(29)),
+        "the FRIENDLY hero takes the 1 damage"
+    );
+}
+
+/// W13-3 Fire Elemental — the enemy hero stays a legal target (AnyCharacter
+/// still covers the old AnyEnemy set).
+#[test]
+fn w13_fire_elemental_hits_enemy_hero() {
+    use orange_stone::cards::def::FIRE_ELEMENTAL;
+    let mut builder = GameBuilder::new();
+    let enemy_hero = builder.state_mut().player(PlayerId2()).hero;
+    builder.add_minion_to_hand(PlayerId1(), &FIRE_ELEMENTAL);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let elemental = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("fire elemental in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: elemental,
+                target: Some(enemy_hero),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(27)),
+        "the enemy hero takes the 3 damage"
+    );
+}
+
+/// W13-4 SI:7 Agent — the combo path (a card was played earlier this turn)
+/// honors a chosen FRIENDLY character target.
+#[test]
+fn w13_si7_agent_combo_hits_chosen_friendly_minion() {
+    use orange_stone::cards::def::{SI7_AGENT, WISP};
+    let mut builder = GameBuilder::new();
+    let friend = builder.add_custom_minion_to_board(PlayerId1(), 4, 4, 2);
+    builder.add_minion_to_hand(PlayerId1(), &WISP);
+    builder.add_minion_to_hand(PlayerId1(), &SI7_AGENT);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let wisp = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "NEUTRAL_T01")
+        })
+        .expect("wisp in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: wisp,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // Second card of the turn → the combo branch resolves
+    let si7 = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "ROGUE_005"))
+        .expect("si7 in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: si7,
+                target: Some(friend),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(friend),
+        Some(Health(2)),
+        "the combo hits the chosen FRIENDLY minion for 2 (4/4 base)"
+    );
+}
+
+/// W13-5 G9 fizzle for AnyCharacter — a stealthed enemy minion is not in the
+/// legal target set at resolution; the battlecry fizzles instead of falling
+/// back to a random target.
+#[test]
+fn w13_any_character_fizzles_for_stealthed_enemy() {
+    use orange_stone::cards::def::STORMPIKE_COMMANDO;
+    use orange_stone::core::component::Stealth;
+    let mut builder = GameBuilder::new();
+    let enemy_hero = builder.state_mut().player(PlayerId2()).hero;
+    let stealthed = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &STORMPIKE_COMMANDO);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    state.world_mut().set_stealth(stealthed, Stealth);
+    let engine = GameEngine::new();
+    let commando = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("commando in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: commando,
+                target: Some(stealthed),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(stealthed),
+        Some(Zone::Play),
+        "the stealthed target cannot be chosen — no damage dealt"
+    );
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(30)),
+        "no random fallback onto the enemy hero either (G9 fizzle)"
+    );
+}
+
+/// W13-6 the RL path — `legal_actions` exposes a PlayCard action per legal
+/// AnyCharacter target: friendly hero, friendly minion, enemy hero, enemy
+/// minion.
+#[test]
+fn w13_legal_actions_expose_any_character_targets() {
+    use orange_stone::cards::def::STORMPIKE_COMMANDO;
+    use orange_stone::rl::env::legal_actions;
+    let mut builder = GameBuilder::new();
+    let friendly_hero = builder.state_mut().player(PlayerId1()).hero;
+    let friendly = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 2);
+    let enemy_hero = builder.state_mut().player(PlayerId2()).hero;
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &STORMPIKE_COMMANDO);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let state = builder.build();
+    let commando = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("commando in hand");
+    let actions = legal_actions(&state);
+    for target in [friendly_hero, friendly, enemy_hero, enemy] {
+        assert!(
+            actions.contains(&Action::PlayCard {
+                card: commando,
+                target: Some(target),
+                position: None,
+            }),
+            "the friendly and enemy sides must both be offered as targets"
+        );
+    }
+}
+
+// ============================================================
 // Engine-mechanics roadmap M2 — freeze timing: the thaw moved
 // from Event::TurnStarted to the turn-end wrap-up. A character
 // frozen during the opponent's turn keeps Freeze through its

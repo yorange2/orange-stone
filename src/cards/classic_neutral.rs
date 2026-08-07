@@ -2043,7 +2043,7 @@ pub const NIGHTBLADE: CardDef = CardDef {
     combo_effect: None,
     attack_equals_health: false,
 };
-/// Stormpike Commando — Battlecry: deal 2 damage to a character (simplified: enemy characters only)
+/// Stormpike Commando — Battlecry: deal 2 damage to a character
 pub const STORMPIKE_COMMANDO: CardDef = CardDef {
     id: "NEUTRAL_B18",
     name: "Stormpike Commando",
@@ -2054,7 +2054,7 @@ pub const STORMPIKE_COMMANDO: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 2,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -3710,7 +3710,7 @@ pub const FACELESS_MANIPULATOR: CardDef = CardDef {
 
 /// Wisp — vanilla
 pub const WISP: CardDef = vanilla!("NEUTRAL_T01", "Wisp", 0, 1, 1);
-/// Elven Archer — Battlecry: deal 1 damage (simplified: enemy characters only, not any character)
+/// Elven Archer — Battlecry: deal 1 damage to a character
 pub const ELVEN_ARCHER: CardDef = CardDef {
     id: "NEUTRAL_T02",
     name: "Elven Archer",
@@ -3721,7 +3721,7 @@ pub const ELVEN_ARCHER: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 1,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,

@@ -510,6 +510,16 @@ fn candidates_for_target(
             all.extend(minions(enemy));
             all
         }
+        // Battlecry-target kinds (battlecry-target-debt roadmap W13): a single
+        // character (hero + minion) on either side, or either hero.
+        EffectTarget::AnyCharacter => {
+            let mut all = chars(owner);
+            all.extend(chars(enemy));
+            all.into_iter().filter(no_elusive).collect()
+        }
+        EffectTarget::AnyHero => {
+            vec![state.player(owner).hero, state.player(enemy).hero]
+        }
         EffectTarget::AnyMinionAttackGE(min_atk) => {
             let mut all = minions(owner);
             all.extend(minions(enemy));

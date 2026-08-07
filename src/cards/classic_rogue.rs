@@ -154,7 +154,7 @@ pub const SAP: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// SI:7 Agent — Combo: deal 2 damage to a character (simplified: enemy characters only)
+/// SI:7 Agent — Combo: deal 2 damage to a character
 pub const SI7_AGENT: CardDef = CardDef {
     id: "ROGUE_005",
     name: "SI:7 Agent",
@@ -165,7 +165,7 @@ pub const SI7_AGENT: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 2,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -189,7 +189,7 @@ pub const SI7_AGENT: CardDef = CardDef {
     choose_one_effect: None,
     combo_effect: Some(CardEffect::DealDamage {
         amount: 2,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     attack_equals_health: false,
 };
