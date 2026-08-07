@@ -293,7 +293,7 @@ pub const RAGNAROS_THE_FIRELORD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Alexstrasza — Battlecry: set a HERO's health to 15 (simplified: targets a random enemy character instead)
+/// Alexstrasza — Battlecry: set a hero's Health to 15
 pub const ALEXSTRASZA: CardDef = CardDef {
     id: "LEGENDARY_008",
     name: "Alexstrasza",
@@ -302,9 +302,9 @@ pub const ALEXSTRASZA: CardDef = CardDef {
     attack: 8,
     health: 8,
     durability: 0,
-    battlecry: Some(CardEffect::SetAttack {
-        attack: 15,
-        target: EffectTarget::AnyEnemy,
+    battlecry: Some(CardEffect::SetHealth {
+        health: 15,
+        target: EffectTarget::AnyHero,
     }),
     deathrattle: None,
     taunt: false,

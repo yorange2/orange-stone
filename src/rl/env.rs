@@ -417,6 +417,7 @@ fn play_targets(
         CardEffect::DestroyMinion { target } => target,
         CardEffect::SilenceMinion { target } => target,
         CardEffect::SetAttack { target, .. } => target,
+        CardEffect::SetHealth { target, .. } => target,
         CardEffect::RestoreHealth { target, .. } => target,
         CardEffect::FreezeCharacter { target } => target,
         CardEffect::ReturnToHand { target } => target,
@@ -520,6 +521,12 @@ fn candidates_for_target(
         EffectTarget::AnyHero => {
             vec![state.player(owner).hero, state.player(enemy).hero]
         }
+        // Enemy-scope corrections (battlecry-target-debt roadmap W14): Big
+        // Game Hunter destroys an ENEMY minion with attack ≥ N only.
+        EffectTarget::EnemyMinionAttackGE(min_atk) => minions(enemy)
+            .into_iter()
+            .filter(|&e| world.effective_attack(e).is_some_and(|a| a.0 >= min_atk))
+            .collect(),
         EffectTarget::AnyMinionAttackGE(min_atk) => {
             let mut all = minions(owner);
             all.extend(minions(enemy));

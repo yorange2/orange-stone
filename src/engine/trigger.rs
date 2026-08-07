@@ -125,6 +125,9 @@ pub fn resolve_effect(
         CardEffect::SetAttack { attack, target } => {
             resolve_set_attack(state, owner, attack, target, explicit_target);
         }
+        CardEffect::SetHealth { health, target } => {
+            resolve_set_health(state, owner, health, target, explicit_target);
+        }
         CardEffect::RestoreHealth { amount, target } => {
             resolve_restore_health(state, queue, owner, amount, target);
         }
@@ -264,13 +267,14 @@ pub fn resolve_effect(
             attack_bonus,
             target,
         } => {
-            resolve_deal_damage(state, queue, source, owner, damage, target, explicit_target);
-            // Give the target minion an attack bonus (simplified: random friendly minion)
-            let minions = collect_friendly_minions(state, owner);
-            if !minions.is_empty() {
-                let idx = state.rng_mut().next_usize(minions.len());
+            // The +Attack lands on the SAME target that took the damage
+            // (battlecry-target-debt roadmap W14 — Cruel Taskmaster, Inner
+            // Rage: "give it +2 Attack"); a fizzled target buffs nobody.
+            if let Some(t) =
+                resolve_deal_damage(state, queue, source, owner, damage, target, explicit_target)
+            {
                 state.world_mut().add_enchantment(
-                    minions[idx],
+                    t,
                     Enchantment {
                         attack: attack_bonus,
                         health: 0,
@@ -1054,6 +1058,11 @@ fn resolve_demonfire(
     }
 }
 
+/// Deals damage to the target set and enqueues DamageDealt events. Returns
+/// the single-picked target entity when the effect picks exactly one, so
+/// composite effects (DamageAndGainAttack — Cruel Taskmaster, Inner Rage)
+/// can buff the same target that took the damage; AOE and no-op resolutions
+/// return None.
 fn resolve_deal_damage(
     state: &mut GameState,
     queue: &mut EventQueue,
@@ -1062,7 +1071,7 @@ fn resolve_deal_damage(
     amount: i32,
     target: EffectTarget,
     explicit: Option<Entity>,
-) {
+) -> Option<Entity> {
     let enemies = match target {
         EffectTarget::AnyEnemy => collect_enemy_characters(state, owner, Some(source)),
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner, Some(source)),
@@ -1079,7 +1088,7 @@ fn resolve_deal_damage(
                     amount,
                 });
             }
-            return;
+            return None;
         }
         EffectTarget::AllEnemies => {
             let enemies = collect_all_enemy_characters(state, owner);
@@ -1090,7 +1099,7 @@ fn resolve_deal_damage(
                     amount,
                 });
             }
-            return;
+            return None;
         }
         EffectTarget::AllFriendlyMinions => {
             let minions = collect_friendly_minions(state, owner);
@@ -1101,7 +1110,7 @@ fn resolve_deal_damage(
                     amount,
                 });
             }
-            return;
+            return None;
         }
         EffectTarget::Self_ => {
             queue.push(Event::DamageDealt {
@@ -1109,7 +1118,7 @@ fn resolve_deal_damage(
                 target: source,
                 amount,
             });
-            return;
+            return None;
         }
         // Battlecry-target kinds (battlecry-target-debt roadmap W13): a single
         // character (hero + minion) on either side, or either hero. Friendly
@@ -1125,6 +1134,8 @@ fn resolve_deal_damage(
             let enemy_hero = state.player(owner.opponent()).hero;
             [hero, enemy_hero].into_iter().collect()
         }
+        // Cruel Taskmaster (W14) — damage a chosen friendly minion.
+        EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         EffectTarget::AllMinions => {
             let mut all = collect_friendly_minions(state, owner);
             all.extend(collect_all_enemy_minions(state, owner));
@@ -1135,12 +1146,12 @@ fn resolve_deal_damage(
                     amount,
                 });
             }
-            return;
+            return None;
         }
         EffectTarget::AllCharacters
+        | EffectTarget::AllFriendlyCharacters
         | EffectTarget::FriendlyHero
         | EffectTarget::DamagedEnemyMinion
-        | EffectTarget::FriendlyMinion
         | EffectTarget::OtherFriendlyMinion
         | EffectTarget::TauntEnemyMinion
         | EffectTarget::EventSubject
@@ -1149,23 +1160,23 @@ fn resolve_deal_damage(
         | EffectTarget::AnyRace(_)
         | EffectTarget::EnemyMinionAttackLE(_)
         | EffectTarget::AnyMinionAttackGE(_)
+        | EffectTarget::EnemyMinionAttackGE(_)
         | EffectTarget::DamagedFriendlyMinion
         | EffectTarget::DamagedMinion
         | EffectTarget::AnyMinion => {
-            return;
+            return None;
         }
     };
 
     // Explicit target first, otherwise random selection
-    let Some(target_entity) = select_target(explicit, &enemies, state.rng_mut()) else {
-        return;
-    };
+    let target_entity = select_target(explicit, &enemies, state.rng_mut())?;
 
     queue.push(Event::DamageDealt {
         source,
         target: target_entity,
         amount,
     });
+    Some(target_entity)
 }
 
 /// Tracking (W10): surfaces a Discover choice over the top 3 cards of the
@@ -2064,6 +2075,17 @@ fn resolve_destroy_minion(
                     .is_some_and(|a| a.0 <= max_atk)
             })
             .collect(),
+        // Big Game Hunter (W14): an ENEMY minion with attack ≥ N — the
+        // friendly side is not a legal destroy target.
+        EffectTarget::EnemyMinionAttackGE(min_atk) => collect_enemy_minions(state, owner, None)
+            .into_iter()
+            .filter(|&e| {
+                state
+                    .world()
+                    .effective_attack(e)
+                    .is_some_and(|a| a.0 >= min_atk)
+            })
+            .collect(),
         EffectTarget::AnyMinionAttackGE(min_atk) => {
             let mut all = collect_friendly_minions(state, owner);
             all.extend(collect_all_enemy_minions(state, owner));
@@ -2127,6 +2149,20 @@ fn resolve_destroy_minion(
 }
 
 /// Silences a minion — removes all effect components.
+fn silence_entity(world: &mut crate::core::world::World, e: Entity) {
+    world.remove_taunt(e);
+    world.remove_battlecry(e);
+    world.remove_deathrattle(e);
+    world.remove_aura(e);
+    world.remove_trigger(e);
+    world.remove_divine_shield(e);
+    world.remove_windfury(e);
+    world.remove_charge(e);
+    world.remove_spell_damage(e);
+    // Silence strips enchantments, keeping base stats and damage (roadmap G4)
+    world.remove_enchantments(e);
+}
+
 fn resolve_silence(
     state: &mut GameState,
     owner: PlayerId,
@@ -2134,7 +2170,15 @@ fn resolve_silence(
     explicit: Option<Entity>,
 ) {
     let minions: SmallList<Entity> = match target {
+        // Single-pick silence (Ironbeak Owl, Spellbreaker — W14: either side):
+        // the explicit target wins, otherwise a random pick at resolution; a
+        // target that left the legal set fizzles (G9).
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner, None),
+        EffectTarget::AnyMinion => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all
+        }
         EffectTarget::AllEnemyMinions => collect_all_enemy_minions(state, owner),
         EffectTarget::AllMinions => {
             let mut all = collect_friendly_minions(state, owner);
@@ -2143,34 +2187,20 @@ fn resolve_silence(
         }
         _ => return,
     };
-    // Explicit target: silence only the specified minion
-    if let Some(t) = explicit.filter(|t| minions.contains(t)) {
-        let world = state.world_mut();
-        world.remove_taunt(t);
-        world.remove_battlecry(t);
-        world.remove_deathrattle(t);
-        world.remove_aura(t);
-        world.remove_trigger(t);
-        world.remove_divine_shield(t);
-        world.remove_windfury(t);
-        world.remove_charge(t);
-        world.remove_spell_damage(t);
-        // Silence strips enchantments, keeping base stats and damage (roadmap G4)
-        world.remove_enchantments(t);
+    // Single-pick scopes pick one target (explicit → random → fizzle); the
+    // AOE scopes silence every minion in the set.
+    if matches!(
+        target,
+        EffectTarget::AnyEnemyMinion | EffectTarget::AnyMinion
+    ) {
+        let Some(t) = select_target(explicit, &minions, state.rng_mut()) else {
+            return;
+        };
+        silence_entity(state.world_mut(), t);
         return;
     }
     for &m in &minions {
-        let world = state.world_mut();
-        world.remove_taunt(m);
-        world.remove_battlecry(m);
-        world.remove_deathrattle(m);
-        world.remove_aura(m);
-        world.remove_trigger(m);
-        world.remove_divine_shield(m);
-        world.remove_windfury(m);
-        world.remove_charge(m);
-        world.remove_spell_damage(m);
-        world.remove_enchantments(m);
+        silence_entity(state.world_mut(), m);
     }
 }
 
@@ -2190,6 +2220,39 @@ fn resolve_set_attack(
         return;
     };
     state.world_mut().set_attack(m, Attack(attack));
+}
+
+/// Sets a character's health to a fixed value (Alexstrasza — a hero's Health
+/// to 15; W14).
+fn resolve_set_health(
+    state: &mut GameState,
+    owner: PlayerId,
+    health: i32,
+    target: EffectTarget,
+    explicit: Option<Entity>,
+) {
+    let heroes: SmallList<Entity> = match target {
+        EffectTarget::AnyHero => {
+            let hero = state.player(owner).hero;
+            let enemy_hero = state.player(owner.opponent()).hero;
+            [hero, enemy_hero].into_iter().collect()
+        }
+        _ => return,
+    };
+    let Some(h) = select_target(explicit, &heroes, state.rng_mut()) else {
+        return;
+    };
+    // Set the hero's health: the damage component moves to base − target
+    // (roadmap G4 — damage, not base health). A 30-HP hero set to 15 takes
+    // 15 accumulated damage; a target already below 15 is untouched only if
+    // its base is below 15 (defensive).
+    let base = state.world().health(h).unwrap_or(Health(30)).0;
+    let dmg = (base - health).max(0);
+    if dmg > 0 {
+        state.world_mut().set_damage(h, Damage(dmg));
+    } else {
+        state.world_mut().remove_damage(h);
+    }
 }
 
 /// Restores health — fires `CharacterHealed` triggers (Lightwarden) for each
@@ -2238,6 +2301,20 @@ fn resolve_restore_health(
         EffectTarget::AllFriendlyMinions => {
             let minions = collect_friendly_minions(state, owner);
             let world = state.world_mut();
+            for &m in &minions {
+                if heal(world, m, amount) {
+                    healed.push(m);
+                }
+            }
+        }
+        // Darkscale Healer (W14): all friendly characters, hero included.
+        EffectTarget::AllFriendlyCharacters => {
+            let hero = state.player(owner).hero;
+            let minions = collect_friendly_minions(state, owner);
+            let world = state.world_mut();
+            if heal(world, hero, amount) {
+                healed.push(hero);
+            }
             for &m in &minions {
                 if heal(world, m, amount) {
                     healed.push(m);

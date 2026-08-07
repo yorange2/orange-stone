@@ -6327,6 +6327,464 @@ fn w13_legal_actions_expose_any_character_targets() {
 }
 
 // ============================================================
+// Battlecry-target debt roadmap W14 — enemy-scope corrections:
+// Ironforge Rifleman (enemy minions only), Ironbeak Owl /
+// Spellbreaker (any minion), Big Game Hunter (enemy ≥7 only),
+// Alexstrasza (any hero — set Health to 15, faithful semantics),
+// Darkscale Healer (all friendly characters incl. the hero),
+// Cruel Taskmaster (friendly minion + give it +2 Attack).
+// ============================================================
+
+/// W14-1 Ironforge Rifleman — the enemy HERO is no longer a legal target;
+/// only enemy minions can take the 1 damage.
+#[test]
+fn w14_ironforge_rifleman_hits_enemy_minion_only() {
+    use orange_stone::cards::def::IRONFORGE_RIFLEMAN;
+    let mut builder = GameBuilder::new();
+    let enemy_hero = builder.state_mut().player(PlayerId2()).hero;
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &IRONFORGE_RIFLEMAN);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let rifleman = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("rifleman in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: rifleman,
+                target: Some(enemy),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy),
+        Some(Health(1)),
+        "the enemy minion takes the 1 damage"
+    );
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(30)),
+        "the enemy hero cannot be targeted anymore"
+    );
+}
+
+/// W14-2 Ironbeak Owl — silencing a FRIENDLY minion is now legal (any minion).
+#[test]
+fn w14_ironbeak_owl_silences_friendly_minion() {
+    use orange_stone::cards::def::IRONBEAK_OWL;
+    use orange_stone::core::component::Taunt;
+    let mut builder = GameBuilder::new();
+    let friend = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &IRONBEAK_OWL);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    state.world_mut().set_taunt(friend, Taunt);
+    let engine = GameEngine::new();
+    let owl = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("owl in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: owl,
+                target: Some(friend),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.world().taunt(friend).is_none(),
+        "the chosen FRIENDLY minion is silenced"
+    );
+}
+
+/// W14-3 Spellbreaker — same contract as the Owl, via the Spellbreaker.
+#[test]
+fn w14_spellbreaker_silences_friendly_minion() {
+    use orange_stone::cards::def::SPELLBREAKER;
+    use orange_stone::core::component::Taunt;
+    let mut builder = GameBuilder::new();
+    let friend = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 2);
+    builder.add_minion_to_hand(PlayerId1(), &SPELLBREAKER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    state.world_mut().set_taunt(friend, Taunt);
+    let engine = GameEngine::new();
+    let breaker = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("spellbreaker in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: breaker,
+                target: Some(friend),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.world().taunt(friend).is_none(),
+        "the chosen FRIENDLY minion is silenced"
+    );
+}
+
+/// W14-4 Big Game Hunter — destroys an ENEMY minion with ≥7 Attack; a big
+/// FRIENDLY minion is not a legal destroy target (G9 fizzle — it survives).
+#[test]
+fn w14_big_game_hunter_destroys_enemy_big_minion_only() {
+    use orange_stone::cards::def::BIG_GAME_HUNTER;
+    let mut builder = GameBuilder::new();
+    let enemy_big = builder.add_custom_minion_to_board(PlayerId2(), 7, 7, 7);
+    let friendly_big = builder.add_custom_minion_to_board(PlayerId1(), 8, 8, 8);
+    builder.add_minion_to_hand(PlayerId1(), &BIG_GAME_HUNTER);
+    builder.add_minion_to_hand(PlayerId1(), &BIG_GAME_HUNTER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let bgh = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("big game hunter in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bgh,
+                target: Some(enemy_big),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(enemy_big),
+        Some(Zone::Graveyard),
+        "the 7-attack ENEMY minion is destroyed"
+    );
+    // A second hunter targets the friendly 8/8 — fizzles (G9: not in the set)
+    let bgh2 = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("second hunter in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bgh2,
+                target: Some(friendly_big),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(friendly_big),
+        Some(Zone::Play),
+        "the FRIENDLY 8/8 is not a legal target — the destroy fizzles"
+    );
+}
+
+/// W14-5 Alexstrasza — sets either hero's Health to 15 (faithful: health,
+/// not attack). An 8-HP enemy hero is raised to 15; a 30-HP friendly hero
+/// drops to 15.
+#[test]
+fn w14_alexstrasza_sets_hero_health_to_15() {
+    use orange_stone::cards::def::ALEXSTRASZA;
+    use orange_stone::core::component::Damage;
+    let mut builder = GameBuilder::new();
+    let enemy_hero = builder.state_mut().player(PlayerId2()).hero;
+    let friendly_hero = builder.state_mut().player(PlayerId1()).hero;
+    builder.add_minion_to_hand(PlayerId1(), &ALEXSTRASZA);
+    builder.add_minion_to_hand(PlayerId1(), &ALEXSTRASZA);
+    builder.set_mana(PlayerId1(), 10, 19);
+    let mut state = builder.build();
+    // 22 damage → the enemy hero sits at 8/30 (damage component, G4)
+    state.world_mut().set_damage(enemy_hero, Damage(22));
+    let engine = GameEngine::new();
+    let alex = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("alexstrasza in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: alex,
+                target: Some(enemy_hero),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(15)),
+        "the 8-HP enemy hero is RAISED to 15"
+    );
+    assert_eq!(
+        state.world().effective_health(friendly_hero),
+        Some(Health(30)),
+        "the friendly hero is untouched"
+    );
+    assert_eq!(
+        state.world().effective_attack(enemy_hero),
+        Some(Attack(0)),
+        "health was set — the hero's Attack is not touched"
+    );
+    // Second Alexstrasza sets the friendly hero down to 15
+    let alex2 = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("second alexstrasza in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: alex2,
+                target: Some(friendly_hero),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(friendly_hero),
+        Some(Health(15)),
+        "the FRIENDLY hero drops to 15"
+    );
+}
+
+/// W14-6 Darkscale Healer — the friendly HERO is healed along with the
+/// friendly minions (all friendly characters).
+#[test]
+fn w14_darkscale_healer_heals_friendly_hero() {
+    use orange_stone::cards::def::DARKSCALE_HEALER;
+    use orange_stone::core::component::Damage;
+    let mut builder = GameBuilder::new();
+    let hero = builder.state_mut().player(PlayerId1()).hero;
+    let minion = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 2);
+    builder.add_minion_to_hand(PlayerId1(), &DARKSCALE_HEALER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    // 10 damage to the hero (20/30) and 1 damage to the minion (2/3)
+    state.world_mut().set_damage(hero, Damage(10));
+    state.world_mut().set_damage(minion, Damage(1));
+    let engine = GameEngine::new();
+    let healer = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("healer in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: healer,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(22)),
+        "the friendly hero is healed too (20 → 22)"
+    );
+    assert_eq!(
+        state.world().effective_health(minion),
+        Some(Health(3)),
+        "the damaged friendly minion is fully healed back to 3"
+    );
+}
+
+/// W14-7 Cruel Taskmaster — damages a chosen FRIENDLY minion and gives the
+/// SAME minion +2 Attack (Inner Rage shares the fixed dispatch).
+#[test]
+fn w14_cruel_taskmaster_damages_and_buffs_friendly_minion() {
+    use orange_stone::cards::def::CRUEL_TASKMASTER;
+    let mut builder = GameBuilder::new();
+    let friend = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 2);
+    builder.add_minion_to_hand(PlayerId1(), &CRUEL_TASKMASTER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let taskmaster = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("taskmaster in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: taskmaster,
+                target: Some(friend),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(friend),
+        Some(Health(2)),
+        "the chosen friendly minion takes 1 damage"
+    );
+    assert_eq!(
+        state.world().effective_attack(friend),
+        Some(Attack(5)),
+        "the SAME minion gets +2 Attack (3 → 5)"
+    );
+}
+
+/// W14-8 Inner Rage — the fixed DamageAndGainAttack dispatch now buffs the
+/// damaged target (previously a random friendly minion).
+#[test]
+fn w14_inner_rage_buffs_the_damaged_target() {
+    use orange_stone::cards::def::INNER_RAGE;
+    let mut builder = GameBuilder::new();
+    let victim = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &INNER_RAGE);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let rage = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("inner rage in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: rage,
+                target: Some(victim),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(victim),
+        Some(Health(1)),
+        "the target takes 1 damage"
+    );
+    assert_eq!(
+        state.world().effective_attack(victim),
+        Some(Attack(4)),
+        "the SAME target gets +2 Attack (2 → 4)"
+    );
+}
+
+/// W14-9 the RL path — legal_actions expose the corrected target sets:
+/// Ironforge Rifleman offers enemy minions (not the enemy hero), the Owl
+/// offers friendly minions, Big Game Hunter offers enemy ≥7 minions (not
+/// the friendly 8/8), Alexstrasza offers both heroes.
+#[test]
+fn w14_legal_actions_expose_corrected_target_sets() {
+    use orange_stone::cards::def::{
+        ALEXSTRASZA, BIG_GAME_HUNTER, IRONBEAK_OWL, IRONFORGE_RIFLEMAN,
+    };
+    use orange_stone::rl::env::legal_actions;
+    let mut builder = GameBuilder::new();
+    let enemy_hero = builder.state_mut().player(PlayerId2()).hero;
+    let friendly_hero = builder.state_mut().player(PlayerId1()).hero;
+    let enemy_minion = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    let friendly_minion = builder.add_custom_minion_to_board(PlayerId1(), 8, 8, 8);
+    builder.add_minion_to_hand(PlayerId1(), &IRONFORGE_RIFLEMAN);
+    builder.add_minion_to_hand(PlayerId1(), &IRONBEAK_OWL);
+    builder.add_minion_to_hand(PlayerId1(), &BIG_GAME_HUNTER);
+    builder.add_minion_to_hand(PlayerId1(), &ALEXSTRASZA);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let state = builder.build();
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    let find_card = |id: &str| {
+        *hand
+            .iter()
+            .find(|&&e| state.world().card_id(e).is_some_and(|c| c.0 == id))
+            .expect("card in hand")
+    };
+    let actions = legal_actions(&state);
+    let rifleman = find_card("NEUTRAL_B07");
+    assert!(
+        actions.contains(&Action::PlayCard {
+            card: rifleman,
+            target: Some(enemy_minion),
+            position: None,
+        }),
+        "rifleman: the enemy minion is a target"
+    );
+    assert!(
+        !actions.contains(&Action::PlayCard {
+            card: rifleman,
+            target: Some(enemy_hero),
+            position: None,
+        }),
+        "rifleman: the enemy hero is NOT a target"
+    );
+    let owl = find_card("CLASSIC_004");
+    assert!(
+        actions.contains(&Action::PlayCard {
+            card: owl,
+            target: Some(friendly_minion),
+            position: None,
+        }),
+        "owl: silencing a friendly minion is legal"
+    );
+    let bgh = find_card("NEUTRAL_E06");
+    assert!(
+        !actions.contains(&Action::PlayCard {
+            card: bgh,
+            target: Some(enemy_minion), // 2-attack enemy minion — not ≥7
+            position: None,
+        }),
+        "bgh: a 2-attack enemy minion is not a target"
+    );
+    assert!(
+        !actions.contains(&Action::PlayCard {
+            card: bgh,
+            target: Some(friendly_minion), // friendly 8/8 — enemy-scope only
+            position: None,
+        }),
+        "bgh: the friendly 8/8 is not a target"
+    );
+    let alex = find_card("LEGENDARY_008");
+    for hero in [friendly_hero, enemy_hero] {
+        assert!(
+            actions.contains(&Action::PlayCard {
+                card: alex,
+                target: Some(hero),
+                position: None,
+            }),
+            "alexstrasza: both heroes are targets"
+        );
+    }
+}
+
+// ============================================================
 // Engine-mechanics roadmap M2 — freeze timing: the thaw moved
 // from Event::TurnStarted to the turn-end wrap-up. A character
 // frozen during the opponent's turn keeps Freeze through its
