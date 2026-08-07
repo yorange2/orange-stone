@@ -517,6 +517,25 @@ pub enum CardEffect {
         /// Health gained per hand card
         health_per_card: i32,
     },
+    /// Gain stats per OTHER friendly minion on the board (Frostwolf Warlord
+    /// — +1/+1 for each other friendly minion; the source is excluded)
+    GainStatsPerFriendlyMinion {
+        /// Attack gained per other friendly minion
+        attack: i32,
+        /// Health gained per other friendly minion
+        health_per_minion: i32,
+    },
+    /// Deal N damage COUNT times, each ping at a random character of the
+    /// target scope (Mad Bomber — 3 random 1-damage pings across all OTHER
+    /// characters; the same target can be hit repeatedly)
+    DealDamageRandomly {
+        /// Damage per ping
+        amount: i32,
+        /// Number of pings
+        count: i32,
+        /// Target scope
+        target: EffectTarget,
+    },
     /// Deal damage; boosted when the caster's hero has ≤ N health
     /// (Mortal Strike — 4 damage, or 6 at 12 or less health)
     MortalStrike {
@@ -889,6 +908,15 @@ enum CardEffectDe {
         attack: i32,
         health_per_card: i32,
     },
+    GainStatsPerFriendlyMinion {
+        attack: i32,
+        health_per_minion: i32,
+    },
+    DealDamageRandomly {
+        amount: i32,
+        count: i32,
+        target: EffectTarget,
+    },
     MortalStrike {
         damage: i32,
         boosted: i32,
@@ -1196,6 +1224,22 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             } => CardEffect::GainStatsPerHandCard {
                 attack,
                 health_per_card,
+            },
+            CardEffectDe::GainStatsPerFriendlyMinion {
+                attack,
+                health_per_minion,
+            } => CardEffect::GainStatsPerFriendlyMinion {
+                attack,
+                health_per_minion,
+            },
+            CardEffectDe::DealDamageRandomly {
+                amount,
+                count,
+                target,
+            } => CardEffect::DealDamageRandomly {
+                amount,
+                count,
+                target,
             },
             CardEffectDe::MortalStrike {
                 damage,

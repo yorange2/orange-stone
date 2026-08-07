@@ -7146,6 +7146,214 @@ fn w15_legal_actions_expose_friendly_targets() {
 }
 
 // ============================================================
+// Battlecry-target debt roadmap W16 — effect-shape debts + close-out:
+// Mad Bomber (three random 1-damage pings across all other characters)
+// and Frostwolf Warlord (+1/+1 per other friendly minion). §12 empties.
+// ============================================================
+
+/// W16-1 Mad Bomber — three random 1-damage pings across all OTHER
+/// characters (the source excluded). With both heroes and one enemy minion
+/// on the board, exactly 3 total damage lands, the bomber itself takes
+/// none, and repeated hits on one character are possible (2 pings on a lone
+/// target: with 3 pings over 3 characters, at least one takes ≥2).
+#[test]
+fn w16_mad_bomber_pings_three_random_other_characters() {
+    use orange_stone::cards::def::MAD_BOMBER;
+    let mut builder = GameBuilder::new();
+    builder.with_rng_seed(42);
+    let friendly_hero = builder.state_mut().player(PlayerId1()).hero;
+    let enemy_hero = builder.state_mut().player(PlayerId2()).hero;
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 2);
+    builder.add_minion_to_hand(PlayerId1(), &MAD_BOMBER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let bomber = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("bomber in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bomber,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let dmg = |e: Entity| state.world().damage(e).map_or(0, |d| d.0);
+    let total = dmg(friendly_hero) + dmg(enemy_hero) + dmg(enemy);
+    assert_eq!(total, 3, "three pings of 1 damage each — 3 total");
+    assert_eq!(dmg(bomber), 0, "the source is excluded from the ping pool");
+    let max_single = dmg(friendly_hero).max(dmg(enemy_hero)).max(dmg(enemy));
+    assert!(
+        max_single >= 2,
+        "3 pings over 3 characters cannot split evenly — one takes ≥2 \
+         (repeated hits on the same character are legal HS behavior)"
+    );
+}
+
+/// W16-2 Mad Bomber — with only the two heroes on the board, the same
+/// contract holds: 3 total damage, none to the source.
+#[test]
+fn w16_mad_bomber_pings_heroes_when_board_is_empty() {
+    use orange_stone::cards::def::MAD_BOMBER;
+    let mut builder = GameBuilder::new();
+    builder.with_rng_seed(7);
+    let friendly_hero = builder.state_mut().player(PlayerId1()).hero;
+    let enemy_hero = builder.state_mut().player(PlayerId2()).hero;
+    builder.add_minion_to_hand(PlayerId1(), &MAD_BOMBER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let bomber = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("bomber in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bomber,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let dmg = |e: Entity| state.world().damage(e).map_or(0, |d| d.0);
+    assert_eq!(
+        dmg(friendly_hero) + dmg(enemy_hero),
+        3,
+        "three pings over the two heroes"
+    );
+    assert_eq!(dmg(bomber), 0, "the source is excluded");
+}
+
+/// W16-3 Frostwolf Warlord — +1/+1 per OTHER friendly minion: with three
+/// allies on the board the Warlord is 4/4 → 7/7.
+#[test]
+fn w16_frostwolf_warlord_gains_stats_per_other_minion() {
+    use orange_stone::cards::def::FROSTWOLF_WARLORD;
+    let mut builder = GameBuilder::new();
+    builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 3);
+    builder.add_minion_to_hand(PlayerId1(), &FROSTWOLF_WARLORD);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let warlord = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("warlord in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: warlord,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(warlord),
+        Some(Attack(7)),
+        "3 other friendly minions → +3/+3 (4/4 → 7/7)"
+    );
+    assert_eq!(
+        state.world().effective_health(warlord),
+        Some(Health(7)),
+        "3 other friendly minions → +3/+3 (4/4 → 7/7)"
+    );
+}
+
+/// W16-4 Frostwolf Warlord — with NO other friendly minions the battlecry
+/// grants nothing (the source itself is not counted).
+#[test]
+fn w16_frostwolf_warlord_gains_nothing_alone() {
+    use orange_stone::cards::def::FROSTWOLF_WARLORD;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &FROSTWOLF_WARLORD);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let warlord = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("warlord in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: warlord,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(warlord),
+        Some(Attack(4)),
+        "no other friendly minions → no buff (base 4/4)"
+    );
+    assert_eq!(
+        state.world().effective_health(warlord),
+        Some(Health(4)),
+        "no other friendly minions → no buff (base 4/4)"
+    );
+}
+
+/// W16-5 the RL path — neither Mad Bomber nor Frostwolf Warlord exposes a
+/// target (both effects are targetless random/self-scoped).
+#[test]
+fn w16_effects_expose_no_targets() {
+    use orange_stone::cards::def::{FROSTWOLF_WARLORD, MAD_BOMBER};
+    use orange_stone::rl::env::legal_actions;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &MAD_BOMBER);
+    builder.add_minion_to_hand(PlayerId1(), &FROSTWOLF_WARLORD);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let state = builder.build();
+    let hand: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    let actions = legal_actions(&state);
+    for card in hand {
+        assert!(
+            actions.contains(&Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            }),
+            "the card is playable WITHOUT a target"
+        );
+        assert!(
+            !actions.iter().any(|a| matches!(
+                a,
+                Action::PlayCard {
+                    card: c,
+                    target: Some(_),
+                    ..
+                } if *c == card
+            )),
+            "no targeted PlayCard variant is offered"
+        );
+    }
+}
+
+// ============================================================
 // Engine-mechanics roadmap M2 — freeze timing: the thaw moved
 // from Event::TurnStarted to the turn-end wrap-up. A character
 // frozen during the opponent's turn keeps Freeze through its
