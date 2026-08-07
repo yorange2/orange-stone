@@ -51,8 +51,8 @@ fn build_env_config(
             )));
         }
     };
-    let mut config = EnvConfig::default_with(bot_type, deck_size)
-        .with_opening(hand_size, second_player_coin);
+    let mut config =
+        EnvConfig::default_with(bot_type, deck_size).with_opening(hand_size, second_player_coin);
     config.reward.terminal = terminal;
     if let Some(ids) = deck {
         let mut resolved = Vec::with_capacity(ids.len());
@@ -110,7 +110,12 @@ impl PyGameEnv {
             _ => PlayerId::Player2,
         };
         let config = build_env_config(
-            deck_size, deck, bot, hand_size, second_player_coin, terminal_reward,
+            deck_size,
+            deck,
+            bot,
+            hand_size,
+            second_player_coin,
+            terminal_reward,
         )?;
         let mut env = GameEnv::new(perspective, config);
         env.reset(seed);
@@ -233,7 +238,12 @@ impl PyBatchEnv {
         terminal_reward: &str,
     ) -> PyResult<Self> {
         let config = build_env_config(
-            deck_size, deck, bot, hand_size, second_player_coin, terminal_reward,
+            deck_size,
+            deck,
+            bot,
+            hand_size,
+            second_player_coin,
+            terminal_reward,
         )?;
         let mut envs = Vec::with_capacity(seeds.len());
         for (i, seed) in seeds.iter().enumerate() {
@@ -411,8 +421,7 @@ fn battle_batch(
     let mut states = Vec::with_capacity(seeds.len());
     for seed in seeds {
         let mut runner = crate::sim::battle::BattleRunner::new(bot_type, seed);
-        let state =
-            runner.create_game_state_with_decks(&cards, &cards, 3, true);
+        let state = runner.create_game_state_with_decks(&cards, &cards, 3, true);
         states.push(state);
     }
     let sim = crate::sim::batch::BatchSimulator::new(bot_type, max_steps);

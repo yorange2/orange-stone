@@ -229,7 +229,7 @@ W12 (PR #101) cleared the last 5: Water Elemental / Cabal Shadow Priest /
 Prophet Velen / Shiv / Argent Protector — **the ledger is EMPTY and the RL
 pool is the full 391-card classic pool**.
 
-### 12. Battlecry target sets — M1 audit (20 → 16 → 9 cards, registered 2026-08-07)
+### 12. Battlecry target sets — M1 audit (20 → 16 → 9 → 2 cards, registered 2026-08-07)
 
 The engine-mechanics roadmap M1 audit (minion battlecry explicit targets)
 walked every minion battlecry with a target-bearing effect and checked the
@@ -237,17 +237,7 @@ engine's `EffectTarget` against real HS. 20 cards do not match and are
 registered here per the maintenance contract (each carries a
 `(simplified: …)` comment in `src/cards/`; the RL pool drops to 371 until
 they are cleared). The wrong-scope rows were cleared in W13 (PR #104) and
-W14 (PR #105); what remains:
-
-Targeted battlecries modeled as `Self_` (the chosen target is dropped — the
-effect always hits the minion itself):
-
-- Temple Enforcer (PRIEST_015) / Abusive Sergeant (NEUTRAL_001) / Dark Iron
-  Dwarf (CLASSIC_009) — HS: a friendly minion
-- Youthful Brewmaster (NEUTRAL_002) / Ancient Brewmaster (NEUTRAL_011) — HS:
-  return a friendly minion
-- Earthen Ring Farseer (NEUTRAL_005) / Voodoo Doctor (NEUTRAL_B04) — HS: any
-  character
+W14 (PR #105), the `Self_`-modeled rows in W15 (PR #106); what remains:
 
 Effect-shape debts (beyond targets, found by the same audit):
 
