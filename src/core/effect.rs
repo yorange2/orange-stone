@@ -657,6 +657,37 @@ pub enum CardEffect {
     /// Resummon the minion that just died with 1 Health (Redemption — a
     /// secret effect resolved with the death event)
     ResurrectDiedMinion,
+    // ----------------------------------------------------------------
+    // Pool-open effects (pool-open-cards roadmap M1) — read the
+    // opponent's actual zones instead of sampling a pool. Enforced to
+    // appear only on cards registered in `sets::POOL_OPEN_CARDS` by
+    // `pool_open_effects_require_registry` (see docs/pool-openness.md).
+    // ----------------------------------------------------------------
+    /// Copy `count` random cards from the enemy hand into this player's
+    /// hand (Mind Vision — sampling without replacement over hand entities)
+    CopyRandomEnemyHandCard {
+        /// Number of cards to copy
+        count: u32,
+    },
+    /// Copy `count` random cards from the enemy deck into this player's
+    /// hand (Thoughtsteal — sampling without replacement over deck
+    /// entities; two copies of the same card are two distinct entities
+    /// and may both be picked, the same entity may not)
+    CopyRandomEnemyDeckCards {
+        /// Number of cards to copy
+        count: u32,
+    },
+    /// Summon a copy of a random minion from the enemy deck (Mindgames).
+    /// The enemy deck is not modified; when the deck holds no minions,
+    /// the `fallback_card_id` token is summoned instead (Shadow of Nothing)
+    SummonRandomEnemyDeckMinion {
+        /// Token card ID to summon when the enemy deck has no minions
+        fallback_card_id: &'static str,
+    },
+    /// Copy the just-cast spell into the other player's hand (Lorewalker
+    /// Cho — the subject is the cast spell; the copy goes to the caster's
+    /// opponent, whoever that is)
+    CopyCastSpellToOtherPlayerHand,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -888,6 +919,16 @@ enum CardEffectDe {
         health: i32,
         target: EffectTarget,
     },
+    CopyRandomEnemyHandCard {
+        count: u32,
+    },
+    CopyRandomEnemyDeckCards {
+        count: u32,
+    },
+    SummonRandomEnemyDeckMinion {
+        fallback_card_id: String,
+    },
+    CopyCastSpellToOtherPlayerHand,
     DestroyAndGainStats {
         attack: i32,
         health: i32,
@@ -1201,6 +1242,20 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 health,
                 target,
             },
+            CardEffectDe::CopyRandomEnemyHandCard { count } => {
+                CardEffect::CopyRandomEnemyHandCard { count }
+            }
+            CardEffectDe::CopyRandomEnemyDeckCards { count } => {
+                CardEffect::CopyRandomEnemyDeckCards { count }
+            }
+            CardEffectDe::SummonRandomEnemyDeckMinion { fallback_card_id } => {
+                CardEffect::SummonRandomEnemyDeckMinion {
+                    fallback_card_id: intern(fallback_card_id)?,
+                }
+            }
+            CardEffectDe::CopyCastSpellToOtherPlayerHand => {
+                CardEffect::CopyCastSpellToOtherPlayerHand
+            }
             CardEffectDe::DestroyAndGainStats {
                 attack,
                 health,

@@ -1277,6 +1277,12 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::RestoreDamagedFriendly { amount } => amount as f64 * 0.6,
         CardEffect::SwapWithHandMinion => 2.0,
         CardEffect::ResurrectDiedMinion => 2.0,
+        // Pool-open (roadmap M1): copying an opponent's card is worth roughly
+        // a random card to hand; summoning one is worth a summon.
+        CardEffect::CopyRandomEnemyHandCard { .. }
+        | CardEffect::CopyRandomEnemyDeckCards { .. }
+        | CardEffect::SummonRandomEnemyDeckMinion { .. }
+        | CardEffect::CopyCastSpellToOtherPlayerHand => 3.0,
     }
 }
 

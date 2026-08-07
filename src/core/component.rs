@@ -388,6 +388,10 @@ pub enum TriggerEvent {
     FriendlyMinionDied,
     /// A friendly player casts a spell
     FriendlySpellCast,
+    /// ANY player casts a spell (Lorewalker Cho — copies the cast spell to
+    /// the other player's hand; global scope, fires for both players).
+    /// `Event::SpellCast` threads the spell entity as the event subject.
+    AnySpellCast,
     /// A friendly player plays a card with Overload
     FriendlyOverloadPlayed,
     /// This minion takes damage (Acolyte of Pain)

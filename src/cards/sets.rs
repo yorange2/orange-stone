@@ -972,4 +972,49 @@ mod tests {
             assert!(seen.insert(id), "{id} is registered twice");
         }
     }
+
+    /// Pool closure is enforced: the zone-reading effect variants (pool-open
+    /// M1) may appear only on cards registered in `POOL_OPEN_CARDS`. A future
+    /// card that reads an opponent zone cannot be added without either
+    /// registering it or failing this test. The Cho trigger path (registered
+    /// by ID in `apply_card_keywords`, not through a CardDef field) is
+    /// covered by its debug_assert + `po_cho_*` scenarios.
+    #[test]
+    fn pool_open_effects_require_registry() {
+        use crate::core::effect::CardEffect;
+
+        let is_pool_open_effect = |effect: &CardEffect| {
+            matches!(
+                effect,
+                CardEffect::CopyRandomEnemyHandCard { .. }
+                    | CardEffect::CopyRandomEnemyDeckCards { .. }
+                    | CardEffect::SummonRandomEnemyDeckMinion { .. }
+                    | CardEffect::CopyCastSpellToOtherPlayerHand
+            )
+        };
+        for card in ALL_CARDS {
+            let uses_pool_open = [
+                card.battlecry,
+                card.deathrattle,
+                card.spell_effect,
+                card.end_turn_effect,
+                card.start_turn_effect,
+                card.spell_trigger,
+                card.death_trigger,
+                card.summon_trigger,
+                card.choose_one_effect,
+                card.combo_effect,
+                card.hero_power,
+            ]
+            .into_iter()
+            .flatten()
+            .any(|effect| is_pool_open_effect(&effect));
+            assert_eq!(
+                uses_pool_open,
+                POOL_OPEN_CARDS.contains(&card.id),
+                "{}: a pool-open effect requires a POOL_OPEN_CARDS row (and vice versa)",
+                card.id
+            );
+        }
+    }
 }
