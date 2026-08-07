@@ -105,7 +105,7 @@ fizzle, resolvers with `explicit`):
 - F5 scenarios per card (`w14_*`).
 - **Acceptance**: `cargo test` green; ledger drops 7 rows; pool 368.
 
-### W15 — targeted battlecries modeled as Self_ (one PR)
+### W15 — targeted battlecries modeled as Self_ ✅ done (PR #106)
 
 - **Temple Enforcer**: `Self_` → `FriendlyMinion` +3/+3.
 - **Abusive Sergeant / Dark Iron Dwarf**: `Self_` → `FriendlyMinion`
@@ -142,7 +142,7 @@ fizzle, resolvers with `explicit`):
 | --- | --- | --- | --- |
 | W13 AnyCharacter/AnyHero mechanism | engine + F5 | 4 | PR #104 ✅ |
 | W14 enemy-scope corrections | engine + F5 | 7 | PR #105 ✅ |
-| W15 Self_ targeted battlecries | engine + F5 | 7 | one PR |
+| W15 Self_ targeted battlecries | engine + F5 | 7 | PR #106 ✅ |
 | W16 effect shapes + close-out | engine + F5 + docs | 2 | one PR (+ cross-repo docs) |
 
 ## Out of scope
