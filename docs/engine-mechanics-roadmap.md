@@ -15,7 +15,7 @@
 
 ## Milestones
 
-### M1 — Minion battlecry explicit targets
+### M1 — Minion battlecry explicit targets ✅ (PR #102)
 
 - Thread the `PlayCard { target }` through the minion play path: the
   `MinionSummoned` event (or the `CardPlayed` handler) must carry the
@@ -50,7 +50,7 @@ hero freeze blocks the hero's attack; Icicle double-freeze interplay);
 
 | Milestone | Scope | PR |
 | --- | --- | --- |
-| M1 battlecry targets | engine + F5 | one PR |
+| M1 battlecry targets | engine + F5 | ✅ PR #102 |
 | M2 freeze timing | engine + F5 | one PR |
 
 ## Out of scope
