@@ -812,6 +812,33 @@ pub fn resolve_effect(
                 },
             );
         }
+        CardEffect::GainStatsPerFriendlyMinion {
+            attack,
+            health_per_minion,
+        } => {
+            // Frostwolf Warlord (W16): +1/+1 per OTHER friendly minion —
+            // the source itself is excluded.
+            let others = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| e != source)
+                .count() as i32;
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack: attack * others,
+                    health: health_per_minion * others,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::DealDamageRandomly {
+            amount,
+            count,
+            target,
+        } => {
+            resolve_deal_damage_randomly(state, queue, source, owner, amount, count, target);
+        }
         CardEffect::MortalStrike {
             damage,
             boosted,
@@ -2665,6 +2692,41 @@ fn resolve_destroy_weapon_and_draw(state: &mut GameState, queue: &mut EventQueue
 }
 
 /// Deals damage to two random enemy minions.
+/// Deals `count` random pings of `amount` damage each across the target
+/// scope (Mad Bomber, W16 — three random 1-damage pings across all OTHER
+/// characters). The same character can be hit repeatedly (an official HS
+/// property: 3 pings on a lone minion all land on it); stealthed characters
+/// are included (random pings, not targeting). The source is excluded.
+fn resolve_deal_damage_randomly(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+    amount: i32,
+    count: i32,
+    target: EffectTarget,
+) {
+    let chars: SmallList<Entity> = match target {
+        EffectTarget::AllCharacters => {
+            let mut all = collect_friendly_characters(state, owner, None);
+            all.extend(collect_all_enemy_characters(state, owner));
+            all.into_iter().filter(|&e| e != source).collect()
+        }
+        _ => return,
+    };
+    if chars.is_empty() {
+        return;
+    }
+    for _ in 0..count {
+        let idx = state.rng_mut().next_usize(chars.len());
+        queue.push(Event::DamageDealt {
+            source,
+            target: chars[idx],
+            amount,
+        });
+    }
+}
+
 fn resolve_deal_damage_to_two(
     state: &mut GameState,
     queue: &mut EventQueue,

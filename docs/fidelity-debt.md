@@ -229,25 +229,21 @@ W12 (PR #101) cleared the last 5: Water Elemental / Cabal Shadow Priest /
 Prophet Velen / Shiv / Argent Protector — **the ledger is EMPTY and the RL
 pool is the full 391-card classic pool**.
 
-### 12. Battlecry target sets — M1 audit (20 → 16 → 9 → 2 cards, registered 2026-08-07)
+### 12. Battlecry target sets — M1 audit (20 → 16 → 9 → 2 → 0 cards) ✅ EMPTY
 
 The engine-mechanics roadmap M1 audit (minion battlecry explicit targets)
 walked every minion battlecry with a target-bearing effect and checked the
-engine's `EffectTarget` against real HS. 20 cards do not match and are
-registered here per the maintenance contract (each carries a
-`(simplified: …)` comment in `src/cards/`; the RL pool drops to 371 until
-they are cleared). The wrong-scope rows were cleared in W13 (PR #104) and
-W14 (PR #105), the `Self_`-modeled rows in W15 (PR #106); what remains:
+engine's `EffectTarget` against real HS. 20 cards did not match and were
+registered here per the maintenance contract (each carried a
+`(simplified: …)` comment in `src/cards/`; the RL pool dropped to 371 until
+they were cleared). The wrong-scope rows were cleared in W13 (PR #104) and
+W14 (PR #105), the `Self_`-modeled rows in W15 (PR #106), and the
+effect-shape rows in W16 (PR #107). §12 is now empty — the RL pool is back
+to the full 392 (415 card ids − 22 derivatives − 1 coin; the roadmap's 391
+was measured on a stale 414-card wheel, see PR #104).
 
-Effect-shape debts (beyond targets, found by the same audit):
-
-- Mad Bomber (NEUTRAL_003) — `DealDamage AllCharacters` is a no-op in
-  `resolve_deal_damage`; HS: 3 damage split randomly between all other
-  characters
-- Frostwolf Warlord (NEUTRAL_018) — fixed +1/+1 self-buff; HS: +1/+1 per
-  other friendly minion
-
-*(20 rows registered 2026-08-07 by the engine-mechanics M1 audit)*
+*(20 rows registered 2026-08-07 by the engine-mechanics M1 audit; all
+cleared 2026-08-07 by the battlecry-target-debt roadmap W13–W16)*
 
 ## Findings from the 2026-08-06 audit pass (all resolved in PR #77 / PR #31)
 

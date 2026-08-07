@@ -735,7 +735,7 @@ pub const YOUTHFUL_BREWMASTER: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Mad Bomber — Battlecry: deal 3 damage split randomly between all other characters (simplified: the battlecry is a no-op — no damage)
+/// Mad Bomber — Battlecry: deal 3 damage split randomly between all other characters
 pub const MAD_BOMBER: CardDef = CardDef {
     id: "NEUTRAL_003",
     name: "Mad Bomber",
@@ -744,8 +744,9 @@ pub const MAD_BOMBER: CardDef = CardDef {
     attack: 3,
     health: 2,
     durability: 0,
-    battlecry: Some(CardEffect::DealDamage {
-        amount: 3,
+    battlecry: Some(CardEffect::DealDamageRandomly {
+        amount: 1,
+        count: 3,
         target: EffectTarget::AllCharacters,
     }),
     deathrattle: None,
@@ -1255,7 +1256,7 @@ pub const ABOMINATION: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Frostwolf Warlord — Battlecry: gain +1/+1 for each other friendly minion (simplified: a fixed +1/+1 self-buff)
+/// Frostwolf Warlord — Battlecry: gain +1/+1 for each other friendly minion
 pub const FROSTWOLF_WARLORD: CardDef = CardDef {
     id: "NEUTRAL_018",
     name: "Frostwolf Warlord",
@@ -1264,10 +1265,9 @@ pub const FROSTWOLF_WARLORD: CardDef = CardDef {
     attack: 4,
     health: 4,
     durability: 0,
-    battlecry: Some(CardEffect::GainStats {
+    battlecry: Some(CardEffect::GainStatsPerFriendlyMinion {
         attack: 1,
-        health: 1,
-        target: EffectTarget::Self_,
+        health_per_minion: 1,
     }),
     deathrattle: None,
     taunt: false,
