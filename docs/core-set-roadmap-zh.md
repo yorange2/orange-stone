@@ -23,8 +23,8 @@
 
 ### CORE_AT_* — 冠军的试炼（6 张）
 
-- [ ] `CORE_AT_037` Living Roots — 1 费 法术
-- [ ] `CORE_AT_052` Totem Golem — 2 费随从 3/4
+- [x] `CORE_AT_037` Living Roots — 1 费 法术
+- [x] `CORE_AT_052` Totem Golem — 2 费随从 3/4
 - [x] `CORE_AT_055` Flash Heal — 1 费 法术
 - [x] `CORE_AT_062` Ball of Spiders — 3 费 法术
 - [x] `CORE_AT_064` Bash — 2 费 法术
@@ -32,7 +32,7 @@
 
 ### CORE_AV_* — 奥特兰克的决裂（2 张）
 
-- [ ] `CORE_AV_107` Glaciate — 6 费 法术
+- [x] `CORE_AV_107` Glaciate — 6 费 法术
 - [x] `CORE_AV_337` Mountain Bear — 7 费随从 5/6
 
 ### CORE_BAR_* — 贫瘠之地的锤炼（7 张）
@@ -40,7 +40,7 @@
 - [x] `CORE_BAR_310` Lightshower Elemental — 6 费随从 6/6
 - [x] `CORE_BAR_311` Devouring Plague — 3 费 法术
 - [x] `CORE_BAR_313` Priest of An'she — 5 费随从 5/5
-- [ ] `CORE_BAR_541` Runed Orb — 2 费 法术
+- [x] `CORE_BAR_541` Runed Orb — 2 费 法术
 - [x] `CORE_BAR_801` Wound Prey — 1 费 法术
 - [x] `CORE_BAR_812` Oasis Ally — 3 费 法术
 - [x] `CORE_BAR_878` Veteran Warmedic — 4 费随从 3/5
@@ -49,8 +49,8 @@
 
 - [x] `CORE_BOT_222` Spirit Bomb — 1 费 法术
 - [x] `CORE_BOT_256` Astromancer — 7 费随从 5/5
-- [ ] `CORE_BOT_451` Voltaic Burst — 1 费 法术
-- [ ] `CORE_BOT_576` Crazed Chemist — 5 费随从 4/4
+- [x] `CORE_BOT_451` Voltaic Burst — 1 费 法术
+- [x] `CORE_BOT_576` Crazed Chemist — 5 费随从 4/4
 
 ### CORE_BRM_* — 黑石山的火焰（1 张）
 
@@ -59,7 +59,7 @@
 ### CORE_BT_* — 外域的灰烬（18 张）
 
 - [x] `CORE_BT_035` Chaos Strike — 2 费 法术
-- [ ] `CORE_BT_072` Deep Freeze — 7 费 法术
+- [x] `CORE_BT_072` Deep Freeze — 7 费 法术
 - [x] `CORE_BT_120` Warmaul Challenger — 3 费随从 1/10
 - [x] `CORE_BT_156` Imprisoned Vilefiend — 2 费随从 3/5
 - [x] `CORE_BT_187` Kayn Sunfury — 4 费随从 3/5
@@ -117,8 +117,8 @@
 - [x] `CORE_CS2_004` Power Word: Shield — 1 费 法术
 - [x] `CORE_CS2_009` Mark of the Wild — 2 费 法术
 - [x] `CORE_CS2_023` Arcane Intellect — 3 费 法术
-- [ ] `CORE_CS2_024` Frostbolt — 2 费 法术
-- [ ] `CORE_CS2_028` Blizzard — 6 费 法术
+- [x] `CORE_CS2_024` Frostbolt — 2 费 法术
+- [x] `CORE_CS2_028` Blizzard — 6 费 法术
 - [x] `CORE_CS2_029` Fireball — 4 费 法术
 - [x] `CORE_CS2_032` Flamestrike — 7 费 法术
 - [ ] `CORE_CS2_039e` Windfury — 附魔衍生物（0 费）
@@ -157,7 +157,7 @@
 
 ### CORE_DS1_* — 基础系列（猎人）（2 张）
 
-- [ ] `CORE_DS1_184` Tracking — 1 费 法术
+- [x] `CORE_DS1_184` Tracking — 1 费 法术
 - [x] `CORE_DS1_185` Arcane Shot — 1 费 法术
 
 ### CORE_EDR_* — 来源系列名待补（EDR）（6 张）
@@ -193,21 +193,21 @@
 - [x] `CORE_EX1_103` Coldlight Seer — 3 费随从 2/3
 - [x] `CORE_EX1_110` Cairne Bloodhoof — 6 费随从 5/5
 - [x] `CORE_EX1_129` Fan of Knives — 2 费 法术
-- [ ] `CORE_EX1_131` Defias Ringleader — 2 费随从 3/2
-- [ ] `CORE_EX1_134` SI:7 Agent — 3 费随从 3/3
+- [x] `CORE_EX1_131` Defias Ringleader — 2 费随从 3/2
+- [x] `CORE_EX1_134` SI:7 Agent — 3 费随从 3/3
 - [x] `CORE_EX1_145` Preparation — 0 费 法术
-- [ ] `CORE_EX1_154` Wrath — 2 费 法术
-- [ ] `CORE_EX1_160` Power of the Wild — 2 费 法术
+- [x] `CORE_EX1_154` Wrath — 2 费 法术
+- [x] `CORE_EX1_160` Power of the Wild — 2 费 法术
 - [x] `CORE_EX1_162` Dire Wolf Alpha — 2 费随从 2/2
 - [x] `CORE_EX1_169` Innervate — 0 费 法术
 - [x] `CORE_EX1_189` Brightwing — 2 费随从 3/2
 - [x] `CORE_EX1_193` Psychic Conjurer — 1 费随从 1/2
 - [x] `CORE_EX1_197` Shadow Word: Ruin — 4 费 法术
 - [x] `CORE_EX1_198` Natalie Seline — 7 费随从 7/1
-- [ ] `CORE_EX1_238` Lightning Bolt — 1 费 法术
+- [x] `CORE_EX1_238` Lightning Bolt — 1 费 法术
 - [x] `CORE_EX1_246` Hex — 3 费 法术
-- [ ] `CORE_EX1_250` Earth Elemental — 5 费随从 7/9
-- [ ] `CORE_EX1_259` Lightning Storm — 3 费 法术
+- [x] `CORE_EX1_250` Earth Elemental — 5 费随从 7/9
+- [x] `CORE_EX1_259` Lightning Storm — 3 费 法术
 - [x] `CORE_EX1_278` Shiv — 2 费 法术
 - [x] `CORE_EX1_287` Counterspell — 3 费 法术
 - [x] `CORE_EX1_289` Ice Barrier — 3 费 法术
@@ -241,7 +241,7 @@
 - [x] `CORE_GIL_577` Rat Trap — 2 费 法术
 - [x] `CORE_GIL_622` Lifedrinker — 4 费随从 3/3
 - [x] `CORE_GIL_623` Witchwood Grizzly — 5 费随从 3/12
-- [ ] `CORE_GIL_836` Blazing Invocation — 1 费 法术
+- [x] `CORE_GIL_836` Blazing Invocation — 1 费 法术
 
 ### CORE_GVG_* — 地精大战侏儒（5 张）
 
@@ -300,14 +300,14 @@
 
 - [x] `CORE_OG_031` Hammer of Twilight — 5 费武器 4/2
 - [x] `CORE_OG_044` Fandral Staghelm — 4 费随从 3/6
-- [ ] `CORE_OG_047` Feral Rage — 3 费 法术
+- [x] `CORE_OG_047` Feral Rage — 3 费 法术
 - [x] `CORE_OG_149` Ravaging Ghoul — 3 费随从 3/3
 - [x] `CORE_OG_211` Call of the Wild — 8 费 法术
 - [ ] `CORE_OG_218` Bloodhoof Brave — 4 费随从 2/6
 
 ### CORE_ONY_* — 奥妮克希亚的巢穴（迷你）（2 张）
 
-- [ ] `CORE_ONY_018` Boomkin — 5 费随从 4/5
+- [x] `CORE_ONY_018` Boomkin — 5 费随从 4/5
 - [x] `CORE_ONY_022` Battle Vicar — 2 费随从 1/3
 
 ### CORE_REV_* — 来源系列名待补（REV）（4 张）
@@ -372,7 +372,7 @@
 ### CORE_TSC_* — 来源系列名待补（TSC）（2 张）
 
 - [x] `CORE_TSC_076` Immortalized in Stone — 7 费 法术
-- [ ] `CORE_TSC_650` Flipper Friends — 5 费 法术
+- [x] `CORE_TSC_650` Flipper Friends — 5 费 法术
 
 ### CORE_TTN_* — 泰坦诸神（2 张）
 
@@ -411,7 +411,7 @@
 - [x] `CORE_WON_141` Menagerie Mug — 3 费随从 3/3
 - [x] `CORE_WON_145` Avatar of Hearthstone — 9 费随从 5/5
 - [x] `CORE_WON_337` Ironforge Portal — 4 费 法术
-- [ ] `CORE_WON_350` I Know a Guy — 1 费 法术
+- [x] `CORE_WON_350` I Know a Guy — 1 费 法术
 - [x] `CORE_WON_351` Small-Time Buccaneer — 1 费随从 1/2
 
 ### CORE_WW_* — 来源系列名待补（WW）（2 张）
@@ -425,7 +425,7 @@
 
 ### CORE_YOP_* — 来源系列名待补（YOP）（2 张）
 
-- [ ] `CORE_YOP_001` Illidari Studies — 1 费 法术
+- [x] `CORE_YOP_001` Illidari Studies — 1 费 法术
 - [x] `CORE_YOP_034` Runaway Blackwing — 10 费随从 10/10
 
 ## 决策记录（2026-08-08 决策轮已定）
@@ -467,16 +467,16 @@ CORE 卡生成静态 const，引擎缺失 RUSH/LIFESTEAL/TRADEABLE/OUTCAST/REBOR
   `Race` 补 Dragon / Elemental / Mechanical / Pirate / Totem（观测编码扩到
   8 种族，维度不变）。新增 `core_reprints_match_originals` 测试守护重印
   保真（90/90 对全匹配）。
-- **W1 — 攻击管线原语（15 张 + F5）：** 突袭（5）+ 吸血（8）+ 复生（2）。
+- **W1 — 攻击管线原语（15 张 + F5）✅（PR #117，2026-08-08）：** 突袭（5）+ 吸血（8）+ 复生（2）。
   `CORE_BT_801`（眼棱）与 `CORE_BAR_311`（吞噬瘟疫）带 W2 机制——先落 W1 部分，
   W2 补全。卡：`CORE_BT_156 CORE_BT_801 CORE_BT_921 CORE_BAR_311 CORE_DRG_079
   CORE_GIL_558 CORE_ICC_055 CORE_ICC_214 CORE_SW_442 CORE_TTN_866 CORE_RLK_657
   CORE_RLK_745 CORE_TRL_900 CORE_ULD_723 CORE_WC_701`
-- **W2 — 手牌/法术管线原语（11 张 + F5）：** 可交易（6）+ 流放（3）+ 法术伤害
+- **W2 — 手牌/法术管线原语（11 张 + F5）✅（PR #118，2026-08-08）：** 可交易（6）+ 流放（3）+ 法术伤害
   豁免（3）+ 受法术伤害影响（1）。卡：`CORE_EX1_002 CORE_EX1_005 CORE_REV_023
   CORE_SW_066 CORE_SW_072 CORE_SW_429 CORE_BT_480 CORE_BT_491 CORE_BT_801
   CORE_BAR_311 CORE_LOOT_101 CORE_LOOT_373 CORE_BRM_013`
-- **W3a/b/c — 白板批（115 张）：** 无新原语；白板随从/武器、直伤/治疗/抽牌法术、
+- **W3a/b/c — 白板批（115 张）✅（PR #119/#120/#121/#122，2026-08-08）：** 无新原语；白板随从/武器、直伤/治疗/抽牌法术、
   纯关键词卡（嘲讽/冲锋/圣盾/潜行/扰咒/……）。按系列拆三个 PR。
   - W3a（39）：`CORE_AT_055 CORE_AT_062 CORE_AT_064 CORE_CFM_344 CORE_CFM_604
     CORE_CFM_670 CORE_CFM_781 CORE_CS1_112 CORE_CS1_130 CORE_DAL_575
@@ -502,7 +502,7 @@ CORE 卡生成静态 const，引擎缺失 RUSH/LIFESTEAL/TRADEABLE/OUTCAST/REBOR
     CORE_OG_211 CORE_RLK_063 CORE_RLK_083 CORE_RLK_087 CORE_RLK_118
     CORE_RLK_121 CORE_RLK_567 CORE_RLK_712 CORE_TRL_307 CORE_ULD_133
     CORE_WON_337 CORE_WON_351`
-- **W4a/b — 战吼批（76 张）：** 按系列拆两个 PR。
+- **W4a/b — 战吼批（76 张）✅（PR #123/#124，2026-08-08）：** 按系列拆两个 PR。
   - W4a（38）：`CORE_BAR_313 CORE_BT_120 CORE_BT_321 CORE_BT_416 CORE_CFM_753
     CORE_CFM_790 CORE_DMF_067 CORE_DMF_511 CORE_EDR_001 CORE_EDR_003
     CORE_EDR_004 CORE_EDR_004_2026 CORE_GIL_531 CORE_GIL_622 CORE_GIL_623
@@ -519,13 +519,22 @@ CORE 卡生成静态 const，引擎缺失 RUSH/LIFESTEAL/TRADEABLE/OUTCAST/REBOR
     CORE_REV_308 CORE_REV_946 CORE_SCH_181 CORE_SCH_713 CORE_TRL_111
     CORE_TRL_240 CORE_TRL_345 CORE_ULD_165 CORE_ULD_178 CORE_ULD_191
     CORE_ULD_271 CORE_WON_096 CORE_WON_141 CORE_WON_145`
-- **W5 — 亡语/奥秘/光环（33 张 + F5）：** `CORE_AT_123 CORE_AV_337 CORE_BAR_310
+- **W5 — 亡语/奥秘/光环（33 张 + F5）✅（PR #125，2026-08-08）：** `CORE_AT_123 CORE_AV_337 CORE_BAR_310
   CORE_BAR_812 CORE_BT_187 CORE_BT_201 CORE_CS2_122 CORE_CS2_222 CORE_DAL_720
   CORE_DRG_107 CORE_EX1_012 CORE_EX1_096 CORE_EX1_110 CORE_EX1_162 CORE_EX1_287
   CORE_EX1_289 CORE_EX1_383 CORE_EX1_507 CORE_EX1_610 CORE_EX1_611 CORE_GIL_577
   CORE_GVG_114 CORE_LOOT_368 CORE_LOOT_413 CORE_NEW1_027 CORE_OG_031 CORE_OG_044
   CORE_RLK_086 CORE_SW_068 CORE_SW_439 CORE_ULD_152 CORE_ULD_280 CORE_YOD_026`
-- **W6 — 发现/抉择/连击/过载/冻结（23 张 + F5）：** `CORE_AT_037 CORE_AT_052
+- **W6 — 发现/抉择/连击/过载/冻结（23 张 + 6 衍生物 + F5）✅（PR #126，2026-08-08）：**
+  过载接线（图腾魔像/蓄能爆发/闪电箭/土元素/闪电风暴）、寒冰箭（伤害并冻结——
+  修掉 Icicle 式 or-else 误接）、暴风雪（全敌随从伤害+冻结）、深度冻结（冻结敌人 +
+  两只水元素，衍生物继承经典水元素的伤害冻结钩子）、冰川突袭（随机 8 费随从并冻结，
+  Discover 简化）；抉择批 6 张（含引擎修正：抉择法术在 combo 激活时不再被吞掉选择——
+  真实炉石始终给选择）；连击批 3 张（迪菲亚头目新增 2/1 迪菲亚强盗 EX1_131t，修掉
+  NEUTRAL_T04 新手机械师误接）；Discover 批 6 张（奥术之球/追踪术/炽热召唤/我认识一个人/
+  伊利达雷研习——新增 next_outcast_discount 玩家字段）；闪电风暴 2-3 随机伤害固化为 2
+  （登记简化）；水獭衍生物带突袭。23 张 F5 差分场景。
+  `CORE_AT_037 CORE_AT_052
   CORE_AV_107 CORE_BAR_541 CORE_BOT_451 CORE_BOT_576 CORE_BT_072 CORE_CS2_024
   CORE_CS2_028 CORE_DS1_184 CORE_EX1_131 CORE_EX1_134 CORE_EX1_154 CORE_EX1_160
   CORE_EX1_238 CORE_EX1_250 CORE_EX1_259 CORE_GIL_836 CORE_OG_047 CORE_ONY_018

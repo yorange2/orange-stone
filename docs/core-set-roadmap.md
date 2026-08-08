@@ -28,8 +28,8 @@ inventory is confirmed — every card is a checkbox.
 
 ### CORE_AT_* — 冠军的试炼（6 张）
 
-- [ ] `CORE_AT_037` Living Roots — 1 费 法术
-- [ ] `CORE_AT_052` Totem Golem — 2 费随从 3/4
+- [x] `CORE_AT_037` Living Roots — 1 费 法术
+- [x] `CORE_AT_052` Totem Golem — 2 费随从 3/4
 - [x] `CORE_AT_055` Flash Heal — 1 费 法术
 - [x] `CORE_AT_062` Ball of Spiders — 3 费 法术
 - [x] `CORE_AT_064` Bash — 2 费 法术
@@ -37,7 +37,7 @@ inventory is confirmed — every card is a checkbox.
 
 ### CORE_AV_* — 奥特兰克的决裂（2 张）
 
-- [ ] `CORE_AV_107` Glaciate — 6 费 法术
+- [x] `CORE_AV_107` Glaciate — 6 费 法术
 - [x] `CORE_AV_337` Mountain Bear — 7 费随从 5/6
 
 ### CORE_BAR_* — 贫瘠之地的锤炼（7 张）
@@ -45,7 +45,7 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_BAR_310` Lightshower Elemental — 6 费随从 6/6
 - [x] `CORE_BAR_311` Devouring Plague — 3 费 法术
 - [x] `CORE_BAR_313` Priest of An'she — 5 费随从 5/5
-- [ ] `CORE_BAR_541` Runed Orb — 2 费 法术
+- [x] `CORE_BAR_541` Runed Orb — 2 费 法术
 - [x] `CORE_BAR_801` Wound Prey — 1 费 法术
 - [x] `CORE_BAR_812` Oasis Ally — 3 费 法术
 - [x] `CORE_BAR_878` Veteran Warmedic — 4 费随从 3/5
@@ -54,8 +54,8 @@ inventory is confirmed — every card is a checkbox.
 
 - [x] `CORE_BOT_222` Spirit Bomb — 1 费 法术
 - [x] `CORE_BOT_256` Astromancer — 7 费随从 5/5
-- [ ] `CORE_BOT_451` Voltaic Burst — 1 费 法术
-- [ ] `CORE_BOT_576` Crazed Chemist — 5 费随从 4/4
+- [x] `CORE_BOT_451` Voltaic Burst — 1 费 法术
+- [x] `CORE_BOT_576` Crazed Chemist — 5 费随从 4/4
 
 ### CORE_BRM_* — 黑石山的火焰（1 张）
 
@@ -64,7 +64,7 @@ inventory is confirmed — every card is a checkbox.
 ### CORE_BT_* — 外域的灰烬（18 张）
 
 - [x] `CORE_BT_035` Chaos Strike — 2 费 法术
-- [ ] `CORE_BT_072` Deep Freeze — 7 费 法术
+- [x] `CORE_BT_072` Deep Freeze — 7 费 法术
 - [x] `CORE_BT_120` Warmaul Challenger — 3 费随从 1/10
 - [x] `CORE_BT_156` Imprisoned Vilefiend — 2 费随从 3/5
 - [x] `CORE_BT_187` Kayn Sunfury — 4 费随从 3/5
@@ -122,8 +122,8 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_CS2_004` Power Word: Shield — 1 费 法术
 - [x] `CORE_CS2_009` Mark of the Wild — 2 费 法术
 - [x] `CORE_CS2_023` Arcane Intellect — 3 费 法术
-- [ ] `CORE_CS2_024` Frostbolt — 2 费 法术
-- [ ] `CORE_CS2_028` Blizzard — 6 费 法术
+- [x] `CORE_CS2_024` Frostbolt — 2 费 法术
+- [x] `CORE_CS2_028` Blizzard — 6 费 法术
 - [x] `CORE_CS2_029` Fireball — 4 费 法术
 - [x] `CORE_CS2_032` Flamestrike — 7 费 法术
 - [ ] `CORE_CS2_039e` Windfury — 附魔衍生物（0 费）
@@ -162,7 +162,7 @@ inventory is confirmed — every card is a checkbox.
 
 ### CORE_DS1_* — 基础系列（猎人）（2 张）
 
-- [ ] `CORE_DS1_184` Tracking — 1 费 法术
+- [x] `CORE_DS1_184` Tracking — 1 费 法术
 - [x] `CORE_DS1_185` Arcane Shot — 1 费 法术
 
 ### CORE_EDR_* — 来源系列名待补（EDR）（6 张）
@@ -198,21 +198,21 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_EX1_103` Coldlight Seer — 3 费随从 2/3
 - [x] `CORE_EX1_110` Cairne Bloodhoof — 6 费随从 5/5
 - [x] `CORE_EX1_129` Fan of Knives — 2 费 法术
-- [ ] `CORE_EX1_131` Defias Ringleader — 2 费随从 3/2
-- [ ] `CORE_EX1_134` SI:7 Agent — 3 费随从 3/3
+- [x] `CORE_EX1_131` Defias Ringleader — 2 费随从 3/2
+- [x] `CORE_EX1_134` SI:7 Agent — 3 费随从 3/3
 - [x] `CORE_EX1_145` Preparation — 0 费 法术
-- [ ] `CORE_EX1_154` Wrath — 2 费 法术
-- [ ] `CORE_EX1_160` Power of the Wild — 2 费 法术
+- [x] `CORE_EX1_154` Wrath — 2 费 法术
+- [x] `CORE_EX1_160` Power of the Wild — 2 费 法术
 - [x] `CORE_EX1_162` Dire Wolf Alpha — 2 费随从 2/2
 - [x] `CORE_EX1_169` Innervate — 0 费 法术
 - [x] `CORE_EX1_189` Brightwing — 2 费随从 3/2
 - [x] `CORE_EX1_193` Psychic Conjurer — 1 费随从 1/2
 - [x] `CORE_EX1_197` Shadow Word: Ruin — 4 费 法术
 - [x] `CORE_EX1_198` Natalie Seline — 7 费随从 7/1
-- [ ] `CORE_EX1_238` Lightning Bolt — 1 费 法术
+- [x] `CORE_EX1_238` Lightning Bolt — 1 费 法术
 - [x] `CORE_EX1_246` Hex — 3 费 法术
-- [ ] `CORE_EX1_250` Earth Elemental — 5 费随从 7/9
-- [ ] `CORE_EX1_259` Lightning Storm — 3 费 法术
+- [x] `CORE_EX1_250` Earth Elemental — 5 费随从 7/9
+- [x] `CORE_EX1_259` Lightning Storm — 3 费 法术
 - [x] `CORE_EX1_278` Shiv — 2 费 法术
 - [x] `CORE_EX1_287` Counterspell — 3 费 法术
 - [x] `CORE_EX1_289` Ice Barrier — 3 费 法术
@@ -246,7 +246,7 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_GIL_577` Rat Trap — 2 费 法术
 - [x] `CORE_GIL_622` Lifedrinker — 4 费随从 3/3
 - [x] `CORE_GIL_623` Witchwood Grizzly — 5 费随从 3/12
-- [ ] `CORE_GIL_836` Blazing Invocation — 1 费 法术
+- [x] `CORE_GIL_836` Blazing Invocation — 1 费 法术
 
 ### CORE_GVG_* — 地精大战侏儒（5 张）
 
@@ -305,14 +305,14 @@ inventory is confirmed — every card is a checkbox.
 
 - [x] `CORE_OG_031` Hammer of Twilight — 5 费武器 4/2
 - [x] `CORE_OG_044` Fandral Staghelm — 4 费随从 3/6
-- [ ] `CORE_OG_047` Feral Rage — 3 费 法术
+- [x] `CORE_OG_047` Feral Rage — 3 费 法术
 - [x] `CORE_OG_149` Ravaging Ghoul — 3 费随从 3/3
 - [x] `CORE_OG_211` Call of the Wild — 8 费 法术
 - [ ] `CORE_OG_218` Bloodhoof Brave — 4 费随从 2/6
 
 ### CORE_ONY_* — 奥妮克希亚的巢穴（迷你）（2 张）
 
-- [ ] `CORE_ONY_018` Boomkin — 5 费随从 4/5
+- [x] `CORE_ONY_018` Boomkin — 5 费随从 4/5
 - [x] `CORE_ONY_022` Battle Vicar — 2 费随从 1/3
 
 ### CORE_REV_* — 来源系列名待补（REV）（4 张）
@@ -377,7 +377,7 @@ inventory is confirmed — every card is a checkbox.
 ### CORE_TSC_* — 来源系列名待补（TSC）（2 张）
 
 - [x] `CORE_TSC_076` Immortalized in Stone — 7 费 法术
-- [ ] `CORE_TSC_650` Flipper Friends — 5 费 法术
+- [x] `CORE_TSC_650` Flipper Friends — 5 费 法术
 
 ### CORE_TTN_* — 泰坦诸神（2 张）
 
@@ -416,7 +416,7 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_WON_141` Menagerie Mug — 3 费随从 3/3
 - [x] `CORE_WON_145` Avatar of Hearthstone — 9 费随从 5/5
 - [x] `CORE_WON_337` Ironforge Portal — 4 费 法术
-- [ ] `CORE_WON_350` I Know a Guy — 1 费 法术
+- [x] `CORE_WON_350` I Know a Guy — 1 费 法术
 - [x] `CORE_WON_351` Small-Time Buccaneer — 1 费随从 1/2
 
 ### CORE_WW_* — 来源系列名待补（WW）（2 张）
@@ -430,7 +430,7 @@ inventory is confirmed — every card is a checkbox.
 
 ### CORE_YOP_* — 来源系列名待补（YOP）（2 张）
 
-- [ ] `CORE_YOP_001` Illidari Studies — 1 费 法术
+- [x] `CORE_YOP_001` Illidari Studies — 1 费 法术
 - [x] `CORE_YOP_034` Runaway Blackwing — 10 费随从 10/10
 
 ## Decisions (resolved 2026-08-08)
@@ -550,7 +550,7 @@ the same card under two IDs (re-check during W4a).
     CORE_OG_211 CORE_RLK_063 CORE_RLK_083 CORE_RLK_087 CORE_RLK_118
     CORE_RLK_121 CORE_RLK_567 CORE_RLK_712 CORE_TRL_307 CORE_ULD_133
     CORE_WON_337 CORE_WON_351`
-- **W4a/b — battlecry batches (76 cards):** two PRs, split by set.
+- **W4a/b — battlecry batches (76 cards) ✅ (PR #123/#124, 2026-08-08):** two PRs, split by set.
   - W4a (38): `CORE_BAR_313 CORE_BT_120 CORE_BT_321 CORE_BT_416 CORE_CFM_753
     CORE_CFM_790 CORE_DMF_067 CORE_DMF_511 CORE_EDR_001 CORE_EDR_003
     CORE_EDR_004 CORE_EDR_004_2026 CORE_GIL_531 CORE_GIL_622 CORE_GIL_623
@@ -567,14 +567,30 @@ the same card under two IDs (re-check during W4a).
     CORE_REV_308 CORE_REV_946 CORE_SCH_181 CORE_SCH_713 CORE_TRL_111
     CORE_TRL_240 CORE_TRL_345 CORE_ULD_165 CORE_ULD_178 CORE_ULD_191
     CORE_ULD_271 CORE_WON_096 CORE_WON_141 CORE_WON_145`
-- **W5 — deathrattle/secret/aura (33 + F5):** `CORE_AT_123 CORE_AV_337
+- **W5 — deathrattle/secret/aura (33 + F5) ✅ (PR #125, 2026-08-08):** `CORE_AT_123 CORE_AV_337
   CORE_BAR_310 CORE_BAR_812 CORE_BT_187 CORE_BT_201 CORE_CS2_122 CORE_CS2_222
   CORE_DAL_720 CORE_DRG_107 CORE_EX1_012 CORE_EX1_096 CORE_EX1_110
   CORE_EX1_162 CORE_EX1_287 CORE_EX1_289 CORE_EX1_383 CORE_EX1_507
   CORE_EX1_610 CORE_EX1_611 CORE_GIL_577 CORE_GVG_114 CORE_LOOT_368
   CORE_LOOT_413 CORE_NEW1_027 CORE_OG_031 CORE_OG_044 CORE_RLK_086 CORE_SW_068
   CORE_SW_439 CORE_ULD_152 CORE_ULD_280 CORE_YOD_026`
-- **W6 — discover/choose-one/combo/overload/freeze (23 + F5):**
+- **W6 — discover/choose-one/combo/overload/freeze (23 + 6 tokens + F5) ✅ (PR #126, 2026-08-08):**
+  Overload wiring (Totem Golem / Voltaic Burst / Lightning Bolt / Earth
+  Elemental / Lightning Storm), Frostbolt (damage AND freeze — the
+  Icicle-style FreezeOrDamage miswire fixed), Blizzard (damage all enemy
+  minions + freeze), Deep Freeze (freeze an enemy + two 3/6 Water
+  Elementals; the token inherits the classic Water Elemental
+  freeze-on-damage hook), Glaciate (random 8-Cost minion, frozen —
+  Discover simplified); choose-one batch of 6 (engine fix: choose-one
+  spells always surface the branch choice — the !combo_active guard
+  wrongly resolved the battlecry branch after another card was played);
+  combo batch of 3 (Defias Ringleader's 2/1 Defias Bandit token
+  EX1_131t added — the NEUTRAL_T04 Novice Engineer miswire fixed);
+  Discover batch of 6 (Runed Orb / Tracking / Blazing Invocation /
+  I Know a Guy / Illidari Studies — new `next_outcast_discount` player
+  field, one-time, consumed on play); Lightning Storm's 2–3 random range
+  fixed at 2 (registered simplification); the Otter token carries Rush.
+  23 F5 differential scenarios.
   `CORE_AT_037 CORE_AT_052 CORE_AV_107 CORE_BAR_541 CORE_BOT_451 CORE_BOT_576
   CORE_BT_072 CORE_CS2_024 CORE_CS2_028 CORE_DS1_184 CORE_EX1_131
   CORE_EX1_134 CORE_EX1_154 CORE_EX1_160 CORE_EX1_238 CORE_EX1_250
