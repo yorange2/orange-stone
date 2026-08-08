@@ -33,21 +33,21 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_AT_055` Flash Heal — 1 费 法术
 - [x] `CORE_AT_062` Ball of Spiders — 3 费 法术
 - [x] `CORE_AT_064` Bash — 2 费 法术
-- [ ] `CORE_AT_123` Chillmaw — 7 费随从 6/6
+- [x] `CORE_AT_123` Chillmaw — 7 费随从 6/6
 
 ### CORE_AV_* — 奥特兰克的决裂（2 张）
 
 - [ ] `CORE_AV_107` Glaciate — 6 费 法术
-- [ ] `CORE_AV_337` Mountain Bear — 7 费随从 5/6
+- [x] `CORE_AV_337` Mountain Bear — 7 费随从 5/6
 
 ### CORE_BAR_* — 贫瘠之地的锤炼（7 张）
 
-- [ ] `CORE_BAR_310` Lightshower Elemental — 6 费随从 6/6
+- [x] `CORE_BAR_310` Lightshower Elemental — 6 费随从 6/6
 - [x] `CORE_BAR_311` Devouring Plague — 3 费 法术
 - [x] `CORE_BAR_313` Priest of An'she — 5 费随从 5/5
 - [ ] `CORE_BAR_541` Runed Orb — 2 费 法术
 - [x] `CORE_BAR_801` Wound Prey — 1 费 法术
-- [ ] `CORE_BAR_812` Oasis Ally — 3 费 法术
+- [x] `CORE_BAR_812` Oasis Ally — 3 费 法术
 - [x] `CORE_BAR_878` Veteran Warmedic — 4 费随从 3/5
 
 ### CORE_BOT_* — 砰砰计划（4 张）
@@ -67,8 +67,8 @@ inventory is confirmed — every card is a checkbox.
 - [ ] `CORE_BT_072` Deep Freeze — 7 费 法术
 - [x] `CORE_BT_120` Warmaul Challenger — 3 费随从 1/10
 - [x] `CORE_BT_156` Imprisoned Vilefiend — 2 费随从 3/5
-- [ ] `CORE_BT_187` Kayn Sunfury — 4 费随从 3/5
-- [ ] `CORE_BT_201` Augmented Porcupine — 3 费随从 2/4
+- [x] `CORE_BT_187` Kayn Sunfury — 4 费随从 3/5
+- [x] `CORE_BT_201` Augmented Porcupine — 3 费随从 2/4
 - [x] `CORE_BT_292` Hand of A'dal — 2 费 法术
 - [x] `CORE_BT_321` Netherwalker — 2 费随从 2/2
 - [x] `CORE_BT_351` Battlefiend — 1 费随从 1/2
@@ -136,16 +136,16 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_CS2_093` Consecration — 3 费 法术
 - [x] `CORE_CS2_094` Hammer of Wrath — 3 费 法术
 - [x] `CORE_CS2_108` Execute — 1 费 法术
-- [ ] `CORE_CS2_122` Raid Leader — 3 费随从 2/3
+- [x] `CORE_CS2_122` Raid Leader — 3 费随从 2/3
 - [x] `CORE_CS2_179` Sen'jin Shieldmasta — 4 费随从 3/5
 - [x] `CORE_CS2_188` Abusive Sergeant — 1 费随从 1/1
 - [x] `CORE_CS2_189` Elven Archer — 1 费随从 1/1
-- [ ] `CORE_CS2_222` Stormwind Champion — 7 费随从 7/7
+- [x] `CORE_CS2_222` Stormwind Champion — 7 费随从 7/7
 
 ### CORE_DAL_* — 暗影崛起（2 张）
 
 - [x] `CORE_DAL_575` Khadgar — 2 费随从 2/2
-- [ ] `CORE_DAL_720` Waggle Pick — 4 费武器 4/2
+- [x] `CORE_DAL_720` Waggle Pick — 4 费武器 4/2
 
 ### CORE_DMF_* — 疯狂的暗月马戏团（2 张）
 
@@ -156,7 +156,7 @@ inventory is confirmed — every card is a checkbox.
 
 - [x] `CORE_DRG_024` Sky Raider — 1 费随从 1/2
 - [x] `CORE_DRG_079` Evasive Wyrm — 6 费随从 5/4
-- [ ] `CORE_DRG_107` Violet Spellwing — 1 费随从 2/1
+- [x] `CORE_DRG_107` Violet Spellwing — 1 费随从 2/1
 - [x] `CORE_DRG_256` Dragonbane — 4 费随从 3/5
 - [x] `CORE_DRG_403` Blowtorch Saboteur — 3 费随从 3/3
 
@@ -186,24 +186,24 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_EX1_007` Acolyte of Pain — 3 费随从 1/4
 - [x] `CORE_EX1_010` Worgen Infiltrator — 1 费随从 2/1
 - [x] `CORE_EX1_011` Voodoo Doctor — 1 费随从 2/1
-- [ ] `CORE_EX1_012` Bloodmage Thalnos — 2 费随从 1/1
+- [x] `CORE_EX1_012` Bloodmage Thalnos — 2 费随从 1/1
 - [x] `CORE_EX1_014` King Mukla — 3 费随从 5/6
 - [x] `CORE_EX1_028` Stranglethorn Tiger — 5 费随从 5/5
 - [x] `CORE_EX1_043` Twilight Drake — 4 费随从 4/1
 - [x] `CORE_EX1_058` Sunfury Protector — 2 费随从 2/3
 - [x] `CORE_EX1_059` Crazed Alchemist — 2 费随从 2/2
 - [x] `CORE_EX1_082` Mad Bomber — 2 费随从 3/2
-- [ ] `CORE_EX1_096` Loot Hoarder — 2 费随从 2/1
+- [x] `CORE_EX1_096` Loot Hoarder — 2 费随从 2/1
 - [x] `CORE_EX1_100` Lorewalker Cho — 2 费随从 0/4
 - [x] `CORE_EX1_103` Coldlight Seer — 3 费随从 2/3
-- [ ] `CORE_EX1_110` Cairne Bloodhoof — 6 费随从 5/5
+- [x] `CORE_EX1_110` Cairne Bloodhoof — 6 费随从 5/5
 - [x] `CORE_EX1_129` Fan of Knives — 2 费 法术
 - [ ] `CORE_EX1_131` Defias Ringleader — 2 费随从 3/2
 - [ ] `CORE_EX1_134` SI:7 Agent — 3 费随从 3/3
 - [x] `CORE_EX1_145` Preparation — 0 费 法术
 - [ ] `CORE_EX1_154` Wrath — 2 费 法术
 - [ ] `CORE_EX1_160` Power of the Wild — 2 费 法术
-- [ ] `CORE_EX1_162` Dire Wolf Alpha — 2 费随从 2/2
+- [x] `CORE_EX1_162` Dire Wolf Alpha — 2 费随从 2/2
 - [x] `CORE_EX1_169` Innervate — 0 费 法术
 - [x] `CORE_EX1_189` Brightwing — 2 费随从 3/2
 - [x] `CORE_EX1_193` Psychic Conjurer — 1 费随从 1/2
@@ -214,8 +214,8 @@ inventory is confirmed — every card is a checkbox.
 - [ ] `CORE_EX1_250` Earth Elemental — 5 费随从 7/9
 - [ ] `CORE_EX1_259` Lightning Storm — 3 费 法术
 - [x] `CORE_EX1_278` Shiv — 2 费 法术
-- [ ] `CORE_EX1_287` Counterspell — 3 费 法术
-- [ ] `CORE_EX1_289` Ice Barrier — 3 费 法术
+- [x] `CORE_EX1_287` Counterspell — 3 费 法术
+- [x] `CORE_EX1_289` Ice Barrier — 3 费 法术
 - [x] `CORE_EX1_302` Mortal Coil — 1 费 法术
 - [x] `CORE_EX1_309` Siphon Soul — 4 费 法术
 - [x] `CORE_EX1_310` Doomguard — 5 费随从 5/7
@@ -223,18 +223,18 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_EX1_319` Flame Imp — 1 费随从 3/2
 - [ ] `CORE_EX1_323` Lord Jaraxxus — 英雄（8 费）
 - [x] `CORE_EX1_362` Argent Protector — 2 费随从 3/2
-- [ ] `CORE_EX1_383` Tirion Fordring — 8 费随从 8/8
+- [x] `CORE_EX1_383` Tirion Fordring — 8 费随从 8/8
 - [x] `CORE_EX1_391` Slam — 1 费 法术
 - [ ] `CORE_EX1_414` Grommash Hellscream — 8 费随从 4/9
 - [x] `CORE_EX1_506` Murloc Tidehunter — 2 费随从 2/1
 - [x] `CORE_EX1_506a` Murloc Scout — 1 费随从 1/1
-- [ ] `CORE_EX1_507` Murloc Warleader — 3 费随从 3/3
+- [x] `CORE_EX1_507` Murloc Warleader — 3 费随从 3/3
 - [x] `CORE_EX1_509` Murloc Tidecaller — 1 费随从 1/2
 - [x] `CORE_EX1_559` Archmage Antonidas — 7 费随从 5/7
 - [x] `CORE_EX1_604` Frothing Berserker — 3 费随从 2/4
 - [x] `CORE_EX1_606` Shield Block — 2 费 法术
-- [ ] `CORE_EX1_610` Explosive Trap — 2 费 法术
-- [ ] `CORE_EX1_611` Freezing Trap — 2 费 法术
+- [x] `CORE_EX1_610` Explosive Trap — 2 费 法术
+- [x] `CORE_EX1_611` Freezing Trap — 2 费 法术
 - [x] `CORE_EX1_619` Equality — 2 费 法术
 
 ### CORE_GIL_* — 女巫森林（8 张）
@@ -243,7 +243,7 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_GIL_531` Witch's Apprentice — 0 费随从 0/1
 - [x] `CORE_GIL_534` Hench-Clan Thug — 3 费随从 3/3
 - [x] `CORE_GIL_558` Swamp Leech — 1 费随从 2/1
-- [ ] `CORE_GIL_577` Rat Trap — 2 费 法术
+- [x] `CORE_GIL_577` Rat Trap — 2 费 法术
 - [x] `CORE_GIL_622` Lifedrinker — 4 费随从 3/3
 - [x] `CORE_GIL_623` Witchwood Grizzly — 5 费随从 3/12
 - [ ] `CORE_GIL_836` Blazing Invocation — 1 费 法术
@@ -254,7 +254,7 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_GVG_061` Muster for Battle — 3 费 法术
 - [x] `CORE_GVG_085` Annoy-o-Tron — 2 费随从 1/2
 - [x] `CORE_GVG_103` Micro Machine — 2 费随从 1/2
-- [ ] `CORE_GVG_114` Sneed's Old Shredder — 7 费随从 5/7
+- [x] `CORE_GVG_114` Sneed's Old Shredder — 7 费随从 5/7
 
 ### CORE_ICC_* — 冰封王座的骑士（5 张）
 
@@ -283,9 +283,9 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_LOOT_101` Explosive Runes — 3 费 法术
 - [x] `CORE_LOOT_137` Sleepy Dragon — 9 费随从 6/12
 - [x] `CORE_LOOT_309` Oaken Summons — 4 费 法术
-- [ ] `CORE_LOOT_368` Voidlord — 9 费随从 3/9
+- [x] `CORE_LOOT_368` Voidlord — 9 费随从 3/9
 - [x] `CORE_LOOT_373` Healing Rain — 3 费 法术
-- [ ] `CORE_LOOT_413` Plated Beetle — 2 费随从 2/3
+- [x] `CORE_LOOT_413` Plated Beetle — 2 费随从 2/3
 
 ### CORE_NEW1_* — 经典补充（7 张）
 
@@ -294,7 +294,7 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_NEW1_021` Doomsayer — 2 费随从 0/7
 - [x] `CORE_NEW1_022` Dread Corsair — 4 费随从 3/3
 - [x] `CORE_NEW1_023` Faerie Dragon — 2 费随从 3/2
-- [ ] `CORE_NEW1_027` Southsea Captain — 3 费随从 3/3
+- [x] `CORE_NEW1_027` Southsea Captain — 3 费随从 3/3
 - [x] `CORE_NEW1_031` Animal Companion — 3 费 法术
 
 ### CORE_NX2_* — 来源系列名待补（NX2）（1 张）
@@ -303,8 +303,8 @@ inventory is confirmed — every card is a checkbox.
 
 ### CORE_OG_* — 上古之神的低语（6 张）
 
-- [ ] `CORE_OG_031` Hammer of Twilight — 5 费武器 4/2
-- [ ] `CORE_OG_044` Fandral Staghelm — 4 费随从 3/6
+- [x] `CORE_OG_031` Hammer of Twilight — 5 费武器 4/2
+- [x] `CORE_OG_044` Fandral Staghelm — 4 费随从 3/6
 - [ ] `CORE_OG_047` Feral Rage — 3 费 法术
 - [x] `CORE_OG_149` Ravaging Ghoul — 3 费随从 3/3
 - [x] `CORE_OG_211` Call of the Wild — 8 费 法术
@@ -328,7 +328,7 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_RLK_063` Frostwyrm's Fury — 7 费 法术
 - [x] `CORE_RLK_066` Hematurge — 2 费随从 2/3
 - [x] `CORE_RLK_083` Deathchiller — 2 费随从 2/3
-- [ ] `CORE_RLK_086` Frostmourne — 6 费武器 4/3
+- [x] `CORE_RLK_086` Frostmourne — 6 费武器 4/3
 - [x] `CORE_RLK_087` Asphyxiate — 3 费 法术
 - [x] `CORE_RLK_116` Necrotic Mortician — 2 费随从 2/3
 - [x] `CORE_RLK_118` Tomb Guardians — 4 费 法术
@@ -354,12 +354,12 @@ inventory is confirmed — every card is a checkbox.
 
 - [x] `CORE_SW_047` Highlord Fordragon — 6 费随从 5/5
 - [x] `CORE_SW_066` Royal Librarian — 4 费随从 4/4
-- [ ] `CORE_SW_068` Mo'arg Forgefiend — 8 费随从 8/8
+- [x] `CORE_SW_068` Mo'arg Forgefiend — 8 费随从 8/8
 - [x] `CORE_SW_072` Rustrot Viper — 3 费随从 3/4
 - [x] `CORE_SW_088` Demonic Assault — 4 费 法术
 - [x] `CORE_SW_108` First Flame — 1 费 法术
 - [x] `CORE_SW_429` Best in Shell — 6 费 法术
-- [ ] `CORE_SW_439` Vibrant Squirrel — 1 费随从 2/1
+- [x] `CORE_SW_439` Vibrant Squirrel — 1 费随从 2/1
 - [x] `CORE_SW_442` Void Shard — 4 费 法术
 
 ### CORE_TID_* — 来源系列名待补（TID）（1 张）
@@ -387,12 +387,12 @@ inventory is confirmed — every card is a checkbox.
 ### CORE_ULD_* — 奥丹姆奇兵（8 张）
 
 - [x] `CORE_ULD_133` Crystal Merchant — 2 费随从 1/4
-- [ ] `CORE_ULD_152` Pressure Plate — 2 费 法术
+- [x] `CORE_ULD_152` Pressure Plate — 2 费 法术
 - [x] `CORE_ULD_165` Riftcleaver — 6 费随从 7/5
 - [x] `CORE_ULD_178` Siamat — 7 费随从 7/7
 - [x] `CORE_ULD_191` Beaming Sidekick — 1 费随从 1/2
 - [x] `CORE_ULD_271` Injured Tol'vir — 2 费随从 2/6
-- [ ] `CORE_ULD_280` Sahket Sapper — 4 费随从 4/4
+- [x] `CORE_ULD_280` Sahket Sapper — 4 费随从 4/4
 - [x] `CORE_ULD_723` Murmy — 1 费随从 1/1
 
 ### CORE_UNG_* — 勇闯安戈洛（7 张）
@@ -426,7 +426,7 @@ inventory is confirmed — every card is a checkbox.
 
 ### CORE_YOD_* — 来源系列名待补（YOD）（1 张）
 
-- [ ] `CORE_YOD_026` Fiendish Servant — 1 费随从 2/1
+- [x] `CORE_YOD_026` Fiendish Servant — 1 费随从 2/1
 
 ### CORE_YOP_* — 来源系列名待补（YOP）（2 张）
 
