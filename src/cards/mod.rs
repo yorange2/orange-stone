@@ -35,7 +35,9 @@ pub mod exp_edr_w4a;
 pub mod exp_edr_w4b;
 pub mod exp_edr_w5;
 pub mod exp_tlc_w2;
+pub mod exp_tlc_w3;
 pub mod generated;
+pub mod kindred;
 pub mod pool;
 pub mod quest;
 pub mod sets;
@@ -131,6 +133,10 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "FIR_953" // Magma Hound (M1-W5 — the Embers of the World Tree wave)
         | "TLC_229t14" // Ashalon, Ridge Guardian (M2-W2 — quest reward token)
         | "TLC_830t" // Shokk, Jungle Tyrant (M2-W2 — quest reward token)
+        | "TLC_243" // Whirling Stormdrake (M2-W3 — Kindred wave)
+        | "TLC_366" // Pterrorwing Ravager (M2-W3 — Kindred wave)
+        | "TLC_429t" // Juvenile Steamfin (M2-W3 — Steamfin Thief token)
+        | "TLC_903" // Silithid Queen (M2-W3 — Kindred wave)
     ) {
         world.set_rush(entity, Rush);
     }
@@ -179,6 +185,35 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
     }
     if card_def.id == "EDR_818" {
         // Nythendra — Undead + Dragon
+        world.add_race(entity, crate::core::component::Race::Dragon);
+    }
+    // M2-W3 dual tribes — the Kindred wave (the CardDef carries the primary
+    // race — the one the Kindred text keys on, matching the registry in
+    // cards/kindred.rs — the second tribe lands here, the Mythical Terror
+    // precedent; a played minion counts for BOTH tribes' synergies and for
+    // the Kindred push's first (primary) race)
+    if card_def.id == "TLC_102" {
+        // Torga — Beast + Undead
+        world.add_race(entity, crate::core::component::Race::Undead);
+    }
+    if card_def.id == "TLC_223" {
+        // Volcanic Thrasher — Elemental + Beast
+        world.add_race(entity, crate::core::component::Race::Beast);
+    }
+    if card_def.id == "TLC_243" {
+        // Whirling Stormdrake — Elemental + Dragon
+        world.add_race(entity, crate::core::component::Race::Dragon);
+    }
+    if card_def.id == "TLC_432" {
+        // Dread Raptor — Undead + Beast
+        world.add_race(entity, crate::core::component::Race::Beast);
+    }
+    if card_def.id == "TLC_463" {
+        // Razidir — Demon + Beast
+        world.add_race(entity, crate::core::component::Race::Beast);
+    }
+    if card_def.id == "TLC_482" {
+        // Slagclaw — Elemental + Dragon
         world.add_race(entity, crate::core::component::Race::Dragon);
     }
     // M1-W4b per-card triggers — the Wild Gods wave:
@@ -557,6 +592,12 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
     }
     if card_def.id == "ROGUE_022" {
         // Patient Assassin — Stealth + Poison
+        world.set_poison(entity, Poison);
+        world.set_stealth(entity, Stealth);
+    }
+    if card_def.id == "TLC_519t" {
+        // Venomous Spitter (M2-W3 — Ambush Predators token): Stealth +
+        // Poisonous
         world.set_poison(entity, Poison);
         world.set_stealth(entity, Stealth);
     }

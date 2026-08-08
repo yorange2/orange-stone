@@ -905,6 +905,37 @@ pub fn apply_event(
                     amount: cost.0,
                 });
             }
+            // Hot Spring Glider (M2-W3): "your next Murloc costs (1) less
+            // / gains Divine Shield" — one-time flags, consumed by the
+            // next Murloc play (the cost discount was already applied by
+            // play_cost above; the Divine Shield lands on the entity here
+            // and carries into play).
+            let is_murloc_play = state
+                .world()
+                .card_id(card)
+                .and_then(|cid| crate::cards::def::card_by_id(cid.0))
+                .is_some_and(|def| def.race == Some(crate::core::component::Race::Murloc));
+            if is_murloc_play && state.player(player).next_murloc_divine_shield {
+                state
+                    .world_mut()
+                    .set_divine_shield(card, crate::core::component::DivineShield);
+            }
+            // Kindred (M2-W3): the played card's type — spells push `Spell`,
+            // minions their primary (first) race; captured before the
+            // player block below (the push happens there; play_cost ran
+            // before it, so cost-time Kindred discounts count earlier
+            // same-type cards only).
+            let kindred_type_played = if card_type == Some(CardType::Spell) {
+                Some(crate::cards::kindred::KindredType::Spell)
+            } else if is_minion {
+                state
+                    .world()
+                    .race(card)
+                    .and_then(|r| r.first())
+                    .map(|&race| crate::cards::kindred::KindredType::Minion(race))
+            } else {
+                None
+            };
             {
                 let inner = state.make_mut();
                 let p = &mut inner.players[player.index()];
@@ -912,6 +943,10 @@ pub fn apply_event(
                     p.current_mana -= cost.0;
                 }
                 p.cards_played_this_turn += 1;
+                if is_murloc_play {
+                    p.next_murloc_discount = 0;
+                    p.next_murloc_divine_shield = false;
+                }
                 // One-time discounts are consumed on play (Core Set W4a)
                 p.next_demon_discount = 0;
                 p.next_outcast_discount = 0; // Illidari Studies (W6)
@@ -934,6 +969,17 @@ pub fn apply_event(
                 // spell played consumes it (its cost already included it)
                 if card_type == Some(CardType::Spell) {
                     p.next_spell_discount = 0;
+                }
+                // Kindred (M2-W3): push the played card's type — the
+                // activation check of a Kindred card counts its own push
+                // plus any earlier same-type card (>= 2) at OnPlay /
+                // battlecry time, and only earlier cards (>= 1) at cost
+                // time (play_cost runs before this push). The push is the
+                // only way a card enters the list, so effect-summoned
+                // copies of a Kindred card never re-fire (Conjured
+                // Bookkeeper's copy does not loop).
+                if let Some(kindred_type) = kindred_type_played {
+                    p.kindred_played.push(kindred_type);
                 }
             }
             // Outcast (Core Set W2): a card played from the leftmost or
@@ -1188,6 +1234,14 @@ pub fn apply_event(
                                         );
                                     }
                                 }
+                                // Kindred (M2-W3): a Kindred spell's OnPlay
+                                // effect resolves after the base spell effect
+                                // (and the Tyrande double), before the
+                                // SpellCast event — the played-type push
+                                // happened earlier in this handler, so the
+                                // activation check counts this spell plus any
+                                // earlier same-type card (>= 2).
+                                crate::cards::kindred::resolve_on_play(state, queue, card, player);
                                 // Push the spell-cast event
                                 // After-cast triggers fire at Lowest priority — after the
                                 // spell's damage and the deaths it caused have resolved
@@ -1370,6 +1424,17 @@ pub fn apply_event(
                         repeat,
                     );
                 }
+                // Kindred (M2-W3): a Kindred minion's OnPlay effect resolves
+                // after the card enters play (its keywords and the base
+                // resolution are done; the enqueued MinionSummoned event —
+                // the battlecry — processes later). None of the OnPlay
+                // kindred effects interact with their cards' battlecries
+                // (Hot Spring Glider's battlecry sets the discount flag, its
+                // kindred the Divine Shield flag — independent), so the
+                // ordering is unobservable (§16). The played-type push
+                // happened earlier in this handler — the check counts the
+                // card itself plus any earlier same-type card (>= 2).
+                crate::cards::kindred::resolve_on_play(state, queue, card, player);
                 // Quest progress (M2-W1): minion plays feed the Un'Goro quest
                 // conditions — TLC_229 (unique types: the primary race as the
                 // marker, 0 for race-less minions), TLC_830 (Beast attack
@@ -1513,10 +1578,32 @@ pub fn apply_event(
                     state.world().battlecry(minion).map(|b| b.0)
                 };
                 if let Some(effect) = chosen_effect {
+                    // Kindred battlecry modifiers (M2-W3): the modifier
+                    // either replaces the battlecry (TLC_454/463/829 —
+                    // a different target set or a different hand) or adds
+                    // an effect after it (TLC_482). The activation check
+                    // runs against the played list (>= 2 — the card's own
+                    // push happened at the CardPlayed path). The
+                    // replacement effect re-resolves once under the
+                    // BattlecryTwice dark gift, like a base battlecry.
+                    let (effect, kindred_extra) = crate::cards::kindred::apply_battlecry_modifier(
+                        state, minion, player, effect,
+                    );
                     // Explicit battlecry target (engine-mechanics roadmap M1):
                     // forwarded from Action::PlayCard; re-validation stays G9 —
                     // a target that left the legal candidate set fizzles.
                     trigger::resolve_effect(state, queue, minion, player, effect, target, None);
+                    if let Some(kindred_extra) = kindred_extra {
+                        trigger::resolve_effect(
+                            state,
+                            queue,
+                            minion,
+                            player,
+                            kindred_extra,
+                            target,
+                            None,
+                        );
+                    }
                     // Dark gift 6 (BattlecryTwice — 2025–2026 expansions
                     // M1-W2): "this minion's battlecries trigger twice" — the
                     // same effect re-resolves once for a minion carrying the
@@ -1774,6 +1861,23 @@ pub fn apply_event(
             attacker_damage,
             retaliation_immune,
         } => {
+            // Stormbrewer (M2-W3): "Whenever this attacks, deal 3 damage to
+            // the target first" — the strike is enqueued BEFORE the attack
+            // damage, so the queue resolves it first (the Lake Thresher
+            // precedent — resolved here because the trigger effects only see
+            // the attacker, not the defender). No defender-type check: the
+            // strike hits whatever this attacks, hero included.
+            if state
+                .world()
+                .card_id(attacker)
+                .is_some_and(|c| c.0 == "TLC_107")
+            {
+                queue.push(Event::DamageDealt {
+                    source: attacker,
+                    target: defender,
+                    amount: 3,
+                });
+            }
             // Enqueue the attack damage (the value was fixed at enqueue time)
             queue.push(Event::DamageDealt {
                 source: attacker,
@@ -2830,6 +2934,12 @@ fn wrap_up_turn(state: &mut GameState) {
         let inner = state.make_mut();
         let p = &mut inner.players[player.index()];
         p.died_this_turn.clear();
+        // Kindred (M2-W3): the activation condition is "played a card of
+        // the same type earlier THIS TURN" — the played-type list resets
+        // at the player's own turn end (the next-murloc and next-kindred
+        // flags deliberately survive: they are consumed by the next play,
+        // whenever that is).
+        p.kindred_played.clear();
         // Millhouse Manastorm's zero-spell-cost window lasts one turn
         p.spells_cost_zero = false;
         // Preparation's next-spell discount also expires at the turn end

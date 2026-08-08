@@ -488,3 +488,70 @@ F5 覆盖：`tlc_w2_spirit_of_the_mountain_reward_summoned`、
 占位语义，与 W2 真实双条 TLC_817 相矛盾（任务留在任务区、第二条待完成、
 并召唤两尊 TLC_817t3）——按波次规范，最小化的两条断言更新待执行。
 `cargo clippy --all-targets` 无警告。
+
+### 16. 2025–2026 扩展 M2-W3 — 失落之城 Kindred 波（23 张）🔓 已登记
+
+M2-W3 波（`src/cards/exp_tlc_w3.rs`）的简化登记：23 张 Kindred 卡。机制
+本身忠实："Kindred: X——当你本回合早些时候打过一张同类型卡时触发 X"
+（随从按种族、法术按 SPELL；卡牌本身永远不算）。激活状态是每玩家
+`kindred_played` 列表，每次出牌推入、玩家自己的回合结束时清空；四个解析
+点全部落在出牌路径上：费用折扣（TLC_366/600/816，push 之前检查，只数
+更早的同型卡 ≥1）、OnPlay（TLC_107/226/243/428/429/440/447/519/815/825/
+903，基础结算之后）、战吼修饰（TLC_454/463/482/829——替换型走专用
+变体、TLC_482 附加型在战吼之后结算）、抽牌修饰（折进专用抽牌战吼：
+TLC_223 的火系过滤走 W1 真实法术学派注册表、TLC_236 精确 1/2/3/4 费
+扫描、TLC_432 亡语随从 ≤3 费）。Torga 的牌库扫描忠实：自上而下扫实际
+牌库找第一张 Kindred 注册卡，再找其同类型卡；无匹配则不抽——经典|核心
+牌库下空抽就是官方行为。与 §14–§15 一致，扩展手写卡均不在 RL 池（经典
++ 核心 668/659），本表仅作登记追踪，各行在机制落地前保持开放。
+
+| ID | 卡名 | 简化 | 真实机制 |
+| --- | --- | --- | --- |
+| TLC_102/223/243/432/463/482 | 六张双种族 Kindred 卡 | 官方 "races" 第二种族经 `apply_card_keywords` 落到实体上（恐魔先例）、参与部落协同，但 Kindred 计数与 `kindred_type` 注册表只认主种族——双种族卡只以单一部落激活 Kindred，官方语义任一种族都算 | 多种族 Kindred 计数 |
+| TLC_815 | 墓生虚空球 | 随机"4 费嘲讽随从"池走 D2 简化——ALL_CARDS 中 4 费随从、排除衍生物；被召随从自身战吼照常结算（尼鲁布虫群卫兵级联是忠实的） | 官方召唤池 |
+| TLC_519 | 伏击掠食者 | 固定召唤 TLC_519t 毒液喷吐者（潜行 + 剧毒）——单元素 D2 池，无随机选择 | 随机喷吐者池 |
+| TLC_482 | 熔渣之爪 | Kindred 附加结算触发全部友方余烬火花的亡语——包括本回合早些时候从手牌打出的那张——官方"触发它们的亡语"仅指战吼召出的两只 | 按被召火花限定的触发范围 |
+| TLC_251 | 起源鳍挑战者 | "你的下一个 Kindred 触发两次"标志只被 OnPlay Kindred 结算消费——费用折扣与战吼修饰不翻倍 | 通用触发双次标志 |
+| TLC_107 | 风暴酿造者 | "每当本随从攻击，先对目标造成 3 点伤害"是卡 ID 硬编码的 ResolveAttack 钩子（湖鲟先例），而非通用攻击触发组件 | 通用攻击触发组件 |
+| TLC_428 | 热泉滑翔者 | "下一个鱼人"标志为玩家级标志（`next_murloc_discount` 出牌费用时消费、`next_murloc_divine_shield` 出牌时消费），由下一次鱼人出牌消费——滑翔者本人永不消费自己的标志（折扣在战吼设置前已算、圣盾在入场前已加） | 逐实体修饰 |
+| TLC_825 | 迅猛龙母兽 | Kindred 目标（造成等同于本随从攻击力的伤害给一个敌方随从）经 PlayCard 目标传入，但 `rl/env.rs` play_targets 只提取战吼目标——RL 视图无法表达 | 浮出面的 Kindred 目标 |
+
+本波新增原语一览：`kindred_played`（每玩家出牌类型列表，出牌路径在
+Preparation 消耗块内推入——随从推主种族、法术推 Spell；回合结束清空，
+符合"本回合"语义；列表只在出牌路径增长，效果召出的复制品不会再触发，
+Conjured Bookkeeper 复制不成环）、`next_kindred_twice`（TLC_251 战吼
+设置、`resolve_on_play` 开头读取并清除、效果结算两次）、
+`next_murloc_discount` / `next_murloc_divine_shield`（TLC_428 战吼设置
+折扣、Kindred 设置圣盾；下一次鱼人出牌时消费）。新 CardEffect 变体 14 个：
+GainRush、GainImmuneThisTurn、NextMurlocCostsLess、GiveNextMurlocDivineShield、
+SetNextKindredTwice、DrawKindredAndActivator、DrawSpellGiveSpellDamage、
+DrawMinionsOfEachCost、DrawDeathrattleMinionCostLE、DestroyLowestAttackEnemy、
+TriggerFriendlyCinderDeathrattles、DestroyMinionAndGainItsStats、
+DealSelfAttackDamage、SummonRandomMinionCostTaunt——全部与 bincode
+CardEffectDe 镜像、序列化往返测试清单、`src/sim/bot.rs` 计分分支同步。
+顺带修复一个既有缺口：`resolve_destroy_minion` 此前没有
+`EffectTarget::AnyMinion` 分支（静默空操作）——补上后 Ravenous Devilsaur
+的基础战吼与 Kindred 变体才真正生效。Stormbrewer 的攻击钩子在 ResolveAttack
+处理器内把 3 点伤害压进队列、先于攻击伤害结算（湖鲟先例）；免疫本回合
+随回合结束清除（Bestial Wrath 先例）。
+
+F5 覆盖：`tlc_w3_kindred_requires_same_type_earlier_this_turn`、
+`tlc_w3_spell_kindred_fires_after_any_spell`、
+`tlc_w3_cost_discount_kindred`、`tlc_w3_next_kindred_triggers_twice`、
+`tlc_w3_stormbrewer_gains_rush`、`tlc_w3_stormdrake_immune_this_turn`、
+`tlc_w3_torga_draws_kindred_and_activator`、
+`tlc_w3_kodo_high_attack_replaces_lowest`、
+`tlc_w3_razidir_opponent_hand_discard`、
+`tlc_w3_slagclaw_triggers_cinder_deathrattles`、
+`tlc_w3_devilsaur_gains_destroyed_stats`、`tlc_w3_cryosleep_draws_another`、
+`tlc_w3_matriarch_attack_damage`、`tlc_w3_queen_hero_attack`、
+`tlc_w3_thrasher_drawn_spell_damage`、`tlc_w3_dread_raptor_costs_zero`、
+`tlc_w3_kindred_resets_next_turn`、`tlc_w3_voidbulb_summons_taunt_4cost`、
+`tlc_w3_ambush_predators_spitter`、`tlc_w3_hot_spring_glider_murloc_flags`、
+`tlc_w3_hybridization_draws_each_cost`、
+`tlc_w3_bookkeeper_copy_does_not_loop`（tests/differential.rs 共 22 个
+场景——覆盖全部 Kindred 形态：激活判定、费用折扣、双次标志、关键词增益、
+Torga 扫描、战吼替换/附加、抽牌修饰、回合重置、随机池与不循环复制）加
+`src/cards/kindred.rs` 三个注册表单元测试。全量 `cargo test` 全绿（所有
+套件、含全部 `tlc_w1_*`/`tlc_w2_*` 场景——817 通过、1 忽略），`cargo fmt`
+干净，`cargo clippy --all-targets` 零警告。

@@ -206,6 +206,30 @@ pub struct Player {
     /// (the DealExactDamage quest call site) applies the bonus in-place.
     /// Game-long, permanent.
     pub deal_exact_2_bonus: bool,
+    /// Kindred (2025–2026 expansions M2-W3) — every card the player played
+    /// this turn pushed its kindred type (`KindredType::Spell` for spells,
+    /// `KindredType::Minion(race)` for minions whose CardDef carries a
+    /// race). A Kindred card's activation condition is a matching EARLIER
+    /// play ("another card of the same type" — the card itself counts only
+    /// because the play path pushes its type before the check). Cleared at
+    /// the player's own turn end — the condition is "this turn".
+    pub kindred_played: Vec<crate::cards::kindred::KindredType>,
+    /// Kindred (M2-W3): TLC_251 Primalfin Challenger — "your next Kindred
+    /// triggers twice". Set by the battlecry; the next OnPlay Kindred
+    /// resolution resolves its effect twice and clears the flag (cost
+    /// discounts and battlecry modifiers do not consume it — the W3
+    /// decision, see fidelity-debt §16). Not cleared at turn end (the
+    /// official flag persists until consumed).
+    pub next_kindred_twice: bool,
+    /// Kindred (M2-W3): TLC_428 Hot Spring Glider's battlecry — "your next
+    /// Murloc costs (1) less". Applied by the cost pipeline and consumed by
+    /// the next Murloc the player plays, whenever that is — no turn-end
+    /// clear (the official flag persists until a Murloc is played).
+    pub next_murloc_discount: i32,
+    /// Kindred (M2-W3): TLC_428's Kindred add-on — "your next Murloc gains
+    /// Divine Shield". Consumed together with `next_murloc_discount` by
+    /// the next Murloc play; the shield is applied to the played Murloc.
+    pub next_murloc_divine_shield: bool,
 }
 
 impl Player {
@@ -262,6 +286,10 @@ impl Player {
             next_card_costs_zero: false,
             murloc_summon_buff: false,
             deal_exact_2_bonus: false,
+            kindred_played: Vec::new(),
+            next_kindred_twice: false,
+            next_murloc_discount: 0,
+            next_murloc_divine_shield: false,
         }
     }
 }

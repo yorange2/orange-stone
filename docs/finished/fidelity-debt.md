@@ -1057,3 +1057,85 @@ contradict W2's real dual-bar TLC_817 (the quest stays in the slot with the
 second bar pending and two TLC_817t3 are summoned) — the minimal
 two-assertion update is pending per the wave spec. `cargo clippy
 --all-targets` clean.
+
+### 16. 2025–2026 expansions M2-W3 — the Un'Goro Kindred wave (23 cards) 🔓 registered
+
+The registered simplifications of the M2-W3 wave (`src/cards/exp_tlc_w3.rs`):
+the 23 Kindred cards. The mechanic itself is faithful: "Kindred: X — X
+activates when you played a card of the SAME TYPE earlier THIS TURN" (the
+tribe for minions, SPELL for spells; the card itself never counts). The
+activation state is a per-player `kindred_played` list pushed by every play
+and cleared at the player's own turn end, and the four resolution shapes
+land in the play path: cost-time discounts (TLC_366/600/816, checked before
+the push), OnPlay effects (TLC_107/226/243/428/429/440/447/519/815/825/903,
+after the base resolution), battlecry modifiers (TLC_454/463/482/829 —
+replaces resolve via dedicated variants, the TLC_482 add-on after the
+battlecry) and the drawn-card modifiers folded into dedicated draw
+battlecries (TLC_223's Fire-school filter is the real W1 spell-school
+registry; TLC_236's exact 1/2/3/4-Cost scan; TLC_432's Deathrattle ≤3
+filter). Torga's deck scan is faithful: top-down over the actual deck for
+the first Kindred-registry card, then the first remaining card of its
+kindred type; an empty match draws nothing — with a Classic|Core deck that
+is the official behavior. As with §14–§15, these handwritten expansion cards
+are not in the RL pool (classic + core 668/659), so the rows are
+informational: they keep the code's simplifications traceable to the
+ledger. Each row stays open until its mechanism lands.
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| TLC_102/223/243/432/463/482 | the six dual-tribe Kindred cards | The official "races" second tribe lands on the board entity (`apply_card_keywords`, the Mythical Terror precedent) and feeds tribe synergies, but the Kindred counter and the `kindred_type` registry use the primary race only — a dual-tribe card activates Kindred as one tribe, where the official semantics count it as either | a multi-race kindred counter |
+| TLC_815 | Gravedawn Voidbulb | The random "4-Cost minion with Taunt" pool follows the D2 simplification — ALL_CARDS minions of cost 4, token ids excluded; the summoned minion's own battlecry fires (the Nerubian Swarmguard cascade is faithful) | the official summon pool |
+| TLC_519 | Ambush Predators | The summon is the fixed TLC_519t Venomous Spitter token (Stealth + Poisonous) — a one-element D2 pool, no random selection | a random Spitter pool |
+| TLC_482 | Slagclaw | The Kindred add-on triggers the Deathrattles of ALL friendly Sizzling Cinders — including one played earlier this turn — where the official "trigger their Deathrattles" covers only the two the battlecry summoned | a per-summoned-Cinder trigger scope |
+| TLC_251 | Primalfin Challenger | The "your next Kindred triggers twice" flag is consumed by OnPlay Kindred resolutions only — cost-time discounts and battlecry modifiers are not doubled | a universal trigger-twice flag |
+| TLC_107 | Stormbrewer | "Whenever this attacks, deal 3 to the target first" is a card-id-keyed ResolveAttack hook (the Lake Thresher precedent) instead of a general attack-trigger component | a general attack-trigger component |
+| TLC_428 | Hot Spring Glider | The "next Murloc" flags are player-level (`next_murloc_discount` at play-cost time, `next_murloc_divine_shield` at play) consumed by the next Murloc play — the Glider itself never consumes its own flags (the discount is applied before its battlecry sets it, the shield before it enters play) | per-entity modifiers |
+| TLC_825 | Ravasaur Matriarch | The Kindred target (deal damage equal to this Attack to an enemy minion) arrives via the PlayCard target, but `rl/env.rs` play_targets only extracts battlecry targets — the RL view cannot express it | a surfaced kindred target |
+
+中文小结（同上）：M2-W3 波（"失落之城"Kindred 机制，23 张卡）新增原语：
+`kindred_played` 每局玩家列表（每次出牌推入类型：法术推 `Spell`、随从推
+主种族；回合结束时清空——"本回合早些时候"的官方语义）、
+`next_kindred_twice`（TLC_251 战吼设置、下一次 OnPlay Kindred 结算双次并
+清除）、`next_murloc_discount` / `next_murloc_divine_shield`（TLC_428：
+下一个鱼人出牌费减 1 / 入场即带圣盾，出牌时消费）。四个解析点全部忠实：
+费用折扣（TLC_366/600/816，push 之前检查，只数更早的同型卡 ≥1）、OnPlay
+（TLC_107/226/243/428/429/440/447/519/815/825/903，基础结算之后——
+随从在入场与抉择块之后、法术在基础法术效果之后）、战吼修饰（TLC_454/463/
+829 专用变体替换战吼、TLC_482 附加结算）、抽牌修饰（TLC_223 火系过滤走
+W1 真实法术学派注册表、TLC_236 精确 1/2/3/4 费扫描、TLC_432 亡语随从
+≤3 费）。Torga 的牌库扫描忠实：自上而下扫实际牌库找第一张 Kindred 注册
+卡，再找其同型卡；无匹配则不抽——经典|核心牌库下空抽就是官方行为。
+简化登记：六张双种族卡（TLC_102/223/243/432/463/482）的第二种族经
+`apply_card_keywords` 落到实体上、喂部落协同，但 Kindred 计数只认主种族
+（官方语义任一种族都算）；TLC_815 随机 4 费嘲讽池走 D2（ALL_CARDS 4 费
+随从、排除衍生物；被召随从自身战吼照常结算）；TLC_519 固定召 TLC_519t
+毒液喷吐者（单元素 D2 池）；TLC_482 附加结算触发全部友方余烬火花亡语
+（官方"触发它们"仅指战吼召出的两只）；TLC_251 双次标志只被 OnPlay 结算
+消费（费用折扣与战吼修饰不翻倍）；TLC_107 攻击钩子按卡 ID 硬编码
+（湖鲟先例，非通用攻击触发组件）；TLC_428 的下一个鱼人标志为玩家级标志、
+由下一次鱼人出牌消费（滑翔者本人永不消费自己的标志）；TLC_825 的 Kindred
+目标经 PlayCard 目标传入，但 `rl/env.rs` play_targets 只提取战吼目标——
+RL 视图无法表达。
+
+F5 coverage: `tlc_w3_kindred_requires_same_type_earlier_this_turn`,
+`tlc_w3_spell_kindred_fires_after_any_spell`, `tlc_w3_cost_discount_kindred`,
+`tlc_w3_next_kindred_triggers_twice`, `tlc_w3_stormbrewer_gains_rush`,
+`tlc_w3_stormdrake_immune_this_turn`,
+`tlc_w3_torga_draws_kindred_and_activator`,
+`tlc_w3_kodo_high_attack_replaces_lowest`,
+`tlc_w3_razidir_opponent_hand_discard`,
+`tlc_w3_slagclaw_triggers_cinder_deathrattles`,
+`tlc_w3_devilsaur_gains_destroyed_stats`, `tlc_w3_cryosleep_draws_another`,
+`tlc_w3_matriarch_attack_damage`, `tlc_w3_queen_hero_attack`,
+`tlc_w3_thrasher_drawn_spell_damage`, `tlc_w3_dread_raptor_costs_zero`,
+`tlc_w3_kindred_resets_next_turn`, `tlc_w3_voidbulb_summons_taunt_4cost`,
+`tlc_w3_ambush_predators_spitter`, `tlc_w3_hot_spring_glider_murloc_flags`,
+`tlc_w3_hybridization_draws_each_cost`,
+`tlc_w3_bookkeeper_copy_does_not_loop` (22 scenarios in
+`tests/differential.rs` — every Kindred shape: activation, cost discount,
+the twice flag, keyword gains, Torga's scan, battlecry replaces/add-on,
+drawn-card modifiers, the turn-end reset, the random pools and the no-loop
+bookkeeper copy) plus the three registry unit tests in `src/cards/kindred.rs`.
+Full `cargo test` fully green (all suites, incl. every `tlc_w1_*`/`tlc_w2_*`
+scenario — 817 passed, 1 ignored), `cargo fmt` clean, `cargo clippy
+--all-targets` zero warnings.
