@@ -26,6 +26,7 @@ pub mod core_w4b;
 pub mod core_w5;
 pub mod core_w6;
 pub mod core_w7;
+pub mod core_w8;
 pub mod def;
 pub mod generated;
 pub mod pool;
@@ -779,8 +780,12 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
     world.set_card_type(e, card.card_type);
     world.set_player(e, player);
     world.set_attacks_used(e, AttacksUsed(0));
-    // Set weapon durability (if it is a weapon card)
-    if card.card_type == crate::core::component::CardType::Weapon && card.durability > 0 {
+    // Set weapon durability (if it is a weapon card); locations carry their
+    // durability charges the same way (Core Set W8)
+    if (card.card_type == crate::core::component::CardType::Weapon
+        || card.card_type == crate::core::component::CardType::Location)
+        && card.durability > 0
+    {
         world.set_durability(e, Durability(card.durability));
     }
     // Set Divine Shield / Windfury / Charge / Spell Damage
@@ -995,6 +1000,15 @@ mod generated_tests {
             "Panther" => &["cost"],
             "Big Game Hunter" => &["cost"],
             "Spellbender" => &["attack", "card_type", "cost", "health"],
+            // Core Set W8 — special types: the generated data maps LOCATION
+            // and ENCHANTMENT to Minion, so the type (and the location's
+            // durability-in-health slot) diverge by design.
+            "Sanguine Depths" => &["card_type", "health", "durability"],
+            // "Windfury" also collides by name with the Classic spell CS2_039
+            // (2 mana, give Windfury) — both fields diverge for the token.
+            "Windfury" => &["card_type", "cost"],
+            "Thornspeakers' Spirit" => &["card_type"],
+            "Deathly Poison" => &["card_type"],
             "Emerald Drake" => &["attack", "health"],
             "Laughing Sister" => &["cost"],
             "Huffer" => &["charge", "health"],

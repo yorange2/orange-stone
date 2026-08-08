@@ -93,6 +93,13 @@ pub enum CardType {
     Weapon,
     /// Spell (Phase 2+)
     Spell,
+    /// Location (Core Set W8) — sits on the board, is not attackable or
+    /// targetable, and is activated once per turn (durability charges)
+    Location,
+    /// Enchantment (Core Set W8) — a buff-instance token card, never
+    /// playable (the engine models buffs as Enchantment components; the
+    /// card definitions exist for data completeness)
+    Enchantment,
 }
 
 /// Number of attacks already used this turn.

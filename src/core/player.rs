@@ -52,6 +52,12 @@ pub struct Player {
     pub current_mana: i32,
     /// The currently equipped weapon entity (`None` means no weapon)
     pub weapon: Option<crate::core::entity::Entity>,
+    /// The current location entity (Core Set W8 — at most one location per
+    /// side; playing a new one replaces the old)
+    pub location: Option<crate::core::entity::Entity>,
+    /// The turn the current location was played (Core Set W8 cooldown: a
+    /// location cannot be activated the turn it was played)
+    pub location_played_turn: u32,
     /// Hero armor
     pub armor: i32,
     /// Fatigue counter (1-based): the damage dealt by the next empty-deck draw
@@ -123,6 +129,8 @@ impl Player {
             mana_crystals,
             current_mana: mana_crystals,
             weapon: None,
+            location: None,
+            location_played_turn: 0,
             armor: 0,
             fatigue: 1,
             cards_played_this_turn: 0,

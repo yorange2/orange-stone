@@ -26,6 +26,7 @@ use super::core_w4b::*;
 use super::core_w5::*;
 use super::core_w6::*;
 use super::core_w7::*;
+use super::core_w8::*;
 // ============================================================
 // Card lists
 // ============================================================
@@ -361,6 +362,10 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     CORE_ORCA,
     CORE_OTTER,
     CORE_DEFIAS_BANDIT,
+    // Core Set W8 — special-type tokens (Imp, Infernal; the ENCHANTMENT
+    // tokens ride in ALL_CARDS below)
+    CORE_IMP,
+    CORE_INFERNAL,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -826,6 +831,8 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     CORE_FLAME_IMP,
     // Core Set W5 — Voidlord
     CORE_VOIDLORD,
+    // Core Set W8 — Lord Jaraxxus (hero)
+    CORE_LORD_JARAXXUS,
 ];
 
 pub const WARRIOR_CLASSIC: &[CardDef] = &[
@@ -881,6 +888,8 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
     // Core Set W7 — enrage finish
     CORE_GROMMASH_HELLSCREAM,
     CORE_BLOODHOOF_BRAVE,
+    // Core Set W8 — Sanguine Depths (location)
+    CORE_SANGUINE_DEPTHS,
 ];
 
 pub const ALL_CARDS: &[CardDef] = &[
@@ -1639,6 +1648,15 @@ pub const ALL_CARDS: &[CardDef] = &[
     // Core Set W7 (2026-08-08) — enrage finish: 2 cards.
     CORE_GROMMASH_HELLSCREAM,
     CORE_BLOODHOOF_BRAVE,
+    // Core Set W8 (2026-08-08) — special types: hero + location + 3
+    // ENCHANTMENT tokens + Imp + Infernal token.
+    CORE_LORD_JARAXXUS,
+    CORE_SANGUINE_DEPTHS,
+    CORE_THORNSPEAKERS_SPIRIT,
+    CORE_WINDFURY_ENCHANTMENT,
+    CORE_DEATHLY_POISON,
+    CORE_IMP,
+    CORE_INFERNAL,
 ];
 
 // ============================================================

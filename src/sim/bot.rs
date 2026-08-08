@@ -81,7 +81,8 @@ impl GreedyBot {
                 let ct = world.card_type(e);
                 (ct == Some(CardType::Minion)
                     || ct == Some(CardType::Weapon)
-                    || ct == Some(CardType::Spell))
+                    || ct == Some(CardType::Spell)
+                    || ct == Some(CardType::Location))
                     && world.effective_cost(e).is_some_and(|c| c.0 <= current_mana)
             })
             .map(|e| (world.effective_cost(e).unwrap().0, e))
@@ -481,18 +482,28 @@ impl SmartBot {
         let (play_actions, projected_charge, hero_weapon_attack, remaining_mana) =
             self.play_cards(state, active, current_mana);
 
-        // ── 2. Hero power ──
+        // ── 2. Location activation (Core Set W8) ──
+        let location_action = self.location_activation(state, active);
+
+        // ── 3. Hero power ──
         let hero_power_action = self.hero_power(state, active, remaining_mana);
 
-        // ── 3. Combat phase ──
+        // ── 4. Combat phase ──
         let combat_actions =
             self.combat_phase(state, active, enemy, &projected_charge, hero_weapon_attack);
 
-        // ── 4. Assemble the action sequence ──
+        // ── 5. Assemble the action sequence ──
         let mut actions = Vec::with_capacity(
-            play_actions.len() + hero_power_action.map_or(0, |_| 1) + combat_actions.len() + 1,
+            play_actions.len()
+                + location_action.map_or(0, |_| 1)
+                + hero_power_action.map_or(0, |_| 1)
+                + combat_actions.len()
+                + 1,
         );
         actions.extend(play_actions);
+        if let Some(la) = location_action {
+            actions.push(la);
+        }
         if let Some(hp) = hero_power_action {
             actions.push(hp);
         }
@@ -633,6 +644,66 @@ impl SmartBot {
 
         // Final score: efficiency + keywords + effects (normalized by cost so high-value cards sort well)
         stats_efficiency + keyword_bonus + effect_bonus + (atk + hp) / cost
+    }
+
+    // ============================================================
+    // Location activation (Core Set W8)
+    // ============================================================
+
+    /// Picks the location activation action when a friendly location is
+    /// ready (past its play cooldown, charges left). Target heuristic:
+    /// an enemy minion the 1 damage would kill, else the lowest-health
+    /// enemy minion, else the strongest friendly attacker to buff.
+    fn location_activation(&self, state: &GameState, player: PlayerId) -> Option<Action> {
+        let world = state.world();
+        let location = state.player(player).location?;
+        if state.player(player).location_played_turn >= state.turn() {
+            return None;
+        }
+        if world.attacks_used(location).is_some_and(|u| u.0 > 0) {
+            return None;
+        }
+        if world.durability(location).is_none_or(|d| d.0 == 0) {
+            return None;
+        }
+        let enemy = player.opponent();
+        let kill_candidates: Vec<Entity> = world
+            .zones()
+            .iter(Zone::Play, enemy)
+            .filter(|&e| world.card_type(e) == Some(CardType::Minion))
+            .filter(|&e| world.effective_health(e).is_some_and(|h| h.0 <= 1))
+            .collect();
+        if !kill_candidates.is_empty() {
+            return Some(Action::ActivateLocation {
+                location,
+                target: Some(kill_candidates[0]),
+            });
+        }
+        let mut weak_enemies: Vec<(i32, Entity)> = world
+            .zones()
+            .iter(Zone::Play, enemy)
+            .filter(|&e| world.card_type(e) == Some(CardType::Minion))
+            .map(|e| (world.effective_health(e).map(|h| h.0).unwrap_or(0), e))
+            .collect();
+        weak_enemies.sort_by_key(|(h, _)| *h);
+        if let Some((_, e)) = weak_enemies.first() {
+            return Some(Action::ActivateLocation {
+                location,
+                target: Some(*e),
+            });
+        }
+        // No enemy minions: buff the strongest friendly attacker
+        let mut friends: Vec<(i32, Entity)> = world
+            .zones()
+            .iter(Zone::Play, player)
+            .filter(|&e| world.card_type(e) == Some(CardType::Minion))
+            .map(|e| (world.effective_attack(e).map(|a| a.0).unwrap_or(0), e))
+            .collect();
+        friends.sort_by_key(|(a, _)| std::cmp::Reverse(*a));
+        friends.first().map(|(_, e)| Action::ActivateLocation {
+            location,
+            target: Some(*e),
+        })
     }
 
     // ============================================================
