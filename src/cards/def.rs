@@ -119,6 +119,7 @@ pub use super::core_w3c::*;
 pub use super::core_w3d::*;
 pub use super::core_w4a::*;
 pub use super::core_w4b::*;
+pub use super::core_w5::*;
 
 /// Look up a card definition by card ID.
 pub fn card_by_id(id: &str) -> Option<&'static CardDef> {

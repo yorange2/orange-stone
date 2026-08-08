@@ -1669,17 +1669,24 @@ fn w1_race_pools_are_field_driven() {
         vec![
             "CLASSIC_001",   // Bloodfen Raptor
             "CORE_AT_062t",  // Spider (Core Set W3a token)
+            "CORE_AV_337",   // Mountain Bear (Core Set W5)
+            "CORE_AV_337t",  // Mountain Cub (Core Set W5 token)
             "CORE_BAR_801t", // Swift Hyena (Core Set W3b token)
+            "CORE_BT_201",   // Augmented Porcupine (Core Set W5)
             "CORE_CATA_006", // Ulfar (Core Set W4b)
             "CORE_EDR_004",  // Raptor Herald (Core Set W4a)
             "CORE_EX1_014",  // King Mukla (Core Set W4b)
+            "CORE_EX1_162",  // Dire Wolf Alpha (Core Set W5)
             "CORE_EX1_246t", // Frog (Core Set W3a token)
             "CORE_GIL_531",  // Witch's Apprentice (Core Set W4a)
             "CORE_GIL_558",  // Swamp Leech (Core Set W1)
+            "CORE_GIL_577t", // Doom Rat (Core Set W5 token)
             "CORE_GIL_622",  // Lifedrinker (Core Set W4a)
             "CORE_GIL_623",  // Witchwood Grizzly (Core Set W4a)
+            "CORE_LOOT_413", // Plated Beetle (Core Set W5)
             "CORE_SCH_605",  // Lake Thresher (Core Set W3b)
             "CORE_SW_429t",  // Turtle (Core Set W2 token)
+            "CORE_SW_439",   // Vibrant Squirrel (Core Set W5)
             "CORE_TRL_345",  // Krag'wa, the Frog (Core Set W4b)
             "CORE_TRL_900",  // Halazzi, the Lynx (Core Set W1)
             "CORE_TRL_900t", // Lynx (Core Set W1 token)
@@ -1730,10 +1737,13 @@ fn w1_race_pools_are_field_driven() {
             "CORE_EX1_310",  // Doomguard (W4b)
             "CORE_EX1_319",  // Flame Imp (W4b)
             "CORE_LOOT_013", // Vulgar Homunculus (W4a)
+            "CORE_LOOT_368", // Voidlord (W5)
+            "CORE_SW_068",   // Mo'arg Forgefiend (W5)
             "CORE_TTN_843",  // Eredar Deceptor (W3b)
             "CORE_TTN_843t", // Invading Felbat (W3b token)
             "CORE_TTN_866",  // Mythical Terror (W1)
             "CORE_ULD_165",  // Riftcleaver (W4b)
+            "CORE_YOD_026",  // Fiendish Servant (W5)
             "CS2_064",
             "WARLOCK_T01"
         ]
@@ -12240,4 +12250,222 @@ fn w4b_siamat_has_rush() {
         )
         .unwrap();
     assert_eq!(state.world().zone(foe), Some(Zone::Graveyard));
+}
+
+// ============================================================
+// Core Set W5 (core-set-roadmap W5) — deathrattle/secret/aura batch.
+// ============================================================
+
+/// W5-1 Chillmaw — holding a Dragon makes the deathrattle hit all minions.
+#[test]
+fn w5_chillmaw_dragon_condition() {
+    use orange_stone::cards::def::CORE_CHILLMAW;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId2(), &CORE_CHILLMAW);
+    builder.add_minion_to_hand(PlayerId2(), &orange_stone::cards::def::CORE_FAERIE_DRAGON);
+    let foe = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 3);
+    let attacker = builder.add_custom_minion_to_board(PlayerId1(), 7, 7, 7);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let chillmaw = find_entity(&state, PlayerId2(), "CORE_AT_123");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: chillmaw,
+            },
+        )
+        .unwrap();
+    // The deathrattle: holding a Dragon deals 3 to ALL minions (the foe
+    // 3/3 dies; the attacker 7/7 takes 6 retaliation + 3 deathrattle and
+    // dies too)
+    assert_eq!(state.world().zone(foe), Some(Zone::Graveyard));
+    assert_eq!(state.world().zone(attacker), Some(Zone::Graveyard));
+}
+
+/// W5-2 Voidlord — summons three 1/3 Taunt Voidwalkers.
+#[test]
+fn w5_voidlord_summons_voidwalkers() {
+    use orange_stone::cards::def::CORE_VOIDLORD;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId2(), &CORE_VOIDLORD);
+    let attacker = builder.add_custom_minion_to_board(PlayerId1(), 9, 9, 9);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let voidlord = find_entity(&state, PlayerId2(), "CORE_LOOT_368");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: voidlord,
+            },
+        )
+        .unwrap();
+    let walkers = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "WARLOCK_004")
+        })
+        .count();
+    assert_eq!(walkers, 3, "three Voidwalkers joined the board");
+}
+
+/// W5-3 Tirion Fordring — deathrattle equips Ashbringer.
+#[test]
+fn w5_tirion_equips_ashbringer() {
+    use orange_stone::cards::def::CORE_TIRION_FORDRING;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId2(), &CORE_TIRION_FORDRING);
+    let attacker = builder.add_custom_minion_to_board(PlayerId1(), 9, 9, 9);
+    let attacker2 = builder.add_custom_minion_to_board(PlayerId1(), 9, 9, 9);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let tirion = find_entity(&state, PlayerId2(), "CORE_EX1_383");
+    // First hit breaks the Divine Shield
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: tirion,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.world().divine_shield(tirion).is_none(),
+        "shield broken"
+    );
+    // Second hit kills Tirion -> deathrattle equips Ashbringer
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: attacker2,
+                defender: tirion,
+            },
+        )
+        .unwrap();
+    let weapon = state
+        .player(PlayerId2())
+        .weapon
+        .expect("Ashbringer equipped");
+    assert_eq!(state.world().effective_attack(weapon), Some(Attack(5)));
+    assert_eq!(state.world().durability(weapon).map(|d| d.0), Some(3));
+}
+
+/// W5-4 Rat Trap — the opponent playing three cards summons a 6/6 Rat.
+#[test]
+fn w5_rat_trap_secret() {
+    use orange_stone::cards::def::CORE_RAT_TRAP;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_RAT_TRAP);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let trap = find_in_hand(&state, PlayerId1(), "CORE_GIL_577");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: trap,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // P2 plays three cards
+    state.set_active_player(PlayerId2());
+    {
+        let inner = state.make_mut();
+        inner.players[PlayerId2().index()].current_mana = 10;
+    }
+    for _ in 0..3 {
+        let card = {
+            use orange_stone::core::component::Cost;
+            let world = state.world_mut();
+            let e = world.spawn();
+            world.set_card_type(e, CardType::Minion);
+            world.set_attack(e, Attack(1));
+            world.set_health(e, Health(1));
+            world.set_cost(e, Cost(1));
+            world.set_player(e, PlayerId2());
+            world.set_zone(e, Zone::Hand);
+            world.zones_mut().insert(Zone::Hand, PlayerId2(), e);
+            e
+        };
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+    }
+    let rat = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(rat, 1, "the 6/6 Doom Rat was summoned");
+}
+
+/// W5-5 Murloc Warleader — the friendly-Murloc aura.
+#[test]
+fn w5_murloc_warleader_aura() {
+    use orange_stone::cards::def::CORE_MURLOC_WARLEADER;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId1(), &CORE_MURLOC_WARLEADER);
+    builder.add_minion_to_board(
+        PlayerId1(),
+        &orange_stone::cards::def::CORE_MURLOC_TIDEHUNTER,
+    );
+    let state = builder.build();
+    let murloc_entity = find_entity(&state, PlayerId1(), "CORE_EX1_506");
+    assert_eq!(
+        state.world().effective_attack(murloc_entity),
+        Some(Attack(4)),
+        "2 + 2 from the warleader"
+    );
+}
+
+/// W5-6 Kayn Sunfury — friendly attacks ignore Taunt.
+#[test]
+fn w5_kayn_sunfury_ignores_taunt() {
+    use orange_stone::cards::def::CORE_KAYN_SUNFURY;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId1(), &CORE_KAYN_SUNFURY);
+    let attacker = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 3);
+    let taunt = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    let mut state = builder.build();
+    state
+        .world_mut()
+        .set_taunt(taunt, orange_stone::core::component::Taunt);
+    let engine = GameEngine::new();
+    // Without Kayn this attack would be refused (MustAttackTaunt)
+    let hero2 = state.player(PlayerId2()).hero;
+    let result = engine.apply(
+        &mut state,
+        Action::Attack {
+            attacker,
+            defender: hero2,
+        },
+    );
+    assert!(result.is_ok(), "Kayn lets the attack ignore Taunt");
 }

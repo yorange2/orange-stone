@@ -2412,6 +2412,150 @@ pub fn resolve_effect(
                     .ok();
             }
         }
+
+        CardEffect::DamageAllMinionsIfHoldingDragon { damage } => {
+            // Chillmaw — holding a Dragon deals damage to all minions
+            let holds_dragon = state.world().zones().iter(Zone::Hand, owner).any(|e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                    .is_some_and(|d| d.race == Some(crate::core::component::Race::Dragon))
+            });
+            if !holds_dragon {
+                return;
+            }
+            for player in [owner, owner.opponent()] {
+                let minions: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, player)
+                    .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                    .collect();
+                for m in minions {
+                    queue.push(Event::DamageDealt {
+                        source,
+                        target: m,
+                        amount: damage,
+                    });
+                }
+            }
+        }
+        CardEffect::DamageAllEnemiesByAttack => {
+            // Augmented Porcupine — Attack damage split among all enemies
+            let atk = state
+                .world()
+                .effective_attack(source)
+                .unwrap_or(Attack(0))
+                .0;
+            if atk <= 0 {
+                return;
+            }
+            let enemies = collect_enemy_characters(state, owner, Some(source));
+            if enemies.is_empty() {
+                return;
+            }
+            for _ in 0..atk {
+                let idx = state.rng_mut().next_usize(enemies.len());
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: enemies[idx],
+                    amount: 1,
+                });
+            }
+        }
+        CardEffect::ReturnRandomFriendlyAndReduceCost { amount } => {
+            // Waggle Pick — a random friendly minion returns, costing less
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner);
+            let Some(target) = select_target(None, &minions, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().move_to_zone(target, Zone::Hand).ok();
+            if let Some(card) = state
+                .world()
+                .card_id(target)
+                .and_then(|c| crate::cards::def::card_by_id(c.0))
+            {
+                let cur = state
+                    .world()
+                    .effective_cost(target)
+                    .unwrap_or(Cost(card.cost));
+                state
+                    .world_mut()
+                    .set_cost(target, Cost((cur.0 - amount).max(0)));
+            }
+        }
+        CardEffect::GrantAttackToRandomFriendly => {
+            // Fiendish Servant — its Attack to a random friendly minion
+            let atk = state
+                .world()
+                .effective_attack(source)
+                .unwrap_or(Attack(0))
+                .0;
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner);
+            let Some(target) = select_target(None, &minions, state.rng_mut()) else {
+                return;
+            };
+            let world = state.world_mut();
+            let base = world.attack(target).unwrap_or(Attack(0));
+            world.set_attack(target, Attack(base.0 + atk));
+        }
+        CardEffect::SummonRandomLegendaryMinion => {
+            // Sneed's Old Shredder — a random legendary minion
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && crate::cards::sets::LEGENDARY_CLASSIC
+                                .iter()
+                                .any(|l| l.id == c.id)
+                    })
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            let _ = resolve_summon(state, queue, source, owner, candidates[idx].id);
+        }
+        CardEffect::ResurrectWeaponKilled => {
+            // Frostmourne — approximated by the generic resurrect
+            let fallen: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Graveyard, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if let Some(&best) = fallen
+                .iter()
+                .max_by_key(|&&e| state.world().cost(e).map_or(0, |c| c.0))
+            {
+                if let Some(def) = state
+                    .world()
+                    .card_id(best)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+            }
+        }
+        CardEffect::DestroyRandomEnemyMinion => {
+            // Pressure Plate — destroy a random enemy minion
+            let minions: SmallList<Entity> = collect_enemy_minions(state, owner, None);
+            let Some(target) = select_target(None, &minions, state.rng_mut()) else {
+                return;
+            };
+            let hp = state.world().effective_health(target).map_or(0, |h| h.0);
+            queue.push(Event::DamageDealt {
+                source,
+                target,
+                amount: hp.max(1),
+            });
+        }
+        CardEffect::SummonOasisWaterElemental => {
+            // Oasis Ally — a 3/6 Water Elemental
+            let _ = resolve_summon(state, queue, source, owner, "CORE_BAR_812t");
+        }
         CardEffect::CopyEnemyDeckCardOnSelfAttack => {
             // Shaku — copy a random enemy deck card to hand, only when THIS
             // minion is the one attacking

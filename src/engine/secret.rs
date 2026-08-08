@@ -137,6 +137,12 @@ fn matches_trigger(
             let hero = state.player(owner).hero;
             matches!(event, Event::DamageDealt { target, amount, .. } if *amount > 0 && *target == hero)
         }
+        SecretTrigger::AfterEnemyPlaysThreeCards => {
+            // Rat Trap (Core Set W5) — the opponent played three cards this turn
+            matches!(event, Event::CardPlayed { player, .. }
+                if *player == owner.opponent()
+                    && state.player(*player).cards_played_this_turn >= 3)
+        }
         SecretTrigger::WhenFriendlyHeroFatallyDamaged => {
             // The friendly hero takes FATAL damage (Ice Block) — the damage
             // must have brought the hero to 0 or below for the secret to fire
@@ -209,6 +215,40 @@ fn resolve_secret_effect(
                     source: entity,
                     target: *minion,
                     amount,
+                });
+            }
+        }
+        CardEffect::SummonMinion { card_id } => {
+            // Rat Trap — summon the token when the secret fires
+            let _ = crate::engine::trigger::resolve_summon(state, queue, entity, player, card_id);
+        }
+        CardEffect::SummonOasisWaterElemental => {
+            // Oasis Ally — summon a 3/6 Water Elemental when a friendly
+            // minion is attacked
+            let _ = crate::engine::trigger::resolve_summon(
+                state,
+                queue,
+                entity,
+                player,
+                "CORE_BAR_812t",
+            );
+        }
+        CardEffect::DestroyRandomEnemyMinion => {
+            // Pressure Plate — destroy a random enemy minion
+            let minions: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, player.opponent())
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(crate::core::component::CardType::Minion)
+                })
+                .collect();
+            if let Some(&target) = minions.iter().next() {
+                let hp = state.world().effective_health(target).map_or(0, |h| h.0);
+                queue.push(Event::DamageDealt {
+                    source: entity,
+                    target,
+                    amount: hp.max(1),
                 });
             }
         }

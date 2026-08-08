@@ -1215,6 +1215,39 @@ pub enum CardEffect {
     AddFiveRandomCards,
     /// Discard two random cards (Doomguard)
     DiscardTwoRandomCards,
+    // ----------------------------------------------------------------
+    // Core Set W5 effects (core-set-roadmap W5) — deathrattle/secret/aura
+    // batch. Simplifications flagged: Fandral's Choose-One combining is not
+    // modelled (whiteboard 3/6), Frostmourne's weapon-kill tracking is
+    // approximated by a generic resurrect, Vibrant Squirrel's acorn
+    // draw-summon is approximated by shuffling inert acorns.
+    // ----------------------------------------------------------------
+    /// Deal damage to all minions when the owner holds a Dragon (Chillmaw)
+    DamageAllMinionsIfHoldingDragon {
+        /// Damage amount
+        damage: i32,
+    },
+    /// Deal the source's Attack randomly split among all enemies
+    /// (Augmented Porcupine)
+    DamageAllEnemiesByAttack,
+    /// Return a random friendly minion to hand and reduce its cost
+    /// (Waggle Pick)
+    ReturnRandomFriendlyAndReduceCost {
+        /// Cost reduction
+        amount: i32,
+    },
+    /// Give the source's Attack to a random friendly minion (Fiendish
+    /// Servant)
+    GrantAttackToRandomFriendly,
+    /// Summon a random legendary minion (Sneed's Old Shredder)
+    SummonRandomLegendaryMinion,
+    /// Resurrect a random minion killed by this weapon this game
+    /// (Frostmourne — approximated by the generic resurrect)
+    ResurrectWeaponKilled,
+    /// Destroy a random enemy minion (Pressure Plate secret effect)
+    DestroyRandomEnemyMinion,
+    /// Summon a 3/6 Water Elemental (Oasis Ally secret effect)
+    SummonOasisWaterElemental,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -1685,6 +1718,18 @@ enum CardEffectDe {
     },
     AddFiveRandomCards,
     DiscardTwoRandomCards,
+    DamageAllMinionsIfHoldingDragon {
+        damage: i32,
+    },
+    DamageAllEnemiesByAttack,
+    ReturnRandomFriendlyAndReduceCost {
+        amount: i32,
+    },
+    GrantAttackToRandomFriendly,
+    SummonRandomLegendaryMinion,
+    ResurrectWeaponKilled,
+    DestroyRandomEnemyMinion,
+    SummonOasisWaterElemental,
     DestroyAndGainStats {
         attack: i32,
         health: i32,
@@ -2257,6 +2302,18 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             }
             CardEffectDe::AddFiveRandomCards => CardEffect::AddFiveRandomCards,
             CardEffectDe::DiscardTwoRandomCards => CardEffect::DiscardTwoRandomCards,
+            CardEffectDe::DamageAllMinionsIfHoldingDragon { damage } => {
+                CardEffect::DamageAllMinionsIfHoldingDragon { damage }
+            }
+            CardEffectDe::DamageAllEnemiesByAttack => CardEffect::DamageAllEnemiesByAttack,
+            CardEffectDe::ReturnRandomFriendlyAndReduceCost { amount } => {
+                CardEffect::ReturnRandomFriendlyAndReduceCost { amount }
+            }
+            CardEffectDe::GrantAttackToRandomFriendly => CardEffect::GrantAttackToRandomFriendly,
+            CardEffectDe::SummonRandomLegendaryMinion => CardEffect::SummonRandomLegendaryMinion,
+            CardEffectDe::ResurrectWeaponKilled => CardEffect::ResurrectWeaponKilled,
+            CardEffectDe::DestroyRandomEnemyMinion => CardEffect::DestroyRandomEnemyMinion,
+            CardEffectDe::SummonOasisWaterElemental => CardEffect::SummonOasisWaterElemental,
             CardEffectDe::DestroyAndGainStats {
                 attack,
                 health,
