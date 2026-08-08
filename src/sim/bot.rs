@@ -1357,6 +1357,32 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::RestoreHealthAndDraw { amount, .. } => amount as f64 * 0.7 + 3.0,
         CardEffect::DrawIfUnspentMana => 3.0,
         CardEffect::GainArmorAndSummonRandomCost { armor, .. } => armor as f64 * 0.6 + 4.0,
+        // Core Set W4a
+        CardEffect::GainStatsIfHealedThisTurn { attack, health, .. } => {
+            (attack + health) as f64 * 0.8
+        }
+        CardEffect::BattleToTheDeath => 4.0,
+        CardEffect::NextDemonDiscount { amount } => amount as f64 * 2.0,
+        CardEffect::BuffHandMinions { attack, health } => (attack + health) as f64 * 0.8,
+        CardEffect::SummonRandomEnemyHandMinion => 3.0,
+        CardEffect::DrawForBoth => 3.0,
+        CardEffect::NextComboDiscount { amount } => amount as f64 * 2.0,
+        CardEffect::AddRandomMageSpells { count } => count as f64 * 3.0,
+        CardEffect::DamageEnemyHeroAndHealSelf { amount } => amount as f64 * 1.2,
+        CardEffect::LoseHealthPerOpponentHandCard => 2.0,
+        CardEffect::GrantRandomFriendlyDivineShieldTaunt => 2.0,
+        CardEffect::RemoveTopEnemyDeckCard => 2.0,
+        CardEffect::DiscoverSpellAndHealCost => 4.0,
+        CardEffect::DrawBeastDragonMurloc => 6.0,
+        CardEffect::AddRandomOtherClassCard => 3.0,
+        CardEffect::DamageSelfHero { damage } => damage as f64 * 0.5,
+        CardEffect::SummonTwoCopiesOfSelf => 6.0,
+        CardEffect::SpendCorpsesDamageRandom { damage, .. } => damage as f64 * 1.2,
+        CardEffect::SpendCorpsesSummonFootmen { .. } => 5.0,
+        CardEffect::OngoingEndTurnDamage { damage } => damage as f64 * 1.5,
+        CardEffect::DamageAllOtherMinions { damage } => damage as f64 * 1.2,
+        CardEffect::BuffTauntHandMinions { attack, health } => (attack + health) as f64 * 0.8,
+        CardEffect::AddRandomShamanSpell => 3.0,
     }
 }
 

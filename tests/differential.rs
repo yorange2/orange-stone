@@ -1670,12 +1670,17 @@ fn w1_race_pools_are_field_driven() {
             "CLASSIC_001",   // Bloodfen Raptor
             "CORE_AT_062t",  // Spider (Core Set W3a token)
             "CORE_BAR_801t", // Swift Hyena (Core Set W3b token)
+            "CORE_EDR_004",  // Raptor Herald (Core Set W4a)
             "CORE_EX1_246t", // Frog (Core Set W3a token)
+            "CORE_GIL_531",  // Witch's Apprentice (Core Set W4a)
             "CORE_GIL_558",  // Swamp Leech (Core Set W1)
+            "CORE_GIL_622",  // Lifedrinker (Core Set W4a)
+            "CORE_GIL_623",  // Witchwood Grizzly (Core Set W4a)
             "CORE_SCH_605",  // Lake Thresher (Core Set W3b)
             "CORE_SW_429t",  // Turtle (Core Set W2 token)
             "CORE_TRL_900",  // Halazzi, the Lynx (Core Set W1)
             "CORE_TRL_900t", // Lynx (Core Set W1 token)
+            "CORE_UNG_912",  // Jeweled Macaw (Core Set W4a)
             "CORE_UNG_952t", // Spider (Core Set W3a token)
             "CORE_WC_701",   // Felrattler (Core Set W1)
             "HUNTER_006t",   // Hyena (Savannah Highmane token)
@@ -1718,6 +1723,7 @@ fn w1_race_pools_are_field_driven() {
             "CORE_BT_480",   // Crimson Sigil Runner (W2)
             "CORE_BT_493",   // Priestess of Fury (W3c)
             "CORE_BT_510",   // Wrathspike Brute (W3c)
+            "CORE_LOOT_013", // Vulgar Homunculus (W4a)
             "CORE_TTN_843",  // Eredar Deceptor (W3b)
             "CORE_TTN_843t", // Invading Felbat (W3b token)
             "CORE_TTN_866",  // Mythical Terror (W1)
@@ -11417,7 +11423,9 @@ fn w3c_backstab_only_undamaged() {
     let mut state = builder.build();
     let engine = GameEngine::new();
     // Damage `a` first so the second Backstab fizzles on it
-    state.world_mut().set_damage(a, orange_stone::core::component::Damage(1));
+    state
+        .world_mut()
+        .set_damage(a, orange_stone::core::component::Damage(1));
     let stab1 = find_in_hand(&state, PlayerId1(), "CORE_CS2_072");
     engine
         .apply(
@@ -11717,4 +11725,285 @@ fn w3c_wrathspike_brute_aoe_on_attacked() {
     // Both enemy minions took 1 (2/2 -> 1/2)
     assert_eq!(state.world().effective_health(a), Some(Health(1)));
     assert_eq!(state.world().effective_health(b), Some(Health(1)));
+}
+
+// ============================================================
+// Core Set W4a (core-set-roadmap W4a) — the battlecry batch.
+// ============================================================
+
+/// W4a-1 Dirty Rat — the opponent summons a random minion from THEIR hand
+/// (pool-open).
+#[test]
+fn w4a_dirty_rat_summons_enemy_hand_minion() {
+    use orange_stone::cards::def::CORE_DIRTY_RAT;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_DIRTY_RAT);
+    builder.add_minion_to_hand(PlayerId2(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let rat = find_in_hand(&state, PlayerId1(), "CORE_CFM_790");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: rat,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The opponent's hand minion joined their board
+    let p2_minions = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(p2_minions, 1, "the enemy hand minion was summoned");
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId2()), 0);
+}
+
+/// W4a-2 Gnomeferatu — removes the top card of the opponent's deck
+/// (pool-open).
+#[test]
+fn w4a_gnomeferatu_removes_deck_top() {
+    use orange_stone::cards::def::CORE_GNOMEFERATU;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_GNOMEFERATU);
+    builder.add_minion_to_deck(PlayerId2(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let gnome = find_in_hand(&state, PlayerId1(), "CORE_ICC_407");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: gnome,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId2()), 0);
+    assert_eq!(
+        state.world().zones().len(Zone::Graveyard, PlayerId2()),
+        1,
+        "the top card went to the graveyard"
+    );
+}
+
+/// W4a-3 Warmaul Challenger — battles the chosen enemy minion to the death
+/// (both deal their attack).
+#[test]
+fn w4a_warmaul_battle_to_the_death() {
+    use orange_stone::cards::def::CORE_WARMAUL_CHALLENGER;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_WARMAUL_CHALLENGER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let warmaul = find_in_hand(&state, PlayerId1(), "CORE_BT_120");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: warmaul,
+                target: Some(foe),
+                position: None,
+            },
+        )
+        .unwrap();
+    // The battle: the warmaul deals 1 (the 4/4 -> 3/4), the 4/4 deals 4
+    // back (the 1/10 -> 6/10)
+    assert_eq!(state.world().effective_health(foe), Some(Health(3)));
+    let warmaul_entity = find_entity(&state, PlayerId1(), "CORE_BT_120");
+    assert_eq!(
+        state.world().effective_health(warmaul_entity),
+        Some(Health(6))
+    );
+}
+
+/// W4a-4 Lifedrinker — 3 damage to the enemy hero, 3 heal to the friendly.
+#[test]
+fn w4a_lifedrinker_damages_and_heals() {
+    use orange_stone::cards::def::CORE_LIFEDRINKER;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_LIFEDRINKER);
+    let mut state = builder.build();
+    let hero1 = state.player(PlayerId1()).hero;
+    state
+        .world_mut()
+        .set_damage(hero1, orange_stone::core::component::Damage(5));
+    let engine = GameEngine::new();
+    let drinker = find_in_hand(&state, PlayerId1(), "CORE_GIL_622");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: drinker,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state
+            .world()
+            .effective_health(state.player(PlayerId2()).hero),
+        Some(Health(27))
+    );
+    assert_eq!(state.world().effective_health(hero1), Some(Health(28)));
+}
+
+/// W4a-5 Alexandros Mograine — game-long end-of-turn damage.
+#[test]
+fn w4a_mograine_ongoing_end_turn_damage() {
+    use orange_stone::cards::def::CORE_ALEXANDROS_MOGRAINE;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_ALEXANDROS_MOGRAINE);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let mograine = find_in_hand(&state, PlayerId1(), "CORE_RLK_706");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: mograine,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero2 = state.player(PlayerId2()).hero;
+    // End P1's turn: 3 damage to the opponent (and the turn passes)
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.world().effective_health(hero2), Some(Health(27)));
+    // A second turn end deals again
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.world().effective_health(hero2), Some(Health(24)));
+}
+
+/// W4a-6 Marrow Manipulator — corpses into random enemy damage.
+#[test]
+fn w4a_marrow_manipulator_spends_corpses() {
+    use orange_stone::cards::def::CORE_MARROW_MANIPULATOR;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 6, 6, 6);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_MARROW_MANIPULATOR);
+    let mut state = builder.build();
+    {
+        let inner = state.make_mut();
+        inner.players[PlayerId1().index()].corpses = 3;
+    }
+    let engine = GameEngine::new();
+    let marrow = find_in_hand(&state, PlayerId1(), "CORE_RLK_505");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: marrow,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(PlayerId1()).corpses, 0);
+    // 3 corpses -> up to 6 damage (2 per corpse) spread over the enemy side
+    let foe_hp = state
+        .world()
+        .effective_health(foe)
+        .map(|h| h.0)
+        .unwrap_or(6);
+    let hero2_hp = state
+        .world()
+        .effective_health(state.player(PlayerId2()).hero)
+        .map(|h| h.0)
+        .unwrap_or(30);
+    let total_damage = (6 - foe_hp) + (30 - hero2_hp);
+    let foe_dead = state.world().zone(foe) == Some(Zone::Graveyard);
+    assert!(
+        (foe_dead && hero2_hp == 30) || total_damage == 6,
+        "3 corpses dealt 6 damage (foe dead: {foe_dead}, foe {foe_hp}, hero {hero2_hp})"
+    );
+}
+
+/// W4a-7 Nerubian Swarmguard — summons two copies of itself.
+#[test]
+fn w4a_nerubian_swarmguard_summons_copies() {
+    use orange_stone::cards::def::CORE_NERUBIAN_SWARMGUARD;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_NERUBIAN_SWARMGUARD);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let swarmguard = find_in_hand(&state, PlayerId1(), "CORE_RLK_062");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: swarmguard,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let copies = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_RLK_062")
+        })
+        .count();
+    assert_eq!(copies, 3, "the original plus two copies");
+}
+
+/// W4a-8 Primordial Drake — 2 damage to all OTHER minions.
+#[test]
+fn w4a_primordial_drake_damages_others() {
+    use orange_stone::cards::def::CORE_PRIMORDIAL_DRAKE;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let friend = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 3);
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_PRIMORDIAL_DRAKE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let drake = find_in_hand(&state, PlayerId1(), "CORE_UNG_848");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: drake,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(friend), Some(Health(1)));
+    assert_eq!(state.world().effective_health(foe), Some(Health(1)));
+    let drake_entity = find_entity(&state, PlayerId1(), "CORE_UNG_848");
+    assert_eq!(
+        state.world().effective_health(drake_entity),
+        Some(Health(8))
+    );
 }

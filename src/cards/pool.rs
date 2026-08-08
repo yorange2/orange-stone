@@ -87,6 +87,8 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
         RandomPool::Beast => race_pool(Race::Beast),
         RandomPool::Demon => race_pool(Race::Demon),
         RandomPool::Dream => DREAM_POOL.iter().filter_map(|id| card_by_id(id)).collect(),
+        RandomPool::Dragon => race_pool(Race::Dragon),
+        RandomPool::Mechanical => race_pool(Race::Mechanical),
         RandomPool::Companion => COMPANION_POOL
             .iter()
             .filter_map(|id| card_by_id(id))
@@ -125,6 +127,14 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
+        RandomPool::Spell => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| c.card_type == crate::core::component::CardType::Spell)
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
         RandomPool::OtherClass => crate::cards::sets::ALL_CARDS
             .iter()
             .filter(|c| is_other_class_card(c))
@@ -147,6 +157,11 @@ pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'stati
         RandomPool::Beast => random_filtered(rng, |c| c.race == Some(Race::Beast)),
         RandomPool::Demon => random_filtered(rng, |c| c.race == Some(Race::Demon)),
         RandomPool::Dream => random_from_pool(DREAM_POOL, rng),
+        RandomPool::Dragon => random_filtered(rng, |c| c.race == Some(Race::Dragon)),
+        RandomPool::Mechanical => random_filtered(rng, |c| c.race == Some(Race::Mechanical)),
+        RandomPool::Spell => random_filtered(rng, |c| {
+            c.card_type == crate::core::component::CardType::Spell
+        }),
         RandomPool::Companion => random_from_pool(COMPANION_POOL, rng),
         RandomPool::Legendary => random_filtered(rng, |c| {
             c.card_type == CardType::Minion

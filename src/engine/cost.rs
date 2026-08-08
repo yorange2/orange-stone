@@ -40,6 +40,27 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
             cost = Cost((cost.0 - discount).max(0));
         }
     }
+    // Raging Felscreamer (Core Set W4a): the next Demon costs less
+    // (one-time, consumed on play — cleared after use)
+    if state
+        .world()
+        .card_id(card)
+        .and_then(|cid| crate::cards::def::card_by_id(cid.0))
+        .is_some_and(|def| def.race == Some(crate::core::component::Race::Demon))
+        && state.player(player).next_demon_discount > 0
+    {
+        cost = Cost((cost.0 - state.player(player).next_demon_discount).max(0));
+    }
+    // Foxy Fraud (Core Set W4a): the next Combo card costs less this turn
+    if state
+        .world()
+        .card_id(card)
+        .and_then(|cid| crate::cards::def::card_by_id(cid.0))
+        .is_some_and(|def| def.combo_effect.is_some())
+        && state.player(player).next_combo_discount > 0
+    {
+        cost = Cost((cost.0 - state.player(player).next_combo_discount).max(0));
+    }
     // Dread Corsair (Core Set W3b): costs (1) less per Attack of the
     // owner's weapon
     if state

@@ -1046,6 +1046,110 @@ pub enum CardEffect {
         /// Cost of the summoned minion
         cost: i32,
     },
+    // ----------------------------------------------------------------
+    // Core Set W4a effects (core-set-roadmap W4a) — the battlecry batch.
+    // Discover cards are simplified to random generation (the engine has no
+    // Discover system — registered in the fidelity ledger).
+    // ----------------------------------------------------------------
+    /// Gain +attack/+health when the owner restored Health this turn (Priest
+    /// of An'she)
+    GainStatsIfHealedThisTurn {
+        /// Attack gained
+        attack: i32,
+        /// Health gained
+        health: i32,
+    },
+    /// Battle the chosen enemy minion to the death (Warmaul Challenger —
+    /// both deal their attack to each other)
+    BattleToTheDeath,
+    /// The next Demon played costs less (Raging Felscreamer)
+    NextDemonDiscount {
+        /// Cost reduction
+        amount: i32,
+    },
+    /// Give all minions in hand +attack/+health (Grimestreet Outfitter)
+    BuffHandMinions {
+        /// Attack gained
+        attack: i32,
+        /// Health gained
+        health: i32,
+    },
+    /// The opponent summons a random minion from THEIR HAND (Dirty Rat —
+    /// pool-open)
+    SummonRandomEnemyHandMinion,
+    /// Each player draws a card (Prize Vendor)
+    DrawForBoth,
+    /// The next Combo card costs less this turn (Foxy Fraud)
+    NextComboDiscount {
+        /// Cost reduction
+        amount: i32,
+    },
+    /// Add random Mage spells to hand (Babbling Bookcase)
+    AddRandomMageSpells {
+        /// Number of spells
+        count: u32,
+    },
+    /// Deal damage to the enemy hero and restore to the friendly hero
+    /// (Lifedrinker)
+    DamageEnemyHeroAndHealSelf {
+        /// Damage and heal amount
+        amount: i32,
+    },
+    /// Lose 1 Health for each card in the opponent's hand (Witchwood
+    /// Grizzly — reads the opponent's hand count only)
+    LoseHealthPerOpponentHandCard,
+    /// Give a random friendly minion Divine Shield and Taunt (Coghammer)
+    GrantRandomFriendlyDivineShieldTaunt,
+    /// Remove the top card of the opponent's deck (Gnomeferatu — pool-open)
+    RemoveTopEnemyDeckCard,
+    /// Discover a spell and restore health equal to its cost (Ivory Knight
+    /// — the Discover is simplified to a random spell)
+    DiscoverSpellAndHealCost,
+    /// Draw a Beast, a Dragon and a Murloc from the deck (The Curator)
+    DrawBeastDragonMurloc,
+    /// Add a random card from another class to hand (Swashburglar)
+    AddRandomOtherClassCard,
+    /// Add a random Shaman spell to hand (Witch's Apprentice)
+    AddRandomShamanSpell,
+    /// Deal damage to the friendly hero (Vulgar Homunculus)
+    DamageSelfHero {
+        /// Damage amount
+        damage: i32,
+    },
+    /// Summon two copies of this minion (Nerubian Swarmguard)
+    SummonTwoCopiesOfSelf,
+    /// Spend up to `max` corpses; deal `damage` to a random enemy for each
+    /// (Marrow Manipulator)
+    SpendCorpsesDamageRandom {
+        /// Maximum corpses
+        max: u32,
+        /// Damage per corpse
+        damage: i32,
+    },
+    /// Raise up to `max` corpses as 1/3 Risen Footmen with Taunt (Boneguard
+    /// Commander)
+    SpendCorpsesSummonFootmen {
+        /// Maximum corpses
+        max: u32,
+    },
+    /// For the rest of the game, deal damage to the opponent at the end of
+    /// your turns (Alexandros Mograine)
+    OngoingEndTurnDamage {
+        /// Damage to the opponent
+        damage: i32,
+    },
+    /// Deal damage to all OTHER minions (Primordial Drake)
+    DamageAllOtherMinions {
+        /// Damage amount
+        damage: i32,
+    },
+    /// Give Taunt minions in hand +attack/+health (Detonation Juggernaut)
+    BuffTauntHandMinions {
+        /// Attack gained
+        attack: i32,
+        /// Health gained
+        health: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -1435,6 +1539,57 @@ enum CardEffectDe {
     GainArmorAndSummonRandomCost {
         armor: i32,
         cost: i32,
+    },
+    GainStatsIfHealedThisTurn {
+        attack: i32,
+        health: i32,
+    },
+    BattleToTheDeath,
+    NextDemonDiscount {
+        amount: i32,
+    },
+    BuffHandMinions {
+        attack: i32,
+        health: i32,
+    },
+    SummonRandomEnemyHandMinion,
+    DrawForBoth,
+    NextComboDiscount {
+        amount: i32,
+    },
+    AddRandomMageSpells {
+        count: u32,
+    },
+    DamageEnemyHeroAndHealSelf {
+        amount: i32,
+    },
+    LoseHealthPerOpponentHandCard,
+    GrantRandomFriendlyDivineShieldTaunt,
+    RemoveTopEnemyDeckCard,
+    DiscoverSpellAndHealCost,
+    DrawBeastDragonMurloc,
+    AddRandomOtherClassCard,
+    AddRandomShamanSpell,
+    DamageSelfHero {
+        damage: i32,
+    },
+    SummonTwoCopiesOfSelf,
+    SpendCorpsesDamageRandom {
+        max: u32,
+        damage: i32,
+    },
+    SpendCorpsesSummonFootmen {
+        max: u32,
+    },
+    OngoingEndTurnDamage {
+        damage: i32,
+    },
+    DamageAllOtherMinions {
+        damage: i32,
+    },
+    BuffTauntHandMinions {
+        attack: i32,
+        health: i32,
     },
     DestroyAndGainStats {
         attack: i32,
@@ -1931,6 +2086,51 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::GainArmorAndSummonRandomCost { armor, cost } => {
                 CardEffect::GainArmorAndSummonRandomCost { armor, cost }
             }
+            CardEffectDe::GainStatsIfHealedThisTurn { attack, health } => {
+                CardEffect::GainStatsIfHealedThisTurn { attack, health }
+            }
+            CardEffectDe::BattleToTheDeath => CardEffect::BattleToTheDeath,
+            CardEffectDe::NextDemonDiscount { amount } => CardEffect::NextDemonDiscount { amount },
+            CardEffectDe::BuffHandMinions { attack, health } => {
+                CardEffect::BuffHandMinions { attack, health }
+            }
+            CardEffectDe::SummonRandomEnemyHandMinion => CardEffect::SummonRandomEnemyHandMinion,
+            CardEffectDe::DrawForBoth => CardEffect::DrawForBoth,
+            CardEffectDe::NextComboDiscount { amount } => CardEffect::NextComboDiscount { amount },
+            CardEffectDe::AddRandomMageSpells { count } => {
+                CardEffect::AddRandomMageSpells { count }
+            }
+            CardEffectDe::DamageEnemyHeroAndHealSelf { amount } => {
+                CardEffect::DamageEnemyHeroAndHealSelf { amount }
+            }
+            CardEffectDe::LoseHealthPerOpponentHandCard => {
+                CardEffect::LoseHealthPerOpponentHandCard
+            }
+            CardEffectDe::GrantRandomFriendlyDivineShieldTaunt => {
+                CardEffect::GrantRandomFriendlyDivineShieldTaunt
+            }
+            CardEffectDe::RemoveTopEnemyDeckCard => CardEffect::RemoveTopEnemyDeckCard,
+            CardEffectDe::DiscoverSpellAndHealCost => CardEffect::DiscoverSpellAndHealCost,
+            CardEffectDe::DrawBeastDragonMurloc => CardEffect::DrawBeastDragonMurloc,
+            CardEffectDe::AddRandomOtherClassCard => CardEffect::AddRandomOtherClassCard,
+            CardEffectDe::AddRandomShamanSpell => CardEffect::AddRandomShamanSpell,
+            CardEffectDe::DamageSelfHero { damage } => CardEffect::DamageSelfHero { damage },
+            CardEffectDe::SummonTwoCopiesOfSelf => CardEffect::SummonTwoCopiesOfSelf,
+            CardEffectDe::SpendCorpsesDamageRandom { max, damage } => {
+                CardEffect::SpendCorpsesDamageRandom { max, damage }
+            }
+            CardEffectDe::SpendCorpsesSummonFootmen { max } => {
+                CardEffect::SpendCorpsesSummonFootmen { max }
+            }
+            CardEffectDe::OngoingEndTurnDamage { damage } => {
+                CardEffect::OngoingEndTurnDamage { damage }
+            }
+            CardEffectDe::DamageAllOtherMinions { damage } => {
+                CardEffect::DamageAllOtherMinions { damage }
+            }
+            CardEffectDe::BuffTauntHandMinions { attack, health } => {
+                CardEffect::BuffTauntHandMinions { attack, health }
+            }
             CardEffectDe::DestroyAndGainStats {
                 attack,
                 health,
@@ -2065,4 +2265,10 @@ pub enum RandomPool {
     Dream,
     /// A random Animal Companion (Huffer/Leokk/Misha)
     Companion,
+    /// A random Dragon (Core Set W4a)
+    Dragon,
+    /// A random Mechanical (Core Set W4a)
+    Mechanical,
+    /// A random spell (Core Set W4a — generic spell discovery simplification)
+    Spell,
 }

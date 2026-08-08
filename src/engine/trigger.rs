@@ -1827,6 +1827,338 @@ pub fn resolve_effect(
             let idx = state.rng_mut().next_usize(candidates.len());
             let _ = resolve_summon(state, queue, source, owner, candidates[idx].id);
         }
+        CardEffect::GainStatsIfHealedThisTurn { attack, health } => {
+            // Priest of An'she — restored Health this turn?
+            if !state.player(owner).healed_this_turn {
+                return;
+            }
+            let world = state.world_mut();
+            let base = world.attack(source).unwrap_or(Attack(0));
+            world.set_attack(source, Attack(base.0 + attack));
+            let base_hp = world.health(source).unwrap_or(Health(1));
+            world.set_health(source, Health(base_hp.0 + health));
+        }
+        CardEffect::BattleToTheDeath => {
+            // Warmaul Challenger — both deal their attack to each other
+            let minions: SmallList<Entity> = collect_enemy_minions(state, owner, None);
+            let Some(target) = select_target(explicit_target, &minions, state.rng_mut()) else {
+                return;
+            };
+            let atk = state
+                .world()
+                .effective_attack(source)
+                .unwrap_or(Attack(0))
+                .0;
+            let target_atk = state
+                .world()
+                .effective_attack(target)
+                .unwrap_or(Attack(0))
+                .0;
+            queue.push(Event::DamageDealt {
+                source,
+                target,
+                amount: atk,
+            });
+            queue.push(Event::DamageDealt {
+                source: target,
+                target: source,
+                amount: target_atk,
+            });
+        }
+        CardEffect::NextDemonDiscount { amount } => {
+            // Raging Felscreamer — the next Demon costs less
+            let inner = state.make_mut();
+            inner.players[owner.index()].next_demon_discount =
+                (inner.players[owner.index()].next_demon_discount + amount).max(0);
+        }
+        CardEffect::BuffHandMinions { attack, health } => {
+            // Grimestreet Outfitter — all minions in hand
+            let hand: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            for e in hand {
+                let world = state.world_mut();
+                let base = world.attack(e).unwrap_or(Attack(0));
+                world.set_attack(e, Attack(base.0 + attack));
+                let base_hp = world.health(e).unwrap_or(Health(1));
+                world.set_health(e, Health(base_hp.0 + health));
+            }
+        }
+        CardEffect::SummonRandomEnemyHandMinion => {
+            // Dirty Rat — the OPPONENT summons a random minion from their
+            // hand (pool-open: reads the opponent's hand)
+            let enemy = owner.opponent();
+            let hand: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, enemy)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if hand.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(hand.len());
+            let picked = hand[idx];
+            if let Some(def) = state
+                .world()
+                .card_id(picked)
+                .and_then(|c| crate::cards::def::card_by_id(c.0))
+            {
+                // move the actual card to the enemy's board (official
+                // semantics: the card leaves the hand)
+                let world = state.world_mut();
+                world.zones_mut().remove(Zone::Hand, enemy, picked);
+                world.set_zone(picked, Zone::Play);
+                world.zones_mut().insert(Zone::Play, enemy, picked);
+                world.set_attacks_used(picked, AttacksUsed(1));
+                let _ = def;
+            }
+        }
+        CardEffect::DrawForBoth => {
+            // Prize Vendor — each player draws
+            draw_card(state, queue, owner);
+            draw_card(state, queue, owner.opponent());
+        }
+        CardEffect::NextComboDiscount { amount } => {
+            // Foxy Fraud — the next Combo card costs less this turn
+            let inner = state.make_mut();
+            inner.players[owner.index()].next_combo_discount =
+                (inner.players[owner.index()].next_combo_discount + amount).max(0);
+        }
+        CardEffect::AddRandomMageSpells { count } => {
+            // Babbling Bookcase — random Mage spells
+            for _ in 0..count {
+                let spells: SmallList<&'static crate::cards::def::CardDef> =
+                    crate::cards::sets::MAGE_CLASSIC
+                        .iter()
+                        .filter(|c| c.card_type == CardType::Spell)
+                        .collect();
+                if spells.is_empty() {
+                    return;
+                }
+                let idx = state.rng_mut().next_usize(spells.len());
+                add_card_to_hand(state, owner, spells[idx]);
+            }
+        }
+        CardEffect::DamageEnemyHeroAndHealSelf { amount } => {
+            // Lifedrinker — enemy hero damage + friendly hero heal
+            let enemy_hero = state.player(owner.opponent()).hero;
+            queue.push(Event::DamageDealt {
+                source,
+                target: enemy_hero,
+                amount,
+            });
+            let hero = state.player(owner).hero;
+            if heal_char(state.world_mut(), hero, amount) {
+                fire_healed_trigger(state, queue, hero);
+            }
+        }
+        CardEffect::LoseHealthPerOpponentHandCard => {
+            // Witchwood Grizzly — lose 1 Health per card in the opponent's
+            // hand
+            let hand_count = state.world().zones().len(Zone::Hand, owner.opponent()) as i32;
+            let base = state.world().health(source).unwrap_or(Health(1)).0;
+            state
+                .world_mut()
+                .set_health(source, Health((base - hand_count).max(0)));
+        }
+        CardEffect::GrantRandomFriendlyDivineShieldTaunt => {
+            // Coghammer — random friendly minion gets Shield and Taunt
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner);
+            let Some(target) = select_target(None, &minions, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().set_divine_shield(target, DivineShield);
+            state.world_mut().set_taunt(target, Taunt);
+        }
+        CardEffect::RemoveTopEnemyDeckCard => {
+            // Gnomeferatu — remove the top card of the opponent's deck
+            // (pool-open: reads the opponent's deck)
+            let enemy = owner.opponent();
+            let top = state.world().zones().iter(Zone::Deck, enemy).next();
+            if let Some(top) = top {
+                state.world_mut().move_to_zone(top, Zone::Graveyard).ok();
+            }
+        }
+        CardEffect::DiscoverSpellAndHealCost => {
+            // Ivory Knight — a spell (Discover simplified to random) and
+            // heal equal to its cost
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Spell)
+                    .collect();
+            if spells.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(spells.len());
+            let spell = spells[idx];
+            add_card_to_hand(state, owner, spell);
+            let hero = state.player(owner).hero;
+            if heal_char(state.world_mut(), hero, spell.cost) {
+                fire_healed_trigger(state, queue, hero);
+            }
+        }
+        CardEffect::DrawBeastDragonMurloc => {
+            // The Curator — draw a Beast, a Dragon and a Murloc from the deck
+            for race in [
+                crate::core::component::Race::Beast,
+                crate::core::component::Race::Dragon,
+                crate::core::component::Race::Murloc,
+            ] {
+                let found = state.world().zones().iter(Zone::Deck, owner).find(|&e| {
+                    state.world().card_id(e).is_some_and(|c| {
+                        crate::cards::def::card_by_id(c.0).is_some_and(|d| d.race == Some(race))
+                    })
+                });
+                if let Some(card) = found {
+                    let world = state.world_mut();
+                    world.set_zone(card, Zone::Hand);
+                    world.zones_mut().insert(Zone::Hand, owner, card);
+                }
+            }
+        }
+        CardEffect::AddRandomOtherClassCard => {
+            // Swashburglar — a random card from another class
+            let cards: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| crate::cards::pool::is_other_class_card_for(c, owner))
+                    .collect();
+            if cards.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(cards.len());
+            add_card_to_hand(state, owner, cards[idx]);
+        }
+        CardEffect::AddRandomShamanSpell => {
+            // Witch's Apprentice — a random Shaman spell
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::SHAMAN_CLASSIC
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Spell)
+                    .collect();
+            if spells.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(spells.len());
+            add_card_to_hand(state, owner, spells[idx]);
+        }
+        CardEffect::DamageSelfHero { damage } => {
+            // Vulgar Homunculus — damage the friendly hero
+            let hero = state.player(owner).hero;
+            queue.push(Event::DamageDealt {
+                source,
+                target: hero,
+                amount: damage,
+            });
+        }
+        CardEffect::SummonTwoCopiesOfSelf => {
+            // Nerubian Swarmguard — two copies of this minion
+            if let Some(def) = state
+                .world()
+                .card_id(source)
+                .and_then(|c| crate::cards::def::card_by_id(c.0))
+            {
+                if let Some(copy) = resolve_summon(state, queue, source, owner, def.id) {
+                    // the summoned copies do not re-trigger the battlecry
+                    state.world_mut().remove_battlecry(copy);
+                }
+                if let Some(copy) = resolve_summon(state, queue, source, owner, def.id) {
+                    state.world_mut().remove_battlecry(copy);
+                }
+            }
+        }
+        CardEffect::SpendCorpsesDamageRandom { max, damage } => {
+            // Marrow Manipulator — corpses for random enemy damage
+            let have = state.player(owner).corpses;
+            if have == 0 {
+                return;
+            }
+            let spend = have.min(max);
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].corpses -= spend;
+            }
+            for _ in 0..spend {
+                let enemies = collect_enemy_characters(state, owner, Some(source));
+                if enemies.is_empty() {
+                    return;
+                }
+                let idx = state.rng_mut().next_usize(enemies.len());
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: enemies[idx],
+                    amount: damage,
+                });
+            }
+        }
+        CardEffect::SpendCorpsesSummonFootmen { max } => {
+            // Boneguard Commander — corpses as 1/3 Risen Footmen
+            let have = state.player(owner).corpses;
+            if have == 0 {
+                return;
+            }
+            let spend = have.min(max);
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].corpses -= spend;
+            }
+            for _ in 0..spend {
+                let _ = resolve_summon(state, queue, source, owner, "CORE_RLK_061t");
+            }
+        }
+        CardEffect::OngoingEndTurnDamage { damage } => {
+            // Alexandros Mograine — mark the game-long effect
+            let inner = state.make_mut();
+            inner.players[owner.index()].ongoing_end_turn_damage += damage;
+        }
+        CardEffect::DamageAllOtherMinions { damage } => {
+            // Primordial Drake — damage all minions except this one
+            for player in [owner, owner.opponent()] {
+                let minions: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, player)
+                    .filter(|&e| {
+                        state.world().card_type(e) == Some(CardType::Minion) && e != source
+                    })
+                    .collect();
+                for m in minions {
+                    queue.push(Event::DamageDealt {
+                        source,
+                        target: m,
+                        amount: damage,
+                    });
+                }
+            }
+        }
+        CardEffect::BuffTauntHandMinions { attack, health } => {
+            // Detonation Juggernaut — Taunt minions in hand
+            let hand: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Minion)
+                        && state
+                            .world()
+                            .card_id(e)
+                            .and_then(|c| crate::cards::def::card_by_id(c.0))
+                            .is_some_and(|d| d.taunt)
+                })
+                .collect();
+            for e in hand {
+                let world = state.world_mut();
+                let base = world.attack(e).unwrap_or(Attack(0));
+                world.set_attack(e, Attack(base.0 + attack));
+                let base_hp = world.health(e).unwrap_or(Health(1));
+                world.set_health(e, Health(base_hp.0 + health));
+            }
+        }
         CardEffect::CopyEnemyDeckCardOnSelfAttack => {
             // Shaku — copy a random enemy deck card to hand, only when THIS
             // minion is the one attacking
