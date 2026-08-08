@@ -226,6 +226,8 @@ pub enum Race {
     Undead,
     /// Quilboar (Core Set W3b — Hench-Clan Thug)
     Quilboar,
+    /// Draenei (Core Set W4a — Battle Vicar)
+    Draenei,
 }
 
 /// Aura effect kind.

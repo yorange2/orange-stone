@@ -463,6 +463,7 @@ fn play_targets(
         CardEffect::DamageUndamaged { .. } => EffectTarget::AnyMinion,
         CardEffect::DamageMinionAndSelfHero { .. } => EffectTarget::AnyMinion,
         CardEffect::RestoreHealthAndDraw { target, .. } => target,
+        CardEffect::BattleToTheDeath => EffectTarget::AnyEnemyMinion,
         _ => return Vec::new(),
     };
     let owner = state

@@ -655,11 +655,22 @@ pub fn apply_event(
             // start-of-turn triggers resolve before the refill and the draw.
             state.set_step(Step::StartTriggers);
         }
-        Event::TurnEnded { player: _ } => {
+        Event::TurnEnded { player } => {
             // End-of-turn effects fire in the EndTriggers step — before the
             // wrap-up cleanup — so effects resolve at full strength and deaths
             // they cause are processed before "until end of turn" buffs expire.
             state.set_step(Step::EndTriggers);
+            // Alexandros Mograine (Core Set W4a): ongoing end-of-turn damage
+            // to the opponent
+            let ongoing = state.player(player).ongoing_end_turn_damage;
+            if ongoing > 0 {
+                let enemy_hero = state.player(player.opponent()).hero;
+                queue.push(Event::DamageDealt {
+                    source: enemy_hero,
+                    target: enemy_hero,
+                    amount: ongoing,
+                });
+            }
         }
         Event::CardPlayed {
             player,
@@ -693,6 +704,9 @@ pub fn apply_event(
                     p.current_mana -= cost.0;
                 }
                 p.cards_played_this_turn += 1;
+                // One-time discounts are consumed on play (Core Set W4a)
+                p.next_demon_discount = 0;
+                p.next_combo_discount = 0;
                 if is_minion {
                     p.minions_played_this_turn += 1;
                 }

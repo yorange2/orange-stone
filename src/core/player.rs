@@ -93,6 +93,15 @@ pub struct Player {
     /// Whether the hero was healed this turn (Core Set W3a — Death Metal
     /// Knight pays Health instead of Mana when true); cleared at turn start
     pub healed_this_turn: bool,
+    /// The next Demon costs this much less (Raging Felscreamer — Core Set
+    /// W4a, one-time, consumed on play)
+    pub next_demon_discount: i32,
+    /// The next Combo card costs this much less this turn (Foxy Fraud —
+    /// Core Set W4a, one-time)
+    pub next_combo_discount: i32,
+    /// Ongoing end-of-turn damage to the opponent (Alexandros Mograine —
+    /// Core Set W4a, game-long)
+    pub ongoing_end_turn_damage: i32,
 }
 
 impl Player {
@@ -120,6 +129,9 @@ impl Player {
             frozen_at_turn_start: Vec::new(),
             corpses: 0,
             healed_this_turn: false,
+            next_demon_discount: 0,
+            next_combo_discount: 0,
+            ongoing_end_turn_damage: 0,
         }
     }
 }
