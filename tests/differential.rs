@@ -1667,38 +1667,41 @@ fn w1_race_pools_are_field_driven() {
     assert_eq!(
         additions,
         vec![
-            "CLASSIC_001",   // Bloodfen Raptor
-            "CORE_AT_062t",  // Spider (Core Set W3a token)
-            "CORE_AV_337",   // Mountain Bear (Core Set W5)
-            "CORE_AV_337t",  // Mountain Cub (Core Set W5 token)
-            "CORE_BAR_801t", // Swift Hyena (Core Set W3b token)
-            "CORE_BT_201",   // Augmented Porcupine (Core Set W5)
-            "CORE_CATA_006", // Ulfar (Core Set W4b)
-            "CORE_EDR_004",  // Raptor Herald (Core Set W4a)
-            "CORE_EX1_014",  // King Mukla (Core Set W4b)
-            "CORE_EX1_162",  // Dire Wolf Alpha (Core Set W5)
-            "CORE_EX1_246t", // Frog (Core Set W3a token)
-            "CORE_GIL_531",  // Witch's Apprentice (Core Set W4a)
-            "CORE_GIL_558",  // Swamp Leech (Core Set W1)
-            "CORE_GIL_577t", // Doom Rat (Core Set W5 token)
-            "CORE_GIL_622",  // Lifedrinker (Core Set W4a)
-            "CORE_GIL_623",  // Witchwood Grizzly (Core Set W4a)
-            "CORE_LOOT_413", // Plated Beetle (Core Set W5)
-            "CORE_SCH_605",  // Lake Thresher (Core Set W3b)
-            "CORE_SW_429t",  // Turtle (Core Set W2 token)
-            "CORE_SW_439",   // Vibrant Squirrel (Core Set W5)
-            "CORE_TRL_345",  // Krag'wa, the Frog (Core Set W4b)
-            "CORE_TRL_900",  // Halazzi, the Lynx (Core Set W1)
-            "CORE_TRL_900t", // Lynx (Core Set W1 token)
-            "CORE_UNG_912",  // Jeweled Macaw (Core Set W4a)
-            "CORE_UNG_952t", // Spider (Core Set W3a token)
-            "CORE_WC_701",   // Felrattler (Core Set W1)
-            "HUNTER_006t",   // Hyena (Savannah Highmane token)
-            "HUNTER_013",    // Scavenging Hyena
-            "HUNTER_023a",   // Huffer
-            "HUNTER_023b",   // Leokk
-            "HUNTER_023c",   // Misha
-            "NEUTRAL_E03",   // Hungry Crab
+            "CLASSIC_001",    // Bloodfen Raptor
+            "CORE_AT_062t",   // Spider (Core Set W3a token)
+            "CORE_AV_337",    // Mountain Bear (Core Set W5)
+            "CORE_AV_337t",   // Mountain Cub (Core Set W5 token)
+            "CORE_BAR_801t",  // Swift Hyena (Core Set W3b token)
+            "CORE_BT_201",    // Augmented Porcupine (Core Set W5)
+            "CORE_CATA_006",  // Ulfar (Core Set W4b)
+            "CORE_EDR_004",   // Raptor Herald (Core Set W4a)
+            "CORE_EX1_014",   // King Mukla (Core Set W4b)
+            "CORE_EX1_162",   // Dire Wolf Alpha (Core Set W5)
+            "CORE_EX1_246t",  // Frog (Core Set W3a token)
+            "CORE_GIL_531",   // Witch's Apprentice (Core Set W4a)
+            "CORE_GIL_558",   // Swamp Leech (Core Set W1)
+            "CORE_GIL_577t",  // Doom Rat (Core Set W5 token)
+            "CORE_GIL_622",   // Lifedrinker (Core Set W4a)
+            "CORE_GIL_623",   // Witchwood Grizzly (Core Set W4a)
+            "CORE_LOOT_413",  // Plated Beetle (Core Set W5)
+            "CORE_ONY_018",   // Boomkin (Core Set W6)
+            "CORE_SCH_605",   // Lake Thresher (Core Set W3b)
+            "CORE_SW_429t",   // Turtle (Core Set W2 token)
+            "CORE_SW_439",    // Vibrant Squirrel (Core Set W5)
+            "CORE_TRL_345",   // Krag'wa, the Frog (Core Set W4b)
+            "CORE_TRL_900",   // Halazzi, the Lynx (Core Set W1)
+            "CORE_TRL_900t",  // Lynx (Core Set W1 token)
+            "CORE_TSC_650t",  // Orca (Core Set W6 token)
+            "CORE_TSC_650t4", // Otter (Core Set W6 token)
+            "CORE_UNG_912",   // Jeweled Macaw (Core Set W4a)
+            "CORE_UNG_952t",  // Spider (Core Set W3a token)
+            "CORE_WC_701",    // Felrattler (Core Set W1)
+            "HUNTER_006t",    // Hyena (Savannah Highmane token)
+            "HUNTER_013",     // Scavenging Hyena
+            "HUNTER_023a",    // Huffer
+            "HUNTER_023b",    // Leokk
+            "HUNTER_023c",    // Misha
+            "NEUTRAL_E03",    // Hungry Crab
         ]
     );
     // Demons: the old 8 + Siegebreaker + Blood Imp
@@ -12468,4 +12471,1415 @@ fn w5_kayn_sunfury_ignores_taunt() {
         },
     );
     assert!(result.is_ok(), "Kayn lets the attack ignore Taunt");
+}
+
+// ============================================================
+// Core Set W6 (core-set-roadmap W6) — discover/choose-one/combo/
+// overload/freeze batch. Choose One branches resolve through the
+// pending-choice flow (option 0 = battlecry, option 1 = choose-one
+// branch); Discover is simplified to random generation.
+// ============================================================
+
+/// W6-1 Frostbolt — deals 3 damage to a character AND freezes it (a
+/// faithful "damage and freeze", unlike Icicle's freeze-or-damage).
+#[test]
+fn w6_frostbolt_damages_and_freezes() {
+    use orange_stone::cards::def::CORE_FROSTBOLT;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_FROSTBOLT);
+    let minion = builder.add_custom_minion_to_board(PlayerId2(), 5, 5, 5);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let bolt = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("frostbolt in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bolt,
+                target: Some(minion),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(minion),
+        Some(Health(2)),
+        "Frostbolt deals 3"
+    );
+    assert!(
+        state.world().freeze(minion).is_some(),
+        "the damaged minion is frozen — damage AND freeze, not Icicle's or-else"
+    );
+}
+
+/// W6-2 Frostbolt — Spell Damage boosts the damage (3 → 4 with a +1
+/// Spell Damage minion), and the freeze still applies through a Divine
+/// Shield.
+#[test]
+fn w6_frostbolt_spell_damage_and_divine_shield_freeze() {
+    use orange_stone::cards::def::{CORE_BLOODMAGE_THALNOS, CORE_FROSTBOLT};
+    use orange_stone::core::component::DivineShield;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_FROSTBOLT);
+    builder.add_minion_to_board(PlayerId1(), &CORE_BLOODMAGE_THALNOS);
+    let shielded = builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    state.world_mut().set_divine_shield(shielded, DivineShield);
+    let engine = GameEngine::new();
+    let bolt = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("frostbolt in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bolt,
+                target: Some(shielded),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(shielded),
+        Some(Health(4)),
+        "the shield absorbed the (boosted) 4 damage"
+    );
+    assert!(state.world().divine_shield(shielded).is_none());
+    assert!(
+        state.world().freeze(shielded).is_some(),
+        "the freeze applies through the Divine Shield"
+    );
+}
+
+/// W6-3 Blizzard — deals 2 to all enemy minions and freezes them all;
+/// Spell Damage boosts the damage.
+#[test]
+fn w6_blizzard_damages_and_freezes_all_enemy_minions() {
+    use orange_stone::cards::def::{CORE_BLIZZARD, CORE_BLOODMAGE_THALNOS};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_BLIZZARD);
+    builder.add_minion_to_board(PlayerId1(), &CORE_BLOODMAGE_THALNOS);
+    let a = builder.add_custom_minion_to_board(PlayerId2(), 5, 5, 5);
+    let b = builder.add_custom_minion_to_board(PlayerId2(), 5, 5, 5);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let blizzard = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("blizzard in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: blizzard,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    for m in [a, b] {
+        assert_eq!(
+            state.world().effective_health(m),
+            Some(Health(2)),
+            "2 damage + 1 spell damage = 3 on a 5/5"
+        );
+        assert!(state.world().freeze(m).is_some(), "both minions freeze");
+    }
+}
+
+/// W6-4 Living Roots — Choose One: two 1/1 Saplings (branch 0) or 2
+/// damage (branch 1).
+#[test]
+fn w6_living_roots_choose_one() {
+    use orange_stone::cards::def::CORE_LIVING_ROOTS;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_LIVING_ROOTS);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_LIVING_ROOTS);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let roots = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("living roots in hand");
+    // Branch 0 — summon two Saplings
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: roots,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    let saplings = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_AT_037t")
+        })
+        .count();
+    assert_eq!(saplings, 2, "two 1/1 Saplings");
+    let hero2 = state.player(PlayerId2()).hero;
+    assert_eq!(
+        state.world().effective_health(hero2),
+        Some(Health(30)),
+        "no damage on branch 0"
+    );
+    // Branch 1 — deal 2 damage
+    let roots2 = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("second living roots in hand");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: roots2,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(hero2),
+        Some(Health(28)),
+        "branch 1 deals 2"
+    );
+}
+
+/// W6-5 Totem Golem — Overload (1) on a 3/4 body.
+#[test]
+fn w6_totem_golem_overloads_1() {
+    use orange_stone::cards::def::CORE_TOTEM_GOLEM;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_TOTEM_GOLEM);
+    builder.set_mana(PlayerId1(), 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let golem = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("totem golem in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: golem,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(PlayerId1()).overload_locked, 1);
+    // The hero also lives in Zone::Play — count only minions
+    let board = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(board, 1);
+}
+
+/// W6-6 Glaciate — a random 8-Cost minion is summoned and Frozen
+/// (Discover simplified to random generation).
+#[test]
+fn w6_glaciate_summons_frozen_8_cost() {
+    use orange_stone::cards::def::CORE_GLACIATE;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_GLACIATE);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let glaciate = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("glaciate in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: glaciate,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The hero also lives in Zone::Play — collect only minions
+    let summoned: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    assert_eq!(summoned.len(), 1, "one minion summoned");
+    let cost = state.world().effective_cost(summoned[0]).map(|c| c.0);
+    assert_eq!(cost, Some(8), "an 8-Cost minion was summoned");
+    assert!(
+        state.world().freeze(summoned[0]).is_some(),
+        "the summoned minion is Frozen"
+    );
+}
+
+/// W6-7 Runed Orb — 2 damage and a random spell added to hand (Discover
+/// simplified to random generation).
+#[test]
+fn w6_runed_orb_damages_and_adds_spell() {
+    use orange_stone::cards::def::CORE_RUNED_ORB;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_RUNED_ORB);
+    let minion = builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let orb = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("runed orb in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: orb,
+                target: Some(minion),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(minion), Some(Health(2)));
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    assert_eq!(hand.len(), 1, "one generated card in hand");
+    assert_eq!(
+        state.world().card_type(hand[0]),
+        Some(CardType::Spell),
+        "the generated card is a spell"
+    );
+}
+
+/// W6-8 Voltaic Burst — two 1/1 Sparks with Rush, Overload (1).
+#[test]
+fn w6_voltaic_burst_summons_rush_sparks_overloads() {
+    use orange_stone::cards::def::CORE_VOLTAIC_BURST;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_VOLTAIC_BURST);
+    builder.set_mana(PlayerId1(), 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let burst = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("voltaic burst in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: burst,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let sparks: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_BOT_451t")
+        })
+        .collect();
+    assert_eq!(sparks.len(), 2, "two Sparks");
+    assert!(
+        sparks.iter().all(|&s| state.world().rush(s).is_some()),
+        "the Sparks have Rush"
+    );
+    assert_eq!(state.player(PlayerId1()).overload_locked, 1);
+}
+
+/// W6-9 Crazed Chemist — Combo: +4 Attack to a friendly minion; no buff
+/// when played as the first card of the turn.
+#[test]
+fn w6_crazed_chemist_combo_buff() {
+    use orange_stone::cards::def::{CORE_CRAZED_CHEMIST, WISP};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_CRAZED_CHEMIST);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_CRAZED_CHEMIST);
+    builder.add_minion_to_hand(PlayerId1(), &WISP);
+    let friendly = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // First: combo is inactive — play Crazed Chemist as the first card
+    let chemist = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_BOT_576")
+        })
+        .expect("crazed chemist in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: chemist,
+                target: Some(friendly),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(friendly),
+        Some(Attack(2)),
+        "no combo: no +4"
+    );
+    // Second: play a card, then a fresh Crazed Chemist — combo fires
+    let wisp = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "NEUTRAL_T01")
+        })
+        .expect("wisp in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: wisp,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let chemist2 = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("second crazed chemist in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: chemist2,
+                target: Some(friendly),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(friendly),
+        Some(Attack(6)),
+        "combo: +4 Attack"
+    );
+}
+
+/// W6-10 Deep Freeze — Freeze an enemy, summon two 3/6 Water Elementals;
+/// the Water Elementals freeze characters they damage (same hook as the
+/// classic card).
+#[test]
+fn w6_deep_freeze_summons_water_elementals() {
+    use orange_stone::cards::def::CORE_DEEP_FREEZE;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_DEEP_FREEZE);
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 5, 5, 5);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let freeze = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("deep freeze in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: freeze,
+                target: Some(enemy),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.world().freeze(enemy).is_some(),
+        "the chosen enemy freezes"
+    );
+    let elementals: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_BT_072t")
+        })
+        .collect();
+    assert_eq!(elementals.len(), 2, "two Water Elementals");
+    // The elementals freeze characters they damage (W12 D2 hook extended to
+    // the token): pass the turn twice so they can attack, then hit a foe
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let foe = builder_add_p2_minion(&mut state, 6, 6, 6);
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: elementals[0],
+                defender: foe,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(foe), Some(Health(3)));
+    assert!(
+        state.world().freeze(foe).is_some(),
+        "the Water Elemental froze the damaged character"
+    );
+}
+
+/// Helper — add a plain minion to P2's board after the state is built.
+fn builder_add_p2_minion(state: &mut GameState, atk: i32, hp: i32, cost: i32) -> Entity {
+    let world = state.world_mut();
+    let e = world.spawn();
+    world.set_health(e, Health(hp));
+    world.set_attack(e, Attack(atk));
+    world.set_cost(e, Cost(cost));
+    world.set_card_type(e, CardType::Minion);
+    world.set_player(e, PlayerId2());
+    world.set_attacks_used(e, orange_stone::core::component::AttacksUsed(0));
+    world.set_zone(e, Zone::Play);
+    world.zones_mut().insert(Zone::Play, PlayerId2(), e);
+    e
+}
+
+/// W6-11 Tracking — a choice over the deck's top 3; the picked card is
+/// drawn, the other two discarded.
+#[test]
+fn w6_tracking_picks_one_discards_rest() {
+    use orange_stone::cards::def::{CORE_TRACKING, WISP};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_TRACKING);
+    builder.add_minion_to_deck(PlayerId1(), &WISP);
+    builder.add_minion_to_deck(PlayerId1(), &WISP);
+    builder.add_minion_to_deck(PlayerId1(), &WISP);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let deck_top: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, PlayerId1())
+        .take(3)
+        .collect();
+    let tracking = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("tracking in hand");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: tracking,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("discover choice expected"),
+    };
+    assert_eq!(choice.options.len(), 3);
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(deck_top[1]), Some(Zone::Hand));
+    assert_eq!(state.world().zone(deck_top[0]), Some(Zone::Graveyard));
+    assert_eq!(state.world().zone(deck_top[2]), Some(Zone::Graveyard));
+}
+
+/// W6-12 Defias Ringleader & SI:7 Agent — Combo fires only after another
+/// card was played this turn (2/1 Defias Bandit / 2 damage).
+#[test]
+fn w6_defias_and_si7_combo() {
+    use orange_stone::cards::def::{CORE_DEFIAS_RINGLEADER, CORE_SI7_AGENT, WISP};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_DEFIAS_RINGLEADER);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_SI7_AGENT);
+    builder.add_minion_to_hand(PlayerId1(), &WISP);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_DEFIAS_RINGLEADER);
+    let enemy_minion = builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let ringleader = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_EX1_131")
+        })
+        .expect("ringleader in hand");
+    // First card of the turn: no combo
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: ringleader,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let bandits = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EX1_131t"))
+        .count();
+    assert_eq!(bandits, 0, "no combo on the first card of the turn");
+    // Play Wisp, then SI:7 Agent — combo deals 2
+    let wisp = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "NEUTRAL_T01")
+        })
+        .expect("wisp in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: wisp,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let si7 = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("si7 agent in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: si7,
+                target: Some(enemy_minion),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy_minion),
+        Some(Health(2))
+    );
+    // And a second Defias Ringleader with combo active summons the Bandit
+    let ringleader2 = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_EX1_131")
+        })
+        .expect("second ringleader in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: ringleader2,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let bandits = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EX1_131t"))
+        .count();
+    assert_eq!(bandits, 1, "combo summoned the 2/1 Defias Bandit");
+}
+
+/// W6-13 Wrath — Choose One: 3 damage (branch 0) or 1 damage + draw
+/// (branch 1).
+#[test]
+fn w6_wrath_choose_one() {
+    use orange_stone::cards::def::CORE_WRATH;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_WRATH);
+    builder.add_minion_to_deck(PlayerId1(), &orange_stone::cards::def::WISP);
+    let minion = builder.add_custom_minion_to_board(PlayerId2(), 5, 5, 5);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let wrath = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("wrath in hand");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: wrath,
+                target: Some(minion),
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(minion), Some(Health(4)));
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        1,
+        "branch 1 drew a card"
+    );
+}
+
+/// W6-14 Power of the Wild — Choose One: +1/+1 to your minions (branch 0)
+/// or summon a 3/2 Panther (branch 1).
+#[test]
+fn w6_power_of_the_wild_choose_one() {
+    use orange_stone::cards::def::CORE_POWER_OF_THE_WILD;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_POWER_OF_THE_WILD);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_POWER_OF_THE_WILD);
+    let friendly = builder.add_custom_minion_to_board(PlayerId1(), 2, 3, 2);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let potw = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("power of the wild in hand");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: potw,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(friendly),
+        Some(Attack(3)),
+        "branch 0: +1/+1"
+    );
+    assert_eq!(
+        state.world().effective_health(friendly),
+        Some(Health(4)),
+        "branch 0: +1/+1"
+    );
+    // Branch 1 — summon a 3/2 Panther
+    let potw2 = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("second power of the wild in hand");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: potw2,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1,
+            },
+        )
+        .unwrap();
+    let panther = find_entity(&state, PlayerId1(), "DRUID_019t");
+    assert_eq!(state.world().effective_attack(panther), Some(Attack(3)));
+    assert_eq!(state.world().effective_health(panther), Some(Health(2)));
+}
+
+/// W6-15 Lightning Bolt — 3 damage, Overload (1).
+#[test]
+fn w6_lightning_bolt_damages_and_overloads() {
+    use orange_stone::cards::def::CORE_LIGHTNING_BOLT;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_LIGHTNING_BOLT);
+    builder.set_mana(PlayerId1(), 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let bolt = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("lightning bolt in hand");
+    let hero2 = state.player(PlayerId2()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bolt,
+                target: Some(hero2),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(hero2),
+        Some(Health(27)),
+        "3 damage to the enemy hero"
+    );
+    assert_eq!(state.player(PlayerId1()).overload_locked, 1);
+}
+
+/// W6-16 Earth Elemental — Taunt, Overload (3), 7/9.
+#[test]
+fn w6_earth_elemental_taunt_overloads_3() {
+    use orange_stone::cards::def::CORE_EARTH_ELEMENTAL;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_EARTH_ELEMENTAL);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let elemental = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("earth elemental in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: elemental,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(PlayerId1()).overload_locked, 3);
+    assert_eq!(state.world().effective_attack(elemental), Some(Attack(7)));
+    assert_eq!(state.world().effective_health(elemental), Some(Health(9)));
+    assert!(state.world().taunt(elemental).is_some(), "Taunt");
+}
+
+/// W6-17 Lightning Storm — 2 damage to all enemy minions, Overload (2).
+/// The real 2–3 random range is registered as a simplification (fixed 2).
+#[test]
+fn w6_lightning_storm_damages_all_overloads_2() {
+    use orange_stone::cards::def::CORE_LIGHTNING_STORM;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_LIGHTNING_STORM);
+    let a = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    let b = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let storm = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("lightning storm in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: storm,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(a), Some(Health(1)));
+    assert_eq!(state.world().effective_health(b), Some(Health(1)));
+    assert_eq!(state.player(PlayerId1()).overload_locked, 2);
+}
+
+/// W6-18 Blazing Invocation — a random Battlecry minion is added to hand.
+#[test]
+fn w6_blazing_invocation_adds_battlecry_minion() {
+    use orange_stone::cards::def::CORE_BLAZING_INVOCATION;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_BLAZING_INVOCATION);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let invocation = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("blazing invocation in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: invocation,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    assert_eq!(hand.len(), 1);
+    let def = state
+        .world()
+        .card_id(hand[0])
+        .and_then(|c| orange_stone::cards::def::card_by_id(c.0))
+        .expect("generated card has a definition");
+    assert_eq!(def.card_type, CardType::Minion);
+    assert!(
+        def.battlecry.is_some(),
+        "the generated minion has a Battlecry"
+    );
+}
+
+/// W6-19 Feral Rage — Choose One: 8 Armor (branch 0) or +4 Attack this
+/// turn (branch 1).
+#[test]
+fn w6_feral_rage_choose_one() {
+    use orange_stone::cards::def::CORE_FERAL_RAGE;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_FERAL_RAGE);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_FERAL_RAGE);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let rage = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("feral rage in hand");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: rage,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(PlayerId1()).armor, 8, "branch 0: 8 armor");
+    let hero1 = state.player(PlayerId1()).hero;
+    assert_eq!(
+        state.world().effective_attack(hero1),
+        Some(Attack(0)),
+        "no attack on branch 0"
+    );
+    // Branch 1 — +4 Attack this turn
+    let rage2 = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("second feral rage in hand");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: rage2,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(hero1),
+        Some(Attack(4)),
+        "branch 1: +4 Attack this turn"
+    );
+}
+
+/// W6-20 Boomkin — Choose One: Restore 8 Health (branch 0) or deal 4
+/// damage (branch 1).
+#[test]
+fn w6_boomkin_choose_one() {
+    use orange_stone::cards::def::CORE_BOOMKIN;
+    use orange_stone::core::component::Damage;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_BOOMKIN);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_BOOMKIN);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    // The hero has 10 accumulated damage (30 → 20) so the Restore branch
+    // has something to heal
+    let hero1 = state.player(PlayerId1()).hero;
+    state.world_mut().set_damage(hero1, Damage(10));
+    let engine = GameEngine::new();
+    let boomkin = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("boomkin in hand");
+    // Branch 0 (battlecry) — deal 4 damage
+    let hero2 = state.player(PlayerId2()).hero;
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: boomkin,
+                target: Some(hero2),
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(hero2),
+        Some(Health(26)),
+        "branch 0: 4 damage"
+    );
+    // Branch 1 (choose-one) — Restore 8 Health to the hero
+    let boomkin2 = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("second boomkin in hand");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: boomkin2,
+                target: Some(hero2),
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(hero1),
+        Some(Health(28)),
+        "branch 1: Restore 8"
+    );
+}
+
+/// W6-21 Flipper Friends — Choose One: six 1/1 Otters with Rush (branch 0)
+/// or a 6/6 Orca with Taunt (branch 1).
+#[test]
+fn w6_flipper_friends_choose_one() {
+    use orange_stone::cards::def::CORE_FLIPPER_FRIENDS;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_FLIPPER_FRIENDS);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_FLIPPER_FRIENDS);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let friends = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("flipper friends in hand");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: friends,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    let otters: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_TSC_650t4")
+        })
+        .collect();
+    assert_eq!(otters.len(), 6, "six 1/1 Otters");
+    assert!(
+        otters.iter().all(|&o| state.world().rush(o).is_some()),
+        "the Otters have Rush"
+    );
+    // Branch 1 — a 6/6 Orca with Taunt
+    let friends2 = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("second flipper friends in hand");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: friends2,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1,
+            },
+        )
+        .unwrap();
+    let orca = find_entity(&state, PlayerId1(), "CORE_TSC_650t");
+    assert_eq!(state.world().effective_attack(orca), Some(Attack(6)));
+    assert_eq!(state.world().effective_health(orca), Some(Health(6)));
+    assert!(state.world().taunt(orca).is_some(), "the Orca has Taunt");
+}
+
+/// W6-22 Illidari Studies — a random Outcast card is added to hand and
+/// the next Outcast card costs (1) less (Discover simplified to random
+/// generation).
+#[test]
+fn w6_illidari_studies_outcast_discount() {
+    use orange_stone::cards::def::{CORE_ILLIDARI_STUDIES, SPECTRAL_SIGHT};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_ILLIDARI_STUDIES);
+    builder.add_minion_to_hand(PlayerId1(), &SPECTRAL_SIGHT);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let studies = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_YOP_001")
+        })
+        .expect("illidari studies in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: studies,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId1()).next_outcast_discount,
+        1,
+        "the next Outcast costs (1) less"
+    );
+    // The generated card is an Outcast card
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    assert_eq!(hand.len(), 2, "the studies consumed itself; 2 cards remain");
+    let generated = hand
+        .iter()
+        .copied()
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 != "CORE_YOP_001")
+        })
+        .expect("generated outcast card");
+    let gen_def = state
+        .world()
+        .card_id(generated)
+        .and_then(|c| orange_stone::cards::def::card_by_id(c.0))
+        .expect("generated card definition");
+    assert!(
+        orange_stone::cards::def::has_outcast(gen_def),
+        "the generated card is an Outcast card"
+    );
+    // The discount applies to the next Outcast card played: Spectral Sight
+    // costs 2 → 1
+    let spectral = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_BT_491")
+        })
+        .expect("spectral sight in hand");
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, spectral, PlayerId1()),
+        Cost(1),
+        "the next Outcast costs (1) less"
+    );
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spectral,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId1()).next_outcast_discount,
+        0,
+        "the discount was consumed"
+    );
+}
+
+/// W6-23 I Know a Guy — a random Taunt minion with +1/+2 is added to
+/// hand (Discover simplified to random generation).
+#[test]
+fn w6_i_know_a_guy_adds_buffed_taunt() {
+    use orange_stone::cards::def::CORE_I_KNOW_A_GUY;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_I_KNOW_A_GUY);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let guy = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("i know a guy in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: guy,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .collect();
+    assert_eq!(hand.len(), 1, "one generated card in hand");
+    let def = state
+        .world()
+        .card_id(hand[0])
+        .and_then(|c| orange_stone::cards::def::card_by_id(c.0))
+        .expect("generated card definition");
+    assert!(def.taunt, "the generated card is a Taunt minion");
+    assert_eq!(
+        state.world().effective_attack(hand[0]),
+        Some(Attack(def.attack + 1)),
+        "+1 Attack"
+    );
+    assert_eq!(
+        state.world().effective_health(hand[0]),
+        Some(Health(def.health + 2)),
+        "+2 Health"
+    );
 }

@@ -96,6 +96,9 @@ pub struct Player {
     /// The next Demon costs this much less (Raging Felscreamer — Core Set
     /// W4a, one-time, consumed on play)
     pub next_demon_discount: i32,
+    /// The next Outcast card costs this much less (Illidari Studies — Core
+    /// Set W6, one-time, consumed on play)
+    pub next_outcast_discount: i32,
     /// The next Combo card costs this much less this turn (Foxy Fraud —
     /// Core Set W4a, one-time)
     pub next_combo_discount: i32,
@@ -136,6 +139,7 @@ impl Player {
             corpses: 0,
             healed_this_turn: false,
             next_demon_discount: 0,
+            next_outcast_discount: 0,
             next_combo_discount: 0,
             ongoing_end_turn_damage: 0,
             hero_power_cost_more: 0,

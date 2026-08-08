@@ -120,8 +120,25 @@ pub use super::core_w3d::*;
 pub use super::core_w4a::*;
 pub use super::core_w4b::*;
 pub use super::core_w5::*;
+pub use super::core_w6::*;
 
 /// Look up a card definition by card ID.
 pub fn card_by_id(id: &str) -> Option<&'static CardDef> {
     ALL_CARDS.iter().find(|c| c.id == id)
+}
+
+/// Whether a card definition carries an Outcast effect (Core Set W2
+/// variants resolved against the OutcastPlayed marker). Used by the cost
+/// pipeline (Illidari Studies' next-Outcast discount, Core Set W6) and the
+/// Illidari Studies random generation pool.
+pub fn has_outcast(def: &CardDef) -> bool {
+    matches!(
+        def.battlecry,
+        Some(crate::core::effect::CardEffect::DrawCardOutcast { .. })
+            | Some(crate::core::effect::CardEffect::OutcastDamage { .. })
+    ) || matches!(
+        def.spell_effect,
+        Some(crate::core::effect::CardEffect::DrawCardOutcast { .. })
+            | Some(crate::core::effect::CardEffect::OutcastDamage { .. })
+    )
 }
