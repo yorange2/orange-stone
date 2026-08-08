@@ -15,10 +15,10 @@
 
 use crate::core::component::{
     Attack, AttacksUsed, CardId, CardType, Charge, Cost, Damage, Deathrattle, DivineShield,
-    Durability, Enchantment, EnchantmentExpiry, Freeze, Health, Immune, Poison, Reborn, Stealth,
-    Taunt, Trigger, TriggerEvent, TriggerTiming, Windfury,
+    Durability, Enchantment, EnchantmentExpiry, Freeze, Health, HeroPowerDef, ImbueClass, Immune,
+    Poison, Reborn, Stealth, Taunt, Trigger, TriggerEvent, TriggerTiming, Windfury,
 };
-use crate::core::effect::{CardEffect, EffectTarget};
+use crate::core::effect::{CardEffect, EffectTarget, RandomPool};
 use crate::core::entity::Entity;
 
 /// Prophet Velen's card ID — his doubling is looked up by ID on the owner's board.
@@ -2946,6 +2946,181 @@ pub fn resolve_effect(
                 );
             }
         }
+        // ----------------------------------------------------------------
+        // 2025–2026 expansions M1-W1 (exp_edr_w1) — the Emerald Dream imbue
+        // mechanic (see the design brief; simplifications registered in
+        // fidelity-debt §14).
+        // ----------------------------------------------------------------
+        CardEffect::ImbueHeroPower => {
+            resolve_imbue(state, owner);
+        }
+        CardEffect::ImbuedHeroPower { class } => {
+            resolve_imbued_hero_power(state, queue, source, owner, class);
+        }
+        CardEffect::UseHeroPower => {
+            resolve_use_hero_power(state, queue, owner);
+        }
+        CardEffect::DrawBeastAndImbue => {
+            // Exotic Houndmaster — draw a Beast, then imbue
+            resolve_draw_by_race(state, queue, owner, 1, crate::core::component::Race::Beast);
+            resolve_imbue(state, owner);
+        }
+        CardEffect::RestoreAndDrawAndImbue { amount } => {
+            // Aspect's Embrace — restore to the friendly hero, draw, imbue
+            resolve_restore_health(
+                state,
+                queue,
+                owner,
+                amount,
+                EffectTarget::FriendlyHero,
+                None,
+            );
+            draw_card(state, queue, owner);
+            resolve_imbue(state, owner);
+        }
+        CardEffect::SummonRandomTwoCostTauntAndImbue => {
+            // Aegis of Light — summon a random 2-Cost minion, give it Taunt,
+            // then imbue (token-excluded pool, Silvermoon Portal convention)
+            let cost2: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion && c.cost == 2 && !c.id.ends_with('t')
+                    })
+                    .collect();
+            if let Some(&pick) = cost2.get(state.rng_mut().next_usize(cost2.len())) {
+                if let Some(e) = resolve_summon(state, queue, source, owner, pick.id) {
+                    state.world_mut().set_taunt(e, Taunt);
+                }
+            }
+            resolve_imbue(state, owner);
+        }
+        CardEffect::ImbueAndReduceHandCost => {
+            // Living Garden — imbue, then a random minion in hand costs (1)
+            // less (the engine has no hand-targeting action space; the
+            // choice is simplified to a random pick)
+            resolve_imbue(state, owner);
+            let hand: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if hand.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(hand.len());
+            let target = hand[idx];
+            let world = state.world_mut();
+            let cur = world.effective_cost(target).unwrap_or(Cost(0));
+            world.set_cost(target, Cost((cur.0 - 1).max(0)));
+        }
+        CardEffect::ImbueAndTriggerHeroPower => {
+            // Wisprider — imbue FIRST, then trigger the (just-replaced) hero
+            // power once, free of charge
+            resolve_imbue(state, owner);
+            resolve_use_hero_power(state, queue, owner);
+        }
+        CardEffect::ImbueAndGetWisp => {
+            // Spirit Gatherer — get a Wisp, then imbue
+            if let Some(def) = crate::cards::def::card_by_id("EDR_851t") {
+                add_card_to_hand(state, owner, def);
+            }
+            resolve_imbue(state, owner);
+        }
+        CardEffect::ImbueAndDebuffEnemies { attack_reduction } => {
+            // Kaldorei Priestess — all enemy minions -2 Attack until your
+            // next turn (the TempDebuff precedent: the debuff lasts until
+            // the turn-end wrap-up, registered in fidelity-debt §14), then
+            // imbue
+            for enemy in collect_enemy_minions(state, owner, None) {
+                state.world_mut().add_enchantment(
+                    enemy,
+                    Enchantment {
+                        attack: -attack_reduction,
+                        health: 0,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::UntilEndOfTurn,
+                    },
+                );
+            }
+            resolve_imbue(state, owner);
+        }
+        CardEffect::DealDamageIfImbuedTwice { damage } => {
+            // Resplendent Dreamweaver — 4 damage to a minion when the owner
+            // has imbued at least twice (explicit target when given)
+            if state.player(owner).imbue_count >= 2 {
+                resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    damage,
+                    EffectTarget::AnyMinion,
+                    explicit_target,
+                );
+            }
+        }
+        CardEffect::DiscoverWildGodIfImbued4 => {
+            // Malorne the Waywatcher — a random Wild God to hand; set its
+            // Cost to (1) when the owner has imbued at least 4 times
+            // (Discover simplified, fidelity-debt §14)
+            if let Some(def) = crate::cards::pool::random_from_pool(
+                crate::cards::pool::WILD_GOD_POOL,
+                state.rng_mut(),
+            ) {
+                let hand_before = state.world().zones().len(Zone::Hand, owner);
+                add_card_to_hand(state, owner, def);
+                if state.world().zones().len(Zone::Hand, owner) > hand_before
+                    && state.player(owner).imbue_count >= 4
+                {
+                    let added = state
+                        .world()
+                        .zones()
+                        .iter(Zone::Hand, owner)
+                        .nth(hand_before)
+                        .expect("the added Wild God is in hand");
+                    state.world_mut().set_cost(added, Cost(1));
+                }
+            }
+        }
+        CardEffect::ImbueEveryThirdSpell => {
+            // Hamuul Runetotem — every 3 friendly spells cast (while he is
+            // in play) imbues again; the counter is per-player so it
+            // survives Hamuul leaving play (simplified, fidelity-debt §14)
+            let count = {
+                let inner = state.make_mut();
+                let p = &mut inner.players[owner.index()];
+                p.hamuul_spells_cast += 1;
+                p.hamuul_spells_cast
+            };
+            if count % 3 == 0 {
+                resolve_imbue(state, owner);
+            }
+        }
+        CardEffect::SummonRandomDragonOfCost { cost } => {
+            // The Emerald Portal token — a random 1-Cost Dragon. The current
+            // Classic/Core window has no 1-Cost dragons, so the pool spans
+            // the handwritten pool and the expansion baselines (token
+            // excluded); the summoned dragon carries its generated vanilla
+            // stats (fidelity-debt §14).
+            let dragons: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .chain(crate::cards::sets::EXPANSION_CARDS.iter())
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.race == Some(crate::core::component::Race::Dragon)
+                            && c.cost == cost
+                            && !c.id.ends_with('t')
+                    })
+                    .collect();
+            if dragons.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(dragons.len());
+            let _ = resolve_summon(state, queue, source, owner, dragons[idx].id);
+        }
     }
 }
 
@@ -4019,6 +4194,197 @@ fn resolve_gain_stats(
             }
         }
         _ => {}
+    }
+}
+
+/// The Emerald Dream imbue mechanic (2025–2026 expansions M1-W1): the
+/// player's imbue count +1; the FIRST imbue replaces the hero power with the
+/// class's imbued form (cost 2) when the hero is one of the six imbuing
+/// classes (Druid/Hunter/Mage/Paladin/Priest/Shaman — detected via the
+/// hero's card ID). Later imbues never replace again — they only scale the
+/// imbued power's numbers, because the level is read from the count at
+/// resolution time. A hero of another class (or without a card ID) counts
+/// imbues without any replacement.
+fn resolve_imbue(state: &mut GameState, owner: PlayerId) {
+    let count = {
+        let inner = state.make_mut();
+        let p = &mut inner.players[owner.index()];
+        p.imbue_count += 1;
+        p.imbue_count
+    };
+    if count == 1 {
+        let hero = state.player(owner).hero;
+        let class = state
+            .world()
+            .card_id(hero)
+            .and_then(|c| ImbueClass::from_hero_card_id(c.0));
+        if let Some(class) = class {
+            state.world_mut().set_hero_power(
+                hero,
+                HeroPowerDef {
+                    cost: 2,
+                    effect: CardEffect::ImbuedHeroPower { class },
+                },
+            );
+        }
+    }
+}
+
+/// Resolves the owner's current hero power effect once, free of charge: no
+/// mana is spent and the hero power is not marked used (Wisprider's
+/// "trigger it"). The hero is the effect source, so the Spell Damage /
+/// Velen pipeline applies exactly as for a normal hero power activation.
+fn resolve_use_hero_power(state: &mut GameState, queue: &mut EventQueue, owner: PlayerId) {
+    let hero = state.player(owner).hero;
+    let Some(hp) = state.world().hero_power(hero) else {
+        return;
+    };
+    resolve_effect(state, queue, hero, owner, hp.effect, None, None);
+}
+
+/// Resolves an imbued hero power at level L = the owner's imbue count (the
+/// six classes' EDR_*p hero powers; numbers per the W1 design brief). The
+/// Mage damage re-enters `resolve_effect` so the Spell Damage / Velen
+/// pipeline boosts each missile exactly as for a base hero power.
+fn resolve_imbued_hero_power(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+    class: ImbueClass,
+) {
+    let level = state.player(owner).imbue_count.max(1);
+    match class {
+        ImbueClass::Druid => {
+            // Blessing of the Golem (EDR_847p) — summon an L/L plant golem
+            // (the token is a 1/1 base; the level overrides its stats)
+            if let Some(golem) = resolve_summon(state, queue, source, owner, "EDR_847pt2") {
+                state.world_mut().set_attack(golem, Attack(level));
+                state.world_mut().set_health(golem, Health(level));
+            }
+        }
+        ImbueClass::Hunter => {
+            // Blessing of the Wolf (EDR_850p) — a random Beast in hand gains
+            // +L Attack and costs (L) less (hand buffs write the base
+            // components, FordragonBuff convention)
+            let beasts: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .and_then(|c| crate::cards::def::card_by_id(c.0))
+                        .is_some_and(|d| d.race == Some(crate::core::component::Race::Beast))
+                })
+                .collect();
+            if beasts.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(beasts.len());
+            let beast = beasts[idx];
+            let world = state.world_mut();
+            let base = world.attack(beast).unwrap_or(Attack(0));
+            world.set_attack(beast, Attack(base.0 + level));
+            let cur = world.effective_cost(beast).unwrap_or(Cost(0));
+            world.set_cost(beast, Cost((cur.0 - level).max(0)));
+        }
+        ImbueClass::Mage => {
+            // Blessing of the Wisp (EDR_851p) — summon L Wisps and deal L
+            // damage randomly split among all enemies (L single pings)
+            for _ in 0..level {
+                let _ = resolve_summon(state, queue, source, owner, "EDR_851t");
+            }
+            resolve_effect(
+                state,
+                queue,
+                source,
+                owner,
+                CardEffect::DealDamageRandomly {
+                    amount: 1,
+                    count: level,
+                    target: EffectTarget::AnyEnemy,
+                },
+                None,
+                None,
+            );
+        }
+        ImbueClass::Paladin => {
+            // Blessing of the Dragon (EDR_445p) — shuffle two Emerald
+            // Portals into the deck at random positions
+            for _ in 0..2 {
+                let Some(def) = crate::cards::def::card_by_id("EDR_445pt3") else {
+                    return;
+                };
+                let e = crate::cards::spawn_card_from_def(state.world_mut(), owner, def);
+                state.world_mut().set_zone(e, Zone::Deck);
+                let deck_len = state.world().zones().len(Zone::Deck, owner);
+                let pos = state.rng_mut().next_usize(deck_len + 1);
+                state
+                    .world_mut()
+                    .zones_mut()
+                    .insert_at(Zone::Deck, owner, e, pos);
+            }
+        }
+        ImbueClass::Priest => {
+            // Blessing of the Moon (EDR_449p, simplified — the real card
+            // lets the player choose; fidelity-debt §14) — a random Priest
+            // minion or spell to hand, costing (L) less
+            let Some(def) =
+                crate::cards::pool::random_card(state.rng_mut(), RandomPool::PriestCard)
+            else {
+                return;
+            };
+            let hand_before = state.world().zones().len(Zone::Hand, owner);
+            add_card_to_hand(state, owner, def);
+            if state.world().zones().len(Zone::Hand, owner) <= hand_before {
+                return; // hand full (F-A11) — nothing was added
+            }
+            let added = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .nth(hand_before)
+                .expect("the generated Priest card is in hand");
+            let cur = state.world().effective_cost(added).unwrap_or(Cost(0));
+            state
+                .world_mut()
+                .set_cost(added, Cost((cur.0 - level).max(0)));
+        }
+        ImbueClass::Shaman => {
+            // Blessing of the Wind (EDR_448p) — transform a random friendly
+            // minion into a random minion costing (L) more (token-excluded
+            // pool, Silvermoon Portal convention; the reset follows the Hex
+            // transform pattern)
+            let minions = collect_friendly_minions(state, owner);
+            if minions.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(minions.len());
+            let target = minions[idx];
+            let target_cost = state.world().cost(target).unwrap_or(Cost(0)).0;
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.cost == target_cost + level
+                            && !c.id.ends_with('t')
+                    })
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let pick = candidates[state.rng_mut().next_usize(candidates.len())];
+            let world = state.world_mut();
+            crate::cards::clear_minion_effects(world, target);
+            world.set_attack(target, Attack(pick.attack));
+            world.set_health(target, Health(pick.health));
+            world.set_cost(target, Cost(pick.cost));
+            world.set_card_id(target, CardId(pick.id));
+            world.set_attacks_used(target, AttacksUsed(0));
+        }
     }
 }
 

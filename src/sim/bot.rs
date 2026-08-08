@@ -1489,6 +1489,23 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DamageAndFreeze { damage, .. } => damage as f64 * 1.2 + 1.0,
         CardEffect::DamageAllEnemyMinionsAndFreeze { damage } => damage as f64 * 1.2 * 2.0,
         CardEffect::AddRandomOutcastCardNextCheaper => 3.0,
+        // 2025-2026 expansions M1-W1 (the Emerald Dream imbue mechanic)
+        CardEffect::ImbueHeroPower => 2.0,
+        CardEffect::ImbuedHeroPower { .. } => 3.0,
+        CardEffect::UseHeroPower => 2.0,
+        CardEffect::DrawBeastAndImbue => 5.0,
+        CardEffect::RestoreAndDrawAndImbue { amount } => amount as f64 * 0.7 + 5.0,
+        CardEffect::SummonRandomTwoCostTauntAndImbue => 4.0,
+        CardEffect::ImbueAndReduceHandCost => 4.0,
+        CardEffect::ImbueAndTriggerHeroPower => 5.0,
+        CardEffect::ImbueAndGetWisp => 3.0,
+        CardEffect::ImbueAndDebuffEnemies { attack_reduction } => {
+            attack_reduction as f64 * 1.0 + 2.0
+        }
+        CardEffect::DealDamageIfImbuedTwice { damage } => damage as f64 * 1.2,
+        CardEffect::DiscoverWildGodIfImbued4 => 5.0,
+        CardEffect::ImbueEveryThirdSpell => 2.0,
+        CardEffect::SummonRandomDragonOfCost { .. } => 4.0,
     }
 }
 

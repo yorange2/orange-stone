@@ -117,6 +117,18 @@ pub struct Player {
     /// Enemy spells cost more this turn (Cult Neophyte — Core Set W4b,
     /// cleared at the owner's turn start)
     pub enemy_spell_cost_more: i32,
+    /// Imbue count (2025–2026 expansions M1-W1 — the Emerald Dream imbue
+    /// mechanic): every played imbue card increments it. The first imbue
+    /// replaces the hero power with the class's imbued form (cost 2) when
+    /// the hero is one of the six imbuing classes; later imbues scale the
+    /// imbued powers' numbers — level L = imbue count (the count is the
+    /// single source of truth, so a replaced-then-replaced hero power keeps
+    /// its level).
+    pub imbue_count: i32,
+    /// Friendly spells cast while Hamuul Runetotem (EDR_845) is in play
+    /// (2025–2026 expansions M1-W1): his "Repeat this every 3 spells you
+    /// cast" fires an extra imbue when this hits a multiple of 3.
+    pub hamuul_spells_cast: i32,
 }
 
 impl Player {
@@ -152,6 +164,8 @@ impl Player {
             ongoing_end_turn_damage: 0,
             hero_power_cost_more: 0,
             enemy_spell_cost_more: 0,
+            imbue_count: 0,
+            hamuul_spells_cast: 0,
         }
     }
 }

@@ -239,6 +239,47 @@ pub enum Race {
     Naga,
 }
 
+/// Imbue hero-power classes (2025–2026 expansions M1-W1 — the Emerald Dream
+/// imbue mechanic): the six classes whose hero powers are replaced by their
+/// imbued forms on the first imbue. Class detection reads the hero's card ID
+/// prefix — `HERO_01` = Warrior, `HERO_02` = Shaman, `HERO_03` = Rogue,
+/// `HERO_04` = Paladin, `HERO_05` = Hunter, `HERO_06` = Druid, `HERO_07` =
+/// Warlock, `HERO_08` = Mage, `HERO_09` = Priest, `HERO_10` = Death Knight.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ImbueClass {
+    /// Druid — Blessing of the Golem (EDR_847p)
+    Druid,
+    /// Hunter — Blessing of the Wolf (EDR_850p)
+    Hunter,
+    /// Mage — Blessing of the Wisp (EDR_851p)
+    Mage,
+    /// Paladin — Blessing of the Dragon (EDR_445p)
+    Paladin,
+    /// Priest — Blessing of the Moon (EDR_449p)
+    Priest,
+    /// Shaman — Blessing of the Wind (EDR_448p)
+    Shaman,
+}
+
+impl ImbueClass {
+    /// Maps a hero card ID to the imbue class: the six imbuing classes
+    /// return `Some`, the other four classes and unknown IDs return `None`
+    /// (a hero without a card ID — e.g. the `GameState::new()` defaults —
+    /// counts imbues without ever replacing the hero power).
+    #[must_use]
+    pub fn from_hero_card_id(id: &str) -> Option<Self> {
+        match id {
+            "HERO_02" => Some(Self::Shaman),
+            "HERO_04" => Some(Self::Paladin),
+            "HERO_05" => Some(Self::Hunter),
+            "HERO_06" => Some(Self::Druid),
+            "HERO_08" => Some(Self::Mage),
+            "HERO_09" => Some(Self::Priest),
+            _ => None,
+        }
+    }
+}
+
 /// Aura effect kind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AuraEffect {
@@ -715,5 +756,44 @@ mod tests {
         assert!(AttacksUsed(2).is_exhausted_with(2));
         assert!(!AttacksUsed(1).is_exhausted_with(2));
         assert!(!AttacksUsed(0).is_exhausted_with(1));
+    }
+
+    /// The hero-card-ID → imbue class mapping (2025–2026 expansions M1-W1):
+    /// the six imbuing classes resolve, the other four classes and unknown
+    /// IDs (no card ID — the `GameState::new()` defaults) resolve to `None`.
+    #[test]
+    fn imbue_class_from_hero_card_id_mapping() {
+        use super::ImbueClass;
+        assert_eq!(
+            ImbueClass::from_hero_card_id("HERO_06"),
+            Some(ImbueClass::Druid)
+        );
+        assert_eq!(
+            ImbueClass::from_hero_card_id("HERO_05"),
+            Some(ImbueClass::Hunter)
+        );
+        assert_eq!(
+            ImbueClass::from_hero_card_id("HERO_08"),
+            Some(ImbueClass::Mage)
+        );
+        assert_eq!(
+            ImbueClass::from_hero_card_id("HERO_04"),
+            Some(ImbueClass::Paladin)
+        );
+        assert_eq!(
+            ImbueClass::from_hero_card_id("HERO_09"),
+            Some(ImbueClass::Priest)
+        );
+        assert_eq!(
+            ImbueClass::from_hero_card_id("HERO_02"),
+            Some(ImbueClass::Shaman)
+        );
+        // Warrior / Rogue / Warlock / Death Knight — no imbued form
+        assert_eq!(ImbueClass::from_hero_card_id("HERO_01"), None);
+        assert_eq!(ImbueClass::from_hero_card_id("HERO_03"), None);
+        assert_eq!(ImbueClass::from_hero_card_id("HERO_07"), None);
+        assert_eq!(ImbueClass::from_hero_card_id("HERO_10"), None);
+        assert_eq!(ImbueClass::from_hero_card_id("CORE_EX1_323"), None);
+        assert_eq!(ImbueClass::from_hero_card_id(""), None);
     }
 }

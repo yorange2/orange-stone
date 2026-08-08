@@ -117,6 +117,21 @@ pub const DREAM_POOL: &[&str] = &[
 /// Animal Companion pool — Classic built-in tokens.
 pub const COMPANION_POOL: &[&str] = &["HUNTER_023a", "HUNTER_023b", "HUNTER_023c"];
 
+/// Wild God pool — the eight Wild Gods of the Emerald Dream set (Malorne the
+/// Waywatcher's "Discover a Legendary Wild God" pool, 2025–2026 expansions
+/// M1-W1). The real pool is the "Legendary Wild God" tag filter; the fixed
+/// table is the simplified Discover pool (fidelity-debt §14).
+pub const WILD_GOD_POOL: &[&str] = &[
+    "EDR_031", // Ohn'ahra
+    "EDR_238", // Merithra
+    "EDR_259", // Ursol
+    "EDR_430", // Aessina
+    "EDR_465", // Ysondre
+    "EDR_480", // Goldrinn
+    "EDR_489", // Agamaggan
+    "EDR_819", // Ursoc
+];
+
 /// Draws a random card definition from an ID pool.
 pub(crate) fn random_from_pool(pool: &[&str], rng: &mut GameRng) -> Option<&'static CardDef> {
     if pool.is_empty() {
@@ -196,6 +211,20 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
+        RandomPool::PriestCard => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| {
+                (c.card_type == CardType::Minion || c.card_type == CardType::Spell)
+                    && crate::cards::sets::PRIEST_CLASSIC
+                        .iter()
+                        .any(|p| p.id == c.id)
+                    && in_active_window(c)
+            })
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
     }
 }
 
@@ -232,6 +261,12 @@ pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'stati
             c.card_type == CardType::Spell && c.name.contains("Shadow")
         }),
         RandomPool::OtherClass => random_filtered(rng, is_other_class_card),
+        RandomPool::PriestCard => random_filtered(rng, |c| {
+            (c.card_type == CardType::Minion || c.card_type == CardType::Spell)
+                && crate::cards::sets::PRIEST_CLASSIC
+                    .iter()
+                    .any(|p| p.id == c.id)
+        }),
     }
 }
 
@@ -297,6 +332,37 @@ mod tests {
             assert!(
                 !sets::ROGUE_CLASSIC.iter().any(|c| c.id == card.id),
                 "{} is a Rogue card — not 'another class'",
+                card.id
+            );
+        }
+    }
+
+    /// PriestCard (Blessing of the Moon — M1-W1) — every Priest class
+    /// minion or spell is reachable and nothing else (no neutrals, no
+    /// non-minion/spell types).
+    #[test]
+    fn priest_card_pool_is_priest_minions_and_spells() {
+        let pool = pool_cards(RandomPool::PriestCard);
+        assert!(!pool.is_empty(), "the PriestCard pool must not be empty");
+        let ids: Vec<&str> = pool.iter().map(|c| c.id).collect();
+        for card in sets::PRIEST_CLASSIC {
+            if card.card_type == CardType::Minion || card.card_type == CardType::Spell {
+                assert!(
+                    ids.contains(&card.id),
+                    "{} must be in the PriestCard pool",
+                    card.id
+                );
+            }
+        }
+        for card in pool {
+            assert!(
+                sets::PRIEST_CLASSIC.iter().any(|c| c.id == card.id),
+                "{} is not a Priest class card",
+                card.id
+            );
+            assert!(
+                card.card_type == CardType::Minion || card.card_type == CardType::Spell,
+                "{} is not a Priest minion or spell",
                 card.id
             );
         }
