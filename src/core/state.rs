@@ -48,6 +48,26 @@ pub enum ChoiceKind {
     /// three random distinct enemy-deck card ids; the picked card's
     /// EXISTING entity is inserted at the top of the enemy deck.
     DiscoverEnemyDeckPutOnTop,
+    /// Discover a COPY of a card in the opponent's hand (2025–2026
+    /// expansions M3-W2a — Deja Vu TIME_039; **pool-open**): the pool
+    /// holds three random distinct enemy-hand card ids; the picked card's
+    /// definition is added to the player's hand (a copy — the original
+    /// stays).
+    DiscoverEnemyHandCopy,
+    /// Discover a copy of a card from the player's deck and one from the
+    /// opponent's hand (2025–2026 expansions M3-W2a — Intertwined Fate
+    /// TIME_432; **pool-open**): the pool holds three deck card ids
+    /// followed by three enemy-hand card ids; the picked option's copy
+    /// goes to the hand and a random copy from the OTHER pool follows
+    /// (the §20 shape — one combined choice instead of two sequential
+    /// ones).
+    DiscoverDeckAndEnemyHandCopy,
+    /// Discover a card from the player's deck; the others are put on the
+    /// bottom of the deck (2025–2026 expansions M3-W2a — Waveshaping
+    /// TIME_701): the pool holds three random distinct deck card ids; the
+    /// picked card's EXISTING entity moves to hand and the unpicked ones
+    /// move to the deck's bottom.
+    DiscoverDeckOthersBottom,
 }
 
 /// A choice the engine needs resolved (roadmap G6).
@@ -107,6 +127,10 @@ pub enum Step {
     ManaRefill,
     /// Draw the turn's card (the first player skips this on turn 1)
     DrawStep,
+    /// M3-W2a — Circadiamancer-style per-turn hand-card cost reduction
+    /// ("at the start of your turns, reduce its Cost by (1)"), runs
+    /// between the mana refill and the draw.
+    TurnCostReduce,
     /// Main step — the player can play cards, attack, and end the turn
     Main,
     /// End-of-turn triggers ("at the end of your turn" effects fire here)

@@ -8386,6 +8386,2045 @@ pub fn resolve_effect(
                 None,
             );
         }
+
+        CardEffect::AddRandomMinionCostsLess { reduction } => {
+            // TIME_000 Semi-Stable Portal (M3-W2a) — a random minion into
+            // the hand with a permanent cost reduction (the
+            // AddRandomSpellCostsLess pattern).
+            let Some(card) =
+                crate::cards::pool::random_card(state.rng_mut(), RandomPool::AnyMinion)
+            else {
+                return;
+            };
+            if let Some(e) = add_card_to_hand(state, owner, card) {
+                reduce_hand_card_cost(state, e, reduction);
+            }
+        }
+        CardEffect::AddRandomSpellsFromClass { count } => {
+            // TIME_002 Aeon Wizard (M3-W2a) — N random spells from the
+            // player's class (the class approximated by the union of the
+            // class card groups, §20 — RandomPool::ClassSpell).
+            for _ in 0..count {
+                if let Some(card) =
+                    crate::cards::pool::random_card(state.rng_mut(), RandomPool::ClassSpell)
+                {
+                    add_card_to_hand(state, owner, card);
+                }
+            }
+        }
+        CardEffect::DrawRandomMinionGiveStats { attack, health } => {
+            // TIME_003 Portal Vanguard (M3-W2a) — draw a RANDOM minion
+            // from the deck (a random pick over the deck's minions, the
+            // scan-draw shape) and give it +A/+H.
+            let minions: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if minions.is_empty() {
+                return;
+            }
+            let picked = minions[state.rng_mut().next_usize(minions.len())];
+            if state.world_mut().move_to_zone(picked, Zone::Hand).is_ok() {
+                queue.push(Event::CardDrawn {
+                    player: owner,
+                    card: picked,
+                });
+                state.world_mut().add_enchantment(
+                    picked,
+                    Enchantment {
+                        attack,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::BothPlayersDiscardRandomCard => {
+            // TIME_008 Bygone Doomspeaker (M3-W2a) — both players discard
+            // a random card.
+            resolve_discard_random(state, owner);
+            resolve_discard_random(state, owner.opponent());
+        }
+        CardEffect::SummonManaWorthRandomMinions { total } => {
+            // TIME_014 Instant Multiverse (M3-W2a) — summon random minions
+            // until `total` Mana worth is spent: each pick draws from the
+            // minions costing at most the remaining Mana, so the summoning
+            // always terminates (the §20 shape).
+            let mut remaining = total;
+            while remaining > 0 {
+                let pool: SmallList<&'static crate::cards::def::CardDef> =
+                    crate::cards::sets::ALL_CARDS
+                        .iter()
+                        .filter(|c| {
+                            c.card_type == CardType::Minion
+                                && c.cost <= remaining
+                                && crate::cards::pool::in_active_window(c)
+                        })
+                        .collect();
+                if pool.is_empty() {
+                    return;
+                }
+                let idx = state.rng_mut().next_usize(pool.len());
+                let def = pool[idx];
+                if resolve_summon(state, queue, source, owner, def.id).is_some() {
+                    remaining -= def.cost;
+                } else {
+                    // The board is full — nothing more can be summoned.
+                    return;
+                }
+            }
+        }
+        CardEffect::GetHolySpellsRestoreHealthEqualCosts => {
+            // TIME_018 Mend the Timeline (M3-W2a) — get 2 random Holy
+            // spells and restore Health to the hero equal to their Costs.
+            let mut restored = 0;
+            for _ in 0..2 {
+                if let Some(card) =
+                    crate::cards::pool::random_card(state.rng_mut(), RandomPool::HolySpell)
+                {
+                    add_card_to_hand(state, owner, card);
+                    restored += card.cost;
+                }
+            }
+            if restored > 0 {
+                resolve_restore_health(
+                    state,
+                    queue,
+                    owner,
+                    restored,
+                    EffectTarget::FriendlyHero,
+                    None,
+                );
+            }
+        }
+        CardEffect::CastRandomNatureSpells { count } => {
+            // TIME_033 Druid of Regrowth (M3-W2a) — cast N random Nature
+            // spells: each pick resolves the spell's effect against random
+            // targets where needed (the CastRandomSpellFromDeckCostLE
+            // shape, §20).
+            for _ in 0..count {
+                if let Some(card) =
+                    crate::cards::pool::random_card(state.rng_mut(), RandomPool::NatureSpell)
+                {
+                    if let Some(effect) = card.spell_effect {
+                        resolve_effect(state, queue, source, owner, effect, None, None);
+                    }
+                }
+            }
+        }
+        CardEffect::BothPlayersEquipRandomWeaponBuffOurs { attack, health } => {
+            // TIME_034 Stadium Announcer (M3-W2a) — both players equip a
+            // random weapon; the player's weapon gains +A/+H.
+            for p in [owner, owner.opponent()] {
+                if let Some(weapon) =
+                    crate::cards::pool::random_card(state.rng_mut(), RandomPool::RandomWeapon)
+                {
+                    resolve_equip_weapon(state, queue, p, weapon.id);
+                }
+            }
+            let our_weapon = state.player(owner).weapon;
+            if let Some(w) = our_weapon {
+                state.world_mut().add_enchantment(
+                    w,
+                    Enchantment {
+                        attack,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::AddRandomRewindCardToHand => {
+            // TIME_035 Time Machine (M3-W2a) — a random Rewind card (the
+            // fixed REWIND_CARD_IDS table, D2).
+            if let Some(card) =
+                crate::cards::pool::random_card(state.rng_mut(), RandomPool::RewindCard)
+            {
+                add_card_to_hand(state, owner, card);
+            }
+        }
+        CardEffect::CopyRightmostEnemyHandCardOrIncreaseCost => {
+            // TIME_036 Royal Informant (M3-W2a; pool-open) — look at the
+            // right-most card in the opponent's hand: either get a copy of
+            // it or increase its Cost by 2 — the either/or is a random
+            // pick (the established pool-open simplification, §20).
+            let enemy = owner.opponent();
+            let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, enemy).collect();
+            let Some(&rightmost) = hand.last() else {
+                return;
+            };
+            if state.rng_mut().next_usize(2) == 0 {
+                copy_card_to_hand(state, rightmost, owner);
+            } else {
+                state.world_mut().add_enchantment(
+                    rightmost,
+                    Enchantment {
+                        attack: 0,
+                        health: 0,
+                        cost: 2,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::SummonTwoRandomLegendaryMinions => {
+            // TIME_038 Mister Clocksworth (M3-W2a) — summon 2 random
+            // Legendary minions (the legendary pool spans the full active
+            // window plus TIME_063, §20).
+            for _ in 0..2 {
+                if let Some(card) =
+                    crate::cards::pool::random_card(state.rng_mut(), RandomPool::Legendary)
+                {
+                    let _ = resolve_summon(state, queue, source, owner, card.id);
+                }
+            }
+        }
+        CardEffect::DiscoverEnemyHandCardCopy => {
+            // TIME_039 Deja Vu (M3-W2a; pool-open) — discover a COPY of a
+            // card in the opponent's hand: the pool holds three random
+            // distinct enemy-hand card ids (fewer when the hand is
+            // short), the pick adds the card's definition to the hand.
+            let enemy = owner.opponent();
+            let mut candidates: Vec<Entity> =
+                state.world().zones().iter(Zone::Hand, enemy).collect();
+            let mut ids: Vec<String> = Vec::new();
+            let mut options: Vec<String> = Vec::new();
+            for _ in 0..3 {
+                if candidates.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(candidates.len());
+                let card = candidates.remove(idx);
+                let Some(cid) = state.world().card_id(card) else {
+                    continue;
+                };
+                let label = crate::cards::def::card_by_id(cid.0)
+                    .map(|d| format!("{} ({})", d.name, d.id))
+                    .unwrap_or_else(|| cid.0.to_string());
+                ids.push(cid.0.to_string());
+                options.push(label);
+            }
+            if ids.is_empty() {
+                return;
+            }
+            state.set_pending_choice_w4a(
+                crate::core::state::ChoiceKind::DiscoverEnemyHandCopy,
+                source,
+                options,
+                ids,
+                false,
+                1,
+                false,
+                Vec::new(),
+            );
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::DiscoverCards,
+                1,
+                None,
+            );
+        }
+        CardEffect::SummonTauntAndIfHoldingDragonAgain { card_id } => {
+            // TIME_006 Mirror Dimension (M3-W2a) — summon a 0/4 Taunt
+            // token, and another if the player is holding a Dragon.
+            let _ = resolve_summon(state, queue, source, owner, card_id);
+            let holds_dragon = state.world().zones().iter(Zone::Hand, owner).any(|e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                    .is_some_and(|d| d.race == Some(crate::core::component::Race::Dragon))
+            });
+            if holds_dragon {
+                let _ = resolve_summon(state, queue, source, owner, card_id);
+            }
+        }
+        CardEffect::RestoreAndGrantHeroDivineShield { amount } => {
+            // TIME_015 Hardlight Protector (M3-W2a) — restore N Health to
+            // the hero and give them Divine Shield.
+            resolve_restore_health(
+                state,
+                queue,
+                owner,
+                amount,
+                EffectTarget::FriendlyHero,
+                None,
+            );
+            let hero = state.player(owner).hero;
+            state.world_mut().set_divine_shield(hero, DivineShield);
+        }
+        CardEffect::DiscoverPaladinMechPastGiveStats { attack, health } => {
+            // TIME_016 Neon Innovation (M3-W2a) — discover a Paladin Mech
+            // from the past and give it +A/+H: the discover pool is
+            // Paladin class Mechs (§20); the buff rides the player until
+            // the Discover choice resolves (the picked card must be the
+            // buff target — a stashed modifier, consumed in ChoiceResolved).
+            let cards = crate::cards::pool::discover_pool_cards(
+                crate::core::effect::DiscoverPool::PaladinMech,
+                state,
+                owner,
+            );
+            if cards.is_empty() {
+                return;
+            }
+            let options: Vec<String> = cards
+                .iter()
+                .map(|c| format!("{} ({})", c.name, c.id))
+                .collect();
+            let pool_ids: Vec<String> = cards.iter().map(|c| c.id.to_string()).collect();
+            state.make_mut().players[owner.index()].pending_discover_hand_bonus =
+                Some((attack, health));
+            state.set_pending_choice_w4a(
+                crate::core::state::ChoiceKind::Discover,
+                source,
+                options,
+                pool_ids,
+                false,
+                1,
+                false,
+                Vec::new(),
+            );
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::DiscoverCards,
+                1,
+                None,
+            );
+        }
+        CardEffect::AddRandomBeastsToBottomDeckWithStats {
+            count,
+            attack,
+            health,
+        } => {
+            // TIME_730 Kaldorei Cultivator (M3-W2a) — "Discover 2 Beasts.
+            // Put them on the bottom of your deck with +5/+5": the
+            // Discover is a D2 random pick (§20) and each Beast lands on
+            // the deck's BOTTOM (the end of the draw order) with a
+            // permanent stat enchantment.
+            for _ in 0..count {
+                let pool: SmallList<&'static crate::cards::def::CardDef> =
+                    crate::cards::sets::ALL_CARDS
+                        .iter()
+                        .filter(|c| {
+                            c.card_type == CardType::Minion
+                                && c.race == Some(Race::Beast)
+                                && crate::cards::pool::in_active_window(c)
+                        })
+                        .collect();
+                if pool.is_empty() {
+                    return;
+                }
+                let idx = state.rng_mut().next_usize(pool.len());
+                let def = pool[idx];
+                let world = state.world_mut();
+                let e = crate::cards::spawn_card_from_def(world, owner, def);
+                world.add_enchantment(
+                    e,
+                    Enchantment {
+                        attack,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+                world.set_zone(e, Zone::Deck);
+                world.zones_mut().insert(Zone::Deck, owner, e);
+            }
+        }
+        CardEffect::AddRandomCostMinionMarkedTurnDiscount { cost } => {
+            // TIME_102 Circadiamancer (M3-W2a) — a random minion of the
+            // given Cost into the hand, carrying the TurnCostReducer
+            // marker: the counter grows at each of the owner's turn
+            // starts and cost.rs composes the discount ("At the start of
+            // your turns, reduce its Cost by (1)").
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.cost == cost
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if pool.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(pool.len());
+            let def = pool[idx];
+            if let Some(e) = add_card_to_hand(state, owner, def) {
+                state
+                    .world_mut()
+                    .set_turn_cost_reducer(e, crate::core::component::TurnCostReducer(0));
+            }
+        }
+        CardEffect::AddRandomLegendaryMinionCostReduced { reduction } => {
+            // TIME_613 Cryofrozen Champion's deathrattle (M3-W2a) — a
+            // random Legendary minion into the hand with a permanent
+            // cost reduction (the §20 legendary pool: the active window
+            // plus TIME_063).
+            let Some(card) =
+                crate::cards::pool::random_card(state.rng_mut(), RandomPool::Legendary)
+            else {
+                return;
+            };
+            if let Some(e) = add_card_to_hand(state, owner, card) {
+                reduce_hand_card_cost(state, e, reduction);
+            }
+        }
+        CardEffect::AwakenImprisonedMinion => {
+            // TIME_442 Timeway Warden's deathrattle (M3-W2a) — awaken the
+            // minion this Warden imprisoned: the (warden, imprisoned)
+            // pair is tracked on the player record (the entity-link
+            // approximation, §20) and the imprisoned minion comes out of
+            // its 10,000-turn sleep.
+            let imprisoned = state
+                .player(owner)
+                .timeway_imprisoned
+                .iter()
+                .find(|(warden, _)| *warden == source)
+                .map(|&(_, imprisoned)| imprisoned);
+            if let Some(imprisoned) = imprisoned {
+                state.make_mut().players[owner.index()]
+                    .timeway_imprisoned
+                    .retain(|(warden, _)| *warden != source);
+                state.world_mut().remove_dormant(imprisoned);
+            }
+        }
+        CardEffect::BuffAllFriendlyMinionsShuffleShreds { attack, health } => {
+            // TIME_026 Entropic Continuity (M3-W2a) — buff every friendly
+            // minion +A/+H and shuffle 2 Shreds of Time into the deck
+            // (the W4a shuffle pattern: random positions, quest progress
+            // and the per-shuffle counter bump per copy).
+            for e in collect_friendly_minions(state, owner) {
+                state.world_mut().add_enchantment(
+                    e,
+                    Enchantment {
+                        attack,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+            let Some(def) = crate::cards::def::card_by_id("TIME_025t") else {
+                return;
+            };
+            for _ in 0..2 {
+                let deck_count = state.world().zones().len(Zone::Deck, owner);
+                let position = if deck_count > 0 {
+                    state.rng_mut().next_usize(deck_count + 1)
+                } else {
+                    0
+                };
+                let world = state.world_mut();
+                let e = crate::cards::spawn_card_from_def(world, owner, def);
+                world.set_zone(e, Zone::Deck);
+                world.zones_mut().insert_at(Zone::Deck, owner, e, position);
+                crate::engine::quest::progress(
+                    state,
+                    queue,
+                    owner,
+                    crate::cards::quest::QuestCondition::ShuffleCards,
+                    1,
+                    None,
+                );
+                state.make_mut().players[owner.index()].shuffled_count += 1;
+            }
+        }
+        CardEffect::CastShredFromDeckGainStats { attack, health } => {
+            // TIME_028 Fatebreaker (M3-W2a) — "cast a Shred of Time from
+            // your deck to gain +3/+3": the cast-from-deck shape scans
+            // the deck for a Shred, removes it and applies its own
+            // effect (3 damage to the hero), then buffs the source (§20
+            // — the official draw-then-cast timing is approximated as a
+            // deck scan + removal).
+            let shred = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_025t"));
+            if let Some(shred) = shred {
+                let _ = state.world_mut().move_to_zone(shred, Zone::Graveyard);
+                resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    3,
+                    EffectTarget::FriendlyHero,
+                    None,
+                );
+            }
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack,
+                    health,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::CastShredFromDeckSummonCopy => {
+            // TIME_029 Ruinous Velocidrake (M3-W2a) — the same
+            // cast-from-deck shape as TIME_028, then a copy of this
+            // minion is summoned (the SummonCopyOfSelf pattern: the copy
+            // sheds its battlecry).
+            let shred = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_025t"));
+            if let Some(shred) = shred {
+                let _ = state.world_mut().move_to_zone(shred, Zone::Graveyard);
+                resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    3,
+                    EffectTarget::FriendlyHero,
+                    None,
+                );
+            }
+            if let Some(def) = state
+                .world()
+                .card_id(source)
+                .and_then(|c| crate::cards::def::card_by_id(c.0))
+            {
+                if let Some(copy) = resolve_summon(state, queue, source, owner, def.id) {
+                    state.world_mut().remove_battlecry(copy);
+                }
+            }
+        }
+        CardEffect::CopyRandomHandMinion => {
+            // TIME_030 Divergence (M3-W2a) — "split a random minion in
+            // your hand into two halves": the split-card halves mechanic
+            // is approximated by a plain copy (§20).
+            let minions: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if !minions.is_empty() {
+                let idx = state.rng_mut().next_usize(minions.len());
+                copy_card_to_hand(state, minions[idx], owner);
+            }
+        }
+        CardEffect::DamageAllMinionsAndAddCardToHand { amount, card_id } => {
+            // TIME_215 Thunderquake (M3-W2a) — N damage to every minion
+            // on both boards, then a Static Shock joins the hand (the
+            // direct damage-event pattern keeps one pass per minion).
+            for p in [owner, owner.opponent()] {
+                let minions: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, p)
+                    .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                    .collect();
+                for target in minions {
+                    queue.push(Event::DamageDealt {
+                        source,
+                        target,
+                        amount,
+                    });
+                }
+            }
+            if let Some(def) = crate::cards::def::card_by_id(card_id) {
+                add_card_to_hand(state, owner, def);
+            }
+        }
+        CardEffect::DamageAndDrawMinionIfHoldingCostGE { damage, cost } => {
+            // TIME_750 Precursory Strike (M3-W2a) — deal N damage to a
+            // random enemy; while the player is holding a minion costing
+            // `cost` or more, a random minion is drawn from the deck.
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                damage,
+                EffectTarget::AnyEnemy,
+                None,
+            );
+            let holding = state.world().zones().iter(Zone::Hand, owner).any(|e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                    .is_some_and(|d| d.card_type == CardType::Minion && d.cost >= cost)
+            });
+            if holding {
+                let minions: Vec<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Deck, owner)
+                    .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                    .collect();
+                if !minions.is_empty() {
+                    let picked = minions[state.rng_mut().next_usize(minions.len())];
+                    if state.world_mut().move_to_zone(picked, Zone::Hand).is_ok() {
+                        queue.push(Event::CardDrawn {
+                            player: owner,
+                            card: picked,
+                        });
+                    }
+                }
+            }
+        }
+        CardEffect::DamageAndDrawTwoIfSurvives { damage, target } => {
+            // TIME_216 Nascent Bolt (M3-W2a) — deal N damage to a random
+            // minion (either side); when it survives, draw 2 cards.
+            let Some(t) = resolve_deal_damage(state, queue, source, owner, damage, target, None)
+            else {
+                return;
+            };
+            if state
+                .world()
+                .effective_health(t)
+                .is_some_and(|h| !h.is_dead())
+            {
+                draw_card(state, queue, owner);
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::DamageAndGainArmorIfMinionPlayedWhileHeld { damage, armor } => {
+            // TIME_702 Ebb and Flow (M3-W2a) — deal N damage to a random
+            // enemy; "if you played a minion while holding this" is
+            // approximated by any minion played this turn (§20 — the
+            // held-while-played tracking is unmodeled).
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                damage,
+                EffectTarget::AnyEnemy,
+                None,
+            );
+            if state.player(owner).minions_played_this_turn > 0 {
+                grant_armor(state, queue, owner, armor);
+            }
+        }
+        CardEffect::DamageMinionGiveHeroAttack { damage, attack } => {
+            // TIME_218 Static Shock (M3-W2a) — deal N damage to a random
+            // minion (either side) and give the hero +A Attack this turn
+            // (the targetable pick is a D2 random, §20).
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                damage,
+                EffectTarget::AnyMinion,
+                None,
+            );
+            resolve_gain_hero_attack(state, queue, owner, attack, 0);
+        }
+        CardEffect::DealDamageAllEnemiesIfControllingAura { amount } => {
+            // TIME_019 Manifested Timeways (M3-W2a) — when the player
+            // controls an Aura (the friendly board scan), deal N damage
+            // to all enemies.
+            let controls_aura = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .any(|e| state.world().aura(e).is_some());
+            if controls_aura {
+                for target in collect_all_enemy_characters(state, owner) {
+                    queue.push(Event::DamageDealt {
+                        source,
+                        target,
+                        amount,
+                    });
+                }
+            }
+        }
+        CardEffect::DealDamageAndDrawExcess { amount } => {
+            // TIME_858 Temporal Construct (M3-W2a) — deal N damage to a
+            // random enemy minion and draw one card per point of EXCESS
+            // damage (excess is the damage that would have killed it,
+            // predicted BEFORE the damage resolves, the Slam convention;
+            // Divine Shield eats the hit with no excess).
+            let candidates =
+                collect_target_candidates(state, owner, EffectTarget::AnyEnemyMinion, source);
+            let Some(t) = select_target(None, &candidates, state.rng_mut()) else {
+                return;
+            };
+            let excess = if state.world().divine_shield(t).is_some() {
+                0
+            } else {
+                let hp = state.world().effective_health(t).map_or(0, |h| h.0);
+                (amount - hp).max(0)
+            };
+            queue.push(Event::DamageDealt {
+                source,
+                target: t,
+                amount,
+            });
+            for _ in 0..excess {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::DealDamageEnemyMinionEqualToSourceHealth => {
+            // TIME_427 Cleansing Lightspawn (M3-W2a) — damage to a random
+            // enemy minion equal to this minion's current Health (the
+            // Lifesteal on the card heals back through the damage
+            // pipeline).
+            let hp = state.world().effective_health(source).map_or(0, |h| h.0);
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                hp,
+                EffectTarget::AnyEnemyMinion,
+                None,
+            );
+        }
+        CardEffect::DealDamageEnemyMinionIfHeroHealthChanged { amount } => {
+            // TIME_614 Liferender (M3-W2a) — when the hero's Health
+            // changed this turn (approximated by the damage counter,
+            // §20), deal N damage to a random enemy minion.
+            if state.player(owner).hero_damaged_this_turn {
+                resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    amount,
+                    EffectTarget::AnyEnemyMinion,
+                    None,
+                );
+            }
+        }
+        CardEffect::DealDamageFriendlyMinionToRandomEnemy { damage, amount } => {
+            // TIME_212 Lightning Rod (M3-W2a) — deal N damage to a
+            // friendly minion to deal M damage to a random enemy minion
+            // (the friendly targetable pick is a D2 random, §20).
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                damage,
+                EffectTarget::FriendlyMinion,
+                None,
+            );
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                amount,
+                EffectTarget::AnyEnemyMinion,
+                None,
+            );
+        }
+        CardEffect::DealDamagePrimaryAndSplash { primary, splash } => {
+            // TIME_855 Arcane Barrage (M3-W2a) — deal P damage to a
+            // random enemy and S damage to two OTHER random enemies
+            // (distinct picks — the primary target is excluded).
+            let mut enemies: Vec<Entity> = collect_all_enemy_characters(state, owner)
+                .into_iter()
+                .collect();
+            if enemies.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(enemies.len());
+            let primary_target = enemies.remove(idx);
+            queue.push(Event::DamageDealt {
+                source,
+                target: primary_target,
+                amount: primary,
+            });
+            for _ in 0..2 {
+                if enemies.is_empty() {
+                    break;
+                }
+                let i = state.rng_mut().next_usize(enemies.len());
+                let target = enemies.remove(i);
+                queue.push(Event::DamageDealt {
+                    source,
+                    target,
+                    amount: splash,
+                });
+            }
+        }
+        CardEffect::DealDamageSplitAmongAllEnemiesShuffleShreds { amount } => {
+            // TIME_027 Tachyon Barrage (M3-W2a) — the W4a split shape: N
+            // one-damage pings across all enemy characters, then 2
+            // Shreds of Time shuffle into the deck.
+            let enemies = collect_all_enemy_characters(state, owner);
+            if enemies.is_empty() {
+                return;
+            }
+            for _ in 0..amount {
+                let idx = state.rng_mut().next_usize(enemies.len());
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: enemies[idx],
+                    amount: 1,
+                });
+            }
+            let Some(def) = crate::cards::def::card_by_id("TIME_025t") else {
+                return;
+            };
+            for _ in 0..2 {
+                let deck_count = state.world().zones().len(Zone::Deck, owner);
+                let position = if deck_count > 0 {
+                    state.rng_mut().next_usize(deck_count + 1)
+                } else {
+                    0
+                };
+                let world = state.world_mut();
+                let e = crate::cards::spawn_card_from_def(world, owner, def);
+                world.set_zone(e, Zone::Deck);
+                world.zones_mut().insert_at(Zone::Deck, owner, e, position);
+                state.make_mut().players[owner.index()].shuffled_count += 1;
+            }
+        }
+        CardEffect::DestroyMinionAndSummonRandomCost { cost } => {
+            // TIME_712 Dethrone (M3-W2a) — destroy a random minion
+            // (either side); the Combo branch (the same variant with the
+            // summon Cost set) then summons a random minion of that Cost.
+            resolve_destroy_minion(state, queue, owner, source, EffectTarget::AnyMinion, None);
+            if cost > 0 {
+                let pool: SmallList<&'static crate::cards::def::CardDef> =
+                    crate::cards::sets::ALL_CARDS
+                        .iter()
+                        .filter(|c| {
+                            c.card_type == CardType::Minion
+                                && c.cost == cost
+                                && crate::cards::pool::in_active_window(c)
+                        })
+                        .collect();
+                if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+            }
+        }
+        CardEffect::DiscoverArcaneSpellsReduced { reduction } => {
+            // TIME_857 Alter Time (M3-W2a) — "Discover two Arcane spells
+            // from the past. They cost (2) less": the second pick is a
+            // one-pick simplification (§20); the reduction rides the
+            // stashed modifier consumed when the pick resolves.
+            let cards = crate::cards::pool::discover_pool_cards(
+                crate::core::effect::DiscoverPool::ArcaneSpell,
+                state,
+                owner,
+            );
+            if cards.is_empty() {
+                return;
+            }
+            let options: Vec<String> = cards
+                .iter()
+                .map(|c| format!("{} ({})", c.name, c.id))
+                .collect();
+            let pool_ids: Vec<String> = cards.iter().map(|c| c.id.to_string()).collect();
+            state.make_mut().players[owner.index()].pending_discover_cost_reduction =
+                Some(reduction);
+            state.set_pending_choice_w4a(
+                crate::core::state::ChoiceKind::Discover,
+                source,
+                options,
+                pool_ids,
+                false,
+                1,
+                false,
+                Vec::new(),
+            );
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::DiscoverCards,
+                1,
+                None,
+            );
+        }
+        CardEffect::DiscoverDeckAndEnemyHandCardCopy => {
+            // TIME_432 Intertwined Fate (M3-W2a; pool-open) — one choice
+            // whose pool holds three random deck card ids followed by
+            // three random enemy-hand ids; the picked side's copy enters
+            // the hand and the OTHER side resolves as a random copy
+            // (§20 combined-choice shape — the deck half is the
+            // active-window approximation).
+            let mut deck_ids: Vec<String> = Vec::new();
+            let mut deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, owner).collect();
+            for _ in 0..3 {
+                if deck.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(deck.len());
+                let card = deck.remove(idx);
+                if let Some(cid) = state.world().card_id(card) {
+                    deck_ids.push(cid.0.to_string());
+                }
+            }
+            let mut hand_ids: Vec<String> = Vec::new();
+            let mut hand: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner.opponent())
+                .collect();
+            for _ in 0..3 {
+                if hand.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(hand.len());
+                let card = hand.remove(idx);
+                if let Some(cid) = state.world().card_id(card) {
+                    hand_ids.push(cid.0.to_string());
+                }
+            }
+            if deck_ids.is_empty() && hand_ids.is_empty() {
+                return;
+            }
+            let mut pool_ids = deck_ids;
+            let mut options: Vec<String> = Vec::new();
+            for id in &pool_ids {
+                let label = crate::cards::def::card_by_id(id)
+                    .map(|d| format!("{} ({})", d.name, d.id))
+                    .unwrap_or_else(|| id.clone());
+                options.push(label);
+            }
+            for id in &hand_ids {
+                let label = crate::cards::def::card_by_id(id)
+                    .map(|d| format!("{} ({})", d.name, d.id))
+                    .unwrap_or_else(|| id.clone());
+                options.push(label);
+            }
+            pool_ids.extend(hand_ids);
+            state.set_pending_choice_w4a(
+                crate::core::state::ChoiceKind::DiscoverDeckAndEnemyHandCopy,
+                source,
+                options,
+                pool_ids,
+                false,
+                1,
+                false,
+                Vec::new(),
+            );
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::DiscoverCards,
+                1,
+                None,
+            );
+        }
+        CardEffect::DiscoverDeckCardOthersBottom => {
+            // TIME_701 Waveshaping (M3-W2a) — discover a card from the
+            // deck; the unpicked ones are put on the bottom (the choice
+            // arm moves the picked EXISTING entity to hand and
+            // re-inserts the others after the remaining deck cards).
+            let mut deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, owner).collect();
+            let mut pool_ids: Vec<String> = Vec::new();
+            let mut options: Vec<String> = Vec::new();
+            for _ in 0..3 {
+                if deck.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(deck.len());
+                let card = deck.remove(idx);
+                let Some(cid) = state.world().card_id(card) else {
+                    continue;
+                };
+                let label = crate::cards::def::card_by_id(cid.0)
+                    .map(|d| format!("{} ({})", d.name, d.id))
+                    .unwrap_or_else(|| cid.0.to_string());
+                pool_ids.push(cid.0.to_string());
+                options.push(label);
+            }
+            if pool_ids.is_empty() {
+                return;
+            }
+            state.set_pending_choice_w4a(
+                crate::core::state::ChoiceKind::DiscoverDeckOthersBottom,
+                source,
+                options,
+                pool_ids,
+                false,
+                1,
+                false,
+                Vec::new(),
+            );
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::DiscoverCards,
+                1,
+                None,
+            );
+        }
+        CardEffect::DiscoverMinionReduceHandCostsIfDeckNoMinions { reduction } => {
+            // TIME_448 Solitude (M3-W2a) — discover a minion (the "2
+            // minions" is a one-pick simplification, §20); when the deck
+            // holds no minions, every minion in hand costs (2) less.
+            let all: Vec<&'static crate::cards::def::CardDef> = crate::cards::sets::ALL_CARDS
+                .iter()
+                .filter(|c| {
+                    c.card_type == CardType::Minion && crate::cards::pool::in_active_window(c)
+                })
+                .collect();
+            let mut remaining = all;
+            let mut picked: Vec<&'static crate::cards::def::CardDef> = Vec::new();
+            for _ in 0..3 {
+                if remaining.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(remaining.len());
+                picked.push(remaining.remove(idx));
+            }
+            if picked.is_empty() {
+                return;
+            }
+            let options: Vec<String> = picked
+                .iter()
+                .map(|c| format!("{} ({})", c.name, c.id))
+                .collect();
+            let pool_ids: Vec<String> = picked.iter().map(|c| c.id.to_string()).collect();
+            state.set_pending_choice_w4a(
+                crate::core::state::ChoiceKind::Discover,
+                source,
+                options,
+                pool_ids,
+                false,
+                1,
+                false,
+                Vec::new(),
+            );
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::DiscoverCards,
+                1,
+                None,
+            );
+            let deck_has_minion = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .any(|e| state.world().card_type(e) == Some(CardType::Minion));
+            if !deck_has_minion {
+                let hand: Vec<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Hand, owner)
+                    .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                    .collect();
+                for e in hand {
+                    reduce_hand_card_cost(state, e, reduction);
+                }
+            }
+        }
+        CardEffect::DrawBottomCards { count } => {
+            // TIME_023 Contingency (M3-W2a) — draw the bottom N cards of
+            // the deck (the deck's last positions — reverse draw order;
+            // each draw fires the standard CardDrawn event).
+            let deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, owner).collect();
+            let n = count.min(deck.len() as i32) as usize;
+            for &e in deck.iter().rev().take(n) {
+                if state.world_mut().move_to_zone(e, Zone::Hand).is_ok() {
+                    queue.push(Event::CardDrawn {
+                        player: owner,
+                        card: e,
+                    });
+                }
+            }
+        }
+        CardEffect::DrawCardsOfDifferentCosts { count } => {
+            // TIME_031 RAFAAM LADDER!! (M3-W2a) — draw N cards whose
+            // printed Costs are all different: the scan walks the deck
+            // top-down and skips any card whose Cost was already drawn
+            // (a full sweep finds at most one card per Cost).
+            let deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, owner).collect();
+            let mut seen: Vec<i32> = Vec::new();
+            let mut drawn = 0;
+            for e in deck {
+                if drawn >= count {
+                    break;
+                }
+                let cost = state
+                    .world()
+                    .card_id(e)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                    .map_or(0, |d| d.cost);
+                if seen.contains(&cost) {
+                    continue;
+                }
+                seen.push(cost);
+                if state.world_mut().move_to_zone(e, Zone::Hand).is_ok() {
+                    queue.push(Event::CardDrawn {
+                        player: owner,
+                        card: e,
+                    });
+                    drawn += 1;
+                }
+            }
+        }
+        CardEffect::DrawMinionAndBuffHandMinionsHealth { health } => {
+            // TIME_037 Disciple of the Dove (M3-W2a) — draw a random
+            // minion from the deck and give every minion in hand +N
+            // Health.
+            let minions: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if !minions.is_empty() {
+                let picked = minions[state.rng_mut().next_usize(minions.len())];
+                if state.world_mut().move_to_zone(picked, Zone::Hand).is_ok() {
+                    queue.push(Event::CardDrawn {
+                        player: owner,
+                        card: picked,
+                    });
+                }
+            }
+            let hand: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            for e in hand {
+                state.world_mut().add_enchantment(
+                    e,
+                    Enchantment {
+                        attack: 0,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::DrawTwoReduceRandomCost { reduction } => {
+            // TIME_770 Fast Forward (M3-W2a) — draw 2 cards, then "pick
+            // one" to cost (2) less: the pick is a D2 random (§20).
+            draw_card(state, queue, owner);
+            draw_card(state, queue, owner);
+            let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, owner).collect();
+            if !hand.is_empty() {
+                let idx = state.rng_mut().next_usize(hand.len());
+                reduce_hand_card_cost(state, hand[idx], reduction);
+            }
+        }
+        CardEffect::DrawUntilHandSize { size } => {
+            // TIME_601 Arrow Retriever (M3-W2a) — draw until the hand
+            // holds `size` cards (an empty deck ends the draw early).
+            while (state.world().zones().len(Zone::Hand, owner) as i32) < size {
+                let deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, owner).collect();
+                let Some(&top) = deck.first() else {
+                    return;
+                };
+                if state.world_mut().move_to_zone(top, Zone::Hand).is_ok() {
+                    queue.push(Event::CardDrawn {
+                        player: owner,
+                        card: top,
+                    });
+                } else {
+                    return;
+                }
+            }
+        }
+        CardEffect::FillEnemyBoardWithRandomCost1Minions => {
+            // TIME_872 Undefeated Champion (M3-W2a) — fill the
+            // OPPONENT's board with random 1-Cost minions (the pool
+            // spans the active window; summons stop at the board cap).
+            let enemy = owner.opponent();
+            let cost1: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.cost == 1
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if cost1.is_empty() {
+                return;
+            }
+            let mut guard = 0;
+            while (state
+                .world()
+                .zones()
+                .iter(Zone::Play, enemy)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .count())
+                < crate::engine::rules::MAX_BOARD_SIZE
+                && guard < 20
+            {
+                guard += 1;
+                let idx = state.rng_mut().next_usize(cost1.len());
+                let _ = resolve_summon(state, queue, source, enemy, cost1[idx].id);
+            }
+        }
+        CardEffect::FillHandWithRandomUndeadCostHealth => {
+            // TIME_615 Forgotten Millennium (M3-W2a) — fill the hand with
+            // random Undead; each generated card pays Health instead of
+            // Mana (the CostHealth marker, consumed by the CardPlayed
+            // pay-health branch — the "this turn" expiry is approximated
+            // by the marker, §20).
+            let undead: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.race == Some(Race::Undead)
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if undead.is_empty() {
+                return;
+            }
+            while state.world().zones().len(Zone::Hand, owner) < MAX_HAND_SIZE {
+                let idx = state.rng_mut().next_usize(undead.len());
+                if let Some(e) = add_card_to_hand(state, owner, undead[idx]) {
+                    state.world_mut().set_cost_health(e, CostHealth);
+                }
+            }
+        }
+        CardEffect::GainArmorAndSummonTwoBeastsForOpponent { armor, card_id } => {
+            // TIME_873 Unleash the Crocolisks (M3-W2a) — the player gains
+            // 10 Armor and the OPPONENT gets two 2/3 Beast tokens.
+            grant_armor(state, queue, owner, armor);
+            let enemy = owner.opponent();
+            for _ in 0..2 {
+                let _ = resolve_summon(state, queue, source, enemy, card_id);
+            }
+        }
+        CardEffect::GainHeroAttackAndBuffHandMinionsIfDeckNoMinions { attack } => {
+            // TIME_449 Lasting Legacy (M3-W2a) — the hero gains +A Attack
+            // this turn; with no minions left in the deck, every minion
+            // in hand gains +A Attack too.
+            resolve_gain_hero_attack(state, queue, owner, attack, 0);
+            let deck_has_minion = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .any(|e| state.world().card_type(e) == Some(CardType::Minion));
+            if !deck_has_minion {
+                let hand: Vec<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Hand, owner)
+                    .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                    .collect();
+                for e in hand {
+                    state.world_mut().add_enchantment(
+                        e,
+                        Enchantment {
+                            attack,
+                            health: 0,
+                            cost: 0,
+                            expiry: EnchantmentExpiry::Permanent,
+                        },
+                    );
+                }
+            }
+        }
+        CardEffect::GainStatsAndDrawIfNatureSpellCast { attack, health } => {
+            // TIME_213 Primordial Overseer (M3-W2a) — "if you've cast a
+            // Nature spell while holding this" is approximated by the
+            // game-wide Nature counter (§20): with any Nature spell cast,
+            // the source gains +A/+H and a card is drawn.
+            if state.player(owner).nature_spells_cast_total > 0 {
+                state.world_mut().add_enchantment(
+                    source,
+                    Enchantment {
+                        attack,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::GainStatsAndSummonCopyIfHeroHealthLE {
+            attack,
+            health,
+            threshold,
+        } => {
+            // TIME_703 Endangered Dodo (M3-W2a) — at 10 or less hero
+            // Health the source gains +5/+5 and a copy of itself is
+            // summoned (the copy sheds its battlecry).
+            let hero = state.player(owner).hero;
+            let hp = state.world().effective_health(hero).map_or(0, |h| h.0);
+            if hp <= threshold {
+                state.world_mut().add_enchantment(
+                    source,
+                    Enchantment {
+                        attack,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+                if let Some(def) = state
+                    .world()
+                    .card_id(source)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    if let Some(copy) = resolve_summon(state, queue, source, owner, def.id) {
+                        state.world_mut().remove_battlecry(copy);
+                    }
+                }
+            }
+        }
+        CardEffect::GainStatsPerDamagedMinion { attack, health } => {
+            // TIME_871 Heir of Hereafter (M3-W2a) — +A/+H for EACH
+            // damaged minion on the battlefield (both sides).
+            let damaged: usize = [owner, owner.opponent()]
+                .into_iter()
+                .map(|p| {
+                    state
+                        .world()
+                        .zones()
+                        .iter(Zone::Play, p)
+                        .filter(|&e| {
+                            state.world().card_type(e) == Some(CardType::Minion)
+                                && state.world().damage(e).is_some_and(|d| d.0 > 0)
+                        })
+                        .count()
+                })
+                .sum();
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack: attack * damaged as i32,
+                    health: health * damaged as i32,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::GainStatsPerTurnTaken { attack, health } => {
+            // TIME_048 Clockwork Rager (M3-W2a) — +A/+H for each turn the
+            // player has taken this game (the turns_taken counter).
+            let turns = state.player(owner).turns_taken as i32;
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack: attack * turns,
+                    health: health * turns,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::GainTauntAndDivineShieldIfHoldingDragon => {
+            // TIME_062 Chronicle Keeper (M3-W2a) — holding a Dragon
+            // grants the source Taunt and Divine Shield.
+            let holds_dragon = state.world().zones().iter(Zone::Hand, owner).any(|e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                    .is_some_and(|d| d.race == Some(Race::Dragon))
+            });
+            if holds_dragon {
+                state.world_mut().set_taunt(source, Taunt);
+                state.world_mut().set_divine_shield(source, DivineShield);
+            }
+        }
+        CardEffect::GetPupilAndDiscoverSpellCostGE {
+            pupil_card_id,
+            min_cost: _,
+        } => {
+            // TIME_704 Highborne Mentor (M3-W2a) — a 2/2 Pupil token into
+            // the hand plus a Discover of a spell costing (7) or more
+            // "from the past" to teach it — the teach link (the picked
+            // spell simply joins the hand like any Discover) is the
+            // registered §20 approximation.
+            if let Some(def) = crate::cards::def::card_by_id(pupil_card_id) {
+                add_card_to_hand(state, owner, def);
+            }
+            let cards = crate::cards::pool::discover_pool_cards(
+                crate::core::effect::DiscoverPool::SpellCostGE7,
+                state,
+                owner,
+            );
+            if cards.is_empty() {
+                return;
+            }
+            let options: Vec<String> = cards
+                .iter()
+                .map(|c| format!("{} ({})", c.name, c.id))
+                .collect();
+            let pool_ids: Vec<String> = cards.iter().map(|c| c.id.to_string()).collect();
+            state.set_pending_choice_w4a(
+                crate::core::state::ChoiceKind::Discover,
+                source,
+                options,
+                pool_ids,
+                false,
+                1,
+                false,
+                Vec::new(),
+            );
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::DiscoverCards,
+                1,
+                None,
+            );
+        }
+        CardEffect::GiveCoin => {
+            // TIME_054 Time Skipper (M3-W2a) — "At the end of each
+            // player's turn, give them a Coin": the card is handled by
+            // the EndTriggers hook in rules.rs (owner-scoped TurnEnd
+            // triggers cannot see both players), so this arm only keeps
+            // the dispatch exhaustive.
+        }
+        CardEffect::GiveHeroImmuneThisTurn => {
+            // TIME_021 Doomsday Prepper's Outcast (M3-W2a) — "your hero
+            // is Immune until your next turn": the registered Kaldorei
+            // precedent approximates the expiry as until the end of the
+            // current turn (§20 — the turn-end wrap-up clears the
+            // Immunity).
+            let hero = state.player(owner).hero;
+            state.world_mut().set_immune(hero, Immune);
+        }
+        CardEffect::GrantDivineShieldAndBuffHandMinionsHealth { health } => {
+            // TIME_447 Power Word: Barrier (M3-W2a) — a random character
+            // (either side, D2) gains Divine Shield and every minion in
+            // hand gains +N Health (the targetable pick is random, §20).
+            let candidates =
+                collect_target_candidates(state, owner, EffectTarget::AnyCharacter, source);
+            if let Some(t) = select_target(None, &candidates, state.rng_mut()) {
+                state.world_mut().set_divine_shield(t, DivineShield);
+            }
+            let hand: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            for e in hand {
+                state.world_mut().add_enchantment(
+                    e,
+                    Enchantment {
+                        attack: 0,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::ImprisonEnemyMinion => {
+            // TIME_442 Timeway Warden (M3-W2a) — a random enemy minion
+            // goes Dormant for 10,000 turns; the (warden, imprisoned)
+            // pair is recorded on the player for the deathrattle's
+            // awaken link (§20).
+            let minions: SmallList<Entity> = collect_enemy_minions(state, owner, Some(source));
+            if let Some(t) = select_target(None, &minions, state.rng_mut()) {
+                state
+                    .world_mut()
+                    .set_dormant(t, crate::core::component::Dormant { turns: 10_000 });
+                state.make_mut().players[owner.index()]
+                    .timeway_imprisoned
+                    .push((source, t));
+            }
+        }
+        CardEffect::LookAtSecretsGiveRandom => {
+            // TIME_860 Faceless Enigma (M3-W2a) — look at 2 random
+            // Secrets: one is cast for the player, the other for the
+            // opponent — "pick one" is a D2 random (§20). Each secret is
+            // placed directly with the play path's machinery (the Secret
+            // component + the SetAside zone).
+            let secrets: Vec<&'static crate::cards::def::CardDef> = crate::cards::sets::ALL_CARDS
+                .iter()
+                .filter(|c| c.secret.is_some())
+                .collect();
+            if secrets.is_empty() {
+                return;
+            }
+            let mut remaining = secrets;
+            let mut picked: Vec<&'static crate::cards::def::CardDef> = Vec::new();
+            for _ in 0..2 {
+                if remaining.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(remaining.len());
+                picked.push(remaining.remove(idx));
+            }
+            let mine = picked[0];
+            let theirs = picked.get(1).copied().unwrap_or(mine);
+            for (def, p) in [(mine, owner), (theirs, owner.opponent())] {
+                if let Some(trigger) = def.secret {
+                    let world = state.world_mut();
+                    let e = crate::cards::spawn_card_from_def(world, p, def);
+                    world.set_secret(
+                        e,
+                        crate::core::component::Secret {
+                            trigger,
+                            effect: def.battlecry,
+                        },
+                    );
+                    let _ = world.move_to_zone(e, Zone::SetAside);
+                }
+            }
+        }
+        CardEffect::NextTurnEnemyCardsCostMore { amount } => {
+            // TIME_716 Slow Motion (M3-W2a) — "your opponent's cards cost
+            // (1) more next turn": the flag sits on the CASTER's player
+            // record — the enemy pays the tax while it is set (cost.rs),
+            // and the caster's next turn start clears it.
+            state.make_mut().players[owner.index()].next_turn_enemy_cards_cost_more = amount;
+        }
+        CardEffect::PreciseShot {
+            amount,
+            center_amount,
+        } => {
+            // TIME_600 Precise Shot (M3-W2a) — "If this is EXACTLY in the
+            // center of your hand, deal $5 instead": the center position
+            // is captured when the card is played (the play path records
+            // last_played_hand_center); the center pays the bigger
+            // damage.
+            let center = state.player(owner).last_played_hand_center;
+            let dmg = if center { center_amount } else { amount };
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                dmg,
+                EffectTarget::AnyEnemy,
+                None,
+            );
+        }
+        CardEffect::ReplaceHandAndDeckWithRandomChooseOne => {
+            // TIME_707 Alternate Reality (M3-W2a) — the hand and deck
+            // are replaced with random Choose One cards "from the past"
+            // (the active-window pool, §20), each costing (1) less. The
+            // new hand keeps the previous hand's size and the deck
+            // keeps the previous deck's size.
+            let choose_one: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.choose_one_effect.is_some() && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if choose_one.is_empty() {
+                return;
+            }
+            let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, owner).collect();
+            let deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, owner).collect();
+            let hand_count = hand.len();
+            let deck_count = deck.len();
+            for e in hand.into_iter().chain(deck) {
+                let _ = state.world_mut().move_to_zone(e, Zone::Graveyard);
+            }
+            for _ in 0..deck_count {
+                let idx = state.rng_mut().next_usize(choose_one.len());
+                let def = choose_one[idx];
+                let world = state.world_mut();
+                let e = crate::cards::spawn_card_from_def(world, owner, def);
+                world.add_enchantment(
+                    e,
+                    Enchantment {
+                        attack: 0,
+                        health: 0,
+                        cost: -1,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+                world.set_zone(e, Zone::Deck);
+                world.zones_mut().insert(Zone::Deck, owner, e);
+            }
+            for _ in 0..hand_count {
+                let idx = state.rng_mut().next_usize(choose_one.len());
+                if let Some(e) = add_card_to_hand(state, owner, choose_one[idx]) {
+                    reduce_hand_card_cost(state, e, 1);
+                }
+            }
+        }
+        CardEffect::ResetBothHandsCosts => {
+            // TIME_057 Wizened Truthseeker (M3-W2a) — every card in BOTH
+            // hands returns to its original printed Cost: the cost
+            // enchantments are stripped and the TurnCostReducer markers
+            // removed (attack/health enchantments stay — only costs are
+            // reset, §20).
+            for p in [owner, owner.opponent()] {
+                let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p).collect();
+                for e in hand {
+                    state
+                        .world_mut()
+                        .retain_enchantments(e, |ench| ench.cost == 0);
+                    state.world_mut().remove_turn_cost_reducer(e);
+                }
+            }
+        }
+        CardEffect::RestoreHealthEqualToSourceHealth => {
+            // TIME_431 Amber Priestess (M3-W2a) — restore Health to a
+            // random character equal to this minion's current Health (the
+            // targetable pick is a D2 random, §20).
+            let hp = state.world().effective_health(source).map_or(0, |h| h.0);
+            resolve_restore_health(state, queue, owner, hp, EffectTarget::AnyCharacter, None);
+        }
+        CardEffect::ReverseDeckOrder => {
+            // TIME_061 Timeless Causality (M3-W2a) — reverse the order of
+            // the player's deck (index 0 is the top, drawn first): the
+            // zone's entity list is rebuilt in reverse order.
+            let mut deck = state.world().zones().entities(Zone::Deck, owner);
+            for &e in &deck {
+                state.world_mut().zones_mut().remove(Zone::Deck, owner, e);
+            }
+            deck.reverse();
+            for e in deck {
+                state.world_mut().zones_mut().insert(Zone::Deck, owner, e);
+            }
+        }
+        CardEffect::SetChronologicalAura { ticks } => {
+            // TIME_700 Chronological Aura (M3-W2a) — the aura's tick
+            // counter rides the player record; the end-turn hook in
+            // rules.rs summons the 3/5 Dragon while the counter is
+            // positive and decrements it.
+            state.make_mut().players[owner.index()].chronological_aura_ticks = ticks;
+        }
+        CardEffect::SetHandMinionStatsToHigher => {
+            // TIME_429 Divine Augur (M3-W2a) — every minion in hand gets
+            // its Attack and Health set to the higher of the two (the
+            // W4b set-stats machinery: overwrite, clear damage, drop
+            // stat enchantments).
+            let hand: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            for e in hand {
+                let atk = state.world().attack(e).map_or(0, |a| a.0);
+                let hp = state.world().health(e).map_or(0, |h| h.0);
+                let higher = atk.max(hp);
+                let world = state.world_mut();
+                world.set_attack(e, Attack(higher));
+                world.set_health(e, Health(higher));
+                world.remove_damage(e);
+                world.remove_enchantments(e);
+            }
+        }
+        CardEffect::SetStatsAndCantAttackHeroesThisTurn { attack, health } => {
+            // TIME_043 PMM Infinitizer (M3-W2a) — set a random friendly
+            // minion's Attack and Health to A/H and mark it unable to
+            // attack heroes this turn (the targetable pick is a D2
+            // random, §20; the restriction is cleared by the turn-end
+            // wrap-up).
+            let minions = collect_friendly_minions(state, owner);
+            let t = select_target(None, &minions, state.rng_mut()).unwrap_or(source);
+            let world = state.world_mut();
+            world.set_attack(t, Attack(attack));
+            world.set_health(t, Health(health));
+            world.remove_damage(t);
+            world.remove_enchantments(t);
+            world.set_cant_attack_heroes_this_turn(
+                t,
+                crate::core::component::CantAttackHeroesThisTurn,
+            );
+        }
+        CardEffect::SilenceAndDestroyRandomEnemyMinion => {
+            // TIME_433 Cease to Exist (M3-W2a) — silence then destroy a
+            // random enemy minion (one pick for both steps — the
+            // destroy is passed the same explicit target).
+            let minions = collect_enemy_minions(state, owner, Some(source));
+            let Some(t) = select_target(None, &minions, state.rng_mut()) else {
+                return;
+            };
+            silence_entity(state.world_mut(), t);
+            resolve_destroy_minion(
+                state,
+                queue,
+                owner,
+                source,
+                EffectTarget::AnyEnemyMinion,
+                Some(t),
+            );
+        }
+        CardEffect::SummonHighestCostFallenUndead => {
+            // TIME_616 Memoriam Manifest (M3-W2a) — summon the highest
+            // Cost friendly Undead that died this game (the graveyard
+            // scan across both boards; ties go to the first found; the
+            // resurrected minion sheds its battlecry).
+            let fallen = [owner, owner.opponent()]
+                .into_iter()
+                .flat_map(|p| state.world().zones().iter(Zone::Graveyard, p))
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Minion)
+                        && state.world().race(e).is_some_and(|races| {
+                            races.contains(&crate::core::component::Race::Undead)
+                        })
+                })
+                .max_by_key(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .and_then(|c| crate::cards::def::card_by_id(c.0))
+                        .map_or(0, |d| d.cost)
+                });
+            if let Some(fallen) = fallen {
+                if let Some(def) = state
+                    .world()
+                    .card_id(fallen)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    if let Some(e) = resolve_summon(state, queue, source, owner, def.id) {
+                        state.world_mut().remove_battlecry(e);
+                    }
+                }
+            }
+        }
+        CardEffect::SummonMinionsGrantTwoRandomBonus { card_id, count } => {
+            // TIME_610 Shadows of Yesterday (M3-W2a) — summon N Shade
+            // tokens; each gains two random Bonus Effects (the W4a
+            // random-bonus helper).
+            for _ in 0..count {
+                if let Some(e) = resolve_summon(state, queue, source, owner, card_id) {
+                    grant_random_bonus(state, e);
+                    grant_random_bonus(state, e);
+                }
+            }
+        }
+        CardEffect::SummonPairScrambleStats {
+            first_cost,
+            second_cost,
+        } => {
+            // TIME_859 Anomalize (M3-W2a) — summon a random minion of
+            // each Cost, then scramble their stats (each summoned
+            // minion's base Attack and Health are swapped).
+            let pool: Vec<&'static crate::cards::def::CardDef> = crate::cards::sets::ALL_CARDS
+                .iter()
+                .filter(|c| {
+                    c.card_type == CardType::Minion && crate::cards::pool::in_active_window(c)
+                })
+                .collect();
+            let pick = |state: &mut GameState, cost: i32| {
+                let matching: Vec<_> = pool.iter().copied().filter(|d| d.cost == cost).collect();
+                if matching.is_empty() {
+                    return None;
+                }
+                let idx = state.rng_mut().next_usize(matching.len());
+                Some(matching[idx])
+            };
+            if let (Some(a), Some(b)) = (pick(state, first_cost), pick(state, second_cost)) {
+                let ea = resolve_summon(state, queue, source, owner, a.id);
+                let eb = resolve_summon(state, queue, source, owner, b.id);
+                if let (Some(ea), Some(eb)) = (ea, eb) {
+                    let swap = |world: &mut crate::core::world::World, e: Entity| {
+                        let atk = world.attack(e).map_or(0, |x| x.0);
+                        let hp = world.health(e).map_or(0, |x| x.0);
+                        world.set_attack(e, Attack(hp));
+                        world.set_health(e, Health(atk));
+                    };
+                    let world = state.world_mut();
+                    swap(world, ea);
+                    swap(world, eb);
+                }
+            }
+        }
+        CardEffect::SummonRandomCostBeastAttackRandomEnemy { cost } => {
+            // TIME_602 Wormhole (M3-W2a) — summon a random N-Cost Beast
+            // which immediately attacks a random enemy (the forced-attack
+            // pattern runs through the normal pipeline).
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.cost == cost
+                            && c.race == Some(Race::Beast)
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+                if let Some(e) = resolve_summon(state, queue, source, owner, def.id) {
+                    let enemies = collect_all_enemy_characters(state, owner);
+                    if let Some(target) = select_target(None, &enemies, state.rng_mut()) {
+                        let atk = crate::engine::rules::compute_attacker_damage(state, e);
+                        queue.push(Event::AttackDeclared {
+                            attacker: e,
+                            defender: target,
+                        });
+                        queue.push(Event::ResolveAttack {
+                            attacker: e,
+                            defender: target,
+                            attacker_damage: atk,
+                            retaliation_immune: false,
+                        });
+                    }
+                }
+            }
+        }
+        CardEffect::SummonRandomDeckMinionAndTigerForOpponent { card_id } => {
+            // TIME_870 Gladiatorial Combat (M3-W2a) — a random minion
+            // from the player's OWN deck joins the player's board (the
+            // battlecry-free summon, the deck entity is consumed), and a
+            // tiger token is summoned for the OPPONENT.
+            let deck: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if !deck.is_empty() {
+                let picked = deck[state.rng_mut().next_usize(deck.len())];
+                if let Some(def) = state
+                    .world()
+                    .card_id(picked)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    if let Some(e) = resolve_summon(state, queue, source, owner, def.id) {
+                        state.world_mut().remove_battlecry(e);
+                    }
+                }
+                let _ = state.world_mut().move_to_zone(picked, Zone::Graveyard);
+            }
+            let _ = resolve_summon(state, queue, source, owner.opponent(), card_id);
+        }
+        CardEffect::SummonRandomDragonCostGE { min_cost } => {
+            // TIME_436 Past Conflux (M3-W2a) — summon a random Dragon
+            // costing N or more from the past (the active-window pool,
+            // tokens excluded).
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.race == Some(Race::Dragon)
+                            && c.cost >= min_cost
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+        }
+        CardEffect::SummonRandomMinionOfCostDormant { cost, turns } => {
+            // TIME_058 Paltry Flutterwing (M3-W2a) — summon a random
+            // N-Cost minion that is Dormant for T turns (the component
+            // is applied at summon, before any summon triggers fire).
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.cost == cost
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+                if let Some(e) = resolve_summon(state, queue, source, owner, def.id) {
+                    state
+                        .world_mut()
+                        .set_dormant(e, crate::core::component::Dormant { turns });
+                }
+            }
+        }
+        CardEffect::SummonShadowAttacksRandomEnemy { card_id } => {
+            // TIME_434 Temporal Traveler's deathrattle (M3-W2a) — summon
+            // the Temporal Shadow token which immediately attacks a
+            // random enemy minion.
+            if let Some(e) = resolve_summon(state, queue, source, owner, card_id) {
+                let minions = collect_enemy_minions(state, owner, Some(source));
+                if let Some(target) = select_target(None, &minions, state.rng_mut()) {
+                    let atk = crate::engine::rules::compute_attacker_damage(state, e);
+                    queue.push(Event::AttackDeclared {
+                        attacker: e,
+                        defender: target,
+                    });
+                    queue.push(Event::ResolveAttack {
+                        attacker: e,
+                        defender: target,
+                        attacker_damage: atk,
+                        retaliation_immune: false,
+                    });
+                }
+            }
+        }
+        CardEffect::SummonTwoDemonsAttackLowestHealthIfDeckNoMinions => {
+            // TIME_443 Hounds of Fury (M3-W2a) — summon two 3/2 Demon
+            // tokens; when the deck holds no minions, each attacks the
+            // enemy minion with the lowest current Health (ties go to
+            // the first found).
+            let first = resolve_summon(state, queue, source, owner, "TIME_443t");
+            let second = resolve_summon(state, queue, source, owner, "TIME_443t");
+            let deck_has_minion = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .any(|e| state.world().card_type(e) == Some(CardType::Minion));
+            if !deck_has_minion {
+                let enemies: Vec<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, owner.opponent())
+                    .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                    .collect();
+                if let Some(target) = enemies
+                    .iter()
+                    .copied()
+                    .min_by_key(|&e| state.world().effective_health(e).map_or(i32::MAX, |h| h.0))
+                {
+                    for attacker in [first, second].into_iter().flatten() {
+                        let atk = crate::engine::rules::compute_attacker_damage(state, attacker);
+                        queue.push(Event::AttackDeclared {
+                            attacker,
+                            defender: target,
+                        });
+                        queue.push(Event::ResolveAttack {
+                            attacker,
+                            defender: target,
+                            attacker_damage: atk,
+                            retaliation_immune: false,
+                        });
+                    }
+                }
+            }
+        }
+        CardEffect::SummonTwoRandomCostMinionsWithAttack { cost, bonus } => {
+            // TIME_711 Flashback (M3-W2a) — summon two random N-Cost
+            // minions; the Combo branch (bonus > 0) gives each +B Attack.
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.cost == cost
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if pool.is_empty() {
+                return;
+            }
+            for _ in 0..2 {
+                let idx = state.rng_mut().next_usize(pool.len());
+                if let Some(e) = resolve_summon(state, queue, source, owner, pool[idx].id) {
+                    if bonus > 0 {
+                        state.world_mut().add_enchantment(
+                            e,
+                            Enchantment {
+                                attack: bonus,
+                                health: 0,
+                                cost: 0,
+                                expiry: EnchantmentExpiry::Permanent,
+                            },
+                        );
+                    }
+                }
+            }
+        }
+        CardEffect::SwapStatsIfSurvivesDamage => {
+            // TIME_050 Sentient Hourglass (M3-W2a) — this minion survived
+            // damage (the survival is predicted before the damage
+            // resolves, the Slam convention): its base Attack and Health
+            // are swapped. Damage and enchantments stay as they are.
+            let world = state.world_mut();
+            let atk = world.attack(source).map_or(0, |a| a.0);
+            let hp = world.health(source).map_or(0, |h| h.0);
+            world.set_attack(source, Attack(hp));
+            world.set_health(source, Health(atk));
+        }
+        CardEffect::TransformSelfIfSurvivesDamageToRandomCost { cost } => {
+            // TIME_055 Unknown Voyager (M3-W2a) — this minion survived
+            // damage and now transforms into a random N-Cost minion (the
+            // W4c transform machinery replaces the entity in place).
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.cost == cost
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+                resolve_transform_to_def(state, source, def);
+            }
+        }
+        CardEffect::TransformSelfToRandomMinionOfCost { cost } => {
+            // TIME_049 Dangerous Variant (M3-W2a) — at the start of the
+            // owner's turn this minion transforms into a random N-Cost
+            // minion (the W4c transform machinery).
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.cost == cost
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+                resolve_transform_to_def(state, source, def);
+            }
+        }
+        CardEffect::GuessEnemyHandGainHealth { health } => {
+            // TIME_041 Futuristic Forefather (M3-W2a; **pool-open**) —
+            // "look at 3 cards, guess which is in your opponent's hand":
+            // the always-right §20 simplification gains the source +N
+            // Health (the looked-at card is guaranteed to be in the hand
+            // by construction — the guess cannot fail).
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack: 0,
+                    health,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::TransformHandSelfToRandomEnemyHandMinion => {
+            // TIME_876 Shapeshifter (M3-W2a; **pool-open**) — at the
+            // start of the owner's turn this HAND card transforms into a
+            // random minion from the enemy's hand (the TurnStarted hook
+            // fires the effect; the transform machinery works on hand
+            // entities like on board entities).
+            let hand: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner.opponent())
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if let Some(&picked) = hand
+                .get(state.rng_mut().next_usize(hand.len()))
+                .or(hand.last())
+            {
+                if let Some(def) = state
+                    .world()
+                    .card_id(picked)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    resolve_transform_to_def(state, source, def);
+                }
+            }
+        }
+        CardEffect::ResurrectDiedMinionFull => {
+            // TIME_620 Untimely Death (M3-W2a) — secret-context effect:
+            // resolved by the secret system (secret.rs) which resummons
+            // the died minion at FULL Health (unlike the older
+            // ResurrectDiedMinion shape, which brings it back with 1
+            // Health). This arm only keeps the dispatch exhaustive.
+        }
     }
 }
 
@@ -8442,7 +10481,7 @@ fn grant_random_bonus(state: &mut GameState, e: Entity) {
 
 /// Reduces a hand card's Cost by `amount` (a permanent cost-reduction
 /// enchantment on the card entity).
-fn reduce_hand_card_cost(state: &mut GameState, e: Entity, amount: i32) {
+pub(crate) fn reduce_hand_card_cost(state: &mut GameState, e: Entity, amount: i32) {
     state.world_mut().add_enchantment(
         e,
         Enchantment {
@@ -8945,9 +10984,12 @@ fn resolve_deal_damage(
             }
             return None;
         }
+        EffectTarget::FriendlyHero => {
+            let hero = state.player(owner).hero;
+            [hero].into_iter().collect()
+        }
         EffectTarget::AllCharacters
         | EffectTarget::AllFriendlyCharacters
-        | EffectTarget::FriendlyHero
         | EffectTarget::DamagedEnemyMinion
         | EffectTarget::OtherFriendlyMinion
         | EffectTarget::TauntEnemyMinion

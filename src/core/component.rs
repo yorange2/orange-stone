@@ -440,6 +440,12 @@ pub enum SecretTrigger {
     WhenFriendlyHeroFatallyDamaged,
     /// After the opponent plays three cards in a turn (Rat Trap — Core Set W5)
     AfterEnemyPlaysThreeCards,
+    /// After a friendly minion that was played this turn dies (2025–2026
+    /// expansions M3-W2a — TIME_620 Timecode the End; the "turn after it
+    /// was played" wording is approximated as "any later turn" — the
+    /// PlayedThisTurn marker is set at play and cleared at turn start, so
+    /// a same-turn death also fires the secret, §20)
+    WhenFriendlyMinionDiedTurnAfterPlayed,
 }
 
 /// Divine Shield — absorbs one instance of damage, then disappears.
@@ -575,6 +581,12 @@ pub enum TriggerEvent {
     /// attacked minion, so the trigger carries the defender; friendly
     /// scope, not pinned — the trigger rides the attacking Dracorex)
     AttackedEnemyMinion,
+    /// The entity itself survived damage — the damage was applied and it
+    /// is still alive (2025–2026 expansions M3-W2a — TIME_050 Sentient
+    /// Hourglass, TIME_055 Unknown Voyager; the survival is predicted
+    /// before the damage resolves, the Slam convention, so the triggers
+    /// are pinned to the damaged minion like ThisMinionDamaged)
+    SurvivedDamage,
 }
 
 /// Trigger timing — Hearthstone's "whenever" / "after" classification.
@@ -794,12 +806,55 @@ pub struct Immune;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Temporary;
 
+/// Dormant (沉睡) — the Dormant keyword (2025–2026 expansions M3-W2a,
+/// Across the Timeways). A dormant minion is on the battlefield but
+/// asleep: it cannot attack, cannot be targeted (like Stealth), takes no
+/// damage, and has no board presence (its auras and triggers do not
+/// fire). `turns` counts down at the start of the owner's turn; at 0 the
+/// component is removed and the minion awakens. Cards enter play dormant
+/// via the `cards::dormant_at_summon` registry; TIME_442's imprisonment
+/// applies it to enemy minions mid-game.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct Dormant {
+    /// Remaining turns asleep, decremented at the owner's turn start.
+    pub turns: u32,
+}
+
+/// CantAttackHeroesThisTurn (2025–2026 expansions M3-W2a) — a temporary
+/// restriction: the minion may attack enemy minions but not the enemy
+/// hero, until the end of the current turn (PMM Infinitizer TIME_043).
+/// Cleared in the wrap-up step, mirroring the "until end of turn"
+/// enchantment expiry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct CantAttackHeroesThisTurn;
+
+/// TurnCostReducer (2025–2026 expansions M3-W2a) — a hand-card marker
+/// that is reduced by (1) at the start of the owner's turn
+/// (Circadiamancer TIME_102's "it costs (1) less each turn"). Read by
+/// the cost pipeline; removed when the card leaves the hand.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct TurnCostReducer(pub u32);
+
+/// DoubleDamageTaken (2025–2026 expansions M3-W2a) — a temporary marker
+/// making the marked character take double damage (TIME_858 Temporal
+/// Construct's "takes double damage").
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct DoubleDamageTaken;
+
 /// CostHealth — a hand card that costs Health instead of Mana
 /// (2025–2026 expansions M2-W4a — Whispering Stone's gotten Fel spells:
 /// "They cost Health instead of Mana"). The CardPlayed path reads the
 /// marker to pay the card's cost from the hero's Health instead of mana.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct CostHealth;
+
+/// PlayedThisTurn (2025–2026 expansions M3-W2a) — a minion-played-this-turn
+/// marker on a friendly minion entity, set when a minion is played from
+/// the hand and cleared at the turn start. Used by the TIME_620 secret
+/// ("After a friendly minion dies the turn after it was played") — the
+/// registered approximation models "the turn after" as "any later turn".
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct PlayedThisTurn;
 
 /// Overload amount — the mana locked on the owner's next turn (roadmap F1).
 /// Also triggers friendly minions' overload triggers when the card is played

@@ -149,6 +149,15 @@ fn matches_trigger(
             let hero = state.player(owner).hero;
             matches!(event, Event::DamageDealt { target, amount, .. } if *amount > 0 && *target == hero && state.world().effective_health(hero).is_some_and(|h| h.is_dead()))
         }
+        SecretTrigger::WhenFriendlyMinionDiedTurnAfterPlayed => {
+            // Timecode the End (M3-W2a — TIME_620): a friendly minion died
+            // while carrying the played-this-turn marker (the "turn after it
+            // was played" wording is approximated as "any later turn" — the
+            // marker survives until the owner's next turn start, §20).
+            matches!(event, Event::MinionDied { minion }
+                if state.world().player(*minion).is_some_and(|p| p == owner)
+                    && state.world().played_this_turn(*minion).is_some())
+        }
     }
 }
 
@@ -336,6 +345,32 @@ fn resolve_secret_effect(
                             world.remove_damage(*minion);
                         }
                         world.set_attacks_used(*minion, crate::core::component::AttacksUsed(1));
+                    }
+                }
+            }
+        }
+        CardEffect::ResurrectDiedMinionFull => {
+            // Timecode the End (M3-W2a — TIME_620): "resurrect it" — the
+            // died minion is resummoned at FULL Health (unlike Redemption's
+            // 1-Health shape), can attack, and its played-this-turn marker
+            // is removed (the resurrected minion no longer counts as
+            // played this turn for this secret — a second resurrection
+            // would otherwise fire off the same death).
+            if let Event::MinionDied { minion } = event {
+                if state.world().zone(*minion) == Some(Zone::Graveyard) {
+                    let board_count = state
+                        .world()
+                        .zones()
+                        .iter(Zone::Play, player)
+                        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                        .count();
+                    if board_count < crate::engine::rules::MAX_BOARD_SIZE {
+                        state.world_mut().remove_damage(*minion);
+                        let _ = state.world_mut().move_to_zone(*minion, Zone::Play);
+                        state
+                            .world_mut()
+                            .set_attacks_used(*minion, crate::core::component::AttacksUsed(0));
+                        state.world_mut().remove_played_this_turn(*minion);
                     }
                 }
             }

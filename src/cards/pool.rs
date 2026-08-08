@@ -107,6 +107,18 @@ fn is_other_class_card(card: &CardDef) -> bool {
     .any(|class| class.iter().any(|c| c.id == card.id))
 }
 
+/// Whether the card belongs to ANY class group (2025–2026 expansions
+/// M3-W2a — TIME_002 Aeon Wizard's "spells from your class": the engine
+/// has no per-player class, so "your class" is approximated by the union
+/// of all class groups — including Rogue, which Pilfer's
+/// `is_other_class_card` deliberately excludes, §20).
+fn is_class_card(card: &CardDef) -> bool {
+    is_other_class_card(card)
+        || crate::cards::sets::ROGUE_CLASSIC
+            .iter()
+            .any(|c| c.id == card.id)
+}
+
 /// Dream card pool — Classic built-in tokens (Ysera).
 pub const DREAM_POOL: &[&str] = &[
     "NEUTRAL_T21a", // Emerald Drake
@@ -1356,9 +1368,14 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter(|c| {
                 c.card_type == CardType::Minion
-                    && crate::cards::sets::LEGENDARY_CLASSIC
+                    && (crate::cards::sets::LEGENDARY_CLASSIC
                         .iter()
                         .any(|l| l.id == c.id)
+                        // M3-W2a: Nozdormu the Timeless (TIME_063) — the
+                        // only 2025–2026 legendary in the pool (§20 — the
+                        // Clocksworth legendary summon spans the full
+                        // active window)
+                        || c.id == "TIME_063")
                     && in_active_window(c)
             })
             .copied()
@@ -1567,6 +1584,56 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
+        // M3-W2a pools (Across the Timeways).
+        RandomPool::AnyMinion => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| c.card_type == CardType::Minion && in_active_window(c))
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
+        RandomPool::Cost5Minion => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| c.card_type == CardType::Minion && c.cost == 5 && in_active_window(c))
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
+        RandomPool::RewindCard => crate::cards::rewind::REWIND_CARD_IDS
+            .iter()
+            .filter_map(|id| card_by_id(id))
+            .collect(),
+        RandomPool::ClassSpell => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| c.card_type == CardType::Spell && is_class_card(c) && in_active_window(c))
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
+        RandomPool::NatureSpell => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Spell
+                    && crate::cards::quest::spell_school(c.id)
+                        == Some(crate::cards::quest::SpellSchool::Nature)
+                    && in_active_window(c)
+            })
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
+        RandomPool::RandomWeapon => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| c.card_type == CardType::Weapon && in_active_window(c))
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
     }
 }
 
@@ -1589,9 +1656,10 @@ pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'stati
         RandomPool::Companion => random_from_pool(COMPANION_POOL, rng),
         RandomPool::Legendary => random_filtered(rng, |c| {
             c.card_type == CardType::Minion
-                && crate::cards::sets::LEGENDARY_CLASSIC
+                && (crate::cards::sets::LEGENDARY_CLASSIC
                     .iter()
                     .any(|l| l.id == c.id)
+                    || c.id == "TIME_063")
         }),
         RandomPool::MageSpell => random_filtered(rng, |c| {
             c.card_type == CardType::Spell
@@ -1671,6 +1739,20 @@ pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'stati
                 .iter()
                 .any(|class| class.iter().any(|g| g.id == c.id))
         }),
+        RandomPool::AnyMinion => random_filtered(rng, |c| c.card_type == CardType::Minion),
+        RandomPool::Cost5Minion => {
+            random_filtered(rng, |c| c.card_type == CardType::Minion && c.cost == 5)
+        }
+        RandomPool::RewindCard => random_from_pool(crate::cards::rewind::REWIND_CARD_IDS, rng),
+        RandomPool::ClassSpell => {
+            random_filtered(rng, |c| c.card_type == CardType::Spell && is_class_card(c))
+        }
+        RandomPool::NatureSpell => random_filtered(rng, |c| {
+            c.card_type == CardType::Spell
+                && crate::cards::quest::spell_school(c.id)
+                    == Some(crate::cards::quest::SpellSchool::Nature)
+        }),
+        RandomPool::RandomWeapon => random_filtered(rng, |c| c.card_type == CardType::Weapon),
     }
 }
 
@@ -1727,9 +1809,10 @@ pub(crate) fn discover_pool_cards(
             .iter()
             .filter(|c| {
                 c.card_type == CardType::Minion
-                    && crate::cards::sets::LEGENDARY_CLASSIC
+                    && (crate::cards::sets::LEGENDARY_CLASSIC
                         .iter()
                         .any(|l| l.id == c.id)
+                        || c.id == "TIME_063")
                     && in_active_window(c)
             })
             .collect(),
@@ -1796,6 +1879,44 @@ pub(crate) fn discover_pool_cards(
         DiscoverPool::SpellCostGE8 => all
             .iter()
             .filter(|c| c.card_type == CardType::Spell && c.cost >= 8)
+            .collect(),
+        // M3-W2a pools.
+        // TIME_704 Highborne Mentor — "a spell that costs (7) or more from
+        // the past": the SpellCostGE8 precedent, threshold 7.
+        DiscoverPool::SpellCostGE7 => all
+            .iter()
+            .filter(|c| c.card_type == CardType::Spell && c.cost >= 7 && in_active_window(c))
+            .collect(),
+        // TIME_857 Alter Time — "two Arcane spells from the past": the
+        // school filter is the FelSpell precedent.
+        DiscoverPool::ArcaneSpell => all
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Spell
+                    && crate::cards::quest::spell_school(c.id)
+                        == Some(crate::cards::quest::SpellSchool::Arcane)
+                    && in_active_window(c)
+            })
+            .collect(),
+        // TIME_016 Neon Innovation — "a Paladin Mech from the past": the
+        // class filter is the MageSpell precedent, restricted to Mechs
+        // (§20 — the exact past-set filter is the active window).
+        DiscoverPool::PaladinMech => all
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Minion
+                    && c.race == Some(Race::Mechanical)
+                    && crate::cards::sets::PALADIN_CLASSIC
+                        .iter()
+                        .any(|p| p.id == c.id)
+                    && in_active_window(c)
+            })
+            .collect(),
+        // M3-W2a — TIME_612 Blood Draw — "a spell from the past": the whole
+        // active window, no class or school filter (§20).
+        DiscoverPool::Spell => all
+            .iter()
+            .filter(|c| c.card_type == CardType::Spell && in_active_window(c))
             .collect(),
         // Scrappy Scavenger — "Cost equal to your remaining Mana Crystals"
         // (the static cost, computed after this card's own cost was paid;

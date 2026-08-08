@@ -27922,3 +27922,736 @@ fn tmw1_rewind_death_phase_interplay() {
         "killing blow → death → deathrattle damage (standard queue ordering)"
     );
 }
+
+// ============================================================
+// TMW2A — the Across the Timeways W2a wave (2025–2026 expansions
+// M3-W2a, src/cards/exp_tmw_w2a.rs): the real TIME_* cards. Sixteen
+// scenarios pin the wave's headline mechanics: rewind replay with a real
+// Rewind card, the Clocksworth legendary pool, the Dormant sleep/awaken
+// cycle, the Perennial Serpent discount, Flutterwing's dormant summon,
+// the Shred-of-Time shuffle + cast-when-drawn token, Fatebreaker's
+// cast-from-deck, the two pool-open hand readers, the hand-cost reset,
+// the deck reversal, the set-stats Augur, the distinct-costs draw, the
+// per-damage velocity discount, the survives-damage transform, and the
+// Circadiamancer turn-start reduction.
+
+/// TMW2A-1 — a REAL Rewind minion replays the previous play: after the
+/// fixture A (2 to the enemy hero), CONFLUX_CRASHER's battlecry deals 7 to
+/// a random enemy and the Rewind replay lands A's 2 again (28 → 21 → 19).
+#[test]
+fn tmw2a_rewind_replays_previous_effect() {
+    use orange_stone::cards::exp_tmw_w2a::CONFLUX_CRASHER;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TMW1_A)
+        .add_minion_to_hand(p1, &CONFLUX_CRASHER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p2_hero = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1); // A: 2 to the enemy hero
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(28)));
+    play_front_card(&mut state, &engine, p1); // Conflux Crasher
+    assert_eq!(
+        state.world().effective_health(p2_hero),
+        Some(Health(19)),
+        "battlecry 7 + the Rewind replay of A's 2"
+    );
+    let hist = &state.player(p1).last_played;
+    assert_eq!(hist.len(), 2);
+    assert_eq!(hist[0].card_id, "TMW1_A");
+    assert_eq!(hist[1].card_id, "TIME_004");
+}
+
+/// TMW2A-2 — Mister Clocksworth's battlecry summons TWO random Legendary
+/// minions from the past (the §20 pool spans the active window plus
+/// TIME_063): the board gains exactly two minions alongside the 3/3.
+#[test]
+fn tmw2a_clocksworth_legendary_pool() {
+    use orange_stone::cards::exp_tmw_w2a::MISTER_CLOCKSWORTH;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &MISTER_CLOCKSWORTH);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let minions: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    assert_eq!(
+        minions.len(),
+        3,
+        "Clocksworth + the two summoned legendaries"
+    );
+    for e in minions {
+        let id = state.world().card_id(e).expect("resolvable card id").0;
+        let def = orange_stone::cards::def::card_by_id(id).expect("real card");
+        assert_eq!(def.card_type, CardType::Minion, "{id} is a minion");
+    }
+}
+
+/// TMW2A-3 — the Dormant cycle: Cyborg Patriarch enters play Dormant for 3
+/// turns, the countdown ticks at the OWNER's turn starts, and at 0 it
+/// awakens (component removed) with its Taunt and stats intact.
+#[test]
+fn tmw2a_dormant_sleeps_then_awakens() {
+    use orange_stone::cards::exp_tmw_w2a::CYBORG_PATRIARCH;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &CYBORG_PATRIARCH);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let patriarch = find_entity(&state, p1, "TIME_046");
+    assert_eq!(
+        state.world().dormant(patriarch).map(|d| d.turns),
+        Some(3),
+        "enters play Dormant for 3 turns"
+    );
+    for expected in [2, 1] {
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        assert_eq!(
+            state.world().dormant(patriarch).map(|d| d.turns),
+            Some(expected),
+            "one less turn of sleep per own turn start"
+        );
+    }
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().dormant(patriarch),
+        None,
+        "awakened after the third own turn start"
+    );
+    assert_eq!(
+        state.world().effective_attack(patriarch),
+        Some(Attack(3)),
+        "stats untouched by the slumber"
+    );
+    assert_eq!(state.world().effective_health(patriarch), Some(Health(12)));
+}
+
+/// TMW2A-4 — Perennial Serpent costs (4) less while ANY minion on either
+/// board is Dormant (the play-cost hook reads both boards).
+#[test]
+fn tmw2a_perennial_serpent_discount() {
+    use orange_stone::cards::exp_tmw_w2a::{CYBORG_PATRIARCH, PERENNIAL_SERPENT};
+    use orange_stone::engine::cost::play_cost;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &PERENNIAL_SERPENT)
+        .add_minion_to_hand(p1, &CYBORG_PATRIARCH);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let serpent = find_in_hand(&state, p1, "TIME_022");
+    assert_eq!(
+        play_cost(&state, serpent, p1),
+        Cost(8),
+        "no dormant — full cost"
+    );
+    // Play the Patriarch explicitly (it sits behind the Serpent in hand).
+    let patriarch = find_in_hand(&state, p1, "TIME_046");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: patriarch,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().dormant(patriarch).map(|d| d.turns),
+        Some(3),
+        "the Patriarch is Dormant for 3 at summon"
+    );
+    assert_eq!(
+        play_cost(&state, serpent, p1),
+        Cost(4),
+        "a dormant minion on the board discounts the Serpent by 4"
+    );
+}
+
+/// TMW2A-5 — Paltry Flutterwing's deathrattle summons a random 2-Cost
+/// minion that is Dormant for 2 turns (the Dormant component lands at
+/// summon).
+#[test]
+fn tmw2a_flutterwing_dormant_summon() {
+    use orange_stone::cards::exp_tmw_w2a::PALTRY_FLUTTERWING;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    let wall = builder.add_custom_minion_to_board(p2, 10, 10, 10);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &PALTRY_FLUTTERWING);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let flutterwing = find_entity(&state, p1, "TIME_058");
+    // A freshly played minion cannot attack this turn; the 10/10 wall
+    // kills the 1/1 on p2's turn instead.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: wall,
+                defender: flutterwing,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(flutterwing),
+        Some(Zone::Graveyard),
+        "the 1/1 dies on the 10/10"
+    );
+    let summon: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 != "TIME_058"))
+        .collect();
+    assert_eq!(summon.len(), 1, "exactly one replacement minion");
+    let summoned = summon[0];
+    let def = state
+        .world()
+        .card_id(summoned)
+        .and_then(|c| orange_stone::cards::def::card_by_id(c.0))
+        .expect("the summoned card resolves");
+    assert_eq!(def.cost, 2, "a random 2-Cost minion");
+    assert_eq!(
+        state.world().dormant(summoned).map(|d| d.turns),
+        Some(2),
+        "Dormant for 2 turns at summon"
+    );
+}
+
+/// TMW2A-6 — Twilight Timehopper shuffles 2 Shreds of Time into the deck;
+/// the Shred is a playable 0-cost spell (the cast-when-drawn simplification)
+/// that deals 3 damage to YOUR hero.
+#[test]
+fn tmw2a_hopper_shuffles_shreds() {
+    use orange_stone::cards::exp_tmw_w2a::TWILIGHT_TIMEHOPPER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TWILIGHT_TIMEHOPPER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let shreds: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, p1)
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_025t"))
+        .collect();
+    assert_eq!(shreds.len(), 2, "two Shreds shuffled into the empty deck");
+    let p1_hero = state.player(p1).hero;
+    assert_eq!(state.world().effective_health(p1_hero), Some(Health(30)));
+    // The next own turn start draws the top card — a Shred.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let shred = find_in_hand(&state, p1, "TIME_025t");
+    assert_eq!(
+        state.world().effective_cost(shred),
+        Some(Cost(0)),
+        "the cast-when-drawn Shred is a playable 0-cost spell"
+    );
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: shred,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(p1_hero),
+        Some(Health(27)),
+        "the Shred deals 3 to your hero"
+    );
+}
+
+/// TMW2A-7 — Fatebreaker casts a Shred of Time from the deck: the Shred
+/// leaves the deck, its 3 damage hits your hero and Lifesteal heals it
+/// right back (net zero — the official Lifesteal self-damage interaction),
+/// and Fatebreaker gains +3/+3.
+#[test]
+fn tmw2a_fatebreaker_casts_shred_from_deck() {
+    use orange_stone::cards::exp_tmw_w2a::{FATEBREAKER, SHRED_OF_TIME};
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &FATEBREAKER)
+        .add_minion_to_deck(p1, &SHRED_OF_TIME);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p1_hero = state.player(p1).hero;
+    play_front_card(&mut state, &engine, p1);
+    // The 3 damage to the hero went through the pipeline (p2's
+    // "enemy hero took damage this turn" counter sees it) and the
+    // Fatebreaker's Lifesteal healed it back — net health unchanged.
+    assert_eq!(
+        state.player(p2).enemy_hero_damaged_this_turn,
+        1,
+        "the cast Shred's 3 damage reached the hero (Lifesteal then healed it)"
+    );
+    assert_eq!(
+        state.world().effective_health(p1_hero),
+        Some(Health(30)),
+        "Lifesteal cancels the self-damage"
+    );
+    assert!(
+        !state
+            .world()
+            .zones()
+            .iter(Zone::Deck, p1)
+            .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_025t")),
+        "the Shred left the deck"
+    );
+    let fatebreaker = find_entity(&state, p1, "TIME_028");
+    assert_eq!(state.world().effective_attack(fatebreaker), Some(Attack(7)));
+    assert_eq!(state.world().effective_health(fatebreaker), Some(Health(7)));
+}
+
+/// TMW2A-8 — Royal Informant (pool-open) looks at the right-most enemy
+/// hand card: either p1 gets a copy of it or its Cost rises by (2) — the
+/// either/or is the §20 random pick, so exactly one branch lands.
+#[test]
+fn tmw2a_informant_copies_or_raises() {
+    use orange_stone::cards::classic_neutral::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tmw_w2a::ROYAL_INFORMANT;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ROYAL_INFORMANT)
+        .add_minion_to_hand(p2, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let enemy_raptor = find_in_hand(&state, p2, "CLASSIC_001");
+    assert_eq!(state.world().effective_cost(enemy_raptor), Some(Cost(2)));
+    play_front_card(&mut state, &engine, p1);
+    let copied = state.world().zones().iter(Zone::Hand, p1).any(|e| {
+        state
+            .world()
+            .card_id(e)
+            .is_some_and(|c| c.0 == "CLASSIC_001")
+    });
+    let raised = state.world().effective_cost(enemy_raptor) == Some(Cost(4));
+    assert!(
+        copied ^ raised,
+        "exactly one branch: a copy in hand, or the enemy card's Cost +2 (copied={copied}, raised={raised})"
+    );
+}
+
+/// TMW2A-9 — Deja Vu (pool-open) discovers a COPY of a card in the
+/// opponent's hand: the gained card's id matches one of the two enemy-hand
+/// cards.
+#[test]
+fn tmw2a_deja_vu_discovers_enemy_hand_copy() {
+    use orange_stone::cards::classic_neutral::BLOODFEN_RAPTOR;
+    use orange_stone::cards::classic_warlock::VOIDWALKER;
+    use orange_stone::cards::exp_tmw_w2a::DEJA_VU;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &DEJA_VU)
+        .add_minion_to_hand(p2, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p2, &VOIDWALKER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let gained: Vec<String> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter_map(|e| state.world().card_id(e).map(|c| c.0.to_string()))
+        .collect();
+    assert_eq!(gained.len(), 1, "exactly one copied card");
+    assert!(
+        gained[0] == "CLASSIC_001" || gained[0] == "WARLOCK_004",
+        "the copy is one of the enemy-hand cards (got {})",
+        gained[0]
+    );
+}
+
+/// TMW2A-10 — Wizened Truthseeker resets BOTH hands: a +2 Cost enchantment
+/// on a hand card is stripped (attack/health enchantments stay).
+#[test]
+fn tmw2a_truthseeker_resets_costs() {
+    use orange_stone::cards::classic_neutral::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tmw_w2a::WIZENED_TRUTHSEEKER;
+    use orange_stone::core::component::{Enchantment, EnchantmentExpiry};
+    use orange_stone::engine::cost::play_cost;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &WIZENED_TRUTHSEEKER)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p2, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let raptor_p1 = find_in_hand(&state, p1, "CLASSIC_001");
+    let raptor_p2 = find_in_hand(&state, p2, "CLASSIC_001");
+    // Both hands carry a +2 permanent Cost enchantment.
+    for e in [raptor_p1, raptor_p2] {
+        state.world_mut().add_enchantment(
+            e,
+            Enchantment {
+                attack: 0,
+                health: 0,
+                cost: 2,
+                expiry: EnchantmentExpiry::Permanent,
+            },
+        );
+    }
+    assert_eq!(play_cost(&state, raptor_p1, p1), Cost(4));
+    assert_eq!(play_cost(&state, raptor_p2, p2), Cost(4));
+    play_front_card(&mut state, &engine, p1); // the Truthseeker
+    assert_eq!(
+        play_cost(&state, raptor_p1, p1),
+        Cost(2),
+        "p1's hand cost reset to the printed Cost"
+    );
+    assert_eq!(
+        play_cost(&state, raptor_p2, p2),
+        Cost(2),
+        "p2's hand cost reset too"
+    );
+}
+
+/// TMW2A-11 — Timeless Causality reverses the deck order (index 0 is the
+/// top): [wisp, raptor, voidwalker] becomes [voidwalker, raptor, wisp].
+#[test]
+fn tmw2a_causality_reverses_deck() {
+    use orange_stone::cards::classic_neutral::{BLOODFEN_RAPTOR, WISP};
+    use orange_stone::cards::classic_warlock::VOIDWALKER;
+    use orange_stone::cards::exp_tmw_w2a::TIMELESS_CAUSALITY;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TIMELESS_CAUSALITY);
+    // A controlled top: WISP, then raptor, then voidwalker below them.
+    builder.add_minion_to_deck(p1, &WISP);
+    builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(p1, &VOIDWALKER);
+    let mut state = builder.build();
+    // build() shuffles the decks; re-establish a controlled top-first order
+    // (index 0 is the top, drawn first): [wisp, raptor, voidwalker, pads].
+    {
+        let world = state.world_mut();
+        let deck: Vec<Entity> = world.zones().entities(Zone::Deck, p1);
+        let wisp = deck
+            .iter()
+            .find(|e| world.card_id(**e).is_some_and(|c| c.0 == "NEUTRAL_T01"))
+            .copied()
+            .expect("the wisp");
+        let voidwalker = deck
+            .iter()
+            .find(|e| world.card_id(**e).is_some_and(|c| c.0 == "WARLOCK_004"))
+            .copied()
+            .expect("the voidwalker");
+        let raptors: Vec<Entity> = deck
+            .iter()
+            .filter(|e| world.card_id(**e).is_some_and(|c| c.0 == "CLASSIC_001"))
+            .copied()
+            .collect();
+        assert_eq!(raptors.len(), 6, "five pads + the explicit raptor");
+        let mut ordered = Vec::with_capacity(8);
+        ordered.push(wisp);
+        ordered.push(raptors[0]);
+        ordered.push(voidwalker);
+        ordered.extend(raptors.iter().skip(1).copied());
+        for &e in &deck {
+            world.zones_mut().remove(Zone::Deck, p1, e);
+        }
+        for e in ordered {
+            world.zones_mut().insert(Zone::Deck, p1, e);
+        }
+    }
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let deck_ids: Vec<&str> = state
+        .world()
+        .zones()
+        .entities(Zone::Deck, p1)
+        .into_iter()
+        .filter_map(|e| state.world().card_id(e).map(|c| c.0))
+        .collect();
+    assert_eq!(
+        deck_ids,
+        vec![
+            "CLASSIC_001",
+            "CLASSIC_001",
+            "CLASSIC_001",
+            "CLASSIC_001",
+            "CLASSIC_001",
+            "WARLOCK_004",
+            "CLASSIC_001",
+            "NEUTRAL_T01",
+        ],
+        "the whole deck is reversed top-to-bottom"
+    );
+}
+
+/// TMW2A-12 — Divine Augur sets every hand minion's Attack and Health to
+/// the higher of the two: a 2/5 and a 5/2 both become 5/5.
+#[test]
+fn tmw2a_divine_augur_sets_hand_stats() {
+    use orange_stone::cards::exp_tmw_w2a::DIVINE_AUGUR;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    let low_high = tmw1_def!(
+        "TMW2A_2_5",
+        "Low-High",
+        CardType::Minion,
+        2,
+        5,
+        None,
+        None,
+        None
+    );
+    let high_low = tmw1_def!(
+        "TMW2A_5_2",
+        "High-Low",
+        CardType::Minion,
+        5,
+        2,
+        None,
+        None,
+        None
+    );
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &DIVINE_AUGUR)
+        .add_minion_to_hand(p1, &low_high)
+        .add_minion_to_hand(p1, &high_low);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let low = find_in_hand(&state, p1, "TMW2A_2_5");
+    let high = find_in_hand(&state, p1, "TMW2A_5_2");
+    assert_eq!(state.world().effective_attack(low), Some(Attack(2)));
+    play_front_card(&mut state, &engine, p1); // the Augur
+    for e in [low, high] {
+        assert_eq!(state.world().effective_attack(e), Some(Attack(5)));
+        assert_eq!(state.world().effective_health(e), Some(Health(5)));
+    }
+}
+
+/// TMW2A-13 — RAFAAM LADDER!! draws 3 cards of DIFFERENT Costs: with a
+/// [boar, boar, raptor, grizzly] deck the second boar is skipped and the
+/// three distinct costs land in hand.
+#[test]
+fn tmw2a_rafaam_ladder_draws_distinct_costs() {
+    use orange_stone::cards::classic_neutral::STONETUSK_BOAR;
+    use orange_stone::cards::classic_neutral::{BLOODFEN_RAPTOR, IRONFUR_GRIZZLY};
+    use orange_stone::cards::exp_tmw_w2a::RAFAAM_LADDER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &RAFAAM_LADDER)
+        .add_minion_to_deck(p1, &STONETUSK_BOAR) // 1
+        .add_minion_to_deck(p1, &STONETUSK_BOAR) // 1 — the duplicate
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR) // 2
+        .add_minion_to_deck(p1, &IRONFUR_GRIZZLY); // 3
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hand_costs: Vec<i32> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter_map(|e| {
+            state
+                .world()
+                .card_id(e)
+                .and_then(|c| orange_stone::cards::def::card_by_id(c.0))
+                .map(|d| d.cost)
+        })
+        .collect();
+    let mut sorted = hand_costs.clone();
+    sorted.sort_unstable();
+    assert_eq!(sorted, vec![1, 2, 3], "three cards of three distinct costs");
+    let remaining: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, p1)
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "NEUTRAL_B03")
+        })
+        .collect();
+    assert_eq!(
+        remaining.len(),
+        1,
+        "the duplicate 1-Cost boar stayed in the deck"
+    );
+}
+
+/// TMW2A-14 — Devious Coyote costs (1) less for each time the enemy hero
+/// took damage this turn: two 1/1 pings bring it from 5 to 3.
+#[test]
+fn tmw2a_velocity_discounts_per_damage() {
+    use orange_stone::cards::exp_tmw_w2a::DEVIOUS_COYOTE;
+    use orange_stone::engine::cost::play_cost;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    let a = builder.add_custom_minion_to_board(p1, 1, 1, 1);
+    let b = builder.add_custom_minion_to_board(p1, 1, 1, 1);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &DEVIOUS_COYOTE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let coyote = find_in_hand(&state, p1, "TIME_047");
+    assert_eq!(play_cost(&state, coyote, p1), Cost(5));
+    let p2_hero = state.player(p2).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: a,
+                defender: p2_hero,
+            },
+        )
+        .unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: b,
+                defender: p2_hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        play_cost(&state, coyote, p1),
+        Cost(3),
+        "two hero-damage events this turn"
+    );
+}
+
+/// TMW2A-15 — Unknown Voyager transforms into a random 7-Cost minion after
+/// it survives damage (the SurvivedDamage trigger).
+#[test]
+fn tmw2a_unknown_voyager_transforms() {
+    use orange_stone::cards::exp_tmw_w2a::UNKNOWN_VOYAGER;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.add_custom_minion_to_board(p2, 1, 1, 1);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &UNKNOWN_VOYAGER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let voyager = find_entity(&state, p1, "TIME_055");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // The p2 board has exactly one minion (the custom 1/1) — the zone also
+    // contains p2's hero (attack 0), so pick the Minion explicitly.
+    let attacker = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p2)
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("the p2 pinger");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: voyager,
+            },
+        )
+        .unwrap();
+    let id = state
+        .world()
+        .card_id(voyager)
+        .expect("still on the board")
+        .0;
+    assert_ne!(id, "TIME_055", "the Voyager transformed");
+    let def = orange_stone::cards::def::card_by_id(id).expect("a real card");
+    assert_eq!(def.cost, 7, "into a random 7-Cost minion");
+    assert_eq!(state.world().zone(voyager), Some(Zone::Play));
+}
+
+/// TMW2A-16 — Circadiamancer adds a random 8-Cost minion to the hand
+/// carrying the TurnCostReducer marker: at each of the owner's turn starts
+/// its Cost drops by one more (8 → 7 → 6).
+#[test]
+fn tmw2a_circadiamancer_reduces_each_turn() {
+    use orange_stone::cards::exp_tmw_w2a::CIRCADIAMANCER;
+    use orange_stone::engine::cost::play_cost;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &CIRCADIAMANCER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1, "the random 8-Cost minion");
+    let card = hand[0];
+    let def = state
+        .world()
+        .card_id(card)
+        .and_then(|c| orange_stone::cards::def::card_by_id(c.0))
+        .expect("a real card");
+    assert_eq!(def.cost, 8, "an 8-Cost minion");
+    assert_eq!(play_cost(&state, card, p1), Cost(8));
+    for expected in [Cost(7), Cost(6)] {
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        assert_eq!(
+            play_cost(&state, card, p1),
+            expected,
+            "one more reduction per own turn start"
+        );
+    }
+}
