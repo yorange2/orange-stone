@@ -45,3 +45,14 @@ fn emerald_dream_dump_fidelity() {
         183,
     );
 }
+
+/// The Lost City of Un'Goro sub-roadmap W0 (M2-W0): TLC_ + DINO_ (miniset)
+/// prefixes.
+#[test]
+fn the_lost_city_dump_fidelity() {
+    check_dump_fidelity(
+        include_str!("../cards/data/THE_LOST_CITY.json"),
+        &["TLC_", "DINO_"],
+        183,
+    );
+}
