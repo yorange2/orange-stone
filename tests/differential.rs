@@ -13214,12 +13214,7 @@ fn classic_defias_bandit_combo() {
         .world()
         .zones()
         .iter(Zone::Hand, PlayerId1())
-        .find(|&e| {
-            state
-                .world()
-                .card_id(e)
-                .is_some_and(|c| c.0 == "ROGUE_011")
-        })
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "ROGUE_011"))
         .expect("ringleader in hand");
     engine
         .apply(
@@ -13264,12 +13259,7 @@ fn classic_defias_bandit_combo() {
         .world()
         .zones()
         .iter(Zone::Hand, PlayerId1())
-        .find(|&e| {
-            state
-                .world()
-                .card_id(e)
-                .is_some_and(|c| c.0 == "ROGUE_011")
-        })
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "ROGUE_011"))
         .expect("second ringleader in hand");
     engine
         .apply(

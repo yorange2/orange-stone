@@ -1165,4 +1165,41 @@ mod generated_tests {
             assert_eq!(card.id, *id);
         }
     }
+
+    /// 2025–2026 expansions M0.2 — set membership registry and race backfill:
+    /// classic-era set codes map to `CardSet::Classic`, `CORE` to `CardSet::Core`,
+    /// unknown/custom IDs default to `Classic` (the custom-ID handwritten pool),
+    /// and tribed minions carry their tribe on the generated const.
+    #[test]
+    fn generated_set_and_race_metadata() {
+        use crate::cards::def::CardSet;
+        use crate::core::component::Race;
+
+        assert_eq!(generated::card_set("EX1_001"), CardSet::Classic); // Lightwarden (EXPERT1)
+        assert_eq!(generated::card_set("CS2_172"), CardSet::Classic); // Bloodfen Raptor (LEGACY)
+        assert_eq!(generated::card_set("CORE_AT_037"), CardSet::Core); // Living Roots (CORE)
+        assert_eq!(generated::card_set("CORE_RLK_062"), CardSet::Core); // Nerubian Swarmguard (CORE)
+        assert_eq!(generated::card_set("CLASSIC_001"), CardSet::Classic); // custom-ID fallback
+
+        assert_eq!(
+            generated::find_by_id("BT_142").map(|c| c.race),
+            Some(Some(Race::Demon)) // Shadowhoof Slayer
+        );
+        assert_eq!(
+            generated::find_by_id("CORE_AT_123").map(|c| c.race),
+            Some(Some(Race::Dragon)) // Chillmaw
+        );
+        assert_eq!(
+            generated::find_by_id("CORE_RLK_062").map(|c| c.race),
+            Some(Some(Race::Undead)) // Nerubian Swarmguard
+        );
+        assert_eq!(
+            generated::find_by_id("EX1_001").map(|c| c.race),
+            Some(Some(Race::Draenei)) // Lightwarden
+        );
+        assert_eq!(
+            generated::find_by_id("CORE_AT_037").map(|c| c.race),
+            Some(None) // Living Roots — untribed spell
+        );
+    }
 }

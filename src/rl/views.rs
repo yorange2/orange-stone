@@ -207,6 +207,7 @@ pub fn entity_view(state: &GameState, entity: Entity, is_hand: bool) -> EntityVi
             Some(crate::core::component::Race::Undead) => 9,
             Some(crate::core::component::Race::Quilboar) => 10,
             Some(crate::core::component::Race::Draenei) => 11,
+            Some(crate::core::component::Race::Naga) => 12,
             None => 0,
         },
         frozen: world.freeze(entity).is_some(),
