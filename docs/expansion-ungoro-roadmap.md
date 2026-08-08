@@ -33,8 +33,10 @@ Verified mechanics (2026-08-08, 33.0 patch notes):
 One PR per wave; every card lands with an F5 differential scenario; `sets.rs`
 registration; simplifications get ledger rows.
 
-- **W0 — wiring + data:** M0 data for this set; inventory backfilled; generated
-  baseline + fidelity tests.
+- [x] **W0 — wiring + data** (PR #143): M0 data for this set landed
+  (M0.1–M0.5); inventory backfilled; the per-set dump fidelity test
+  (`the_lost_city_dump_fidelity`, TLC_ + DINO_ prefixes, 183 cards) landed
+  with the generated baseline.
 - **W1 — Quest zone (Q1):** `Zone::Quest` + quest component + progress event
   plumbing + reward resolution; engine-level quest smoke scenarios before any
   quest card lands.
