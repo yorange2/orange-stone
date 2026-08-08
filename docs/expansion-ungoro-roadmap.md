@@ -45,9 +45,16 @@ registration; simplifications get ledger rows.
   destroys the old); call sites for minion plays/summons/damage/turn-end/
   spell-cast/corpse-spend/discover; 7 engine-level `tlc_w1_*` smoke scenarios
   landed before any quest card.
-- **W2 — Quest cards:** the set's quest cards on top of W1 (one per class +
-  neutral where applicable); F5 scenarios pin progress→reward sequencing and
-  the one-quest-per-player rule.
+- [x] **W2 — Quest cards** (PR #145): all 11 quest cards (one per class) +
+  12 reward tokens in `exp_tlc_w2.rs`; TLC_817 dual quest bar
+  (`QuestDef::second` — the card leaves the slot only when both bars
+  complete), TLC_426 repeatable with the real permanent murloc +1/+1 flag,
+  TLC_631 permanent exact-2-damage bonus flag, Everbloom weapon trigger,
+  both Sol'etos halves; the Temporary primitive (marker + end-of-turn
+  discard) enabling TLC_446; simplifications registered in §15 (en+zh);
+  12 `tlc_w2_*` F5 scenarios pin progress→reward sequencing and the
+  one-quest-per-player rule with real cards; the W1 spell-school scenario
+  updated to the real dual-bar semantics.
 - **W3 — Kindred (Q2):** counter primitive + Kindred cards; F5 scenarios for
   the trigger conditions from text.
 - **W4 — Festival of the Devilsaur mini:** miniset cards (mechanics backfilled
@@ -58,17 +65,17 @@ registration; simplifications get ledger rows.
 > Backfilled from the M0 data dump (D1). Placeholder grouped by wave.
 
 ### W1/W2 — Quests
-- [ ] TLC_229 Spirit of the Mountain
-- [ ] TLC_239 Restore the Wild
-- [ ] TLC_426 Dive the Golakka Depths
-- [ ] TLC_433 Reanimate the Terror
-- [ ] TLC_446 Escape the Underfel
-- [ ] TLC_460 The Forbidden Sequence
-- [ ] TLC_513 Lie in Wait
-- [ ] TLC_602 Enter the Lost City
-- [ ] TLC_631 Unleash the Colossus
-- [ ] TLC_817 Reach Equilibrium
-- [ ] TLC_830 The Food Chain
+- [x] TLC_229 Spirit of the Mountain
+- [x] TLC_239 Restore the Wild
+- [x] TLC_426 Dive the Golakka Depths
+- [x] TLC_433 Reanimate the Terror
+- [x] TLC_446 Escape the Underfel
+- [x] TLC_460 The Forbidden Sequence
+- [x] TLC_513 Lie in Wait
+- [x] TLC_602 Enter the Lost City
+- [x] TLC_631 Unleash the Colossus
+- [x] TLC_817 Reach Equilibrium
+- [x] TLC_830 The Food Chain
 
 ### W3 — Kindred
 - [ ] TLC_102 Torga

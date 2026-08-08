@@ -38,8 +38,13 @@
   任务重置留槽）；出牌路径把任务卡导入任务槽（每玩家一任务——新任务销毁旧
   任务）；接线调用点：出牌/召唤/伤害/回合结束/施法/尸体/发现；落地 7 个
   引擎级 `tlc_w1_*` 冒烟场景（任务卡落地前）。
-- **W2 —— 任务卡：** 在 W1 之上落系列任务卡（每职业一张 + 适用中立）；
-  F5 场景钉死 进度→奖励 时序与每玩家一任务规则。
+- [x] **W2 —— 任务卡**（PR #145）：全部 11 张任务卡（每职业一张）+ 12 个
+  奖励 token 落 `exp_tlc_w2.rs`；TLC_817 双进度条（`QuestDef::second`——
+  两栏全完成才离槽）、TLC_426 可重复任务（真实永久鱼人 +1/+1 旗标）、
+  TLC_631 永久"恰好 2 点伤害"旗标、Everbloom 武器触发、Sol'etos 双半；
+  Temporary 原语（标记 + 回合末弃置）使 TLC_446 可行；简化登记 §15（en+zh）；
+  12 个 `tlc_w2_*` F5 场景钉死 进度→奖励 时序与每玩家一任务（真实卡级）；
+  W1 学派场景更新为真实双栏语义。
 - **W3 —— 同族（Q2）：** 计数原语 + 同族卡；F5 场景覆盖文本触发条件。
 - **W4 —— 恐龙节迷你：** 迷你卡（机制由数据回填）；收尾波清扫衍生物/账本。
 
@@ -48,17 +53,17 @@
 > 由 M0 数据转储回填（D1）。按波分组占位。
 
 ### W1/W2 —— 任务
-- [ ] TLC_229 Spirit of the Mountain
-- [ ] TLC_239 Restore the Wild
-- [ ] TLC_426 Dive the Golakka Depths
-- [ ] TLC_433 Reanimate the Terror
-- [ ] TLC_446 Escape the Underfel
-- [ ] TLC_460 The Forbidden Sequence
-- [ ] TLC_513 Lie in Wait
-- [ ] TLC_602 Enter the Lost City
-- [ ] TLC_631 Unleash the Colossus
-- [ ] TLC_817 Reach Equilibrium
-- [ ] TLC_830 The Food Chain
+- [x] TLC_229 Spirit of the Mountain
+- [x] TLC_239 Restore the Wild
+- [x] TLC_426 Dive the Golakka Depths
+- [x] TLC_433 Reanimate the Terror
+- [x] TLC_446 Escape the Underfel
+- [x] TLC_460 The Forbidden Sequence
+- [x] TLC_513 Lie in Wait
+- [x] TLC_602 Enter the Lost City
+- [x] TLC_631 Unleash the Colossus
+- [x] TLC_817 Reach Equilibrium
+- [x] TLC_830 The Food Chain
 
 ### W3 —— 同族
 - [ ] TLC_102 Torga
