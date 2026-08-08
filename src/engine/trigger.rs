@@ -4628,6 +4628,426 @@ pub fn resolve_effect(
                 }
             }
         }
+        CardEffect::YseraEmeraldAspect => {
+            // Ysera, Emerald Aspect (M1-W4b) — the composite Start-of-Game +
+            // battlecry effect, resolved at play time (registered
+            // simplification, §14.4: the engine has no StartOfGame event, so
+            // both players' +5 maximum Mana applies when Ysera is played and
+            // fills the new crystals; the battlecry's +3 Mana Crystals then
+            // stack on top). Both players get the +5 (a Start-of-Game effect
+            // is global), the +3 belongs to the owner only.
+            for p in [owner, owner.opponent()] {
+                let inner = state.make_mut();
+                let pl = &mut inner.players[p.index()];
+                pl.mana_crystals = (pl.mana_crystals + 5).min(10);
+                pl.current_mana = (pl.current_mana + 5).min(10);
+            }
+            let inner = state.make_mut();
+            let pl = &mut inner.players[owner.index()];
+            pl.mana_crystals = (pl.mana_crystals + 3).min(10);
+            pl.current_mana = (pl.current_mana + 3).min(10);
+        }
+        CardEffect::ResurrectAllDifferentFriendlyCostGE { cost } => {
+            // Merithra (M1-W4b) — resurrect ALL different friendly minions
+            // that cost at least `cost` and died this game. "Different" is
+            // deduped by card ID (first graveyard instance wins — graveyard
+            // order is death order); the graveyard IS the death record.
+            let mut seen: Vec<String> = Vec::new();
+            let mut fallen: SmallList<Entity> = SmallList::new();
+            for e in state.world().zones().iter(Zone::Graveyard, owner) {
+                if state.world().card_type(e) != Some(CardType::Minion) {
+                    continue;
+                }
+                if !state.world().cost(e).is_some_and(|c| c.0 >= cost as i32) {
+                    continue;
+                }
+                let Some(cid) = state.world().card_id(e) else {
+                    continue;
+                };
+                if seen.iter().any(|s| s == cid.0) {
+                    continue;
+                }
+                seen.push(cid.0.to_string());
+                fallen.push(e);
+            }
+            for e in fallen {
+                if let Some(def) = state
+                    .world()
+                    .card_id(e)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+            }
+        }
+        CardEffect::CastHighestCostSpellFromHand => {
+            // Ursol (M1-W4b) — cast the highest-Cost spell in hand (ties go
+            // to the leftmost). Registered simplification (§14.4): the real
+            // card plays the spell as a 3-turn aura, approximated as an
+            // immediate normal cast — no SpellCast event fires (the cast is
+            // not "your" spell play, so after-cast triggers stay quiet).
+            let spells: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Spell))
+                .collect();
+            if spells.is_empty() {
+                return;
+            }
+            let Some(best) = spells.iter().copied().max_by_key(|&e| {
+                let cost = state.world().effective_cost(e).unwrap_or(Cost(0)).0;
+                // The leftmost-first tiebreaker: negate the hand index
+                let idx = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Hand, owner)
+                    .position(|x| x == e)
+                    .unwrap_or(0);
+                (cost, std::cmp::Reverse(idx))
+            }) else {
+                return;
+            };
+            if let Some(effect) = state.world().battlecry(best).map(|b| b.0) {
+                resolve_effect(state, queue, best, owner, effect, None, None);
+            }
+            let _ = state.world_mut().move_to_zone(best, Zone::Graveyard);
+        }
+        CardEffect::IncrementOmenAttack => {
+            // Omen (M1-W4b) — the per-player attack counter feeding the
+            // deathrattle's "Improves" (registered interpretation, §14.4:
+            // the official per-minion enchantment is approximated as a
+            // per-player counter). Only Omen's own attacks count.
+            if event_subject != Some(source) {
+                return;
+            }
+            let inner = state.make_mut();
+            inner.players[owner.index()].omen_attacks += 1;
+        }
+        CardEffect::OmenDeathrattle => {
+            // Omen (M1-W4b) — Deal 1 damage to all enemies, plus 1 for each
+            // attack Omen has made this game (the counter is incremented by
+            // IncrementOmenAttack on the Attacked trigger).
+            let mut enemies: SmallList<Entity> = collect_all_enemy_minions(state, owner);
+            enemies.push(state.player(owner.opponent()).hero);
+            let atk = state.player(owner).omen_attacks as i32;
+            for e in &enemies {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: *e,
+                    amount: 1 + atk,
+                });
+            }
+        }
+        CardEffect::SplitDamageAmongAllEnemiesIfFallen { amount, threshold } => {
+            // Aessina (M1-W4b) — if at least `threshold` friendly minions
+            // have died this game (the graveyard IS the death record, the
+            // DamageMinionScaledByFallen precedent), deal `amount` damage
+            // randomly split among all enemies — `amount` independent
+            // 1-damage pings (each ping rolls a random enemy).
+            let fallen = state
+                .world()
+                .zones()
+                .iter(Zone::Graveyard, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .count() as u8;
+            if fallen < threshold {
+                return;
+            }
+            let mut enemies: SmallList<Entity> = collect_all_enemy_minions(state, owner);
+            enemies.push(state.player(owner.opponent()).hero);
+            if enemies.is_empty() {
+                return;
+            }
+            for _ in 0..amount {
+                let idx = state.rng_mut().next_usize(enemies.len());
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: enemies[idx],
+                    amount: 1,
+                });
+            }
+        }
+        CardEffect::NextSpellsCastTwice { count } => {
+            // Tyrande (M1-W4b) — the next `count` spells the owner casts are
+            // cast twice. The re-cast happens at the spell play path
+            // (rules.rs — normal spells and choose-one branches); the flag
+            // is consumed there. Registered timing simplification (§14.4):
+            // the official wording is "the next 3 spells you cast cast
+            // twice" — the countdown here ticks per resolution, not per
+            // "cast" event, but each double-cast still counts once.
+            let inner = state.make_mut();
+            inner.players[owner.index()].spells_cast_twice_pending = count as u32;
+        }
+        CardEffect::SummonRandomDragonPerSelfDeath => {
+            // Ysondre (M1-W4b) — summon a random Dragon for each time this
+            // has died this game. The graveyard IS the death record: every
+            // death leaves an EDR_465 entity behind (the currently-dying
+            // instance is already in the graveyard when the deathrattle
+            // resolves, so the count includes this death — official).
+            let deaths = state
+                .world()
+                .zones()
+                .iter(Zone::Graveyard, owner)
+                .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_465"))
+                .count();
+            for _ in 0..deaths {
+                if let Some(def) =
+                    crate::cards::pool::random_card(state.rng_mut(), RandomPool::Dragon)
+                {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+            }
+        }
+        CardEffect::GainArmorAndSelfAttack { armor, attack } => {
+            // Tortolla (M1-W4b) — after this takes damage: the OWNER's hero
+            // gains armor and the minion gains Attack (the ThisMinionDamaged
+            // trigger carries the subject pin, so no extra check needed).
+            let inner = state.make_mut();
+            inner.players[owner.index()].armor += armor;
+            let world = state.world_mut();
+            let base = world.attack(source).unwrap_or(Attack(0));
+            world.set_attack(source, Attack(base.0 + attack));
+        }
+        CardEffect::NextCardCostsZero => {
+            // Agamaggan (M1-W4b) — the next card the owner plays costs (0)
+            // (registered simplification §14.4: the official effect sets the
+            // next card's cost to the opponent's Health; approximated as 0).
+            let inner = state.make_mut();
+            inner.players[owner.index()].next_card_costs_zero = true;
+        }
+        CardEffect::TransformHandMinionsToRandomDemons => {
+            // Alara'shi (M1-W4b) — every minion in hand transforms into a
+            // random Demon, KEEPING its Attack, Health and Cost. Base stats
+            // are read before the effect clear (clear_minion_effects keeps
+            // base components but drops keywords/enchantments — the real
+            // transform replaces the card identity and keywords).
+            let hand: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            for m in &hand {
+                let Some(def) = crate::cards::pool::random_card(state.rng_mut(), RandomPool::Demon)
+                else {
+                    continue;
+                };
+                let world = state.world_mut();
+                let atk = world.attack(*m).unwrap_or(Attack(0)).0;
+                let hp = world.health(*m).unwrap_or(Health(1)).0;
+                let cst = world.cost(*m).unwrap_or(Cost(0)).0;
+                crate::cards::clear_minion_effects(world, *m);
+                world.set_card_id(*m, CardId(def.id));
+                world.set_race(*m, crate::core::component::Race::Demon);
+                world.set_attack(*m, Attack(atk));
+                world.set_health(*m, Health(hp));
+                world.set_cost(*m, Cost(cst));
+                world.set_attacks_used(*m, AttacksUsed(0));
+                if def.taunt {
+                    world.set_taunt(*m, Taunt);
+                }
+                if def.stealth {
+                    world.set_stealth(*m, Stealth);
+                }
+                if def.divine_shield {
+                    world.set_divine_shield(*m, DivineShield);
+                }
+                if def.windfury {
+                    world.set_windfury(*m, Windfury);
+                }
+                if def.charge {
+                    world.set_charge(*m, Charge);
+                }
+            }
+        }
+        CardEffect::DiscoverSpellKeepOrTop => {
+            // Q'onzu (M1-W4b) — Discover a spell, then choose to keep it or
+            // place it on top of the opponent's deck. The Discover is
+            // simplified to a random spell from the full database (the
+            // standing Discover→random debt, §14.4); the keep/top decision
+            // surfaces as the QonzuKeepOrTop choice (the spell entity is the
+            // pending choice's card — ChoiceResolved moves it or leaves it).
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Spell)
+                    .collect();
+            if spells.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(spells.len());
+            let spell = spells[idx];
+            let before = state.world().zones().len(Zone::Hand, owner);
+            add_card_to_hand(state, owner, spell);
+            if state.world().zones().len(Zone::Hand, owner) == before {
+                return; // full hand — nothing was added, no choice to make
+            }
+            // The added spell is the last entity in the owner's hand.
+            let added = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .last()
+                .expect("hand grew, so it is non-empty");
+            state.set_pending_choice(
+                crate::core::state::ChoiceKind::QonzuKeepOrTop,
+                added,
+                vec![
+                    String::from("Keep the spell"),
+                    String::from("Put it on top of the opponent's deck"),
+                ],
+                Vec::new(),
+            );
+        }
+        CardEffect::DiscardRandomEnemyHandCard => {
+            // Renferal, the Malignant (M1-W4b) — the enemy discards a random
+            // hand card (registered simplification §14.4: the real trap
+            // returns the card after a turn and escalates per play; the
+            // discard is the light approximation).
+            let enemy = owner.opponent();
+            let hand: SmallList<Entity> = state.world().zones().iter(Zone::Hand, enemy).collect();
+            if hand.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(hand.len());
+            let _ = state.world_mut().move_to_zone(hand[idx], Zone::Graveyard);
+        }
+        CardEffect::FillHandWithEnemyDeckCopies { reduction } => {
+            // Ashamane (M1-W4b) — fill the owner's hand with copies of cards
+            // in the opponent's deck; the copies cost (3) less. The opponent's
+            // deck IS the pool (pool-open card — registered in POOL_OPEN_CARDS,
+            // the Nightmare Fuel precedent); sampling is with replacement
+            // (official: random copies, duplicates possible). The hand-size
+            // cap (F-A11) bounds the fill.
+            let enemy = owner.opponent();
+            let candidates: Vec<Entity> = state.world().zones().iter(Zone::Deck, enemy).collect();
+            if candidates.is_empty() {
+                return;
+            }
+            while state.world().zones().len(Zone::Hand, owner) < MAX_HAND_SIZE {
+                let idx = state.rng_mut().next_usize(candidates.len());
+                let src = candidates[idx];
+                let Some(card_id) = state.world().card_id(src) else {
+                    continue;
+                };
+                let Some(def) = crate::cards::def::card_by_id(card_id.0) else {
+                    continue;
+                };
+                let e = crate::cards::spawn_card_from_def(state.world_mut(), owner, def);
+                let base = state.world().cost(e).unwrap_or(Cost(0)).0;
+                state
+                    .world_mut()
+                    .set_cost(e, Cost((base - reduction as i32).max(0)));
+                state.world_mut().set_zone(e, Zone::Hand);
+                state.world_mut().zones_mut().insert(Zone::Hand, owner, e);
+            }
+        }
+        CardEffect::SummonBeetles { count } => {
+            // Nythendra (M1-W4b) — deathrattle: summon `count` 1/1 Beetles
+            // (registered simplification §14.4: the real card splits into
+            // Beetles that reassemble at the start of your turn; only the
+            // Beetle summon is modeled).
+            for _ in 0..count {
+                let _ = resolve_summon(state, queue, source, owner, "EDR_818t");
+            }
+        }
+        CardEffect::UrsocBattlecry => {
+            // Ursoc (M1-W4b) — attack all other minions (both sides, play
+            // order — friendly board first, then the enemy board). Each
+            // attack is a synchronous damage application (the Death step runs
+            // at queue boundaries, so damage is applied immediately and the
+            // dead targets are recorded in pending_deaths; the deaths caused
+            // by THIS battlecry are the tail of that list — the entry
+            // snapshot excludes any earlier deaths, though the battlecry runs
+            // in a clean context in practice).
+            let atk = state.world().attack(source).unwrap_or(Attack(0)).0;
+            let mut targets: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| e != source)
+                .collect();
+            targets.extend(collect_all_enemy_minions(state, owner));
+            let before = state.pending_deaths().len();
+            for e in &targets {
+                let _ = crate::engine::rules::apply_event(
+                    state,
+                    Event::DamageDealt {
+                        source,
+                        target: *e,
+                        amount: atk,
+                    },
+                    queue,
+                );
+            }
+            let killed: SmallList<String, 16> = state
+                .pending_deaths()
+                .iter()
+                .skip(before)
+                .filter_map(|&e| state.world().card_id(e).map(|c| c.0.to_string()))
+                .collect();
+            if !killed.is_empty() {
+                let inner = state.make_mut();
+                inner.players[owner.index()].ursoc_killed_ids = killed.into_iter().collect();
+            }
+        }
+        CardEffect::UrsocDeathrattle => {
+            // Ursoc (M1-W4b) — resurrect every minion the battlecry killed
+            // (the recorded card IDs are consumed here). Cascade deaths from
+            // the resurrections are NOT recorded — faithful to the official
+            // "minions this killed" wording.
+            let ids = std::mem::take(&mut state.make_mut().players[owner.index()].ursoc_killed_ids);
+            for id in ids {
+                let _ = resolve_summon(state, queue, source, owner, &id);
+            }
+        }
+        CardEffect::GainStatsAllOtherFriendlyMinions { attack, health } => {
+            // Forest Lord Cenarius (M1-W4b) — choose-one option A: all OTHER
+            // friendly minions gain +1/+3 (the source is excluded; the
+            // enchantment is permanent like GainStatsAndTauntAllFriendly).
+            for m in collect_friendly_minions(state, owner) {
+                if m != source {
+                    state.world_mut().add_enchantment(
+                        m,
+                        Enchantment {
+                            attack,
+                            health,
+                            cost: 0,
+                            expiry: EnchantmentExpiry::Permanent,
+                        },
+                    );
+                }
+            }
+        }
+        CardEffect::SummonRandomAnimalCompanion => {
+            // Broll Bearmantle (M1-W4b) — after you cast a spell, summon a
+            // random Animal Companion (the HUNTER_023 companion pool).
+            if let Some(def) = crate::cards::pool::random_from_pool(
+                crate::cards::pool::COMPANION_POOL,
+                state.rng_mut(),
+            ) {
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+        }
+        CardEffect::AddAllDreamCards => {
+            // Shaladrassil (M1-W4b) — add all five Dream cards to hand (the
+            // DREAM_POOL; the hand-size cap F-A11 drops any overflow).
+            // Registered simplification (§14.4): the corruption clause (the
+            // cards corrupt if you play a higher-Cost card while holding
+            // Shaladrassil) is not modeled.
+            for id in crate::cards::pool::DREAM_POOL {
+                if let Some(def) = crate::cards::def::card_by_id(id) {
+                    add_card_to_hand(state, owner, def);
+                }
+            }
+        }
+        CardEffect::CardsCostOneThisGame => {
+            // Aviana, Elune's Chosen (M1-W4b) — all the owner's cards cost
+            // (1) for the rest of the game (registered simplification §14.4:
+            // the real 3-turn lunar cycle with the full-moon effect is
+            // approximated as an immediate game-long effect).
+            let inner = state.make_mut();
+            inner.players[owner.index()].cards_cost_1 = true;
+        }
     }
 }
 

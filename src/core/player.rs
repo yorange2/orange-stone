@@ -167,6 +167,28 @@ pub struct Player {
     /// Twisted Webweaver's "another minion you've already played" log.
     /// `String` (not `&'static str`) so the player state stays (de)serializable.
     pub played_minion_ids: Vec<String>,
+    /// Omen's attack counter (2025–2026 expansions M1-W4b): each attack adds
+    /// 1 to the deathrattle's "Improves" damage (§14.4 interpretation —
+    /// the official enchantment-per-minion is approximated per-player).
+    pub omen_attacks: u32,
+    /// How many of Tyrande's "next 3 spells cast twice" charges remain
+    /// (2025–2026 expansions M1-W4b); consumed at the spell play path.
+    pub spells_cast_twice_pending: u32,
+    /// Dragons played this turn (2025–2026 expansions M1-W4b — Naralex's
+    /// "your first Dragon each turn costs (1)"); cleared at the owner's
+    /// turn start (ManaRefill).
+    pub dragons_played_this_turn: u8,
+    /// Card IDs of the minions Ursoc's battlecry killed (2025–2026
+    /// expansions M1-W4b): the deathrattle resurrects them. Overwritten by
+    /// each Ursoc battlecry; consumed by the deathrattle.
+    pub ursoc_killed_ids: Vec<String>,
+    /// All the player's cards cost (1) this game (2025–2026 expansions
+    /// M1-W4b — Aviana's simplified immediate effect, §14.4).
+    pub cards_cost_1: bool,
+    /// The next card the player plays costs (0) (2025–2026 expansions
+    /// M1-W4b — Agamaggan's simplified cost, §14.4; one-time, consumed on
+    /// play).
+    pub next_card_costs_zero: bool,
 }
 
 impl Player {
@@ -214,6 +236,12 @@ impl Player {
             crystal_gain_pending: 0,
             crystal_gain_turns: 0,
             played_minion_ids: Vec::new(),
+            omen_attacks: 0,
+            spells_cast_twice_pending: 0,
+            dragons_played_this_turn: 0,
+            ursoc_killed_ids: Vec::new(),
+            cards_cost_1: false,
+            next_card_costs_zero: false,
         }
     }
 }

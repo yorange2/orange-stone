@@ -33,6 +33,10 @@ pub enum ChoiceKind {
     Discover,
     /// Mulligan — replace starting-hand cards (roadmap G7)
     Mulligan,
+    /// Keep the card or put it on top of the opponent's deck (Q'onzu —
+    /// 2025–2026 expansions M1-W4b): option 0 keeps `card` in the hand,
+    /// option 1 moves it to the top of the opponent's deck.
+    QonzuKeepOrTop,
 }
 
 /// A choice the engine needs resolved (roadmap G6).
@@ -57,6 +61,10 @@ pub struct PendingChoice {
     /// EXISTING entity moves to hand and the unpicked pool entries are
     /// discarded instead of being ignored
     pub discard_rest: bool,
+    /// How many times the choice must still be resolved (Choose Thrice —
+    /// Forest Lord Cenarius EDR_209, 2025–2026 expansions M1-W4b: 3 picks).
+    /// ChoiceResolved re-surfaces the same choice with `repeat - 1`.
+    pub repeat: u8,
 }
 
 /// Game resolution step — the GameStep state machine (RS/SB analogue, roadmap G1).
@@ -260,6 +268,21 @@ impl GameState {
         pool: Vec<String>,
         discard_rest: bool,
     ) -> u64 {
+        self.set_pending_choice_repeat(kind, card, options, pool, discard_rest, 1)
+    }
+
+    /// Creates a pending choice that must be resolved `repeat` times —
+    /// ChoiceResolved re-surfaces it with one fewer repetition (Choose
+    /// Thrice — Forest Lord Cenarius, 2025–2026 expansions M1-W4b).
+    pub fn set_pending_choice_repeat(
+        &mut self,
+        kind: ChoiceKind,
+        card: Entity,
+        options: Vec<String>,
+        pool: Vec<String>,
+        discard_rest: bool,
+        repeat: u8,
+    ) -> u64 {
         let inner = self.make_mut();
         let id = inner.next_choice_id;
         inner.next_choice_id += 1;
@@ -270,6 +293,7 @@ impl GameState {
             options,
             pool,
             discard_rest,
+            repeat,
         });
         id
     }

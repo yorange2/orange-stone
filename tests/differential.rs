@@ -20200,3 +20200,1054 @@ fn edr_w4a_misc_spells_and_battlecries() {
         .collect();
     assert_eq!(seeds.len(), 2, "battlecry + deathrattle");
 }
+
+// ============================================================
+// Wave W4b — the elite Wild Gods (expansion-emerald-dream-roadmap M1-W4b,
+// src/cards/exp_edr_w4b.rs): 23 legendary cards + 2 tokens. Simplifications
+// registered in docs/finished/fidelity-debt.md §14.4.
+// ============================================================
+
+/// F5-W4b-1 — Ysera, Emerald Aspect: both players' maximum Mana +5 and the
+/// owner gains 3 filled Mana Crystals (the Start-of-Game timing simplified
+/// to play time, §14.4 — the +5 lands when she is played, and the crystals
+/// fill).
+#[test]
+fn edr_w4b_ysera_mana() {
+    use orange_stone::cards::def::YSERA_EMERALD_ASPECT;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 1, 10)
+        .add_minion_to_hand(p1, &YSERA_EMERALD_ASPECT);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.player(p1).mana_crystals,
+        9,
+        "1 base + 5 global + 3 battlecry"
+    );
+    assert_eq!(state.player(PlayerId2()).mana_crystals, 5, "the global +5");
+    assert_eq!(
+        state.player(p1).current_mana,
+        9,
+        "the gained crystals are filled"
+    );
+}
+
+/// F5-W4b-2 — Ohn'ahra: the end-of-turn effect draws 3 cards (the "play the
+/// top 3" simplification, §14.4).
+#[test]
+fn edr_w4b_ohnahra_draws_three() {
+    use orange_stone::cards::def::OHNAHRA;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &OHNAHRA);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().zones().len(Zone::Hand, p1), 0);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        3,
+        "the top 3 drawn"
+    );
+}
+
+/// F5-W4b-3 — Forest Lord Cenarius: the Choose Thrice choice surfaces three
+/// times and each pick resolves one branch (mixed options allowed).
+#[test]
+fn edr_w4b_cenarius_choose_thrice() {
+    use orange_stone::cards::def::FOREST_LORD_CENARIUS;
+    use orange_stone::core::component::EnchantmentExpiry;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &FOREST_LORD_CENARIUS);
+    // `add_custom_minion_to_board` returns the entity — a separate statement
+    builder.add_custom_minion_to_board(p1, 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let card = first_hand_card(&state, p1);
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = res else {
+        panic!("the first choose-thrice pick must surface");
+    };
+    // Three picks: buff (+1/+3), Ancient, buff again
+    let mut choice_id = choice.id;
+    for (i, option) in [0u8, 1, 0].into_iter().enumerate() {
+        let res = engine
+            .apply_choices(&mut state, Action::Choose { choice_id, option })
+            .unwrap();
+        if i < 2 {
+            let Resolution::NeedsChoice { choice } = res else {
+                panic!("picks 1 and 2 must re-surface the choice");
+            };
+            assert_eq!(choice.kind, ChoiceKind::ChooseOne);
+            choice_id = choice.id;
+        } else {
+            assert!(matches!(res, Resolution::Done(_)), "third pick done");
+        }
+    }
+    let cenarius = find_entity(&state, p1, "EDR_209");
+    assert_eq!(
+        state.world().effective_attack(cenarius),
+        Some(Attack(5)),
+        "Cenarius himself is not buffed"
+    );
+    // The 2/2 bystander got +1/+3 twice (+2/+6) and one Ancient was summoned
+    let bystander = board_minions(&state, p1)
+        .into_iter()
+        .find(|&e| state.world().card_id(e).is_none())
+        .expect("the custom bystander has no card id");
+    assert_eq!(state.world().effective_attack(bystander), Some(Attack(4)));
+    assert_eq!(state.world().effective_health(bystander), Some(Health(8)));
+    assert_eq!(board_count(&state, p1, "EDR_209t"), 1);
+    assert!(
+        state
+            .world()
+            .taunt(find_entity(&state, p1, "EDR_209t"))
+            .is_some()
+    );
+    // The enchantments are permanent (not until-end-of-turn)
+    let expiry = state
+        .world()
+        .enchantments(bystander)
+        .expect("buffs present")
+        .iter()
+        .map(|e| e.expiry)
+        .collect::<Vec<_>>();
+    assert_eq!(expiry, vec![EnchantmentExpiry::Permanent; 2]);
+}
+
+/// F5-W4b-4 — Merithra: resurrects every DIFFERENT friendly minion that
+/// cost (8) or more (deduped by card ID; cheaper minions stay dead).
+#[test]
+fn edr_w4b_merithra_resurrects_different() {
+    use orange_stone::cards::def::{AGAMAGGAN, BLOODFEN_RAPTOR, GOLDRINN, MERITHRA};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &MERITHRA);
+    // Three dead 8+-cost minions (Goldrinn twice — the duplicate is deduped)
+    // and one cheap minion (filtered by the (8) threshold). The graveyard
+    // IS the death record; the effect reads it directly. The minions are
+    // spawned on the board (full component set) and then moved to the
+    // graveyard — the move is the "death".
+    for card in [&GOLDRINN, &AGAMAGGAN, &GOLDRINN, &BLOODFEN_RAPTOR] {
+        builder.add_minion_to_board(p1, card);
+    }
+    let mut state = builder.build();
+    let dead: Vec<Entity> = board_minions(&state, p1);
+    assert_eq!(dead.len(), 4);
+    for e in dead {
+        state.world_mut().move_to_zone(e, Zone::Graveyard).unwrap();
+    }
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        board_count(&state, p1, "EDR_480"),
+        1,
+        "Goldrinn returns once"
+    );
+    assert_eq!(board_count(&state, p1, "EDR_489"), 1, "Agamaggan returns");
+    assert_eq!(
+        board_count(&state, p1, "CLASSIC_001"),
+        0,
+        "cheap stays dead"
+    );
+    // Merithra herself + the two resurrected legends
+    assert_eq!(board_minions(&state, p1).len(), 3);
+}
+
+/// F5-W4b-5 — Toreth the Unbreaking: the simplified normal Divine Shield —
+/// one hit breaks it, the second hits the body (§14.4).
+#[test]
+fn edr_w4b_toreth_divine_shield() {
+    use orange_stone::cards::def::TORETH_THE_UNBREAKING;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 5, 5)
+        .add_minion_to_board(p1, &TORETH_THE_UNBREAKING);
+    // Two attackers — each attacks once (an exhausted minion cannot attack
+    // again in the same turn); both survive Toreth's 3-Attack retaliation (2/10)
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 10, 0);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 10, 0);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let toreth = find_entity(&state, p1, "EDR_258");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attackers = board_minions(&state, PlayerId2());
+    // First hit: the shield absorbs
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: attackers[0],
+                defender: toreth,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(toreth), Some(Health(4)));
+    assert!(
+        state.world().divine_shield(toreth).is_none(),
+        "the shield broke"
+    );
+    // Second hit: the body takes the damage
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: attackers[1],
+                defender: toreth,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(toreth), Some(Health(2)));
+}
+
+/// F5-W4b-6 — Ursol: the highest-Cost hand spell is cast immediately (the
+/// 3-turn aura simplification, §14.4) — an 8-Cost spell wins over a 2-Cost
+/// spell, is resolved and moves to the graveyard.
+#[test]
+fn edr_w4b_ursol_casts_highest_spell() {
+    use orange_stone::cards::def::{SHALADRASSIL, STELLAR_BALANCE, URSOL};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &URSOL)
+        .add_minion_to_hand(p1, &STELLAR_BALANCE)
+        .add_minion_to_hand(p1, &SHALADRASSIL);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Ursol is the front card; his battlecry picks the 8-Cost Shaladrassil
+    // over the 2-Cost Stellar Balance still in hand
+    play_front_card(&mut state, &engine, p1);
+    // Shaladrassil (8) was cast over Stellar Balance (2): the five Dream
+    // cards landed in hand and the spell went to the graveyard
+    let hand: Vec<String> = hand_ids(&state, p1);
+    for dream in [
+        "NEUTRAL_T21a",
+        "NEUTRAL_T21b",
+        "NEUTRAL_T21c",
+        "NEUTRAL_T21d",
+        "NEUTRAL_T21e",
+    ] {
+        assert!(
+            hand.iter().any(|id| id == dream),
+            "Dream card {dream} in hand"
+        );
+    }
+    assert_eq!(hand.len(), 6, "5 dreams + the unchosen Stellar Balance");
+    assert!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Graveyard, p1)
+            .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_846")),
+        "the cast spell went to the graveyard"
+    );
+}
+
+/// F5-W4b-7 — Omen: each attack improves the deathrattle (per-player
+/// counter interpretation, §14.4) — after one attack the deathrattle deals
+/// 2 to all enemies.
+#[test]
+fn edr_w4b_omen_improves_deathrattle() {
+    use orange_stone::cards::def::OMEN;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &OMEN);
+    builder.add_custom_minion_to_board(PlayerId2(), 15, 15, 0);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let omen = find_entity(&state, p1, "EDR_421");
+    let hero2 = state.player(PlayerId2()).hero;
+    // Rush: Omen attacks an enemy MINION on the same turn (a Rush minion
+    // cannot attack the hero on its summoning turn). The 15/15 retaliation
+    // kills Omen — the attack itself is the recorded deathrattle-improver.
+    let enemy_minion = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: omen,
+                defender: enemy_minion,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(p1).omen_attacks, 1, "one attack recorded");
+    assert_eq!(
+        state.world().effective_health(hero2),
+        Some(Health(28)),
+        "the deathrattle hit the hero"
+    );
+    let enemy_minion = board_minions(&state, PlayerId2())[0];
+    assert_eq!(
+        state.world().effective_health(enemy_minion),
+        Some(Health(7)),
+        "15 - 6 attack - 2 deathrattle"
+    );
+    assert_eq!(
+        state.world().zone(omen),
+        Some(Zone::Graveyard),
+        "Omen died to the retaliation and its deathrattle fired"
+    );
+}
+
+/// F5-W4b-8 — Aessina: at 20 friendly deaths the battlecry deals 20 damage
+/// randomly split among all enemies; at 19 it does nothing.
+#[test]
+fn edr_w4b_aessina_split_damage() {
+    use orange_stone::cards::def::AESSINA;
+    let p1 = PlayerId1();
+    let engine = GameEngine::new();
+
+    // 20 friendly minions in the graveyard → the full 20 damage
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &AESSINA)
+        .add_custom_minion_to_board(PlayerId2(), 1, 30, 0);
+    let mut dead: Vec<Entity> = Vec::new();
+    for _ in 0..20 {
+        dead.push(builder.add_custom_minion_to_board(p1, 1, 1, 1));
+    }
+    let mut state = builder.build();
+    for e in dead {
+        state.world_mut().move_to_zone(e, Zone::Graveyard).unwrap();
+    }
+    play_front_card(&mut state, &engine, p1);
+    let hero2 = state.player(PlayerId2()).hero;
+    let hp_hero = state.world().effective_health(hero2).unwrap().0;
+    let minion = board_minions(&state, PlayerId2())[0];
+    let hp_minion = state.world().effective_health(minion).unwrap().0;
+    assert_eq!(
+        (30 - hp_hero) + (30 - hp_minion),
+        20,
+        "20 damage split among the enemies"
+    );
+
+    // 19 deaths → nothing happens
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &AESSINA)
+        .add_custom_minion_to_board(PlayerId2(), 1, 30, 0);
+    let mut dead: Vec<Entity> = Vec::new();
+    for _ in 0..19 {
+        dead.push(builder.add_custom_minion_to_board(p1, 1, 1, 1));
+    }
+    let mut state = builder.build();
+    for e in dead {
+        state.world_mut().move_to_zone(e, Zone::Graveyard).unwrap();
+    }
+    play_front_card(&mut state, &engine, p1);
+    let hero2 = state.player(PlayerId2()).hero;
+    assert_eq!(state.world().effective_health(hero2), Some(Health(30)));
+    let minion = board_minions(&state, PlayerId2())[0];
+    assert_eq!(state.world().effective_health(minion), Some(Health(30)));
+}
+
+/// F5-W4b-9 — Tyrande: the next 3 spells are cast twice — a spell's effect
+/// resolves twice (the double-cast re-resolution, §14.4).
+#[test]
+fn edr_w4b_tyrande_cast_twice() {
+    use orange_stone::cards::def::{STELLAR_BALANCE, TYRANDE};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TYRANDE)
+        .add_minion_to_hand(p1, &STELLAR_BALANCE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).spells_cast_twice_pending, 3);
+    let spell = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(p1).spells_cast_twice_pending,
+        2,
+        "one charge used"
+    );
+    // Stellar Balance adds Moonfire + Starfire; the double-cast adds them twice
+    let hand = hand_ids(&state, p1);
+    assert_eq!(hand.len(), 4);
+    assert_eq!(hand.iter().filter(|id| *id == "DRUID_011").count(), 2);
+    assert_eq!(hand.iter().filter(|id| *id == "DRUID_006").count(), 2);
+}
+
+/// F5-W4b-10 — Ysondre: the deathrattle summons a random Dragon per death
+/// this game (the dying instance counts).
+#[test]
+fn edr_w4b_ysondre_dragon_per_death() {
+    use orange_stone::cards::def::YSONDRE;
+    use orange_stone::core::component::Race;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &YSONDRE)
+        .add_minion_to_board(p1, &YSONDRE)
+        .with_rng_seed(42);
+    // `add_custom_minion_to_board` returns the entity — separate statements
+    builder.add_custom_minion_to_board(PlayerId2(), 20, 20, 0);
+    builder.add_custom_minion_to_board(PlayerId2(), 20, 20, 0);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attackers = board_minions(&state, PlayerId2());
+    let ysondres: Vec<Entity> = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_465"))
+        .collect();
+    // First death: one random Dragon
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: attackers[0],
+                defender: ysondres[0],
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        w4b_dragon_count(&state, p1),
+        1,
+        "one dragon after the first death"
+    );
+    // Second death: two random Dragons (2 deaths total)
+    let ysondres: Vec<Entity> = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_465"))
+        .collect();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: attackers[1],
+                defender: ysondres[0],
+            },
+        )
+        .unwrap();
+    // Three dragons total — counted across the board AND the graveyard (the
+    // engine fires battlecries on effect summons, engine-wide; a summoned
+    // battlecry dragon may die on arrival, but the SUMMON still counts).
+    assert_eq!(
+        w4b_dragon_count(&state, p1),
+        3,
+        "three random Dragons total"
+    );
+    for e in state.world().zones().iter(Zone::Play, p1) {
+        if state.world().card_type(e) != Some(CardType::Minion)
+            || state.world().card_id(e).is_some_and(|c| c.0 == "EDR_465")
+        {
+            continue;
+        }
+        assert!(state.world().has_race(e, Race::Dragon), "a random Dragon");
+    }
+}
+
+/// Summoned-dragon count for the Ysondre scenario: non-Ysondre Dragon-race
+/// entities of `player` across the board and the graveyard.
+fn w4b_dragon_count(state: &GameState, player: orange_stone::core::player::PlayerId) -> usize {
+    let mut n = 0;
+    for zone in [Zone::Play, Zone::Graveyard] {
+        n += state
+            .world()
+            .zones()
+            .iter(zone, player)
+            .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 != "EDR_465"))
+            .filter(|&e| {
+                state
+                    .world()
+                    .has_race(e, orange_stone::core::component::Race::Dragon)
+            })
+            .count();
+    }
+    n
+}
+
+/// F5-W4b-11 — Tortolla: taking damage gains the hero 1 Armor and the
+/// minion +1 Attack (once per damage event).
+#[test]
+fn edr_w4b_tortolla_armor_attack() {
+    use orange_stone::cards::def::TORTOLLA;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &TORTOLLA)
+        .add_custom_minion_to_board(PlayerId2(), 5, 5, 0);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let tortolla = find_entity(&state, p1, "EDR_471");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: tortolla,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(p1).armor, 1, "the hero gains 1 Armor");
+    assert_eq!(
+        state.world().effective_attack(tortolla),
+        Some(Attack(2)),
+        "this minion gains +1 Attack"
+    );
+    assert_eq!(
+        state.world().effective_health(tortolla),
+        Some(Health(25)),
+        "30 - 5"
+    );
+}
+
+/// F5-W4b-12 — Goldrinn: friendly Beasts deal double damage (the
+/// damage-pipeline hook, §14.4) — a Raptor's 3 Attack deals 6.
+#[test]
+fn edr_w4b_goldrinn_double_damage() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, GOLDRINN};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &GOLDRINN)
+        .add_minion_to_board(p1, &BLOODFEN_RAPTOR)
+        .add_custom_minion_to_board(PlayerId2(), 1, 10, 0);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let raptor = find_entity(&state, p1, "CLASSIC_001");
+    let defender = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: raptor,
+                defender,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(defender),
+        Some(Health(4)),
+        "3 doubled to 6"
+    );
+    // The retaliation from the 1-Attack non-Beast is NOT doubled
+    assert_eq!(state.world().effective_health(raptor), Some(Health(1)));
+}
+
+/// F5-W4b-13 — Agamaggan: the next card costs (0) (the opponent-Health cost
+/// simplification, §14.4).
+#[test]
+fn edr_w4b_agamaggan_next_card_free() {
+    use orange_stone::cards::def::{AGAMAGGAN, GOLDRINN};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &AGAMAGGAN)
+        .add_minion_to_hand(p1, &GOLDRINN);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert!(state.player(p1).next_card_costs_zero);
+    assert_eq!(state.player(p1).current_mana, 0, "Agamaggan cost 10");
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.player(p1).current_mana,
+        0,
+        "the next card cost (0) — mana unchanged"
+    );
+    assert!(
+        !state.player(p1).next_card_costs_zero,
+        "one-time flag consumed"
+    );
+}
+
+/// F5-W4b-14 — Alara'shi: hand minions transform into random Demons keeping
+/// their stats and Cost; spells and the source are untouched.
+#[test]
+fn edr_w4b_alarashi_transforms_demons() {
+    use orange_stone::cards::def::{ALARASHI, BLOODFEN_RAPTOR, STELLAR_BALANCE};
+    use orange_stone::core::component::Race;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ALARASHI)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &STELLAR_BALANCE);
+    // `add_custom_minion_to_hand` returns the entity — a separate statement
+    builder.add_custom_minion_to_hand(p1, 4, 7, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hand = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .collect::<Vec<_>>();
+    assert_eq!(hand.len(), 3, "two minions + one spell");
+    let spell = hand
+        .iter()
+        .find(|&&e| state.world().card_type(e) == Some(CardType::Spell))
+        .copied()
+        .expect("the spell survives");
+    assert_eq!(state.world().card_id(spell).map(|c| c.0), Some("EDR_874"));
+    for e in &hand {
+        if *e == spell {
+            continue;
+        }
+        assert!(
+            state.world().has_race(*e, Race::Demon),
+            "the minion became a Demon"
+        );
+        assert!(
+            state
+                .world()
+                .card_id(*e)
+                .and_then(|c| orange_stone::cards::def::card_by_id(c.0))
+                .is_some_and(|d| d.race == Some(Race::Demon)),
+            "a real Demon card (not a token)"
+        );
+    }
+    // Original stats and costs are preserved
+    let raptor = hand
+        .iter()
+        .find(|&&e| {
+            state.world().attack(e) == Some(Attack(3)) && state.world().health(e) == Some(Health(2))
+        })
+        .copied()
+        .expect("the Raptor kept 3/2");
+    assert_eq!(state.world().cost(raptor), Some(Cost(2)));
+    let custom = hand
+        .iter()
+        .find(|&&e| {
+            state.world().attack(e) == Some(Attack(4)) && state.world().health(e) == Some(Health(7))
+        })
+        .copied()
+        .expect("the custom minion kept 4/7");
+    assert_eq!(state.world().cost(custom), Some(Cost(3)));
+}
+
+/// F5-W4b-15 — Q'onzu: the discovered spell is either kept in hand or put
+/// on top of the opponent's deck (the Discover→random simplification, §14.4).
+#[test]
+fn edr_w4b_qonzu_keep_or_top() {
+    use orange_stone::cards::def::QONZU;
+    let p1 = PlayerId1();
+    let engine = GameEngine::new();
+
+    // Keep: the spell stays in the owner's hand
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &QONZU);
+    let mut state = builder.build();
+    let card = first_hand_card(&state, p1);
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = res else {
+        panic!("the keep-or-top choice must surface");
+    };
+    assert_eq!(choice.kind, ChoiceKind::QonzuKeepOrTop);
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .find(|&e| state.world().card_type(e) == Some(CardType::Spell))
+        .expect("the discovered spell is in hand");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0, // keep
+            },
+        )
+        .unwrap();
+    assert!(matches!(res, Resolution::Done(_)));
+    assert_eq!(state.world().zone(spell), Some(Zone::Hand));
+    assert!(state.world().zones().iter(Zone::Deck, PlayerId2()).count() == 0);
+
+    // Top: the spell lands on top of the opponent's deck and is drawn first
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &QONZU);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let card = first_hand_card(&state, p1);
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = res else {
+        panic!("the keep-or-top choice must surface");
+    };
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1, // top of the opponent's deck
+            },
+        )
+        .unwrap();
+    assert!(matches!(res, Resolution::Done(_)));
+    let top = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, PlayerId2())
+        .next()
+        .expect("deck non-empty");
+    assert_eq!(state.world().card_type(top), Some(CardType::Spell));
+    // The opponent draws it at their turn start
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId2())
+            .any(|e| state.world().card_type(e) == Some(CardType::Spell)),
+        "the opponent drew the spell first"
+    );
+}
+
+/// F5-W4b-16 — Renferal: the enemy discards a random hand card (the trap
+/// simplification, §14.4).
+#[test]
+fn edr_w4b_renferal_discards() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, RENFERAL_THE_MALIGNANT};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &RENFERAL_THE_MALIGNANT)
+        .add_minion_to_hand(PlayerId2(), &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(PlayerId2(), &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(PlayerId2(), &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId2()), 3);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId2()),
+        2,
+        "one card was discarded"
+    );
+    assert_eq!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Graveyard, PlayerId2())
+            .count(),
+        1,
+        "the discarded card is in the graveyard"
+    );
+}
+
+/// F5-W4b-17 — Ashamane: the hand fills with copies of the opponent's deck
+/// cards, each costing (3) less (pool-open — POOL_OPEN_CARDS).
+#[test]
+fn edr_w4b_ashamane_fills_hand() {
+    use orange_stone::cards::def::{ASHAMANE, BLOODFEN_RAPTOR, NYTHENDRA};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ASHAMANE);
+    // The opponent's deck: three 2-Cost Raptors and one 7-Cost Nythendra
+    for _ in 0..3 {
+        builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    }
+    builder.add_minion_to_deck(PlayerId2(), &NYTHENDRA);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hand = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .collect::<Vec<_>>();
+    assert_eq!(hand.len(), 10, "the hand is full (F-A11 cap)");
+    for e in hand {
+        let id = state.world().card_id(e).map(|c| c.0).unwrap();
+        assert!(
+            matches!(id, "CLASSIC_001" | "EDR_818"),
+            "a copy of an enemy deck card (got {id})"
+        );
+        let cost = state.world().effective_cost(e).unwrap().0;
+        if id == "CLASSIC_001" {
+            assert_eq!(cost, 0, "2 - 3 floored at 0");
+        } else {
+            assert_eq!(cost, 4, "7 - 3");
+        }
+    }
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, PlayerId2()),
+        4,
+        "the opponent's deck is untouched"
+    );
+}
+
+/// F5-W4b-18 — Nythendra: the deathrattle summons seven 1/1 Beetles (the
+/// split/reform simplification, §14.4).
+#[test]
+fn edr_w4b_nythendra_beetles() {
+    use orange_stone::cards::def::NYTHENDRA;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &NYTHENDRA)
+        .add_custom_minion_to_board(PlayerId2(), 20, 20, 0);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let nythendra = find_entity(&state, p1, "EDR_818");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: nythendra,
+            },
+        )
+        .unwrap();
+    let beetles = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_818t"))
+        .collect::<Vec<_>>();
+    assert_eq!(beetles.len(), 7, "seven 1/1 Beetles");
+    for b in &beetles {
+        assert_eq!(state.world().effective_attack(*b), Some(Attack(1)));
+        assert_eq!(state.world().effective_health(*b), Some(Health(1)));
+    }
+}
+
+/// F5-W4b-19 — Ursoc: the battlecry attacks all other minions (friendly and
+/// enemy) and the deathrattle resurrects every minion it killed.
+#[test]
+fn edr_w4b_ursoc_kill_resurrect() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, URSOC};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &URSOC)
+        .add_minion_to_board(PlayerId2(), &BLOODFEN_RAPTOR)
+        .add_minion_to_board(PlayerId2(), &BLOODFEN_RAPTOR)
+        .add_custom_minion_to_board(PlayerId2(), 20, 20, 0);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    // The battlecry's 6 Attack killed the friendly Raptor and both enemy
+    // Raptors; the 20/20 survives at 14
+    assert_eq!(board_count(&state, p1, "CLASSIC_001"), 0);
+    assert_eq!(board_count(&state, PlayerId2(), "CLASSIC_001"), 0);
+    let big = board_minions(&state, PlayerId2())[0];
+    assert_eq!(state.world().effective_health(big), Some(Health(14)));
+    let recorded = state.player(p1).ursoc_killed_ids.clone();
+    assert_eq!(recorded, vec!["CLASSIC_001"; 3], "all three kills recorded");
+    // The big minion kills Ursoc → the deathrattle resurrects all three
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let ursoc = find_entity(&state, p1, "EDR_819");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: big,
+                defender: ursoc,
+            },
+        )
+        .unwrap();
+    assert_eq!(board_count(&state, p1, "CLASSIC_001"), 3, "resurrected");
+    assert!(state.player(p1).ursoc_killed_ids.is_empty(), "consumed");
+}
+
+/// F5-W4b-20 — Naralex: the first Dragon the owner plays each turn costs
+/// (1); the second costs full.
+#[test]
+fn edr_w4b_naralex_dragon_discount() {
+    use orange_stone::cards::def::{NARALEX_HERALD_OF_THE_FLIGHTS, NYTHENDRA, YSONDRE};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &NARALEX_HERALD_OF_THE_FLIGHTS)
+        .add_minion_to_hand(p1, &NYTHENDRA)
+        .add_minion_to_hand(p1, &YSONDRE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).current_mana, 9, "the first Dragon cost 1");
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.player(p1).current_mana,
+        2,
+        "the second Dragon costs its full 7"
+    );
+    assert_eq!(state.player(p1).dragons_played_this_turn, 2);
+}
+
+/// F5-W4b-21 — Shaladrassil: adds all five Dream cards to hand (the
+/// corruption clause simplification, §14.4).
+#[test]
+fn edr_w4b_shaladrassil_dream_cards() {
+    use orange_stone::cards::def::SHALADRASSIL;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SHALADRASSIL);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hand = hand_ids(&state, p1);
+    assert_eq!(hand.len(), 5);
+    for dream in [
+        "NEUTRAL_T21a",
+        "NEUTRAL_T21b",
+        "NEUTRAL_T21c",
+        "NEUTRAL_T21d",
+        "NEUTRAL_T21e",
+    ] {
+        assert!(hand.iter().any(|id| id == dream), "{dream} in hand");
+    }
+}
+
+/// F5-W4b-22 — Broll Bearmantle: after the owner casts a spell, a random
+/// Animal Companion is summoned.
+#[test]
+fn edr_w4b_broll_companion() {
+    use orange_stone::cards::def::{BROLL_BEARMANTLE, STELLAR_BALANCE};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &BROLL_BEARMANTLE)
+        .add_minion_to_hand(p1, &STELLAR_BALANCE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let companions = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| matches!(c.0, "HUNTER_023a" | "HUNTER_023b" | "HUNTER_023c"))
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(companions.len(), 1, "one Animal Companion summoned");
+}
+
+/// F5-W4b-23 — Aviana: the (1)-for-the-game effect applies immediately (the
+/// lunar-cycle simplification, §14.4) — the next card costs (1).
+#[test]
+fn edr_w4b_aviana_cards_cost_one() {
+    use orange_stone::cards::def::{AVIANA_ELUNES_CHOSEN, GOLDRINN};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &AVIANA_ELUNES_CHOSEN)
+        .add_minion_to_hand(p1, &GOLDRINN);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).current_mana, 1, "Aviana cost her 9");
+    assert!(state.player(p1).cards_cost_1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.player(p1).current_mana,
+        0,
+        "the 9-Cost Goldrinn costs (1)"
+    );
+}

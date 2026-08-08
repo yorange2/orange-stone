@@ -797,3 +797,89 @@ F5 coverage: `edr_w4a_deck_top_buffs_and_scans`, `edr_w4a_death_records`,
 `edr_w4a_midrange_b`, `edr_w4a_misc_spells_and_battlecries`
 (14 scenarios in `tests/differential.rs`). Full `cargo test` green; `cargo
 clippy --all-targets` clean.
+### 14.4 2025–2026 expansions M1-W4b — the Emerald Dream elite Wild Gods (23 legendary cards) 🔓 registered
+
+The registered simplifications of the M1-W4b wave (`src/cards/exp_edr_w4b.rs`,
+23 consts = the 23 elite legendary Wild Gods of the W4 "remaining cards"
+list, plus 2 tokens: EDR_209t Ancient and EDR_818t Beetle; the FIR_*
+miniset is M1-W5). New mechanism facilities this wave: a per-player attack
+counter (`Player::omen_attack_bonus` — Omen's "Improves" deathrattle, the
+official per-minion enchantment approximated per-player); a per-player
+spell double-cast counter (`Player::next_spells_cast_twice` — Tyrande, the
+re-cast fires immediately after the original resolution with no target and
+no second `SpellCast` event); a per-player one-time next-card-cost flag
+(`Player::next_card_costs_zero` — Agamaggan) and a game-long
+cards-cost-(1) flag (`Player::cards_cost_1` — Aviana, applied LAST in the
+cost pipeline so the one-time/set-to-value effects above keep their lower
+costs only when they land at or below 1); a per-turn Dragon-play counter
+(`Player::dragons_played_this_turn` — Naralex's first-Dragon discount); the
+choose-thrice machinery (Cenarius — a repeatable choose-one choice,
+`repeat` on `PendingChoice`); the keep-or-top choice
+(`ChoiceKind::QonzuKeepOrTop` — Q'onzu, which also surfaced an engine bug:
+the choice arm never switched the card's PLAYER component, so a card placed
+on the enemy deck top was drawn back into the owner's hand — fixed with
+`world.set_player`); and Ursoc's kill-record resurrection (the battlecry's
+sync-damage attacks record the killed card IDs for the deathrattle).
+Ashamane (EDR_527) reads the opponent's deck and is registered in
+`POOL_OPEN_CARDS` (the Nightmare Fuel precedent) with its effect added to
+the `is_pool_open_effect` matches. Ysondre's random-Dragon summon draws
+from the same dragon pool as the engine's other Dragon generators. As with
+§14–§14.3, these handwritten expansion cards are not in the RL pool
+(classic + core 668/659), so the rows are informational: they keep the
+code's `(simplified: …)` markers traceable to the ledger. Each row stays
+open until its mechanism lands.
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| EDR_000 | Ysera, Emerald Aspect | The Start of Game +5 maximum Mana applies at play time (the engine has no StartOfGame event — the +5 lands with the battlecry) | a StartOfGame event |
+| EDR_031 | Ohn'ahra | "Play the top 3 cards from your deck" has no pipeline — the end-of-turn effect draws 3 cards instead | a play-from-deck pipeline |
+| EDR_258 | Toreth the Unbreaking | The three-hit Divine Shield is a new mechanic — Toreth carries a normal Divine Shield | multi-hit Divine Shield |
+| EDR_259 | Ursol | The "cast as an Aura that lasts 3 turns" is a new mechanic — the highest-Cost hand spell is cast immediately | aura-ized casts |
+| EDR_421 | Omen | The official per-minion "Improves" enchantment is approximated by a per-player attack counter (+1 damage per attack) | per-minion enchantments |
+| EDR_464 | Tyrande | The doubled cast re-resolves the same effect immediately after the original with no target, firing no second `SpellCast` event | a full double-cast pipeline |
+| EDR_480 | Goldrinn | The "friendly Beasts deal double damage" aura is approximated by a damage-pipeline hook while EDR_480 is on the board | an attack-doubling aura |
+| EDR_489 | Agamaggan | The opponent's-Health cost needs a cost-pipeline rework — the next card costs (0) instead | opponent-Health costs |
+| EDR_517 | Q'onzu | Discover → a random spell from the full database (the standing Discover→random debt); the keep/top decision surfaces as the `QonzuKeepOrTop` choice | a real Discover pipeline |
+| EDR_526 | Renferal, the Malignant | The one-turn trap is a new mechanic — the enemy discards a random hand card instead; the "Improved" scaling is unmodeled | a trap mechanic |
+| EDR_818 | Nythendra | The split/reform cycle is unmodeled — the deathrattle summons seven 1/1 Beetles, one per point of the 7/7 body | a split/reform mechanic |
+| EDR_846 | Shaladrassil | The corruption clause is unmodeled — the spell adds the five DREAM_POOL cards to hand | a corruption mechanic |
+| EDR_895 | Aviana, Elune's Chosen | The three-turn lunar-cycle timing is unmodeled — the cards-cost-(1) effect applies immediately for the rest of the game | a lunar-cycle timer |
+
+中文小结（同上）：M1-W4b 波（23 张精英野神传说卡 + 2 张衍生物）的新机制
+设施：每玩家攻击计数（`omen_attack_bonus`，Omen 的"Improves"亡语——官方
+按随从个体的附魔近似为每玩家计数）、每玩家法术双施计数（`next_spells_cast_twice`，
+Tyrande 的加倍施放紧跟在原效果结算后、无目标、不产生第二次 `SpellCast`
+事件）、一次性下张卡费用 (0) 标志（`next_card_costs_zero`，Agamaggan）
+与本局卡牌费用 (1) 标志（`cards_cost_1`，Aviana，在费用管线最后应用，
+保证其上的一次性/设定值效果只有落到 ≤1 时才保留更低费用）、每回合龙类
+打出计数（`dragons_played_this_turn`，Naralex 的首张龙优惠）、三选抉择
+机制（Cenarius 的 choose-thrice，`PendingChoice` 上的 `repeat`）、保留
+或置顶抉择（`ChoiceKind::QonzuKeepOrTop`——顺带修了一个引擎 bug：该抉择
+分支此前不切换卡牌的 PLAYER 组件，置入敌方牌库顶的牌会被抽回持有者手牌，
+补上 `world.set_player` 修复）以及 Ursoc 的击杀记录复活（战吼的同步伤害
+攻击逐目标结算时记录被杀卡牌 id 供亡语复活）。Ashamane（EDR_527）读取
+对手牌库，登记进 `POOL_OPEN_CARDS`（沿用 Nightmare Fuel 先例），其效果
+也加入了 `is_pool_open_effect` 的匹配。Ysondre 的随机龙召唤与其他龙类
+随机生成器共用同一个龙池。本波简化与既往一致：发现 → 随机（EDR_517）；
+"打出牌库顶 3 张"→ 抽 3 张（EDR_031）；新机制未建模 → 简化替代
+（EDR_258 三破圣盾 → 普通圣盾、EDR_259 光环化施放 → 立即施放、
+EDR_421 个体附魔 → 每玩家计数、EDR_526 陷阱 → 随机弃牌、
+EDR_818 分裂/重组 → 亡语召唤甲虫、EDR_846 腐化条款、EDR_895 月相周期 →
+立即生效）；Start-of-Game 无事件 → 打出场时结算（EDR_000）；费用管线
+改造挂账（EDR_489）；双施时序近似（EDR_464）；伤害翻倍光环 → 伤害管线
+钩子（EDR_480）。扩展手写卡均不在 RL 池（经典 + 核心 668/659），本表仅作
+登记追踪，各行在机制落地前保持开放。
+
+F5 coverage: `edr_w4b_ysera_mana`, `edr_w4b_ohnahra_draws_three`,
+`edr_w4b_cenarius_choose_thrice`, `edr_w4b_merithra_resurrects_different`,
+`edr_w4b_toreth_divine_shield`, `edr_w4b_ursol_casts_highest_spell`,
+`edr_w4b_omen_improves_deathrattle`, `edr_w4b_aessina_split_damage`,
+`edr_w4b_tyrande_cast_twice`, `edr_w4b_ysondre_dragon_per_death`,
+`edr_w4b_tortolla_armor_attack`, `edr_w4b_goldrinn_double_damage`,
+`edr_w4b_agamaggan_next_card_free`, `edr_w4b_alarashi_transforms_demons`,
+`edr_w4b_qonzu_keep_or_top`, `edr_w4b_renferal_discards`,
+`edr_w4b_ashamane_fills_hand`, `edr_w4b_nythendra_beetles`,
+`edr_w4b_ursoc_kill_resurrect`, `edr_w4b_naralex_dragon_discount`,
+`edr_w4b_shaladrassil_dream_cards`, `edr_w4b_broll_companion`,
+`edr_w4b_aviana_cards_cost_one` (23 scenarios in `tests/differential.rs`).
+Full `cargo test` green; `cargo clippy --all-targets` clean.

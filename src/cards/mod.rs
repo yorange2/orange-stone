@@ -32,6 +32,7 @@ pub mod exp_edr_w1;
 pub mod exp_edr_w2;
 pub mod exp_edr_w3;
 pub mod exp_edr_w4a;
+pub mod exp_edr_w4b;
 pub mod generated;
 pub mod pool;
 pub mod sets;
@@ -121,6 +122,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "EDR_486" // Scorching Observer (M1-W4a)
         | "EDR_492t" // Duckling (M1-W4a — Mother Duck token)
         | "EDR_262t" // Wolf (M1-W4a — Spirit Bond token)
+        | "EDR_421" // Omen (M1-W4b — the Wild Gods wave)
+        | "EDR_480" // Goldrinn (M1-W4b — the Wild Gods wave)
     ) {
         world.set_rush(entity, Rush);
     }
@@ -151,6 +154,52 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // Mythical Terror — dual tribe Demon + Beast (the CardDef carries
         // the primary Demon; the Beast half lands here, Core Set W1)
         world.add_race(entity, crate::core::component::Race::Beast);
+    }
+    // M1-W4b dual tribes — the Wild Gods wave (the CardDef carries the
+    // primary tribe from the JSON "race" field; the "races" second entry
+    // lands here, the Mythical Terror precedent)
+    if matches!(
+        card_def.id,
+        "EDR_421" // Omen — Demon + Beast
+        | "EDR_493" // Alara'shi — Demon + Beast
+    ) {
+        world.add_race(entity, crate::core::component::Race::Demon);
+    }
+    if card_def.id == "EDR_818" {
+        // Nythendra — Undead + Dragon
+        world.add_race(entity, crate::core::component::Race::Dragon);
+    }
+    // M1-W4b per-card triggers — the Wild Gods wave:
+    // - Omen (EDR_421): every attack improves his deathrattle (the
+    //   per-player counter, §14.4);
+    // - Tortolla (EDR_471): taking damage gains the owner 1 Armor and gives
+    //   this minion +1 Attack.
+    if card_def.id == "EDR_421" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::Attacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::IncrementOmenAttack,
+            },
+        );
+    }
+    if card_def.id == "EDR_471" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::ThisMinionDamaged,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::GainArmorAndSelfAttack {
+                    armor: 1,
+                    attack: 1,
+                },
+            },
+        );
     }
     // Tradeable (Core Set W2) — the 6 Tradeable cards: shuffle-for-1-and-draw
     if matches!(
@@ -862,6 +911,10 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
 /// choose-one surface sites in `engine/rules.rs` (spell / minion / weapon).
 pub(crate) fn choose_one_option_names(def: &CardDef) -> [&'static str; 2] {
     match def.id {
+        "EDR_209" => [
+            "Give your other minions +1/+3",
+            "Summon a 5/5 Ancient with Taunt",
+        ],
         "EDR_233" => [
             "Summon three 2/3 Wolves with Taunt",
             "Summon two 4/3 Falcons with Windfury",

@@ -1825,6 +1825,103 @@ pub enum CardEffect {
     /// Give the just-played minion a random Bonus Effect (Dreambound Raptor
     /// — the official pool is approximated by a fixed keyword pool, §14.3)
     GrantRandomBonusEffect,
+    /// Ysera, Emerald Aspect (M1-W4b): the Start of Game effect ("increase
+    /// both players' maximum Mana by 5") fires when Ysera is played (the
+    /// engine has no StartOfGame event, §14.4), then the battlecry grants 3
+    /// filled Mana Crystals
+    YseraEmeraldAspect,
+    /// Resurrect all different friendly minions that cost (8) or more
+    /// (Merithra — "different" deduplicates by card ID, the graveyard is
+    /// the death record)
+    ResurrectAllDifferentFriendlyCostGE {
+        /// Minimum base cost
+        cost: u8,
+    },
+    /// Cast the highest-Cost spell from the hand as a normal spell (Ursol —
+    /// the aura-ization is simplified to a direct cast, §14.4)
+    CastHighestCostSpellFromHand,
+    /// Omen's attack counter trigger (M1-W4b): each attack adds 1 to the
+    /// deathrattle's "Improves" damage (§14.4 interpretation)
+    IncrementOmenAttack,
+    /// Omen's deathrattle (M1-W4b): deal 1 plus the recorded attack bonus
+    /// to all enemies
+    OmenDeathrattle,
+    /// Deal `amount` damage split among all enemies as 1-damage hits, only
+    /// when at least `threshold` friendly minions died this game (Aessina —
+    /// the graveyard is the game-long death record)
+    SplitDamageAmongAllEnemiesIfFallen {
+        /// Total damage split
+        amount: u8,
+        /// Friendly deaths required
+        threshold: u8,
+    },
+    /// The next `count` spells the player plays cast twice (Tyrande — the
+    /// doubled cast re-resolves the same effect at play time; after-cast
+    /// triggers fire once per play, §14.4)
+    NextSpellsCastTwice {
+        /// How many spells cast twice
+        count: u8,
+    },
+    /// Summon a random Dragon for each time this minion died this game
+    /// (Ysondre — the death count reads the graveyard, which includes the
+    /// current death)
+    SummonRandomDragonPerSelfDeath,
+    /// Gain Armor and give this minion +Attack (Tortolla — fired by its
+    /// ThisMinionDamaged trigger)
+    GainArmorAndSelfAttack {
+        /// Armor gained by the owner
+        armor: i32,
+        /// Attack gained by the minion
+        attack: i32,
+    },
+    /// The next card the player plays costs (0) (Agamaggan — the
+    /// opponent's-Health cost is simplified to 0, §14.4)
+    NextCardCostsZero,
+    /// Transform all minions in the hand into random Demons, keeping their
+    /// original stats and Cost (Alara'shi)
+    TransformHandMinionsToRandomDemons,
+    /// Add a random spell to the hand, then surface a keep-or-put-on-top
+    /// choice (Q'onzu — the Discover is simplified to a random spell,
+    /// §14.4)
+    DiscoverSpellKeepOrTop,
+    /// Discard a random card from the opponent's hand (Renferal — the
+    /// one-turn trap is simplified to a discard, §14.4)
+    DiscardRandomEnemyHandCard,
+    /// Fill the hand with copies of the opponent's deck cards, each costing
+    /// `reduction` less (Ashamane — pool-open, reads the opponent's deck)
+    FillHandWithEnemyDeckCopies {
+        /// Cost reduction on each copy
+        reduction: u8,
+    },
+    /// Summon `count` 1/1 Beetles (Nythendra — the split/reform cycle is
+    /// simplified to a deathrattle summon, §14.4)
+    SummonBeetles {
+        /// Number of 1/1 Beetles
+        count: u8,
+    },
+    /// Attack ALL other minions, recording the kills for the deathrattle
+    /// (Ursoc — the attacks are direct damage; the kill record is exact
+    /// because the damage resolves one target at a time)
+    UrsocBattlecry,
+    /// Resurrect every minion the battlecry killed (Ursoc)
+    UrsocDeathrattle,
+    /// Give all OTHER friendly minions +Attack/+Health (Forest Lord
+    /// Cenarius — Choose Thrice branch 1)
+    GainStatsAllOtherFriendlyMinions {
+        /// Attack gained
+        attack: i32,
+        /// Health gained
+        health: i32,
+    },
+    /// Summon a random Animal Companion (Broll Bearmantle — fired by its
+    /// FriendlySpellCast trigger)
+    SummonRandomAnimalCompanion,
+    /// Add all 5 Dream cards to the hand (Shaladrassil — the corruption
+    /// clause is unmodeled, §14.4)
+    AddAllDreamCards,
+    /// Your cards cost (1) this game (Aviana — the three-turn lunar cycle
+    /// is simplified to an immediate effect, §14.4)
+    CardsCostOneThisGame,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -2637,6 +2734,44 @@ enum CardEffectDe {
     GainDeadMinionAttack,
     DrawIfMinionPlayedBefore,
     GrantRandomBonusEffect,
+    YseraEmeraldAspect,
+    ResurrectAllDifferentFriendlyCostGE {
+        cost: u8,
+    },
+    CastHighestCostSpellFromHand,
+    IncrementOmenAttack,
+    OmenDeathrattle,
+    SplitDamageAmongAllEnemiesIfFallen {
+        amount: u8,
+        threshold: u8,
+    },
+    NextSpellsCastTwice {
+        count: u8,
+    },
+    SummonRandomDragonPerSelfDeath,
+    GainArmorAndSelfAttack {
+        armor: i32,
+        attack: i32,
+    },
+    NextCardCostsZero,
+    TransformHandMinionsToRandomDemons,
+    DiscoverSpellKeepOrTop,
+    DiscardRandomEnemyHandCard,
+    FillHandWithEnemyDeckCopies {
+        reduction: u8,
+    },
+    SummonBeetles {
+        count: u8,
+    },
+    UrsocBattlecry,
+    UrsocDeathrattle,
+    GainStatsAllOtherFriendlyMinions {
+        attack: i32,
+        health: i32,
+    },
+    SummonRandomAnimalCompanion,
+    AddAllDreamCards,
+    CardsCostOneThisGame,
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -3497,6 +3632,43 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::GainDeadMinionAttack => CardEffect::GainDeadMinionAttack,
             CardEffectDe::DrawIfMinionPlayedBefore => CardEffect::DrawIfMinionPlayedBefore,
             CardEffectDe::GrantRandomBonusEffect => CardEffect::GrantRandomBonusEffect,
+            CardEffectDe::YseraEmeraldAspect => CardEffect::YseraEmeraldAspect,
+            CardEffectDe::ResurrectAllDifferentFriendlyCostGE { cost } => {
+                CardEffect::ResurrectAllDifferentFriendlyCostGE { cost }
+            }
+            CardEffectDe::CastHighestCostSpellFromHand => CardEffect::CastHighestCostSpellFromHand,
+            CardEffectDe::IncrementOmenAttack => CardEffect::IncrementOmenAttack,
+            CardEffectDe::OmenDeathrattle => CardEffect::OmenDeathrattle,
+            CardEffectDe::SplitDamageAmongAllEnemiesIfFallen { amount, threshold } => {
+                CardEffect::SplitDamageAmongAllEnemiesIfFallen { amount, threshold }
+            }
+            CardEffectDe::NextSpellsCastTwice { count } => {
+                CardEffect::NextSpellsCastTwice { count }
+            }
+            CardEffectDe::SummonRandomDragonPerSelfDeath => {
+                CardEffect::SummonRandomDragonPerSelfDeath
+            }
+            CardEffectDe::GainArmorAndSelfAttack { armor, attack } => {
+                CardEffect::GainArmorAndSelfAttack { armor, attack }
+            }
+            CardEffectDe::NextCardCostsZero => CardEffect::NextCardCostsZero,
+            CardEffectDe::TransformHandMinionsToRandomDemons => {
+                CardEffect::TransformHandMinionsToRandomDemons
+            }
+            CardEffectDe::DiscoverSpellKeepOrTop => CardEffect::DiscoverSpellKeepOrTop,
+            CardEffectDe::DiscardRandomEnemyHandCard => CardEffect::DiscardRandomEnemyHandCard,
+            CardEffectDe::FillHandWithEnemyDeckCopies { reduction } => {
+                CardEffect::FillHandWithEnemyDeckCopies { reduction }
+            }
+            CardEffectDe::SummonBeetles { count } => CardEffect::SummonBeetles { count },
+            CardEffectDe::UrsocBattlecry => CardEffect::UrsocBattlecry,
+            CardEffectDe::UrsocDeathrattle => CardEffect::UrsocDeathrattle,
+            CardEffectDe::GainStatsAllOtherFriendlyMinions { attack, health } => {
+                CardEffect::GainStatsAllOtherFriendlyMinions { attack, health }
+            }
+            CardEffectDe::SummonRandomAnimalCompanion => CardEffect::SummonRandomAnimalCompanion,
+            CardEffectDe::AddAllDreamCards => CardEffect::AddAllDreamCards,
+            CardEffectDe::CardsCostOneThisGame => CardEffect::CardsCostOneThisGame,
         })
     }
 }
@@ -3711,6 +3883,36 @@ mod tests {
             CardEffect::GainDeadMinionAttack,
             CardEffect::DrawIfMinionPlayedBefore,
             CardEffect::GrantRandomBonusEffect,
+            CardEffect::YseraEmeraldAspect,
+            CardEffect::ResurrectAllDifferentFriendlyCostGE { cost: 8 },
+            CardEffect::CastHighestCostSpellFromHand,
+            CardEffect::IncrementOmenAttack,
+            CardEffect::OmenDeathrattle,
+            CardEffect::SplitDamageAmongAllEnemiesIfFallen {
+                amount: 20,
+                threshold: 20,
+            },
+            CardEffect::NextSpellsCastTwice { count: 3 },
+            CardEffect::SummonRandomDragonPerSelfDeath,
+            CardEffect::GainArmorAndSelfAttack {
+                armor: 1,
+                attack: 1,
+            },
+            CardEffect::NextCardCostsZero,
+            CardEffect::TransformHandMinionsToRandomDemons,
+            CardEffect::DiscoverSpellKeepOrTop,
+            CardEffect::DiscardRandomEnemyHandCard,
+            CardEffect::FillHandWithEnemyDeckCopies { reduction: 3 },
+            CardEffect::SummonBeetles { count: 3 },
+            CardEffect::UrsocBattlecry,
+            CardEffect::UrsocDeathrattle,
+            CardEffect::GainStatsAllOtherFriendlyMinions {
+                attack: 1,
+                health: 3,
+            },
+            CardEffect::SummonRandomAnimalCompanion,
+            CardEffect::AddAllDreamCards,
+            CardEffect::CardsCostOneThisGame,
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");

@@ -157,5 +157,38 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
             .sum();
         cost = Cost((cost.0 - discount).max(0));
     }
+    // Naralex, Herald of the Flights (2025–2026 expansions M1-W4b): while he
+    // is on the board, the first Dragon the owner plays each turn costs (1)
+    // — the per-turn play counter is Player::dragons_played_this_turn
+    // (reset at the owner's turn start; incremented at the CardPlayed path).
+    if state
+        .world()
+        .has_race(card, crate::core::component::Race::Dragon)
+        && state.player(player).dragons_played_this_turn == 0
+        && state
+            .world()
+            .zones()
+            .iter(crate::core::zone::Zone::Play, player)
+            .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_844"))
+    {
+        cost = Cost(1);
+    }
+    // Agamaggan (2025–2026 expansions M1-W4b): the next card the owner plays
+    // costs (0) — registered simplification (§14.4, the official effect sets
+    // the cost to the opponent's Health). Applied after the Naralex set, so
+    // Agamaggan's flag wins.
+    if state.player(player).next_card_costs_zero {
+        cost = Cost(0);
+    }
+    // Aviana, Elune's Chosen (2025–2026 expansions M1-W4b): all the owner's
+    // cards cost (1) this game (registered simplification §14.4 — the real
+    // lunar-cycle timing is approximated as immediate). "(1)" is a SET — the
+    // card costs exactly 1 (official text: "Your cards cost (1)"), so a
+    // 9-Cost minion is discounted to 1 and a (0) card is raised to 1.
+    // Applied LAST so the one-time/set-to-value effects above keep their
+    // lower costs only when they land at or below 1.
+    if state.player(player).cards_cost_1 {
+        cost = Cost(1);
+    }
     cost
 }

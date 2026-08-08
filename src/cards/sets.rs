@@ -1817,6 +1817,33 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_edr_w4a::DUCKLING,
     super::exp_edr_w4a::WEB_OF_DECEPTION_SPIDER,
     super::exp_edr_w4a::LEECH,
+    // M1-W4b — the elite Wild Gods wave (src/cards/exp_edr_w4b.rs)
+    super::exp_edr_w4b::YSERA_EMERALD_ASPECT,
+    super::exp_edr_w4b::OHNAHRA,
+    super::exp_edr_w4b::FOREST_LORD_CENARIUS,
+    super::exp_edr_w4b::MERITHRA,
+    super::exp_edr_w4b::TORETH_THE_UNBREAKING,
+    super::exp_edr_w4b::URSOL,
+    super::exp_edr_w4b::OMEN,
+    super::exp_edr_w4b::AESSINA,
+    super::exp_edr_w4b::TYRANDE,
+    super::exp_edr_w4b::YSONDRE,
+    super::exp_edr_w4b::TORTOLLA,
+    super::exp_edr_w4b::GOLDRINN,
+    super::exp_edr_w4b::AGAMAGGAN,
+    super::exp_edr_w4b::ALARASHI,
+    super::exp_edr_w4b::QONZU,
+    super::exp_edr_w4b::RENFERAL_THE_MALIGNANT,
+    super::exp_edr_w4b::ASHAMANE,
+    super::exp_edr_w4b::NYTHENDRA,
+    super::exp_edr_w4b::URSOC,
+    super::exp_edr_w4b::NARALEX_HERALD_OF_THE_FLIGHTS,
+    super::exp_edr_w4b::SHALADRASSIL,
+    super::exp_edr_w4b::BROLL_BEARMANTLE,
+    super::exp_edr_w4b::AVIANA_ELUNES_CHOSEN,
+    // M1-W4b tokens (handwritten only — no generated baselines)
+    super::exp_edr_w4b::CENARIUS_ANCIENT,
+    super::exp_edr_w4b::NYTHENDRA_BEETLE,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated
@@ -1864,6 +1891,9 @@ pub const POOL_OPEN_CARDS: &[&str] = &[
     "EDR_521", // Tricky Satyr — copies the opponent's lowest-Cost hand card
     "EDR_522", // Mimicry — copies the opponent's drawn cards
     "EDR_524", // Shadowcloaked Assailant — shuffles a matching enemy hand card
+    // M1-W4b — the elite Wild Gods wave (src/cards/exp_edr_w4b.rs):
+    // Ashamane fills the hand with copies of the opponent's deck cards.
+    "EDR_527", // Ashamane — fills the hand with copies of the enemy deck
 ];
 
 #[cfg(test)]
@@ -1911,6 +1941,7 @@ mod tests {
                     | CardEffect::CopyLowestCostEnemyHandCard
                     | CardEffect::OpponentDrawsTwoAndCopies
                     | CardEffect::ShuffleMatchingEnemyHandCardIntoDeck
+                    | CardEffect::FillHandWithEnemyDeckCopies { .. }
             )
         };
         for card in ALL_CARDS {
