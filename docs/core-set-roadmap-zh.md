@@ -41,9 +41,9 @@
 - [x] `CORE_BAR_311` Devouring Plague — 3 费 法术
 - [ ] `CORE_BAR_313` Priest of An'she — 5 费随从 5/5
 - [ ] `CORE_BAR_541` Runed Orb — 2 费 法术
-- [ ] `CORE_BAR_801` Wound Prey — 1 费 法术
+- [x] `CORE_BAR_801` Wound Prey — 1 费 法术
 - [ ] `CORE_BAR_812` Oasis Ally — 3 费 法术
-- [ ] `CORE_BAR_878` Veteran Warmedic — 4 费随从 3/5
+- [x] `CORE_BAR_878` Veteran Warmedic — 4 费随从 3/5
 
 ### CORE_BOT_* — 砰砰计划（4 张）
 
@@ -82,13 +82,13 @@
 - [ ] `CORE_CATA_001` Tichondrius — 9 费随从 9/8
 - [ ] `CORE_CATA_002` Calia Menethil — 6 费随从 4/5
 - [ ] `CORE_CATA_003` Vindicator Maraad — 3 费随从 2/4 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
-- [ ] `CORE_CATA_004` Rehgar Earthfury — 5 费随从 3/5
+- [x] `CORE_CATA_004` Rehgar Earthfury — 5 费随从 3/5
 - [ ] `CORE_CATA_005` Lord Thorval — 3 费随从 2/4 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
 - [ ] `CORE_CATA_006` Ulfar — 6 费随从 4/3
 - [ ] `CORE_CATA_006e` Thornspeakers' Spirit — 附魔衍生物（0 费）
-- [ ] `CORE_CATA_007` Consumption — 4 费 法术
+- [x] `CORE_CATA_007` Consumption — 4 费 法术
 - [ ] `CORE_CATA_008` Guardian Gargoyle — 3 费随从 2/4 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
-- [ ] `CORE_CATA_009` Death's Advance — 2 费 法术
+- [x] `CORE_CATA_009` Death's Advance — 2 费 法术
 - [ ] `CORE_CATA_010` Felscarred Seeker — 3 费随从 2/4 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
 - [ ] `CORE_CATA_011` Ring of Frost — 3 费 法术 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
 - [ ] `CORE_CATA_012` Forbidden Ritual — 3 费 法术 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
@@ -236,7 +236,7 @@
 
 - [ ] `CORE_GIL_191t` Imp — 1 费随从 1/1
 - [ ] `CORE_GIL_531` Witch's Apprentice — 0 费随从 0/1
-- [ ] `CORE_GIL_534` Hench-Clan Thug — 3 费随从 3/3
+- [x] `CORE_GIL_534` Hench-Clan Thug — 3 费随从 3/3
 - [x] `CORE_GIL_558` Swamp Leech — 1 费随从 2/1
 - [ ] `CORE_GIL_577` Rat Trap — 2 费 法术
 - [ ] `CORE_GIL_622` Lifedrinker — 4 费随从 3/3
@@ -246,16 +246,16 @@
 ### CORE_GVG_* — 地精大战侏儒（5 张）
 
 - [ ] `CORE_GVG_059` Coghammer — 3 费武器 2/3
-- [ ] `CORE_GVG_061` Muster for Battle — 3 费 法术
-- [ ] `CORE_GVG_085` Annoy-o-Tron — 2 费随从 1/2
-- [ ] `CORE_GVG_103` Micro Machine — 2 费随从 1/2
+- [x] `CORE_GVG_061` Muster for Battle — 3 费 法术
+- [x] `CORE_GVG_085` Annoy-o-Tron — 2 费随从 1/2
+- [x] `CORE_GVG_103` Micro Machine — 2 费随从 1/2
 - [ ] `CORE_GVG_114` Sneed's Old Shredder — 7 费随从 5/7
 
 ### CORE_ICC_* — 冰封王座的骑士（5 张）
 
-- [ ] `CORE_ICC_038` Righteous Protector — 1 费随从 1/1
+- [x] `CORE_ICC_038` Righteous Protector — 1 费随从 1/1
 - [x] `CORE_ICC_055` Drain Soul — 2 费 法术
-- [ ] `CORE_ICC_210` Shadow Ascendant — 2 费随从 2/3
+- [x] `CORE_ICC_210` Shadow Ascendant — 2 费随从 2/3
 - [x] `CORE_ICC_214` Obsidian Statue — 9 费随从 4/8
 - [ ] `CORE_ICC_407` Gnomeferatu — 2 费随从 2/3
 
@@ -265,7 +265,7 @@
 - [ ] `CORE_KAR_061` The Curator — 5 费随从 4/6
 - [ ] `CORE_KAR_062` Netherspite Historian — 2 费随从 2/3
 - [ ] `CORE_KAR_069` Swashburglar — 1 费随从 1/2
-- [ ] `CORE_KAR_077` Silvermoon Portal — 3 费 法术
+- [x] `CORE_KAR_077` Silvermoon Portal — 3 费 法术
 
 ### CORE_LOE_* — 探险者协会（1 张）
 
@@ -285,12 +285,12 @@
 ### CORE_NEW1_* — 经典补充（7 张）
 
 - [ ] `CORE_NEW1_018` Bloodsail Raider — 2 费随从 2/3
-- [ ] `CORE_NEW1_020` Wild Pyromancer — 2 费随从 3/2
-- [ ] `CORE_NEW1_021` Doomsayer — 2 费随从 0/7
-- [ ] `CORE_NEW1_022` Dread Corsair — 4 费随从 3/3
-- [ ] `CORE_NEW1_023` Faerie Dragon — 2 费随从 3/2
+- [x] `CORE_NEW1_020` Wild Pyromancer — 2 费随从 3/2
+- [x] `CORE_NEW1_021` Doomsayer — 2 费随从 0/7
+- [x] `CORE_NEW1_022` Dread Corsair — 4 费随从 3/3
+- [x] `CORE_NEW1_023` Faerie Dragon — 2 费随从 3/2
 - [ ] `CORE_NEW1_027` Southsea Captain — 3 费随从 3/3
-- [ ] `CORE_NEW1_031` Animal Companion — 3 费 法术
+- [x] `CORE_NEW1_031` Animal Companion — 3 费 法术
 
 ### CORE_NX2_* — 来源系列名待补（NX2）（1 张）
 
@@ -340,26 +340,26 @@
 ### CORE_SCH_* — 通灵学园（5 张）
 
 - [ ] `CORE_SCH_181` Archwitch Willow — 8 费随从 5/5
-- [ ] `CORE_SCH_512` Initiation — 6 费 法术
-- [ ] `CORE_SCH_605` Lake Thresher — 5 费随从 4/6
+- [x] `CORE_SCH_512` Initiation — 6 费 法术
+- [x] `CORE_SCH_605` Lake Thresher — 5 费随从 4/6
 - [ ] `CORE_SCH_713` Cult Neophyte — 2 费随从 3/2
-- [ ] `CORE_SCH_717` Keymaster Alabaster — 7 费随从 6/8
+- [x] `CORE_SCH_717` Keymaster Alabaster — 7 费随从 6/8
 
 ### CORE_SW_* — 暴风城下的集结（9 张）
 
-- [ ] `CORE_SW_047` Highlord Fordragon — 6 费随从 5/5
+- [x] `CORE_SW_047` Highlord Fordragon — 6 费随从 5/5
 - [x] `CORE_SW_066` Royal Librarian — 4 费随从 4/4
 - [ ] `CORE_SW_068` Mo'arg Forgefiend — 8 费随从 8/8
 - [x] `CORE_SW_072` Rustrot Viper — 3 费随从 3/4
-- [ ] `CORE_SW_088` Demonic Assault — 4 费 法术
-- [ ] `CORE_SW_108` First Flame — 1 费 法术
+- [x] `CORE_SW_088` Demonic Assault — 4 费 法术
+- [x] `CORE_SW_108` First Flame — 1 费 法术
 - [x] `CORE_SW_429` Best in Shell — 6 费 法术
 - [ ] `CORE_SW_439` Vibrant Squirrel — 1 费随从 2/1
 - [x] `CORE_SW_442` Void Shard — 4 费 法术
 
 ### CORE_TID_* — 来源系列名待补（TID）（1 张）
 
-- [ ] `CORE_TID_931` Jackpot! — 2 费 法术
+- [x] `CORE_TID_931` Jackpot! — 2 费 法术
 
 ### CORE_TRL_* — 拉斯塔哈的大乱斗（5 张）
 
@@ -376,7 +376,7 @@
 
 ### CORE_TTN_* — 泰坦诸神（2 张）
 
-- [ ] `CORE_TTN_843` Eredar Deceptor — 4 费随从 3/5
+- [x] `CORE_TTN_843` Eredar Deceptor — 4 费随从 3/5
 - [x] `CORE_TTN_866` Mythical Terror — 7 费随从 4/10
 
 ### CORE_ULD_* — 奥丹姆奇兵（8 张）
@@ -402,7 +402,7 @@
 
 ### CORE_WC_* — 来源系列名待补（WC）（2 张）
 
-- [ ] `CORE_WC_042` Wailing Vapor — 1 费随从 1/3
+- [x] `CORE_WC_042` Wailing Vapor — 1 费随从 1/3
 - [x] `CORE_WC_701` Felrattler — 3 费随从 3/2
 
 ### CORE_WON_* — 来源系列名待补（WON）（6 张）
@@ -417,7 +417,7 @@
 ### CORE_WW_* — 来源系列名待补（WW）（2 张）
 
 - [ ] `CORE_WW_329` Detonation Juggernaut — 4 费随从 3/4
-- [ ] `CORE_WW_374` Corpse Farm — 3 费 法术
+- [x] `CORE_WW_374` Corpse Farm — 3 费 法术
 
 ### CORE_YOD_* — 来源系列名待补（YOD）（1 张）
 
