@@ -641,3 +641,56 @@ F5 覆盖：`tlc_w4a_bloodpetal_biome_grants_temporary`、
 的稀有度发现）。全量 `cargo test` 全绿（所有套件、含全部
 `tlc_w1_*`/`tlc_w2_*`/`tlc_w3_*` 场景——833 通过、1 忽略），`cargo fmt`
 干净，`cargo clippy --all-targets` 零警告。
+
+### 18. 2025–2026 扩展 M2-W4b — 失落之城主系列波、第二批（14 张传说卡 + 1 张衍生物）🔓 已登记
+
+M2-W4b 波（`src/cards/exp_tlc_w4b.rs`）的简化登记：14 张失落之城传说卡
+（TLC_100/106/110/228/241/257/452/480/522/624/810/811/836/841）外加
+TLC_241t"召唤潮汐舰队！"衍生物。本波机制大多忠实：恩布拉（Endbringer
+Umbra）战吼再触发本局已死的至多 5 个友方随从的亡语（友方墓地即"本局
+已死"日志）；克罗格（Krog）回合结束把所有敌方随从置为 1/1（写基础值
++ 清伤害 + 剥附魔）；奥普（Opu）的战吼/连击/亡语各对全部敌方随从造成
+1 点伤害；纳布利亚（Nablya）为每个受伤友方随从召唤全新基础身材的
+复制并给复制突袭（复制剥离战吼/连击组件——本引擎 MinionSummoned
+处理器会对效果召唤的随从触发战吼，剥离才能保持复制品全新）；阿凯欧斯
+（Archaios）经新增 FriendlyMinionAttacked 触发事件把攻击者的生命值
+设为自身的有效生命值（Attacked 事件钉在攻击者身上不可用）；妮莉
+（Niri）的打出卡触发对 1 费随从翻倍属性、对 1 费法术双重施放（单个
+CardPlayed 触发器、效果按主题卡类型分支——Trigger 组件是单槽）；洛
+（Loh）战吼使全场随从费用恒为 5；伊多（Ido）的回合开始效果在存活时
+授予 TLC_241t 衍生物（真实 2 费神圣法术，+2/+2 并给予圣盾）。与
+§14–§17 一致，扩展手写卡均不在 RL 池（经典 + 核心 668/659），本表仅作
+登记追踪，各行在机制落地前保持开放。
+
+| ID | 卡名 | 简化 | 真实机制 |
+| --- | --- | --- | --- |
+| TLC_100 | 领航者伊莉丝 | 战吼的定制地点铸造退化为对 `Player::starting_deck` 快照的"10 张不同费用"检查并置 `elise_location_crafted` 标志——无定制地点实体、激活或文本 | 官方定制地点 |
+| TLC_110 | 城主艾肖 | "任意位置 +2/+2"采用 Grimestreet 形状：手牌/牌库随从改基础数值、场上随从永久附魔；牌库检查本身忠实（当前牌库、空牌库空洞通过） | 官方任意位置增益 |
+| TLC_228 | 燃石·布拉玛 | "你的元素造成额外 1 点伤害"是 Goldrinn 同入口的伤害管线钩子（光环近似）：布拉玛玩家所有带元素种族的伤害源 +1，TLC_228 存活时生效——法术来源无种族、自然排除 | 真正的光环 |
+| TLC_452 | 泰坦绘师奥斯科 | 泰坦机制未实现——战吼为空（冒烟测试钉住身材） | 官方泰坦技能 |
+| TLC_810 | 高阶祭司赫伦 | "他们互殴！"简化为一轮交换：两个召唤复制各按攻击力互打一次，走正常伤害管线（死亡/亡语/圣盾正常结算）；牌库本身不动（`resolve_summon` 复制） | 官方互殴结算 |
+| TLC_841 | 昆虫学家托鲁 | 0/1 罐子变形/释放机制未实现——战吼为空（冒烟测试钉住身材） | 官方罐子 |
+
+F5 覆盖：`tlc_w4b_umbra_triggers_five_dead_deathrattles`、
+`tlc_w4b_krog_sets_enemy_minions_to_one`、
+`tlc_w4b_opo_fan_of_knives_via_battlecry_combo_deathrattle`、
+`tlc_w4b_nablya_copies_damaged_minions_with_rush`、
+`tlc_w4b_archaios_sets_attacker_health`、
+`tlc_w4b_niri_doubles_one_cost_minions`、
+`tlc_w4b_niri_casts_one_cost_spells_twice`、
+`tlc_w4b_loh_minions_cost_five`、
+`tlc_w4b_ido_grants_token_while_alive`、
+`tlc_w4b_esho_deck_check_buffs_minions`、
+`tlc_w4b_bralma_elementals_deal_extra_damage`、
+`tlc_w4b_herenn_summons_two_deathrattle_minions_and_fight`、
+`tlc_w4b_elise_checks_starting_deck`、
+`tlc_w4b_osk_toru_smoke_pins`（tests/differential.rs 共 14 个场景——
+每张传说卡一个：墓地扫描亡语再触发、回合结束 1/1 置位并清伤害/剥附魔、
+战吼/连击/亡语三合一扇刀、剥离战吼的全新突袭复制、新增
+FriendlyMinionAttacked 触发与 subject==source 守卫、CardPlayed 费用 1
+分支（随从翻倍与法术双重施放）、随从费用恒 5 置位、存活才发衍生物及
+衍生物 +2/+2 与圣盾、当前牌库种族检查与任意位置增益、元素伤害钩子、
+两个亡语随从互殴且牌库不动、开局牌库费用检查、两个简化冒烟钉）。
+全量 `cargo test` 全绿（所有套件、含全部 `tlc_w1_*`/`tlc_w2_*`/
+`tlc_w3_*`/`tlc_w4a_*` 场景——847 通过、1 忽略），`cargo fmt` 干净，
+`cargo clippy --all-targets` 零警告。

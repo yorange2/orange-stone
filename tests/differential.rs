@@ -25780,3 +25780,743 @@ fn tlc_w4a_relic_miner_destroys_top_draws_rarity() {
         "the discovered card lands in the hand"
     );
 }
+
+// ============================================================
+// M2-W4b — The Lost City of Un'Goro, wave 4b: the 14 legendary
+// cards + the TLC_241t token (2025-2026 expansions roadmap).
+// F5 scenarios, one per card; the simplified cards (Osk, Toru)
+// get smoke pins. Registered approximations: docs/finished/
+// fidelity-debt.md §18.
+// ============================================================
+
+/// TLC_W4B-1 — Endbringer Umbra: the battlecry triggers the
+/// Deathrattles of up to five friendly minions that died this
+/// game (the friendly graveyard is the died-this-game log).
+#[test]
+fn tlc_w4b_umbra_triggers_five_dead_deathrattles() {
+    use orange_stone::cards::classic_neutral::LEPER_GNOME;
+    use orange_stone::cards::exp_tlc_w4b::ENDBRINGER_UMBRA;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    for _ in 0..5 {
+        builder.add_minion_to_board(p1, &LEPER_GNOME);
+        builder.add_custom_minion_to_board(p2, 3, 3, 2);
+    }
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &ENDBRINGER_UMBRA);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p2_hero = state.player(p2).hero;
+    // p2's five 3/3s kill the five Gnomes; each Gnome's own deathrattle
+    // deals 2 to the enemy hero as it dies (the normal death path).
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let gnomes: Vec<Entity> = board_minions(&state, p1);
+    let killers: Vec<Entity> = board_minions(&state, p2);
+    assert_eq!(gnomes.len(), 5);
+    assert_eq!(killers.len(), 5);
+    for (k, g) in killers.iter().zip(gnomes.iter()) {
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker: *k,
+                    defender: *g,
+                },
+            )
+            .unwrap();
+    }
+    assert_eq!(
+        state.world().effective_health(p2_hero),
+        Some(Health(20)),
+        "the five natural deathrattles dealt 10"
+    );
+    // p1's turn: Umbra re-triggers the five dead Gnomes' deathrattles —
+    // up to five, one per deathrattle, 2 damage each.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().effective_health(p2_hero),
+        Some(Health(10)),
+        "Umbra triggered all five deathrattles again"
+    );
+}
+
+/// TLC_W4B-2 — Krog, Crater King: at the end of the owner's turn,
+/// every enemy minion becomes a 1/1 — the set writes the base
+/// stats, clears damage and strips permanent enchantments.
+#[test]
+fn tlc_w4b_krog_sets_enemy_minions_to_one() {
+    use orange_stone::cards::classic_neutral::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tlc_w4b::KROG_CRATER_KING;
+    use orange_stone::core::component::{Damage, Enchantment, EnchantmentExpiry};
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.add_minion_to_board(p1, &KROG_CRATER_KING);
+    let fresh = builder.add_custom_minion_to_board(p2, 5, 5, 3);
+    builder.add_minion_to_board(p2, &BLOODFEN_RAPTOR);
+    let damaged = builder.add_custom_minion_to_board(p2, 6, 6, 3);
+    let enchanted = builder.add_custom_minion_to_board(p2, 4, 4, 3);
+    let mut state = builder.build();
+    state.world_mut().set_damage(damaged, Damage(3));
+    state.world_mut().add_enchantment(
+        enchanted,
+        Enchantment {
+            attack: 2,
+            health: 2,
+            cost: 0,
+            expiry: EnchantmentExpiry::Permanent,
+        },
+    );
+    let engine = GameEngine::new();
+    // Krog's end-of-turn effect fires while he is alive on the board.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    for (e, label) in [
+        (fresh, "fresh"),
+        (damaged, "damaged"),
+        (enchanted, "enchanted"),
+    ] {
+        assert_eq!(
+            state.world().effective_attack(e),
+            Some(Attack(1)),
+            "{label} attack"
+        );
+        assert_eq!(
+            state.world().effective_health(e),
+            Some(Health(1)),
+            "{label} health"
+        );
+    }
+    let raptor = find_entity(&state, p2, "CLASSIC_001");
+    assert_eq!(state.world().effective_attack(raptor), Some(Attack(1)));
+    assert_eq!(state.world().effective_health(raptor), Some(Health(1)));
+    assert_eq!(
+        state.world().damage(damaged),
+        None,
+        "the set cleared the damage"
+    );
+    assert_eq!(
+        state
+            .world()
+            .enchantments(enchanted)
+            .into_iter()
+            .flatten()
+            .count(),
+        0,
+        "the set stripped the enchantment"
+    );
+}
+
+/// TLC_W4B-3 — Opu, the Unseen: Battlecry, Combo AND Deathrattle
+/// each deal 1 damage to all enemy minions — the three paths of a
+/// single Fan of Knives.
+#[test]
+fn tlc_w4b_opo_fan_of_knives_via_battlecry_combo_deathrattle() {
+    use orange_stone::cards::classic_neutral::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tlc_w4b::OPU_THE_UNSEEN;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    let a = builder.add_custom_minion_to_board(p2, 4, 4, 2);
+    let b = builder.add_custom_minion_to_board(p2, 4, 4, 2);
+    let c = builder.add_custom_minion_to_board(p2, 4, 4, 2);
+    let killer = builder.add_custom_minion_to_board(p2, 10, 10, 10);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &OPU_THE_UNSEEN)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &OPU_THE_UNSEEN);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // First card of the turn: no Combo — the Battlecry deals 1 to all
+    // enemy minions.
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().effective_health(a), Some(Health(3)));
+    assert_eq!(state.world().effective_health(b), Some(Health(3)));
+    assert_eq!(state.world().effective_health(c), Some(Health(3)));
+    // Second card, then the third Opu with Combo active: +1 more.
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().effective_health(a), Some(Health(2)));
+    assert_eq!(state.world().effective_health(b), Some(Health(2)));
+    assert_eq!(state.world().effective_health(c), Some(Health(2)));
+    assert_eq!(
+        state.world().effective_health(killer),
+        Some(Health(8)),
+        "the killer is an enemy minion — both Fan of Knives hit it too"
+    );
+    // A turn later the second Opu attacks the 10/10: it deals 6 (the
+    // killer drops to 4), takes 10 back and dies — the Deathrattle
+    // deals 1 to all enemy minions once more.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let opu = board_minions(&state, p1)
+        .into_iter()
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_522"))
+        .expect("one Opu on the board");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: opu,
+                defender: killer,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(a), Some(Health(1)));
+    assert_eq!(state.world().effective_health(b), Some(Health(1)));
+    assert_eq!(state.world().effective_health(c), Some(Health(1)));
+    assert_eq!(
+        state.world().effective_health(killer),
+        Some(Health(1)),
+        "8 after the two AoEs, then 6 from the attack and 1 from the deathrattle"
+    );
+    assert_eq!(
+        board_count(&state, p1, "TLC_522"),
+        1,
+        "one Opu died in the fight"
+    );
+}
+
+/// TLC_W4B-4 — Nablya, the Watcher: the battlecry summons a fresh
+/// base-stat copy of each damaged friendly minion, and the copies
+/// gain Rush. Undamaged minions are not copied.
+#[test]
+fn tlc_w4b_nablya_copies_damaged_minions_with_rush() {
+    use orange_stone::cards::classic_neutral::INJURED_BLADEMASTER;
+    use orange_stone::cards::exp_tlc_w4b::NABLYA_THE_WATCHER;
+    use orange_stone::core::component::Damage;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder.add_custom_minion_to_board(p1, 2, 2, 1); // undamaged
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &INJURED_BLADEMASTER)
+        .add_minion_to_hand(p1, &NABLYA_THE_WATCHER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Injured Blademaster damages itself to a 4/3.
+    play_front_card(&mut state, &engine, p1);
+    let blademaster = find_entity(&state, p1, "NEUTRAL_006");
+    assert_eq!(state.world().effective_health(blademaster), Some(Health(3)));
+    // Nablya copies every damaged friendly minion; the copy is a fresh
+    // base-stat 4/7 with Rush; the undamaged 2/2 is not copied.
+    play_front_card(&mut state, &engine, p1);
+    let copies: Vec<Entity> = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "NEUTRAL_006")
+        })
+        .collect();
+    assert_eq!(copies.len(), 2, "the original plus one copy");
+    let copy = copies
+        .into_iter()
+        .find(|&e| state.world().rush(e).is_some())
+        .expect("the copy has Rush");
+    assert_eq!(state.world().effective_attack(copy), Some(Attack(4)));
+    assert_eq!(state.world().effective_health(copy), Some(Health(7)));
+    assert_eq!(
+        state.world().damage(copy),
+        None,
+        "a fresh copy, not damaged"
+    );
+    assert_eq!(state.world().damage(blademaster), Some(Damage(4)));
+    assert_eq!(board_count(&state, p1, "TLC_624"), 1, "Nablya herself");
+    assert_eq!(
+        board_count(&state, p1, "NEUTRAL_006"),
+        2,
+        "only the damaged minion was copied"
+    );
+}
+
+/// TLC_W4B-5 — Archaios: after another friendly minion attacks, its
+/// Health is set to Archaios's (effective) Health. The source's own
+/// attack does not re-set (and strip) itself.
+#[test]
+fn tlc_w4b_archaios_sets_attacker_health() {
+    use orange_stone::cards::exp_tlc_w4b::ARCHAIOS;
+    use orange_stone::core::component::Damage;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(p1, &ARCHAIOS);
+    let attacker = builder.add_custom_minion_to_board(p1, 3, 7, 3);
+    let defender = builder.add_custom_minion_to_board(p2, 0, 10, 3);
+    let mut state = builder.build();
+    let archaios = find_entity(&state, p1, "TLC_811");
+    // Archaios has 6 base Health and 2 damage — 4 effective.
+    state.world_mut().set_damage(archaios, Damage(2));
+    let engine = GameEngine::new();
+    // The friendly minion's attack is declared: its Health is set to
+    // Archaios's 4 before the (0-damage) retaliation.
+    engine
+        .apply(&mut state, Action::Attack { attacker, defender })
+        .unwrap();
+    assert_eq!(state.world().effective_attack(attacker), Some(Attack(3)));
+    assert_eq!(state.world().effective_health(attacker), Some(Health(4)));
+    assert_eq!(
+        state.world().damage(attacker),
+        None,
+        "the set cleared damage"
+    );
+    assert_eq!(
+        state.world().effective_health(defender),
+        Some(Health(7)),
+        "3 damage from the attack"
+    );
+    // Archaios's OWN attack is "another" — the guard must skip it; his
+    // damage (and health) stay untouched.
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: archaios,
+                defender,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().damage(archaios), Some(Damage(2)));
+    assert_eq!(state.world().effective_health(archaios), Some(Health(4)));
+}
+
+/// TLC_W4B-6 — Niri of the Crater (minion trigger): a 1-Cost minion
+/// you play has its stats doubled; a 2-Cost minion does not.
+#[test]
+fn tlc_w4b_niri_doubles_one_cost_minions() {
+    use orange_stone::cards::classic_neutral::BLOODFEN_RAPTOR;
+    use orange_stone::cards::classic_warlock::VOIDWALKER;
+    use orange_stone::cards::exp_tlc_w4b::NIRI_OF_THE_CRATER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_board(p1, &NIRI_OF_THE_CRATER)
+        .add_minion_to_hand(p1, &VOIDWALKER)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // A 1-Cost minion is played: its stats double (1/3 -> 2/6).
+    play_front_card(&mut state, &engine, p1);
+    let vw = find_entity(&state, p1, "WARLOCK_004");
+    assert_eq!(state.world().effective_attack(vw), Some(Attack(2)));
+    assert_eq!(state.world().effective_health(vw), Some(Health(6)));
+    // A 2-Cost minion is not doubled.
+    play_front_card(&mut state, &engine, p1);
+    let raptor = find_entity(&state, p1, "CLASSIC_001");
+    assert_eq!(state.world().effective_attack(raptor), Some(Attack(3)));
+    assert_eq!(state.world().effective_health(raptor), Some(Health(2)));
+}
+
+/// TLC_W4B-7 — Niri of the Crater (spell trigger): a 1-Cost spell
+/// you cast casts twice; a 0-Cost spell casts once.
+#[test]
+fn tlc_w4b_niri_casts_one_cost_spells_twice() {
+    use orange_stone::cards::classic_druid::MOONFIRE;
+    use orange_stone::cards::classic_priest::HOLY_SMITE;
+    use orange_stone::cards::exp_tlc_w4b::NIRI_OF_THE_CRATER;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    let target = builder.add_custom_minion_to_board(p2, 2, 8, 3);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_board(p1, &NIRI_OF_THE_CRATER)
+        .add_minion_to_hand(p1, &HOLY_SMITE)
+        .add_minion_to_hand(p1, &MOONFIRE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // A 1-Cost spell casts twice: 3 + 3 = 6 damage on the single enemy.
+    let smite = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: smite,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(target), Some(Health(2)));
+    // A 0-Cost spell casts once: 1 more damage.
+    let moonfire = find_in_hand(&state, p1, "DRUID_011");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: moonfire,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(target), Some(Health(1)));
+}
+
+/// TLC_W4B-8 — Loh, the Living Legend: the battlecry makes every
+/// minion cost (5) for the rest of the game — a set, not a
+/// discount (both the 2-Cost and the 7-Cost minion cost 5).
+#[test]
+fn tlc_w4b_loh_minions_cost_five() {
+    use orange_stone::cards::classic_neutral::{BLOODFEN_RAPTOR, CORE_HOUND};
+    use orange_stone::cards::exp_tlc_w4b::LOH_THE_LIVING_LEGEND;
+    use orange_stone::engine::cost::play_cost;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &LOH_THE_LIVING_LEGEND)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &CORE_HOUND);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Before Loh: the natural costs.
+    let raptor = find_in_hand(&state, p1, "CLASSIC_001");
+    let hound = find_in_hand(&state, p1, "NEUTRAL_025");
+    assert_eq!(play_cost(&state, raptor, p1), Cost(2));
+    assert_eq!(play_cost(&state, hound, p1), Cost(7));
+    // After Loh: every minion costs exactly 5.
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(play_cost(&state, raptor, p1), Cost(5));
+    assert_eq!(play_cost(&state, hound, p1), Cost(5));
+}
+
+/// TLC_W4B-9 — Ido of the Threshfleet: the start-of-turn effect
+/// grants the TLC_241t token to hand while Ido is alive on the
+/// board; the token buffs a minion (+2/+2) and gives it Divine
+/// Shield. Once Ido dies, no more tokens are granted.
+#[test]
+fn tlc_w4b_ido_grants_token_while_alive() {
+    use orange_stone::cards::exp_tlc_w4b::IDO_OF_THE_THRESHFLEET;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    let target = builder.add_custom_minion_to_board(p2, 4, 4, 3);
+    let killer = builder.add_custom_minion_to_board(p2, 10, 10, 10);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &IDO_OF_THE_THRESHFLEET);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    // Two EndTurns later (the first p1 turn-start with Ido alive), the
+    // token is granted.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let token = find_in_hand(&state, p1, "TLC_241t");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: token,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(target), Some(Attack(6)));
+    assert_eq!(state.world().effective_health(target), Some(Health(6)));
+    assert!(
+        state.world().divine_shield(target).is_some(),
+        "the token grants Divine Shield"
+    );
+    // Ido dies; the next turn-start grants nothing.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let ido = find_entity(&state, p1, "TLC_241");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: killer,
+                defender: ido,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert!(
+        !state
+            .world()
+            .zones()
+            .iter(Zone::Hand, p1)
+            .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_241t")),
+        "no token while Ido is dead"
+    );
+}
+
+/// TLC_W4B-10 — City Chief Esho: if every minion in the deck shares
+/// a minion type, the other minions gain +2/+2 wherever they are —
+/// hand and board (the deck check reads the CURRENT deck).
+#[test]
+fn tlc_w4b_esho_deck_check_buffs_minions() {
+    use orange_stone::cards::classic_neutral::{BLOODFEN_RAPTOR, BLUEGILL_WARRIOR};
+    use orange_stone::cards::exp_tlc_w4b::CITY_CHIEF_ESHO;
+    let p1 = PlayerId1();
+    // All-Beast deck: the check passes.
+    let mut builder = GameBuilder::new();
+    for _ in 0..3 {
+        builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    }
+    let board_minion = builder.add_custom_minion_to_board(p1, 2, 2, 2);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &CITY_CHIEF_ESHO)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hand_raptor = find_in_hand(&state, p1, "CLASSIC_001");
+    assert_eq!(
+        state.world().effective_attack(hand_raptor),
+        Some(Attack(5)),
+        "hand minion buffed"
+    );
+    assert_eq!(state.world().effective_health(hand_raptor), Some(Health(4)));
+    assert_eq!(
+        state.world().effective_attack(board_minion),
+        Some(Attack(4)),
+        "board minion buffed"
+    );
+    assert_eq!(
+        state.world().effective_health(board_minion),
+        Some(Health(4))
+    );
+    let esho = find_entity(&state, p1, "TLC_110");
+    assert_eq!(
+        state.world().effective_attack(esho),
+        Some(Attack(5)),
+        "Esho is 'other' — not buffed"
+    );
+    assert_eq!(state.world().effective_health(esho), Some(Health(7)));
+    // Mixed-tribe deck (two Beasts + one Murloc): the check fails.
+    let mut builder = GameBuilder::new();
+    builder
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_deck(p1, &BLUEGILL_WARRIOR);
+    let board_minion = builder.add_custom_minion_to_board(p1, 2, 2, 2);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &CITY_CHIEF_ESHO)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hand_raptor = find_in_hand(&state, p1, "CLASSIC_001");
+    assert_eq!(state.world().effective_attack(hand_raptor), Some(Attack(3)));
+    assert_eq!(state.world().effective_health(hand_raptor), Some(Health(2)));
+    assert_eq!(
+        state.world().effective_attack(board_minion),
+        Some(Attack(2))
+    );
+    assert_eq!(
+        state.world().effective_health(board_minion),
+        Some(Health(2))
+    );
+}
+
+/// TLC_W4B-11 — Bralma Searstone: while Bralma is alive, friendly
+/// Elementals deal 1 extra damage (the damage-pipeline hook at the
+/// Goldrinn entry point; the aura approximation, §18). The classic
+/// Fire Elemental def carries no race, so the test restores the
+/// Elemental tribe before attacking.
+#[test]
+fn tlc_w4b_bralma_elementals_deal_extra_damage() {
+    use orange_stone::cards::classic_neutral::BLOODFEN_RAPTOR;
+    use orange_stone::cards::classic_shaman::FIRE_ELEMENTAL;
+    use orange_stone::cards::exp_tlc_w4b::BRALMA_SEARSTONE;
+    use orange_stone::core::component::Race;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(p1, &BRALMA_SEARSTONE);
+    builder.add_minion_to_board(p1, &FIRE_ELEMENTAL);
+    builder.add_minion_to_board(p1, &BLOODFEN_RAPTOR);
+    let target1 = builder.add_custom_minion_to_board(p2, 3, 9, 3);
+    let target2 = builder.add_custom_minion_to_board(p2, 3, 9, 3);
+    let mut state = builder.build();
+    let fe = find_entity(&state, p1, "SHAMAN_007");
+    state.world_mut().set_race(fe, Race::Elemental);
+    let engine = GameEngine::new();
+    // The Elemental deals 6 + 1 = 7; the Beast deals its own 3.
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: fe,
+                defender: target1,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(target1),
+        Some(Health(2)),
+        "6 + 1 bonus"
+    );
+    let raptor = find_entity(&state, p1, "CLASSIC_001");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: raptor,
+                defender: target2,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(target2),
+        Some(Health(6)),
+        "no bonus for non-Elementals"
+    );
+}
+
+/// TLC_W4B-12 — High Cultist Herenn: summon two random Deathrattle
+/// minions from the deck (as copies — the deck stays untouched) and
+/// "they fight!": each deals its Attack to the other. The registered
+/// simplification (§18) resolves the fight as one exchange.
+#[test]
+fn tlc_w4b_herenn_summons_two_deathrattle_minions_and_fight() {
+    use orange_stone::cards::exp_tlc_w4a::TUNNEL_TERROR;
+    use orange_stone::cards::exp_tlc_w4b::HIGH_CULTIST_HERENN;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .add_minion_to_deck(p1, &TUNNEL_TERROR)
+        .add_minion_to_deck(p1, &TUNNEL_TERROR)
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &HIGH_CULTIST_HERENN);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Herenn summons two Terrors; each 4/3 Terror deals its Attack to
+    // the other — both die.
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        board_count(&state, p1, "TLC_469"),
+        0,
+        "both Terrors died in the fight"
+    );
+    assert_eq!(board_count(&state, p1, "TLC_810"), 1, "Herenn survives");
+    // Both deathrattles fire: 2 + 2 Temporary 2-Cost minions in hand.
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(
+        hand.len(),
+        4,
+        "four temporary minions from the two deathrattles"
+    );
+    for e in &hand {
+        assert!(
+            state.world().temporary(*e).is_some(),
+            "deathrattle-created cards are Temporary"
+        );
+    }
+    // The deck keeps both Terrors (copies were summoned, not drawn).
+    assert_eq!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Deck, p1)
+            .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_469"))
+            .count(),
+        2,
+        "the deck is untouched"
+    );
+}
+
+/// TLC_W4B-13 — Elise the Navigator: the battlecry checks the
+/// starting deck (snapshotted at game start) for 10 cards of
+/// different Costs. The registered simplification (§18) only sets
+/// the crafted-location marker — the custom Location itself is not
+/// implemented.
+#[test]
+fn tlc_w4b_elise_checks_starting_deck() {
+    use orange_stone::cards::classic_neutral::{
+        ARCHMAGE, BLOODFEN_RAPTOR, CORE_HOUND, FROSTWOLF_WARLORD, INJURED_BLADEMASTER,
+        MOLTEN_GIANT, MOUNTAIN_GIANT, SEA_GIANT, SENJIN_SHIELDMASTA,
+    };
+    use orange_stone::cards::classic_warlock::VOIDWALKER;
+    use orange_stone::cards::exp_tlc_w4b::ELISE_THE_NAVIGATOR;
+    let p1 = PlayerId1();
+    // Ten cards with ten different costs: the check passes and the
+    // marker is set.
+    let mut builder = GameBuilder::new();
+    for card in [
+        &VOIDWALKER,
+        &BLOODFEN_RAPTOR,
+        &INJURED_BLADEMASTER,
+        &SENJIN_SHIELDMASTA,
+        &FROSTWOLF_WARLORD,
+        &ARCHMAGE,
+        &CORE_HOUND,
+        &SEA_GIANT,
+        &MOUNTAIN_GIANT,
+        &MOLTEN_GIANT,
+    ] {
+        builder.add_minion_to_deck(p1, card);
+    }
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &ELISE_THE_NAVIGATOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert!(state.player(p1).elise_location_crafted);
+    // Ten cards with only nine distinct costs: the check fails.
+    let mut builder = GameBuilder::new();
+    builder
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_deck(p1, &INJURED_BLADEMASTER)
+        .add_minion_to_deck(p1, &SENJIN_SHIELDMASTA)
+        .add_minion_to_deck(p1, &FROSTWOLF_WARLORD)
+        .add_minion_to_deck(p1, &ARCHMAGE)
+        .add_minion_to_deck(p1, &CORE_HOUND)
+        .add_minion_to_deck(p1, &SEA_GIANT)
+        .add_minion_to_deck(p1, &MOUNTAIN_GIANT)
+        .add_minion_to_deck(p1, &MOLTEN_GIANT);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &ELISE_THE_NAVIGATOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert!(!state.player(p1).elise_location_crafted);
+}
+
+/// TLC_W4B-14 — Osk (Titan) and Toru (jars): smoke pins for the
+/// two simplified cards — correct bodies, battlecries intentionally
+/// no-op (registered in §18), nothing else generated.
+#[test]
+fn tlc_w4b_osk_toru_smoke_pins() {
+    use orange_stone::cards::exp_tlc_w4b::{ENTOMOLOGIST_TORU, TITANOGRAPHER_OSK};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &TITANOGRAPHER_OSK)
+        .add_minion_to_hand(p1, &ENTOMOLOGIST_TORU);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Osk — the Titan body
+    play_front_card(&mut state, &engine, p1); // Toru — the jars
+    assert_eq!(board_count(&state, p1, "TLC_452"), 1);
+    assert_eq!(board_count(&state, p1, "TLC_841"), 1);
+    let osk = find_entity(&state, p1, "TLC_452");
+    let toru = find_entity(&state, p1, "TLC_841");
+    assert_eq!(state.world().effective_attack(osk), Some(Attack(6)));
+    assert_eq!(state.world().effective_health(osk), Some(Health(6)));
+    assert_eq!(state.world().effective_attack(toru), Some(Attack(7)));
+    assert_eq!(state.world().effective_health(toru), Some(Health(7)));
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        0,
+        "nothing else was generated"
+    );
+}

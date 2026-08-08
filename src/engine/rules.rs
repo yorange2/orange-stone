@@ -1940,6 +1940,26 @@ pub fn apply_event(
                 Some(attacker),
                 None,
             );
+            // FriendlyMinionAttacked (M2-W4b — Archaios's "after a friendly
+            // minion attacks, set its Health to this minion's Health"): a
+            // friendly-scoped attack event for MINION attackers only, with
+            // the attacker as the subject. Unlike `Attacked` it is not
+            // pinned to the attacker — the trigger rides another friendly
+            // minion (Archaios), which `trigger_applies` allows via the
+            // default friendly-scope arm.
+            if state.world().card_type(attacker) == Some(CardType::Minion) {
+                fire_triggers(
+                    state,
+                    queue,
+                    TriggerEvent::FriendlyMinionAttacked,
+                    state
+                        .world()
+                        .player(attacker)
+                        .unwrap_or(state.active_player()),
+                    Some(attacker),
+                    None,
+                );
+            }
             // ThisMinionAttacked (Core Set W3c — Wrathspike Brute): the
             // defender minion fires when it is attacked
             if state.world().card_type(defender) == Some(CardType::Minion) {
@@ -2174,6 +2194,28 @@ pub fn apply_event(
             } else {
                 amount
             };
+            // Bralma Searstone (M2-W4b): "Your Elementals deal 1 extra
+            // damage" — a damage-pipeline hook at the same entry point as
+            // Goldrinn (the aura approximation, registered §18): any
+            // damage source owned by the Bralma player carrying the
+            // Elemental race deals +1 while TLC_228 is alive on that
+            // player's board. Elemental minion ATTACKS are the official
+            // scope (spell damage from Elementals — the sources are the
+            // spell entities themselves, which carry no race, so they are
+            // naturally excluded).
+            if let Some(src_owner) = state.world().player(source) {
+                if state
+                    .world()
+                    .has_race(source, crate::core::component::Race::Elemental)
+                    && state
+                        .world()
+                        .zones()
+                        .iter(Zone::Play, src_owner)
+                        .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_228"))
+                {
+                    amount += 1;
+                }
+            }
             // M2-W2 (TLC_631t Gorishi Colossus): the battlecry's permanent
             // "whenever you deal exactly 2 damage to an enemy, deal 2 more".
             // The flag is set by the quest reward's battlecry (fired when

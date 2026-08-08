@@ -2671,6 +2671,72 @@ pub enum CardEffect {
         /// Cost reduction on the added Beast
         amount: i32,
     },
+    // ----------------------------------------------------------------
+    // M2-W4b — the Un'Goro legendary wave (src/cards/exp_tlc_w4b.rs): the
+    // 14 TLC legendary cards.
+    // ----------------------------------------------------------------
+    /// Trigger the Deathrattles of up to `count` friendly minions that died
+    /// this game (M2-W4b — Endbringer Umbra's battlecry; the friendly
+    /// graveyard is the died-this-game log — the W3
+    /// `TriggerFriendlyCinderDeathrattles` scan generalized)
+    TriggerFriendlyDeadDeathrattles {
+        /// Number of deathrattles to trigger
+        count: i32,
+    },
+    /// City Chief Esho's battlecry: if every minion in the owner's deck
+    /// shares a minion type, give the owner's other minions stats wherever
+    /// they are (M2-W4b — the M2-W4a `BuffAllBeastsEverywhere` pattern
+    /// generalized to every minion, the source excluded; the deck-check
+    /// semantics are pinned in the resolve arm)
+    EshoDeckCheckBuffEverywhere {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// Set the Attack and Health of all enemy minions to fixed values
+    /// (M2-W4b — Krog's end-of-turn "set the Attack and Health of all enemy
+    /// minions to 1"; permanent enchantments on the affected minions are
+    /// removed and damage is cleared, matching the real set semantics)
+    SetStatsAllEnemyMinions {
+        /// Attack value
+        attack: i32,
+        /// Health value
+        health: i32,
+    },
+    /// Summon a fresh copy of each damaged friendly minion; the copies gain
+    /// Rush (M2-W4b — Nablya's battlecry; the copies are base-stat entities
+    /// per the engine copy convention)
+    SummonDamagedCopiesRush,
+    /// Summon two random Deathrattle minions from the deck (as copies — the
+    /// deck is untouched) and make them fight each other (M2-W4b — High
+    /// Cultist Herenn; the registered simplification §18: "they fight" is
+    /// each dealing its Attack damage to the other once)
+    SummonTwoDeathrattleMinionsAndFight,
+    /// Set the owner's `minions_cost_5` flag — all their minions cost (5)
+    /// for the rest of the game (M2-W4b — Loh's battlecry; read by the
+    /// play-cost pipeline)
+    LohMinionsCost5,
+    /// Elise the Navigator's deck-composition check (M2-W4b — registered
+    /// simplification §18: the starting-deck check ("10 cards of different
+    /// costs") runs against the `Player::starting_deck` snapshot and sets
+    /// the `elise_location_crafted` marker; no custom-location machinery)
+    EliseCraftLocation,
+    /// Niri of the Crater's played-card trigger (M2-W4b): the CardPlayed
+    /// event fires after any card fully resolved (minion plays and spell
+    /// casts alike — the single trigger the per-ID registration can hold),
+    /// so the effect branches on the subject's card type. A 1-Cost minion
+    /// doubles its stats (an enchantment equal to the current stats); a
+    /// 1-Cost spell casts twice (the second resolution uses no explicit
+    /// target and fires no second SpellCast event, the Tyrande timing
+    /// simplification §14.4). "1-Cost" reads the effective cost at trigger
+    /// time.
+    NiriOfTheCrater,
+    /// Set the event subject's Health equal to the source's effective
+    /// Health (M2-W4b — Archaios's "after a friendly minion attacks, set
+    /// its Health to this minion's Health"; the set clears damage and
+    /// permanent enchantments so the effective Health matches the source)
+    SetEventSubjectHealthToSource,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -3823,6 +3889,23 @@ enum CardEffectDe {
     AddRandomBeastCostLess {
         amount: i32,
     },
+    TriggerFriendlyDeadDeathrattles {
+        count: i32,
+    },
+    EshoDeckCheckBuffEverywhere {
+        attack: i32,
+        health: i32,
+    },
+    SetStatsAllEnemyMinions {
+        attack: i32,
+        health: i32,
+    },
+    SummonDamagedCopiesRush,
+    SummonTwoDeathrattleMinionsAndFight,
+    LohMinionsCost5,
+    EliseCraftLocation,
+    NiriOfTheCrater,
+    SetEventSubjectHealthToSource,
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -5064,6 +5147,25 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::AddRandomBeastCostLess { amount } => {
                 CardEffect::AddRandomBeastCostLess { amount }
             }
+            CardEffectDe::TriggerFriendlyDeadDeathrattles { count } => {
+                CardEffect::TriggerFriendlyDeadDeathrattles { count }
+            }
+            CardEffectDe::EshoDeckCheckBuffEverywhere { attack, health } => {
+                CardEffect::EshoDeckCheckBuffEverywhere { attack, health }
+            }
+            CardEffectDe::SetStatsAllEnemyMinions { attack, health } => {
+                CardEffect::SetStatsAllEnemyMinions { attack, health }
+            }
+            CardEffectDe::SummonDamagedCopiesRush => CardEffect::SummonDamagedCopiesRush,
+            CardEffectDe::SummonTwoDeathrattleMinionsAndFight => {
+                CardEffect::SummonTwoDeathrattleMinionsAndFight
+            }
+            CardEffectDe::LohMinionsCost5 => CardEffect::LohMinionsCost5,
+            CardEffectDe::EliseCraftLocation => CardEffect::EliseCraftLocation,
+            CardEffectDe::NiriOfTheCrater => CardEffect::NiriOfTheCrater,
+            CardEffectDe::SetEventSubjectHealthToSource => {
+                CardEffect::SetEventSubjectHealthToSource
+            }
         })
     }
 }
@@ -5479,6 +5581,21 @@ mod tests {
             CardEffect::DiscoverEnemyDeckTop,
             CardEffect::SummonRandomFelBeast,
             CardEffect::AddRandomBeastCostLess { amount: 3 },
+            CardEffect::TriggerFriendlyDeadDeathrattles { count: 5 },
+            CardEffect::EshoDeckCheckBuffEverywhere {
+                attack: 2,
+                health: 2,
+            },
+            CardEffect::SetStatsAllEnemyMinions {
+                attack: 1,
+                health: 1,
+            },
+            CardEffect::SummonDamagedCopiesRush,
+            CardEffect::SummonTwoDeathrattleMinionsAndFight,
+            CardEffect::LohMinionsCost5,
+            CardEffect::EliseCraftLocation,
+            CardEffect::NiriOfTheCrater,
+            CardEffect::SetEventSubjectHealthToSource,
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");

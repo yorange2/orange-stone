@@ -2068,6 +2068,30 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_tlc_w4a::RAPTOR,
     super::exp_tlc_w4a::JUVENILE_PTERRORDAX,
     super::exp_tlc_w4a::GRUB,
+    // M2-W4b — the Un'Goro legendary wave
+    // (src/cards/exp_tlc_w4b.rs): the 14 remaining TLC_* legendary cards
+    // (Torga TLC_102 landed in W3). Full implementations: Endbringer
+    // Umbra, City Chief Esho, Bralma Searstone, Ido of the Threshfleet,
+    // Loh the Living Legend, Krog Crater King, Opu the Unseen, Nablya the
+    // Watcher, Archaios, Niri of the Crater. Simplified (§18): Elise the
+    // Navigator, Titanographer Osk, High Cultist Herenn, Entomologist
+    // Toru.
+    super::exp_tlc_w4b::ELISE_THE_NAVIGATOR,
+    super::exp_tlc_w4b::ENDBRINGER_UMBRA,
+    super::exp_tlc_w4b::CITY_CHIEF_ESHO,
+    super::exp_tlc_w4b::BRALMA_SEARSTONE,
+    super::exp_tlc_w4b::IDO_OF_THE_THRESHFLEET,
+    super::exp_tlc_w4b::LOH_THE_LIVING_LEGEND,
+    super::exp_tlc_w4b::TITANOGRAPHER_OSK,
+    super::exp_tlc_w4b::KROG_CRATER_KING,
+    super::exp_tlc_w4b::OPU_THE_UNSEEN,
+    super::exp_tlc_w4b::NABLYA_THE_WATCHER,
+    super::exp_tlc_w4b::HIGH_CULTIST_HERENN,
+    super::exp_tlc_w4b::ARCHAIOS,
+    super::exp_tlc_w4b::NIRI_OF_THE_CRATER,
+    super::exp_tlc_w4b::ENTOMOLOGIST_TORU,
+    // M2-W4b tokens (handwritten only — no generated baselines)
+    super::exp_tlc_w4b::CALL_THE_THRESHFLEET,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated

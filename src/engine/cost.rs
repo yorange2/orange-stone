@@ -281,6 +281,17 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
     {
         cost = Cost(cost.0 + 2);
     }
+    // Loh, the Living Legend (M2-W4b): "Your minions cost (5) this game" —
+    // a SET: the card costs exactly 5 regardless of its printed cost
+    // (a 2-Cost minion is raised to 5, a 9-Cost minion discounted to 5).
+    // Applied BEFORE the Reanimated Pterrordax arm so Pterrordax's own
+    // set-to-0 wins over the flag; Aviana's set-to-1 stays last and wins
+    // over both.
+    if state.world().card_type(card) == Some(crate::core::component::CardType::Minion)
+        && state.player(player).minions_cost_5
+    {
+        cost = Cost(5);
+    }
     // Reanimated Pterrordax (M2-W4a): "Costs Corpses instead of Mana" —
     // the 5 Corpses are spent at the CardPlayed path; the mana cost is 0.
     if state
