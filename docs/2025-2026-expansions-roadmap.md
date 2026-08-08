@@ -72,9 +72,16 @@ the expansions. M0 is the foundation:
   expansions/Other; unknown/custom IDs default to Classic). Vanilla cards keep
   the generated-const baseline; cards with prose keep hand-written effect files
   (`core_w*.rs` pattern). text/class/collectible stay in the JSON layer.
-- [ ] **Set registration** — new per-set card files + registration in
-  `sets.rs::ALL_CARDS`; per-set tagging so pool filters can select a Standard
-  window (`POOL_*` style, decision D3).
+- [x] **Set registration** (M0.3, PR #133) — `cards/cards.json` gains the
+  five expansions (848 cards; `tools/merge_expansion_sets.py` reproduces);
+  build.rs emits per-set group consts (`EMERALD_DREAM_CARDS` 183 /
+  `THE_LOST_CITY_CARDS` 183 / `TIME_TRAVEL_CARDS` 183 / `CATACLYSM_CARDS` 164 /
+  `ESCAPEFROM_VIOLET_HOLD_CARDS` 135) and a flat `EXPANSION_CARDS` slice
+  (engine-available via `card_by_id`). **D3 two-state**: `ALL_CARDS` keeps the
+  handwritten pool (zero churn across call sites); `pool::in_active_window`
+  (Classic|Core — the single cut-over point) filters every sampling pool;
+  `is_standard`/`is_expansion` filters in place. Surfaced + documented a real
+  Core rebalance: Babbling Bookcase (CORE_EDR_001 2/4 vs EDR_001 3/3).
 - [ ] **Validation** — ID-uniqueness and generated-vs-handwritten fidelity tests
   (`core_reprints_match_originals` pattern), plus a `differential` gate that
   every expansion card is either hand-written or matches its generated

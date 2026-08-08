@@ -59,8 +59,14 @@
   新增 `generated::card_set(id)` 注册表（`CardSet` 枚举：Classic/Core/五扩展/Other，
   未知/自定义 ID 兜底 Classic）。白板卡保持生成常量基线；有效果叙述的卡照
   `core_w*.rs` 模式手写效果文件。text/class/collectible 留在 JSON 层（接线元数据）。
-- [ ] **系列注册**——新建按系列划分的卡文件并注册进 `sets.rs::ALL_CARDS`；加按系列
-  标记，使池过滤器能选标准环境窗口（`POOL_*` 风格，决策 D3）。
+- [x] **系列注册**（M0.3，PR #133）——`cards/cards.json` 并入五系列 848 张卡
+  （复现脚本 `tools/merge_expansion_sets.py`）；build.rs 生成 per-set 组常量
+  （`EMERALD_DREAM_CARDS` 183 / `THE_LOST_CITY_CARDS` 183 / `TIME_TRAVEL_CARDS`
+  183 / `CATACLYSM_CARDS` 164 / `ESCAPEFROM_VIOLET_HOLD_CARDS` 135）与扁平
+  `EXPANSION_CARDS` 切片（`card_by_id` 引擎可用）。**D3 两态**：`ALL_CARDS` 保持
+  手写池（54 处调用点零改动），`pool::in_active_window`（Classic|Core，单次切换点）
+  过滤全部抽样池，`is_standard`/`is_expansion` 过滤器就位。顺带发现并登记核心重印
+  重平衡：Babbling Bookcase（CORE_EDR_001 2/4 vs EDR_001 3/3）。
 - [ ] **校验**——ID 唯一性与生成-vs-手写保真测试（`core_reprints_match_originals`
   模式），外加 `differential` 闸门：每张扩展卡要么手写、要么与生成基线一致。
 
