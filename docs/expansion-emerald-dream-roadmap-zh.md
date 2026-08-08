@@ -39,8 +39,9 @@
 - [x] **W0 —— 接线 + 数据（无卡）**：本系列 M0 数据落地（M0.1–M0.5，PR #131–#135：
   schema 字段、生成基线、清单回填）；ID 前缀 + 名称保真测试（M1-W0，PR #136：
   `tests/expansion_fidelity.rs`，EDR_/FIR_ 双向覆盖 183 张）。
-- **W1 —— 灌注（P1）：** 英雄技能升级计数 + 阈值触发 + 技能替换；6 职业灌注卡；
-  F5 场景钉死 2 次灌注阈值的结算时序。
+- [x] **W1 —— 灌注（P1）**（PR #137）：每玩家灌注计数 + 首次灌注替换为职业灌注
+  形态 + 每次灌注数字 +1（等级 = 计数）；6 职业 15 张灌注卡；13 个 F5 场景钉死
+  2 次灌注阈值时序与各职业技能结算。5 项 D2 简化登记进 fidelity-debt.md §14。
 - **W2 —— 黑暗赠礼（P2）：** 10 种赠礼池 + 对 5 职业黑暗赠礼卡应用发现。
 - **W3 —— 全职业 Choose One（P3）：** 真实抉择结算；泛化 W10 发现选择机制；
   EDR 抉择卡在 `legal_actions` 里给出显式分支。
@@ -54,21 +55,21 @@
 > 由 M0 数据转储回填（D1）。按承载机制的波分组占位；每个 `- [ ]` 一张卡。
 
 ### W1 —— 灌注（德鲁伊/猎人/法师/圣骑士/牧师/萨满）
-- [ ] EDR_226 Exotic Houndmaster
-- [ ] EDR_227 Umbraclaw
-- [ ] EDR_231 Aspect's Embrace
-- [ ] EDR_264 Aegis of Light
-- [ ] EDR_449 Lunarwing Messenger
-- [ ] EDR_451 Goldpetal Drake
-- [ ] EDR_518 Living Garden
-- [ ] EDR_519 Wisprider
-- [ ] EDR_800 Flutterwing Guardian
-- [ ] EDR_845 Hamuul Runetotem
-- [ ] EDR_852 Bitterbloom Knight
-- [ ] EDR_860 Resplendent Dreamweaver
-- [ ] EDR_871 Spirit Gatherer
-- [ ] EDR_888 Malorne the Waywatcher
-- [ ] EDR_970 Kaldorei Priestess
+- [x] EDR_226 Exotic Houndmaster
+- [x] EDR_227 Umbraclaw
+- [x] EDR_231 Aspect's Embrace
+- [x] EDR_264 Aegis of Light
+- [x] EDR_449 Lunarwing Messenger
+- [x] EDR_451 Goldpetal Drake
+- [x] EDR_518 Living Garden
+- [x] EDR_519 Wisprider
+- [x] EDR_800 Flutterwing Guardian
+- [x] EDR_845 Hamuul Runetotem
+- [x] EDR_852 Bitterbloom Knight
+- [x] EDR_860 Resplendent Dreamweaver
+- [x] EDR_871 Spirit Gatherer
+- [x] EDR_888 Malorne the Waywatcher
+- [x] EDR_970 Kaldorei Priestess
 
 ### W2 —— 黑暗赠礼（DK/DH/潜行者/术士/战士）
 - [ ] EDR_102 Treacherous Tormentor

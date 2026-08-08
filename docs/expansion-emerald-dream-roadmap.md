@@ -46,9 +46,11 @@ register in `sets.rs::ALL_CARDS`; simplifications carry `(simplified …)` marke
   PR #131–#135: schema fields, generated baseline, inventory backfilled);
   ID-prefix + name fidelity tests (M1-W0, PR #136: `tests/expansion_fidelity.rs`,
   EDR_/FIR_ bidirectional coverage over 183 cards).
-- **W1 — Imbue (P1):** hero-power upgrade counter + threshold trigger +
-  hero-power swap; the 6 classes' Imbue cards (W2+ in EDR terms); F5 scenarios
-  pin the 2x-Imbue threshold sequencing.
+- [x] **W1 — Imbue (P1)** (PR #137): per-player imbue counter + first-imbue
+  hero-power swap to the class's Imbued form + per-imbue number upgrades
+  (level = count); the 6 classes' 15 Imbue cards; 13 F5 scenarios pin the
+  2x-Imbue threshold sequencing and per-class power resolution. 5 D2
+  simplifications registered in fidelity-debt.md §14.
 - **W2 — Dark Gifts (P2):** the 10-gift pool + Discover-application on the 5
   classes' Dark Gift cards.
 - **W3 — Choose One for all classes (P3):** real choice resolution; the W10
@@ -66,21 +68,21 @@ register in `sets.rs::ALL_CARDS`; simplifications carry `(simplified …)` marke
 > carries each mechanic; every `- [ ]` is one card.
 
 ### W1 — Imbue (Druid/Hunter/Mage/Paladin/Priest/Shaman)
-- [ ] EDR_226 Exotic Houndmaster
-- [ ] EDR_227 Umbraclaw
-- [ ] EDR_231 Aspect's Embrace
-- [ ] EDR_264 Aegis of Light
-- [ ] EDR_449 Lunarwing Messenger
-- [ ] EDR_451 Goldpetal Drake
-- [ ] EDR_518 Living Garden
-- [ ] EDR_519 Wisprider
-- [ ] EDR_800 Flutterwing Guardian
-- [ ] EDR_845 Hamuul Runetotem
-- [ ] EDR_852 Bitterbloom Knight
-- [ ] EDR_860 Resplendent Dreamweaver
-- [ ] EDR_871 Spirit Gatherer
-- [ ] EDR_888 Malorne the Waywatcher
-- [ ] EDR_970 Kaldorei Priestess
+- [x] EDR_226 Exotic Houndmaster
+- [x] EDR_227 Umbraclaw
+- [x] EDR_231 Aspect's Embrace
+- [x] EDR_264 Aegis of Light
+- [x] EDR_449 Lunarwing Messenger
+- [x] EDR_451 Goldpetal Drake
+- [x] EDR_518 Living Garden
+- [x] EDR_519 Wisprider
+- [x] EDR_800 Flutterwing Guardian
+- [x] EDR_845 Hamuul Runetotem
+- [x] EDR_852 Bitterbloom Knight
+- [x] EDR_860 Resplendent Dreamweaver
+- [x] EDR_871 Spirit Gatherer
+- [x] EDR_888 Malorne the Waywatcher
+- [x] EDR_970 Kaldorei Priestess
 
 ### W2 — Dark Gifts (DK/DH/Rogue/Warlock/Warrior)
 - [ ] EDR_102 Treacherous Tormentor
