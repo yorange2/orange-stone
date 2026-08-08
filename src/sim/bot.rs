@@ -1808,6 +1808,18 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DiscoverEnemyDeckTop => 3.0,
         CardEffect::SummonRandomFelBeast => 4.0,
         CardEffect::AddRandomBeastCostLess { .. } => 3.0,
+        // M2-W4b — the Un'Goro legendary wave (src/cards/exp_tlc_w4b.rs)
+        CardEffect::TriggerFriendlyDeadDeathrattles { .. } => 5.0,
+        CardEffect::EshoDeckCheckBuffEverywhere { attack, health } => {
+            (attack + health) as f64 * 2.0
+        }
+        CardEffect::SetStatsAllEnemyMinions { .. } => 3.0,
+        CardEffect::SummonDamagedCopiesRush => 4.0,
+        CardEffect::SummonTwoDeathrattleMinionsAndFight => 5.0,
+        CardEffect::LohMinionsCost5 => 4.0,
+        CardEffect::EliseCraftLocation => 1.0,
+        CardEffect::NiriOfTheCrater => 3.0,
+        CardEffect::SetEventSubjectHealthToSource => 2.0,
     }
 }
 

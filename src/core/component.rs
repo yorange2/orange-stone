@@ -565,6 +565,11 @@ pub enum TriggerEvent {
     /// +1 Durability; friendly-scoped via the revealer, unlike the played
     /// event which fires when the secret is played)
     FriendlySecretRevealed,
+    /// A friendly minion (not a hero) declared an attack (M2-W4b —
+    /// Archaios's "after a friendly minion attacks"; friendly scope with
+    /// the attacker as the subject — unlike `Attacked`/`AttackedMinion`
+    /// this is not pinned to the attacker, so the trigger rides Archaios)
+    FriendlyMinionAttacked,
 }
 
 /// Trigger timing — Hearthstone's "whenever" / "after" classification.

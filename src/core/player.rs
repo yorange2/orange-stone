@@ -302,6 +302,14 @@ pub struct Player {
     /// expansions M2-W4a — Story of the Waygate's "didn't start in your
     /// deck" set; snapshotted by GameBuilder).
     pub starting_deck: Vec<String>,
+    /// The player's minions cost (5) for the rest of the game (2025–2026
+    /// expansions M2-W4b — Loh's battlecry; a SET read by the play-cost
+    /// pipeline).
+    pub minions_cost_5: bool,
+    /// The crafted-location marker of Elise the Navigator (2025–2026
+    /// expansions M2-W4b — registered simplification §18: the starting-deck
+    /// check sets this; no custom-location machinery exists yet).
+    pub elise_location_crafted: bool,
 }
 
 impl Player {
@@ -378,6 +386,8 @@ impl Player {
             minions_cost_more: false,
             next_beast_discount: 0,
             starting_deck: Vec::new(),
+            minions_cost_5: false,
+            elise_location_crafted: false,
         }
     }
 }

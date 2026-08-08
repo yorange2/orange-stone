@@ -37,6 +37,7 @@ pub mod exp_edr_w5;
 pub mod exp_tlc_w2;
 pub mod exp_tlc_w3;
 pub mod exp_tlc_w4a;
+pub mod exp_tlc_w4b;
 pub mod generated;
 pub mod kindred;
 pub mod pool;
@@ -362,6 +363,42 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 race: None,
                 max_attack: None,
                 effect: CardEffect::RehgarBolt,
+            },
+        );
+    }
+    // M2-W4b per-card triggers — the Un'Goro legendary wave:
+    // - Archaios (TLC_811): "after a friendly minion attacks, set its
+    //   Health to this minion's Health" — the new FriendlyMinionAttacked
+    //   event is friendly-scoped with the attacker as the subject (the
+    //   pinned Attacked class cannot carry an "another minion" trigger);
+    // - Niri of the Crater (TLC_836): "after you play a 1-Cost minion,
+    //   double its stats" — CardPlayed fires after the card fully
+    //   resolved, subject = the played card). Niri's spell trigger
+    //   ("cast a 1-Cost spell twice") rides the SAME CardPlayed event —
+    //   it fires for spell casts too — and the combined NiriOfTheCrater
+    //   effect branches on the subject's card type (the Trigger component
+    //   is a single slot; a second per-ID registration would clobber).
+    if card_def.id == "TLC_811" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionAttacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::SetEventSubjectHealthToSource,
+            },
+        );
+    }
+    if card_def.id == "TLC_836" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::CardPlayed,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::NiriOfTheCrater,
             },
         );
     }

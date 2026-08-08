@@ -6178,6 +6178,291 @@ pub fn resolve_effect(
                 reduce_hand_card_cost(state, e, amount);
             }
         }
+        CardEffect::TriggerFriendlyDeadDeathrattles { count } => {
+            // Endbringer Umbra (M2-W4b): trigger the Deathrattles of up to
+            // `count` friendly minions that died this game — the friendly
+            // graveyard IS the died-this-game log (entities keep their
+            // components in the graveyard, the MinionDied handler pattern).
+            // The graveyard is scanned in death order; each deathrattle
+            // resolves from the graveyard like a normal death (the W3
+            // Sizzling Cinder scan generalized).
+            let dead: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Graveyard, owner)
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Minion)
+                        && state.world().deathrattle(e).is_some()
+                })
+                .take(count.max(0) as usize)
+                .collect();
+            for e in dead {
+                if let (Some(dr), Some(e_owner)) =
+                    (state.world().deathrattle(e), state.world().player(e))
+                {
+                    resolve_effect(state, queue, e, e_owner, dr.0, None, None);
+                }
+            }
+        }
+        CardEffect::EshoDeckCheckBuffEverywhere { attack, health } => {
+            // City Chief Esho (M2-W4b): "If every minion in your deck
+            // shares a minion type, give your other minions +2/+2 wherever
+            // they are." The deck check reads the CURRENT deck: there must
+            // exist a single race R such that every minion in the deck has
+            // R (dual-tribe minions share through either tribe; a minion
+            // with no type shares nothing and fails the check). Empty
+            // deck: no minion falsifies the statement — the check passes
+            // vacuously. The buff then hits the owner's OTHER minions —
+            // hand and deck minions get base stat buffs (the Grimestreet
+            // convention), board minions get a permanent enchantment; the
+            // source is excluded ("other").
+            let deck_minions: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            let all_share = if deck_minions.is_empty() {
+                true
+            } else {
+                let candidates = [
+                    Race::Beast,
+                    Race::Murloc,
+                    Race::Demon,
+                    Race::Dragon,
+                    Race::Elemental,
+                    Race::Mechanical,
+                    Race::Pirate,
+                    Race::Totem,
+                    Race::Undead,
+                    Race::Quilboar,
+                    Race::Draenei,
+                    Race::Naga,
+                ];
+                let first = deck_minions[0];
+                candidates.iter().any(|&race| {
+                    state.world().has_race(first, race)
+                        && deck_minions
+                            .iter()
+                            .all(|&e| state.world().has_race(e, race))
+                })
+            };
+            if !all_share {
+                return;
+            }
+            for zone in [Zone::Hand, Zone::Deck] {
+                let cards: Vec<Entity> = state.world().zones().iter(zone, owner).collect();
+                for e in cards {
+                    if e == source || state.world().card_type(e) != Some(CardType::Minion) {
+                        continue;
+                    }
+                    let world = state.world_mut();
+                    let base = world.attack(e).unwrap_or(Attack(0));
+                    world.set_attack(e, Attack(base.0 + attack));
+                    let base_hp = world.health(e).unwrap_or(Health(1));
+                    world.set_health(e, Health(base_hp.0 + health));
+                }
+            }
+            let board: Vec<Entity> = state.world().zones().iter(Zone::Play, owner).collect();
+            for e in board {
+                if e != source && state.world().card_type(e) == Some(CardType::Minion) {
+                    state.world_mut().add_enchantment(
+                        e,
+                        Enchantment {
+                            attack,
+                            health,
+                            cost: 0,
+                            expiry: EnchantmentExpiry::Permanent,
+                        },
+                    );
+                }
+            }
+        }
+        CardEffect::SetStatsAllEnemyMinions { attack, health } => {
+            // Krog, Crater King (M2-W4b): end of the owner's turn, set the
+            // Attack and Health of all enemy minions to fixed values. The
+            // set writes the base stats, clears accumulated damage and
+            // strips permanent enchantments — the "make it a 1/1" set
+            // semantics (dynamic auras still apply on top, as in HS).
+            let enemies: SmallList<Entity> = collect_all_enemy_minions(state, owner);
+            let world = state.world_mut();
+            for e in enemies {
+                world.set_attack(e, Attack(attack));
+                world.set_health(e, Health(health));
+                world.remove_damage(e);
+                world.remove_enchantments(e);
+            }
+        }
+        CardEffect::SummonDamagedCopiesRush => {
+            // Nablya, the Watcher (M2-W4b): summon a fresh copy of each
+            // damaged friendly minion; the copies gain Rush. The damaged
+            // list is snapshotted first — a copy is a fresh base-stat
+            // entity (the engine copy convention) and is not itself
+            // damaged, so the snapshot prevents infinite copying.
+            let damaged: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| state.world().damage(e).is_some_and(|d| d.0 > 0))
+                .collect();
+            for e in damaged {
+                let Some(cid) = state.world().card_id(e).map(|c| c.0) else {
+                    continue;
+                };
+                if let Some(copy) = resolve_summon(state, queue, source, owner, cid) {
+                    // The copies are SUMMONED, not played — battlecries
+                    // (and combos) do not fire. The engine's MinionSummoned
+                    // handler fires whatever battlecry component a summoned
+                    // minion carries, so strip the components here: an
+                    // Injured Blademaster copy must arrive as a fresh 4/7,
+                    // not damage itself.
+                    state.world_mut().remove_battlecry(copy);
+                    state.world_mut().remove_combo_effect(copy);
+                    state.world_mut().set_rush(copy, Rush);
+                }
+            }
+        }
+        CardEffect::SummonTwoDeathrattleMinionsAndFight => {
+            // High Cultist Herenn (M2-W4b, registered simplification §18):
+            // summon two random Deathrattle minions from the deck — as
+            // copies, the deck itself is untouched (resolve_summon reads
+            // the card definition, the established copy convention) — and
+            // "they fight!": each deals damage equal to its Attack to the
+            // other once, through the normal damage pipeline (divine
+            // shields, deaths, etc. resolve normally). One or zero
+            // deathrattle minions in the deck summon what exists.
+            let mut ids: Vec<&'static str> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter_map(|e| state.world().card_id(e).map(|c| c.0))
+                .filter(|id| {
+                    crate::cards::def::card_by_id(id).is_some_and(|def| def.deathrattle.is_some())
+                })
+                .collect();
+            // Pick two distinct random ids.
+            if ids.len() > 1 {
+                let i = state.rng_mut().next_usize(ids.len());
+                let a = ids.remove(i);
+                let j = state.rng_mut().next_usize(ids.len());
+                let b = ids.remove(j);
+                if let Some(fa) = resolve_summon(state, queue, source, owner, a) {
+                    if let Some(fb) = resolve_summon(state, queue, source, owner, b) {
+                        let atk_a = state.world().effective_attack(fa).unwrap_or(Attack(0)).0;
+                        let atk_b = state.world().effective_attack(fb).unwrap_or(Attack(0)).0;
+                        queue.push(Event::DamageDealt {
+                            source: fa,
+                            target: fb,
+                            amount: atk_a,
+                        });
+                        queue.push(Event::DamageDealt {
+                            source: fb,
+                            target: fa,
+                            amount: atk_b,
+                        });
+                    }
+                }
+            } else if let Some(id) = ids.first() {
+                let _ = resolve_summon(state, queue, source, owner, id);
+            }
+        }
+        CardEffect::LohMinionsCost5 => {
+            // Loh, the Living Legend (M2-W4b): "your minions cost (5) this
+            // game" — the flag is read by the play-cost pipeline.
+            state.make_mut().players[owner.index()].minions_cost_5 = true;
+        }
+        CardEffect::EliseCraftLocation => {
+            // Elise the Navigator (M2-W4b, registered simplification §18):
+            // the real battlecry crafts a custom Location when the deck
+            // started with 10 cards of different Costs. The check runs
+            // against the `Player::starting_deck` snapshot (taken by
+            // GameBuilder at game start) and only sets the crafted-location
+            // marker — no custom-location machinery exists yet.
+            let costs: std::collections::HashSet<i32> = state
+                .player(owner)
+                .starting_deck
+                .iter()
+                .filter_map(|id| crate::cards::def::card_by_id(id).map(|def| def.cost))
+                .collect();
+            if costs.len() >= 10 {
+                state.make_mut().players[owner.index()].elise_location_crafted = true;
+            }
+        }
+        CardEffect::NiriOfTheCrater => {
+            // Niri of the Crater (M2-W4b): the event subject is the card
+            // that was just played (the CardPlayed event fires after full
+            // resolution, for minion plays and spell casts alike — the
+            // single trigger slot the per-ID registration can hold). The
+            // effect branches on the subject's card type; "1-Cost" reads
+            // the effective cost at trigger time.
+            let Some(subject) = event_subject else {
+                return;
+            };
+            let cost = state.world().effective_cost(subject).unwrap_or(Cost(0)).0;
+            if cost != 1 {
+                return;
+            }
+            match state.world().card_type(subject) {
+                // A 1-Cost minion doubles its stats — an enchantment equal
+                // to the current effective stats (the DoubleAttack/
+                // DoubleHealth convention).
+                Some(CardType::Minion) => {
+                    let cur_atk = state
+                        .world()
+                        .effective_attack(subject)
+                        .unwrap_or(Attack(0))
+                        .0;
+                    let cur_hp = state
+                        .world()
+                        .effective_health(subject)
+                        .unwrap_or(Health(0))
+                        .0;
+                    state.world_mut().add_enchantment(
+                        subject,
+                        Enchantment {
+                            attack: cur_atk,
+                            health: cur_hp,
+                            cost: 0,
+                            expiry: EnchantmentExpiry::Permanent,
+                        },
+                    );
+                }
+                // A 1-Cost spell casts twice: the effect re-resolves once
+                // with no explicit target and no second SpellCast event
+                // (the Tyrande timing simplification §14.4). The subject
+                // rides in the graveyard where its battlecry component
+                // persists.
+                Some(CardType::Spell) => {
+                    if let Some(effect) = state.world().battlecry(subject).map(|b| b.0) {
+                        resolve_effect(state, queue, subject, owner, effect, None, None);
+                    }
+                }
+                _ => {}
+            }
+        }
+        CardEffect::SetEventSubjectHealthToSource => {
+            // Archaios (M2-W4b): "after a friendly minion attacks, set its
+            // Health to this minion's Health" — the attacker (event
+            // subject) has its Health set to the source's effective Health
+            // (the set clears damage and permanent enchantments so the
+            // effective Health equals the value).
+            let Some(subject) = event_subject else {
+                return;
+            };
+            // "another friendly minion": the source's own attack does not
+            // re-set its own Health (a no-op set would be harmless, but the
+            // enchantment strip could remove its own buffs).
+            if subject == source {
+                return;
+            }
+            let target_hp = state
+                .world()
+                .effective_health(source)
+                .unwrap_or(Health(1))
+                .0;
+            let world = state.world_mut();
+            world.set_health(subject, Health(target_hp));
+            world.remove_damage(subject);
+            world.remove_enchantments(subject);
+        }
         CardEffect::AddRandomCardToHandCount { pool, count } => {
             // A random pool card added straight to the hand (the D2
             // "get a random X" shape — no choice is surfaced).
@@ -8748,6 +9033,16 @@ fn resolve_gain_stats(
             for minion in &minions {
                 world.add_enchantment(*minion, buff);
             }
+        }
+        // A random minion on either side (Ancestral Healing, the M2-W4b
+        // Ido token's "+2/+2 and Divine Shield")
+        EffectTarget::AnyMinion => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            let Some(m) = select_target(explicit, &all, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().add_enchantment(m, buff);
         }
         // The entity the triggering event happened to (Sword of Justice — the
         // just-summoned minion). Buffed directly; a subject that left play is

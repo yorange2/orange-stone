@@ -1232,3 +1232,87 @@ linked draw, the two shuffle-into-deck shapes and Relic Miner's rarity
 discover). Full `cargo test` fully green (all suites, incl. every
 `tlc_w1_*`/`tlc_w2_*`/`tlc_w3_*` scenario — 833 passed, 1 ignored),
 `cargo fmt` clean, `cargo clippy --all-targets` zero warnings.
+
+### 18. 2025–2026 expansions M2-W4b — the Un'Goro main-set wave, second split (14 legendary cards + 1 token) 🔓 registered
+
+The registered simplifications of the M2-W4b wave (`src/cards/exp_tlc_w4b.rs`):
+the 14 Un'Goro legendary cards (TLC_100/106/110/228/241/257/452/480/522/
+624/810/811/836/841) plus the TLC_241t "Call the Threshfleet!" token.
+Most of the wave is faithful: Endbringer Umbra re-triggers the Deathrattles
+of up to five friendly minions that died this game (the friendly graveyard
+IS the died-this-game log); Krog's turn-end set makes every enemy minion a
+1/1 (base write + damage clear + enchantment strip); Opu's Battlecry /
+Combo / Deathrattle each deal 1 to all enemy minions; Nablya summons fresh
+base-stat copies of each damaged friendly minion with Rush (the copies
+carry no battlecry or combo — the engine's MinionSummoned handler fires
+battlecries on effect summons, so the components are stripped to keep the
+copy fresh); Archaios sets the attacker's Health to its own effective
+Health through a new `FriendlyMinionAttacked` trigger event (the `Attacked`
+event is pinned to the attacker and unusable); Niri's played-card trigger
+doubles 1-Cost minions and double-casts 1-Cost spells (one CardPlayed
+trigger, the effect branches on the subject's card type — the Trigger
+component is a single slot); Loh's battlecry sets every minion cost to (5)
+for the game; Ido's start-of-turn effect grants the TLC_241t token while
+he is alive, and the token is a real 2-Cost Holy spell (+2/+2 and Divine
+Shield). As with §14–§17, these handwritten expansion cards are not in the
+RL pool (classic + core 668/659), so the rows are informational: they keep
+the code's simplifications traceable to the ledger. Each row stays open
+until its mechanism lands.
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| TLC_100 | Elise the Navigator | The battlecry's custom-Location craft is a deck check against the `Player::starting_deck` snapshot (10 cards of different Costs) that only sets the `elise_location_crafted` marker — no custom Location entity, activation or text exists | the official custom Location |
+| TLC_110 | City Chief Esho | "Wherever they are" uses the Grimestreet shape: base-stat buffs for hand and deck minions, permanent enchantments for board minions; the deck check itself is faithful (current deck, vacuous empty-deck pass) | the official wherever-buff |
+| TLC_228 | Bralma Searstone | "Your Elementals deal 1 extra damage" is a damage-pipeline hook at the Goldrinn entry point (an aura approximation): any damage source owned by the Bralma player that carries the Elemental race deals +1 while TLC_228 is alive — spell sources carry no race and are naturally excluded | a true aura |
+| TLC_452 | Titanographer Osk | The Titan mechanism is not implemented — the battlecry does nothing (smoke-pinned) | the official Titan abilities |
+| TLC_810 | High Cultist Herenn | "They fight!" is one exchange: each summoned copy deals damage equal to its Attack to the other once, through the normal damage pipeline (deaths, deathrattles and shields resolve); the deck itself is untouched (copies via `resolve_summon`) | the official fight resolution |
+| TLC_841 | Entomologist Toru | The 0/1 Jar transform/release mechanic is not implemented — the battlecry does nothing (smoke-pinned) | the official Jars |
+
+中文小结（同上）：M2-W4b 波（失落之城 14 张传说卡 + TLC_241t 衍生物）
+本波大多忠实：恩布拉亡语末日再触发本局已死的至多 5 个友方随从的亡语
+（友方墓地即"本局已死"日志）；克罗格回合结束把敌方随从全部置为 1/1
+（写基础值 + 清伤害 + 剥附魔）；奥普的战吼/连击/亡语各对全部敌方随从
+造成 1 点伤害；纳布利亚为每个受伤友方随从召唤全新基础身材的复制并给
+复制突袭（复制剥离战吼/连击组件——本引擎 MinionSummoned 处理器会对
+效果召唤的随从触发战吼，剥离才能保持复制品"全新"）；阿凯欧斯经新增
+FriendlyMinionAttacked 触发事件把攻击者的生命值设为自身的有效生命值
+（Attacked 事件钉在攻击者身上不可用）；妮莉的打出卡触发对 1 费随从
+翻倍属性、对 1 费法术双重施放（单个 CardPlayed 触发器、效果按主题卡
+类型分支——Trigger 组件是单槽）；洛的战吼使全场随从费用恒为 5；伊多的
+回合开始效果在存活时授予 TLC_241t 衍生物（真实 2 费神圣法术，+2/+2 并
+给予圣盾）。已登记简化：Elise 的定制地点铸造退化为对开局牌库快照的
+"10 张不同费用"检查并置 elise_location_crafted 标志（无地点实体）；
+Esho"任意位置"采用 Grimestreet 形状（手牌/牌库改基础数值、场上永久
+附魔），牌库检查本身忠实（当前牌库、空牌库空洞通过）；Bralma 的元素
+使伤害 +1 是 Goldrinn 同入口的伤害管线钩子（光环近似：Bralma 玩家所有
+带元素种族的伤害源 +1，TLC_228 存活时生效；法术来源无种族自然排除）；
+Osk（泰坦机制未实现）与 Toru（0/1 罐子变形/释放未实现）战吼为空
+（冒烟测试钉住身材）；Herenn"他们互殴！"简化为一轮交换（各自攻击力
+互打一次，走正常伤害管线——死亡/亡语/圣盾正常结算），牌库本身不动
+（resolve_summon 复制）。
+
+F5 coverage: `tlc_w4b_umbra_triggers_five_dead_deathrattles`,
+`tlc_w4b_krog_sets_enemy_minions_to_one`,
+`tlc_w4b_opo_fan_of_knives_via_battlecry_combo_deathrattle`,
+`tlc_w4b_nablya_copies_damaged_minions_with_rush`,
+`tlc_w4b_archaios_sets_attacker_health`,
+`tlc_w4b_niri_doubles_one_cost_minions`,
+`tlc_w4b_niri_casts_one_cost_spells_twice`,
+`tlc_w4b_loh_minions_cost_five`, `tlc_w4b_ido_grants_token_while_alive`,
+`tlc_w4b_esho_deck_check_buffs_minions`,
+`tlc_w4b_bralma_elementals_deal_extra_damage`,
+`tlc_w4b_herenn_summons_two_deathrattle_minions_and_fight`,
+`tlc_w4b_elise_checks_starting_deck`,
+`tlc_w4b_osk_toru_smoke_pins` (14 scenarios in `tests/differential.rs` —
+one per legendary card: the graveyard-scan deathrattle re-trigger, the
+turn-end 1/1 set with damage/enchantment clearing, the Battlecry/Combo/
+Deathrattle triple Fan of Knives, the fresh Rush copies with battlecries
+stripped, the new FriendlyMinionAttacked trigger with the subject==source
+guard, the CardPlayed cost-1 branch (minion doubling and spell
+double-cast), the minion cost-(5) set, the alive-only token grant and the
+token's buff + Divine Shield, the current-deck tribe check with the
+wherever-buff, the Elemental damage hook, the two-deathrattle-minions
+fight with the untouched deck, the starting-deck cost check, and the two
+simplified smoke pins). Full `cargo test` fully green (all suites, incl.
+every `tlc_w1_*`/`tlc_w2_*`/`tlc_w3_*`/`tlc_w4a_*` scenario — 847 passed,
+1 ignored), `cargo fmt` clean, `cargo clippy --all-targets` zero warnings.
