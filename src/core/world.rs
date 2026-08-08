@@ -13,8 +13,8 @@ use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
     Charge, ChooseOneEffect, ComboEffect, Cost, CostModifier, CostModifierKind, Damage,
     DarkGiftKind, Deathrattle, DivineShield, Durability, Elusive, Enchantment, Enrage, Freeze,
-    Health, HeroPowerDef, HeroPowerUsed, Immune, Lifesteal, OutcastPlayed, Overload, Poison, Race,
-    Reborn, Rush, Secret, SpellDamage, Stealth, SummonedThisTurn, Taunt, Tradeable, Trigger,
+    Health, HeroPowerDef, HeroPowerUsed, Immune, Lifesteal, OutcastPlayed, Overload, Poison, Quest,
+    Race, Reborn, Rush, Secret, SpellDamage, Stealth, SummonedThisTurn, Taunt, Tradeable, Trigger,
     Windfury,
 };
 use crate::core::entity::Entity;
@@ -181,6 +181,9 @@ pub struct World {
     /// (hand / deck / play); the matching static effects (enchantments,
     /// keyword components) are applied by `engine::trigger::apply_dark_gift`.
     dark_gifts: SparseSet<Vec<DarkGiftKind>>,
+    /// Quest component storage (2025–2026 expansions M2-W1) — progress state
+    /// of quest cards sitting in `Zone::Quest`.
+    quest: SparseSet<Quest>,
     /// Zone table — ordered entity lists per Zone
     zones: Zones,
 }
@@ -306,6 +309,7 @@ impl World {
             immune: SparseSet::new(),
             overload: SparseSet::new(),
             dark_gifts: SparseSet::new(),
+            quest: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -387,6 +391,7 @@ impl World {
         self.immune.remove(entity);
         self.overload.remove(entity);
         self.dark_gifts.remove(entity);
+        self.quest.remove(entity);
         // Bump the generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // Return the slot
@@ -920,6 +925,7 @@ impl World {
         remove_overload,
         iter_overload
     );
+    component_accessors!(quest, Quest, quest, set_quest, remove_quest, iter_quest);
     /// Get the tribes of an entity (empty for tribe-less minions).
     #[must_use]
     pub fn race(&self, entity: Entity) -> Option<&[Race]> {

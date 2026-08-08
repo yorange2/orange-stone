@@ -22,6 +22,9 @@ pub enum Zone {
     Graveyard,
     /// SetAside — temporarily removed from the game (used for secrets in Phase 2+)
     SetAside,
+    /// Quest — the per-player quest slot (2025–2026 expansions M2-W1); one
+    /// active quest per player, held until its condition is completed.
+    Quest,
 }
 
 /// Zone move error.
@@ -37,13 +40,15 @@ pub enum ZoneError {
 
 /// Entity lists for all zones.
 ///
-/// Deck, hand, play, and graveyard are maintained per player; SetAside is shared.
+/// Deck, hand, play, graveyard, and quest are maintained per player; SetAside
+/// is shared.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Zones {
     deck: [Vec<crate::core::entity::Entity>; 2],
     hand: [Vec<crate::core::entity::Entity>; 2],
     play: [Vec<crate::core::entity::Entity>; 2],
     graveyard: [Vec<crate::core::entity::Entity>; 2],
+    quest: [Vec<crate::core::entity::Entity>; 2],
     set_aside: Vec<crate::core::entity::Entity>,
 }
 
@@ -56,6 +61,7 @@ impl Zones {
             hand: [const { Vec::new() }, const { Vec::new() }],
             play: [const { Vec::new() }, const { Vec::new() }],
             graveyard: [const { Vec::new() }, const { Vec::new() }],
+            quest: [const { Vec::new() }, const { Vec::new() }],
             set_aside: Vec::new(),
         }
     }
@@ -67,6 +73,7 @@ impl Zones {
             Zone::Hand => &mut self.hand[player.index()],
             Zone::Play => &mut self.play[player.index()],
             Zone::Graveyard => &mut self.graveyard[player.index()],
+            Zone::Quest => &mut self.quest[player.index()],
             Zone::SetAside => &mut self.set_aside,
         }
     }
@@ -78,6 +85,7 @@ impl Zones {
             Zone::Hand => &self.hand[player.index()],
             Zone::Play => &self.play[player.index()],
             Zone::Graveyard => &self.graveyard[player.index()],
+            Zone::Quest => &self.quest[player.index()],
             Zone::SetAside => &self.set_aside,
         }
     }
@@ -134,6 +142,11 @@ impl Zones {
             }
             if let Some(pos) = self.graveyard[player_idx].iter().position(|&e| e == entity) {
                 self.graveyard[player_idx].remove(pos);
+                removed = true;
+                break;
+            }
+            if let Some(pos) = self.quest[player_idx].iter().position(|&e| e == entity) {
+                self.quest[player_idx].remove(pos);
                 removed = true;
                 break;
             }

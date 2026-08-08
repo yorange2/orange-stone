@@ -707,6 +707,16 @@ pub fn resolve_effect(
                 options,
                 pool_ids,
             );
+            // Quest progress (M2-W1): TLC_460 — "Discover 7 cards" — one per
+            // discover surfaced.
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::DiscoverCards,
+                1,
+                None,
+            );
         }
         CardEffect::SummonRandomMinion { pool } => {
             let Some(card_def) = crate::cards::pool::random_card(state.rng_mut(), pool) else {
@@ -1035,6 +1045,16 @@ pub fn resolve_effect(
                 let inner = state.make_mut();
                 inner.players[owner.index()].corpses -= cost;
             }
+            // Quest progress (M2-W1): TLC_433 — "Spend 15 Corpses" — the
+            // amount is the corpses actually spent.
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::SpendCorpses,
+                cost,
+                None,
+            );
             let card_def = crate::cards::def::card_by_id(
                 state
                     .world()
@@ -1578,6 +1598,16 @@ pub fn resolve_effect(
                 let inner = state.make_mut();
                 inner.players[owner.index()].corpses -= spend as u32;
             }
+            // Quest progress (M2-W1): TLC_433 — "Spend 15 Corpses" — the
+            // amount is the corpses actually spent.
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::SpendCorpses,
+                spend as u32,
+                None,
+            );
             let candidates: SmallList<&'static crate::cards::def::CardDef> =
                 crate::cards::sets::ALL_CARDS
                     .iter()
@@ -1760,6 +1790,16 @@ pub fn resolve_effect(
                     let inner = state.make_mut();
                     inner.players[owner.index()].corpses -= corpses;
                 }
+                // Quest progress (M2-W1): TLC_433 — "Spend 15 Corpses" — the
+                // amount is the corpses actually spent.
+                crate::engine::quest::progress(
+                    state,
+                    queue,
+                    owner,
+                    crate::cards::quest::QuestCondition::SpendCorpses,
+                    corpses,
+                    None,
+                );
                 for e in summoned {
                     state.world_mut().set_reborn(e, Reborn);
                 }
@@ -1797,6 +1837,16 @@ pub fn resolve_effect(
             if extra == 1 {
                 let inner = state.make_mut();
                 inner.players[owner.index()].corpses -= corpses;
+                // Quest progress (M2-W1): TLC_433 — "Spend 15 Corpses" —
+                // the amount is the corpses actually spent.
+                crate::engine::quest::progress(
+                    state,
+                    queue,
+                    owner,
+                    crate::cards::quest::QuestCondition::SpendCorpses,
+                    corpses,
+                    None,
+                );
             }
             let bonus = 1 + extra;
             for e in hand {
@@ -2101,6 +2151,16 @@ pub fn resolve_effect(
                 let inner = state.make_mut();
                 inner.players[owner.index()].corpses -= spend;
             }
+            // Quest progress (M2-W1): TLC_433 — "Spend 15 Corpses" — the
+            // amount is the corpses actually spent.
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::SpendCorpses,
+                spend,
+                None,
+            );
             for _ in 0..spend {
                 let enemies = collect_enemy_characters(state, owner, Some(source));
                 if enemies.is_empty() {
@@ -2125,6 +2185,16 @@ pub fn resolve_effect(
                 let inner = state.make_mut();
                 inner.players[owner.index()].corpses -= spend;
             }
+            // Quest progress (M2-W1): TLC_433 — "Spend 15 Corpses" — the
+            // amount is the corpses actually spent.
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::SpendCorpses,
+                spend,
+                None,
+            );
             for _ in 0..spend {
                 let _ = resolve_summon(state, queue, source, owner, "CORE_RLK_061t");
             }
@@ -3181,6 +3251,16 @@ pub fn resolve_effect(
                     if have >= corpses {
                         let inner = state.make_mut();
                         inner.players[owner.index()].corpses -= corpses;
+                        // Quest progress (M2-W1): TLC_433 — "Spend 15
+                        // Corpses" — the amount is the corpses actually spent.
+                        crate::engine::quest::progress(
+                            state,
+                            queue,
+                            owner,
+                            crate::cards::quest::QuestCondition::SpendCorpses,
+                            corpses,
+                            None,
+                        );
                         let gift = random_dark_gift(state.rng_mut());
                         apply_dark_gift(state, added, gift, owner);
                     }
@@ -3376,6 +3456,16 @@ pub fn resolve_effect(
                 let inner = state.make_mut();
                 inner.players[owner.index()].corpses -= cost;
             }
+            // Quest progress (M2-W1): TLC_433 — "Spend 15 Corpses" — the
+            // amount is the corpses actually spent.
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::SpendCorpses,
+                cost,
+                None,
+            );
             let mut all = collect_friendly_minions(state, owner);
             all.extend(collect_all_enemy_minions(state, owner));
             if let Some(t) = select_target(explicit_target, &all, state.rng_mut()) {
@@ -3522,6 +3612,9 @@ pub fn resolve_effect(
             // damage (G4).
             let mut all: SmallList<Entity> = collect_friendly_minions(state, owner);
             all.extend(collect_all_enemy_minions(state, owner));
+            // Quest progress (M2-W1): TLC_513 — "Shuffle cards into your
+            // deck" — one per minion actually shuffled into the owner's deck
+            // (W2 pins the official per-effect counting).
             for minion in all {
                 let old_owner = state.world().player(minion);
                 let dest = if state.rng_mut().next_usize(2) == 0 {
@@ -3545,6 +3638,16 @@ pub fn resolve_effect(
                     world
                         .zones_mut()
                         .insert_at(Zone::Deck, dest, minion, position);
+                    if dest == owner {
+                        crate::engine::quest::progress(
+                            state,
+                            queue,
+                            owner,
+                            crate::cards::quest::QuestCondition::ShuffleCards,
+                            1,
+                            None,
+                        );
+                    }
                 }
             }
         }
@@ -3668,6 +3771,16 @@ pub fn resolve_effect(
                 let e = crate::cards::spawn_card_from_def(world, owner, def);
                 world.set_zone(e, Zone::Deck);
                 world.zones_mut().insert_at(Zone::Deck, owner, e, position);
+                // Quest progress (M2-W1): TLC_513 — "Shuffle cards into your
+                // deck" — one per shuffled copy.
+                crate::engine::quest::progress(
+                    state,
+                    queue,
+                    owner,
+                    crate::cards::quest::QuestCondition::ShuffleCards,
+                    1,
+                    None,
+                );
             }
         }
         CardEffect::AmphibianSpiritBuff { attack, health } => {
@@ -5470,6 +5583,16 @@ pub fn resolve_effect(
                 let inner = state.make_mut();
                 inner.players[owner.index()].corpses -= spend;
             }
+            // Quest progress (M2-W1): TLC_433 — "Spend 15 Corpses" — the
+            // amount is the corpses actually spent.
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::SpendCorpses,
+                spend,
+                None,
+            );
             state.world_mut().add_enchantment(
                 source,
                 Enchantment {
