@@ -30,6 +30,7 @@ pub mod core_w8;
 pub mod def;
 pub mod exp_edr_w1;
 pub mod exp_edr_w2;
+pub mod exp_edr_w3;
 pub mod generated;
 pub mod pool;
 pub mod sets;
@@ -115,6 +116,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "CORE_BOT_451t" // Spark (W6 token)
         | "CORE_TSC_650t4" // Otter (W6 token — Flipper Friends)
         | "EDR_227" // Umbraclaw (M1-W1 — the Emerald Dream imbue wave)
+        | "EDR_263t" // Greatwolf (M1-W3 — Grace of the Greatwolf token)
     ) {
         world.set_rush(entity, Rush);
     }
@@ -752,6 +754,52 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 max_attack: None,
             },
         );
+    }
+}
+
+/// Human-readable branch labels for a Choose One card's two options
+/// (2025–2026 expansions M1-W3, P3 — real choice resolution). The EDR W3
+/// cards get their real labels distilled from the card text; Classic/Core
+/// and anything else fall back to the generic labels. Used by the
+/// choose-one surface sites in `engine/rules.rs` (spell / minion / weapon).
+pub(crate) fn choose_one_option_names(def: &CardDef) -> [&'static str; 2] {
+    match def.id {
+        "EDR_233" => [
+            "Summon three 2/3 Wolves with Taunt",
+            "Summon two 4/3 Falcons with Windfury",
+        ],
+        "EDR_257" => ["+3 Attack and Divine Shield", "+3 Health and Lifesteal"],
+        "EDR_263" => [
+            "Deal 4 damage to the enemy hero",
+            "Summon two 3/2 Wolves with Rush",
+        ],
+        "EDR_463" => [
+            "Destroy a minion with 3 or less Attack",
+            "Summon a random 2-Cost minion",
+        ],
+        "EDR_490" => [
+            "Summon two 3/6 Demons with Taunt that can't attack",
+            "Destroy an enemy minion",
+        ],
+        "EDR_525" => [
+            "Gain Poisonous this turn",
+            "Gain 'Deathrattle: Deal 2 damage to all enemies'",
+        ],
+        "EDR_570" => [
+            "Deal 1 damage to all minions",
+            "Give a damaged minion +2/+2",
+        ],
+        "EDR_813" => [
+            "Summon two 1/1 Ants",
+            "Spend 2 Corpses: Deal 4 damage to a minion",
+        ],
+        "EDR_820" => [
+            "Summon two Dormant Dreadseeds",
+            "Deal 2 damage to all minions",
+        ],
+        "EDR_843" => ["Draw a spell", "Draw a minion"],
+        "EDR_872" => ["Discover a Mage spell", "Discover a Druid spell"],
+        _ => ["First option", "Second option"],
     }
 }
 

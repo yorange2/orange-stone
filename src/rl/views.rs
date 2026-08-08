@@ -373,20 +373,34 @@ pub fn action_views(state: &GameState) -> Vec<ActionView> {
     legal_action_infos(state)
         .into_iter()
         .enumerate()
-        .map(|(index, info)| action_view(index, &info))
+        .map(|(index, info)| action_view(state, index, &info))
         .collect()
 }
 
 /// Converts one [`ActionInfo`] into an [`ActionView`].
+///
+/// Choose actions (2025–2026 expansions M1-W3, P3 real choice resolution)
+/// describe the chosen branch with the pending choice's option label — the
+/// pending choice is the single source of truth for option text.
 #[must_use]
-pub fn action_view(index: usize, info: &ActionInfo) -> ActionView {
+pub fn action_view(state: &GameState, index: usize, info: &ActionInfo) -> ActionView {
+    let description = match info.action {
+        crate::core::action::Action::Choose { option, .. } => state
+            .pending_choice()
+            .and_then(|c| c.options.get(option as usize))
+            .map_or_else(
+                || format!("{:?}", info.action),
+                |label| format!("Choose: {label}"),
+            ),
+        _ => format!("{:?}", info.action),
+    };
     ActionView {
         index,
         kind: info.kind,
         card_index: info.card_index,
         entity_id: info.entity_id,
         target_id: info.target_id,
-        description: format!("{:?}", info.action),
+        description,
     }
 }
 
@@ -491,5 +505,51 @@ mod tests {
             assert_eq!(v.index, views[v.index].index);
             assert!(!v.description.is_empty());
         }
+    }
+
+    #[test]
+    fn action_views_describe_choose_options() {
+        // A pending Choose One choice surfaces kind "choose" with the option
+        // label as the description (M1-W3, P3 real choice resolution).
+        use crate::core::action::Action;
+        use crate::engine::game::{GameEngine, Resolution};
+        let mut builder = GameBuilder::new();
+        builder
+            .active_player(PlayerId::Player1)
+            .set_mana(PlayerId::Player1, 10, 10)
+            .add_minion_to_hand(PlayerId::Player1, &crate::cards::def::LIGHTMENDER);
+        let mut state = builder.build();
+        let card = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("Lightmender in hand");
+        let resolution = GameEngine::new()
+            .apply_choices(
+                &mut state,
+                Action::PlayCard {
+                    card,
+                    target: None,
+                    position: None,
+                },
+            )
+            .expect("Lightmender is playable with 10 mana");
+        let choice = match resolution {
+            Resolution::NeedsChoice { choice } => choice,
+            other => panic!("a Choose One card must pause for a choice: {other:?}"),
+        };
+        let views = action_views(&state);
+        assert_eq!(views.len(), 2, "exactly the two options are legal");
+        assert_eq!(views[0].kind, "choose");
+        assert_eq!(views[1].kind, "choose");
+        assert_eq!(
+            views[0].description,
+            format!("Choose: {}", choice.options[0])
+        );
+        assert_eq!(
+            views[1].description,
+            format!("Choose: {}", choice.options[1])
+        );
     }
 }

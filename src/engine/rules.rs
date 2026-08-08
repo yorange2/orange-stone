@@ -54,12 +54,28 @@ pub enum EngineError {
     NoPendingChoice,
     /// The choice id does not match the pending choice, or the option is out of range
     InvalidChoice,
+    /// A choice is pending — only `Action::Choose` is legal until it resolves
+    /// (2025–2026 expansions M1-W3, P3 real choice resolution)
+    ChoicePending,
     /// Feature not yet implemented (Phase 2+)
     Unimplemented,
 }
 
 /// Maximum number of minions on the battlefield.
 pub const MAX_BOARD_SIZE: usize = 7;
+
+/// Branch labels for a card entity's pending Choose One choice
+/// (2025–2026 expansions M1-W3, P3): resolves the entity's card definition
+/// and asks the cards-side `choose_one_option_names` table; falls back to
+/// the generic labels for unknown/off-chain cards.
+fn choose_one_labels(state: &GameState, card: Entity) -> [&'static str; 2] {
+    state
+        .world()
+        .card_id(card)
+        .and_then(|c| crate::cards::def::card_by_id(c.0))
+        .map(crate::cards::choose_one_option_names)
+        .unwrap_or(["First option", "Second option"])
+}
 
 /// Validates an action's legality in the current state (read-only).
 ///
@@ -68,6 +84,13 @@ pub fn validate(state: &GameState, action: Action) -> Result<(), EngineError> {
     // Reject all actions once the game is over
     if matches!(state.step(), Step::GameOver { .. }) {
         return Err(EngineError::GameAlreadyOver);
+    }
+    // While a choice (Choose One / Discover / Mulligan) is pending, the only
+    // legal action is resolving it (2025–2026 expansions M1-W3, P3). The
+    // default policy never trips this gate: `GameEngine::apply` re-applies
+    // only the `Action::Choose` it synthesized, never the original action.
+    if state.pending_choice().is_some() && !matches!(action, Action::Choose { .. }) {
+        return Err(EngineError::ChoicePending);
     }
 
     match action {
@@ -922,13 +945,13 @@ pub fn apply_event(
                                 // ChoiceResolved. The default policy
                                 // (GameEngine::apply) resolves it randomly via the
                                 // embedded RNG, preserving the historical behavior.
+                                // The option labels come from the cards-side table
+                                // (M1-W3, P3 real choice resolution).
+                                let labels = choose_one_labels(state, card);
                                 state.set_pending_choice(
                                     ChoiceKind::ChooseOne,
                                     card,
-                                    vec![
-                                        String::from("First option"),
-                                        String::from("Second option"),
-                                    ],
+                                    vec![String::from(labels[0]), String::from(labels[1])],
                                     Vec::new(),
                                 );
                             } else {
@@ -1004,18 +1027,31 @@ pub fn apply_event(
                     player,
                     weapon: card,
                 });
-                // Weapon battlecry (combo-aware): resolved after equipping, e.g. Perdition's Blade
-                let weapon_effect = if combo_active {
-                    state
-                        .world()
-                        .combo_effect(card)
-                        .map(|c| c.0)
-                        .or_else(|| state.world().battlecry(card).map(|b| b.0))
+                // Choose One weapons (Barbed Thorn, M1-W3): the branch choice
+                // surfaces as a pending choice after equipping — ChoiceResolved
+                // resolves the chosen branch (same pattern as spells/minions).
+                if state.world().choose_one_effect(card).is_some() {
+                    let labels = choose_one_labels(state, card);
+                    state.set_pending_choice(
+                        ChoiceKind::ChooseOne,
+                        card,
+                        vec![String::from(labels[0]), String::from(labels[1])],
+                        Vec::new(),
+                    );
                 } else {
-                    state.world().battlecry(card).map(|b| b.0)
-                };
-                if let Some(effect) = weapon_effect {
-                    trigger::resolve_effect(state, queue, card, player, effect, None, None);
+                    // Weapon battlecry (combo-aware): resolved after equipping, e.g. Perdition's Blade
+                    let weapon_effect = if combo_active {
+                        state
+                            .world()
+                            .combo_effect(card)
+                            .map(|c| c.0)
+                            .or_else(|| state.world().battlecry(card).map(|b| b.0))
+                    } else {
+                        state.world().battlecry(card).map(|b| b.0)
+                    };
+                    if let Some(effect) = weapon_effect {
+                        trigger::resolve_effect(state, queue, card, player, effect, None, None);
+                    }
                 }
             } else if card_type == Some(CardType::Location) {
                 // Location card (Core Set W8): replace the current location
@@ -1106,11 +1142,13 @@ pub fn apply_event(
                 // Choose One minions (Cenarius, Keeper of the Grove): the branch
                 // choice surfaces as a pending choice — MinionSummoned skips the
                 // battlecry and ChoiceResolved resolves the chosen branch (G6).
+                // The option labels come from the cards-side table (M1-W3, P3).
                 if state.world().choose_one_effect(card).is_some() {
+                    let labels = choose_one_labels(state, card);
                     state.set_pending_choice(
                         ChoiceKind::ChooseOne,
                         card,
-                        vec![String::from("First option"), String::from("Second option")],
+                        vec![String::from(labels[0]), String::from(labels[1])],
                         Vec::new(),
                     );
                 }
@@ -1845,6 +1883,16 @@ pub fn apply_event(
             // triggers (Sword of Justice's summon trigger). The player's weapon
             // pointer was already cleared by the destroying action.
             let _ = state.world_mut().move_to_zone(weapon, Zone::Graveyard);
+            // The weapon's deathrattle fires when it breaks or is replaced
+            // (Barbed Thorn choose branch 2, M1-W3) — mirrors the minion death
+            // path: move to the graveyard first, then resolve the deathrattle
+            // (the entity is in the graveyard, as in HS).
+            if let (Some(dr), Some(owner)) = (
+                state.world().deathrattle(weapon),
+                state.world().player(weapon),
+            ) {
+                trigger::resolve_effect(state, queue, weapon, owner, dr.0, None, None);
+            }
         }
         Event::SecretRevealed { .. } => {
             // Notification event — the secret effect is resolved through the trigger system
@@ -2300,6 +2348,11 @@ fn wrap_up_turn(state: &mut GameState) {
             inner.world.iter_immune().map(|(e, _)| e).collect();
         for &e in immune_entities.iter() {
             inner.world.remove_immune(e);
+        }
+        // Barbed Thorn's "Poisonous this turn" expires at the turn end (M1-W3)
+        if p.hero_poisonous_this_turn {
+            inner.world.remove_poison(p.hero);
+            p.hero_poisonous_this_turn = false;
         }
     }
     // Return temporarily controlled minions (Shadow Madness — until end of turn)

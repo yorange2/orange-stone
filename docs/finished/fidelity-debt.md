@@ -640,3 +640,49 @@ Every card that leaves this ledger must land with:
   `(simplified: …)` — they are faithful implementations that read the
   opponent's cards, not simplifications. The extractor keys on "simplified",
   so they stay in the RL pool; their registry lives in `pool-openness.md`.
+
+### 14.2 2025–2026 expansions M1-W3 — the Emerald Dream choose-one wave (12 cards) 🔓 registered
+
+The registered simplifications of the M1-W3 wave (`src/cards/exp_edr_w3.rs` +
+the real Choose One pipeline: `PendingChoice`/`ChoiceKind::ChooseOne`, the
+per-option `Action::Choose { choice_id, option }` resolution, and the
+`choose_one_option_names` labels). The choose-one branches themselves are real
+(option 0 = the battlecry slot, option 1 = the choose_one_effect slot,
+exposed through `legal_actions` — P3). What stays simplified: the Discover
+cards in this wave resolve as random picks, Reforestation's 蓄力-style hold
+mechanic is omitted, and Wyvern's Slumber's Dormant is approximated with a
+plain token. As with §14/§14.1, these handwritten expansion cards are not in
+the RL pool (classic + core 668/659), so the rows are informational: they keep
+the code's `(simplified: …)` markers traceable to the ledger. Each row stays
+open until its mechanism lands.
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| EDR_273 | Symbiosis | Discover a Choose One card from another class → a random pick over the fixed `OTHER_CLASS_CHOOSE_ONE_POOL` table (the 10 non-Druid EDR choose-one cards); the brief's in-window pool formula yields an empty set because every in-window choose-one card is Druid, so the fixed table is the pool | a real Discover pipeline over an other-class Choose One pool |
+| EDR_843 | Reforestation | The "hold this for 3 turns to draw both" 蓄力-style mechanic is omitted — each branch draws its card type immediately | the hold mechanic (a future wave) |
+| EDR_820 | Wyvern's Slumber | The Dormant Dreadseeds are plain 0/3 can't-attack tokens that never wake (the engine has no Dormant) | a Dormant pipeline |
+| EDR_872 | Spark of Life | Both Discover branches → a random pick (a Mage spell from `MAGE_CLASSIC` / a Druid spell from `DRUID_CLASSIC`) | the real Discover pipeline (W3's own Discover still pending) |
+| EDR_233t1/t2, EDR_263t, EDR_490t, EDR_813t, EDR_820t | the wave's six tokens | Handwritten consts only (no data rows in the official set / generated baselines — the standard expansion-token registration) | official token data |
+| EDR_257, EDR_263, EDR_463, EDR_490, EDR_525, EDR_570, EDR_813 | the other seven choose-one cards | faithful (both branches real) | — |
+| EDR_233 | Spirits of the Forest | faithful | — |
+
+中文小结（同上）：M1-W3 抉择波的真抉择管线已落地（分支选择为显式
+`Action::Choose`，经 `legal_actions` 暴露，P3）；本波简化为：Symbiosis 的
+"发现其他职业抉择牌"沿用随机简化（按固定 `OTHER_CLASS_CHOOSE_ONE_POOL`
+表——10 张非德鲁伊 EDR 抉择牌——因设计稿窗口公式在纯德鲁伊窗口下取空集，
+故改为固定表，非规范偏离见 W3 报告）；Reforestation 的"蓄力三回合后再抽
+另一张"未实现（两分支均立即按类型抽牌）；Wyvern's Slumber 的休眠种子简化为
+永不苏醒的 0/3 不可攻击白板；Spark of Life 两分支的发现均简化为随机取一
+（法师法术池 / 德鲁伊法术池）；六张衍生物为手写 const（官方数据无此行，
+与既有扩展衍生物登记一致）。
+
+F5 coverage: `edr_w3_spirits_of_the_forest_both_branches`,
+`edr_w3_lightmender_both_branches`, `edr_w3_grace_of_the_greatwolf_both_branches`,
+`edr_w3_symbiosis_adds_other_class_choose_one`,
+`edr_w3_twilight_influence_both_branches`, `edr_w3_sleep_paralysis_both_branches`,
+`edr_w3_barbed_thorn_poisonous_this_turn`, `edr_w3_barbed_thorn_deathrattle_on_replace`,
+`edr_w3_ominous_nightmares_both_branches`, `edr_w3_morbid_swarm_both_branches_and_corpse_gate`,
+`edr_w3_wyverns_slumber_both_branches`, `edr_w3_reforestation_draws_by_card_type`,
+`edr_w3_spark_of_life_discover_class_spells`, `edr_w3_pending_choice_gate_and_auto_resolve`
+(14 scenarios in `tests/differential.rs`). Full `cargo test` green; `cargo clippy
+--all-targets` clean.

@@ -316,6 +316,23 @@ pub struct ActionInfo {
 /// filters them with the engine's `validate`, ensuring consistency with `GameEngine::apply` legality.
 #[must_use]
 pub fn legal_action_infos(state: &GameState) -> Vec<ActionInfo> {
+    // While a choice (Choose One / Discover / Mulligan) is pending, the only
+    // legal actions are the per-option `Action::Choose` resolutions — nothing
+    // else validates (2025–2026 expansions M1-W3, P3 real choice resolution).
+    if let Some(choice) = state.pending_choice() {
+        return (0..choice.options.len())
+            .map(|option| ActionInfo {
+                action: Action::Choose {
+                    choice_id: choice.id,
+                    option: option as u8,
+                },
+                kind: "choose",
+                card_index: choice.card.index as i32,
+                entity_id: choice.card.index as i32,
+                target_id: option as i32,
+            })
+            .collect();
+    }
     let player = state.active_player();
     let world = state.world();
     let mut candidates: Vec<ActionInfo> = Vec::new();
@@ -1158,5 +1175,240 @@ mod tests {
         };
         assert_eq!(make(9), make(9), "same seed + same opening → identical");
         assert_ne!(make(9), make(10), "different seed → different game");
+    }
+
+    // ============================================================
+    // M1-W3 — real Choose One resolution (P3): a pending choice
+    // exposes exactly the per-option Choose actions
+    // ============================================================
+
+    use crate::engine::game::Resolution;
+
+    /// Builds a state where P1 has 10 mana and Lightmender (EDR_257,
+    /// Choose One) in hand.
+    fn lightmender_state() -> GameState {
+        use crate::sim::game::GameBuilder;
+        let mut builder = GameBuilder::new();
+        builder
+            .active_player(PlayerId::Player1)
+            .set_mana(PlayerId::Player1, 10, 10)
+            .add_minion_to_hand(PlayerId::Player1, &crate::cards::def::LIGHTMENDER);
+        builder.build()
+    }
+
+    #[test]
+    fn pending_choice_exposes_only_choose_actions() {
+        let mut state = lightmender_state();
+        let card = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("Lightmender in hand");
+        let resolution = GameEngine::new()
+            .apply_choices(
+                &mut state,
+                Action::PlayCard {
+                    card,
+                    target: None,
+                    position: None,
+                },
+            )
+            .expect("Lightmender is playable with 10 mana");
+        let choice = match resolution {
+            Resolution::NeedsChoice { choice } => choice,
+            other => panic!("a Choose One card must pause for a choice: {other:?}"),
+        };
+        assert_eq!(choice.options.len(), 2);
+
+        // While pending, the only legal actions are the per-option Choose resolutions
+        let infos = legal_action_infos(&state);
+        assert_eq!(
+            infos.len(),
+            2,
+            "only the two options are legal while pending"
+        );
+        for (i, info) in infos.iter().enumerate() {
+            assert_eq!(info.kind, "choose");
+            assert_eq!(
+                info.action,
+                Action::Choose {
+                    choice_id: choice.id,
+                    option: i as u8
+                }
+            );
+            assert_eq!(info.card_index, choice.card.index as i32);
+            assert_eq!(info.entity_id, choice.card.index as i32);
+        }
+        assert_eq!(
+            legal_actions(&state),
+            vec![
+                Action::Choose {
+                    choice_id: choice.id,
+                    option: 0
+                },
+                Action::Choose {
+                    choice_id: choice.id,
+                    option: 1
+                },
+            ]
+        );
+        // Nothing else is legal while a choice is pending
+        assert!(!legal_actions(&state).contains(&Action::EndTurn));
+    }
+
+    #[test]
+    fn step_choose_resolves_the_selected_branch() {
+        // Branch 0: +3 Attack and Divine Shield
+        let mut env = GameEnv::new(
+            PlayerId::Player1,
+            EnvConfig::default_with(BotType::None, 20),
+        );
+        env.reset(1);
+        env.state = lightmender_state();
+        let card = env
+            .state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("Lightmender in hand");
+        let resolution = env
+            .engine
+            .apply_choices(
+                &mut env.state,
+                Action::PlayCard {
+                    card,
+                    target: None,
+                    position: None,
+                },
+            )
+            .expect("play Lightmender");
+        let choice = match resolution {
+            Resolution::NeedsChoice { choice } => choice,
+            other => panic!("Lightmender must pause for a choice: {other:?}"),
+        };
+        // The env surfaces exactly the Choose actions while pending
+        let pending = env.legal_actions();
+        assert_eq!(pending.len(), 2);
+        assert!(pending.iter().all(|a| matches!(a, Action::Choose { .. })));
+
+        let r = env.step(Action::Choose {
+            choice_id: choice.id,
+            option: 0,
+        });
+        assert!(!r.done);
+        assert!(
+            env.state.pending_choice().is_none(),
+            "the choice is resolved by step"
+        );
+        let minion = env
+            .state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId::Player1)
+            .find(|&e| env.state.world().card_type(e) == Some(CardType::Minion))
+            .expect("Lightmender is in play");
+        assert_eq!(
+            env.state.world().effective_attack(minion).map(|a| a.0),
+            Some(6),
+            "branch 0 grants +3 Attack"
+        );
+        assert_eq!(
+            env.state.world().effective_health(minion).map(|h| h.0),
+            Some(3),
+            "branch 0 does not touch Health"
+        );
+        assert!(
+            env.state.world().divine_shield(minion).is_some(),
+            "branch 0 grants Divine Shield"
+        );
+        assert!(env.state.world().lifesteal(minion).is_none());
+
+        // Branch 1: +3 Health and Lifesteal
+        let mut env = GameEnv::new(
+            PlayerId::Player1,
+            EnvConfig::default_with(BotType::None, 20),
+        );
+        env.reset(1);
+        env.state = lightmender_state();
+        let card = env
+            .state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("Lightmender in hand");
+        let resolution = env
+            .engine
+            .apply_choices(
+                &mut env.state,
+                Action::PlayCard {
+                    card,
+                    target: None,
+                    position: None,
+                },
+            )
+            .expect("play Lightmender");
+        let choice = match resolution {
+            Resolution::NeedsChoice { choice } => choice,
+            other => panic!("Lightmender must pause for a choice: {other:?}"),
+        };
+        let _ = env.step(Action::Choose {
+            choice_id: choice.id,
+            option: 1,
+        });
+        assert!(env.state.pending_choice().is_none());
+        let minion = env
+            .state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId::Player1)
+            .find(|&e| env.state.world().card_type(e) == Some(CardType::Minion))
+            .expect("Lightmender is in play");
+        assert_eq!(
+            env.state.world().effective_health(minion).map(|h| h.0),
+            Some(6),
+            "branch 1 grants +3 Health"
+        );
+        assert_eq!(
+            env.state.world().effective_attack(minion).map(|a| a.0),
+            Some(3),
+            "branch 1 does not touch Attack"
+        );
+        assert!(
+            env.state.world().lifesteal(minion).is_some(),
+            "branch 1 grants Lifesteal"
+        );
+        assert!(env.state.world().divine_shield(minion).is_none());
+    }
+
+    #[test]
+    fn no_pending_choice_keeps_regular_legal_actions() {
+        // Without a pending choice the plain action enumeration is unchanged
+        let mut builder = crate::sim::game::GameBuilder::new();
+        builder
+            .active_player(PlayerId::Player1)
+            .set_mana(PlayerId::Player1, 10, 10)
+            .add_minion_to_hand(PlayerId::Player1, &crate::cards::def::BLOODFEN_RAPTOR);
+        let state = builder.build();
+        assert!(state.pending_choice().is_none());
+        let actions = legal_actions(&state);
+        assert!(actions.contains(&Action::EndTurn));
+        let card = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId::Player1)
+            .next()
+            .expect("Raptor in hand");
+        assert!(actions.contains(&Action::PlayCard {
+            card,
+            target: None,
+            position: None
+        }));
+        assert!(
+            actions.iter().all(|a| !matches!(a, Action::Choose { .. })),
+            "no Choose actions without a pending choice"
+        );
     }
 }

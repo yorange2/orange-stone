@@ -136,6 +136,10 @@ pub struct Player {
     /// (registered simplification: the log records gift kinds only, not
     /// targets — fidelity-debt §14).
     pub dark_gifts_given: Vec<crate::core::component::DarkGiftKind>,
+    /// "Poisonous this turn" (Barbed Thorn — 2025–2026 expansions M1-W3): the
+    /// hero carries the Poison component while this is true; cleared in the
+    /// turn-end wrap-up (the flag and the component expire together).
+    pub hero_poisonous_this_turn: bool,
 }
 
 impl Player {
@@ -174,6 +178,7 @@ impl Player {
             imbue_count: 0,
             hamuul_spells_cast: 0,
             dark_gifts_given: Vec::new(),
+            hero_poisonous_this_turn: false,
         }
     }
 }
