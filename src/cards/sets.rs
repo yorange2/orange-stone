@@ -24,6 +24,7 @@ use super::core_w3d::*;
 use super::core_w4a::*;
 use super::core_w4b::*;
 use super::core_w5::*;
+use super::core_w6::*;
 // ============================================================
 // Card lists
 // ============================================================
@@ -58,6 +59,8 @@ pub const DEMON_HUNTER_W1: &[CardDef] = &[
     // Core Set W5 — demon hunter batch
     CORE_KAYN_SUNFURY,
     CORE_AUGMENTED_PORCUPINE,
+    // Core Set W6 — Illidari Studies
+    CORE_ILLIDARI_STUDIES,
 ];
 
 /// Core Set W1 — Death Knight class cards.
@@ -349,6 +352,14 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     CORE_MOUNTAIN_CUB,
     CORE_WATER_ELEMENTAL,
     CORE_TWILIGHT_ELEMENTAL,
+    // Core Set W6 — tokens (Sapling, Spark, Deep Freeze Water Elemental,
+    // Flipper Friends Orca/Otter, Defias Bandit)
+    CORE_SAPLING,
+    CORE_SPARK,
+    CORE_DEEP_FREEZE_WATER_ELEMENTAL,
+    CORE_ORCA,
+    CORE_OTTER,
+    CORE_DEFIAS_BANDIT,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -430,6 +441,13 @@ pub const DRUID_CLASSIC: &[CardDef] = &[
     CORE_MENAGERIE_MUG,
     // Core Set W5 — Fandral Staghelm
     CORE_FANDRAL_STAGHELM,
+    // Core Set W6 — druid batch (choose-one)
+    CORE_LIVING_ROOTS,
+    CORE_WRATH,
+    CORE_POWER_OF_THE_WILD,
+    CORE_FERAL_RAGE,
+    CORE_BOOMKIN,
+    CORE_FLIPPER_FRIENDS,
 ];
 
 pub const HUNTER_CLASSIC: &[CardDef] = &[
@@ -489,6 +507,8 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     CORE_FREEZING_TRAP,
     CORE_RAT_TRAP,
     CORE_PRESSURE_PLATE,
+    // Core Set W6 — Tracking
+    CORE_TRACKING,
 ];
 
 pub const MAGE_CLASSIC: &[CardDef] = &[
@@ -542,6 +562,12 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     CORE_COUNTERSPELL,
     CORE_ICE_BARRIER,
     CORE_OASIS_ALLY,
+    // Core Set W6 — mage batch (freeze)
+    CORE_RUNED_ORB,
+    CORE_CRAZED_CHEMIST,
+    CORE_DEEP_FREEZE,
+    CORE_FROSTBOLT,
+    CORE_BLIZZARD,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -590,6 +616,8 @@ pub const PALADIN_CLASSIC: &[CardDef] = &[
     CORE_SUNFURY_PROTECTOR,
     CORE_ARGENT_PROTECTOR,
     CORE_HEADHUNTERS_HATCHET,
+    // Core Set W6 — Blazing Invocation
+    CORE_BLAZING_INVOCATION,
 ];
 
 pub const PRIEST_CLASSIC: &[CardDef] = &[
@@ -695,6 +723,9 @@ pub const ROGUE_CLASSIC: &[CardDef] = &[
     // Core Set W4b — rogue batch
     CORE_PSYCHIC_CONJURER,
     CORE_CRAZED_ALCHEMIST,
+    // Core Set W6 — combo batch
+    CORE_DEFIAS_RINGLEADER,
+    CORE_SI7_AGENT,
 ];
 
 pub const SHAMAN_CLASSIC: &[CardDef] = &[
@@ -736,6 +767,13 @@ pub const SHAMAN_CLASSIC: &[CardDef] = &[
     // Core Set W4a — shaman batch
     CORE_WITCHS_APPRENTICE,
     CORE_FIRE_FLY,
+    // Core Set W6 — shaman batch (overload/freeze)
+    CORE_TOTEM_GOLEM,
+    CORE_GLACIATE,
+    CORE_VOLTAIC_BURST,
+    CORE_LIGHTNING_BOLT,
+    CORE_EARTH_ELEMENTAL,
+    CORE_LIGHTNING_STORM,
 ];
 
 pub const WARLOCK_CLASSIC: &[CardDef] = &[
@@ -837,6 +875,8 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
     CORE_RAVAGING_GHOUL,
     CORE_STEAMCLEANER,
     CORE_CULT_NEOPHYTE,
+    // Core Set W6 — I Know a Guy
+    CORE_I_KNOW_A_GUY,
 ];
 
 pub const ALL_CARDS: &[CardDef] = &[
@@ -1560,6 +1600,38 @@ pub const ALL_CARDS: &[CardDef] = &[
     CORE_WATER_ELEMENTAL,
     CORE_TWILIGHT_ELEMENTAL,
     CORE_DOOM_RAT,
+    // Core Set W6 (2026-08-08) — discover/choose-one/combo/overload/freeze
+    // batch: 23 cards + 6 tokens (Panther DRUID_019t is the classic token,
+    // already registered above).
+    CORE_LIVING_ROOTS,
+    CORE_TOTEM_GOLEM,
+    CORE_GLACIATE,
+    CORE_RUNED_ORB,
+    CORE_VOLTAIC_BURST,
+    CORE_CRAZED_CHEMIST,
+    CORE_DEEP_FREEZE,
+    CORE_FROSTBOLT,
+    CORE_BLIZZARD,
+    CORE_TRACKING,
+    CORE_DEFIAS_RINGLEADER,
+    CORE_SI7_AGENT,
+    CORE_WRATH,
+    CORE_POWER_OF_THE_WILD,
+    CORE_LIGHTNING_BOLT,
+    CORE_EARTH_ELEMENTAL,
+    CORE_LIGHTNING_STORM,
+    CORE_BLAZING_INVOCATION,
+    CORE_FERAL_RAGE,
+    CORE_BOOMKIN,
+    CORE_FLIPPER_FRIENDS,
+    CORE_I_KNOW_A_GUY,
+    CORE_ILLIDARI_STUDIES,
+    CORE_SAPLING,
+    CORE_SPARK,
+    CORE_DEEP_FREEZE_WATER_ELEMENTAL,
+    CORE_ORCA,
+    CORE_OTTER,
+    CORE_DEFIAS_BANDIT,
 ];
 
 // ============================================================

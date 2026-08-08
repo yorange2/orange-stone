@@ -715,6 +715,7 @@ pub fn apply_event(
                 p.cards_played_this_turn += 1;
                 // One-time discounts are consumed on play (Core Set W4a)
                 p.next_demon_discount = 0;
+                p.next_outcast_discount = 0; // Illidari Studies (W6)
                 p.next_combo_discount = 0;
                 if is_minion {
                     p.minions_played_this_turn += 1;
@@ -862,7 +863,13 @@ pub fn apply_event(
                                 .map_err(|_| EngineError::EntityGone(card))?;
                         }
                         secret::Interception::None => {
-                            if state.world().choose_one_effect(card).is_some() && !combo_active {
+                            // Choose One always surfaces the branch choice in
+                            // real Hearthstone, regardless of cards played
+                            // earlier this turn (the old `!combo_active` guard
+                            // wrongly resolved the battlecry branch when the
+                            // spell was played after another card — Core Set
+                            // W6 fidelity fix, pinned by w6_*_choose_one).
+                            if state.world().choose_one_effect(card).is_some() {
                                 // Choose One spell (roadmap G6): the branch choice
                                 // surfaces as a pending choice; the effect, the
                                 // SpellCast event, and the graveyard move resolve in
@@ -1311,11 +1318,12 @@ pub fn apply_event(
             // Water Elemental (W12, D2 — damage-pipeline check): freeze any
             // character damaged by this minion. Applied before the divine
             // shield absorption — HS freezes even when the shield absorbs.
-            if state
-                .world()
-                .card_id(source)
-                .is_some_and(|c| c.0 == crate::cards::classic_mage::WATER_ELEMENTAL_ID)
-            {
+            // The Core Set W6 token (CORE_BT_072t, Deep Freeze's summon) is
+            // the same card and carries the same hook.
+            let is_water_elemental = state.world().card_id(source).is_some_and(|c| {
+                c.0 == crate::cards::classic_mage::WATER_ELEMENTAL_ID || c.0 == "CORE_BT_072t"
+            });
+            if is_water_elemental {
                 state
                     .world_mut()
                     .set_freeze(target, crate::core::component::Freeze);

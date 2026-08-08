@@ -24,6 +24,7 @@ pub mod core_w3d;
 pub mod core_w4a;
 pub mod core_w4b;
 pub mod core_w5;
+pub mod core_w6;
 pub mod def;
 pub mod generated;
 pub mod pool;
@@ -95,6 +96,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "CORE_WC_701" // Felrattler
         | "CORE_BAR_801t" // Swift Hyena (W3b token)
         | "CORE_ULD_178" // Siamat (W4b — simplified to Rush+Taunt)
+        | "CORE_BOT_451t" // Spark (W6 token)
+        | "CORE_TSC_650t4" // Otter (W6 token — Flipper Friends)
     ) {
         world.set_rush(entity, Rush);
     }
@@ -371,6 +374,12 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         "SHAMAN_017" => Some(2), // Lava Burst
         "SHAMAN_018" => Some(1), // Stormforged Axe
         "SHAMAN_019" => Some(3), // Earth Elemental
+        // Core Set W6 overload amounts
+        "CORE_AT_052" => Some(1),  // Totem Golem
+        "CORE_BOT_451" => Some(1), // Voltaic Burst
+        "CORE_EX1_238" => Some(1), // Lightning Bolt
+        "CORE_EX1_250" => Some(3), // Earth Elemental
+        "CORE_EX1_259" => Some(2), // Lightning Storm
         _ => None,
     };
     if let Some(amount) = overload_amount {

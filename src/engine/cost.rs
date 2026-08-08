@@ -61,6 +61,17 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
     {
         cost = Cost((cost.0 - state.player(player).next_combo_discount).max(0));
     }
+    // Illidari Studies (Core Set W6): the next Outcast card costs less
+    // (one-time, consumed on play — cleared after use)
+    if state
+        .world()
+        .card_id(card)
+        .and_then(|cid| crate::cards::def::card_by_id(cid.0))
+        .is_some_and(crate::cards::def::has_outcast)
+        && state.player(player).next_outcast_discount > 0
+    {
+        cost = Cost((cost.0 - state.player(player).next_outcast_discount).max(0));
+    }
     // Cult Neophyte (Core Set W4b): the opponent's spells cost more
     if state.world().card_type(card) == Some(crate::core::component::CardType::Spell) {
         let more = state.player(player).enemy_spell_cost_more;

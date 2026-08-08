@@ -465,6 +465,9 @@ fn play_targets(
         CardEffect::RestoreHealthAndDraw { target, .. } => target,
         CardEffect::BattleToTheDeath => EffectTarget::AnyEnemyMinion,
         CardEffect::DestroyMinionAndSelfDamage => EffectTarget::AnyMinion,
+        CardEffect::DamageAndAddRandomSpell { target, .. } => target,
+        CardEffect::FreezeAndSummonElementals => EffectTarget::AnyEnemy,
+        CardEffect::DamageAndFreeze { target, .. } => target,
         _ => return Vec::new(),
     };
     let owner = state

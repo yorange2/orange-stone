@@ -1409,6 +1409,15 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::ResurrectWeaponKilled => 4.0,
         CardEffect::DestroyRandomEnemyMinion => 4.0,
         CardEffect::SummonOasisWaterElemental => 4.0,
+        // Core Set W6
+        CardEffect::SummonRandomCostAndFreeze { .. } => 5.0,
+        CardEffect::DamageAndAddRandomSpell { damage, .. } => damage as f64 * 1.2 + 3.0,
+        CardEffect::FreezeAndSummonElementals => 6.0,
+        CardEffect::AddRandomTauntBuffed => 4.0,
+        CardEffect::AddRandomBattlecryMinion => 3.0,
+        CardEffect::DamageAndFreeze { damage, .. } => damage as f64 * 1.2 + 1.0,
+        CardEffect::DamageAllEnemyMinionsAndFreeze { damage } => damage as f64 * 1.2 * 2.0,
+        CardEffect::AddRandomOutcastCardNextCheaper => 3.0,
     }
 }
 

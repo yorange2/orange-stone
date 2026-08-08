@@ -1248,6 +1248,49 @@ pub enum CardEffect {
     DestroyRandomEnemyMinion,
     /// Summon a 3/6 Water Elemental (Oasis Ally secret effect)
     SummonOasisWaterElemental,
+    // ----------------------------------------------------------------
+    // Core Set W6 effects (core-set-roadmap W6) — discover/choose-one/
+    // combo/overload/freeze batch. Discover is simplified to random
+    // generation (fidelity ledger).
+    // ----------------------------------------------------------------
+    /// Summon a random 8-Cost minion and Freeze it (Glaciate)
+    SummonRandomCostAndFreeze {
+        /// Cost of the summoned minion
+        cost: i32,
+    },
+    /// Deal damage and add a random spell to hand (Runed Orb)
+    DamageAndAddRandomSpell {
+        /// Damage amount
+        damage: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Freeze an enemy and summon two 3/6 Water Elementals (Deep Freeze)
+    FreezeAndSummonElementals,
+    /// Add a random Taunt minion to hand with +1/+2 (I Know a Guy —
+    /// Discover simplified)
+    AddRandomTauntBuffed,
+    /// Add a random Battlecry minion to hand (Blazing Invocation —
+    /// Discover simplified)
+    AddRandomBattlecryMinion,
+    /// Deal damage and freeze the target (Frostbolt — the Classic pool's
+    /// damage-only version was a simplification)
+    DamageAndFreeze {
+        /// Damage amount
+        damage: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Deal damage to all enemy minions and freeze them (Blizzard — the
+    /// Classic pool's damage-only version was a simplification)
+    DamageAllEnemyMinionsAndFreeze {
+        /// Damage amount
+        damage: i32,
+    },
+    /// Add a random Outcast card to hand and make the next Outcast card
+    /// cost (1) less (Illidari Studies — Discover simplified to random
+    /// generation)
+    AddRandomOutcastCardNextCheaper,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -1730,6 +1773,24 @@ enum CardEffectDe {
     ResurrectWeaponKilled,
     DestroyRandomEnemyMinion,
     SummonOasisWaterElemental,
+    SummonRandomCostAndFreeze {
+        cost: i32,
+    },
+    DamageAndAddRandomSpell {
+        damage: i32,
+        target: EffectTarget,
+    },
+    FreezeAndSummonElementals,
+    AddRandomTauntBuffed,
+    AddRandomBattlecryMinion,
+    DamageAndFreeze {
+        damage: i32,
+        target: EffectTarget,
+    },
+    DamageAllEnemyMinionsAndFreeze {
+        damage: i32,
+    },
+    AddRandomOutcastCardNextCheaper,
     DestroyAndGainStats {
         attack: i32,
         health: i32,
@@ -2314,6 +2375,24 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::ResurrectWeaponKilled => CardEffect::ResurrectWeaponKilled,
             CardEffectDe::DestroyRandomEnemyMinion => CardEffect::DestroyRandomEnemyMinion,
             CardEffectDe::SummonOasisWaterElemental => CardEffect::SummonOasisWaterElemental,
+            CardEffectDe::SummonRandomCostAndFreeze { cost } => {
+                CardEffect::SummonRandomCostAndFreeze { cost }
+            }
+            CardEffectDe::DamageAndAddRandomSpell { damage, target } => {
+                CardEffect::DamageAndAddRandomSpell { damage, target }
+            }
+            CardEffectDe::FreezeAndSummonElementals => CardEffect::FreezeAndSummonElementals,
+            CardEffectDe::AddRandomTauntBuffed => CardEffect::AddRandomTauntBuffed,
+            CardEffectDe::AddRandomBattlecryMinion => CardEffect::AddRandomBattlecryMinion,
+            CardEffectDe::DamageAndFreeze { damage, target } => {
+                CardEffect::DamageAndFreeze { damage, target }
+            }
+            CardEffectDe::DamageAllEnemyMinionsAndFreeze { damage } => {
+                CardEffect::DamageAllEnemyMinionsAndFreeze { damage }
+            }
+            CardEffectDe::AddRandomOutcastCardNextCheaper => {
+                CardEffect::AddRandomOutcastCardNextCheaper
+            }
             CardEffectDe::DestroyAndGainStats {
                 attack,
                 health,

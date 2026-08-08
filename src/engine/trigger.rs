@@ -164,6 +164,23 @@ fn apply_spell_power(
         CardEffect::FreezeOrDamage { amount } => CardEffect::FreezeOrDamage {
             amount: adjust(amount),
         },
+        // Core Set W6 — damage spells (Frostbolt / Blizzard / Runed Orb)
+        // take the Spell Damage bonus like any other spell.
+        CardEffect::DamageAndFreeze { damage, target } => CardEffect::DamageAndFreeze {
+            damage: adjust(damage),
+            target,
+        },
+        CardEffect::DamageAllEnemyMinionsAndFreeze { damage } => {
+            CardEffect::DamageAllEnemyMinionsAndFreeze {
+                damage: adjust(damage),
+            }
+        }
+        CardEffect::DamageAndAddRandomSpell { damage, target } => {
+            CardEffect::DamageAndAddRandomSpell {
+                damage: adjust(damage),
+                target,
+            }
+        }
         CardEffect::DealDamageAndSummonIfKilled { amount, pool } => {
             CardEffect::DealDamageAndSummonIfKilled {
                 amount: adjust(amount),
@@ -2555,6 +2572,117 @@ pub fn resolve_effect(
         CardEffect::SummonOasisWaterElemental => {
             // Oasis Ally — a 3/6 Water Elemental
             let _ = resolve_summon(state, queue, source, owner, "CORE_BAR_812t");
+        }
+        CardEffect::SummonRandomCostAndFreeze { cost } => {
+            // Glaciate — a random minion of the cost, summoned and frozen
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Minion && c.cost == cost)
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            if let Some(e) = resolve_summon(state, queue, source, owner, candidates[idx].id) {
+                state.world_mut().set_freeze(e, Freeze);
+            }
+        }
+        CardEffect::DamageAndAddRandomSpell { damage, target } => {
+            // Runed Orb — damage and a random spell to hand
+            resolve_deal_damage(state, queue, source, owner, damage, target, explicit_target);
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Spell)
+                    .collect();
+            if spells.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(spells.len());
+            add_card_to_hand(state, owner, spells[idx]);
+        }
+        CardEffect::FreezeAndSummonElementals => {
+            // Deep Freeze — freeze an enemy and summon two 3/6 Water Elementals
+            let chars: SmallList<Entity> = collect_enemy_characters(state, owner, None);
+            if let Some(target) = select_target(explicit_target, &chars, state.rng_mut()) {
+                state.world_mut().set_freeze(target, Freeze);
+            }
+            for _ in 0..2 {
+                let _ = resolve_summon(state, queue, source, owner, "CORE_BT_072t");
+            }
+        }
+        CardEffect::AddRandomTauntBuffed => {
+            // I Know a Guy — a random Taunt minion, buffed +1/+2
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Minion && c.taunt)
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            let def = candidates[idx];
+            let e = crate::cards::spawn_card_from_def(state.world_mut(), owner, def);
+            let world = state.world_mut();
+            let base = world.attack(e).unwrap_or(Attack(0));
+            world.set_attack(e, Attack(base.0 + 1));
+            let base_hp = world.health(e).unwrap_or(Health(1));
+            world.set_health(e, Health(base_hp.0 + 2));
+            state.world_mut().set_zone(e, Zone::Hand);
+            state.world_mut().zones_mut().insert(Zone::Hand, owner, e);
+        }
+        CardEffect::DamageAndFreeze { damage, target } => {
+            // Frostbolt — damage and freeze
+            if let Some(t) =
+                resolve_deal_damage(state, queue, source, owner, damage, target, explicit_target)
+            {
+                if state.world().is_alive(t) {
+                    state.world_mut().set_freeze(t, Freeze);
+                }
+            }
+        }
+        CardEffect::DamageAllEnemyMinionsAndFreeze { damage } => {
+            // Blizzard — damage all enemy minions and freeze them
+            let enemies = collect_all_enemy_minions(state, owner);
+            for m in &enemies {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: *m,
+                    amount: damage,
+                });
+                state.world_mut().set_freeze(*m, Freeze);
+            }
+        }
+        CardEffect::AddRandomBattlecryMinion => {
+            // Blazing Invocation — a random Battlecry minion
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Minion && c.battlecry.is_some())
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            add_card_to_hand(state, owner, candidates[idx]);
+        }
+        CardEffect::AddRandomOutcastCardNextCheaper => {
+            // Illidari Studies — a random Outcast card to hand (Discover
+            // simplified to random generation), next Outcast costs (1) less
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Minion || c.card_type == CardType::Spell)
+                    .filter(|c| crate::cards::def::has_outcast(c))
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            add_card_to_hand(state, owner, candidates[idx]);
+            state.make_mut().players[owner.index()].next_outcast_discount = 1;
         }
         CardEffect::CopyEnemyDeckCardOnSelfAttack => {
             // Shaku — copy a random enemy deck card to hand, only when THIS
