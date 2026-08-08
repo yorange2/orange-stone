@@ -1669,8 +1669,10 @@ fn w1_race_pools_are_field_driven() {
         vec![
             "CLASSIC_001",   // Bloodfen Raptor
             "CORE_AT_062t",  // Spider (Core Set W3a token)
+            "CORE_BAR_801t", // Swift Hyena (Core Set W3b token)
             "CORE_EX1_246t", // Frog (Core Set W3a token)
             "CORE_GIL_558",  // Swamp Leech (Core Set W1)
+            "CORE_SCH_605",  // Lake Thresher (Core Set W3b)
             "CORE_SW_429t",  // Turtle (Core Set W2 token)
             "CORE_TRL_900",  // Halazzi, the Lynx (Core Set W1)
             "CORE_TRL_900t", // Lynx (Core Set W1 token)
@@ -1711,9 +1713,11 @@ fn w1_race_pools_are_field_driven() {
     assert_eq!(
         extra,
         vec![
-            "CORE_BT_156",  // Imprisoned Vilefiend (W1)
-            "CORE_BT_480",  // Crimson Sigil Runner (W2)
-            "CORE_TTN_866", // Mythical Terror (W1)
+            "CORE_BT_156",   // Imprisoned Vilefiend (W1)
+            "CORE_BT_480",   // Crimson Sigil Runner (W2)
+            "CORE_TTN_843",  // Eredar Deceptor (W3b)
+            "CORE_TTN_843t", // Invading Felbat (W3b token)
+            "CORE_TTN_866",  // Mythical Terror (W1)
             "CS2_064",
             "WARLOCK_T01"
         ]
@@ -11050,4 +11054,342 @@ fn w3a2_noggenfogger_randomizes_attack_targets() {
         })
         .count();
     assert_eq!(hits, 1, "exactly one enemy character took the 3 damage");
+}
+
+// ============================================================
+// Core Set W3b (core-set-roadmap W3b) — 27 confirmed cards.
+// Scenarios cover the new effect shapes; the 11 CATA placeholders
+// were removed by decision (2026-08-08).
+// ============================================================
+
+/// W3b-1 Wound Prey — 1 damage and a 1/1 Hyena with Rush.
+#[test]
+fn w3b_wound_prey_damages_and_summons() {
+    use orange_stone::cards::def::CORE_WOUND_PREY;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_WOUND_PREY);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let prey = find_in_hand(&state, PlayerId1(), "CORE_BAR_801");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: prey,
+                target: Some(foe),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(foe), Some(Health(1)));
+    let hyena = find_entity(&state, PlayerId1(), "CORE_BAR_801t");
+    assert_eq!(state.world().effective_attack(hyena), Some(Attack(1)));
+    assert_eq!(state.world().effective_health(hyena), Some(Health(1)));
+    assert!(state.world().rush(hyena).is_some(), "the Hyena has Rush");
+}
+
+/// W3b-2 Rehgar Earthfury — after it attacks, a Lightning Bolt joins hand.
+#[test]
+fn w3b_rehgar_gets_lightning_bolt_on_attack() {
+    use orange_stone::cards::def::CORE_REHGAR_EARTHFURY;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId2());
+    builder.add_minion_to_board(PlayerId2(), &CORE_REHGAR_EARTHFURY);
+    let enemy = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let rehgar = find_entity(&state, PlayerId2(), "CORE_CATA_004");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: rehgar,
+                defender: enemy,
+            },
+        )
+        .unwrap();
+    let bolt = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .any(|e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "SHAMAN_002")
+        });
+    assert!(bolt, "a Lightning Bolt was added to hand");
+}
+
+/// W3b-3 Muster for Battle — three 1/1 Recruits and a 1/4 weapon.
+#[test]
+fn w3b_muster_summons_recruits_and_weapon() {
+    use orange_stone::cards::def::CORE_MUSTER_FOR_BATTLE;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_MUSTER_FOR_BATTLE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let muster = find_in_hand(&state, PlayerId1(), "CORE_GVG_061");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: muster,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let recruits = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_GVG_061t")
+        })
+        .count();
+    assert_eq!(recruits, 3);
+    let weapon = state.player(PlayerId1()).weapon.expect("a weapon equipped");
+    assert_eq!(state.world().effective_attack(weapon), Some(Attack(1)));
+    assert_eq!(state.world().durability(weapon).map(|d| d.0), Some(4));
+}
+
+/// W3b-4 Hench-Clan Thug — +1/+1 after the OWNER's hero attacks.
+#[test]
+fn w3b_hench_clan_thug_buffs_on_hero_attack() {
+    use orange_stone::cards::def::CORE_HENCH_CLAN_THUG;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId1(), &CORE_HENCH_CLAN_THUG);
+    builder.add_minion_to_hand(PlayerId1(), &orange_stone::cards::def::FIERY_WAR_AXE);
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let thug = find_entity(&state, PlayerId1(), "CORE_GIL_534");
+    // Equip a weapon so the hero can attack
+    let axe = find_in_hand(&state, PlayerId1(), "WARRIOR_T01");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: axe,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero1 = state.player(PlayerId1()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero1,
+                defender: foe,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(thug), Some(Attack(4)));
+    assert_eq!(state.world().effective_health(thug), Some(Health(4)));
+}
+
+/// W3b-5 Dread Corsair — costs 1 less per Attack of the owner's weapon.
+#[test]
+fn w3b_dread_corsair_cost_reduction() {
+    use orange_stone::cards::def::CORE_DREAD_CORSAIR;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_DREAD_CORSAIR);
+    builder.add_minion_to_hand(PlayerId1(), &orange_stone::cards::def::FIERY_WAR_AXE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Equip the 3-attack axe first, then check the Corsair's cost
+    let axe = find_in_hand(&state, PlayerId1(), "WARRIOR_T01");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: axe,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let corsair = find_in_hand(&state, PlayerId1(), "CORE_NEW1_022");
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, corsair, PlayerId1()).0,
+        1,
+        "4 cost minus 3 weapon attack"
+    );
+}
+
+/// W3b-6 Lake Thresher — attacking also damages the adjacent minions.
+#[test]
+fn w3b_lake_thresher_splash() {
+    use orange_stone::cards::def::CORE_LAKE_THRESHER;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId2());
+    builder.add_minion_to_board(PlayerId2(), &CORE_LAKE_THRESHER);
+    let a = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let b = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let c = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let thresher = find_entity(&state, PlayerId2(), "CORE_SCH_605");
+    // Attack the middle minion `b` — `a` and `c` take the splash
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: thresher,
+                defender: b,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(a),
+        Some(Zone::Graveyard),
+        "the left neighbor took the splash"
+    );
+    assert_eq!(
+        state.world().zone(c),
+        Some(Zone::Graveyard),
+        "the right neighbor took the splash"
+    );
+}
+
+/// W3b-7 Keymaster Alabaster — the opponent's draws add 1-cost copies.
+#[test]
+fn w3b_keymaster_copies_opponent_draws() {
+    use orange_stone::cards::def::CORE_KEYMASTER_ALABASTER;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId1(), &CORE_KEYMASTER_ALABASTER);
+    builder.add_minion_to_deck(PlayerId2(), &orange_stone::cards::def::CORE_HOLY_SMITE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // P2's turn-start draw triggers Alabaster
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let copied = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .any(|e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_CS1_130")
+        });
+    assert!(copied, "a 1-cost copy of P2's drawn card reached P1's hand");
+}
+
+/// W3b-8 Highlord Fordragon — a broken friendly Divine Shield buffs a hand
+/// minion +5/+5.
+#[test]
+fn w3b_fordragon_buffs_on_shield_loss() {
+    use orange_stone::cards::def::CORE_HIGHLORD_FORDRAGON;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId2(), &CORE_HIGHLORD_FORDRAGON);
+    let shielded = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    builder.add_minion_to_hand(PlayerId2(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let attacker = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let mut state = builder.build();
+    state
+        .world_mut()
+        .set_divine_shield(shielded, orange_stone::core::component::DivineShield);
+    let engine = GameEngine::new();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: shielded,
+            },
+        )
+        .unwrap();
+    // The hand minion got +5/+5 (Bloodfen Raptor 3/2 -> 8/7)
+    let hand_minion = find_in_hand(&state, PlayerId2(), "CLASSIC_001");
+    assert_eq!(state.world().effective_attack(hand_minion), Some(Attack(8)));
+    assert_eq!(state.world().effective_health(hand_minion), Some(Health(7)));
+}
+
+/// W3b-9 Corpse Farm — spends up to 8 corpses for a random minion of that
+/// cost.
+#[test]
+fn w3b_corpse_farm_spends_corpses() {
+    use orange_stone::cards::def::CORE_CORPSE_FARM;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_CORPSE_FARM);
+    let mut state = builder.build();
+    {
+        let inner = state.make_mut();
+        inner.players[PlayerId1().index()].corpses = 3;
+    }
+    let engine = GameEngine::new();
+    let farm = find_in_hand(&state, PlayerId1(), "CORE_WW_374");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: farm,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(PlayerId1()).corpses, 0);
+    let minions = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(minions, 1, "a random 3-cost minion was summoned");
+}
+
+/// W3b-10 Initiation — 4 damage; a kill summons a fresh copy.
+#[test]
+fn w3b_initiation_summons_copy_on_kill() {
+    use orange_stone::cards::def::CORE_INITIATION;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId2(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_INITIATION);
+    let mut state = builder.build();
+    let victim = find_entity(&state, PlayerId2(), "CLASSIC_001");
+    let engine = GameEngine::new();
+    let initiation = find_in_hand(&state, PlayerId1(), "CORE_SCH_512");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: initiation,
+                target: Some(victim),
+                position: None,
+            },
+        )
+        .unwrap();
+    // The victim died and a fresh copy (2/3 Bloodfen Raptor) was summoned
+    // on the CASTER's board
+    let minions = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(minions, 1, "the fresh copy was summoned");
+    assert_eq!(state.world().zone(victim), Some(Zone::Graveyard));
 }

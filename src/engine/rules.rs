@@ -1021,6 +1021,48 @@ pub fn apply_event(
             );
         }
         Event::AttackDeclared { attacker, defender } => {
+            // Lake Thresher (Core Set W3b): also damages the minions next
+            // to whomever this attacks (the defender's board neighbors;
+            // resolved here because the trigger effects only see the
+            // attacker)
+            if state
+                .world()
+                .card_id(attacker)
+                .is_some_and(|c| c.0 == "CORE_SCH_605")
+                && state.world().card_type(defender) == Some(CardType::Minion)
+            {
+                let atk = state
+                    .world()
+                    .effective_attack(attacker)
+                    .unwrap_or(Attack(0))
+                    .0;
+                if atk > 0 {
+                    if let Some(defender_player) = state.world().player(defender) {
+                        let minions: Vec<Entity> = state
+                            .world()
+                            .zones()
+                            .iter(Zone::Play, defender_player)
+                            .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                            .collect();
+                        if let Some(pos) = minions.iter().position(|&e| e == defender) {
+                            if pos > 0 {
+                                queue.push(Event::DamageDealt {
+                                    source: attacker,
+                                    target: minions[pos - 1],
+                                    amount: atk,
+                                });
+                            }
+                            if pos + 1 < minions.len() {
+                                queue.push(Event::DamageDealt {
+                                    source: attacker,
+                                    target: minions[pos + 1],
+                                    amount: atk,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
             // Mayor Noggenfogger (Core Set W3a): all targets are chosen
             // randomly — the declared defender is replaced by a random enemy
             // character (hero or minion) when a Noggenfogger is on the
@@ -1077,6 +1119,21 @@ pub fn apply_event(
                 Some(attacker),
                 None,
             );
+            // HeroAttacked (Core Set W3b — Hench-Clan Thug): the hero
+            // attacking fires a friendly-scoped trigger
+            if state.world().card_type(attacker) == Some(CardType::Hero) {
+                fire_triggers(
+                    state,
+                    queue,
+                    TriggerEvent::HeroAttacked,
+                    state
+                        .world()
+                        .player(attacker)
+                        .unwrap_or(state.active_player()),
+                    Some(attacker),
+                    None,
+                );
+            }
             // Minion-hit attack triggers (Gorehowl — the weapon loses 1
             // Attack when the hero attacks a minion)
             if state.world().card_type(defender) == Some(CardType::Minion) {
@@ -1188,6 +1245,19 @@ pub fn apply_event(
             // Divine shield absorbs: if the target has a divine shield, remove it and zero the damage
             if state.world().divine_shield(target).is_some() {
                 state.world_mut().remove_divine_shield(target);
+                // DivineShieldLost (Core Set W3b — Highlord Fordragon):
+                // fires for the shield's owner when a friendly minion's
+                // shield breaks
+                if let Some(owner) = state.world().player(target) {
+                    fire_triggers(
+                        state,
+                        queue,
+                        TriggerEvent::DivineShieldLost,
+                        owner,
+                        Some(target),
+                        None,
+                    );
+                }
                 return Ok(());
             }
 
@@ -1846,7 +1916,9 @@ fn trigger_applies(
         | TriggerEvent::MinionHealed
         | TriggerEvent::SecretPlayed
         | TriggerEvent::MinionDied
-        | TriggerEvent::AnySpellCast => {}
+        | TriggerEvent::AnySpellCast
+        | TriggerEvent::CardDrawn
+        | TriggerEvent::DivineShieldLost => {}
         _ => {
             if trigger_player != event_owner {
                 return false;

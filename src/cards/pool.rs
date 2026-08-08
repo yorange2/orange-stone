@@ -10,6 +10,7 @@
 use crate::cards::def::{CardDef, card_by_id};
 use crate::core::component::{CardType, Race};
 use crate::core::effect::RandomPool;
+use crate::core::player::PlayerId;
 use crate::sim::rng::GameRng;
 
 /// All Classic cards of the given race (field-driven — `CardDef.race`).
@@ -30,6 +31,14 @@ pub fn card_has_race(id: &str, race: Race) -> bool {
 /// belong to one of the other eight classes' groups in `sets`; neutral cards
 /// are not class cards. (2026-08 fidelity fix: the previous "any non-Rogue
 /// card" filter also pulled neutral cards into the pool.)
+/// Whether the card belongs to a class other than the given owner's class.
+/// The engine has no class model — this is the pilfer-style check: the card
+/// must belong to one of the OTHER eight classes' groups in `sets`. Used by
+/// Jackpot! (Core Set W3b) to filter other-class spells.
+pub(crate) fn is_other_class_card_for(card: &CardDef, _owner: PlayerId) -> bool {
+    is_other_class_card(card)
+}
+
 fn is_other_class_card(card: &CardDef) -> bool {
     [
         crate::cards::sets::DRUID_CLASSIC,

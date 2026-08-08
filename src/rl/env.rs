@@ -453,6 +453,12 @@ fn play_targets(
         CardEffect::TransformToMinion { .. } => EffectTarget::AnyMinion,
         CardEffect::GrantDeathrattleToTarget { .. } => EffectTarget::AnyMinion,
         CardEffect::GainStatsTauntAndDeathrattle { .. } => EffectTarget::AnyMinion,
+        CardEffect::DamageAndSummon { target, .. } => target,
+        CardEffect::DamageAndSummonVoidwalkers { target, .. } => target,
+        CardEffect::DamageAndAddToHand { .. } => EffectTarget::AnyMinion,
+        CardEffect::DamageAndSummonCopyIfKilled { .. } => EffectTarget::AnyMinion,
+        CardEffect::BuffAndSummonRandomCost2 => EffectTarget::AnyMinion,
+        CardEffect::FreezeAndDiscoverSpell => EffectTarget::AnyCharacter,
         _ => return Vec::new(),
     };
     let owner = state

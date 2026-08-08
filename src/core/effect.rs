@@ -875,6 +875,87 @@ pub enum CardEffect {
     /// minion attacks (Shaku, the Collector — Core Set W3a; pool-open, the
     /// event subject must be the source)
     CopyEnemyDeckCardOnSelfAttack,
+    // ----------------------------------------------------------------
+    // Core Set W3b effects (core-set-roadmap W3b) — 27 confirmed cards.
+    // ----------------------------------------------------------------
+    /// Deal damage and summon the given token (Wound Prey — 1 damage +
+    /// a 1/1 Hyena with Rush)
+    DamageAndSummon {
+        /// Damage amount
+        damage: i32,
+        /// Target selection
+        target: EffectTarget,
+        /// Token card ID to summon
+        card_id: &'static str,
+    },
+    /// Get a Lightning Bolt when THIS or an ADJACENT friendly minion
+    /// attacks (Rehgar Earthfury — the event subject must be self or a
+    /// neighbor)
+    RehgarBolt,
+    /// Deal damage to two random enemy minions; draw a card for each that
+    /// dies (Consumption — prediction-based like Bane of Doom)
+    DamageTwoDrawIfKilled {
+        /// Damage per target
+        damage: i32,
+    },
+    /// Freeze a character and Discover a spell (Death's Advance — the
+    /// Discover surfaces as a pending choice; the default policy picks
+    /// randomly)
+    FreezeAndDiscoverSpell,
+    /// Gain +1/+1 when the OWNER'S HERO attacked (Hench-Clan Thug — the
+    /// event subject must be the owner's hero)
+    HenchThugBuff,
+    /// Summon three 1/1 Silver Hand Recruits and equip a 1/4 weapon
+    /// (Muster for Battle)
+    SummonRecruitsAndEquipWeapon,
+    /// Give a minion +2/+2 and summon a random 2-cost minion (Silvermoon
+    /// Portal)
+    BuffAndSummonRandomCost2,
+    /// Deal damage to a minion; when it dies, summon a fresh copy of it
+    /// (Initiation — prediction-based)
+    DamageAndSummonCopyIfKilled {
+        /// Damage amount
+        damage: i32,
+    },
+    /// When the opponent draws a card, add a 1-cost copy of it to hand
+    /// (Keymaster Alabaster)
+    KeymasterCopy,
+    /// When a friendly minion loses Divine Shield, give a minion in hand
+    /// +5/+5 (Highlord Fordragon — resolved by the DivineShieldLost event)
+    FordragonBuff,
+    /// Deal damage and summon two 1/3 Voidwalkers with Taunt (Demonic
+    /// Assault)
+    DamageAndSummonVoidwalkers {
+        /// Damage amount
+        damage: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Deal damage to a minion and add the given card to hand (First
+    /// Flame — Second Flame)
+    DamageAndAddToHand {
+        /// Damage amount
+        damage: i32,
+        /// Card ID added to hand
+        card_id: &'static str,
+    },
+    /// Add `count` random spells costing at least `min_cost` from OTHER
+    /// classes to hand (Jackpot!)
+    AddRandomOtherClassSpells {
+        /// Number of spells
+        count: u32,
+        /// Minimum cost
+        min_cost: i32,
+    },
+    /// When the owner draws a card, summon a 1/1 Demon with Rush (Eredar
+    /// Deceptor)
+    SummonFelbatOnDraw,
+    /// Spend up to `max` corpses to summon a random minion of that cost
+    /// (Corpse Farm)
+    SpendCorpsesSummonRandomMinion {
+        /// Maximum corpses spent
+        max: u32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -1187,6 +1268,40 @@ enum CardEffectDe {
     AddRandomSpellToOpponentDeckTop,
     SummonStatueTrio,
     CopyEnemyDeckCardOnSelfAttack,
+    DamageAndSummon {
+        damage: i32,
+        target: EffectTarget,
+        card_id: String,
+    },
+    RehgarBolt,
+    DamageTwoDrawIfKilled {
+        damage: i32,
+    },
+    FreezeAndDiscoverSpell,
+    HenchThugBuff,
+    SummonRecruitsAndEquipWeapon,
+    BuffAndSummonRandomCost2,
+    DamageAndSummonCopyIfKilled {
+        damage: i32,
+    },
+    KeymasterCopy,
+    FordragonBuff,
+    DamageAndSummonVoidwalkers {
+        damage: i32,
+        target: EffectTarget,
+    },
+    DamageAndAddToHand {
+        damage: i32,
+        card_id: String,
+    },
+    AddRandomOtherClassSpells {
+        count: u32,
+        min_cost: i32,
+    },
+    SummonFelbatOnDraw,
+    SpendCorpsesSummonRandomMinion {
+        max: u32,
+    },
     DestroyAndGainStats {
         attack: i32,
         health: i32,
@@ -1597,6 +1712,44 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::SummonStatueTrio => CardEffect::SummonStatueTrio,
             CardEffectDe::CopyEnemyDeckCardOnSelfAttack => {
                 CardEffect::CopyEnemyDeckCardOnSelfAttack
+            }
+            CardEffectDe::DamageAndSummon {
+                damage,
+                target,
+                card_id,
+            } => CardEffect::DamageAndSummon {
+                damage,
+                target,
+                card_id: intern(card_id)?,
+            },
+            CardEffectDe::RehgarBolt => CardEffect::RehgarBolt,
+            CardEffectDe::DamageTwoDrawIfKilled { damage } => {
+                CardEffect::DamageTwoDrawIfKilled { damage }
+            }
+            CardEffectDe::FreezeAndDiscoverSpell => CardEffect::FreezeAndDiscoverSpell,
+            CardEffectDe::HenchThugBuff => CardEffect::HenchThugBuff,
+            CardEffectDe::SummonRecruitsAndEquipWeapon => CardEffect::SummonRecruitsAndEquipWeapon,
+            CardEffectDe::BuffAndSummonRandomCost2 => CardEffect::BuffAndSummonRandomCost2,
+            CardEffectDe::DamageAndSummonCopyIfKilled { damage } => {
+                CardEffect::DamageAndSummonCopyIfKilled { damage }
+            }
+            CardEffectDe::KeymasterCopy => CardEffect::KeymasterCopy,
+            CardEffectDe::FordragonBuff => CardEffect::FordragonBuff,
+            CardEffectDe::DamageAndSummonVoidwalkers { damage, target } => {
+                CardEffect::DamageAndSummonVoidwalkers { damage, target }
+            }
+            CardEffectDe::DamageAndAddToHand { damage, card_id } => {
+                CardEffect::DamageAndAddToHand {
+                    damage,
+                    card_id: intern(card_id)?,
+                }
+            }
+            CardEffectDe::AddRandomOtherClassSpells { count, min_cost } => {
+                CardEffect::AddRandomOtherClassSpells { count, min_cost }
+            }
+            CardEffectDe::SummonFelbatOnDraw => CardEffect::SummonFelbatOnDraw,
+            CardEffectDe::SpendCorpsesSummonRandomMinion { max } => {
+                CardEffect::SpendCorpsesSummonRandomMinion { max }
             }
             CardEffectDe::DestroyAndGainStats {
                 attack,
