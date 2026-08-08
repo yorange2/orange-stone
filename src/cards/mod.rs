@@ -34,6 +34,7 @@ pub mod exp_edr_w3;
 pub mod exp_edr_w4a;
 pub mod exp_edr_w4b;
 pub mod exp_edr_w5;
+pub mod exp_tlc_w2;
 pub mod generated;
 pub mod pool;
 pub mod quest;
@@ -128,6 +129,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "EDR_480" // Goldrinn (M1-W4b — the Wild Gods wave)
         | "FIR_951" // Volcoross (M1-W5 — the Embers of the World Tree wave)
         | "FIR_953" // Magma Hound (M1-W5 — the Embers of the World Tree wave)
+        | "TLC_229t14" // Ashalon, Ridge Guardian (M2-W2 — quest reward token)
+        | "TLC_830t" // Shokk, Jungle Tyrant (M2-W2 — quest reward token)
     ) {
         world.set_rush(entity, Rush);
     }
@@ -151,8 +154,12 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
     ) {
         world.set_lifesteal(entity, Lifesteal);
     }
-    if matches!(card_def.id, "CORE_RLK_745" | "CORE_ULD_723") {
-        // Reborn (2): Malignant Horror, Murmy
+    if matches!(
+        card_def.id,
+        // Reborn (3): Malignant Horror, Murmy, Sol'etos Death's Touch
+        // (TLC_817t4, M2-W2 — the Un'Goro quest reward token)
+        "CORE_RLK_745" | "CORE_ULD_723" | "TLC_817t4"
+    ) {
         world.set_reborn(entity, Reborn);
     }
     if card_def.id == "CORE_TTN_866" {
@@ -804,6 +811,16 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
             CardEffect::BuffWeapon {
                 attack: 0,
                 durability: 1,
+            },
+        )),
+        // The Everbloom (TLC_239t, M2-W2 — the Un'Goro quest reward weapon):
+        // whenever your hero attacks, give your other minions +2/+2.
+        "TLC_239t" => Some((
+            TriggerEvent::Attacked,
+            CardEffect::GainStats {
+                attack: 2,
+                health: 2,
+                target: EffectTarget::AllFriendlyMinions,
             },
         )),
         _ => None,

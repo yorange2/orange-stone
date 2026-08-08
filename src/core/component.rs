@@ -775,11 +775,35 @@ pub struct Elusive;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Immune;
 
+/// Temporary — the Temporary keyword (2025–2026 expansions M2-W2, the
+/// Un'Goro quest wave): a card in hand carrying this marker is discarded
+/// at the end of its owner's turn (official rule), and playing one
+/// progresses the TLC_446 quest (PlayTemporaryCards). No W2 card creates
+/// Temporary cards — the creators are W4 cards; the F5 scenarios inject
+/// the marker directly.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct Temporary;
+
 /// Overload amount — the mana locked on the owner's next turn (roadmap F1).
 /// Also triggers friendly minions' overload triggers when the card is played
 /// (Unbound Elemental).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Overload(pub i32);
+
+/// Runtime state of a quest's optional second progress bar (2025–2026
+/// expansions M2-W2 — TLC_817 Reach Equilibrium: cast 4 Holy spells AND
+/// 4 Shadow spells on one card). The first bar's state lives directly on
+/// `Quest`; this mirrors it for the second bar.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct QuestSecondState {
+    /// Progress toward the second bar's target (0..=target).
+    pub progress: u32,
+    /// The second bar's completion target (mirrors `SecondQuestDef::target`).
+    pub target: u32,
+    /// Per-condition tracked values for the second bar (same semantics as
+    /// `Quest::markers`).
+    pub markers: Vec<u32>,
+}
 
 /// Quest progress (2025–2026 expansions M2-W1) — runtime state of a quest
 /// card sitting in the player's `Zone::Quest` slot.
@@ -797,6 +821,10 @@ pub struct Quest {
     /// Per-condition tracked values (unique races / distinct turns / attack
     /// values for set-based conditions); progress skips values already seen.
     pub markers: Vec<u32>,
+    /// Optional second progress bar (TLC_817, M2-W2): the card completes —
+    /// and leaves the quest slot — only when BOTH bars are done; each bar's
+    /// reward resolves independently at its own target.
+    pub second: Option<QuestSecondState>,
 }
 
 #[cfg(test)]

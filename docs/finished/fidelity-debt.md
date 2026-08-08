@@ -990,3 +990,70 @@ damage + grant) and FIR_920 — plus the holding-gift trio FIR_901
 (Frostburn Matriarch), FIR_922 (Cindersword) and FIR_956 (Dragon
 Turtle); Petal Picker's imbue-twice condition is exercised both ways.
 Full `cargo test` green; `cargo clippy --all-targets` clean.
+
+### 15. 2025–2026 expansions M2-W2 — the Un'Goro quest wave (23 cards) 🔓 registered
+
+The registered simplifications of the M2-W2 wave (`src/cards/exp_tlc_w2.rs`):
+the 11 Un'Goro quest cards (1-cost legendary SPELLs with `spell_effect: None`,
+routed into the quest zone by the play path) plus their 12 reward tokens. The
+quest mechanic itself (M2-W1) is extended this wave: TLC_817's second
+progress bar (`QuestDef::second` / `Quest::second` — the card leaves the
+quest slot only when both bars complete), the repeatable TLC_426 (progress
+resets on completion, the permanent reward flag stays), the `Temporary`
+hand-card marker (discarded at the owner's turn end — its W4 creators inject
+it in real play), and two player-level reward flags (`Player::murloc_summon_buff`
+consumed by the summon hook, `Player::deal_exact_2_bonus` consumed by the
+damage hook). The W1 placeholder rewards were replaced with the real ones:
+TLC_426 sets the permanent flag, TLC_513 summons the two Ninjas directly,
+TLC_817 summons Sol'etos t3/t4 per bar. As with §14–§14.5, these handwritten
+expansion cards are not in the RL pool (classic + core 668/659), so the rows
+are informational: they keep the code's `(simplified: …)` markers traceable
+to the ledger. Each row stays open until its mechanism lands.
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| TLC_229t14 | Ashalon, Ridge Guardian | The official Adapt battlecry (choose one of three Adapt options) is fixed to +1/+1 for all friendly minions | an Adapt/choose-one pipeline |
+| TLC_433t | Tyrax, Bone Terror | The official "Terror's Grave" location chain (Tyrax transforms into the Grave, which resummons him) is unmodeled — the deathrattle resummons an 8/8 copy directly | a transform/location-deathrattle chain |
+| TLC_446t1 | Underfel Rift | The official "activate" step (pay Health to activate) is unmodeled — a 5-cost 0/1 body only | an activate mechanic |
+| TLC_460t | The Origin Stone | The official "after you Discover a card, this gains +1 Durability" is unmodeled — a 3-cost 0/8 body only | a discover-replay durability gain |
+| TLC_513t | Master Dusk | The official reward replaces the hero with Master Dusk — unmodeled; the reward summons the two Tortollan Ninjas (TLC_513t2) directly | hero replacement |
+| TLC_602t | Latorvius, Gaze of the City | The official Quest-Reward battlecry adds a 4-card reward pool to Discover — unmodeled (no battlecry; the pool lands in W4) | a real Discover pipeline |
+| TLC_817t5 | Sol'etos, Life's Touch | The official "if you control both Sol'etos forms, combine them" step is unmodeled — the t3 and t4 tokens are independent | a combine/twin mechanic |
+| TLC_830t | Shokk, Jungle Tyrant | The official battlecry's attack-filtered Discover pool is unmodeled (no battlecry) | a real Discover pipeline |
+
+中文小结（同上）：M2-W2 波（"失落之城"任务卡，11 张任务 + 12 张奖励
+衍生物）新增原语：任务第二进度条（TLC_817 双条，两条都满才离场）、
+可重复任务（TLC_426 完成后进度清零、永久 +1/+1 鱼人召唤增益标志常驻）、
+Temporary 手牌标记（回合结束时弃置，真实制造卡在 W4）、两个玩家级奖励
+标志（`murloc_summon_buff` 由召唤钩子消费、`deal_exact_2_bonus` 由伤害
+钩子消费）。W1 占位奖励已换成真实奖励（TLC_426 永久标志、TLC_513 直接
+召唤两只忍龟、TLC_817 每条各召唤一尊索莱托斯）。简化与既往一致：发现 →
+无战吼（TLC_602t/830t）；Adapt 三选一 → 固定全体 +1/+1（TLC_229t14）；
+泰拉克斯的"恐怖之墓"地点链条 → 亡语直接复活 8/8 复制（TLC_433t）；
+安杜菲尔裂隙的激活步骤 → 纯白板 0/1（TLC_446t1）；起源之石"发现后
++1 耐久" → 纯白板 0/8（TLC_460t）；英雄替换 → 直接召唤奖励随从
+（TLC_513t，官方奖励是把英雄替换成暮光大师）；TLC_817t5 的"双形态
+合体"步骤未建模（t3/t4 相互独立）。扩展手写卡均不在 RL 池（经典 + 核心
+668/659），本表仅作登记追踪，各行在机制落地前保持开放。
+
+F5 coverage: `tlc_w2_spirit_of_the_mountain_reward_summoned`,
+`tlc_w2_restore_the_wild_everbloom_buffs_after_hero_attack`,
+`tlc_w2_golakka_depths_repeatable_murloc_buff`,
+`tlc_w2_reanimate_the_terror_tyrax_deathrattle`,
+`tlc_w2_escape_the_underfel_temporary_discard`,
+`tlc_w2_forbidden_sequence_origin_stone_equipped`,
+`tlc_w2_lie_in_wait_master_dusk_ninjas`,
+`tlc_w2_enter_the_lost_city_survive_turns`,
+`tlc_w2_unleash_the_colossus_bonus_damage`,
+`tlc_w2_reach_equilibrium_double_bar`, `tlc_w2_food_chain_shokk_battlecry`,
+`tlc_w2_one_quest_per_player_real_cards` (12 scenarios in
+`tests/differential.rs` — one per quest card, plus the Temporary primitive,
+the two player flags and the one-quest-per-player rule with real cards).
+Full `cargo test`: 432 of 433 pass — the single red is
+`tlc_w1_spell_school_lookup_and_progress`, whose two assertions
+(`tests/differential.rs` ~23074/23083: the quest leaves the slot and no
+token is summoned after 4 Holy casts) pin the W1 placeholder semantics and
+contradict W2's real dual-bar TLC_817 (the quest stays in the slot with the
+second bar pending and two TLC_817t3 are summoned) — the minimal
+two-assertion update is pending per the wave spec. `cargo clippy
+--all-targets` clean.

@@ -1705,6 +1705,8 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         }
         CardEffect::DamageAndDiscardSpellMore { base, bonus } => (base + bonus) as f64 * 0.8,
         CardEffect::BuffAllHandMinions { attack, health } => (attack + health) as f64 * 0.8 + 1.0,
+        CardEffect::SetMurlocSummonBuff => 4.0,
+        CardEffect::SetDealExact2Bonus => 4.0,
     }
 }
 

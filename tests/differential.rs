@@ -23037,8 +23037,10 @@ fn tlc_w1_repeatable_quest_resets() {
 }
 
 /// TLC_W1-5 — the spell-school table feeds the school quest: casting a
-/// Holy spell progresses the TLC_817 quest, a Fire spell does not, and
-/// four Holy casts complete it (reward no-ops until W2).
+/// Holy spell progresses the TLC_817 quest, a Fire spell does not, and four
+/// Holy casts complete the first (Holy) bar — the card stays in the slot
+/// with the Shadow bar pending and the Life's Breath reward resolves (W2
+/// dual-bar semantics; the W1 placeholder expected a single bar).
 #[test]
 fn tlc_w1_spell_school_lookup_and_progress() {
     use orange_stone::cards::generated::{TLC_221, TLC_816, TLC_817};
@@ -23071,20 +23073,26 @@ fn tlc_w1_spell_school_lookup_and_progress() {
     play_front_card(&mut state, &engine, p1); // Holy
     play_front_card(&mut state, &engine, p1); // Holy
     play_front_card(&mut state, &engine, p1); // Holy → 4 casts
+    // W2: the real TLC_817 carries two quest bars — the Holy bar completes
+    // and its reward resolves, but the card stays in the slot while the
+    // Shadow bar is pending (the single-bar + no-reward assertions pinned
+    // the W1 placeholder, superseded by the W2 dual-bar behavior).
+    let q = state.world().quest(quest).unwrap();
+    assert_eq!(q.progress, 4, "the Holy bar caps at its target");
+    let second = q.second.as_ref().expect("the Shadow bar state exists");
+    assert_eq!(second.progress, 0, "no Shadow casts yet");
     assert_eq!(
         state.world().zone(quest),
-        Some(Zone::Graveyard),
-        "four Holy casts complete the quest"
+        Some(Zone::Quest),
+        "the quest stays in the slot while the second bar runs"
     );
-    let minions = state
+    let breath: Vec<_> = state
         .world()
         .zones()
         .iter(Zone::Play, p1)
-        .filter(|&e| {
-            state.world().card_type(e) == Some(orange_stone::core::component::CardType::Minion)
-        })
-        .count();
-    assert_eq!(minions, 0, "the reward no-ops: no TLC_817t3 token");
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_817t3"))
+        .collect();
+    assert_eq!(breath.len(), 2, "Sol'etos Life's Breath + his copy");
 }
 
 /// TLC_W1-6 — the exact-damage condition fires only on exact 2 damage to
@@ -23186,4 +23194,768 @@ fn tlc_w1_fill_board_turns_progress() {
         vec![state.turn()],
         "the turn counter is the marker"
     );
+}
+
+// ============================================================
+// M2-W2 (2025–2026 expansions — the Un'Goro quest wave) — 12 scenarios.
+// One per quest pinning progress → reward sequencing with the real cards,
+// plus the two new primitives (Temporary, player flags) and a card-level
+// one-quest-per-player pin. The 11 quest cards shadow their generated
+// baselines via card_by_id; the reward tokens are handwritten-only.
+// ============================================================
+
+/// TLC_W2-1 — Spirit of the Mountain: six minions of unique types complete
+/// the quest and the reward Ashalon (5-cost 8/8 Rush) is summoned; his
+/// simplified Adapt battlecry buffs the owner's whole board +1/+1 (§15).
+#[test]
+fn tlc_w2_spirit_of_the_mountain_reward_summoned() {
+    use orange_stone::cards::classic_neutral::BLUEGILL_WARRIOR;
+    use orange_stone::cards::classic_warlock::VOIDWALKER;
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, CORE_WORN_STATUE, EVASIVE_WYRM, UNDERKING};
+    use orange_stone::cards::generated::TLC_229;
+    use orange_stone::core::component::CardType;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &TLC_229)
+        .add_minion_to_hand(p1, &BLUEGILL_WARRIOR) // Murloc
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR) // Beast
+        .add_minion_to_hand(p1, &VOIDWALKER) // Demon
+        .add_minion_to_hand(p1, &EVASIVE_WYRM) // Dragon
+        .add_minion_to_hand(p1, &CORE_WORN_STATUE) // Elemental
+        .add_minion_to_hand(p1, &UNDERKING); // Undead
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_229");
+    play_front_card(&mut state, &engine, p1);
+    for _ in 0..3 {
+        play_front_card(&mut state, &engine, p1);
+    }
+    assert_eq!(
+        state.world().quest(quest).unwrap().progress,
+        3,
+        "three distinct types progress the quest"
+    );
+    // The remaining three races are all distinct from the first three —
+    // the sixth play completes the quest.
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Graveyard),
+        "the completed quest leaves the slot"
+    );
+    let ashalon = find_entity(&state, p1, "TLC_229t14");
+    assert!(state.world().rush(ashalon).is_some(), "Ashalon has Rush");
+    assert_eq!(
+        state.world().effective_attack(ashalon),
+        Some(Attack(9)),
+        "8/8 base + the simplified Adapt buff (+1/+1 to the whole board)"
+    );
+    assert_eq!(
+        state.world().effective_health(ashalon),
+        Some(Health(9)),
+        "the simplified Adapt buff lands on Ashalon himself"
+    );
+    let minions = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(minions, 7, "six played minions + Ashalon");
+}
+
+/// TLC_W2-2 — Restore the Wild: three full-board turns equip The Everbloom
+/// (2/5 weapon); a hero attack then fires the weapon's "give your minions
+/// +2/+2" trigger (the trigger rides the weapon entity, W9 pattern).
+#[test]
+fn tlc_w2_restore_the_wild_everbloom_buffs_after_hero_attack() {
+    use orange_stone::cards::classic_neutral::WISP;
+    use orange_stone::cards::generated::TLC_239;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let big = builder.add_custom_minion_to_board(PlayerId2(), 10, 10, 10);
+    builder
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &TLC_239)
+        .add_minion_to_deck(p1, &WISP)
+        .add_minion_to_deck(p1, &WISP);
+    for _ in 0..9 {
+        builder.add_minion_to_hand(p1, &WISP);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_239");
+    play_front_card(&mut state, &engine, p1);
+    for _ in 0..7 {
+        play_front_card(&mut state, &engine, p1);
+    }
+    assert_eq!(
+        state.world().quest(quest).unwrap().progress,
+        1,
+        "a full board on turn 1 counts once"
+    );
+    // Two more full-board turns (the 10/10 frees one slot per turn).
+    for _ in 0..2 {
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        let victim = find_entity(&state, p1, "NEUTRAL_T01");
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker: big,
+                    defender: victim,
+                },
+            )
+            .unwrap();
+        state
+            .world_mut()
+            .set_attacks_used(big, orange_stone::core::component::AttacksUsed(0));
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        play_front_card(&mut state, &engine, p1);
+    }
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Graveyard),
+        "three full-board turns complete the quest"
+    );
+    let weapon = state.player(p1).weapon.expect("the reward weapon equipped");
+    assert_eq!(
+        state.world().card_id(weapon).unwrap().0,
+        "TLC_239t",
+        "The Everbloom is equipped"
+    );
+    assert_eq!(state.world().durability(weapon).map(|d| d.0), Some(5));
+    // The hero attacks the enemy hero → the weapon's Attacked trigger gives
+    // every friendly minion +2/+2 (Wisps 1/1 → 3/3).
+    let hero = state.player(p1).hero;
+    let enemy_hero = state.player(PlayerId2()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: enemy_hero,
+            },
+        )
+        .unwrap();
+    let wisp = find_entity(&state, p1, "NEUTRAL_T01");
+    assert_eq!(
+        state.world().effective_attack(wisp),
+        Some(Attack(3)),
+        "the Everbloom trigger buffs friendly minions +2/+2"
+    );
+    assert_eq!(state.world().effective_health(wisp), Some(Health(3)));
+    assert_eq!(
+        state.world().durability(weapon).map(|d| d.0),
+        Some(4),
+        "the hero attack costs 1 durability"
+    );
+}
+
+/// TLC_W2-3 — Dive the Golakka Depths (repeatable): six Murloc summons
+/// complete the first cycle (progress resets to 0, the quest stays in the
+/// slot, the permanent +1/+1 flag sets); the next Murloc arrives buffed;
+/// six more summons complete a second cycle.
+#[test]
+fn tlc_w2_golakka_depths_repeatable_murloc_buff() {
+    use orange_stone::cards::classic_neutral::MURLOC_RAIDER;
+    use orange_stone::cards::generated::TLC_426;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    // 10/20 so the six retaliated 2-damage hits (one per kill) never kill it.
+    let big = builder.add_custom_minion_to_board(PlayerId2(), 10, 20, 10);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TLC_426);
+    for _ in 0..9 {
+        builder.add_minion_to_hand(p1, &MURLOC_RAIDER);
+    }
+    for _ in 0..6 {
+        builder.add_minion_to_deck(p1, &MURLOC_RAIDER);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_426");
+    play_front_card(&mut state, &engine, p1);
+    for _ in 0..3 {
+        play_front_card(&mut state, &engine, p1);
+    }
+    assert_eq!(state.world().quest(quest).unwrap().progress, 3);
+    // The 6th summon completes the first cycle and sets the flag.
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Quest),
+        "a repeatable quest stays in the slot"
+    );
+    let q = state.world().quest(quest).unwrap();
+    assert_eq!(q.progress, 0, "progress resets on completion");
+    assert!(q.repeatable);
+    assert!(
+        state.player(p1).murloc_summon_buff,
+        "the repeatable reward sets the permanent +1/+1 flag"
+    );
+    // The 7th Murloc arrives with the +1/+1 enchantment.
+    let seventh = find_in_hand(&state, p1, "NEUTRAL_B02");
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().effective_attack(seventh),
+        Some(Attack(3)),
+        "a Murloc summoned while the flag is set arrives as 3/2"
+    );
+    assert_eq!(state.world().effective_health(seventh), Some(Health(2)));
+    // Six more summons (the 10/20 frees one slot per turn) complete a second
+    // cycle: one play per turn for six turns — 13 summons in total. The six
+    // draws (one per turn) supply the plays.
+    for _ in 0..6 {
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        let victim = find_entity(&state, p1, "NEUTRAL_B02");
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker: big,
+                    defender: victim,
+                },
+            )
+            .unwrap();
+        state
+            .world_mut()
+            .set_attacks_used(big, orange_stone::core::component::AttacksUsed(0));
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        play_front_card(&mut state, &engine, p1);
+    }
+    let q = state.world().quest(quest).unwrap();
+    assert_eq!(
+        q.progress, 1,
+        "the second cycle completes at 6 more summons and restarts"
+    );
+    assert!(
+        state.player(p1).murloc_summon_buff,
+        "the flag persists across cycles"
+    );
+}
+
+/// TLC_W2-4 — Reanimate the Terror: spending 15 Corpses (two Corpse Farms,
+/// 8 + 7) summons Tyrax (5-cost 8/8 Undead); when Tyrax dies his simplified
+/// deathrattle resummons a copy (§15 — the Terror's Grave location chain is
+/// not modeled).
+#[test]
+fn tlc_w2_reanimate_the_terror_tyrax_deathrattle() {
+    use orange_stone::cards::def::CORE_CORPSE_FARM;
+    use orange_stone::cards::generated::TLC_433;
+    use orange_stone::core::component::Race;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let big = builder.add_custom_minion_to_board(PlayerId2(), 10, 10, 10);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TLC_433)
+        .add_minion_to_hand(p1, &CORE_CORPSE_FARM)
+        .add_minion_to_hand(p1, &CORE_CORPSE_FARM);
+    let mut state = builder.build();
+    {
+        let inner = state.make_mut();
+        inner.players[p1.index()].corpses = 15;
+    }
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_433");
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1); // spends 8
+    assert_eq!(state.world().quest(quest).unwrap().progress, 8);
+    play_front_card(&mut state, &engine, p1); // spends 7 → 15
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Graveyard),
+        "15 corpses spent complete the quest"
+    );
+    assert_eq!(state.player(p1).corpses, 0);
+    let tyrax = find_entity(&state, p1, "TLC_433t");
+    assert!(
+        state.world().has_race(tyrax, Race::Undead),
+        "Tyrax is Undead"
+    );
+    // Tyrax dies → the simplified deathrattle resummons a copy (p2 attacks
+    // on their own turn).
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: big,
+                defender: tyrax,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(tyrax), Some(Zone::Graveyard));
+    let copy = find_entity(&state, p1, "TLC_433t");
+    assert_ne!(copy, tyrax, "the copy is a fresh entity");
+    assert_eq!(state.world().effective_attack(copy), Some(Attack(8)));
+}
+
+/// TLC_W2-5 — Escape the Underfel: a played card carrying the Temporary
+/// marker progresses the quest (the marker is injected directly — the W2
+/// primitive has no creator cards yet); six Temporary plays summon Underfel
+/// Rift; a Temporary card left in hand is discarded at the end of the turn.
+#[test]
+fn tlc_w2_escape_the_underfel_temporary_discard() {
+    use orange_stone::cards::classic_neutral::WISP;
+    use orange_stone::cards::generated::TLC_446;
+    use orange_stone::core::component::Temporary;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder.set_mana(p1, 2, 2).add_minion_to_hand(p1, &TLC_446);
+    for _ in 0..7 {
+        builder.add_minion_to_hand(p1, &WISP);
+    }
+    let mut state = builder.build();
+    // Inject the Temporary marker on every Wisp (the W2 primitive; W4 cards
+    // create the markers in real play).
+    let wisps: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "NEUTRAL_T01")
+        })
+        .collect();
+    for wisp in &wisps {
+        state.world_mut().set_temporary(*wisp, Temporary);
+    }
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_446");
+    play_front_card(&mut state, &engine, p1);
+    for _ in 0..3 {
+        play_front_card(&mut state, &engine, p1);
+    }
+    assert_eq!(state.world().quest(quest).unwrap().progress, 3);
+    for _ in 0..3 {
+        play_front_card(&mut state, &engine, p1);
+    }
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Graveyard),
+        "six Temporary plays complete the quest"
+    );
+    let rift = find_entity(&state, p1, "TLC_446t1");
+    assert_eq!(state.world().effective_attack(rift), Some(Attack(0)));
+    assert_eq!(state.world().effective_health(rift), Some(Health(1)));
+    // The 7th Wisp is still in hand, still marked — the end of the turn
+    // discards it (official Temporary rule).
+    let last = wisps[6];
+    assert_eq!(state.world().zone(last), Some(Zone::Hand));
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().zone(last),
+        Some(Zone::Graveyard),
+        "a Temporary card in hand is discarded at the end of the turn"
+    );
+}
+
+/// TLC_W2-6 — The Forbidden Sequence: seven discovers (Tome of Intellect —
+/// the discover choice surfaces per cast, auto-resolved by `engine.apply`)
+/// equip The Origin Stone (0/8 weapon).
+#[test]
+fn tlc_w2_forbidden_sequence_origin_stone_equipped() {
+    use orange_stone::cards::classic_mage::TOME_OF_INTELLECT;
+    use orange_stone::cards::generated::TLC_460;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder.set_mana(p1, 8, 8).add_minion_to_hand(p1, &TLC_460);
+    for _ in 0..7 {
+        builder.add_minion_to_hand(p1, &TOME_OF_INTELLECT);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_460");
+    play_front_card(&mut state, &engine, p1);
+    for _ in 0..3 {
+        play_front_card(&mut state, &engine, p1);
+    }
+    assert_eq!(state.world().quest(quest).unwrap().progress, 3);
+    for _ in 0..4 {
+        play_front_card(&mut state, &engine, p1);
+    }
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Graveyard),
+        "seven discovers complete the quest"
+    );
+    let weapon = state.player(p1).weapon.expect("the reward weapon equipped");
+    assert_eq!(
+        state.world().card_id(weapon).unwrap().0,
+        "TLC_460t",
+        "The Origin Stone is equipped"
+    );
+    assert_eq!(state.world().durability(weapon).map(|d| d.0), Some(8));
+    assert_eq!(state.world().effective_attack(weapon), Some(Attack(0)));
+}
+
+/// TLC_W2-7 — Lie in Wait: shuffling five copies into the deck (Illusory
+/// Greenwing's deathrattle shuffles 2 — the third Greenwing's first copy is
+/// the fifth shuffle) summons the two Tortollan Ninjas (3/3 Stealth); the
+/// official hero-replacement reward is simplified (§15).
+#[test]
+fn tlc_w2_lie_in_wait_master_dusk_ninjas() {
+    use orange_stone::cards::def::ILLUSORY_GREENWING;
+    use orange_stone::cards::generated::TLC_513;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let big = builder.add_custom_minion_to_board(PlayerId2(), 10, 10, 10);
+    builder
+        .set_mana(p1, 13, 13)
+        .add_minion_to_hand(p1, &TLC_513);
+    for _ in 0..3 {
+        builder.add_minion_to_hand(p1, &ILLUSORY_GREENWING);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_513");
+    play_front_card(&mut state, &engine, p1);
+    for _ in 0..3 {
+        play_front_card(&mut state, &engine, p1);
+    }
+    for _ in 0..3 {
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        let greenwing = find_entity(&state, p1, "EDR_260");
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker: big,
+                    defender: greenwing,
+                },
+            )
+            .unwrap();
+        state
+            .world_mut()
+            .set_attacks_used(big, orange_stone::core::component::AttacksUsed(0));
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+    }
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Graveyard),
+        "five shuffles complete the quest (the sixth shuffle is ignored)"
+    );
+    let ninjas: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_513t2"))
+        .collect();
+    assert_eq!(ninjas.len(), 2, "the simplified reward summons two Ninjas");
+    for ninja in &ninjas {
+        assert_eq!(state.world().effective_attack(*ninja), Some(Attack(3)));
+        assert_eq!(state.world().effective_health(*ninja), Some(Health(3)));
+        assert!(
+            state.world().stealth(*ninja).is_some(),
+            "Tortollan Ninjas are Stealth"
+        );
+    }
+}
+
+/// TLC_W2-8 — Enter the Lost City: surviving ten turns (hero alive at each
+/// of the owner's turn ends) summons Latorvius (5-cost 8/8; his Quest-Reward
+/// battlecry is a W2 simplification — the pool lands in W4, §15).
+#[test]
+fn tlc_w2_enter_the_lost_city_survive_turns() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::generated::TLC_602;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder.set_mana(p1, 1, 1).add_minion_to_hand(p1, &TLC_602);
+    for _ in 0..12 {
+        builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+        builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_602");
+    play_front_card(&mut state, &engine, p1);
+    for _ in 0..9 {
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+    }
+    assert_eq!(state.world().quest(quest).unwrap().progress, 9);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Graveyard),
+        "the tenth survived turn completes the quest"
+    );
+    let latorvius = find_entity(&state, p1, "TLC_602t");
+    assert_eq!(state.world().effective_attack(latorvius), Some(Attack(8)));
+    assert_eq!(state.world().effective_health(latorvius), Some(Health(8)));
+}
+
+/// TLC_W2-9 — Unleash the Colossus: twelve exact-2-damage events summon
+/// Gorishi Colossus; his battlecry sets the permanent +2 bonus, so the
+/// thirteenth exact-2 hit deals 4 (the completing hit itself never gets the
+/// bonus — the flag lands after its damage is computed).
+#[test]
+fn tlc_w2_unleash_the_colossus_bonus_damage() {
+    use orange_stone::cards::classic_neutral::{BLUEGILL_WARRIOR, WISP};
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::generated::TLC_631;
+    use orange_stone::core::component::Race;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 15, 15)
+        .add_minion_to_hand(p1, &TLC_631);
+    for _ in 0..9 {
+        builder.add_minion_to_hand(p1, &BLUEGILL_WARRIOR);
+    }
+    for _ in 0..6 {
+        builder.add_minion_to_deck(p1, &BLUEGILL_WARRIOR);
+    }
+    // Six draws at turns 2-12 for p2 (an empty deck would fatigue-kill the
+    // 30-health hero before the 13th hit).
+    for _ in 0..6 {
+        builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    }
+    for _ in 0..7 {
+        builder.add_minion_to_board(PlayerId2(), &WISP);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_631");
+    play_front_card(&mut state, &engine, p1);
+    // Turn 1: seven Bluegills (2/1 Charge) trade into the seven Wisps —
+    // seven exact-2 hits, every attacker dies to the Wisp's 1 damage.
+    let wisp_targets: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    for &wisp in wisp_targets.iter() {
+        let bluegill = find_in_hand(&state, p1, "CLASSIC_002");
+        play_front_card(&mut state, &engine, p1);
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker: bluegill,
+                    defender: wisp,
+                },
+            )
+            .unwrap();
+    }
+    assert_eq!(state.world().quest(quest).unwrap().progress, 7);
+    // Turns 3, 5, 7, 9, 11: one Bluegill per turn (draw + 1 leftover each
+    // turn) attacks the enemy hero — the 12th hit completes the quest and
+    // Gorishi Colossus is summoned with the bonus flag; the 13th hit (turn
+    // 13) then deals 2 + 2 thanks to the flag.
+    let enemy_hero = state.player(PlayerId2()).hero;
+    for _ in 0..6 {
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        let bluegill = find_in_hand(&state, p1, "CLASSIC_002");
+        play_front_card(&mut state, &engine, p1);
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker: bluegill,
+                    defender: enemy_hero,
+                },
+            )
+            .unwrap();
+    }
+    assert_eq!(state.world().zone(quest), Some(Zone::Graveyard));
+    let gorishi = find_entity(&state, p1, "TLC_631t");
+    assert!(
+        state.world().has_race(gorishi, Race::Beast),
+        "Gorishi Colossus is a Beast"
+    );
+    assert_eq!(state.world().effective_attack(gorishi), Some(Attack(8)));
+    assert!(
+        state.player(p1).deal_exact_2_bonus,
+        "Gorishi's battlecry sets the permanent bonus flag"
+    );
+    // The 13th hit deals 2 + 2: hits 8-12 dealt 2 each on the hero (the 7
+    // Wisp trades hit minions), the completing 12th hit never gets the
+    // bonus, and the 13th hit deals 4 → 5×2 + 4 = 14 damage → the hero is
+    // at 16.
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(16)),
+        "ten hero hits of 2 (turns 3-11) + the flagged 13th hit of 4"
+    );
+}
+
+/// TLC_W2-10 — Reach Equilibrium (the dual-bar quest): four Holy casts
+/// complete the FIRST bar (reward: Sol'etos, Life's Breath — 4/4 Taunt that
+/// summons a copy) while the quest STAYS in the slot with the second bar
+/// pending; four Shadow casts complete the second bar (reward: Sol'etos,
+/// Death's Touch — 4/4 Reborn) and the card finally leaves the zone.
+#[test]
+fn tlc_w2_reach_equilibrium_double_bar() {
+    use orange_stone::cards::generated::{TLC_816, TLC_817, TLC_818};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 17, 17)
+        .add_minion_to_hand(p1, &TLC_817)
+        .add_minion_to_hand(p1, &TLC_816) // Holy — 4
+        .add_minion_to_hand(p1, &TLC_816)
+        .add_minion_to_hand(p1, &TLC_816)
+        .add_minion_to_hand(p1, &TLC_816)
+        .add_minion_to_hand(p1, &TLC_818) // Shadow — 6
+        .add_minion_to_hand(p1, &TLC_818)
+        .add_minion_to_hand(p1, &TLC_818)
+        .add_minion_to_hand(p1, &TLC_818);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_817");
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    let q = state.world().quest(quest).unwrap();
+    assert_eq!(q.progress, 3, "the Holy bar progresses");
+    play_front_card(&mut state, &engine, p1); // 4th Holy → first bar done
+    let q = state.world().quest(quest).unwrap();
+    assert_eq!(q.progress, 4, "the Holy bar caps at its target");
+    let second = q.second.as_ref().expect("the Shadow bar state exists");
+    assert_eq!(second.progress, 0);
+    assert_eq!(second.target, 4);
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Quest),
+        "the quest stays in the slot while the second bar runs"
+    );
+    let breath: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_817t3"))
+        .collect();
+    assert_eq!(breath.len(), 2, "Sol'etos Life's Breath + his copy");
+    for b in &breath {
+        assert_eq!(state.world().effective_attack(*b), Some(Attack(4)));
+        assert!(state.world().taunt(*b).is_some(), "Life's Breath is Taunt");
+    }
+    // The Shadow half: 4 × 6 mana → give mana mid-game.
+    give_mana(&mut state, p1, 24);
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Graveyard),
+        "both bars complete — the card leaves the quest slot"
+    );
+    let touch = find_entity(&state, p1, "TLC_817t4");
+    assert_eq!(state.world().effective_attack(touch), Some(Attack(4)));
+    assert!(
+        state.world().reborn(touch).is_some(),
+        "Death's Touch is Reborn"
+    );
+    let minions = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(minions, 3, "two Life's Breath + one Death's Touch");
+}
+
+/// TLC_W2-11 — The Food Chain: a 1-, 3-, 5- and 7-Attack Beast played in
+/// sequence (Stonetusk Boar, Bloodfen Raptor, Stranglethorn Tiger,
+/// Ashamane) completes the quest; the reward Shokk (5-cost 9/9 Rush) is
+/// summoned with no battlecry (the attack-filtered discover is simplified,
+/// §15).
+#[test]
+fn tlc_w2_food_chain_shokk_battlecry() {
+    use orange_stone::cards::classic_neutral::{STONETUSK_BOAR, STRANGLETHORN_TIGER};
+    use orange_stone::cards::def::{ASHAMANE, BLOODFEN_RAPTOR};
+    use orange_stone::cards::generated::TLC_830;
+    use orange_stone::core::component::Race;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 19, 19)
+        .add_minion_to_hand(p1, &TLC_830)
+        .add_minion_to_hand(p1, &STONETUSK_BOAR) // 1-Attack Beast
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR) // 3-Attack Beast
+        .add_minion_to_hand(p1, &STRANGLETHORN_TIGER) // 5-Attack Beast
+        .add_minion_to_hand(p1, &ASHAMANE); // 7-Attack Beast
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_830");
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().quest(quest).unwrap().progress,
+        1,
+        "the Boar's attack value is the marker"
+    );
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Graveyard),
+        "1/3/5/7-Attack Beasts complete the quest"
+    );
+    let shokk = find_entity(&state, p1, "TLC_830t");
+    assert!(
+        state.world().has_race(shokk, Race::Beast),
+        "Shokk is a Beast"
+    );
+    assert!(state.world().rush(shokk).is_some(), "Shokk has Rush");
+    assert_eq!(state.world().effective_attack(shokk), Some(Attack(9)));
+    assert_eq!(state.world().effective_health(shokk), Some(Health(9)));
+}
+
+/// TLC_W2-12 — the one-quest-per-player rule with real cards: playing a
+/// second quest card while the slot is occupied destroys the first (progress
+/// lost, no reward) and the new quest enters the slot fresh.
+#[test]
+fn tlc_w2_one_quest_per_player_real_cards() {
+    use orange_stone::cards::generated::{TLC_229, TLC_239};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &TLC_229)
+        .add_minion_to_hand(p1, &TLC_239);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let first = find_in_hand(&state, p1, "TLC_229");
+    let second = find_in_hand(&state, p1, "TLC_239");
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().zone(first), Some(Zone::Quest));
+    // Give the old quest progress so the replace rule demonstrably loses it.
+    let mut q = state.world().quest(first).unwrap();
+    q.progress = 4;
+    state.world_mut().set_quest(first, q);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zone(first),
+        Some(Zone::Graveyard),
+        "the old quest is destroyed"
+    );
+    assert_eq!(
+        state.world().zone(second),
+        Some(Zone::Quest),
+        "the new quest occupies the slot"
+    );
+    assert_eq!(state.world().zones().len(Zone::Quest, p1), 1);
+    let q = state.world().quest(second).unwrap();
+    assert_eq!(q.progress, 0, "the new quest starts fresh");
+    assert!(q.markers.is_empty());
 }

@@ -1727,6 +1727,16 @@ pub enum CardEffect {
     /// Make the player's next Hero Power cost (0) (Dreambound Disciple —
     /// the flag is consumed at the hero-power activation)
     NextHeroPowerCostsZero,
+    /// Permanently, Murlocs the player summons gain +1/+1 (TLC_426's
+    /// repeatable quest reward, 2025–2026 expansions M2-W2 — sets the
+    /// player's `murloc_summon_buff` flag; the friendly-summon hook in
+    /// rules.rs applies the buff)
+    SetMurlocSummonBuff,
+    /// Permanently, whenever the player deals exactly 2 damage to an enemy,
+    /// deal 2 more (Gorishi Colossus's battlecry, 2025–2026 expansions
+    /// M2-W2 — sets the player's `deal_exact_2_bonus` flag; the damage
+    /// hook in rules.rs applies the bonus)
+    SetDealExact2Bonus,
     /// Restore Health to the hero and add random Druid spells to hand
     /// (Photosynthesis)
     RestoreHealthAndGetDruidSpells {
@@ -2887,6 +2897,8 @@ enum CardEffectDe {
         draw: u8,
     },
     NextHeroPowerCostsZero,
+    SetMurlocSummonBuff,
+    SetDealExact2Bonus,
     RestoreHealthAndGetDruidSpells {
         amount: i32,
         count: u8,
@@ -3871,6 +3883,8 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 CardEffect::DrawAndSummonDreadseed { draw }
             }
             CardEffectDe::NextHeroPowerCostsZero => CardEffect::NextHeroPowerCostsZero,
+            CardEffectDe::SetMurlocSummonBuff => CardEffect::SetMurlocSummonBuff,
+            CardEffectDe::SetDealExact2Bonus => CardEffect::SetDealExact2Bonus,
             CardEffectDe::RestoreHealthAndGetDruidSpells { amount, count } => {
                 CardEffect::RestoreHealthAndGetDruidSpells { amount, count }
             }
@@ -4298,10 +4312,12 @@ mod tests {
             CardEffect::SummonRandomAnimalCompanion,
             CardEffect::AddAllDreamCards,
             CardEffect::CardsCostOneThisGame,
+            CardEffect::SetMurlocSummonBuff,
+            CardEffect::SetDealExact2Bonus,
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
-            assert_eq!(back, effect);
+            assert_eq!(back, effect, "roundtrip failed for {effect:?}");
         }
     }
 }

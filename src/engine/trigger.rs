@@ -4375,6 +4375,18 @@ pub fn resolve_effect(
             // next hero-power activation (rules.rs)
             state.make_mut().players[owner.index()].next_hero_power_free = true;
         }
+        CardEffect::SetMurlocSummonBuff => {
+            // Dive the Golakka Depths (M2-W2) — the repeatable quest
+            // reward: permanently, Murlocs the owner summons gain +1/+1
+            // (the friendly-summon hook in rules.rs reads the flag)
+            state.make_mut().players[owner.index()].murloc_summon_buff = true;
+        }
+        CardEffect::SetDealExact2Bonus => {
+            // Gorishi Colossus (M2-W2) — the battlecry: permanently,
+            // whenever the owner deals exactly 2 damage to an enemy, deal
+            // 2 more (the damage hook in rules.rs reads the flag)
+            state.make_mut().players[owner.index()].deal_exact_2_bonus = true;
+        }
         CardEffect::RestoreHealthAndGetDruidSpells { amount, count } => {
             // Photosynthesis (M1-W4a) — heal the hero and gather Druid spells
             resolve_restore_health(
