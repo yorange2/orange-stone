@@ -1345,6 +1345,19 @@ pub fn apply_event(
                     // secrets fire BEFORE the spell's effect resolves.
                     let interception =
                         secret::intercept_counter_secrets(state, queue, card, player);
+                    // The spell's effect as the play path would resolve it
+                    // (combo-aware) — hoisted so the interception branches
+                    // (and the counter-secret record below) share one shape.
+                    let chosen_effect = if combo_active {
+                        // Combo: prefer combo_effect
+                        state
+                            .world()
+                            .combo_effect(card)
+                            .map(|c| c.0)
+                            .or_else(|| state.world().battlecry(card).map(|b| b.0))
+                    } else {
+                        state.world().battlecry(card).map(|b| b.0)
+                    };
                     match interception {
                         secret::Interception::Countered => {
                             // The spell is negated but still cast and discarded
@@ -1362,19 +1375,15 @@ pub fn apply_event(
                                 .world_mut()
                                 .move_to_zone(card, Zone::Graveyard)
                                 .map_err(|_| EngineError::EntityGone(card))?;
+                            // Rewind (M3-W1): the negated spell still records
+                            // its would-be effect (it was played — the entry
+                            // occupies a slot), but no replay fires: the
+                            // counter negated the whole card.
+                            crate::engine::rewind::record_play(state, card, player, chosen_effect);
                         }
                         secret::Interception::Spellbent(token) => {
                             // Spellbender: the spell's single-target effect is
                             // redirected to the 1/3 token
-                            let chosen_effect = if combo_active {
-                                state
-                                    .world()
-                                    .combo_effect(card)
-                                    .map(|c| c.0)
-                                    .or_else(|| state.world().battlecry(card).map(|b| b.0))
-                            } else {
-                                state.world().battlecry(card).map(|b| b.0)
-                            };
                             if let Some(effect) = chosen_effect {
                                 trigger::resolve_effect(
                                     state,
@@ -1400,6 +1409,10 @@ pub fn apply_event(
                                 .world_mut()
                                 .move_to_zone(card, Zone::Graveyard)
                                 .map_err(|_| EngineError::EntityGone(card))?;
+                            // Rewind (M3-W1): the redirected effect was the
+                            // play's resolution — record it; no replay fires
+                            // (the redirect consumed the spell's own effect).
+                            crate::engine::rewind::record_play(state, card, player, chosen_effect);
                         }
                         secret::Interception::None => {
                             // Choose One always surfaces the branch choice in
@@ -1429,17 +1442,9 @@ pub fn apply_event(
                                     repeat,
                                 );
                             } else {
-                                // Spell card: resolve the effect (combo-aware), then move to the graveyard
-                                let chosen_effect = if combo_active {
-                                    // Combo: prefer combo_effect
-                                    state
-                                        .world()
-                                        .combo_effect(card)
-                                        .map(|c| c.0)
-                                        .or_else(|| state.world().battlecry(card).map(|b| b.0))
-                                } else {
-                                    state.world().battlecry(card).map(|b| b.0)
-                                };
+                                // Spell card: resolve the effect (combo-aware),
+                                // then move to the graveyard (`chosen_effect`
+                                // is the hoisted combo-aware effect above).
                                 // Combo bounce-back (Headcrack): the card stays in hand after the effect resolves instead of going to the graveyard
                                 let returns_to_hand = matches!(
                                     chosen_effect,
@@ -1471,6 +1476,19 @@ pub fn apply_event(
                                 // activation check counts this spell plus any
                                 // earlier same-type card (>= 2).
                                 crate::cards::kindred::resolve_on_play(state, queue, card, player);
+                                // Rewind (M3-W1 — the Across the Timeways
+                                // rewind primitive): the spell's own effect
+                                // (and the Tyrande double) resolved above. A
+                                // Rewind card now replays the effects recorded
+                                // BEFORE this play, then its own entry is
+                                // recorded — the card never replays itself.
+                                crate::engine::rewind::hook_after_play(
+                                    state,
+                                    queue,
+                                    card,
+                                    player,
+                                    chosen_effect,
+                                );
                                 // Push the spell-cast event
                                 // After-cast triggers fire at Lowest priority — after the
                                 // spell's damage and the deaths it caused have resolved
@@ -1550,6 +1568,16 @@ pub fn apply_event(
                     if let Some(effect) = weapon_effect {
                         trigger::resolve_effect(state, queue, card, player, effect, None, None);
                     }
+                    // Rewind (M3-W1): the weapon's battlecry resolved above —
+                    // the rewind replay + history record follow (the spell
+                    // path's ordering).
+                    crate::engine::rewind::hook_after_play(
+                        state,
+                        queue,
+                        card,
+                        player,
+                        weapon_effect,
+                    );
                 }
             } else if card_type == Some(CardType::Location) {
                 // Location card (Core Set W8): replace the current location
@@ -1568,6 +1596,11 @@ pub fn apply_event(
                 let inner = state.make_mut();
                 inner.players[player.index()].location = Some(card);
                 inner.players[player.index()].location_played_turn = turn;
+                // Rewind (M3-W1): a location play records no effect — its
+                // battlecry is the ACTIVATE effect (LocationActivated),
+                // never resolved by the play — but the play still occupies
+                // a history slot.
+                crate::engine::rewind::record_play(state, card, player, None);
                 // Card-played triggers fire in the shared section below
                 // (same as every other card type).
             } else if card_type == Some(CardType::Hero) {
@@ -1637,6 +1670,11 @@ pub fn apply_event(
                         .zones_mut()
                         .insert_at(Zone::Play, player, card, position as usize);
                 }
+                // Rewind (M3-W1): mark this minion as the one being played —
+                // its MinionSummoned event (also enqueued for effect summons)
+                // uses the marker to run the rewind replay + history record
+                // after the battlecry.
+                state.make_mut().players[player.index()].rewind_played_minion = Some(card);
                 // Choose One minions (Cenarius, Keeper of the Grove): the branch
                 // choice surfaces as a pending choice — MinionSummoned skips the
                 // battlecry and ChoiceResolved resolves the chosen branch (G6).
@@ -1811,6 +1849,15 @@ pub fn apply_event(
                     state.world_mut().set_attacks_used(minion, AttacksUsed(1));
                 }
             }
+            // Rewind (M3-W1): whether this MinionSummoned is a PLAYED minion
+            // (the marker set in the CardPlayed path — effect summons never
+            // record). The marker is consumed unconditionally: a played
+            // minion's summon always processes it (Choose One plays skip the
+            // hook but clear the marker here).
+            let played_minion = state.player(player).rewind_played_minion == Some(minion);
+            if played_minion {
+                state.make_mut().players[player.index()].rewind_played_minion = None;
+            }
             // Check battlecry component (combo-aware). Choose One minions
             // resolve their branch through the choice system (roadmap G6).
             if state.world().choose_one_effect(minion).is_none() {
@@ -1865,6 +1912,20 @@ pub fn apply_event(
                     {
                         trigger::resolve_effect(state, queue, minion, player, effect, target, None);
                     }
+                }
+                // Rewind (M3-W1): the battlecry (and its re-resolutions)
+                // resolved above — a played Rewind minion now replays the
+                // effects recorded before this play, then its own entry is
+                // recorded. Choose One minions skip both (their effect
+                // resolves later via the choice system — unknowable here).
+                if played_minion {
+                    crate::engine::rewind::hook_after_play(
+                        state,
+                        queue,
+                        minion,
+                        player,
+                        chosen_effect,
+                    );
                 }
             }
             // Summon triggers: registered FriendlyMinionSummoned triggers fire in
