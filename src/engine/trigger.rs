@@ -1284,6 +1284,293 @@ pub fn resolve_effect(
                 }
             }
         }
+        CardEffect::DamageAndSummon {
+            damage,
+            target,
+            card_id,
+        } => {
+            // Wound Prey — damage and summon the token
+            resolve_deal_damage(state, queue, source, owner, damage, target, explicit_target);
+            let _ = resolve_summon(state, queue, source, owner, card_id);
+        }
+        CardEffect::RehgarBolt => {
+            // Rehgar Earthfury — THIS or an adjacent friendly minion attacks
+            if event_subject != Some(source) {
+                let adjacent: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, owner)
+                    .filter(|&e| {
+                        e != source && state.world().card_type(e) == Some(CardType::Minion)
+                    })
+                    .collect();
+                let Some(subject) = event_subject else {
+                    return;
+                };
+                let is_adjacent = adjacent.iter().enumerate().any(|(i, &e)| {
+                    e == subject
+                        && (i > 0 && adjacent[i - 1] == source
+                            || i + 1 < adjacent.len() && adjacent[i + 1] == source)
+                });
+                if !is_adjacent {
+                    return;
+                }
+            }
+            // Add a Lightning Bolt to hand (the classic SHAMAN_002 until
+            // CORE_EX1_238 lands in W7)
+            let Some(bolt) = crate::cards::def::card_by_id("SHAMAN_002") else {
+                return;
+            };
+            add_card_to_hand(state, owner, bolt);
+        }
+        CardEffect::DamageTwoDrawIfKilled { damage } => {
+            // Consumption — two random enemy minions take damage; each kill
+            // draws (prediction-based)
+            let minions = collect_enemy_minions(state, owner, Some(source));
+            let targets: SmallList<Entity> = if minions.len() <= 2 {
+                minions
+            } else {
+                let mut picks = SmallList::new();
+                let idx1 = state.rng_mut().next_usize(minions.len());
+                picks.push(minions[idx1]);
+                let mut idx2 = state.rng_mut().next_usize(minions.len() - 1);
+                if idx2 >= idx1 {
+                    idx2 += 1;
+                }
+                picks.push(minions[idx2]);
+                picks
+            };
+            for t in targets {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: t,
+                    amount: damage,
+                });
+                let dies = state.world().divine_shield(t).is_none()
+                    && state
+                        .world()
+                        .effective_health(t)
+                        .is_some_and(|h| h.0 - damage <= 0);
+                if dies {
+                    draw_card(state, queue, owner);
+                }
+            }
+        }
+        CardEffect::FreezeAndDiscoverSpell => {
+            // Death's Advance — freeze a character (explicit/random) and
+            // Discover a spell (pending choice; random default)
+            let chars: SmallList<Entity> = {
+                let mut all = collect_friendly_characters(state, owner, None);
+                all.extend(collect_enemy_characters(state, owner, None));
+                all
+            };
+            if let Some(target) = select_target(explicit_target, &chars, state.rng_mut()) {
+                state.world_mut().set_freeze(target, Freeze);
+            }
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Spell)
+                    .collect();
+            if spells.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(spells.len());
+            let spell = spells[idx];
+            add_card_to_hand(state, owner, spell);
+        }
+        CardEffect::HenchThugBuff => {
+            // Hench-Clan Thug — the OWNER'S HERO attacked
+            let hero = state.player(owner).hero;
+            if event_subject != Some(hero) {
+                return;
+            }
+            let world = state.world_mut();
+            let base = world.attack(source).unwrap_or(Attack(0));
+            world.set_attack(source, Attack(base.0 + 1));
+            let base_hp = world.health(source).unwrap_or(Health(1));
+            world.set_health(source, Health(base_hp.0 + 1));
+        }
+        CardEffect::SummonRecruitsAndEquipWeapon => {
+            // Muster for Battle — three 1/1 recruits + a 1/4 weapon
+            for _ in 0..3 {
+                let _ = resolve_summon(state, queue, source, owner, "CORE_GVG_061t");
+            }
+            if let Some(weapon) = crate::cards::def::card_by_id("PALADIN_015") {
+                let e = crate::cards::spawn_card_from_def(state.world_mut(), owner, weapon);
+                state.world_mut().set_zone(e, Zone::Play);
+                state.world_mut().zones_mut().insert(Zone::Play, owner, e);
+                let inner = state.make_mut();
+                inner.players[owner.index()].weapon = Some(e);
+            }
+        }
+        CardEffect::BuffAndSummonRandomCost2 => {
+            // Silvermoon Portal — buff a minion and summon a random 2-cost
+            let minions: SmallList<Entity> = {
+                let mut all = collect_friendly_minions(state, owner);
+                all.extend(collect_enemy_minions(state, owner, None));
+                all
+            };
+            if let Some(target) = select_target(explicit_target, &minions, state.rng_mut()) {
+                let world = state.world_mut();
+                let base = world.attack(target).unwrap_or(Attack(0));
+                world.set_attack(target, Attack(base.0 + 2));
+                let base_hp = world.health(target).unwrap_or(Health(1));
+                world.set_health(target, Health(base_hp.0 + 2));
+            }
+            let cost2: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion && c.cost == 2 && !c.id.ends_with('t')
+                    })
+                    .collect();
+            if let Some(&pick) = cost2.get(state.rng_mut().next_usize(cost2.len())) {
+                let _ = resolve_summon(state, queue, source, owner, pick.id);
+            }
+        }
+        CardEffect::DamageAndSummonCopyIfKilled { damage } => {
+            // Initiation — 4 damage; a kill summons a fresh copy
+            if let Some(t) = resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                damage,
+                EffectTarget::AnyMinion,
+                explicit_target,
+            ) {
+                let dies = state.world().divine_shield(t).is_none()
+                    && state
+                        .world()
+                        .effective_health(t)
+                        .is_some_and(|h| h.0 - damage <= 0);
+                if dies {
+                    if let Some(def) = state
+                        .world()
+                        .card_id(t)
+                        .and_then(|c| crate::cards::def::card_by_id(c.0))
+                    {
+                        let _ = resolve_summon(state, queue, source, owner, def.id);
+                    }
+                }
+            }
+        }
+        CardEffect::KeymasterCopy => {
+            // Keymaster Alabaster — the OPPONENT drew a card; add a 1-cost
+            // copy to hand
+            let Some(subject) = event_subject else {
+                return;
+            };
+            if state.world().player(subject) == Some(owner) {
+                return; // the owner's own draw
+            }
+            let Some(def) = state
+                .world()
+                .card_id(subject)
+                .and_then(|c| crate::cards::def::card_by_id(c.0))
+            else {
+                return;
+            };
+            let e = crate::cards::spawn_card_from_def(state.world_mut(), owner, def);
+            state.world_mut().set_cost(e, Cost(1));
+            state.world_mut().set_zone(e, Zone::Hand);
+            state.world_mut().zones_mut().insert(Zone::Hand, owner, e);
+        }
+        CardEffect::FordragonBuff => {
+            // Highlord Fordragon — a friendly minion lost Divine Shield;
+            // buff a random minion in hand +5/+5
+            let hand: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if hand.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(hand.len());
+            let target = hand[idx];
+            let world = state.world_mut();
+            let base = world.attack(target).unwrap_or(Attack(0));
+            world.set_attack(target, Attack(base.0 + 5));
+            let base_hp = world.health(target).unwrap_or(Health(1));
+            world.set_health(target, Health(base_hp.0 + 5));
+        }
+        CardEffect::DamageAndSummonVoidwalkers { damage, target } => {
+            // Demonic Assault — damage and two 1/3 Voidwalkers with Taunt
+            resolve_deal_damage(state, queue, source, owner, damage, target, explicit_target);
+            for _ in 0..2 {
+                let _ = resolve_summon(state, queue, source, owner, "CS2_065");
+            }
+        }
+        CardEffect::DamageAndAddToHand { damage, card_id } => {
+            // First Flame — damage a minion and add the token to hand
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                damage,
+                EffectTarget::AnyMinion,
+                explicit_target,
+            );
+            if let Some(def) = crate::cards::def::card_by_id(card_id) {
+                add_card_to_hand(state, owner, def);
+            }
+        }
+        CardEffect::AddRandomOtherClassSpells { count, min_cost } => {
+            // Jackpot! — random spells of 5+ cost from OTHER classes
+            for _ in 0..count {
+                let spells: SmallList<&'static crate::cards::def::CardDef> =
+                    crate::cards::sets::ALL_CARDS
+                        .iter()
+                        .filter(|c| {
+                            c.card_type == CardType::Spell
+                                && c.cost >= min_cost
+                                && crate::cards::pool::is_other_class_card_for(c, owner)
+                        })
+                        .collect();
+                if spells.is_empty() {
+                    return;
+                }
+                let idx = state.rng_mut().next_usize(spells.len());
+                add_card_to_hand(state, owner, spells[idx]);
+            }
+        }
+        CardEffect::SummonFelbatOnDraw => {
+            // Eredar Deceptor — the OWNER drew a card; summon a 1/1 Demon
+            // with Rush
+            if event_subject.is_none()
+                || state.world().player(event_subject.unwrap()) != Some(owner)
+            {
+                return;
+            }
+            let _ = resolve_summon(state, queue, source, owner, "CORE_TTN_843t");
+        }
+        CardEffect::SpendCorpsesSummonRandomMinion { max } => {
+            // Corpse Farm — spend up to 8 corpses for a random minion of
+            // that cost
+            let have = state.player(owner).corpses;
+            if have == 0 {
+                return;
+            }
+            let spend = have.min(max) as i32;
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].corpses -= spend as u32;
+            }
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Minion && c.cost == spend)
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            let _ = resolve_summon(state, queue, source, owner, candidates[idx].id);
+        }
         CardEffect::CopyEnemyDeckCardOnSelfAttack => {
             // Shaku — copy a random enemy deck card to hand, only when THIS
             // minion is the one attacking
@@ -1578,6 +1865,21 @@ pub(crate) fn draw_card_no_queue(
         });
         return None;
     };
+    // CardDrawn triggers (Core Set W3b — Keymaster Alabaster, Eredar
+    // Deceptor) fire for the drawing player with the drawn card as subject
+    {
+        let owner = state.world().player(card);
+        if let Some(owner) = owner {
+            crate::engine::rules::fire_triggers(
+                state,
+                queue,
+                TriggerEvent::CardDrawn,
+                owner,
+                Some(card),
+                None,
+            );
+        }
+    }
     // Hand-size cap (F-A11): a card drawn past the 10-card limit is burned —
     // destroyed (sent to the graveyard), while the draw still counts for deck
     // depletion and the CardDrawn event still fires (the caller pushes it).

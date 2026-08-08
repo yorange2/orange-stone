@@ -19,6 +19,7 @@ pub mod core_w1;
 pub mod core_w2;
 pub mod core_w3a;
 pub mod core_w3b;
+pub mod core_w3c;
 pub mod def;
 pub mod generated;
 pub mod pool;
@@ -88,6 +89,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "CORE_RLK_657" // Underking
         | "CORE_TRL_900" // Halazzi, the Lynx
         | "CORE_WC_701" // Felrattler
+        | "CORE_BAR_801t" // Swift Hyena (W3b token)
     ) {
         world.set_rush(entity, Rush);
     }
@@ -185,6 +187,76 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 race: None,
                 max_attack: None,
                 effect: CardEffect::CopyEnemyDeckCardOnSelfAttack,
+            },
+        );
+    }
+    if card_def.id == "CORE_CATA_004" {
+        // Rehgar Earthfury — this or an adjacent minion attacks: get a
+        // Lightning Bolt (the adjacency check lives in the effect)
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::Attacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::RehgarBolt,
+            },
+        );
+    }
+    if card_def.id == "CORE_GIL_534" {
+        // Hench-Clan Thug — after your hero attacks, +1/+1 (the subject is
+        // the hero; the effect checks it)
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::HeroAttacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::HenchThugBuff,
+            },
+        );
+    }
+    if card_def.id == "CORE_SCH_717" {
+        // Keymaster Alabaster — whenever the OPPONENT draws a card, add a
+        // 1-cost copy to hand
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::CardDrawn,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::KeymasterCopy,
+            },
+        );
+    }
+    if card_def.id == "CORE_SW_047" {
+        // Highlord Fordragon — a friendly minion losing Divine Shield buffs
+        // a minion in hand
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::DivineShieldLost,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::FordragonBuff,
+            },
+        );
+    }
+    if card_def.id == "CORE_TTN_843" {
+        // Eredar Deceptor — whenever the OWNER draws a card, summon a 1/1
+        // Demon with Rush (the effect ignores foreign draws)
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::CardDrawn,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::SummonFelbatOnDraw,
             },
         );
     }

@@ -40,6 +40,20 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
             cost = Cost((cost.0 - discount).max(0));
         }
     }
+    // Dread Corsair (Core Set W3b): costs (1) less per Attack of the
+    // owner's weapon
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "CORE_NEW1_022")
+    {
+        let weapon_atk = state
+            .player(player)
+            .weapon
+            .and_then(|w| state.world().effective_attack(w))
+            .map_or(0, |a| a.0);
+        cost = Cost((cost.0 - weapon_atk).max(0));
+    }
     // Sea Giant (W11): costs (1) less for each minion on the battlefield
     // (both sides — the board-count rule composes here like Dread Corsair)
     if state

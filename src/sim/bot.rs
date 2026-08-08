@@ -1320,6 +1320,22 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::AddRandomSpellToOpponentDeckTop => 2.0,
         CardEffect::SummonStatueTrio => 5.0,
         CardEffect::CopyEnemyDeckCardOnSelfAttack => 3.0,
+        // Core Set W3b
+        CardEffect::DamageAndSummon { damage, .. } => damage as f64 * 1.2 + 3.0,
+        CardEffect::RehgarBolt => 3.0,
+        CardEffect::DamageTwoDrawIfKilled { damage } => damage as f64 * 2.4 + 3.0,
+        CardEffect::FreezeAndDiscoverSpell => 3.0,
+        CardEffect::HenchThugBuff => 2.0,
+        CardEffect::SummonRecruitsAndEquipWeapon => 5.0,
+        CardEffect::BuffAndSummonRandomCost2 => 4.0,
+        CardEffect::DamageAndSummonCopyIfKilled { damage } => damage as f64 * 1.2 + 4.0,
+        CardEffect::KeymasterCopy => 3.0,
+        CardEffect::FordragonBuff => 3.0,
+        CardEffect::DamageAndSummonVoidwalkers { damage, .. } => damage as f64 * 1.2 + 4.0,
+        CardEffect::DamageAndAddToHand { damage, .. } => damage as f64 * 1.2 + 2.0,
+        CardEffect::AddRandomOtherClassSpells { count, .. } => count as f64 * 3.0,
+        CardEffect::SummonFelbatOnDraw => 3.0,
+        CardEffect::SpendCorpsesSummonRandomMinion { .. } => 3.0,
     }
 }
 

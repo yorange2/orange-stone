@@ -19,6 +19,7 @@ use super::core_w1::*;
 use super::core_w2::*;
 use super::core_w3a::*;
 use super::core_w3b::*;
+use super::core_w3c::*;
 // ============================================================
 // Card lists
 // ============================================================
@@ -242,6 +243,20 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     CORE_WORN_STATUE,
     CORE_LIVING_STATUE,
     CORE_PRISTINE_STATUE,
+    // Core Set W3b — neutrals + tokens
+    CORE_HENCH_CLAN_THUG,
+    CORE_ANNOY_O_TRON,
+    CORE_MICRO_MACHINE,
+    CORE_WILD_PYROMANCER,
+    CORE_DOOMSAYER,
+    CORE_DREAD_CORSAIR,
+    CORE_FAERIE_DRAGON,
+    CORE_WAILING_VAPOR,
+    CORE_SWIFT_HYENA,
+    CORE_BATTLEFIELD_MEDIC,
+    CORE_SILVER_HAND_RECRUIT,
+    CORE_INVADING_FELBAT,
+    CORE_SECOND_FLAME,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -312,6 +327,8 @@ pub const DRUID_CLASSIC: &[CardDef] = &[
     // Core Set W3a
     CORE_INNERVATE,
     CORE_SPIKERIDGED_STEED,
+    // Core Set W3b — Consumption
+    CORE_CONSUMPTION,
 ];
 
 pub const HUNTER_CLASSIC: &[CardDef] = &[
@@ -356,6 +373,11 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     CORE_ARCANE_SHOT,
     CORE_BALL_OF_SPIDERS,
     CORE_DRAGONBANE,
+    // Core Set W3b — hunter batch
+    CORE_WOUND_PREY,
+    CORE_ANIMAL_COMPANION,
+    CORE_LAKE_THRESHER,
+    CORE_EREDAR_DECEPTOR,
 ];
 
 pub const MAGE_CLASSIC: &[CardDef] = &[
@@ -393,6 +415,9 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     EXPLOSIVE_RUNES,
     // Core Set W3a
     CORE_ARCHMAGE_ANTONIDAS,
+    // Core Set W3b — First Flame, Initiation
+    CORE_FIRST_FLAME,
+    CORE_INITIATION,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -424,6 +449,11 @@ pub const PALADIN_CLASSIC: &[CardDef] = &[
     // Tier 2 additions
     NOBLE_SACRIFICE,
     DEFENDER,
+    // Core Set W3b — paladin batch
+    CORE_MUSTER_FOR_BATTLE,
+    CORE_RIGHTEOUS_PROTECTOR,
+    CORE_SILVERMOON_PORTAL,
+    CORE_HIGHLORD_FORDRAGON,
 ];
 
 pub const PRIEST_CLASSIC: &[CardDef] = &[
@@ -468,6 +498,10 @@ pub const PRIEST_CLASSIC: &[CardDef] = &[
     CORE_HOLY_NOVA,
     CORE_HOLY_SMITE,
     CORE_SHADOW_WORD_RUIN,
+    // Core Set W3b — priest batch
+    CORE_DEATHS_ADVANCE,
+    CORE_SHADOW_ASCENDANT,
+    CORE_KEYMASTER_ALABASTER,
 ];
 
 pub const ROGUE_CLASSIC: &[CardDef] = &[
@@ -502,6 +536,8 @@ pub const ROGUE_CLASSIC: &[CardDef] = &[
     CORE_PREPARATION,
     CORE_SHIV,
     CORE_FAN_OF_KNIVES,
+    // Core Set W3b — Jackpot!
+    CORE_JACKPOT,
 ];
 
 pub const SHAMAN_CLASSIC: &[CardDef] = &[
@@ -536,6 +572,8 @@ pub const SHAMAN_CLASSIC: &[CardDef] = &[
     HEALING_RAIN,
     // Core Set W3a
     CORE_HEX,
+    // Core Set W3b — Rehgar Earthfury
+    CORE_REHGAR_EARTHFURY,
 ];
 
 pub const WARLOCK_CLASSIC: &[CardDef] = &[
@@ -572,6 +610,9 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     CORE_MORTAL_COIL,
     CORE_SIPHON_SOUL,
     CORE_TWISTING_NETHER,
+    // Core Set W3b — warlock batch
+    CORE_DEMONIC_ASSAULT,
+    CORE_CORPSE_FARM,
 ];
 
 pub const WARRIOR_CLASSIC: &[CardDef] = &[
@@ -1140,6 +1181,40 @@ pub const ALL_CARDS: &[CardDef] = &[
     CORE_WORN_STATUE,
     CORE_LIVING_STATUE,
     CORE_PRISTINE_STATUE,
+    // Core Set W3b (2026-08-08) — 27 confirmed cards + 5 tokens (the 11
+    // CATA placeholders were removed by decision).
+    CORE_WOUND_PREY,
+    CORE_VETERAN_WARMEDIC,
+    CORE_REHGAR_EARTHFURY,
+    CORE_CONSUMPTION,
+    CORE_DEATHS_ADVANCE,
+    CORE_HENCH_CLAN_THUG,
+    CORE_MUSTER_FOR_BATTLE,
+    CORE_ANNOY_O_TRON,
+    CORE_MICRO_MACHINE,
+    CORE_RIGHTEOUS_PROTECTOR,
+    CORE_SHADOW_ASCENDANT,
+    CORE_SILVERMOON_PORTAL,
+    CORE_WILD_PYROMANCER,
+    CORE_DOOMSAYER,
+    CORE_DREAD_CORSAIR,
+    CORE_FAERIE_DRAGON,
+    CORE_ANIMAL_COMPANION,
+    CORE_INITIATION,
+    CORE_LAKE_THRESHER,
+    CORE_KEYMASTER_ALABASTER,
+    CORE_HIGHLORD_FORDRAGON,
+    CORE_DEMONIC_ASSAULT,
+    CORE_FIRST_FLAME,
+    CORE_JACKPOT,
+    CORE_EREDAR_DECEPTOR,
+    CORE_WAILING_VAPOR,
+    CORE_CORPSE_FARM,
+    CORE_SWIFT_HYENA,
+    CORE_BATTLEFIELD_MEDIC,
+    CORE_SILVER_HAND_RECRUIT,
+    CORE_SECOND_FLAME,
+    CORE_INVADING_FELBAT,
 ];
 
 // ============================================================

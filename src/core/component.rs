@@ -224,6 +224,8 @@ pub enum Race {
     /// Undead (Core Set W1 — data-driven: Underking, Malignant Horror and
     /// the March-of-the-Lich-King reprints carry the tribe)
     Undead,
+    /// Quilboar (Core Set W3b — Hench-Clan Thug)
+    Quilboar,
 }
 
 /// Aura effect kind.
@@ -430,12 +432,21 @@ pub enum TriggerEvent {
     /// A Secret is played (Secretkeeper — whenever a Secret is played; fires
     /// for both players)
     SecretPlayed,
+    /// A friendly minion lost its Divine Shield (Highlord Fordragon — Core
+    /// Set W3b; the shield-absorbing damage is the subject)
+    DivineShieldLost,
+    /// A card is drawn (Keymaster Alabaster, Eredar Deceptor — Core Set
+    /// W3b; the drawn card is the subject)
+    CardDrawn,
     /// Any minion dies (Flesheathing Ghoul — gain +1 Attack whenever a minion
     /// dies; fires for both players)
     MinionDied,
     /// The entity itself attacks (Blessing of Wisdom — the buffed minion
     /// draws a card whenever it attacks; pinned to the attacker)
     Attacked,
+    /// The OWNER'S HERO attacked (Hench-Clan Thug — Core Set W3b; the hero
+    /// is the subject, friendly scope)
+    HeroAttacked,
     /// The entity attacks a MINION (Gorehowl — the weapon loses 1 Attack
     /// when the hero attacks a minion; pinned to the attacker or the
     /// attacker's equipped weapon)
