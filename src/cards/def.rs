@@ -149,9 +149,13 @@ pub use super::core_w6::*;
 pub use super::core_w7::*;
 pub use super::core_w8::*;
 
-/// Look up a card definition by card ID.
+/// Look up a card definition by card ID — the handwritten pool first, then
+/// the 2025–2026 expansion baselines (2025-2026-expansions-roadmap M0.3).
 pub fn card_by_id(id: &str) -> Option<&'static CardDef> {
-    ALL_CARDS.iter().find(|c| c.id == id)
+    ALL_CARDS
+        .iter()
+        .find(|c| c.id == id)
+        .or_else(|| super::sets::EXPANSION_CARDS.iter().find(|c| c.id == id))
 }
 
 /// Whether a card definition carries an Outcast effect (Core Set W2
