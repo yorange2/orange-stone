@@ -51,8 +51,10 @@
   视图/绑定；法术/随从/武器三个 surface 点（武器路径新增）+ 入队事件排序修复；
   12 张 EDR 抉择卡 + 6 衍生物；14 个 F5 场景钉死两分支；4 项 D2 简化登记进
   fidelity-debt.md §14.2。
-- **W4 —— 野神 + 杂项效果（P5）：** 其余随从/法术；职业传说野神；收尾波清扫
-  衍生物/附魔与账本。
+- **W4 —— 野神 + 杂项效果（P5）：** **W4a 已完成**（PR #140——86 张非传说剩余卡
+  + 9 衍生物、63 个效果变体、3 个引擎 bug 修复经 F5 钉死、36 项 D2 简化登记
+  §14.3、14 个场景）。**W4b 待做**——23 张精英野神传说；收尾波清扫衍生物/附魔
+  与账本。
 - **W5 —— 世界之树的余烬迷你：** 迷你 38 张卡（既有原语：黑暗赠礼补充 7 张等）；
   F5 场景；迷你注册。
 
@@ -127,92 +129,92 @@
 - [ ] EDR_853 Broll Bearmantle
 - [ ] EDR_895 Aviana, Elune's Chosen
 > Wild Gods — one per class (elite)
-- [ ] EDR_001 Hopeful Dryad
-- [ ] EDR_014 Verdant Dreamsaber
-- [ ] EDR_060 Ward of Earth
-- [ ] EDR_105 Creature of Madness
-- [ ] EDR_110 Sporegnasher
-- [ ] EDR_230 Beanstalk Brute
-- [ ] EDR_232 Typhoon
-- [ ] EDR_234 Emerald Bounty
-- [ ] EDR_251 Dragonscale Armaments
-- [ ] EDR_252 Mark of Ursol
-- [ ] EDR_253 Ursine Maul
-- [ ] EDR_254 Animated Moonwell
-- [ ] EDR_255 Renewing Flames
-- [ ] EDR_256 Dreamwarden
-- [ ] EDR_260 Illusory Greenwing
-- [ ] EDR_261 Amphibian's Spirit
-- [ ] EDR_262 Spirit Bond
-- [ ] EDR_270 Horn of Plenty
-- [ ] EDR_271 Grove Shaper
-- [ ] EDR_272 Evergreen Stag
-- [ ] EDR_416 Shepherd's Crook
-- [ ] EDR_453 Briarspawn Drake
-- [ ] EDR_454 Clutch of Corruption
-- [ ] EDR_455 Succumb to Madness
-- [ ] EDR_457 Brood Keeper
-- [ ] EDR_459 Afflicted Devastator
-- [ ] EDR_460 Wish of the New Moon
-- [ ] EDR_461 Ritual of the New Moon
-- [ ] EDR_462 Selenic Drake
-- [ ] EDR_468 Eggbasher
-- [ ] EDR_469 Slumbering Sprite
-- [ ] EDR_470 Barkshield Sentinel
-- [ ] EDR_472 Weaver of the Cycle
-- [ ] EDR_476 Moonwell
-- [ ] EDR_477 Glowroot Lure
-- [ ] EDR_481 Mythical Runebear
-- [ ] EDR_482 Rotten Apple
-- [ ] EDR_483 Fractured Power
-- [ ] EDR_484 Scavenging Flytrap
-- [ ] EDR_485 Rotheart Dryad
-- [ ] EDR_486 Scorching Observer
-- [ ] EDR_491 Archdruid of Thorns
-- [ ] EDR_492 Mother Duck
-- [ ] EDR_494 Hungering Ancient
-- [ ] EDR_495 Twisted Treant
-- [ ] EDR_520 Forbidden Shrine
-- [ ] EDR_521 Tricky Satyr
-- [ ] EDR_522 Mimicry
-- [ ] EDR_523 Web of Deception
-- [ ] EDR_524 Shadowcloaked Assailant
-- [ ] EDR_529 Plucky Podling
-- [ ] EDR_530 Daydreaming Pixie
-- [ ] EDR_531 Siphoning Growth
-- [ ] EDR_540 Twisted Webweaver
-- [ ] EDR_571 Fae Trickster
-- [ ] EDR_572 Tormented Dreadwing
-- [ ] EDR_598 Dream Rager
-- [ ] EDR_780 Bloodthistle Illusionist
-- [ ] EDR_781 Harbinger of the Blighted
-- [ ] EDR_804 Divination
-- [ ] EDR_810 Hideous Husk
-- [ ] EDR_812 Grotesque Runeblade
-- [ ] EDR_814 Infested Breath
-- [ ] EDR_815 Corpse Flower
-- [ ] EDR_816 Monstrous Mosquito
-- [ ] EDR_817 Sanguine Infestation
-- [ ] EDR_840 Grim Harvest
-- [ ] EDR_841 Dreadsoul Corrupter
-- [ ] EDR_842 Defiled Spear
-- [ ] EDR_847 Dreambound Disciple
-- [ ] EDR_848 Photosynthesis
-- [ ] EDR_849 Dreambound Raptor
-- [ ] EDR_861 Tranquil Treant
-- [ ] EDR_873 Envoy of the Glade
-- [ ] EDR_874 Stellar Balance
-- [ ] EDR_889 Petal Peddler
-- [ ] EDR_890 Nightmare Dragonkin
-- [ ] EDR_891 Ravenous Felhunter
-- [ ] EDR_892 Ferocious Felbat
-- [ ] EDR_940 Merry Moonkin
-- [ ] EDR_941 Starsurge
-- [ ] EDR_942 Curious Cumulus
-- [ ] EDR_971 Critter Caretaker
-- [ ] EDR_978 Meadowstrider
-- [ ] EDR_979 Ancient of Yore
-- [ ] EDR_999 Gnawing Greenfin
+- [x] EDR_001 Hopeful Dryad
+- [x] EDR_014 Verdant Dreamsaber
+- [x] EDR_060 Ward of Earth
+- [x] EDR_105 Creature of Madness
+- [x] EDR_110 Sporegnasher
+- [x] EDR_230 Beanstalk Brute
+- [x] EDR_232 Typhoon
+- [x] EDR_234 Emerald Bounty
+- [x] EDR_251 Dragonscale Armaments
+- [x] EDR_252 Mark of Ursol
+- [x] EDR_253 Ursine Maul
+- [x] EDR_254 Animated Moonwell
+- [x] EDR_255 Renewing Flames
+- [x] EDR_256 Dreamwarden
+- [x] EDR_260 Illusory Greenwing
+- [x] EDR_261 Amphibian's Spirit
+- [x] EDR_262 Spirit Bond
+- [x] EDR_270 Horn of Plenty
+- [x] EDR_271 Grove Shaper
+- [x] EDR_272 Evergreen Stag
+- [x] EDR_416 Shepherd's Crook
+- [x] EDR_453 Briarspawn Drake
+- [x] EDR_454 Clutch of Corruption
+- [x] EDR_455 Succumb to Madness
+- [x] EDR_457 Brood Keeper
+- [x] EDR_459 Afflicted Devastator
+- [x] EDR_460 Wish of the New Moon
+- [x] EDR_461 Ritual of the New Moon
+- [x] EDR_462 Selenic Drake
+- [x] EDR_468 Eggbasher
+- [x] EDR_469 Slumbering Sprite
+- [x] EDR_470 Barkshield Sentinel
+- [x] EDR_472 Weaver of the Cycle
+- [x] EDR_476 Moonwell
+- [x] EDR_477 Glowroot Lure
+- [x] EDR_481 Mythical Runebear
+- [x] EDR_482 Rotten Apple
+- [x] EDR_483 Fractured Power
+- [x] EDR_484 Scavenging Flytrap
+- [x] EDR_485 Rotheart Dryad
+- [x] EDR_486 Scorching Observer
+- [x] EDR_491 Archdruid of Thorns
+- [x] EDR_492 Mother Duck
+- [x] EDR_494 Hungering Ancient
+- [x] EDR_495 Twisted Treant
+- [x] EDR_520 Forbidden Shrine
+- [x] EDR_521 Tricky Satyr
+- [x] EDR_522 Mimicry
+- [x] EDR_523 Web of Deception
+- [x] EDR_524 Shadowcloaked Assailant
+- [x] EDR_529 Plucky Podling
+- [x] EDR_530 Daydreaming Pixie
+- [x] EDR_531 Siphoning Growth
+- [x] EDR_540 Twisted Webweaver
+- [x] EDR_571 Fae Trickster
+- [x] EDR_572 Tormented Dreadwing
+- [x] EDR_598 Dream Rager
+- [x] EDR_780 Bloodthistle Illusionist
+- [x] EDR_781 Harbinger of the Blighted
+- [x] EDR_804 Divination
+- [x] EDR_810 Hideous Husk
+- [x] EDR_812 Grotesque Runeblade
+- [x] EDR_814 Infested Breath
+- [x] EDR_815 Corpse Flower
+- [x] EDR_816 Monstrous Mosquito
+- [x] EDR_817 Sanguine Infestation
+- [x] EDR_840 Grim Harvest
+- [x] EDR_841 Dreadsoul Corrupter
+- [x] EDR_842 Defiled Spear
+- [x] EDR_847 Dreambound Disciple
+- [x] EDR_848 Photosynthesis
+- [x] EDR_849 Dreambound Raptor
+- [x] EDR_861 Tranquil Treant
+- [x] EDR_873 Envoy of the Glade
+- [x] EDR_874 Stellar Balance
+- [x] EDR_889 Petal Peddler
+- [x] EDR_890 Nightmare Dragonkin
+- [x] EDR_891 Ravenous Felhunter
+- [x] EDR_892 Ferocious Felbat
+- [x] EDR_940 Merry Moonkin
+- [x] EDR_941 Starsurge
+- [x] EDR_942 Curious Cumulus
+- [x] EDR_971 Critter Caretaker
+- [x] EDR_978 Meadowstrider
+- [x] EDR_979 Ancient of Yore
+- [x] EDR_999 Gnawing Greenfin
 
 ### W5 —— 世界之树的余烬迷你
 - [ ] FIR_777 Spirit of the Kaldorei
