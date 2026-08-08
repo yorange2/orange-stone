@@ -13883,3 +13883,92 @@ fn w6_i_know_a_guy_adds_buffed_taunt() {
         "+2 Health"
     );
 }
+
+// ============================================================
+// Core Set W7 (core-set-roadmap W7) — enrage finish.
+// ============================================================
+
+/// W7-1 Grommash Hellscream (Core) — Charge, Enrage +6: 4/9 → 10/9 while
+/// damaged; the bonus ends when healed to full (read-based Enrage).
+#[test]
+fn w7_grommash_hellscream_enrage() {
+    use orange_stone::cards::def::CORE_GROMMASH_HELLSCREAM;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId2(), &CORE_GROMMASH_HELLSCREAM);
+    let attacker = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.active_player(PlayerId1());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let grommash = find_entity(&state, PlayerId2(), "CORE_EX1_414");
+    // 4/9 at full health (the Charge is not exercised here)
+    assert_eq!(
+        state.world().effective_attack(grommash),
+        Some(Attack(4)),
+        "4 attack at full health"
+    );
+    // Damage it: 2 → 10 attack while damaged
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: grommash,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(grommash),
+        Some(Attack(10)),
+        "Enrage: +6 Attack while damaged"
+    );
+    assert_eq!(
+        state.world().effective_health(grommash),
+        Some(Health(7)),
+        "9 - 2 damage"
+    );
+    // Heal it back to full: the enrage ends
+    state.world_mut().remove_damage(grommash);
+    assert_eq!(
+        state.world().effective_attack(grommash),
+        Some(Attack(4)),
+        "healed to full: no enrage"
+    );
+}
+
+/// W7-2 Bloodhoof Brave — Taunt, Enrage +3: 2/6 → 5/6 while damaged.
+#[test]
+fn w7_bloodhoof_brave_enrage() {
+    use orange_stone::cards::def::CORE_BLOODHOOF_BRAVE;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId2(), &CORE_BLOODHOOF_BRAVE);
+    let attacker = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.active_player(PlayerId1());
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let brave = find_entity(&state, PlayerId2(), "CORE_OG_218");
+    assert!(state.world().taunt(brave).is_some(), "Taunt");
+    assert_eq!(
+        state.world().effective_attack(brave),
+        Some(Attack(2)),
+        "2 attack at full health"
+    );
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: brave,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(brave),
+        Some(Attack(5)),
+        "Enrage: +3 Attack while damaged"
+    );
+    assert_eq!(
+        state.world().effective_health(brave),
+        Some(Health(4)),
+        "6 - 2 damage"
+    );
+}

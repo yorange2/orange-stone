@@ -25,6 +25,7 @@ pub mod core_w4a;
 pub mod core_w4b;
 pub mod core_w5;
 pub mod core_w6;
+pub mod core_w7;
 pub mod def;
 pub mod generated;
 pub mod pool;
@@ -496,6 +497,16 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // Grommash Hellscream — Charge. Enrage: +6 Attack (4/9 → 10/9)
         "WARRIOR_010" => Some(Enrage {
             attack: 6,
+            ..Enrage::default()
+        }),
+        // Core Set W7: Grommash Hellscream (8费 4/9 — Charge. Enrage: +6)
+        // and Bloodhoof Brave (4费 2/6 — Taunt. Enrage: +3)
+        "CORE_EX1_414" => Some(Enrage {
+            attack: 6,
+            ..Enrage::default()
+        }),
+        "CORE_OG_218" => Some(Enrage {
+            attack: 3,
             ..Enrage::default()
         }),
         // Angry Chicken — Enrage: +5 Attack (1/1 → 6/1)

@@ -25,6 +25,7 @@ use super::core_w4a::*;
 use super::core_w4b::*;
 use super::core_w5::*;
 use super::core_w6::*;
+use super::core_w7::*;
 // ============================================================
 // Card lists
 // ============================================================
@@ -877,6 +878,9 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
     CORE_CULT_NEOPHYTE,
     // Core Set W6 — I Know a Guy
     CORE_I_KNOW_A_GUY,
+    // Core Set W7 — enrage finish
+    CORE_GROMMASH_HELLSCREAM,
+    CORE_BLOODHOOF_BRAVE,
 ];
 
 pub const ALL_CARDS: &[CardDef] = &[
@@ -1632,6 +1636,9 @@ pub const ALL_CARDS: &[CardDef] = &[
     CORE_ORCA,
     CORE_OTTER,
     CORE_DEFIAS_BANDIT,
+    // Core Set W7 (2026-08-08) — enrage finish: 2 cards.
+    CORE_GROMMASH_HELLSCREAM,
+    CORE_BLOODHOOF_BRAVE,
 ];
 
 // ============================================================
