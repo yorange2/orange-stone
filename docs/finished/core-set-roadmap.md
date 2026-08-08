@@ -1,7 +1,8 @@
 # Core Set (核心系列) Roadmap — implementing the 281 CORE cards
 
-> Status: **active** (created 2026-08-07; decisions D1–D5 resolved 2026-08-08,
-> wave plan below). Chinese mirror: `core-set-roadmap-zh.md`.
+> Status: **complete** (archived 2026-08-08; W0–W9 all landed — the 270 real
+> cards are implemented and checked off, the 11 ⛔ official placeholders are
+> intentionally not implemented, and the RL pool has switched, see W9). Chinese mirror: `core-set-roadmap-zh.md`.
 > Scope: all `CORE_*` cards in `cards/cards.json` — the modern Core Set, 281 cards
 > (173 minions / 95 spells / 8 weapons / 1 hero / 1 location / 3 enchantment tokens),
 > drawn from **42 original sets** (the ID's middle part encodes the source).
@@ -601,11 +602,12 @@ the same card under two IDs (re-check during W4a).
   Jaraxxus — hero replacement primitive), LOCATION (CORE_REV_990 Sanguine
   Depths — `CardType::Location` primitive), ENCHANTMENT cards (CORE_CATA_006e
   CORE_CS2_039e CORE_EDR_002e) and the Imp token (CORE_GIL_191t).
-- **W9 — RL pool switch (orange-reinforcement PR, no cards):** extend
-  `_load_debt_ids()` glob to `core_*.rs`; `full_pool()` now includes the
-  landed CORE cards (follows the engine pool per D4); re-measure and record
-  the new pool size here; archive both roadmap files to `docs/finished/` and
-  update the workspace `CLAUDE.md`.
+- **W9 — RL pool switch ✅ (RL PR #39, 2026-08-08):** measured ALL_CARDS =
+  716 (Classic 413 + Core 270); RL pool = **668** (with the 9 pool-open cards) /
+  **659** (`include_pool_open=False`); `_load_debt_ids()`
+  debt scan stays empty (the Core simplifications are registered in `//!`
+  file headers, not per-card markers). Both roadmap files are archived to
+  `docs/finished/` and the workspace `CLAUDE.md` is updated.
 
 ## Definition of done
 

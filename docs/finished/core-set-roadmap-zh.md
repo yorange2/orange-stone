@@ -1,6 +1,7 @@
 # 核心系列路线图 —— 实现 281 张 CORE 卡
 
-> 状态：**活跃**（2026-08-07 创建；决策 D1~D5 已于 2026-08-08 定案，波次计划见下）。
+> 状态：**完成**（2026-08-08 归档；W0~W9 全部完成——270 张真实卡落地并全部勾选，
+> 11 张 ⛔ 官方占位符按决策不实现，RL 池已切换，见 W9）。
 > 英文对照：`core-set-roadmap.md`。
 > 范围：`cards/cards.json` 里全部 `CORE_*` 卡 —— 现代核心系列，共 281 张
 > （173 随从 / 95 法术 / 8 武器 / 1 英雄 / 1 地点 / 3 附魔衍生物），
@@ -544,10 +545,12 @@ CORE 卡生成静态 const，引擎缺失 RUSH/LIFESTEAL/TRADEABLE/OUTCAST/REBOR
   替换原语）、地点卡（CORE_REV_990 猩红之渊——`CardType::Location` 原语）、
   ENCHANTMENT 卡（CORE_CATA_006e CORE_CS2_039e CORE_EDR_002e）与 Imp 衍生物
   （CORE_GIL_191t）。
-- **W9 — RL 池切换（orange-reinforcement 的 PR，无卡）：** `_load_debt_ids()`
+- **W9 — RL 池切换 ✅（RL PR #39，2026-08-08）：** 实测 ALL_CARDS 716 张
+  （经典 413 + 核心 270），RL 池 **668 张**（含开放池 9 张）/ **659 张**
+  （`include_pool_open=False`）；`_load_debt_ids()`
   glob 扩到 `core_*.rs`；`full_pool()` 纳入已落地的 CORE 卡（按 D4 跟随引擎池）；
-  重新实测并把新池大小记录到本文件；两份文件移入 `docs/finished/` 并更新工作区
-  `CLAUDE.md`。
+  债务集仍为空（核心卡简化登记在 `//!` 文件头，无逐卡标记）。本文件与英文镜像
+  一并归档到 `docs/finished/`，工作区 `CLAUDE.md` 已更新。
 
 ## 完成标准
 
