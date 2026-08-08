@@ -52,22 +52,22 @@ registration; simplifications get ledger rows.
 > Backfilled from the M0 data dump (D1). Placeholder grouped by wave.
 
 ### W1/W2 — Rewind + Fabled
-- [ ] TIME_000 Semi-Stable Portal
-- [ ] TIME_001 Chrono Daggers
-- [ ] TIME_002 Aeon Wizard
-- [ ] TIME_003 Portal Vanguard
-- [ ] TIME_004 Conflux Crasher
-- [ ] TIME_008 Bygone Doomspeaker
-- [ ] TIME_014 Instant Multiverse
-- [ ] TIME_018 Mend the Timeline
-- [ ] TIME_033 Druid of Regrowth
-- [ ] TIME_034 Stadium Announcer
-- [ ] TIME_035 Time Machine
-- [ ] TIME_038 Mister Clocksworth
-- [ ] TIME_433 Cease to Exist
-- [ ] TIME_441 Aeon Rend
-- [ ] TIME_602 Wormhole
-- [ ] TIME_610 Shadows of Yesterday
+- [x] TIME_000 Semi-Stable Portal
+- [x] TIME_001 Chrono Daggers
+- [x] TIME_002 Aeon Wizard
+- [x] TIME_003 Portal Vanguard
+- [x] TIME_004 Conflux Crasher
+- [x] TIME_008 Bygone Doomspeaker
+- [x] TIME_014 Instant Multiverse
+- [x] TIME_018 Mend the Timeline
+- [x] TIME_033 Druid of Regrowth
+- [x] TIME_034 Stadium Announcer
+- [x] TIME_035 Time Machine
+- [x] TIME_038 Mister Clocksworth
+- [x] TIME_433 Cease to Exist
+- [x] TIME_441 Aeon Rend
+- [x] TIME_602 Wormhole
+- [x] TIME_610 Shadows of Yesterday
 - [ ] TIME_005 Timethief Rafaam
 - [ ] TIME_009 Gelbin of Tomorrow
 - [ ] TIME_020 Broxigar
@@ -82,124 +82,124 @@ registration; simplifications get ledger rows.
 > note: Lady Azshara is also a Choose One card: TIME_211
 
 ### W3 — remaining cards + mini
-- [ ] TIME_006 Mirror Dimension
+- [x] TIME_006 Mirror Dimension
 - [ ] TIME_013 Farseer Wo
-- [ ] TIME_015 Hardlight Protector
-- [ ] TIME_016 Neon Innovation
-- [ ] TIME_017 Tankgineer
-- [ ] TIME_019 Manifested Timeways
-- [ ] TIME_021 Doomsday Prepper
-- [ ] TIME_022 Perennial Serpent
-- [ ] TIME_023 Contingency
+- [x] TIME_015 Hardlight Protector
+- [x] TIME_016 Neon Innovation
+- [x] TIME_017 Tankgineer
+- [x] TIME_019 Manifested Timeways
+- [x] TIME_021 Doomsday Prepper
+- [x] TIME_022 Perennial Serpent
+- [x] TIME_023 Contingency
 - [ ] TIME_024 Murozond, Unbounded
-- [ ] TIME_025 Twilight Timehopper
-- [ ] TIME_026 Entropic Continuity
-- [ ] TIME_027 Tachyon Barrage
-- [ ] TIME_028 Fatebreaker
-- [ ] TIME_029 Ruinous Velocidrake
-- [ ] TIME_030 Divergence
-- [ ] TIME_031 RAFAAM LADDER!!
+- [x] TIME_025 Twilight Timehopper
+- [x] TIME_026 Entropic Continuity
+- [x] TIME_027 Tachyon Barrage
+- [x] TIME_028 Fatebreaker
+- [x] TIME_029 Ruinous Velocidrake
+- [x] TIME_030 Divergence
+- [x] TIME_031 RAFAAM LADDER!!
 - [ ] TIME_032 Chronogor
-- [ ] TIME_036 Royal Informant
-- [ ] TIME_037 Disciple of the Dove
-- [ ] TIME_039 Deja Vu
-- [ ] TIME_040 Fading Memory
-- [ ] TIME_041 Futuristic Forefather
+- [x] TIME_036 Royal Informant
+- [x] TIME_037 Disciple of the Dove
+- [x] TIME_039 Deja Vu
+- [x] TIME_040 Fading Memory
+- [x] TIME_041 Futuristic Forefather
 - [ ] TIME_042 King Maluk
-- [ ] TIME_043 PMM Infinitizer
-- [ ] TIME_044 Past Gnomeregan
-- [ ] TIME_045 Whelp of the Infinite
-- [ ] TIME_046 Cyborg Patriarch
-- [ ] TIME_047 Devious Coyote
-- [ ] TIME_048 Clockwork Rager
-- [ ] TIME_049 Dangerous Variant
-- [ ] TIME_050 Sentient Hourglass
-- [ ] TIME_051 Soldier of the Infinite
-- [ ] TIME_052 Amber Warden
-- [ ] TIME_053 Sandmaw
-- [ ] TIME_054 Time Skipper
-- [ ] TIME_055 Unknown Voyager
-- [ ] TIME_056 Whelp of the Bronze
-- [ ] TIME_057 Wizened Truthseeker
-- [ ] TIME_058 Paltry Flutterwing
-- [ ] TIME_059 Living Paradox
-- [ ] TIME_060 Quantum Destabilizer
-- [ ] TIME_061 Timeless Causality
-- [ ] TIME_062 Chronicle Keeper
-- [ ] TIME_063 Timelord Nozdormu
+- [x] TIME_043 PMM Infinitizer
+- [x] TIME_044 Past Gnomeregan
+- [x] TIME_045 Whelp of the Infinite
+- [x] TIME_046 Cyborg Patriarch
+- [x] TIME_047 Devious Coyote
+- [x] TIME_048 Clockwork Rager
+- [x] TIME_049 Dangerous Variant
+- [x] TIME_050 Sentient Hourglass
+- [x] TIME_051 Soldier of the Infinite
+- [x] TIME_052 Amber Warden
+- [x] TIME_053 Sandmaw
+- [x] TIME_054 Time Skipper
+- [x] TIME_055 Unknown Voyager
+- [x] TIME_056 Whelp of the Bronze
+- [x] TIME_057 Wizened Truthseeker
+- [x] TIME_058 Paltry Flutterwing
+- [x] TIME_059 Living Paradox
+- [x] TIME_060 Quantum Destabilizer
+- [x] TIME_061 Timeless Causality
+- [x] TIME_062 Chronicle Keeper
+- [x] TIME_063 Timelord Nozdormu
 - [ ] TIME_064 Chrono-Lord Deios
-- [ ] TIME_100 Hourglass Attendant
-- [ ] TIME_101 Misplaced Pyromancer
-- [ ] TIME_102 Circadiamancer
+- [x] TIME_100 Hourglass Attendant
+- [x] TIME_101 Misplaced Pyromancer
+- [x] TIME_102 Circadiamancer
 - [ ] TIME_103 Chromie
-- [ ] TIME_212 Lightning Rod
-- [ ] TIME_213 Primordial Overseer
-- [ ] TIME_214 Flux Revenant
-- [ ] TIME_215 Thunderquake
-- [ ] TIME_216 Nascent Bolt
-- [ ] TIME_217 Stormrook
-- [ ] TIME_218 Static Shock
-- [ ] TIME_427 Cleansing Lightspawn
-- [ ] TIME_428 Yesterloc
-- [ ] TIME_429 Divine Augur
-- [ ] TIME_431 Amber Priestess
-- [ ] TIME_432 Intertwined Fate
-- [ ] TIME_434 Temporal Traveler
+- [x] TIME_212 Lightning Rod
+- [x] TIME_213 Primordial Overseer
+- [x] TIME_214 Flux Revenant
+- [x] TIME_215 Thunderquake
+- [x] TIME_216 Nascent Bolt
+- [x] TIME_217 Stormrook
+- [x] TIME_218 Static Shock
+- [x] TIME_427 Cleansing Lightspawn
+- [x] TIME_428 Yesterloc
+- [x] TIME_429 Divine Augur
+- [x] TIME_431 Amber Priestess
+- [x] TIME_432 Intertwined Fate
+- [x] TIME_434 Temporal Traveler
 - [ ] TIME_435 Eternus
-- [ ] TIME_436 Past Conflux
-- [ ] TIME_442 Timeway Warden
-- [ ] TIME_443 Hounds of Fury
-- [ ] TIME_444 Time-Lost Glaive
+- [x] TIME_436 Past Conflux
+- [x] TIME_442 Timeway Warden
+- [x] TIME_443 Hounds of Fury
+- [x] TIME_444 Time-Lost Glaive
 - [ ] TIME_446 The Eternal Hold
-- [ ] TIME_447 Power Word: Barrier
-- [ ] TIME_448 Solitude
-- [ ] TIME_449 Lasting Legacy
-- [ ] TIME_600 Precise Shot
-- [ ] TIME_601 Arrow Retriever
-- [ ] TIME_603 Ticking Timebomb
-- [ ] TIME_605 Epoch Stalker
-- [ ] TIME_606 Quel'dorei Fletcher
-- [ ] TIME_611 Timestop
-- [ ] TIME_612 Blood Draw
-- [ ] TIME_613 Cryofrozen Champion
-- [ ] TIME_614 Liferender
-- [ ] TIME_615 Forgotten Millennium
-- [ ] TIME_616 Memoriam Manifest
-- [ ] TIME_617 Chronochiller
+- [x] TIME_447 Power Word: Barrier
+- [x] TIME_448 Solitude
+- [x] TIME_449 Lasting Legacy
+- [x] TIME_600 Precise Shot
+- [x] TIME_601 Arrow Retriever
+- [x] TIME_603 Ticking Timebomb
+- [x] TIME_605 Epoch Stalker
+- [x] TIME_606 Quel'dorei Fletcher
+- [x] TIME_611 Timestop
+- [x] TIME_612 Blood Draw
+- [x] TIME_613 Cryofrozen Champion
+- [x] TIME_614 Liferender
+- [x] TIME_615 Forgotten Millennium
+- [x] TIME_616 Memoriam Manifest
+- [x] TIME_617 Chronochiller
 - [ ] TIME_618 Husk, Eternal Reaper
-- [ ] TIME_620 Untimely Death
-- [ ] TIME_700 Chronological Aura
-- [ ] TIME_701 Waveshaping
-- [ ] TIME_702 Ebb and Flow
-- [ ] TIME_703 Endangered Dodo
-- [ ] TIME_704 Highborne Mentor
+- [x] TIME_620 Untimely Death
+- [x] TIME_700 Chronological Aura
+- [x] TIME_701 Waveshaping
+- [x] TIME_702 Ebb and Flow
+- [x] TIME_703 Endangered Dodo
+- [x] TIME_704 Highborne Mentor
 - [ ] TIME_705 Krona, Keeper of Eons
 - [ ] TIME_706 The Fins Beyond Time
-- [ ] TIME_707 Alternate Reality
-- [ ] TIME_710 Troubled Double
-- [ ] TIME_711 Flashback
-- [ ] TIME_712 Dethrone
+- [x] TIME_707 Alternate Reality
+- [x] TIME_710 Troubled Double
+- [x] TIME_711 Flashback
+- [x] TIME_712 Dethrone
 - [ ] TIME_713 Time Adm'ral Hooktail
 - [ ] TIME_714 Chrono-Lord Epoch
-- [ ] TIME_715 For Glory!
-- [ ] TIME_716 Slow Motion
-- [ ] TIME_720 Soldier of the Bronze
-- [ ] TIME_730 Kaldorei Cultivator
-- [ ] TIME_750 Precursory Strike
-- [ ] TIME_770 Fast Forward
-- [ ] TIME_810 Past Silvermoon
-- [ ] TIME_855 Arcane Barrage
-- [ ] TIME_856 Algeth'ar Instructor
-- [ ] TIME_857 Alter Time
-- [ ] TIME_858 Temporal Construct
-- [ ] TIME_859 Anomalize
-- [ ] TIME_860 Faceless Enigma
+- [x] TIME_715 For Glory!
+- [x] TIME_716 Slow Motion
+- [x] TIME_720 Soldier of the Bronze
+- [x] TIME_730 Kaldorei Cultivator
+- [x] TIME_750 Precursory Strike
+- [x] TIME_770 Fast Forward
+- [x] TIME_810 Past Silvermoon
+- [x] TIME_855 Arcane Barrage
+- [x] TIME_856 Algeth'ar Instructor
+- [x] TIME_857 Alter Time
+- [x] TIME_858 Temporal Construct
+- [x] TIME_859 Anomalize
+- [x] TIME_860 Faceless Enigma
 - [ ] TIME_861 Timelooper Toki
-- [ ] TIME_870 Gladiatorial Combat
-- [ ] TIME_871 Heir of Hereafter
-- [ ] TIME_872 Undefeated Champion
-- [ ] TIME_873 Unleash the Crocolisks
-- [ ] TIME_876 Shapeshifter
+- [x] TIME_870 Gladiatorial Combat
+- [x] TIME_871 Heir of Hereafter
+- [x] TIME_872 Undefeated Champion
+- [x] TIME_873 Unleash the Crocolisks
+- [x] TIME_876 Shapeshifter
 - [ ] END_000 Eventuality
 - [ ] END_001 Jagged Edge of Time
 - [ ] END_002 Wicked Blightspawn
