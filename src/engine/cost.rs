@@ -220,5 +220,75 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
     if state.player(player).cards_cost_1 {
         cost = Cost(1);
     }
+    // M2-W4a arms (Un'Goro main-set wave — all set/discount semantics read
+    // the same composed cost; applied before Aviana so her set-to-1 wins).
+    // Storage Scuffle: "Costs (0) if you've Discovered this turn".
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "TLC_365")
+        && state.player(player).discovered_this_turn
+    {
+        cost = Cost(0);
+    }
+    // Gladesong Siren: "Costs (1) if you've cast a Holy and Shadow spell
+    // this turn" (SET — the card costs exactly 1).
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "TLC_819")
+        && state.player(player).shadow_cast_this_turn
+        && !state.player(player).holy_cast_ids.is_empty()
+    {
+        cost = Cost(1);
+    }
+    // Underbrush Tracker: "Costs (1) less for each time you've shuffled
+    // cards into your deck" (the per-shuffle counter — bumped at every
+    // shuffle-into-deck resolution).
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "TLC_520")
+    {
+        let shuffles = state.player(player).shuffled_count as i32;
+        cost = Cost((cost.0 - shuffles).max(0));
+    }
+    // Spelunker (M2-W4a): "Your next Temporary card costs (2) less" — the
+    // one-time flag is consumed by the next play of a card carrying the
+    // Temporary marker (cleared on play at the CardPlayed path).
+    if state.world().temporary(card).is_some() {
+        let discount = state.player(player).next_temporary_discount;
+        if discount > 0 {
+            cost = Cost((cost.0 - discount).max(0));
+        }
+    }
+    // Cower in Fear (M2-W4a): "The next Beast you play this turn costs
+    // (2) less" — the one-time this-turn flag.
+    if state
+        .world()
+        .card_id(card)
+        .and_then(|cid| crate::cards::def::card_by_id(cid.0))
+        .is_some_and(|def| def.race == Some(crate::core::component::Race::Beast))
+        && state.player(player).next_beast_discount > 0
+    {
+        cost = Cost((cost.0 - state.player(player).next_beast_discount).max(0));
+    }
+    // Wave of Tar (M2-W4a): "Enemy minions cost (2) more next turn" — the
+    // flag sits on the caster's player record (cleared at their next turn
+    // start); the enemy's minions pay the tax while it is set.
+    if state.world().card_type(card) == Some(crate::core::component::CardType::Minion)
+        && state.player(player.opponent()).minions_cost_more
+    {
+        cost = Cost(cost.0 + 2);
+    }
+    // Reanimated Pterrordax (M2-W4a): "Costs Corpses instead of Mana" —
+    // the 5 Corpses are spent at the CardPlayed path; the mana cost is 0.
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "TLC_436")
+    {
+        cost = Cost(0);
+    }
     cost
 }

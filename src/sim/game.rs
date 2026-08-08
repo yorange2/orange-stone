@@ -47,6 +47,21 @@ impl GameBuilder {
     /// roadmap G7 opening).
     #[must_use]
     pub fn build(mut self) -> GameState {
+        // M2-W4a: snapshot each player's starting deck (Story of the
+        // Waygate's "didn't start in your deck" set) before the shuffle —
+        // every game construction path (battle / batch / env / tests)
+        // funnels through here, and the mulligan reshuffle must not
+        // overwrite the pre-game contents.
+        for player in [PlayerId::Player1, PlayerId::Player2] {
+            let ids: Vec<String> = self
+                .state
+                .world()
+                .zones()
+                .iter(Zone::Deck, player)
+                .filter_map(|e| self.state.world().card_id(e).map(|c| c.0.to_string()))
+                .collect();
+            self.state.make_mut().players[player.index()].starting_deck = ids;
+        }
         self.state.shuffle_decks();
         self.state
     }

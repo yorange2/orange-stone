@@ -24881,3 +24881,902 @@ fn tlc_w3_bookkeeper_copy_does_not_loop() {
         "cinder + two bookkeepers — the copy did not loop"
     );
 }
+
+// ============================================================
+// M2-W4a (2025–2026 expansions — the Un'Goro main-set wave, first
+// split): 16 scenarios pinning the new primitives of the wave —
+// the D2 Discover simplification (real three-option choices, §17),
+// the Map chain ("playing the discovered card this turn adds one
+// random other option"), the Temporary creators (Bloodpetal
+// Biome / Cursed Catacombs / Tunnel Terror via the W2 primitive,
+// Spelunker's one-time discount), the "Discovered this turn" flag
+// (Storage Scuffle / Unearthed Artifacts / Vault Breaker), the
+// quest flag (Questing Assistant), and the shuffled-deck / linked-
+// draw shapes (Story of Carnassa / Interrogation / Platysaur).
+// ============================================================
+
+/// TLC_W4A-1 — Bloodpetal Biome: the 1-cost Location carries its
+/// discover as the ACTIVATION effect (the location battlecry slot
+/// fires on activation, not on play — locations have no on-play
+/// effect). The play cooldown blocks a same-turn activation; the
+/// next-turn activation discovers a 1-Cost minion marked Temporary
+/// (the W2 primitive) and spends a charge.
+#[test]
+fn tlc_w4a_bloodpetal_biome_grants_temporary() {
+    use orange_stone::cards::exp_tlc_w4a::BLOODPETAL_BIOME;
+    use orange_stone::core::component::Durability;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &BLOODPETAL_BIOME);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let biome = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: biome,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        0,
+        "the play itself discovers nothing"
+    );
+    let location = state
+        .player(p1)
+        .location
+        .expect("the location is on the board");
+    assert_eq!(
+        state.world().durability(location),
+        Some(Durability(2)),
+        "both charges fresh"
+    );
+    assert!(
+        matches!(
+            engine.apply(
+                &mut state,
+                Action::ActivateLocation {
+                    location,
+                    target: None,
+                }
+            ),
+            Err(orange_stone::engine::rules::EngineError::InvalidTarget)
+        ),
+        "the play cooldown blocks a same-turn activation"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::ActivateLocation {
+                location,
+                target: None,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = res else {
+        panic!("the activation must surface the discover choice");
+    };
+    assert_eq!(choice.kind, ChoiceKind::Discover);
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    // The turn-3 draw (a pad card) sits in front of the pick in hand —
+    // the discovered card is the pool's first entry.
+    let temp = find_in_hand(&state, p1, &choice.pool[0]);
+    assert!(
+        state.world().temporary(temp).is_some(),
+        "the discovered card is Temporary"
+    );
+    assert_eq!(
+        state.world().durability(location),
+        Some(Durability(1)),
+        "one charge spent"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().zone(temp),
+        Some(Zone::Graveyard),
+        "the Temporary card is discarded at the end of the turn"
+    );
+}
+
+/// TLC_W4A-2 — Tunnel Terror's deathrattle adds two random 2-Cost
+/// minions to the hand, both marked Temporary (the W2 primitive).
+#[test]
+fn tlc_w4a_tunnel_terror_temporary_tokens() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tlc_w4a::TUNNEL_TERROR;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let big = builder.add_custom_minion_to_board(PlayerId2(), 10, 10, 10);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &TUNNEL_TERROR);
+    for _ in 0..5 {
+        builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let terror = find_entity(&state, p1, "TLC_469");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: big,
+                defender: terror,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 2, "two temporary minions added");
+    for e in &hand {
+        assert!(
+            state.world().temporary(*e).is_some(),
+            "both cards carry the Temporary marker"
+        );
+        assert_eq!(
+            state.world().effective_cost(*e),
+            Some(Cost(2)),
+            "the D2 pool is 2-Cost minions"
+        );
+    }
+}
+
+/// TLC_W4A-3 — Spelunker: "Your next Temporary card costs (2) less" —
+/// the one-time flag discounts the next Temporary card and survives
+/// until that card is actually played.
+#[test]
+fn tlc_w4a_spelunker_discounts_next_temporary() {
+    use orange_stone::cards::exp_tlc_w4a::{BLOODPETAL_BIOME, SPELUNKER};
+    use orange_stone::engine::cost::play_cost;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &SPELUNKER)
+        .add_minion_to_hand(p1, &BLOODPETAL_BIOME);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Spelunker
+    let biome = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: biome,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The discover is the location's ACTIVATION effect — play the
+    // location, pass the cooldown, then activate it.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let location = state
+        .player(p1)
+        .location
+        .expect("the location is on the board");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::ActivateLocation {
+                location,
+                target: None,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = res else {
+        panic!("the activation must surface the discover choice");
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    // The turn-3 draw (a pad card) sits in front of the pick in hand —
+    // the discovered card is the pool's first entry.
+    let temp = find_in_hand(&state, p1, &choice.pool[0]);
+    assert!(
+        state.world().temporary(temp).is_some(),
+        "the discovered card is Temporary"
+    );
+    assert_eq!(
+        play_cost(&state, temp, p1),
+        Cost(0),
+        "Spelunker: a 1-Cost Temporary card costs (2) less"
+    );
+    assert_eq!(
+        state.player(p1).next_temporary_discount,
+        2,
+        "the one-time flag is only consumed by the play itself"
+    );
+}
+
+/// TLC_W4A-4 — Cursed Catacombs discovers a card from the deck: the
+/// picked deck ENTITY moves to hand and carries the Temporary marker
+/// (the deck loses the card).
+#[test]
+fn tlc_w4a_cursed_catacombs_marks_deck_card_temporary() {
+    use orange_stone::cards::exp_tlc_w4a::CURSED_CATACOMBS;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &CURSED_CATACOMBS);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let deck_before = state.world().zones().len(Zone::Deck, p1);
+    let catacombs = first_hand_card(&state, p1);
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: catacombs,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = res else {
+        panic!("the play must surface the deck-discover choice");
+    };
+    assert_eq!(choice.kind, ChoiceKind::DiscoverDeck);
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, p1),
+        deck_before - 1,
+        "the picked deck card moved out of the deck"
+    );
+    let picked = first_hand_card(&state, p1);
+    assert!(
+        state.world().temporary(picked).is_some(),
+        "the discovered deck card is Temporary"
+    );
+}
+
+/// TLC_W4A-5 — Storage Scuffle: "Costs (0) if you've Discovered this
+/// turn" — the flag flips the play cost from its base 3 to 0.
+#[test]
+fn tlc_w4a_storage_scuffle_free_after_discover() {
+    use orange_stone::cards::exp_tlc_w4a::{CURSED_CATACOMBS, STORAGE_SCUFFLE};
+    use orange_stone::engine::cost::play_cost;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &STORAGE_SCUFFLE);
+    let state = builder.build();
+    let scuffle = first_hand_card(&state, p1);
+    assert_eq!(play_cost(&state, scuffle, p1), Cost(3), "base cost");
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &CURSED_CATACOMBS)
+        .add_minion_to_hand(p1, &STORAGE_SCUFFLE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let catacombs = find_in_hand(&state, p1, "TLC_451");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: catacombs,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = res else {
+        panic!("the play must surface the deck-discover choice");
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    let scuffle = find_in_hand(&state, p1, "TLC_365");
+    assert_eq!(
+        play_cost(&state, scuffle, p1),
+        Cost(0),
+        "Storage Scuffle costs (0) after a Discover this turn"
+    );
+}
+
+/// TLC_W4A-6 — Unearthed Artifacts summons a random 2-Cost minion —
+/// or a random 4-Cost minion when the player Discovered this turn.
+#[test]
+fn tlc_w4a_unearthed_artifacts_escalates_after_discover() {
+    use orange_stone::cards::exp_tlc_w4a::{CURSED_CATACOMBS, UNEARTHED_ARTIFACTS};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &UNEARTHED_ARTIFACTS);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let summoned = board_minions(&state, p1);
+    assert_eq!(summoned.len(), 1, "one random minion");
+    assert_eq!(
+        state.world().effective_cost(summoned[0]),
+        Some(Cost(2)),
+        "baseline: a random 2-Cost minion"
+    );
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &CURSED_CATACOMBS)
+        .add_minion_to_hand(p1, &UNEARTHED_ARTIFACTS);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let catacombs = find_in_hand(&state, p1, "TLC_451");
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: catacombs,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = res else {
+        panic!("the play must surface the deck-discover choice");
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    let artifacts = find_in_hand(&state, p1, "TLC_462");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: artifacts,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let summoned = board_minions(&state, p1);
+    assert_eq!(summoned.len(), 1, "one random minion");
+    assert_eq!(
+        state.world().effective_cost(summoned[0]),
+        Some(Cost(4)),
+        "after a Discover: a random 4-Cost minion"
+    );
+}
+
+/// TLC_W4A-7 — Vault Breaker on the board discounts a Discovered card
+/// by (1): the picked card's play cost drops below its base cost.
+#[test]
+fn tlc_w4a_vault_breaker_discounts_discovered() {
+    use orange_stone::cards::def::card_by_id;
+    use orange_stone::cards::exp_tlc_w4a::{MERCHANT_OF_LEGEND, VAULT_BREAKER};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &MERCHANT_OF_LEGEND);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let merchant = first_hand_card(&state, p1);
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: merchant,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = res else {
+        panic!("the play must surface the discover choice");
+    };
+    let base = card_by_id(&choice.pool[0]).expect("pool id resolves").cost;
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    let picked = find_in_hand(&state, p1, &choice.pool[0]);
+    assert_eq!(
+        state.world().effective_cost(picked),
+        Some(Cost(base)),
+        "without Vault Breaker the cost is unchanged"
+    );
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &MERCHANT_OF_LEGEND)
+        .add_minion_to_board(p1, &VAULT_BREAKER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let merchant = first_hand_card(&state, p1);
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: merchant,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = res else {
+        panic!("the play must surface the discover choice");
+    };
+    let base = card_by_id(&choice.pool[0]).expect("pool id resolves").cost;
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    let picked = find_in_hand(&state, p1, &choice.pool[0]);
+    assert_eq!(
+        state.world().effective_cost(picked),
+        Some(Cost(base - 1)),
+        "Vault Breaker discounts the Discovered card by (1)"
+    );
+}
+
+/// TLC_W4A-8 — the Map chain (Crypt Map): the discovered card is
+/// added to hand together with the other options; playing the
+/// discovered card THIS turn adds one random other option, and the
+/// chain is consumed — exactly once.
+#[test]
+fn tlc_w4a_map_card_picks_second() {
+    use orange_stone::cards::exp_tlc_w4a::CRYPT_MAP;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &CRYPT_MAP);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let map = first_hand_card(&state, p1);
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: map,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = res else {
+        panic!("the play must surface the discover choice");
+    };
+    assert_eq!(choice.kind, ChoiceKind::Discover);
+    let picked_id = choice.pool[0].clone();
+    let others: Vec<String> = choice.pool[1..].to_vec();
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    let picked = find_in_hand(&state, p1, &picked_id);
+    assert!(
+        state.player(p1).map_pending.is_some(),
+        "the map chain is armed"
+    );
+    // Play the discovered card this turn — the only pooled card that
+    // needs a target is Cryosleep (TLC_440).
+    let target = if picked_id == "TLC_440" {
+        Some(state.player(PlayerId2()).hero)
+    } else {
+        None
+    };
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: picked,
+                target,
+                position: None,
+            },
+        )
+        .unwrap();
+    let ids = hand_ids(&state, p1);
+    assert_eq!(ids.len(), 1, "exactly one card added by the map chain");
+    assert!(
+        others.contains(&ids[0]),
+        "the added card is one of the other options"
+    );
+    assert!(
+        state.player(p1).map_pending.is_none(),
+        "the map chain is consumed once"
+    );
+}
+
+/// TLC_W4A-9 — Questing Assistant fires its 3-damage battlecry only
+/// after the owner played a Quest this game.
+#[test]
+fn tlc_w4a_questing_assistant_fires_after_quest_played() {
+    use orange_stone::cards::exp_tlc_w4a::QUESTING_ASSISTANT;
+    use orange_stone::cards::generated::TLC_229;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 3, 5, 3);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &QUESTING_ASSISTANT);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let assistant = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: assistant,
+                target: Some(foe),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(foe),
+        Some(Health(5)),
+        "no quest played — the battlecry fizzles"
+    );
+    let mut builder = GameBuilder::new();
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 3, 5, 3);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &TLC_229)
+        .add_minion_to_hand(p1, &QUESTING_ASSISTANT);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_229");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: quest,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.player(p1).quest_played,
+        "playing a quest sets the flag"
+    );
+    let assistant = find_in_hand(&state, p1, "TLC_987");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: assistant,
+                target: Some(foe),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(foe),
+        Some(Health(2)),
+        "the quest flag unlocks the 3 damage"
+    );
+}
+
+/// TLC_W4A-10 — Cloud Serpent copies a random Elemental or Dragon in
+/// the hand: with the only eligible card being the other hand card,
+/// the copy is deterministic.
+#[test]
+fn tlc_w4a_cloud_serpent_copies_hand_elemental() {
+    use orange_stone::cards::exp_tlc_w4a::{CLOUD_SERPENT, WINDSWEPT_PAGETURNER};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &CLOUD_SERPENT)
+        .add_minion_to_hand(p1, &WINDSWEPT_PAGETURNER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Cloud Serpent
+    let ids = hand_ids(&state, p1);
+    assert_eq!(
+        ids,
+        vec!["TLC_220".to_string(), "TLC_220".to_string()],
+        "the Elemental is copied"
+    );
+    let copies: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_ne!(copies[0], copies[1], "the copy is a fresh entity");
+}
+
+/// TLC_W4A-11 — Curious Explorer's deathrattle reduces the Cost of a
+/// random minion in the opponent's hand by (2) — the opponent's
+/// turn-start draw (a spell) never counts.
+#[test]
+fn tlc_w4a_curious_explorer_reduces_enemy_hand_cost() {
+    use orange_stone::cards::classic_mage::TOME_OF_INTELLECT;
+    use orange_stone::cards::exp_tlc_w4a::CURIOUS_EXPLORER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let big = builder.add_custom_minion_to_board(PlayerId2(), 10, 10, 10);
+    let p2_hand = builder.add_custom_minion_to_hand(PlayerId2(), 4, 4, 4);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &CURIOUS_EXPLORER);
+    for _ in 0..5 {
+        builder.add_minion_to_deck(PlayerId2(), &TOME_OF_INTELLECT);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Curious Explorer
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let explorer = find_entity(&state, p1, "TLC_244");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: big,
+                defender: explorer,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_cost(p2_hand),
+        Some(Cost(2)),
+        "the enemy hand minion costs (2) less"
+    );
+}
+
+/// TLC_W4A-12 — Platysaur's battlecry links the drawn card to the
+/// minion; the deathrattle discards exactly that card.
+#[test]
+fn tlc_w4a_platysaur_discards_drawn_card_on_death() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tlc_w4a::PLATYSAUR;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let big = builder.add_custom_minion_to_board(PlayerId2(), 10, 10, 10);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &PLATYSAUR);
+    builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    for _ in 0..5 {
+        builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let drawn = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, p1)
+        .next()
+        .expect("the single deck card");
+    play_front_card(&mut state, &engine, p1); // Platysaur — draws the linked card
+    assert_eq!(
+        state.world().zone(drawn),
+        Some(Zone::Hand),
+        "the battlecry drew the card"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let platysaur = find_entity(&state, p1, "TLC_603");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: big,
+                defender: platysaur,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(drawn),
+        Some(Zone::Graveyard),
+        "the linked card is discarded on death"
+    );
+}
+
+/// TLC_W4A-13 — Story of Carnassa shuffles ten Raptors (1/3/2 Beasts)
+/// into the deck.
+#[test]
+fn tlc_w4a_carnassa_shuffles_raptors() {
+    use orange_stone::cards::exp_tlc_w4a::STORY_OF_CARNASSA;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &STORY_OF_CARNASSA);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, p1),
+        15,
+        "5 pads + 10 Raptors"
+    );
+    let raptors = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, p1)
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_826t"))
+        .count();
+    assert_eq!(raptors, 10);
+}
+
+/// TLC_W4A-14 — Interrogation shuffles three Tortollan Ninjas
+/// (TLC_513t2) into the deck (the Summoned-When-Drawn simplification,
+/// fidelity-debt §17).
+#[test]
+fn tlc_w4a_interrogation_shuffles_ninjas() {
+    use orange_stone::cards::exp_tlc_w4a::INTERROGATION;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &INTERROGATION);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, p1),
+        8,
+        "5 pads + 3 Ninjas"
+    );
+    let ninjas = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, p1)
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_513t2"))
+        .count();
+    assert_eq!(ninjas, 3);
+}
+
+/// TLC_W4A-15 — Skyscreamer Eggs' deathrattle summons four
+/// Skyscreamer Hatchlings (1/2 Beasts) to the board.
+#[test]
+fn tlc_w4a_skyscreamer_eggs_summon_four() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tlc_w4a::SKYSCREAMER_EGGS;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let big = builder.add_custom_minion_to_board(PlayerId2(), 10, 10, 10);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &SKYSCREAMER_EGGS);
+    for _ in 0..5 {
+        builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let eggs = find_entity(&state, p1, "TLC_237");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: big,
+                defender: eggs,
+            },
+        )
+        .unwrap();
+    assert_eq!(board_count(&state, p1, "TLC_237t"), 4, "four hatchlings");
+    for e in board_minions(&state, p1) {
+        assert_eq!(state.world().effective_attack(e), Some(Attack(2)));
+        assert_eq!(state.world().effective_health(e), Some(Health(1)));
+    }
+}
+
+/// TLC_W4A-16 — Relic Miner destroys the top card of the deck and
+/// discovers a card of the same rarity (here: the Common Living
+/// Roots, CORE_AT_037).
+#[test]
+fn tlc_w4a_relic_miner_destroys_top_draws_rarity() {
+    use orange_stone::cards::core_w6::CORE_LIVING_ROOTS;
+    use orange_stone::cards::exp_tlc_w4a::RELIC_MINER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &RELIC_MINER);
+    builder.add_minion_to_deck(p1, &CORE_LIVING_ROOTS); // a Common spell
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let roots = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, p1)
+        .next()
+        .expect("the deck card");
+    let miner = first_hand_card(&state, p1);
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card: miner,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = res else {
+        panic!("the play must surface the rarity discover");
+    };
+    assert_eq!(choice.kind, ChoiceKind::Discover);
+    assert!(choice.options.len() >= 3, "a real discover choice");
+    assert_eq!(
+        state.world().zone(roots),
+        Some(Zone::Graveyard),
+        "the top card is destroyed"
+    );
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "the discovered card lands in the hand"
+    );
+}

@@ -784,6 +784,13 @@ pub struct Immune;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Temporary;
 
+/// CostHealth — a hand card that costs Health instead of Mana
+/// (2025–2026 expansions M2-W4a — Whispering Stone's gotten Fel spells:
+/// "They cost Health instead of Mana"). The CardPlayed path reads the
+/// marker to pay the card's cost from the hero's Health instead of mana.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct CostHealth;
+
 /// Overload amount — the mana locked on the owner's next turn (roadmap F1).
 /// Also triggers friendly minions' overload triggers when the card is played
 /// (Unbound Elemental).

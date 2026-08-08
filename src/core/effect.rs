@@ -75,6 +75,61 @@ pub enum EffectTarget {
     EnemyMinionAttackGE(i32),
     /// All friendly characters, hero included (Darkscale Healer)
     AllFriendlyCharacters,
+    /// A random friendly DAMAGED minion other than the source (Stonecarver
+    /// — 2025–2026 expansions M2-W4a, "another friendly damaged minion")
+    DamagedOtherFriendlyMinion,
+    /// A random enemy minion with a minion type (Bugsquasher —
+    /// 2025–2026 expansions M2-W4a, "an enemy minion with a minion type")
+    EnemyMinionWithRace,
+}
+
+/// A keyword a `GrantKeyword` effect can bestow (2025–2026 expansions
+/// M2-W4a — the choose-one branches of Ancient Stegodon / Ancient Raptor /
+/// Ancient Pterrordax and Resuscitate's Reborn grant).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum KeywordKind {
+    /// Taunt
+    Taunt,
+    /// Poisonous
+    Poisonous,
+    /// Elusive
+    Elusive,
+    /// Reborn
+    Reborn,
+    /// Stealth
+    Stealth,
+    /// Windfury (M2-W4a — Ancient Pterrordax's third choose-one branch)
+    Windfury,
+}
+
+/// Discover pool — the source of a `DiscoverPool` discover (2025–2026
+/// expansions M2-W4a — the D2 random simplification, fidelity-debt §17):
+/// every pool maps to a filtered sampling procedure in
+/// `cards::pool::discover_pool_cards`, mirroring the RandomPool pipeline.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum DiscoverPool {
+    /// A Legendary minion (Merchant of Legend)
+    LegendaryMinion,
+    /// An Undead (Paleomancy)
+    UndeadMinion,
+    /// A Frost Rune card (Crypt Map — the fixed W1–W3 Frost Rune table)
+    FrostRune,
+    /// A Murloc (Submerged Map)
+    Murloc,
+    /// A minion with a minion type the player hasn't played this game
+    /// (Mountain Map)
+    MinionOfUnplayedType,
+    /// A Beast with odd Attack (Odd Map)
+    BeastOddAttack,
+    /// A Fel spell (Hive Map)
+    FelSpell,
+    /// A spell from any class that costs (8) or more (Relic of Kings)
+    SpellCostGE8,
+    /// A card with Cost equal to the player's remaining Mana Crystals
+    /// (Scrappy Scavenger — the pool is resolved at call time)
+    CostEqualRemainingMana,
+    /// A Temporary 1-Cost minion (Bloodpetal Biome)
+    TemporaryOneCostMinion,
 }
 
 /// Card effect — an action executed when triggered.
@@ -2205,6 +2260,417 @@ pub enum CardEffect {
         /// Cost of the summoned minion
         cost: i32,
     },
+    // ===== 2025–2026 expansions M2-W4a (the Un'Goro main set) =====
+    /// Discover a card from a pool (M2-W4a — the D2 random simplification,
+    /// fidelity-debt §17): builds the three-option choice from
+    /// `cards::pool::discover_pool_cards`; the unpicked options feed the
+    /// Map-chain / Merchant-of-Legend / Paleomancy resolutions keyed by the
+    /// source card in ChoiceResolved.
+    DiscoverPool {
+        /// The pool to discover from
+        pool: DiscoverPool,
+    },
+    /// Add `count` copies of a random pool card to the hand (M2-W4a —
+    /// Whispering Stone's Fel spells use the CostHealth variant below;
+    /// this is the plain count form)
+    AddRandomCardToHandCount {
+        /// Pool type
+        pool: RandomPool,
+        /// Number of cards
+        count: u8,
+    },
+    /// Add `count` copies of a fixed card to the hand (M2-W4a —
+    /// Infestation's two Gorishi Stingers)
+    AddCardToHandCount {
+        /// Card ID
+        card_id: &'static str,
+        /// Number of cards
+        count: u8,
+    },
+    /// Add `count` random Temporary minions of the given cost to the hand
+    /// (M2-W4a — Tunnel Terror's deathrattle; the Temporary marker is set
+    /// on each added card, discarded at the end of the turn)
+    AddTemporaryRandomMinionsCost {
+        /// Cost of the Temporary minions
+        cost: i32,
+        /// Number of cards
+        count: u8,
+    },
+    /// Add `count` random Fel spells to the hand marked as costing Health
+    /// instead of Mana (M2-W4a — Whispering Stone's deathrattle)
+    AddRandomFelSpellsCostHealth {
+        /// Number of spells
+        count: u8,
+    },
+    /// Add a random Holy and a random Shadow spell to the hand (M2-W4a —
+    /// Twilight Mender's deathrattle)
+    AddRandomHolyAndShadowSpell,
+    /// Add a random 1-Cost Holy spell that gives +2 or -2 Health to the
+    /// hand (M2-W4a — Glade Ecologist's deathrattle)
+    AddRandomHolySpellCost1,
+    /// Add a copy of another Elemental or Dragon in the hand (M2-W4a —
+    /// Cloud Serpent's battlecry; no eligible card copies nothing)
+    CopyRandomHandElementalOrDragon,
+    /// Reduce the Cost of a random minion in the opponent's hand (M2-W4a —
+    /// Curious Explorer's deathrattle)
+    ReduceRandomEnemyHandMinionCost {
+        /// Cost reduction
+        amount: i32,
+    },
+    /// Reduce the Cost of a random Beast in the owner's hand (M2-W4a —
+    /// Dinositter's end-of-turn effect)
+    ReduceRandomBeastHandCost {
+        /// Cost reduction
+        amount: i32,
+    },
+    /// Reduce the Cost of every hand card that did not start in the deck
+    /// by `amount` (M2-W4a — Story of the Waygate; the starting deck is
+    /// snapshotted by GameBuilder, see fidelity-debt §17)
+    ReduceNonStartingHandCost {
+        /// Cost reduction
+        amount: i32,
+    },
+    /// Summon four 2/2 Treants that each attack a chosen minion (M2-W4a —
+    /// TREEEES!!!; the target is chosen by the explicit-target resolution,
+    /// the attacks run through the normal attack pipeline)
+    SummonTreantsAttackMinion,
+    /// Deal `amount` damage to a random enemy and summon that many 2/1
+    /// Sizzling Cinders (M2-W4a — Sizzling Swarm; the summon count equals
+    /// the damage dealt — the official card's damage is a fixed 3)
+    DealDamageSummonCinders {
+        /// Damage dealt (also the Cinder summon count)
+        amount: i32,
+    },
+    /// Deal `amount` damage to the enemy with the lowest Health, `times`
+    /// times (M2-W4a — Lava Flow; ties resolve randomly)
+    DealDamageLowestHealthEnemyRepeated {
+        /// Damage per hit
+        amount: i32,
+        /// Number of hits
+        times: i32,
+    },
+    /// Deal `amount` damage to `count` random DISTINCT enemies (M2-W4a —
+    /// Bonechill Stegodon's deathrattle)
+    DealDamageRandomEnemies {
+        /// Damage per enemy
+        amount: i32,
+        /// Number of enemies hit
+        count: i32,
+    },
+    /// Draw `count` minions of different minion types and give them stats
+    /// (M2-W4a — Flight of the Firehawk; draws until `count` distinct
+    /// types or the deck runs out)
+    DrawMinionsDifferentTypesBuff {
+        /// Minions drawn
+        count: u8,
+        /// Attack bonus on each drawn minion
+        attack: i32,
+        /// Health bonus on each drawn minion
+        health: i32,
+    },
+    /// Draw a minion; if it has `min_attack` or more Attack, give it
+    /// `buff_health` Health and gain `armor` Armor (M2-W4a — Story of
+    /// Barnabus)
+    DrawMinionBuffArmorIfAttackGE {
+        /// Attack threshold
+        min_attack: i32,
+        /// Health bonus when the threshold is met
+        buff_health: i32,
+        /// Armor gained when the threshold is met
+        armor: i32,
+    },
+    /// Summon three 2/1 Hatchlings at the start of the owner's NEXT turn
+    /// (M2-W4a — Ravenous Flock; resolved by the turn-start hook)
+    SetFlockPending,
+    /// Give the owner's OTHER minions with at most `max_attack` Attack
+    /// stats and Taunt (M2-W4a — Hatchery Helper's battlecry)
+    GiveBuffOtherMinionsAttackLE {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+        /// Attack ceiling
+        max_attack: i32,
+    },
+    /// Destroy a minion and summon a random minion of the same Cost to
+    /// replace it (M2-W4a — Life Cycle; the cost is read before the
+    /// destroy, the replacement is summoned to the same board)
+    DestroyMinionSummonRandomSameCost {
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Summon `count` copies of a minion and grant each a random Bonus
+    /// Effect (M2-W4a — Tyrannogill's three Dinolocs)
+    SummonMinionsGrantRandomBonus {
+        /// Card ID to summon
+        card_id: &'static str,
+        /// Summon count
+        count: u8,
+    },
+    /// Summon one copy of each of two tokens (M2-W4a — Blob of Tar's two
+    /// Blobs)
+    SummonMinionPair {
+        /// First token
+        a: &'static str,
+        /// Second token
+        b: &'static str,
+    },
+    /// Summon a random minion of `cost`; if the player Discovered this
+    /// turn, of `escalated_cost` instead (M2-W4a — Unearthed Artifacts)
+    SummonRandomMinionCostOrEscalated {
+        /// Base cost
+        cost: i32,
+        /// Cost after a Discover this turn
+        escalated_cost: i32,
+    },
+    /// Deal `amount` damage to an enemy minion; if it dies, gain `armor`
+    /// Armor (M2-W4a — Latorvian Armorer's battlecry)
+    DealDamageGainArmorIfKilled {
+        /// Damage amount
+        amount: i32,
+        /// Armor gained on kill
+        armor: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Deal `damage` to all enemy minions; the enemy's minions cost (2)
+    /// more next turn (M2-W4a — Wave of Tar; the cost-more flag lands on
+    /// the CASTER — play_cost reads `player.opponent().minions_cost_more`
+    /// — and clears at the caster's next turn start)
+    DealDamageAllEnemyMinionsSetMinionsCostMore {
+        /// Damage to each enemy minion
+        damage: i32,
+    },
+    /// Give the target stats, then give the same stats to the owner's
+    /// other minions that share a minion type with it (M2-W4a — Ready the
+    /// Fleet)
+    GiveBuffSameType {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Grant `count` random Bonus Effects to the target (M2-W4a — Story
+    /// of Galvadon's three to one minion)
+    GrantRandomBonusEffects {
+        /// Number of effects
+        count: u8,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Give a random friendly minion a random Bonus Effect and this
+    /// Deathrattle (M2-W4a — Stranglevine; the granted deathrattle is the
+    /// same effect, so the chain recurs)
+    GrantRandomBonusEffectAndDeathrattle,
+    /// Activate the Story of Lakkari end-of-turn loop for `ticks` turns
+    /// (M2-W4a — discard a card and fill the board with 3/2 Imps)
+    SetLakkariTicks {
+        /// Activations remaining
+        ticks: u8,
+    },
+    /// Give the target stats and "Deathrattle: Summon a random minion of
+    /// `summon_cost`" (M2-W4a — Threshrider's Blessing)
+    GiveBuffAndSummonDeathrattle {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+        /// Cost of the deathrattle's summoned minion
+        summon_cost: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Deal `amount` damage improved by the number of times the player
+    /// shuffled cards into their deck this game (M2-W4a — Knockback)
+    DealDamageImprovedByShuffles {
+        /// Base damage
+        amount: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Draw a card and link it to this minion (M2-W4a — Platysaur's
+    /// battlecry; the linked card is discarded by `DiscardLinkedDrawnCard`
+    /// when the minion dies)
+    DrawCardLinkDeathrattle,
+    /// Discard the card linked by `DrawCardLinkDeathrattle` (M2-W4a —
+    /// Platysaur's deathrattle)
+    DiscardLinkedDrawnCard,
+    /// Gain `armor` Armor, then deal damage equal to the owner's Armor to
+    /// an enemy minion (M2-W4a — Fortify)
+    GainArmorDealDamageEqual {
+        /// Armor gained first
+        armor: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Destroy the top `count` cards of the owner's deck (M2-W4a —
+    /// Willful Watcher's deathrattle)
+    DestroyDeckTop {
+        /// Cards destroyed
+        count: u8,
+    },
+    /// Resurrect a 1-, 2-, and 3-Cost minion and give them Reborn (M2-W4a
+    /// — Resuscitate; one fallen minion per cost from the graveyard,
+    /// missing costs resurrect nothing)
+    ResurrectOneOfEachCostGiveReborn {
+        /// Highest cost resurrected (resurrects one of each cost 1..=max)
+        max_cost: i32,
+    },
+    /// Deal `amount` damage to a minion; the next Beast the owner plays
+    /// this turn costs `discount` less (M2-W4a — Cower in Fear)
+    DealDamageSetNextBeastDiscount {
+        /// Damage amount
+        amount: i32,
+        /// Cost reduction on the next Beast
+        discount: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Give all Beasts in the owner's hand, deck, and battlefield stats
+    /// (M2-W4a — Supreme Dinomancy)
+    BuffAllBeastsEverywhere {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// Deal `amount` damage to a minion and all other minions of the same
+    /// minion type (M2-W4a — Fumigate)
+    DealDamageSameType {
+        /// Damage amount
+        amount: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// The next Temporary card costs `amount` less (M2-W4a — Spelunker's
+    /// battlecry, one-time, consumed by the next Temporary play)
+    SetNextTemporaryDiscount {
+        /// Cost reduction
+        amount: i32,
+    },
+    /// Until the start of the owner's next turn, the enemy hero can't be
+    /// healed (M2-W4a — Crater Gator's battlecry)
+    SetEnemyHeroCantBeHealed,
+    /// Destroy a friendly minion and add the Bones of its Attack and
+    /// Health to the hand (M2-W4a — Dissolving Ooze; two Bone tokens whose
+    /// Attack/Health copy the destroyed minion's, see fidelity-debt §17)
+    DestroyFriendlyMinionAddBones {
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Gain empty Mana Crystals until both players have the same Mana
+    /// (M2-W4a — Crystal Tender's battlecry)
+    GainManaCrystalsMatchOpponent,
+    /// Give stats to each friendly minion whose minion type appears
+    /// exactly once among friendly minions (M2-W4a — Tortollan
+    /// Storyteller's end-of-turn effect, the "different type" reading)
+    GiveBuffDifferentTypeMinions {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// If the player played a Quest this game, deal `amount` damage to an
+    /// enemy minion (M2-W4a — Questing Assistant's battlecry)
+    DealDamageIfQuestPlayed {
+        /// Damage amount
+        amount: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Swap the hero power to "Deal 8 damage to a random enemy"; after 2
+    /// uses it swaps back (M2-W4a — Story of Sulfuras)
+    SwapHeroPowerToDeal8Random,
+    /// Recast a random Holy spell the owner cast this turn (M2-W4a —
+    /// Creature of the Sacred Cave's end-of-turn effect, "targets this if
+    /// possible" — the recast resolves on the creature, see §17)
+    RecastRandomHolySpellThisTurn,
+    /// Cast a random spell from the owner's deck costing at most
+    /// `max_cost` (M2-W4a — Violet Treasuregill's battlecry, "targets
+    /// this if possible")
+    CastRandomSpellFromDeckCostLE {
+        /// Maximum cost of the cast spell
+        max_cost: i32,
+    },
+    /// Spend up to `max_spend` Armor; deal that much damage to all minions
+    /// (M2-W4a — Shellnado)
+    SpendArmorDealDamageAllMinions {
+        /// Maximum Armor spent
+        max_spend: i32,
+    },
+    /// Destroy the top card of the deck and Discover a card of the same
+    /// Rarity (M2-W4a — Relic Miner's battlecry; the pool is resolved from
+    /// the destroyed card's rarity)
+    DestroyTopCardDiscoverSameRarity,
+    /// Grant a keyword to the target (M2-W4a — the choose-one branches of
+    /// Ancient Stegodon / Ancient Raptor / Ancient Pterrordax)
+    GrantKeyword {
+        /// The keyword to grant
+        keyword: KeywordKind,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Grant the target "Deathrattle: Summon `count` copies of a card"
+    /// (M2-W4a — Ancient Raptor's third choose-one branch)
+    GrantDeathrattleSummon {
+        /// Card ID the deathrattle summons
+        card_id: &'static str,
+        /// Summon count
+        count: u8,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Add a random weapon from another class to the hand; while the Combo
+    /// condition holds it enters with `combo_attack` extra Attack
+    /// (M2-W4a — Neferset Weaponsmith)
+    AddRandomWeaponAnotherClassComboAttack {
+        /// Attack bonus under Combo
+        combo_attack: i32,
+    },
+    /// Drain: deal `amount` damage to all other minions and restore that
+    /// much Health to this minion per minion damaged (M2-W4a — Juvenile
+    /// Pterrordax's "steal 1 Health from all other minions")
+    Drain {
+        /// Amount stolen per minion
+        amount: i32,
+    },
+    /// Gain stats equal to the Cost of the Fire spell that was just cast
+    /// (M2-W4a — Mechanized Magma's "Whenever you play a Fire spell, gain
+    /// stats equal to its Cost"; the spell school is read from the card
+    /// definition, the cost is the spell's effective cost at cast time)
+    GainStatsEqualFireSpellCost,
+    /// Deal `amount` damage to the target and summon one copy of `card_id`
+    /// (M2-W4a — Gorishi Stinger's "Deal 2 damage. Summon a 2/1 Grub with
+    /// Rush"; the damage targets the spell's explicit target, or a random
+    /// enemy when none was chosen)
+    DealDamageAndSummon {
+        /// Damage amount
+        amount: i32,
+        /// Card ID of the summoned minion
+        card_id: &'static str,
+    },
+    /// Discover a card from the owner's deck (M2-W4a — Cursed Catacombs
+    /// marks the picked card Temporary; Cultist Map runs the Map chain):
+    /// the pool is three random distinct deck card ids, the source card
+    /// excluded, surfaced as a `ChoiceKind::DiscoverDeck` choice
+    DiscoverDeckCard,
+    /// Look at the top 3 cards of the enemy's deck and pick one to put on
+    /// top (M2-W4a — Eyes in the Sky; surfaced as a
+    /// `ChoiceKind::DiscoverEnemyDeckPutOnTop` choice — the deck is
+    /// untouched otherwise)
+    DiscoverEnemyDeckTop,
+    /// Summon a random Fel Beast (M2-W4a — Deathrot Maw's deathrattle;
+    /// the random pool is `RandomPool::FelBeast`, the D2 simplification)
+    SummonRandomFelBeast,
+    /// Add a random Beast to the hand costing `amount` less (M2-W4a —
+    /// Storm the Gates' reward Zombeast, "crafted" as a random Beast with
+    /// the (3) cost reduction applied; see fidelity-debt §17)
+    AddRandomBeastCostLess {
+        /// Cost reduction on the added Beast
+        amount: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -3176,6 +3642,186 @@ enum CardEffectDe {
     },
     SummonRandomMinionCostTaunt {
         cost: i32,
+    },
+    DiscoverPool {
+        pool: DiscoverPool,
+    },
+    AddRandomCardToHandCount {
+        pool: RandomPool,
+        count: u8,
+    },
+    AddCardToHandCount {
+        card_id: String,
+        count: u8,
+    },
+    AddTemporaryRandomMinionsCost {
+        cost: i32,
+        count: u8,
+    },
+    AddRandomFelSpellsCostHealth {
+        count: u8,
+    },
+    AddRandomHolyAndShadowSpell,
+    AddRandomHolySpellCost1,
+    CopyRandomHandElementalOrDragon,
+    ReduceRandomEnemyHandMinionCost {
+        amount: i32,
+    },
+    ReduceRandomBeastHandCost {
+        amount: i32,
+    },
+    ReduceNonStartingHandCost {
+        amount: i32,
+    },
+    SummonTreantsAttackMinion,
+    DealDamageSummonCinders {
+        amount: i32,
+    },
+    DealDamageLowestHealthEnemyRepeated {
+        amount: i32,
+        times: i32,
+    },
+    DealDamageRandomEnemies {
+        amount: i32,
+        count: i32,
+    },
+    DrawMinionsDifferentTypesBuff {
+        count: u8,
+        attack: i32,
+        health: i32,
+    },
+    DrawMinionBuffArmorIfAttackGE {
+        min_attack: i32,
+        buff_health: i32,
+        armor: i32,
+    },
+    SetFlockPending,
+    GiveBuffOtherMinionsAttackLE {
+        attack: i32,
+        health: i32,
+        max_attack: i32,
+    },
+    DestroyMinionSummonRandomSameCost {
+        target: EffectTarget,
+    },
+    SummonMinionsGrantRandomBonus {
+        card_id: String,
+        count: u8,
+    },
+    SummonMinionPair {
+        a: String,
+        b: String,
+    },
+    SummonRandomMinionCostOrEscalated {
+        cost: i32,
+        escalated_cost: i32,
+    },
+    DealDamageGainArmorIfKilled {
+        amount: i32,
+        armor: i32,
+        target: EffectTarget,
+    },
+    DealDamageAllEnemyMinionsSetMinionsCostMore {
+        damage: i32,
+    },
+    GiveBuffSameType {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+    },
+    GrantRandomBonusEffects {
+        count: u8,
+        target: EffectTarget,
+    },
+    GrantRandomBonusEffectAndDeathrattle,
+    SetLakkariTicks {
+        ticks: u8,
+    },
+    GiveBuffAndSummonDeathrattle {
+        attack: i32,
+        health: i32,
+        summon_cost: i32,
+        target: EffectTarget,
+    },
+    DealDamageImprovedByShuffles {
+        amount: i32,
+        target: EffectTarget,
+    },
+    DrawCardLinkDeathrattle,
+    DiscardLinkedDrawnCard,
+    GainArmorDealDamageEqual {
+        armor: i32,
+        target: EffectTarget,
+    },
+    DestroyDeckTop {
+        count: u8,
+    },
+    ResurrectOneOfEachCostGiveReborn {
+        max_cost: i32,
+    },
+    DealDamageSetNextBeastDiscount {
+        amount: i32,
+        discount: i32,
+        target: EffectTarget,
+    },
+    BuffAllBeastsEverywhere {
+        attack: i32,
+        health: i32,
+    },
+    DealDamageSameType {
+        amount: i32,
+        target: EffectTarget,
+    },
+    SetNextTemporaryDiscount {
+        amount: i32,
+    },
+    SetEnemyHeroCantBeHealed,
+    DestroyFriendlyMinionAddBones {
+        target: EffectTarget,
+    },
+    GainManaCrystalsMatchOpponent,
+    GiveBuffDifferentTypeMinions {
+        attack: i32,
+        health: i32,
+    },
+    DealDamageIfQuestPlayed {
+        amount: i32,
+        target: EffectTarget,
+    },
+    SwapHeroPowerToDeal8Random,
+    RecastRandomHolySpellThisTurn,
+    CastRandomSpellFromDeckCostLE {
+        max_cost: i32,
+    },
+    SpendArmorDealDamageAllMinions {
+        max_spend: i32,
+    },
+    DestroyTopCardDiscoverSameRarity,
+    GrantKeyword {
+        keyword: KeywordKind,
+        target: EffectTarget,
+    },
+    GrantDeathrattleSummon {
+        card_id: String,
+        count: u8,
+        target: EffectTarget,
+    },
+    AddRandomWeaponAnotherClassComboAttack {
+        combo_attack: i32,
+    },
+    Drain {
+        amount: i32,
+    },
+    GainStatsEqualFireSpellCost,
+    DealDamageAndSummon {
+        amount: i32,
+        card_id: String,
+    },
+    DiscoverDeckCard,
+    DiscoverEnemyDeckTop,
+    SummonRandomFelBeast,
+    AddRandomBeastCostLess {
+        amount: i32,
     },
 }
 
@@ -4208,6 +4854,216 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::SummonRandomMinionCostTaunt { cost } => {
                 CardEffect::SummonRandomMinionCostTaunt { cost }
             }
+            CardEffectDe::DiscoverPool { pool } => CardEffect::DiscoverPool { pool },
+            CardEffectDe::AddRandomCardToHandCount { pool, count } => {
+                CardEffect::AddRandomCardToHandCount { pool, count }
+            }
+            CardEffectDe::AddCardToHandCount { card_id, count } => CardEffect::AddCardToHandCount {
+                card_id: intern(card_id)?,
+                count,
+            },
+            CardEffectDe::AddTemporaryRandomMinionsCost { cost, count } => {
+                CardEffect::AddTemporaryRandomMinionsCost { cost, count }
+            }
+            CardEffectDe::AddRandomFelSpellsCostHealth { count } => {
+                CardEffect::AddRandomFelSpellsCostHealth { count }
+            }
+            CardEffectDe::AddRandomHolyAndShadowSpell => CardEffect::AddRandomHolyAndShadowSpell,
+            CardEffectDe::AddRandomHolySpellCost1 => CardEffect::AddRandomHolySpellCost1,
+            CardEffectDe::CopyRandomHandElementalOrDragon => {
+                CardEffect::CopyRandomHandElementalOrDragon
+            }
+            CardEffectDe::ReduceRandomEnemyHandMinionCost { amount } => {
+                CardEffect::ReduceRandomEnemyHandMinionCost { amount }
+            }
+            CardEffectDe::ReduceRandomBeastHandCost { amount } => {
+                CardEffect::ReduceRandomBeastHandCost { amount }
+            }
+            CardEffectDe::ReduceNonStartingHandCost { amount } => {
+                CardEffect::ReduceNonStartingHandCost { amount }
+            }
+            CardEffectDe::SummonTreantsAttackMinion => CardEffect::SummonTreantsAttackMinion,
+            CardEffectDe::DealDamageSummonCinders { amount } => {
+                CardEffect::DealDamageSummonCinders { amount }
+            }
+            CardEffectDe::DealDamageLowestHealthEnemyRepeated { amount, times } => {
+                CardEffect::DealDamageLowestHealthEnemyRepeated { amount, times }
+            }
+            CardEffectDe::DealDamageRandomEnemies { amount, count } => {
+                CardEffect::DealDamageRandomEnemies { amount, count }
+            }
+            CardEffectDe::DrawMinionsDifferentTypesBuff {
+                count,
+                attack,
+                health,
+            } => CardEffect::DrawMinionsDifferentTypesBuff {
+                count,
+                attack,
+                health,
+            },
+            CardEffectDe::DrawMinionBuffArmorIfAttackGE {
+                min_attack,
+                buff_health,
+                armor,
+            } => CardEffect::DrawMinionBuffArmorIfAttackGE {
+                min_attack,
+                buff_health,
+                armor,
+            },
+            CardEffectDe::SetFlockPending => CardEffect::SetFlockPending,
+            CardEffectDe::GiveBuffOtherMinionsAttackLE {
+                attack,
+                health,
+                max_attack,
+            } => CardEffect::GiveBuffOtherMinionsAttackLE {
+                attack,
+                health,
+                max_attack,
+            },
+            CardEffectDe::DestroyMinionSummonRandomSameCost { target } => {
+                CardEffect::DestroyMinionSummonRandomSameCost { target }
+            }
+            CardEffectDe::SummonMinionsGrantRandomBonus { card_id, count } => {
+                CardEffect::SummonMinionsGrantRandomBonus {
+                    card_id: intern(card_id)?,
+                    count,
+                }
+            }
+            CardEffectDe::SummonMinionPair { a, b } => CardEffect::SummonMinionPair {
+                a: intern(a)?,
+                b: intern(b)?,
+            },
+            CardEffectDe::SummonRandomMinionCostOrEscalated {
+                cost,
+                escalated_cost,
+            } => CardEffect::SummonRandomMinionCostOrEscalated {
+                cost,
+                escalated_cost,
+            },
+            CardEffectDe::DealDamageGainArmorIfKilled {
+                amount,
+                armor,
+                target,
+            } => CardEffect::DealDamageGainArmorIfKilled {
+                amount,
+                armor,
+                target,
+            },
+            CardEffectDe::DealDamageAllEnemyMinionsSetMinionsCostMore { damage } => {
+                CardEffect::DealDamageAllEnemyMinionsSetMinionsCostMore { damage }
+            }
+            CardEffectDe::GiveBuffSameType {
+                attack,
+                health,
+                target,
+            } => CardEffect::GiveBuffSameType {
+                attack,
+                health,
+                target,
+            },
+            CardEffectDe::GrantRandomBonusEffects { count, target } => {
+                CardEffect::GrantRandomBonusEffects { count, target }
+            }
+            CardEffectDe::GrantRandomBonusEffectAndDeathrattle => {
+                CardEffect::GrantRandomBonusEffectAndDeathrattle
+            }
+            CardEffectDe::SetLakkariTicks { ticks } => CardEffect::SetLakkariTicks { ticks },
+            CardEffectDe::GiveBuffAndSummonDeathrattle {
+                attack,
+                health,
+                summon_cost,
+                target,
+            } => CardEffect::GiveBuffAndSummonDeathrattle {
+                attack,
+                health,
+                summon_cost,
+                target,
+            },
+            CardEffectDe::DealDamageImprovedByShuffles { amount, target } => {
+                CardEffect::DealDamageImprovedByShuffles { amount, target }
+            }
+            CardEffectDe::DrawCardLinkDeathrattle => CardEffect::DrawCardLinkDeathrattle,
+            CardEffectDe::DiscardLinkedDrawnCard => CardEffect::DiscardLinkedDrawnCard,
+            CardEffectDe::GainArmorDealDamageEqual { armor, target } => {
+                CardEffect::GainArmorDealDamageEqual { armor, target }
+            }
+            CardEffectDe::DestroyDeckTop { count } => CardEffect::DestroyDeckTop { count },
+            CardEffectDe::ResurrectOneOfEachCostGiveReborn { max_cost } => {
+                CardEffect::ResurrectOneOfEachCostGiveReborn { max_cost }
+            }
+            CardEffectDe::DealDamageSetNextBeastDiscount {
+                amount,
+                discount,
+                target,
+            } => CardEffect::DealDamageSetNextBeastDiscount {
+                amount,
+                discount,
+                target,
+            },
+            CardEffectDe::BuffAllBeastsEverywhere { attack, health } => {
+                CardEffect::BuffAllBeastsEverywhere { attack, health }
+            }
+            CardEffectDe::DealDamageSameType { amount, target } => {
+                CardEffect::DealDamageSameType { amount, target }
+            }
+            CardEffectDe::SetNextTemporaryDiscount { amount } => {
+                CardEffect::SetNextTemporaryDiscount { amount }
+            }
+            CardEffectDe::SetEnemyHeroCantBeHealed => CardEffect::SetEnemyHeroCantBeHealed,
+            CardEffectDe::DestroyFriendlyMinionAddBones { target } => {
+                CardEffect::DestroyFriendlyMinionAddBones { target }
+            }
+            CardEffectDe::GainManaCrystalsMatchOpponent => {
+                CardEffect::GainManaCrystalsMatchOpponent
+            }
+            CardEffectDe::GiveBuffDifferentTypeMinions { attack, health } => {
+                CardEffect::GiveBuffDifferentTypeMinions { attack, health }
+            }
+            CardEffectDe::DealDamageIfQuestPlayed { amount, target } => {
+                CardEffect::DealDamageIfQuestPlayed { amount, target }
+            }
+            CardEffectDe::SwapHeroPowerToDeal8Random => CardEffect::SwapHeroPowerToDeal8Random,
+            CardEffectDe::RecastRandomHolySpellThisTurn => {
+                CardEffect::RecastRandomHolySpellThisTurn
+            }
+            CardEffectDe::CastRandomSpellFromDeckCostLE { max_cost } => {
+                CardEffect::CastRandomSpellFromDeckCostLE { max_cost }
+            }
+            CardEffectDe::SpendArmorDealDamageAllMinions { max_spend } => {
+                CardEffect::SpendArmorDealDamageAllMinions { max_spend }
+            }
+            CardEffectDe::DestroyTopCardDiscoverSameRarity => {
+                CardEffect::DestroyTopCardDiscoverSameRarity
+            }
+            CardEffectDe::GrantKeyword { keyword, target } => {
+                CardEffect::GrantKeyword { keyword, target }
+            }
+            CardEffectDe::GrantDeathrattleSummon {
+                card_id,
+                count,
+                target,
+            } => CardEffect::GrantDeathrattleSummon {
+                card_id: intern(card_id)?,
+                count,
+                target,
+            },
+            CardEffectDe::AddRandomWeaponAnotherClassComboAttack { combo_attack } => {
+                CardEffect::AddRandomWeaponAnotherClassComboAttack { combo_attack }
+            }
+            CardEffectDe::Drain { amount } => CardEffect::Drain { amount },
+            CardEffectDe::GainStatsEqualFireSpellCost => CardEffect::GainStatsEqualFireSpellCost,
+            CardEffectDe::DealDamageAndSummon { amount, card_id } => {
+                CardEffect::DealDamageAndSummon {
+                    amount,
+                    card_id: intern(card_id)?,
+                }
+            }
+            CardEffectDe::DiscoverDeckCard => CardEffect::DiscoverDeckCard,
+            CardEffectDe::DiscoverEnemyDeckTop => CardEffect::DiscoverEnemyDeckTop,
+            CardEffectDe::SummonRandomFelBeast => CardEffect::SummonRandomFelBeast,
+            CardEffectDe::AddRandomBeastCostLess { amount } => {
+                CardEffect::AddRandomBeastCostLess { amount }
+            }
         })
     }
 }
@@ -4476,6 +5332,153 @@ mod tests {
                 target: EffectTarget::AnyEnemyMinion,
             },
             CardEffect::SummonRandomMinionCostTaunt { cost: 4 },
+            CardEffect::DiscoverPool {
+                pool: DiscoverPool::FrostRune,
+            },
+            CardEffect::AddRandomCardToHandCount {
+                pool: RandomPool::FelSpell,
+                count: 2,
+            },
+            CardEffect::AddCardToHandCount {
+                card_id: "TLC_630t",
+                count: 2,
+            },
+            CardEffect::AddTemporaryRandomMinionsCost { cost: 2, count: 2 },
+            CardEffect::AddRandomFelSpellsCostHealth { count: 2 },
+            CardEffect::AddRandomHolyAndShadowSpell,
+            CardEffect::AddRandomHolySpellCost1,
+            CardEffect::CopyRandomHandElementalOrDragon,
+            CardEffect::ReduceRandomEnemyHandMinionCost { amount: 2 },
+            CardEffect::ReduceRandomBeastHandCost { amount: 1 },
+            CardEffect::ReduceNonStartingHandCost { amount: 1 },
+            CardEffect::SummonTreantsAttackMinion,
+            CardEffect::DealDamageSummonCinders { amount: 3 },
+            CardEffect::DealDamageLowestHealthEnemyRepeated {
+                amount: 2,
+                times: 3,
+            },
+            CardEffect::DealDamageRandomEnemies {
+                amount: 6,
+                count: 3,
+            },
+            CardEffect::DrawMinionsDifferentTypesBuff {
+                count: 2,
+                attack: 1,
+                health: 1,
+            },
+            CardEffect::DrawMinionBuffArmorIfAttackGE {
+                min_attack: 5,
+                buff_health: 5,
+                armor: 5,
+            },
+            CardEffect::SetFlockPending,
+            CardEffect::GiveBuffOtherMinionsAttackLE {
+                attack: 1,
+                health: 1,
+                max_attack: 2,
+            },
+            CardEffect::DestroyMinionSummonRandomSameCost {
+                target: EffectTarget::AnyMinion,
+            },
+            CardEffect::SummonMinionsGrantRandomBonus {
+                card_id: "TLC_240t",
+                count: 3,
+            },
+            CardEffect::SummonMinionPair {
+                a: "TLC_468t1",
+                b: "TLC_468t2",
+            },
+            CardEffect::SummonRandomMinionCostOrEscalated {
+                cost: 2,
+                escalated_cost: 4,
+            },
+            CardEffect::DealDamageGainArmorIfKilled {
+                amount: 2,
+                armor: 5,
+                target: EffectTarget::AnyEnemyMinion,
+            },
+            CardEffect::DealDamageAllEnemyMinionsSetMinionsCostMore { damage: 2 },
+            CardEffect::GiveBuffSameType {
+                attack: 1,
+                health: 2,
+                target: EffectTarget::FriendlyMinion,
+            },
+            CardEffect::GrantRandomBonusEffects {
+                count: 3,
+                target: EffectTarget::AnyMinion,
+            },
+            CardEffect::GrantRandomBonusEffectAndDeathrattle,
+            CardEffect::SetLakkariTicks { ticks: 3 },
+            CardEffect::GiveBuffAndSummonDeathrattle {
+                attack: 4,
+                health: 4,
+                summon_cost: 4,
+                target: EffectTarget::FriendlyMinion,
+            },
+            CardEffect::DealDamageImprovedByShuffles {
+                amount: 1,
+                target: EffectTarget::AnyMinion,
+            },
+            CardEffect::DrawCardLinkDeathrattle,
+            CardEffect::DiscardLinkedDrawnCard,
+            CardEffect::GainArmorDealDamageEqual {
+                armor: 3,
+                target: EffectTarget::AnyEnemyMinion,
+            },
+            CardEffect::DestroyDeckTop { count: 3 },
+            CardEffect::ResurrectOneOfEachCostGiveReborn { max_cost: 3 },
+            CardEffect::DealDamageSetNextBeastDiscount {
+                amount: 3,
+                discount: 2,
+                target: EffectTarget::AnyMinion,
+            },
+            CardEffect::BuffAllBeastsEverywhere {
+                attack: 2,
+                health: 2,
+            },
+            CardEffect::DealDamageSameType {
+                amount: 3,
+                target: EffectTarget::AnyMinion,
+            },
+            CardEffect::SetNextTemporaryDiscount { amount: 2 },
+            CardEffect::SetEnemyHeroCantBeHealed,
+            CardEffect::DestroyFriendlyMinionAddBones {
+                target: EffectTarget::FriendlyMinion,
+            },
+            CardEffect::GainManaCrystalsMatchOpponent,
+            CardEffect::GiveBuffDifferentTypeMinions {
+                attack: 1,
+                health: 1,
+            },
+            CardEffect::DealDamageIfQuestPlayed {
+                amount: 3,
+                target: EffectTarget::AnyEnemyMinion,
+            },
+            CardEffect::SwapHeroPowerToDeal8Random,
+            CardEffect::RecastRandomHolySpellThisTurn,
+            CardEffect::CastRandomSpellFromDeckCostLE { max_cost: 2 },
+            CardEffect::SpendArmorDealDamageAllMinions { max_spend: 5 },
+            CardEffect::DestroyTopCardDiscoverSameRarity,
+            CardEffect::GrantKeyword {
+                keyword: KeywordKind::Taunt,
+                target: EffectTarget::Self_,
+            },
+            CardEffect::GrantDeathrattleSummon {
+                card_id: "TLC_245t",
+                count: 2,
+                target: EffectTarget::Self_,
+            },
+            CardEffect::AddRandomWeaponAnotherClassComboAttack { combo_attack: 2 },
+            CardEffect::Drain { amount: 1 },
+            CardEffect::GainStatsEqualFireSpellCost,
+            CardEffect::DealDamageAndSummon {
+                amount: 2,
+                card_id: "TLC_903t",
+            },
+            CardEffect::DiscoverDeckCard,
+            CardEffect::DiscoverEnemyDeckTop,
+            CardEffect::SummonRandomFelBeast,
+            CardEffect::AddRandomBeastCostLess { amount: 3 },
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
@@ -4539,4 +5542,17 @@ pub enum RandomPool {
     /// A random Warrior minion (Shadowflame Suffusion — 2025–2026
     /// expansions M1-W5; the class filter is the MageSpell precedent)
     WarriorMinion,
+    /// A random Fel spell (Whispering Stone — 2025–2026 expansions M2-W4a)
+    FelSpell,
+    /// A random Holy spell (Twilight Mender — 2025–2026 expansions M2-W4a)
+    HolySpell,
+    /// A random 1-Cost Holy spell that gives +2 or -2 Health (Glade
+    /// Ecologist — 2025–2026 expansions M2-W4a)
+    HolySpellCost1,
+    /// A random Fel Beast (Deathrot Maw — 2025–2026 expansions M2-W4a)
+    FelBeast,
+    /// A random weapon from another class (Neferset Weaponsmith — 2025–2026
+    /// expansions M2-W4a; the class filter is the Pilfer OtherClass
+    /// precedent, restricted to weapons)
+    WeaponAnotherClass,
 }

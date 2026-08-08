@@ -1725,6 +1725,89 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DestroyMinionAndGainItsStats { .. } => 6.0,
         CardEffect::DealSelfAttackDamage { .. } => 4.0,
         CardEffect::SummonRandomMinionCostTaunt { cost } => 1.0 + cost as f64 * 1.2,
+        // ===== 2025–2026 expansions M2-W4a =====
+        CardEffect::DiscoverPool { .. } => 3.0,
+        CardEffect::AddRandomCardToHandCount { count, .. } => count as f64 * 2.5,
+        CardEffect::AddCardToHandCount { count, .. } => count as f64 * 2.5,
+        CardEffect::AddTemporaryRandomMinionsCost { count, .. } => count as f64 * 1.8,
+        CardEffect::AddRandomFelSpellsCostHealth { count } => count as f64 * 2.0,
+        CardEffect::AddRandomHolyAndShadowSpell => 4.0,
+        CardEffect::AddRandomHolySpellCost1 => 2.5,
+        CardEffect::CopyRandomHandElementalOrDragon => 3.0,
+        CardEffect::ReduceRandomEnemyHandMinionCost { amount } => amount as f64 * 1.0,
+        CardEffect::ReduceRandomBeastHandCost { amount } => amount as f64 * 0.8,
+        CardEffect::ReduceNonStartingHandCost { amount } => amount as f64 * 0.5,
+        CardEffect::SummonTreantsAttackMinion => 7.0,
+        CardEffect::DealDamageSummonCinders { amount } => amount as f64 * 1.2 + 3.0,
+        CardEffect::DealDamageLowestHealthEnemyRepeated { amount, times } => {
+            amount as f64 * times as f64 * 1.2
+        }
+        CardEffect::DealDamageRandomEnemies { amount, count } => amount as f64 * count as f64 * 1.1,
+        CardEffect::DrawMinionsDifferentTypesBuff {
+            count,
+            attack,
+            health,
+        } => count as f64 * 3.0 + (attack + health) as f64 * 0.8,
+        CardEffect::DrawMinionBuffArmorIfAttackGE {
+            min_attack: _,
+            buff_health,
+            armor,
+        } => 3.0 + buff_health as f64 * 0.8 + armor as f64 * 0.6,
+        CardEffect::SetFlockPending => 3.0,
+        CardEffect::GiveBuffOtherMinionsAttackLE { attack, health, .. } => {
+            (attack + health) as f64 * 0.8
+        }
+        CardEffect::DestroyMinionSummonRandomSameCost { .. } => 6.0,
+        CardEffect::SummonMinionsGrantRandomBonus { count, .. } => count as f64 * 3.0,
+        CardEffect::SummonMinionPair { .. } => 5.0,
+        CardEffect::SummonRandomMinionCostOrEscalated { cost, .. } => 1.0 + cost as f64 * 1.2,
+        CardEffect::DealDamageGainArmorIfKilled { amount, armor, .. } => {
+            amount as f64 * 1.2 + armor as f64 * 0.4
+        }
+        CardEffect::DealDamageAllEnemyMinionsSetMinionsCostMore { damage } => {
+            damage as f64 * 2.0 + 2.0
+        }
+        CardEffect::GiveBuffSameType { attack, health, .. } => (attack + health) as f64 * 0.9,
+        CardEffect::GrantRandomBonusEffects { count, .. } => count as f64 * 2.5,
+        CardEffect::GrantRandomBonusEffectAndDeathrattle => 3.5,
+        CardEffect::SetLakkariTicks { ticks } => ticks as f64 * 4.0,
+        CardEffect::GiveBuffAndSummonDeathrattle { attack, health, .. } => {
+            (attack + health) as f64 * 0.8 + 3.0
+        }
+        CardEffect::DealDamageImprovedByShuffles { amount, .. } => amount as f64 * 1.2,
+        CardEffect::DrawCardLinkDeathrattle => 3.0,
+        CardEffect::DiscardLinkedDrawnCard => 0.5,
+        CardEffect::GainArmorDealDamageEqual { armor, .. } => armor as f64 * 0.6 + 2.0,
+        CardEffect::DestroyDeckTop { .. } => -2.0,
+        CardEffect::ResurrectOneOfEachCostGiveReborn { max_cost } => 1.0 + max_cost as f64 * 1.5,
+        CardEffect::DealDamageSetNextBeastDiscount {
+            amount, discount, ..
+        } => amount as f64 * 1.2 + discount as f64 * 0.8,
+        CardEffect::BuffAllBeastsEverywhere { attack, health } => (attack + health) as f64 * 1.5,
+        CardEffect::DealDamageSameType { amount, .. } => amount as f64 * 2.0,
+        CardEffect::SetNextTemporaryDiscount { amount } => amount as f64 * 0.8,
+        CardEffect::SetEnemyHeroCantBeHealed => 2.0,
+        CardEffect::DestroyFriendlyMinionAddBones { .. } => 3.0,
+        CardEffect::GainManaCrystalsMatchOpponent => 3.0,
+        CardEffect::GiveBuffDifferentTypeMinions { attack, health } => {
+            (attack + health) as f64 * 1.0
+        }
+        CardEffect::DealDamageIfQuestPlayed { amount, .. } => amount as f64 * 1.2,
+        CardEffect::SwapHeroPowerToDeal8Random => 5.0,
+        CardEffect::RecastRandomHolySpellThisTurn => 4.0,
+        CardEffect::CastRandomSpellFromDeckCostLE { .. } => 3.0,
+        CardEffect::SpendArmorDealDamageAllMinions { .. } => 3.0,
+        CardEffect::DestroyTopCardDiscoverSameRarity => 3.0,
+        CardEffect::GrantKeyword { .. } => 2.0,
+        CardEffect::GrantDeathrattleSummon { .. } => 3.0,
+        CardEffect::AddRandomWeaponAnotherClassComboAttack { .. } => 2.5,
+        CardEffect::Drain { amount } => amount as f64 * 1.0,
+        CardEffect::GainStatsEqualFireSpellCost => 2.0,
+        CardEffect::DealDamageAndSummon { amount, .. } => amount as f64 * 1.2 + 3.0,
+        CardEffect::DiscoverDeckCard => 3.0,
+        CardEffect::DiscoverEnemyDeckTop => 3.0,
+        CardEffect::SummonRandomFelBeast => 4.0,
+        CardEffect::AddRandomBeastCostLess { .. } => 3.0,
     }
 }
 

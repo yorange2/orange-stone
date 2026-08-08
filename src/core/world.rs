@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
-    Charge, ChooseOneEffect, ComboEffect, Cost, CostModifier, CostModifierKind, Damage,
+    Charge, ChooseOneEffect, ComboEffect, Cost, CostHealth, CostModifier, CostModifierKind, Damage,
     DarkGiftKind, Deathrattle, DivineShield, Durability, Elusive, Enchantment, Enrage, Freeze,
     Health, HeroPowerDef, HeroPowerUsed, Immune, Lifesteal, OutcastPlayed, Overload, Poison, Quest,
     Race, Reborn, Rush, Secret, SpellDamage, Stealth, SummonedThisTurn, Taunt, Temporary,
@@ -188,6 +188,10 @@ pub struct World {
     /// carrying the Temporary keyword (discarded at the end of the owner's
     /// turn; plays progress the TLC_446 quest).
     temporary: SparseSet<Temporary>,
+    /// CostHealth marker storage (2025–2026 expansions M2-W4a) — hand
+    /// cards that cost Health instead of Mana (Whispering Stone's gotten
+    /// Fel spells).
+    cost_health: SparseSet<CostHealth>,
     /// Zone table — ordered entity lists per Zone
     zones: Zones,
 }
@@ -315,6 +319,7 @@ impl World {
             dark_gifts: SparseSet::new(),
             quest: SparseSet::new(),
             temporary: SparseSet::new(),
+            cost_health: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -939,6 +944,14 @@ impl World {
         set_temporary,
         remove_temporary,
         iter_temporary
+    );
+    component_accessors!(
+        cost_health,
+        CostHealth,
+        cost_health,
+        set_cost_health,
+        remove_cost_health,
+        iter_cost_health
     );
     /// Get the tribes of an entity (empty for tribe-less minions).
     #[must_use]

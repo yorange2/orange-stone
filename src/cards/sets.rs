@@ -1945,6 +1945,129 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     // M2-W3 tokens (handwritten only — no generated baselines)
     super::exp_tlc_w3::VENOMOUS_SPITTER,
     super::exp_tlc_w3::JUVENILE_STEAMFIN,
+    // M2-W4a — the Un'Goro main-set wave, first split
+    // (src/cards/exp_tlc_w4a.rs): the 96 non-legendary collectible TLC_*
+    // cards not landed in W1–W3 — the wave rule yields 97, TLC_249 Sizzling
+    // Cinder is already written in W3. The 22 cards landed in W1–W3 (4
+    // quests + 7 quest rewards/tokens + the 23-card Kindred wave minus
+    // overlaps) and all 21 legendaries stay unwritten here. Spell/weapon/
+    // location shapes, the Map-chain discovers, the Temporary creators and
+    // the small new effects are described in fidelity-debt §17.
+    super::exp_tlc_w4a::UNDERCOVER_CULTIST,
+    super::exp_tlc_w4a::RELIC_MINER,
+    super::exp_tlc_w4a::WINDSWEPT_PAGETURNER,
+    super::exp_tlc_w4a::MECHANIZED_MAGMA,
+    super::exp_tlc_w4a::CINDERFIN,
+    super::exp_tlc_w4a::SIZZLING_SWARM,
+    super::exp_tlc_w4a::FLIGHT_OF_THE_FIREHAWK,
+    super::exp_tlc_w4a::LAVA_FLOW,
+    super::exp_tlc_w4a::TREEEES,
+    super::exp_tlc_w4a::STORY_OF_BARNABUS,
+    super::exp_tlc_w4a::RAVENOUS_FLOCK,
+    super::exp_tlc_w4a::HATCHERY_HELPER,
+    super::exp_tlc_w4a::ETERNAL_BLOODPETAL,
+    super::exp_tlc_w4a::LIFE_CYCLE,
+    super::exp_tlc_w4a::SKYSCREAMER_EGGS,
+    super::exp_tlc_w4a::TYRANNOGILL,
+    super::exp_tlc_w4a::ANCIENT_STEGODON,
+    super::exp_tlc_w4a::CURIOUS_EXPLORER,
+    super::exp_tlc_w4a::ANCIENT_RAPTOR,
+    super::exp_tlc_w4a::ANCIENT_PTERRORDAX,
+    super::exp_tlc_w4a::PRIMAL_SABRETOOTH,
+    super::exp_tlc_w4a::ULTRAGIGASAUR,
+    super::exp_tlc_w4a::CRATER_GATOR,
+    super::exp_tlc_w4a::DISSOLVING_OOZE,
+    super::exp_tlc_w4a::PETRIFIED_OGRE,
+    super::exp_tlc_w4a::TORTOLLAN_STORYTELLER,
+    super::exp_tlc_w4a::CRYSTAL_TENDER,
+    super::exp_tlc_w4a::MARSHLAND_THRESHER,
+    super::exp_tlc_w4a::RELIC_OF_KINGS,
+    super::exp_tlc_w4a::STORY_OF_THE_WAYGATE,
+    super::exp_tlc_w4a::STORAGE_SCUFFLE,
+    super::exp_tlc_w4a::BONECHILL_STEGODON,
+    super::exp_tlc_w4a::ROCKSKIPPER,
+    super::exp_tlc_w4a::CREATURE_OF_THE_SACRED_CAVE,
+    super::exp_tlc_w4a::REANIMATED_PTERRORDAX,
+    super::exp_tlc_w4a::VIOLET_TREASUREGILL,
+    super::exp_tlc_w4a::PALEOMANCY,
+    super::exp_tlc_w4a::CRYPT_MAP,
+    super::exp_tlc_w4a::WAVE_OF_TAR,
+    super::exp_tlc_w4a::READY_THE_FLEET,
+    super::exp_tlc_w4a::SUBMERGED_MAP,
+    super::exp_tlc_w4a::RELUCTANT_WRANGLER,
+    super::exp_tlc_w4a::STORY_OF_GALVADON,
+    super::exp_tlc_w4a::SPELUNKER,
+    super::exp_tlc_w4a::CURSED_CATACOMBS,
+    super::exp_tlc_w4a::SCRAPPY_SCAVENGER,
+    super::exp_tlc_w4a::UNEARTHED_ARTIFACTS,
+    super::exp_tlc_w4a::MOUNTAIN_MAP,
+    super::exp_tlc_w4a::STRANGLEVINE,
+    super::exp_tlc_w4a::STORY_OF_LAKKARI,
+    super::exp_tlc_w4a::WHISPERING_STONE,
+    super::exp_tlc_w4a::BLOB_OF_TAR,
+    super::exp_tlc_w4a::TUNNEL_TERROR,
+    super::exp_tlc_w4a::THRESHRIDERS_BLESSING,
+    super::exp_tlc_w4a::DEATHROT_MAW,
+    super::exp_tlc_w4a::AXE_OF_THE_FOREFATHERS,
+    super::exp_tlc_w4a::VAULT_BREAKER,
+    super::exp_tlc_w4a::BLOODPETAL_BIOME,
+    super::exp_tlc_w4a::MERCHANT_OF_LEGEND,
+    super::exp_tlc_w4a::CULTIST_MAP,
+    super::exp_tlc_w4a::NEFERSET_WEAPONSMITH,
+    super::exp_tlc_w4a::KNOCKBACK,
+    super::exp_tlc_w4a::INTERROGATION,
+    super::exp_tlc_w4a::UNDERBRUSH_TRACKER,
+    super::exp_tlc_w4a::EYES_IN_THE_SKY,
+    super::exp_tlc_w4a::PLATYSAUR,
+    super::exp_tlc_w4a::TAR_TYRANT,
+    super::exp_tlc_w4a::LATORVIAN_ARMORER,
+    super::exp_tlc_w4a::SHELLNADO,
+    super::exp_tlc_w4a::FORTIFY,
+    super::exp_tlc_w4a::CITY_DEFENSES,
+    super::exp_tlc_w4a::WILLFUL_WATCHER,
+    super::exp_tlc_w4a::STONECARVER,
+    super::exp_tlc_w4a::GORISHI_WASP,
+    super::exp_tlc_w4a::BUGSQUASHER,
+    super::exp_tlc_w4a::STORY_OF_SULFURAS,
+    super::exp_tlc_w4a::TWILIGHT_MENDER,
+    super::exp_tlc_w4a::RESUSCITATE,
+    super::exp_tlc_w4a::GLADESONG_SIREN,
+    super::exp_tlc_w4a::GLADE_ECOLOGIST,
+    super::exp_tlc_w4a::WILTED_SHADOW,
+    super::exp_tlc_w4a::DINOSITTER,
+    super::exp_tlc_w4a::COWER_IN_FEAR,
+    super::exp_tlc_w4a::ODD_MAP,
+    super::exp_tlc_w4a::STORY_OF_CARNASSA,
+    super::exp_tlc_w4a::GRAZING_STEGODON,
+    super::exp_tlc_w4a::SUPREME_DINOMANCY,
+    super::exp_tlc_w4a::PTERRORDAX_EGG,
+    super::exp_tlc_w4a::STORY_OF_AMARA,
+    super::exp_tlc_w4a::GORISHI_TUNNELER,
+    super::exp_tlc_w4a::INSECT_CLAW,
+    super::exp_tlc_w4a::CLOUD_SERPENT,
+    super::exp_tlc_w4a::HIVE_MAP,
+    super::exp_tlc_w4a::FUMIGATE,
+    super::exp_tlc_w4a::INFESTATION,
+    super::exp_tlc_w4a::QUESTING_ASSISTANT,
+    super::exp_tlc_w4a::STORM_THE_GATES,
+    // M2-W4a tokens (handwritten only — no generated baselines)
+    super::exp_tlc_w4a::TREANT,
+    super::exp_tlc_w4a::ETERNAL_SEEDLING,
+    super::exp_tlc_w4a::ETERNAL_BLOODPETAL_REVIVED,
+    super::exp_tlc_w4a::SKYSCREAMER_HATCHLING,
+    super::exp_tlc_w4a::DINOLOC,
+    super::exp_tlc_w4a::PLANT,
+    super::exp_tlc_w4a::BONES,
+    super::exp_tlc_w4a::ROCK,
+    super::exp_tlc_w4a::REANIMATED_OSSODON,
+    super::exp_tlc_w4a::IMP,
+    super::exp_tlc_w4a::LANKY_BLOB,
+    super::exp_tlc_w4a::ROBUST_BLOB,
+    super::exp_tlc_w4a::STEADFAST_SECURITY,
+    super::exp_tlc_w4a::GORISHI_STINGER,
+    super::exp_tlc_w4a::RAPTOR,
+    super::exp_tlc_w4a::JUVENILE_PTERRORDAX,
+    super::exp_tlc_w4a::GRUB,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated
@@ -1995,6 +2118,13 @@ pub const POOL_OPEN_CARDS: &[&str] = &[
     // M1-W4b — the elite Wild Gods wave (src/cards/exp_edr_w4b.rs):
     // Ashamane fills the hand with copies of the opponent's deck cards.
     "EDR_527", // Ashamane — fills the hand with copies of the enemy deck
+    // M2-W4a — the Un'Goro main-set wave, first split
+    // (src/cards/exp_tlc_w4a.rs): deck- and hand-reading resolution.
+    "TLC_451", // Cursed Catacombs — discovers a card from the OWN deck
+    "TLC_515", // Cultist Map — discovers a card from the own deck
+    "TLC_521", // Eyes in the Sky — reorders the enemy's deck top 3
+    "TLC_438", // Violet Treasuregill — casts a spell from the own deck
+    "TLC_888", // Cloud Serpent — copies from the own hand
 ];
 
 #[cfg(test)]
@@ -2043,6 +2173,13 @@ mod tests {
                     | CardEffect::OpponentDrawsTwoAndCopies
                     | CardEffect::ShuffleMatchingEnemyHandCardIntoDeck
                     | CardEffect::FillHandWithEnemyDeckCopies { .. }
+                    // M2-W4a — the Un'Goro main-set wave (own-deck
+                    // discovers, enemy-deck top peek, own-deck spell cast,
+                    // own-hand copy).
+                    | CardEffect::DiscoverDeckCard
+                    | CardEffect::DiscoverEnemyDeckTop
+                    | CardEffect::CastRandomSpellFromDeckCostLE { .. }
+                    | CardEffect::CopyRandomHandElementalOrDragon
             )
         };
         for card in ALL_CARDS {

@@ -36,6 +36,7 @@ pub mod exp_edr_w4b;
 pub mod exp_edr_w5;
 pub mod exp_tlc_w2;
 pub mod exp_tlc_w3;
+pub mod exp_tlc_w4a;
 pub mod generated;
 pub mod kindred;
 pub mod pool;
@@ -137,6 +138,10 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "TLC_366" // Pterrorwing Ravager (M2-W3 — Kindred wave)
         | "TLC_429t" // Juvenile Steamfin (M2-W3 — Steamfin Thief token)
         | "TLC_903" // Silithid Queen (M2-W3 — Kindred wave)
+        | "TLC_240" // Tyrannogill (M2-W4a — the main-set wave)
+        | "TLC_436" // Reanimated Pterrordax (M2-W4a)
+        | "TLC_520" // Underbrush Tracker (M2-W4a)
+        | "TLC_630" // Gorishi Wasp (M2-W4a)
     ) {
         world.set_rush(entity, Rush);
     }
@@ -157,14 +162,19 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "EDR_272" // Evergreen Stag (M1-W4a)
         | "EDR_486" // Scorching Observer (M1-W4a)
         | "FIR_777" // Spirit of the Kaldorei (M1-W5 — the Embers wave)
+        | "TLC_436" // Reanimated Pterrordax (M2-W4a — the main-set wave)
+        | "TLC_605" // Tar Tyrant (M2-W4a)
+        | "TLC_819" // Gladesong Siren (M2-W4a)
+        | "TLC_821" // Wilted Shadow (M2-W4a)
     ) {
         world.set_lifesteal(entity, Lifesteal);
     }
     if matches!(
         card_def.id,
-        // Reborn (3): Malignant Horror, Murmy, Sol'etos Death's Touch
-        // (TLC_817t4, M2-W2 — the Un'Goro quest reward token)
-        "CORE_RLK_745" | "CORE_ULD_723" | "TLC_817t4"
+        // Reborn (5): Malignant Horror, Murmy, Sol'etos Death's Touch
+        // (TLC_817t4, M2-W2 — the Un'Goro quest reward token), Undercover
+        // Cultist and Reluctant Wrangler (M2-W4a — the main-set wave)
+        "CORE_RLK_745" | "CORE_ULD_723" | "TLC_817t4" | "TLC_101" | "TLC_443"
     ) {
         world.set_reborn(entity, Reborn);
     }
@@ -275,6 +285,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "CORE_SW_066"  // Royal Librarian
         | "CORE_SW_072"  // Rustrot Viper
         | "CORE_SW_429" // Best in Shell
+        | "TLC_255" // Crystal Tender (M2-W4a — the main-set wave)
     ) {
         world.set_tradeable(entity, Tradeable);
     }
@@ -522,6 +533,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         "CORE_EX1_238" => Some(1), // Lightning Bolt
         "CORE_EX1_250" => Some(3), // Earth Elemental
         "CORE_EX1_259" => Some(2), // Lightning Storm
+        // M2-W4a — the Un'Goro main-set wave
+        "TLC_227" => Some(1), // Lava Flow
         _ => None,
     };
     if let Some(amount) = overload_amount {
@@ -601,6 +614,11 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         world.set_poison(entity, Poison);
         world.set_stealth(entity, Stealth);
     }
+    if matches!(card_def.id, "TLC_468" | "TLC_468t1") {
+        // Blob of Tar (M2-W4a — Poisonous, Taunt; the Taunt half rides the
+        // CardDef) and its Lanky Blob token — Poisonous
+        world.set_poison(entity, Poison);
+    }
     if card_def.id == "WARRIOR_008" {
         // Warsong Commander — whenever you summon a minion with 3 or less
         // Attack, give it Charge. A trigger rather than an aura: the Charge is
@@ -664,6 +682,11 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // Spiteful Smith — Enrage: your weapon has +2 Attack
         "NEUTRAL_C15" => Some(Enrage {
             weapon_attack: 2,
+            ..Enrage::default()
+        }),
+        // Undercover Cultist (M2-W4a) — Taunt, Reborn. Enrage: +3 Attack
+        "TLC_101" => Some(Enrage {
+            attack: 3,
             ..Enrage::default()
         }),
         _ => None,
@@ -864,6 +887,23 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 target: EffectTarget::AllFriendlyMinions,
             },
         )),
+        // Axe of the Forefathers (M2-W4a) — after your hero attacks, deal
+        // 1 damage to all minions
+        "TLC_478" => Some((
+            TriggerEvent::Attacked,
+            CardEffect::DealDamage {
+                amount: 1,
+                target: EffectTarget::AllMinions,
+            },
+        )),
+        // Insect Claw (M2-W4a) — after your hero attacks, summon a 2/1
+        // Grub with Rush (TLC_903t, the W3 token)
+        "TLC_833" => Some((
+            TriggerEvent::Attacked,
+            CardEffect::SummonMinion {
+                card_id: "TLC_903t",
+            },
+        )),
         _ => None,
     };
     if let Some((event, effect)) = weapon_trigger {
@@ -983,6 +1023,79 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
             },
         );
     }
+    // M2-W4a (2025–2026 expansions — the Un'Goro main-set wave) per-card
+    // triggers. Windswept Pageturner rides the race-conditioned
+    // FriendlyMinionSummoned trigger (the Murloc Tidecaller pattern): the
+    // summoned minion must be an Elemental — the pageturner's own play is
+    // excluded by the event semantics, matching "After you summon an
+    // Elemental" (a minion's summon trigger never fires on its own play).
+    if card_def.id == "TLC_220" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionSummoned,
+                timing: TriggerTiming::Whenever,
+                race: Some(crate::core::component::Race::Elemental),
+                max_attack: None,
+                effect: CardEffect::DealDamage {
+                    amount: 3,
+                    target: EffectTarget::AnyEnemy,
+                },
+            },
+        );
+    }
+    // Steadfast Security (City Defenses' token) — whenever this takes
+    // damage, gain +1 Attack
+    if card_def.id == "TLC_622t" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::ThisMinionDamaged,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::GainStats {
+                    attack: 1,
+                    health: 0,
+                    target: EffectTarget::Self_,
+                },
+            },
+        );
+    }
+    // Gorishi Wasp — whenever this takes damage, get a 1-Cost Gorishi
+    // Stinger (the same token Infestation creates)
+    if card_def.id == "TLC_630" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::ThisMinionDamaged,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::AddCardToHandCount {
+                    card_id: "TLC_630t",
+                    count: 1,
+                },
+            },
+        );
+    }
+    // Gorishi Tunneler — after this attacks, deal 2 damage to the enemy
+    // hero (the Attacked trigger rides the attacker, like the Everbloom)
+    if card_def.id == "TLC_840" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::Attacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::DealDamage {
+                    amount: 2,
+                    target: EffectTarget::EnemyHero,
+                },
+            },
+        );
+    }
 }
 
 /// Human-readable branch labels for a Choose One card's two options
@@ -1032,6 +1145,50 @@ pub(crate) fn choose_one_option_names(def: &CardDef) -> [&'static str; 2] {
         "EDR_843" => ["Draw a spell", "Draw a minion"],
         "EDR_872" => ["Discover a Mage spell", "Discover a Druid spell"],
         _ => ["First option", "Second option"],
+    }
+}
+
+/// The THIRD branch of a three-option Choose One card (2025–2026
+/// expansions M2-W4a — the Un'Goro beasts). Option 0 resolves the
+/// battlecry slot, option 1 the choose-one slot, option 2 this table —
+/// the ChoiceResolved arm in `engine/rules.rs` falls through to it. Cards
+/// without a third branch return None.
+pub(crate) fn choose_one_three_branch(def: &CardDef) -> Option<CardEffect> {
+    match def.id {
+        // Ancient Stegodon — Battlecry: Choose to gain Taunt, Poisonous,
+        // or +1/+1
+        "TLC_242" => Some(CardEffect::GainStats {
+            attack: 1,
+            health: 1,
+            target: EffectTarget::Self_,
+        }),
+        // Ancient Raptor — Battlecry: Choose to gain +3 Attack, Divine
+        // Shield, or "Deathrattle: Summon two 1/1 Plants."
+        "TLC_245" => Some(CardEffect::GrantDeathrattleSummon {
+            card_id: "TLC_245t",
+            count: 2,
+            target: EffectTarget::Self_,
+        }),
+        // Ancient Pterrordax — Battlecry: Choose to gain Stealth until
+        // your next turn, Elusive, or Windfury
+        "TLC_246" => Some(CardEffect::GrantKeyword {
+            keyword: crate::core::effect::KeywordKind::Windfury,
+            target: EffectTarget::Self_,
+        }),
+        _ => None,
+    }
+}
+
+/// The label of a three-option Choose One card's third branch (M2-W4a —
+/// the Un'Goro beasts; the `choose_one_option_names` pair covers the
+/// first two). The choose-one surface sites in `engine/rules.rs` append
+/// it when present.
+pub(crate) fn choose_one_three_option_names(def: &CardDef) -> Option<&'static str> {
+    match def.id {
+        "TLC_242" => Some("Gain +1/+1"),
+        "TLC_245" => Some("Deathrattle: Summon two 1/1 Plants"),
+        "TLC_246" => Some("Gain Windfury"),
+        _ => None,
     }
 }
 
@@ -1623,7 +1780,14 @@ mod generated_tests {
         // EDR_454/EDR_520 pair above (the miniset wave predates the Location
         // CardType in the generator; the handwritten card is the faithful
         // Location 5-mana / 3-durability representation).
-        id == "FIR_907" && matches!(field, "card_type" | "health" | "durability")
+        if id == "FIR_907" {
+            return matches!(field, "card_type" | "health" | "durability");
+        }
+        // TLC_449 Bloodpetal Biome (M2-W4a) — the same Location divergence
+        // (the generator predates the Location CardType: the generated
+        // baseline is a vanilla Minion; the handwritten card is the faithful
+        // Location 1-mana / 2-durability representation).
+        id == "TLC_449" && matches!(field, "card_type" | "health" | "durability")
     }
 
     /// The gate itself: enumerate the generated expansion baselines, compare

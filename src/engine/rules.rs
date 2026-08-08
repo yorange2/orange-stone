@@ -9,7 +9,7 @@
 
 use crate::core::action::Action;
 use crate::core::component::{
-    Attack, AttacksUsed, CardType, DarkGiftKind, Durability, EnchantmentExpiry, Health,
+    Attack, AttacksUsed, CardType, Cost, DarkGiftKind, Durability, EnchantmentExpiry, Health,
     HeroPowerUsed, Secret, TriggerEvent, TriggerTiming,
 };
 use crate::core::entity::Entity;
@@ -75,6 +75,23 @@ fn choose_one_labels(state: &GameState, card: Entity) -> [&'static str; 2] {
         .and_then(|c| crate::cards::def::card_by_id(c.0))
         .map(crate::cards::choose_one_option_names)
         .unwrap_or(["First option", "Second option"])
+}
+
+/// The full branch label list for a choose-one card — 2 options for the
+/// standard cards, 3 for the M2-W4a trio (Ancient Stegodon / Ancient
+/// Raptor / Ancient Pterrordax, whose third branch lives in the
+/// cards-side `choose_one_three_branch` table).
+fn choose_one_labels_all(state: &GameState, card: Entity) -> Vec<&'static str> {
+    let mut labels: Vec<&'static str> = choose_one_labels(state, card).to_vec();
+    if let Some(third) = state
+        .world()
+        .card_id(card)
+        .and_then(|c| crate::cards::def::card_by_id(c.0))
+        .and_then(crate::cards::choose_one_three_option_names)
+    {
+        labels.push(third);
+    }
+    labels
 }
 
 /// How many times a choose-one choice surfaces for the given card —
@@ -226,6 +243,12 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
     // Check mana (single cost composition — roadmap G5)
     let cost = crate::engine::cost::play_cost(state, card, active);
     if cost.0 > state.player(active).current_mana {
+        return Err(EngineError::NotEnoughMana);
+    }
+
+    // Reanimated Pterrordax (M2-W4a): "Costs Corpses instead of Mana" — the
+    // play needs 5 Corpses (the printed Cost), which are spent at play.
+    if world.card_id(card).is_some_and(|c| c.0 == "TLC_436") && state.player(active).corpses < 5 {
         return Err(EngineError::NotEnoughMana);
     }
 
@@ -426,6 +449,16 @@ fn validate_hero_power(state: &GameState, hero: Entity) -> Result<(), EngineErro
 pub(crate) fn compute_attacker_damage(state: &GameState, attacker: Entity) -> i32 {
     let world = state.world();
     let mut base = world.effective_attack(attacker).unwrap_or(Attack(0));
+    // Tar Tyrant (M2-W4a): "Has +6 Attack during your opponent's turn" —
+    // the minion attacks on the opponent's turn, i.e. whenever the attacker
+    // is not the active player's minion.
+    if world.card_id(attacker).is_some_and(|c| c.0 == "TLC_605")
+        && world
+            .player(attacker)
+            .is_some_and(|pid| pid != state.active_player())
+    {
+        return base.0 + 6;
+    }
     // Bladed Gauntlet (Core Set W3c): the weapon's Attack equals the
     // owner's armor (the effective_attack base is 0)
     let hero_has_gauntlet = world.card_type(attacker) == Some(CardType::Hero)
@@ -722,6 +755,53 @@ pub fn apply_event(
 ) -> Result<(), EngineError> {
     match event {
         Event::TurnStarted { player } => {
+            // Ravenous Flock (M2-W4a): "At the start of your next turn, summon
+            // three 2/1 Hatchlings" — the flag set by the play effect fires
+            // here, once, at the owner's next turn start.
+            if state.player(player).flock_pending {
+                state.make_mut().players[player.index()].flock_pending = false;
+                let hero = state.player(player).hero;
+                for _ in 0..3 {
+                    trigger::resolve_summon(state, queue, hero, player, "TLC_237t");
+                }
+            }
+            // Petrified Ogre (M2-W4a): "Starts Dormant. While Dormant, gain
+            // +2/+2 at the start of your turn. (50% chance to awaken
+            // instead.)" — Dormant is modeled as can't-attack (the
+            // established convention, see §17); each of the owner's turn
+            // starts flips the official 50%: an awake outcome clears the
+            // Dormant marker, a sleeping outcome stacks +2/+2.
+            if state
+                .world()
+                .zones()
+                .iter(Zone::Play, player)
+                .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_253"))
+            {
+                let awaken = state.rng_mut().next_u32() % 2 == 0;
+                let ogres: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, player)
+                    .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_253"))
+                    .collect();
+                if awaken {
+                    for e in &ogres {
+                        state.world_mut().remove_cant_attack(*e);
+                    }
+                } else {
+                    for e in &ogres {
+                        state.world_mut().add_enchantment(
+                            *e,
+                            crate::core::component::Enchantment {
+                                attack: 2,
+                                health: 2,
+                                cost: 0,
+                                expiry: crate::core::component::EnchantmentExpiry::Permanent,
+                            },
+                        );
+                    }
+                }
+            }
             // Corruption: destroy corrupted minions at the start of your turn
             // (mem::take swaps in an empty Vec — zero allocation, unlike drain().collect())
             let inner = state.make_mut();
@@ -784,6 +864,11 @@ pub fn apply_event(
                 inner.players[player.index()].healed_this_turn = false;
                 // Core Set W4b — the enemy-spell cost tax expires at turn start
                 inner.players[player.index()].enemy_spell_cost_more = 0;
+                // M2-W4a: "until the start of your next turn" effects expire at
+                // the owner's turn start — Wilted Shadow's heal-block on the
+                // opponent hero and Wave of Tar's enemy-minion cost tax.
+                inner.players[player.index()].enemy_hero_cant_be_healed = false;
+                inner.players[player.index()].minions_cost_more = false;
             }
             state.set_active_player(player);
             state.set_turn(new_turn);
@@ -811,6 +896,34 @@ pub fn apply_event(
                     1,
                     None,
                 );
+            }
+            // Story of Lakkari (M2-W4a): "At the end of your turn, discard a
+            // card and fill your board with 3/2 Imps. Lasts 3 turns." — the
+            // tick counter was set by the play effect; each of the owner's
+            // turn ends consumes one tick (registered simplification: the
+            // discard is random — the official card discards a random card —
+            // and "fill your board" summons an Imp into every free slot).
+            if state.player(player).lakkari_ticks > 0 {
+                {
+                    let p = &mut state.make_mut().players[player.index()];
+                    p.lakkari_ticks -= 1;
+                }
+                trigger::resolve_discard_random(state, player);
+                let board_count = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, player)
+                    .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                    .count();
+                for _ in board_count..crate::engine::rules::MAX_BOARD_SIZE {
+                    trigger::resolve_summon(
+                        state,
+                        queue,
+                        state.player(player).hero,
+                        player,
+                        "TLC_466t",
+                    );
+                }
             }
             // End-of-turn effects fire in the EndTriggers step — before the
             // wrap-up cleanup — so effects resolve at full strength and deaths
@@ -892,11 +1005,15 @@ pub fn apply_event(
                 && state
                     .world()
                     .has_race(card, crate::core::component::Race::Dragon);
-            let pay_health = state.player(player).healed_this_turn
+            // M2-W4a: the CostHealth marker (Whispering Stone's gotten Fel
+            // spells) pays Health instead of Mana, like Death Metal Knight's
+            // id-keyed pay-health branch.
+            let pay_health = (state.player(player).healed_this_turn
                 && state
                     .world()
                     .card_id(card)
-                    .is_some_and(|c| c.0 == "CORE_ETC_523");
+                    .is_some_and(|c| c.0 == "CORE_ETC_523"))
+                || state.world().cost_health(card).is_some();
             if pay_health {
                 let hero = state.player(player).hero;
                 queue.push(Event::DamageDealt {
@@ -904,6 +1021,33 @@ pub fn apply_event(
                     target: hero,
                     amount: cost.0,
                 });
+            }
+            // M2-W4a Map cards (Crypt/Submerged/Mountain/Cultist/Odd/Hive
+            // Map): playing the discovered card this turn also adds one random
+            // other option to hand (the simplified "pick one of the others"
+            // chain, fidelity-debt §17). The pending entry is consumed here —
+            // once, by the discovered card's play.
+            if let Some((discovered, others)) = state.player(player).map_pending.clone() {
+                if discovered == card && !others.is_empty() {
+                    state.make_mut().players[player.index()].map_pending = None;
+                    if let Some(other) = others.get(state.rng_mut().next_usize(others.len())) {
+                        if let Some(other_def) = crate::cards::def::card_by_id(other.as_str()) {
+                            trigger::add_card_to_hand(state, player, other_def);
+                        }
+                    }
+                }
+            }
+            // Reanimated Pterrordax (M2-W4a): "Costs Corpses instead of Mana"
+            // — the 5 Corpses are spent at play (play_cost returns Cost(0);
+            // the validate gate below blocks the play without enough Corpses).
+            if state
+                .world()
+                .card_id(card)
+                .is_some_and(|c| c.0 == "TLC_436")
+            {
+                let inner = state.make_mut();
+                let p = &mut inner.players[player.index()];
+                p.corpses = p.corpses.saturating_sub(5);
             }
             // Hot Spring Glider (M2-W3): "your next Murloc costs (1) less
             // / gains Divine Shield" — one-time flags, consumed by the
@@ -920,6 +1064,10 @@ pub fn apply_event(
                     .world_mut()
                     .set_divine_shield(card, crate::core::component::DivineShield);
             }
+            // Spelunker (M2-W4a): whether the played card carries the
+            // Temporary marker — the next-Temporary discount is consumed by
+            // its play (captured before the player block below).
+            let is_temporary_play = state.world().temporary(card).is_some();
             // Kindred (M2-W3): the played card's type — spells push `Spell`,
             // minions their primary (first) race; captured before the
             // player block below (the push happens there; play_cost ran
@@ -951,6 +1099,12 @@ pub fn apply_event(
                 p.next_demon_discount = 0;
                 p.next_outcast_discount = 0; // Illidari Studies (W6)
                 p.next_combo_discount = 0;
+                // Spelunker (M2-W4a): the next-Temporary discount is one-time,
+                // consumed by the next Temporary card play (its cost already
+                // included the discount)
+                if is_temporary_play {
+                    p.next_temporary_discount = 0;
+                }
                 // Agamaggan (M1-W4b): the next-card-costs-zero flag is
                 // one-time, consumed on play (its cost already included it)
                 p.next_card_costs_zero = false;
@@ -1025,6 +1179,19 @@ pub fn apply_event(
                 .card_id(card)
                 .and_then(|cid| crate::cards::quest::quest_def(cid.0))
             {
+                // M2-W4a: "If you played a Quest this game" (Questing
+                // Assistant) — the played-a-quest flag, set at the quest
+                // play-path diversion, persists for the game. A SIDEQUEST
+                // (TLC_EVENT_400) is not a Quest — it never sets the flag
+                // (official classification: sidequests occupy their own
+                // slot and don't count for "played a Quest" effects).
+                if !state
+                    .world()
+                    .card_id(card)
+                    .is_some_and(|c| c.0 == "TLC_EVENT_400")
+                {
+                    state.make_mut().players[player.index()].quest_played = true;
+                }
                 // One quest per player: an occupied slot's quest is destroyed
                 // (progress lost, no reward — the official replace rule).
                 for old in state.world().zones().entities(Zone::Quest, player) {
@@ -1188,13 +1355,14 @@ pub fn apply_event(
                                 // (GameEngine::apply) resolves it randomly via the
                                 // embedded RNG, preserving the historical behavior.
                                 // The option labels come from the cards-side table
-                                // (M1-W3, P3 real choice resolution).
-                                let labels = choose_one_labels(state, card);
+                                // (M1-W3, P3 real choice resolution; M2-W4a appends
+                                // the third branch of the Un'Goro beasts).
+                                let labels = choose_one_labels_all(state, card);
                                 let repeat = choose_one_repeat(state, card);
                                 state.set_pending_choice_repeat(
                                     ChoiceKind::ChooseOne,
                                     card,
-                                    vec![String::from(labels[0]), String::from(labels[1])],
+                                    labels.iter().map(|l| l.to_string()).collect(),
                                     Vec::new(),
                                     false,
                                     repeat,
@@ -1297,12 +1465,12 @@ pub fn apply_event(
                 // surfaces as a pending choice after equipping — ChoiceResolved
                 // resolves the chosen branch (same pattern as spells/minions).
                 if state.world().choose_one_effect(card).is_some() {
-                    let labels = choose_one_labels(state, card);
+                    let labels = choose_one_labels_all(state, card);
                     let repeat = choose_one_repeat(state, card);
                     state.set_pending_choice_repeat(
                         ChoiceKind::ChooseOne,
                         card,
-                        vec![String::from(labels[0]), String::from(labels[1])],
+                        labels.iter().map(|l| l.to_string()).collect(),
                         Vec::new(),
                         false,
                         repeat,
@@ -1413,12 +1581,12 @@ pub fn apply_event(
                 // battlecry and ChoiceResolved resolves the chosen branch (G6).
                 // The option labels come from the cards-side table (M1-W3, P3).
                 if state.world().choose_one_effect(card).is_some() {
-                    let labels = choose_one_labels(state, card);
+                    let labels = choose_one_labels_all(state, card);
                     let repeat = choose_one_repeat(state, card);
                     state.set_pending_choice_repeat(
                         ChoiceKind::ChooseOne,
                         card,
-                        vec![String::from(labels[0]), String::from(labels[1])],
+                        labels.iter().map(|l| l.to_string()).collect(),
                         Vec::new(),
                         false,
                         repeat,
@@ -1466,6 +1634,24 @@ pub fn apply_event(
                         crate::cards::quest::QuestCondition::PlayBeastsOfAttack,
                         1,
                         Some(attack),
+                    );
+                }
+                // The sidequest (M2-W4a): TLC_EVENT_400 — "Play 3 Beasts
+                // or Undead" — a played minion of either race counts.
+                if state
+                    .world()
+                    .has_race(card, crate::core::component::Race::Beast)
+                    || state
+                        .world()
+                        .has_race(card, crate::core::component::Race::Undead)
+                {
+                    crate::engine::quest::progress(
+                        state,
+                        queue,
+                        player,
+                        crate::cards::quest::QuestCondition::PlayBeastsOrUndead,
+                        1,
+                        None,
                     );
                 }
                 if count_board_minions(state.world(), player) == MAX_BOARD_SIZE {
@@ -2168,6 +2354,27 @@ pub fn apply_event(
 
             // Death check (using effective health to account for aura bonuses)
             queue_death_events(state, queue, target, card_type);
+            // Primal Sabretooth (M2-W4a): "After this attacks and kills a
+            // minion, get a copy of it" — the kill is detected right here
+            // (the damage pipeline's death check, where the source of the
+            // killing damage is in scope): a dead enemy minion whose death
+            // came from a Sabretooth attack is copied to the Sabretooth's
+            // owner's hand. A heal-rescued target never fired this (the
+            // death check returned early), matching HS.
+            if card_type == Some(CardType::Minion)
+                && state
+                    .world()
+                    .effective_health(target)
+                    .is_some_and(|h| h.is_dead())
+                && state
+                    .world()
+                    .card_id(source)
+                    .is_some_and(|c| c.0 == "TLC_247")
+            {
+                if let Some(killer_owner) = state.world().player(source) {
+                    trigger::copy_card_to_hand(state, target, killer_owner);
+                }
+            }
         }
         Event::MinionDied { minion } => {
             // Death batching (roadmap G3): re-check the health — a minion healed
@@ -2370,6 +2577,29 @@ pub fn apply_event(
             state
                 .world_mut()
                 .set_hero_power_used(hero, HeroPowerUsed(true));
+            // Story of Sulfuras (M2-W4a): the swapped-in "Deal 8 damage to a
+            // random enemy" hero power — each use ticks the counter, and the
+            // second use swaps the original hero power back.
+            if state.player(player).sulfuras_uses > 0 {
+                let swap_back = {
+                    let p = &mut state.make_mut().players[player.index()];
+                    p.sulfuras_uses += 1;
+                    if p.sulfuras_uses >= 2 {
+                        p.sulfuras_uses = 0;
+                        true
+                    } else {
+                        false
+                    }
+                };
+                if swap_back {
+                    let original = state.make_mut().players[player.index()]
+                        .sulfuras_original
+                        .take();
+                    if let Some(original) = original {
+                        state.world_mut().set_hero_power(hero, original);
+                    }
+                }
+            }
             // Resolve the hero power effect (explicit target, roadmap G6)
             if let Some(hp_def) = state.world().hero_power(hero) {
                 let effect = hp_def.effect;
@@ -2430,6 +2660,24 @@ pub fn apply_event(
                     1,
                     None,
                 );
+                // M2-W4a per-turn school flags: Gladesong Siren's "costs (1)
+                // if you cast a Holy and Shadow spell this turn" reads the
+                // shadow marker; Creature of the Sacred Cave recasts a random
+                // Holy spell cast this turn (the id list).
+                match school {
+                    crate::cards::quest::SpellSchool::Holy => {
+                        let cid = state.world().card_id(spell).map(|c| c.0.to_string());
+                        if let Some(cid) = cid {
+                            state.make_mut().players[player.index()]
+                                .holy_cast_ids
+                                .push(cid);
+                        }
+                    }
+                    crate::cards::quest::SpellSchool::Shadow => {
+                        state.make_mut().players[player.index()].shadow_cast_this_turn = true;
+                    }
+                    _ => {}
+                }
             }
             // Spell triggers: registered FriendlySpellCast triggers fire in
             // play order. The cast spell rides as the subject — behaviour-
@@ -2482,8 +2730,18 @@ pub fn apply_event(
                     let card_type = state.world().card_type(card);
                     let chosen_effect = if option == 0 {
                         state.world().battlecry(card).map(|b| b.0)
-                    } else {
+                    } else if option == 1 {
                         state.world().choose_one_effect(card).map(|c| c.0)
+                    } else {
+                        // M2-W4a third branch — the Un'Goro choose-one
+                        // beasts (Ancient Stegodon / Ancient Raptor /
+                        // Ancient Pterrordax), resolved from the
+                        // cards-side three-branch table.
+                        state
+                            .world()
+                            .card_id(card)
+                            .and_then(|c| crate::cards::def::card_by_id(c.0))
+                            .and_then(crate::cards::choose_one_three_branch)
                     };
                     let returns_to_hand = matches!(
                         chosen_effect,
@@ -2522,11 +2780,11 @@ pub fn apply_event(
                     // for the remaining picks — each pick resolves one branch
                     // (options may be mixed, like the official card).
                     if repeat > 1 {
-                        let labels = choose_one_labels(state, card);
+                        let labels = choose_one_labels_all(state, card);
                         state.set_pending_choice_repeat(
                             ChoiceKind::ChooseOne,
                             card,
-                            vec![String::from(labels[0]), String::from(labels[1])],
+                            labels.iter().map(|l| l.to_string()).collect(),
                             Vec::new(),
                             false,
                             repeat - 1,
@@ -2555,6 +2813,11 @@ pub fn apply_event(
                         .world()
                         .player(pending.card)
                         .unwrap_or(state.active_player());
+                    // M2-W4a: "Discovered this turn" — the discover machinery
+                    // sets the flag for every discover (Storage Scuffle's cost
+                    // (0), Unearthed Artifacts' 4-Cost summon, Vault Breaker's
+                    // discount all read it; cleared at the turn end).
+                    state.make_mut().players[player.index()].discovered_this_turn = true;
                     if pending.discard_rest {
                         // Tracking (W10): the pool IS the deck's top cards —
                         // the picked card's existing entity moves to hand and
@@ -2577,9 +2840,153 @@ pub fn apply_event(
                     } else if let Some(card_id) = pending.pool.get(option as usize) {
                         // Add the picked pool card to the owner's hand
                         if let Some(card_def) = crate::cards::def::card_by_id(card_id) {
-                            trigger::add_card_to_hand(state, player, card_def);
+                            let picked_entity = trigger::add_card_to_hand(state, player, card_def);
+                            if let Some(entity) = picked_entity {
+                                apply_w4a_discover_modifiers(
+                                    state,
+                                    pending.temporary,
+                                    pending.card,
+                                    entity,
+                                );
+                                // The Map chain (M2-W4a, fidelity-debt §17): the
+                                // OTHER options are stored so playing the
+                                // discovered card this turn adds one of them.
+                                if !pending.map_others.is_empty() {
+                                    let others: Vec<String> = pending
+                                        .pool
+                                        .iter()
+                                        .filter(|id| id.as_str() != card_id.as_str())
+                                        .cloned()
+                                        .collect();
+                                    state.make_mut().players[player.index()].map_pending =
+                                        Some((entity, others));
+                                }
+                            }
                         }
                     }
+                    // Merchant of Legend (M2-W4a): shuffle the other two
+                    // options into the deck.
+                    if state
+                        .world()
+                        .card_id(pending.card)
+                        .is_some_and(|c| c.0 == "TLC_514")
+                    {
+                        for (i, other) in pending.pool.iter().enumerate() {
+                            if i == option as usize {
+                                continue;
+                            }
+                            if let Some(def) = crate::cards::def::card_by_id(other) {
+                                let deck_count = state.world().zones().len(Zone::Deck, player);
+                                let position = if deck_count > 0 {
+                                    state.rng_mut().next_usize(deck_count + 1)
+                                } else {
+                                    0
+                                };
+                                let world = state.world_mut();
+                                let e = crate::cards::spawn_card_from_def(world, player, def);
+                                world.set_zone(e, Zone::Deck);
+                                world.zones_mut().insert_at(Zone::Deck, player, e, position);
+                                state.make_mut().players[player.index()].shuffled_count += 1;
+                            }
+                        }
+                    }
+                    // Paleomancy (M2-W4a): spend 5 Corpses to keep all 3
+                    // instead — the whole pool goes to hand.
+                    if state
+                        .world()
+                        .card_id(pending.card)
+                        .is_some_and(|c| c.0 == "TLC_434")
+                        && state.player(player).corpses >= 5
+                    {
+                        let inner = state.make_mut();
+                        inner.players[player.index()].corpses -= 5;
+                        for (i, other) in pending.pool.iter().enumerate() {
+                            if i == option as usize {
+                                continue;
+                            }
+                            if let Some(def) = crate::cards::def::card_by_id(other) {
+                                if let Some(entity) = trigger::add_card_to_hand(state, player, def)
+                                {
+                                    apply_w4a_discover_modifiers(
+                                        state,
+                                        false,
+                                        pending.card,
+                                        entity,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+                ChoiceKind::DiscoverDeck => {
+                    // Cursed Catacombs / Cultist Map (M2-W4a): the pool holds
+                    // three random DISTINCT deck card ids (the source card
+                    // excluded); the picked card is the deck entity moved to
+                    // hand. Cursed Catacombs marks it Temporary; Cultist Map
+                    // runs the Map chain (see fidelity-debt §17).
+                    let player = state
+                        .world()
+                        .player(pending.card)
+                        .unwrap_or(state.active_player());
+                    state.make_mut().players[player.index()].discovered_this_turn = true;
+                    let Some(picked_id) = pending.pool.get(option as usize) else {
+                        return Ok(());
+                    };
+                    let deck: Vec<Entity> = state
+                        .world()
+                        .zones()
+                        .iter(Zone::Deck, player)
+                        .filter(|&e| {
+                            state
+                                .world()
+                                .card_id(e)
+                                .is_some_and(|c| c.0 == picked_id.as_str())
+                        })
+                        .collect();
+                    let Some(picked) = deck.first().copied() else {
+                        return Ok(());
+                    };
+                    let _ = state.world_mut().move_to_zone(picked, Zone::Hand);
+                    if pending.temporary {
+                        state
+                            .world_mut()
+                            .set_temporary(picked, crate::core::component::Temporary);
+                    }
+                    if !pending.map_others.is_empty() {
+                        state.make_mut().players[player.index()].map_pending =
+                            Some((picked, pending.map_others.clone()));
+                    }
+                }
+                ChoiceKind::DiscoverEnemyDeckPutOnTop => {
+                    // Eyes in the Sky (M2-W4a): look at 3 cards in the enemy's
+                    // deck, pick one to put on top — the picked existing
+                    // entity moves to the top (index 0) of the enemy deck.
+                    let player = state
+                        .world()
+                        .player(pending.card)
+                        .unwrap_or(state.active_player());
+                    state.make_mut().players[player.index()].discovered_this_turn = true;
+                    let Some(picked_id) = pending.pool.get(option as usize) else {
+                        return Ok(());
+                    };
+                    let enemy = player.opponent();
+                    let deck: Vec<Entity> = state
+                        .world()
+                        .zones()
+                        .iter(Zone::Deck, enemy)
+                        .filter(|&e| {
+                            state
+                                .world()
+                                .card_id(e)
+                                .is_some_and(|c| c.0 == picked_id.as_str())
+                        })
+                        .collect();
+                    let Some(picked) = deck.first().copied() else {
+                        return Ok(());
+                    };
+                    let world = state.world_mut();
+                    world.zones_mut().remove(Zone::Deck, enemy, picked);
+                    world.zones_mut().insert_at(Zone::Deck, enemy, picked, 0);
                 }
                 ChoiceKind::Mulligan => {
                     // Opening mulligan (roadmap G7): "Keep all" (option 0) or
@@ -2893,6 +3300,47 @@ fn trigger_applies(
 ///
 /// Runs after the EndTriggers step so that end-of-turn effects resolve at full
 /// strength and deaths they cause are processed before buffs expire.
+/// Applies the M2-W4a modifiers a Discovered card carries when it lands in
+/// hand: the Temporary marker (Bloodpetal Biome / Cursed Catacombs — the
+/// discard-at-turn-end behaviour landed in W2), Vault Breaker's "-1 Cost"
+/// (TLC_483 on the board — "After you Discover a card, reduce its Cost by
+/// (1)", folded into the get per fidelity-debt §17), and Relic of Kings'
+/// "costs (1)" set (TLC_334).
+fn apply_w4a_discover_modifiers(
+    state: &mut GameState,
+    temporary: bool,
+    source: Entity,
+    picked: Entity,
+) {
+    if temporary {
+        state
+            .world_mut()
+            .set_temporary(picked, crate::core::component::Temporary);
+    }
+    let player = state
+        .world()
+        .player(source)
+        .unwrap_or(state.active_player());
+    if state
+        .world()
+        .card_id(source)
+        .is_some_and(|c| c.0 == "TLC_334")
+    {
+        // Relic of Kings: the Discovered spell costs (1).
+        state.world_mut().set_cost(picked, Cost(1));
+    }
+    if state
+        .world()
+        .zones()
+        .iter(Zone::Play, player)
+        .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_483"))
+    {
+        // Vault Breaker on the board: the Discovered card costs (1) less.
+        let cur = state.world().cost(picked).unwrap_or(Cost(0)).0;
+        state.world_mut().set_cost(picked, Cost((cur - 1).max(0)));
+    }
+}
+
 fn wrap_up_turn(state: &mut GameState) {
     let player = state.active_player();
     // Freeze timing (engine-mechanics roadmap M2): the entities this player
@@ -2933,6 +3381,17 @@ fn wrap_up_turn(state: &mut GameState) {
     {
         let inner = state.make_mut();
         let p = &mut inner.players[player.index()];
+        // M2-W4a: "Discovered this turn" flags expire at the turn end (Storage
+        // Scuffle's cost (0), Unearthed Artifacts' 4-Cost summon, Vault
+        // Breaker's discount all read it). The Map-card chain (play the
+        // discovered card this turn → also pick one of the others) expires
+        // with it; Cower in Fear's next-Beast discount is this-turn only; the
+        // sacred-cave recast list is per-turn too.
+        p.discovered_this_turn = false;
+        p.holy_cast_ids.clear();
+        p.shadow_cast_this_turn = false;
+        p.next_beast_discount = 0;
+        p.map_pending = None;
         p.died_this_turn.clear();
         // Kindred (M2-W3): the activation condition is "played a card of
         // the same type earlier THIS TURN" — the played-type list resets

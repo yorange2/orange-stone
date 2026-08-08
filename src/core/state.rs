@@ -37,6 +37,17 @@ pub enum ChoiceKind {
     /// 2025–2026 expansions M1-W4b): option 0 keeps `card` in the hand,
     /// option 1 moves it to the top of the opponent's deck.
     QonzuKeepOrTop,
+    /// Discover a card from your own deck (2025–2026 expansions M2-W4a —
+    /// Cursed Catacombs, Cultist Map): the pool holds three random
+    /// distinct deck card ids (the source card excluded); the picked card's
+    /// EXISTING entity moves from the deck to the hand (the unpicked
+    /// entries stay in the deck).
+    DiscoverDeck,
+    /// Look at 3 cards in the enemy's deck and put the picked one on top
+    /// (2025–2026 expansions M2-W4a — Eyes in the Sky): the pool holds
+    /// three random distinct enemy-deck card ids; the picked card's
+    /// EXISTING entity is inserted at the top of the enemy deck.
+    DiscoverEnemyDeckPutOnTop,
 }
 
 /// A choice the engine needs resolved (roadmap G6).
@@ -65,6 +76,17 @@ pub struct PendingChoice {
     /// Forest Lord Cenarius EDR_209, 2025–2026 expansions M1-W4b: 3 picks).
     /// ChoiceResolved re-surfaces the same choice with `repeat - 1`.
     pub repeat: u8,
+    /// Whether the picked card is marked Temporary (2025–2026 expansions
+    /// M2-W4a — Bloodpetal Biome, Cursed Catacombs: the discovered card is
+    /// added as Temporary and discarded at the end of the turn).
+    pub temporary: bool,
+    /// The Map-card chain (2025–2026 expansions M2-W4a — registered
+    /// simplification, fidelity-debt §17): the OTHER options of a Map
+    /// discover. On resolution they are stored into `Player::map_pending`
+    /// together with the picked card; if the picked card is played this
+    /// turn, one random entry is added to the hand. Empty for non-Map
+    /// discovers.
+    pub map_others: Vec<String>,
 }
 
 /// Game resolution step — the GameStep state machine (RS/SB analogue, roadmap G1).
@@ -283,6 +305,36 @@ impl GameState {
         discard_rest: bool,
         repeat: u8,
     ) -> u64 {
+        self.set_pending_choice_w4a(
+            kind,
+            card,
+            options,
+            pool,
+            discard_rest,
+            repeat,
+            false,
+            Vec::new(),
+        )
+    }
+
+    /// Creates a pending choice with the 2025–2026 expansions M2-W4a
+    /// Discover modifiers: `temporary` marks the picked card Temporary
+    /// (Bloodpetal Biome, Cursed Catacombs); `map_others` carries the
+    /// other options of a Map-card discover (the "if you play it this
+    /// turn, also pick one of the others" chain — stored into
+    /// `Player::map_pending` at resolution, see fidelity-debt §17).
+    #[allow(clippy::too_many_arguments)]
+    pub fn set_pending_choice_w4a(
+        &mut self,
+        kind: ChoiceKind,
+        card: Entity,
+        options: Vec<String>,
+        pool: Vec<String>,
+        discard_rest: bool,
+        repeat: u8,
+        temporary: bool,
+        map_others: Vec<String>,
+    ) -> u64 {
         let inner = self.make_mut();
         let id = inner.next_choice_id;
         inner.next_choice_id += 1;
@@ -294,6 +346,8 @@ impl GameState {
             pool,
             discard_rest,
             repeat,
+            temporary,
+            map_others,
         });
         id
     }
