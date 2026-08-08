@@ -61,6 +61,13 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
     {
         cost = Cost((cost.0 - state.player(player).next_combo_discount).max(0));
     }
+    // Cult Neophyte (Core Set W4b): the opponent's spells cost more
+    if state.world().card_type(card) == Some(crate::core::component::CardType::Spell) {
+        let more = state.player(player).enemy_spell_cost_more;
+        if more > 0 {
+            cost = Cost(cost.0 + more);
+        }
+    }
     // Dread Corsair (Core Set W3b): costs (1) less per Attack of the
     // owner's weapon
     if state

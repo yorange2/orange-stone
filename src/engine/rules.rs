@@ -645,6 +645,8 @@ pub fn apply_event(
                     frozen_at_start.iter().copied().collect();
                 // Core Set W3a — the healed-this-turn marker expires at turn start
                 inner.players[player.index()].healed_this_turn = false;
+                // Core Set W4b — the enemy-spell cost tax expires at turn start
+                inner.players[player.index()].enemy_spell_cost_more = 0;
             }
             state.set_active_player(player);
             state.set_turn(new_turn);
@@ -1283,6 +1285,22 @@ pub fn apply_event(
             if state.world().immune(target).is_some() {
                 return Ok(());
             }
+            // Tichondrius (Core Set W4b): a friendly Tichondrius makes the
+            // hero Immune while it is on the board
+            let card_type = state.world().card_type(target);
+            if card_type == Some(CardType::Hero) {
+                if let Some(pid) = state.world().player(target) {
+                    let tichondrius = state.world().zones().iter(Zone::Play, pid).any(|e| {
+                        state
+                            .world()
+                            .card_id(e)
+                            .is_some_and(|c| c.0 == "CORE_CATA_001")
+                    });
+                    if tichondrius {
+                        return Ok(());
+                    }
+                }
+            }
             // Water Elemental (W12, D2 — damage-pipeline check): freeze any
             // character damaged by this minion. Applied before the divine
             // shield absorption — HS freezes even when the shield absorbs.
@@ -1588,12 +1606,13 @@ pub fn apply_event(
             hero,
             target,
         } => {
-            // Deduct mana
+            // Deduct mana (Blowtorch Saboteur — Core Set W4b: the opponent's
+            // next Hero Power costs more)
             let cost = state
                 .world()
                 .hero_power(hero)
-                .map(|hp| hp.cost)
-                .unwrap_or(2);
+                .map(|hp| hp.cost + state.player(player).hero_power_cost_more)
+                .unwrap_or(2 + state.player(player).hero_power_cost_more);
             {
                 let inner = state.make_mut();
                 let p = &mut inner.players[player.index()];

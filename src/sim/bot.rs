@@ -1383,6 +1383,23 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DamageAllOtherMinions { damage } => damage as f64 * 1.2,
         CardEffect::BuffTauntHandMinions { attack, health } => (attack + health) as f64 * 0.8,
         CardEffect::AddRandomShamanSpell => 3.0,
+        // Core Set W4b
+        CardEffect::SummonRandomMinionCostEqHandSize => 4.0,
+        CardEffect::ResurrectHighestCostFallen => 5.0,
+        CardEffect::GrantDeathrattleSummonOwnCost => 4.0,
+        CardEffect::AddRandomPirateToHand => 3.0,
+        CardEffect::NextEnemyHeroPowerCostMore { .. } => 1.0,
+        CardEffect::SummonRandomMinionOfCost { .. } => 4.0,
+        CardEffect::SummonRandomDemonFromHandOrDeck => 5.0,
+        CardEffect::NextEnemySpellsCostMore { .. } => 1.0,
+        CardEffect::BuffWeaponDurabilityIfBeast { .. } => 1.0,
+        CardEffect::ReturnLastTurnSpells => 4.0,
+        CardEffect::DestroyMinionAndSelfDamage => 5.0,
+        CardEffect::DamageSelfMinion { damage } => damage as f64 * 0.5,
+        CardEffect::AddRandomOneCostCard => 3.0,
+        CardEffect::BuffThreeDifferentRaces { attack, health } => (attack + health) as f64 * 0.8,
+        CardEffect::AddFiveRandomCards => 8.0,
+        CardEffect::DiscardTwoRandomCards => -2.0,
     }
 }
 

@@ -102,6 +102,12 @@ pub struct Player {
     /// Ongoing end-of-turn damage to the opponent (Alexandros Mograine —
     /// Core Set W4a, game-long)
     pub ongoing_end_turn_damage: i32,
+    /// The next Hero Power costs more (Blowtorch Saboteur — Core Set W4b,
+    /// one-time)
+    pub hero_power_cost_more: i32,
+    /// Enemy spells cost more this turn (Cult Neophyte — Core Set W4b,
+    /// cleared at the owner's turn start)
+    pub enemy_spell_cost_more: i32,
 }
 
 impl Player {
@@ -132,6 +138,8 @@ impl Player {
             next_demon_discount: 0,
             next_combo_discount: 0,
             ongoing_end_turn_damage: 0,
+            hero_power_cost_more: 0,
+            enemy_spell_cost_more: 0,
         }
     }
 }
