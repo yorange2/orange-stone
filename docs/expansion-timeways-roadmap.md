@@ -35,9 +35,13 @@ registration; simplifications get ledger rows.
   (M0.1–M0.5); inventory backfilled; the per-set dump fidelity test
   (`across_the_timeways_dump_fidelity`, TIME_ + END_ prefixes, 183 cards)
   landed with the generated baseline.
-- **W1 — Rewind (R1):** last-card history component + replay resolution; F5
-  scenarios pin replay ordering (replay happens after the triggering play
-  resolves), x2/x3 stacking, and interplay with death phases.
+- [x] **W1 — Rewind (R1)** (PR #151): `Player.last_played` RewindEntry
+  history (capped 10) + `cards::rewind` registry (`rewind_count` table
+  for all 17 cards, `REWIND_CARD_IDS`) + `engine::rewind` replay
+  (pre-push snapshot, count clamped, chronological, rewind card as
+  source); play path: own effect → replay → push; 8 `tmw1_*` F5
+  scenarios pin ordering, x3 stacking, self-exclusion, snapshot
+  semantics, empty-slot clamping and death-phase interplay.
 - **W2 — Rewind cards + Fabled (R2):** the set's Rewind cards on R1; Fabled
   legendaries; misc effects.
 - **W3 — The End of Time mini:** miniset cards (mechanics backfilled from
