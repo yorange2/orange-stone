@@ -1139,3 +1139,96 @@ bookkeeper copy) plus the three registry unit tests in `src/cards/kindred.rs`.
 Full `cargo test` fully green (all suites, incl. every `tlc_w1_*`/`tlc_w2_*`
 scenario — 817 passed, 1 ignored), `cargo fmt` clean, `cargo clippy
 --all-targets` zero warnings.
+
+### 17. 2025–2026 expansions M2-W4a — the Un'Goro main-set wave, first split (96 cards) 🔓 registered
+
+The registered simplifications of the M2-W4a wave (`src/cards/exp_tlc_w4a.rs`):
+the 96 non-legendary Un'Goro collectible cards not landed in W1–W3 (97 by
+the rule "TLC_* collectible with rarity != LEGENDARY minus the 22 landed in
+W1–W3"; TLC_249 Sizzling Cinder already landed in W3, so 96 new cards get
+written — the card-by-card list is in the module header), plus 17
+handwritten tokens (11 from the card dump, 6 absent from the dump and
+written per the card texts they serve) and the Storm the Gates sidequest.
+The faithful core of the wave: the "Discovered this
+turn" flag (`Player::discovered_this_turn`, set by every discover
+resolution, cleared at the turn end) drives Storage Scuffle's cost (0) and
+Unearthed Artifacts' 4-Cost summon; the Map chain is a pending
+`(Entity, Vec<String>)` entry consumed once by the discovered card's play;
+Cursed Catacombs and Bloodpetal Biome mark the discovered card Temporary
+(the W2 primitive) and Spelunker's one-time next-Temporary discount lands
+in the play-cost pipeline; the quest-played flag unlocks Questing
+Assistant. As with §14–§16, these handwritten expansion cards are not in
+the RL pool (classic + core 668/659), so the rows are informational: they
+keep the code's simplifications traceable to the ledger. Each row stays
+open until its mechanism lands.
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| TLC_514/434/334/461/449 | Merchant of Legend / Paleomancy / Relic of Kings / Scrappy Scavenger / Bloodpetal Biome | The D2 discover pools: LegendaryMinion, UndeadMinion, SpellCostGE8, CostEqualRemainingMana and TemporaryOneCostMinion are in-window (Classic\|Core) filtered ALL_CARDS samplings — the official discover is a rarity-weighted three-option pick from the full format pool | the official discover procedure |
+| TLC_435/442/464/824/900 | Crypt Map / Submerged Map / Mountain Map / Odd Map / Hive Map | The five in-expansion discover pools: FrostRune is a fixed four-card table (the W1–W3 Frost Rune cards), Murloc / BeastOddAttack / FelSpell in-window filtered subsets, MinionOfUnplayedType keyed on the primary race of the cards played this game — the same D2 sampling | official per-pool discovers |
+| TLC_109 | Relic Miner | The same-rarity discover resolves from the static rarity table (in-window collectible + Un'Goro collectible cards); a destroyed top card outside the table (a token etc.) fizzles the discover instead of falling back | the official rarity pool |
+| TLC_435/442/464/515/824/900 | the six Map cards | "If you play the discovered card this turn, Discover another" is one random other option added to the hand — a `map_pending` entry consumed by the discovered card's play; one extra card, no second three-option choice | the official re-discover chain |
+| TLC_518 | Interrogation | The three Tortollan Ninjas are shuffled into the deck as plain cards — the official Summoned-When-Drawn keyword is not implemented (the Emerald Portal precedent); the ninjas enter play only when drawn and played | a Summoned-When-Drawn pipeline |
+| TLC_467 | Whispering Stone | The gotten Fel spells "cost Health instead of Mana" via the CostHealth marker read by the play path — one play-time payment, no other cost-health interactions | the official cost-health resource |
+| TLC_444/465 | Story of Galvadon / Stranglevine | The random Bonus Effect pool is the six-keyword engine pool (Taunt / Divine Shield / Poisonous / Windfury / Elusive / Stealth) — a D2 random sample with no weighting | the official bonus-effect pool |
+| TLC_436 | Reanimated Pterrordax | "Costs Corpses instead of Mana": the corpse counter is a simplified player-level resource (one per friendly Undead death), 5 spent at play — no corpse types or other corpse interactions | the official corpse system |
+| TLC_252/t | Dissolving Ooze / Bones | The two Bone spells copy the destroyed minion's Attack onto the Bone entity (the spell deals damage equal to it); the official Health half is approximated away and the Bones are plain 0-cost spells in hand | the official Bones (Attack + Health) |
+| TLC_EVENT_400 | Storm the Gates | The Zombeast reward is a random Beast with a (3) cost reduction — no build-a-beast discover; the sidequest itself is faithful ("Play 3 Beasts or Undead", 1-cost quest slot, excluded from the quest-played flag) | the official Zombeast craft |
+| TLC_439 | Wave of Tar | The "Enemy minions cost (2) more NEXT TURN" tax is a caster-side flag read at the enemy's play-cost time and cleared at the caster's next turn start — the official window (the opponent's following turn) is exactly covered | the official next-turn window |
+| TLC_253 | Petrified Ogre | Dormant is modeled as can't-attack; the official 50% awaken-or-buff roll is a deterministic +2/+2 at each of the owner's turn starts (no awaken flip) | the official Dormant flip |
+| TLC_827 | Grazing Stegodon | The end-of-turn "random Beast in hand +1/+1, else a random Beast in your deck" is simplified to "+1 Attack to itself at the end of your turn" | the official hand-then-deck buff |
+| TLC_221 | Sizzling Swarm | "Deal 3 damage to a minion" is resolved as 3 damage to a random enemy character (no target choice) | the official targeted damage |
+| TLC_483 | Vault Breaker | "After you Discover a card, reduce its Cost by (1)" is folded into the discover's get — the discovered card's cost is reduced once at discovery time (a persistent enchantment would outlive Vault Breaker's removal) | the official after-discover enchantment |
+
+中文小结（同上）：M2-W4a 波（"失落之城"主系列第一批，96 张非传说卡 +
+17 张手写衍生物）的新原语大部分忠实：`discovered_this_turn` 每玩家标志
+（每次发现结算置位、回合结束清除）驱动储能间斗殴费用 0 与出土文物召唤
+4 费随从；地图链是 `map_pending: Option<(Entity, Vec<String>)>`，由发现
+卡本回合的出牌消费一次——随机补一张其他选项入手（六张地图卡共用一个
+形状）；被诅咒的地下墓穴与血瓣生态园给发现卡打 Temporary 标记（W2
+原语）、洞穴探索者的下一次临时卡减 2 费标志在出牌费用管线里消费；
+quest_played 标志（除风暴之门外所有任务卡出牌时置位）解锁求知助手。
+已登记简化：D2 发现池（十个 DiscoverPool 变体都是经典|核心窗口内过滤的
+ALL_CARDS 抽样或固定表；矿工遗骸的稀有度发现走静态稀有度表、表外卡
+（如衍生物）被毁则发现直接落空）；六张地图卡"本回合打出则再次发现"
+简化为出牌时随机补一张其他选项（无二次三选一）；审讯把三张忍者普通
+洗入牌库（官方 Summoned-When-Drawn 关键词未实现，绿翼先例）；低语之石
+的血费标记（CostHealth）只走出牌支付分支；加尔瓦顿故事/缠藤者的随机
+增益池是六关键词引擎池（嘲讽/圣盾/剧毒/风怒/扰魔/潜行，D2 无权重）；
+复生翼手龙尸体机制简化为玩家级尸体计数（友方亡灵死亡 +1、出牌扣 5）；
+溶解软泥怪的两张骨骼牌把被毁随从的攻击力复制到骨骼实体上（官方
+Attack + Health 两半只做了一半、且是手里普通 0 费法术）；风暴之门奖励
+为随机野兽减 3 费（无自定义野兽合成）；潮汐之波"下回合敌方随从费 +2"
+是施法者侧标志、敌方出牌费用时读取、施法者下一个回合开始时清除（官方
+窗口正好覆盖敌方随后那一回合）；石化食人魔的休眠建模为不能攻击、
+官方 50% 苏醒骰退化为每回合开始确定性 +2/+2；放牧剑龙"回合结束时给
+手中随机野兽 +1/+1、没有则改牌库"简化为回合结束自身 +1 攻击；余烬蜂群
+"对一个随从造成 3 点伤害"改为对随机敌方角色；宝库破毁者的"发现后减 1
+费"折进发现入手时刻（一次性降价，持久附魔会活过破毁者离场）。
+
+F5 coverage: `tlc_w4a_bloodpetal_biome_grants_temporary`,
+`tlc_w4a_tunnel_terror_temporary_tokens`,
+`tlc_w4a_spelunker_discounts_next_temporary`,
+`tlc_w4a_cursed_catacombs_marks_deck_card_temporary`,
+`tlc_w4a_storage_scuffle_free_after_discover`,
+`tlc_w4a_unearthed_artifacts_escalates_after_discover`,
+`tlc_w4a_vault_breaker_discounts_discovered`,
+`tlc_w4a_map_card_picks_second`,
+`tlc_w4a_questing_assistant_fires_after_quest_played`,
+`tlc_w4a_cloud_serpent_copies_hand_elemental`,
+`tlc_w4a_curious_explorer_reduces_enemy_hand_cost`,
+`tlc_w4a_platysaur_discards_drawn_card_on_death`,
+`tlc_w4a_carnassa_shuffles_raptors`, `tlc_w4a_interrogation_shuffles_ninjas`,
+`tlc_w4a_skyscreamer_eggs_summon_four`,
+`tlc_w4a_relic_miner_destroys_top_draws_rarity` (16 scenarios in
+`tests/differential.rs` — every new primitive of the wave: the Temporary
+creators (Location activation discover / Cursed Catacombs deck pick /
+Tunnel Terror deathrattle) with the W2 discard-at-turn-end lifecycle,
+Spelunker's one-time discount, the "Discovered this turn" flag driving
+Storage Scuffle / Unearthed Artifacts / Vault Breaker, the Map chain
+(armed, consumed once, one other option added), the quest-played flag,
+the Cloud Serpent hand copy, the enemy-hand cost reduction, Platysaur's
+linked draw, the two shuffle-into-deck shapes and Relic Miner's rarity
+discover). Full `cargo test` fully green (all suites, incl. every
+`tlc_w1_*`/`tlc_w2_*`/`tlc_w3_*` scenario — 833 passed, 1 ignored),
+`cargo fmt` clean, `cargo clippy --all-targets` zero warnings.

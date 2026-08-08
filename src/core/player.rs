@@ -230,6 +230,78 @@ pub struct Player {
     /// Divine Shield". Consumed together with `next_murloc_discount` by
     /// the next Murloc play; the shield is applied to the played Murloc.
     pub next_murloc_divine_shield: bool,
+    /// Whether the player Discovered this turn (2025–2026 expansions
+    /// M2-W4a): set by the discover machinery, cleared at the turn end.
+    /// Read by Storage Scuffle (costs (0)), Unearthed Artifacts (summon a
+    /// 4-Cost minion instead) and Vault Breaker (discount the discovered
+    /// card).
+    pub discovered_this_turn: bool,
+    /// Whether the player played a Quest this game (2025–2026 expansions
+    /// M2-W4a): set by the quest play-path diversion; Questing Assistant
+    /// (TLC_987) deals 3 damage to an enemy minion when it is set.
+    pub quest_played: bool,
+    /// The next Temporary card costs this much less (2025–2026 expansions
+    /// M2-W4a — Spelunker's battlecry, one-time, consumed by the next
+    /// Temporary card the player plays).
+    pub next_temporary_discount: i32,
+    /// How many times the player shuffled cards into their deck
+    /// (2025–2026 expansions M2-W4a): Underbrush Tracker costs (1) less
+    /// per shuffle; Knockback's damage improves per shuffle. Incremented
+    /// by every shuffle-into-deck resolution.
+    pub shuffled_count: u32,
+    /// The Map-card chain (2025–2026 expansions M2-W4a — registered
+    /// simplification, fidelity-debt §17): after a Map discover resolves,
+    /// holds the discovered card entity plus the other options' ids. If
+    /// the discovered card is played this turn, one random other option
+    /// is added to the hand. Cleared at the turn end.
+    pub map_pending: Option<(crate::core::entity::Entity, Vec<String>)>,
+    /// Holy spells the player cast this turn (2025–2026 expansions
+    /// M2-W4a): the cast-spell ids in cast order, from the quest
+    /// registry's spell-school table. Gladesong Siren's cost condition
+    /// reads the list; Creature of the Sacred Cave recasts a random entry
+    /// at the turn end. Cleared at the turn end.
+    pub holy_cast_ids: Vec<String>,
+    /// Whether the player cast a Shadow spell this turn (2025–2026
+    /// expansions M2-W4a — Gladesong Siren's cost condition); cleared at
+    /// the turn end.
+    pub shadow_cast_this_turn: bool,
+    /// The enemy hero cannot be healed (2025–2026 expansions M2-W4a —
+    /// Crater Gator's battlecry: "Until the start of your next turn, the
+    /// enemy hero can't be healed"). Set on the caster; cleared at the
+    /// caster's turn start.
+    pub enemy_hero_cant_be_healed: bool,
+    /// Ravenous Flock's pending Hatchlings (2025–2026 expansions M2-W4a):
+    /// set by the spell's cast, resolved at the caster's next turn start
+    /// (three 2/1 Hatchlings summoned).
+    pub flock_pending: bool,
+    /// Remaining Story of Lakkari activations (2025–2026 expansions
+    /// M2-W4a): at the end of the owner's turn while this is > 0, discard
+    /// a random card and fill the board with 3/2 Imps; decremented after
+    /// each activation ("Lasts 3 turns").
+    pub lakkari_ticks: u8,
+    /// Story of Sulfuras (2025–2026 expansions M2-W4a): how many times the
+    /// swapped "Deal 8 damage to a random enemy" hero power has been used;
+    /// after 2 uses the original hero power is restored.
+    pub sulfuras_uses: u8,
+    /// The hero power replaced by Story of Sulfuras (2025–2026 expansions
+    /// M2-W4a) — restored after 2 uses of the swapped power.
+    pub sulfuras_original: Option<crate::core::component::HeroPowerDef>,
+    /// Platysaur's draw-then-discard link (2025–2026 expansions M2-W4a):
+    /// (platysaur entity, drawn card entity) pairs; the deathrattle
+    /// discards the linked card.
+    pub platysaur_drawn: Vec<(crate::core::entity::Entity, crate::core::entity::Entity)>,
+    /// The player's minions cost (2) more this turn (2025–2026 expansions
+    /// M2-W4a — Wave of Tar sets this on the OPPONENT); cleared at the
+    /// affected player's turn start.
+    pub minions_cost_more: bool,
+    /// The next Beast the player plays this turn costs this much less
+    /// (2025–2026 expansions M2-W4a — Cower in Fear, one-time, cleared at
+    /// the turn end).
+    pub next_beast_discount: i32,
+    /// The card ids of the player's deck at game start (2025–2026
+    /// expansions M2-W4a — Story of the Waygate's "didn't start in your
+    /// deck" set; snapshotted by GameBuilder).
+    pub starting_deck: Vec<String>,
 }
 
 impl Player {
@@ -290,6 +362,22 @@ impl Player {
             next_kindred_twice: false,
             next_murloc_discount: 0,
             next_murloc_divine_shield: false,
+            discovered_this_turn: false,
+            quest_played: false,
+            next_temporary_discount: 0,
+            shuffled_count: 0,
+            map_pending: None,
+            holy_cast_ids: Vec::new(),
+            shadow_cast_this_turn: false,
+            enemy_hero_cant_be_healed: false,
+            flock_pending: false,
+            lakkari_ticks: 0,
+            sulfuras_uses: 0,
+            sulfuras_original: None,
+            platysaur_drawn: Vec::new(),
+            minions_cost_more: false,
+            next_beast_discount: 0,
+            starting_deck: Vec::new(),
         }
     }
 }
