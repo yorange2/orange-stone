@@ -81,22 +81,22 @@
 
 - [ ] `CORE_CATA_001` Tichondrius — 9 费随从 9/8
 - [ ] `CORE_CATA_002` Calia Menethil — 6 费随从 4/5
-- [ ] `CORE_CATA_003` Vindicator Maraad — 3 费随从 2/4
+- [ ] `CORE_CATA_003` Vindicator Maraad — 3 费随从 2/4 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
 - [ ] `CORE_CATA_004` Rehgar Earthfury — 5 费随从 3/5
-- [ ] `CORE_CATA_005` Lord Thorval — 3 费随从 2/4
+- [ ] `CORE_CATA_005` Lord Thorval — 3 费随从 2/4 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
 - [ ] `CORE_CATA_006` Ulfar — 6 费随从 4/3
 - [ ] `CORE_CATA_006e` Thornspeakers' Spirit — 附魔衍生物（0 费）
 - [ ] `CORE_CATA_007` Consumption — 4 费 法术
-- [ ] `CORE_CATA_008` Guardian Gargoyle — 3 费随从 2/4
+- [ ] `CORE_CATA_008` Guardian Gargoyle — 3 费随从 2/4 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
 - [ ] `CORE_CATA_009` Death's Advance — 2 费 法术
-- [ ] `CORE_CATA_010` Felscarred Seeker — 3 费随从 2/4
-- [ ] `CORE_CATA_011` Ring of Frost — 3 费 法术
-- [ ] `CORE_CATA_012` Forbidden Ritual — 3 费 法术
-- [ ] `CORE_CATA_013` Slimescale Myrmidon — 3 费随从 2/4
-- [ ] `CORE_CATA_014` Crystalweaver — 3 费随从 2/4
-- [ ] `CORE_CATA_015` Tricky Geist — 3 费随从 2/4
-- [ ] `CORE_CATA_016` Wild Synthesis — 3 费 法术
-- [ ] `CORE_CATA_017` Essence Break — 3 费 法术
+- [ ] `CORE_CATA_010` Felscarred Seeker — 3 费随从 2/4 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
+- [ ] `CORE_CATA_011` Ring of Frost — 3 费 法术 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
+- [ ] `CORE_CATA_012` Forbidden Ritual — 3 费 法术 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
+- [ ] `CORE_CATA_013` Slimescale Myrmidon — 3 费随从 2/4 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
+- [ ] `CORE_CATA_014` Crystalweaver — 3 费随从 2/4 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
+- [ ] `CORE_CATA_015` Tricky Geist — 3 费随从 2/4 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
+- [ ] `CORE_CATA_016` Wild Synthesis — 3 费 法术 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
+- [ ] `CORE_CATA_017` Essence Break — 3 费 法术 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
 
 ### CORE_CFM_* — 龙争虎斗加基森（6 张）
 
