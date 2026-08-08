@@ -1719,6 +1719,104 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_edr_w3::NIGHTMARE_DEMON,
     super::exp_edr_w3::ANT,
     super::exp_edr_w3::DREADSEED,
+    // M1-W4a — the Emerald Dream misc-effects wave, first half
+    // (src/cards/exp_edr_w4a.rs)
+    super::exp_edr_w4a::HOPEFUL_DRYAD,
+    super::exp_edr_w4a::VERDANT_DREAMSABER,
+    super::exp_edr_w4a::WARD_OF_EARTH,
+    super::exp_edr_w4a::CREATURE_OF_MADNESS,
+    super::exp_edr_w4a::SPOREGNASHER,
+    super::exp_edr_w4a::BEANSTALK_BRUTE,
+    super::exp_edr_w4a::TYPHOON,
+    super::exp_edr_w4a::EMERALD_BOUNTY,
+    super::exp_edr_w4a::DRAGONSCALE_ARMAMENTS,
+    super::exp_edr_w4a::MARK_OF_URSOL,
+    super::exp_edr_w4a::URSINE_MAUL,
+    super::exp_edr_w4a::ANIMATED_MOONWELL,
+    super::exp_edr_w4a::RENEWING_FLAMES,
+    super::exp_edr_w4a::DREAMWARDEN,
+    super::exp_edr_w4a::ILLUSORY_GREENWING,
+    super::exp_edr_w4a::AMPHIBIANS_SPIRIT,
+    super::exp_edr_w4a::SPIRIT_BOND,
+    super::exp_edr_w4a::HORN_OF_PLENTY,
+    super::exp_edr_w4a::GROVE_SHAPER,
+    super::exp_edr_w4a::EVERGREEN_STAG,
+    super::exp_edr_w4a::SHEPHERDS_CROOK,
+    super::exp_edr_w4a::BRIARSPAWN_DRAKE,
+    super::exp_edr_w4a::CLUTCH_OF_CORRUPTION,
+    super::exp_edr_w4a::SUCCUMB_TO_MADNESS,
+    super::exp_edr_w4a::BROOD_KEEPER,
+    super::exp_edr_w4a::AFFLICTED_DEVASTATOR,
+    super::exp_edr_w4a::WISH_OF_THE_NEW_MOON,
+    super::exp_edr_w4a::RITUAL_OF_THE_NEW_MOON,
+    super::exp_edr_w4a::SELENIC_DRAKE,
+    super::exp_edr_w4a::EGGBASHER,
+    super::exp_edr_w4a::SLUMBERING_SPRITE,
+    super::exp_edr_w4a::BARKSHELD_SENTINEL,
+    super::exp_edr_w4a::WEAVER_OF_THE_CYCLE,
+    super::exp_edr_w4a::MOONWELL,
+    super::exp_edr_w4a::GLOWROOT_LURE,
+    super::exp_edr_w4a::MYTHICAL_RUNEBEAR,
+    super::exp_edr_w4a::ROTTEN_APPLE,
+    super::exp_edr_w4a::FRACTURED_POWER,
+    super::exp_edr_w4a::SCAVENGING_FLYTRAP,
+    super::exp_edr_w4a::ROTHEART_DRYAD,
+    super::exp_edr_w4a::SCORCHING_OBSERVER,
+    super::exp_edr_w4a::ARCHDRUID_OF_THORNS,
+    super::exp_edr_w4a::MOTHER_DUCK,
+    super::exp_edr_w4a::HUNGERING_ANCIENT,
+    super::exp_edr_w4a::TWISTED_TREANT,
+    super::exp_edr_w4a::FORBIDDEN_SHRINE,
+    super::exp_edr_w4a::TRICKY_SATYR,
+    super::exp_edr_w4a::MIMICRY,
+    super::exp_edr_w4a::WEB_OF_DECEPTION,
+    super::exp_edr_w4a::SHADOWCLOAKED_ASSAILANT,
+    super::exp_edr_w4a::PLUCKY_PODLING,
+    super::exp_edr_w4a::DAYDREAMING_PIXIE,
+    super::exp_edr_w4a::SIPHONING_GROWTH,
+    super::exp_edr_w4a::TWISTED_WEBWEAVER,
+    super::exp_edr_w4a::FAE_TRICKSTER,
+    super::exp_edr_w4a::TORMENTED_DREADWING,
+    super::exp_edr_w4a::DREAM_RAGER,
+    super::exp_edr_w4a::BLOODTHISTLE_ILLUSIONIST,
+    super::exp_edr_w4a::HARBINGER_OF_THE_BLIGHTED,
+    super::exp_edr_w4a::DIVINATION,
+    super::exp_edr_w4a::HIDEOUS_HUSK,
+    super::exp_edr_w4a::GROTESQUE_RUNEBLADE,
+    super::exp_edr_w4a::INFESTED_BREATH,
+    super::exp_edr_w4a::CORPSE_FLOWER,
+    super::exp_edr_w4a::MONSTROUS_MOSQUITO,
+    super::exp_edr_w4a::SANGUINE_INFESTATION,
+    super::exp_edr_w4a::GRIM_HARVEST,
+    super::exp_edr_w4a::DREADSOUL_CORRUPTER,
+    super::exp_edr_w4a::DEFILED_SPEAR,
+    super::exp_edr_w4a::DREAMBOUND_DISCIPLE,
+    super::exp_edr_w4a::PHOTOSYNTHESIS,
+    super::exp_edr_w4a::DREAMBOUND_RAPTOR,
+    super::exp_edr_w4a::TRANQUIL_TREANT,
+    super::exp_edr_w4a::ENVOY_OF_THE_GLADE,
+    super::exp_edr_w4a::STELLAR_BALANCE,
+    super::exp_edr_w4a::PETAL_PEDDLER,
+    super::exp_edr_w4a::NIGHTMARE_DRAGONKIN,
+    super::exp_edr_w4a::RAVENOUS_FELHUNTER,
+    super::exp_edr_w4a::FEROCIOUS_FELBAT,
+    super::exp_edr_w4a::MERRY_MOONKIN,
+    super::exp_edr_w4a::STAR_SURGE,
+    super::exp_edr_w4a::CURIOUS_CUMULUS,
+    super::exp_edr_w4a::CRITTER_CARETAKER,
+    super::exp_edr_w4a::MEADOWSTRIDER,
+    super::exp_edr_w4a::ANCIENT_OF_YORE,
+    super::exp_edr_w4a::GNAWING_GREENFIN,
+    // M1-W4a tokens (handwritten only — no generated baselines)
+    super::exp_edr_w4a::GREENWING_DRAGON,
+    super::exp_edr_w4a::SPIRIT_BOND_WOLF,
+    super::exp_edr_w4a::GROVE_SHAPER_TREANT,
+    super::exp_edr_w4a::SHEPHERDS_CROOK_SHEEP,
+    super::exp_edr_w4a::CLUTCH_OF_CORRUPTION_EGG,
+    super::exp_edr_w4a::BROOD_KEEPER_SWORD,
+    super::exp_edr_w4a::DUCKLING,
+    super::exp_edr_w4a::WEB_OF_DECEPTION_SPIDER,
+    super::exp_edr_w4a::LEECH,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated
@@ -1761,6 +1859,11 @@ pub const POOL_OPEN_CARDS: &[&str] = &[
     "CORE_EX1_193",  // Psychic Conjurer (Core Set W4b) — copies from the enemy deck
     // M1-W2 — the Emerald Dream dark-gift wave (src/cards/exp_edr_w2.rs)
     "EDR_528", // Nightmare Fuel — copies a minion from the opponent's deck
+    // M1-W4a — the Emerald Dream misc-effects wave, first half
+    // (src/cards/exp_edr_w4a.rs): the Rogue hand-reading trio.
+    "EDR_521", // Tricky Satyr — copies the opponent's lowest-Cost hand card
+    "EDR_522", // Mimicry — copies the opponent's drawn cards
+    "EDR_524", // Shadowcloaked Assailant — shuffles a matching enemy hand card
 ];
 
 #[cfg(test)]
@@ -1805,6 +1908,9 @@ mod tests {
                     | CardEffect::SummonRandomEnemyHandMinion
                     | CardEffect::RemoveTopEnemyDeckCard
                     | CardEffect::DiscoverEnemyDeckMinionCopy { .. }
+                    | CardEffect::CopyLowestCostEnemyHandCard
+                    | CardEffect::OpponentDrawsTwoAndCopies
+                    | CardEffect::ShuffleMatchingEnemyHandCardIntoDeck
             )
         };
         for card in ALL_CARDS {

@@ -93,6 +93,16 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
             .map_or(0, |a| a.0);
         cost = Cost((cost.0 - weapon_atk).max(0));
     }
+    // Glowroot Lure (2025–2026 expansions M1-W4a): costs (1) less for each
+    // time the owner used their Hero Power this game
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "EDR_477")
+    {
+        let uses = state.player(player).hero_power_uses;
+        cost = Cost((cost.0 - uses as i32).max(0));
+    }
     // Sea Giant (W11): costs (1) less for each minion on the battlefield
     // (both sides — the board-count rule composes here like Dread Corsair)
     if state

@@ -1546,6 +1546,93 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DamageAllMinions { damage } => damage as f64 * 1.2,
         CardEffect::AddRandomDruidSpell => 3.0,
         CardEffect::AddRandomOtherClassChooseOneCard => 4.0,
+        // 2025-2026 expansions M1-W4a (the Emerald Dream non-elite wave)
+        CardEffect::AttackTwoRandomEnemyMinionsIfCostLE { .. } => 6.0,
+        CardEffect::GainArmorSummonCostTaunt { armor, .. } => armor as f64 * 0.7 + 3.0,
+        CardEffect::AddRandomCostMinionWithDarkGift { .. } => 4.0,
+        CardEffect::BuffTopDeckMinions {
+            attack,
+            health,
+            count,
+        } => (attack + health) as f64 * 0.6 * count as f64 + 2.0,
+        CardEffect::ShuffleAllMinionsIntoDecks => 5.0,
+        CardEffect::DrawDeckSpellAndAddRandomSpell => 6.0,
+        CardEffect::SetStatsByFriendlyTarget {
+            enemy_attack,
+            enemy_health,
+            friendly_attack,
+            friendly_health,
+        } => {
+            (enemy_attack + enemy_health) as f64 * 0.8
+                + (friendly_attack + friendly_health) as f64 * 0.5
+                + 1.0
+        }
+        CardEffect::GainAttackEqualSpellCost => 3.0,
+        CardEffect::DamageLowestHealthEnemyTwice { amount } => amount as f64 * 1.2 * 2.0,
+        CardEffect::DrawAndGainStats { attack, health } => (attack + health) as f64 * 0.8 + 3.0,
+        CardEffect::ShuffleCardIntoDeck { count, .. } => count as f64 * 1.0,
+        CardEffect::AmphibianSpiritBuff { attack, health } => (attack + health) as f64 * 0.8 + 2.0,
+        CardEffect::DamageAndSummonWolfIfKilled { damage } => damage as f64 * 1.2 + 3.0,
+        CardEffect::AddRandomSpellCostsLess { reduction } => reduction as f64 * 0.5 + 3.0,
+        CardEffect::SummonTreantCopyingSpell => 4.0,
+        CardEffect::SummonEggHatchingDragon => 3.0,
+        CardEffect::ResurrectRandomFallenDragon => 5.0,
+        CardEffect::EquipSwordIfHoldingDragon => 3.0,
+        CardEffect::DamageAllOtherFriendlyMinions { damage } => damage as f64 * 0.6,
+        CardEffect::DamageMinionWithMoonLifesteal { amount } => amount as f64 * 1.2 + 2.0,
+        CardEffect::SummonTwoRandomCostMinions { .. } => 8.0,
+        CardEffect::DamageIfHoldingSpell5Plus { amount } => amount as f64 * 1.2 + 1.0,
+        CardEffect::SummonCopyIfAttackGE { .. } => 4.0,
+        CardEffect::RestoreHealthAndPendingSelfDamage { heal, damage, .. } => {
+            heal as f64 * 0.7 + damage as f64 * 0.5
+        }
+        CardEffect::DestroyCrystalGainCrystalsLater { gain, .. } => gain as f64 * 1.0,
+        CardEffect::DrawMinionCostGE { .. } => 3.0,
+        CardEffect::GainDeathrattleOfDiedThisTurn => 3.0,
+        CardEffect::AddRandomDeckMinionToHand => 3.0,
+        CardEffect::EatDeckMinionGainStats => 4.0,
+        CardEffect::DebuffRandomHandMinionBoth { attack_reduction } => {
+            attack_reduction as f64 * 1.0 + 2.0
+        }
+        CardEffect::SpendAllManaCastRandomSpell => 4.0,
+        CardEffect::CopyLowestCostEnemyHandCard => 3.0,
+        CardEffect::OpponentDrawsTwoAndCopies => 5.0,
+        CardEffect::ReturnFriendlyMinionSummonSpider => 4.0,
+        CardEffect::ShuffleMatchingEnemyHandCardIntoDeck => 3.0,
+        CardEffect::DestroyFriendlyMinionGainArmor { armor } => armor as f64 * 0.7 + 2.0,
+        CardEffect::DrawSpellCostGE { .. } => 3.0,
+        CardEffect::DrawDragonsReduced { count, reduction } => {
+            count as f64 * 3.0 + reduction as f64 * 0.5
+        }
+        CardEffect::SummonCopyOfSelf => 4.0,
+        CardEffect::DestroyFriendlyWispDraw { count } => count as f64 * 3.0 + 1.0,
+        CardEffect::DrawAndSummonLeeches { draw } => draw as f64 * 5.0,
+        CardEffect::DrawAndSummonDreadseed { draw } => draw as f64 * 5.0,
+        CardEffect::NextHeroPowerCostsZero => 2.0,
+        CardEffect::RestoreHealthAndGetDruidSpells { amount, count } => {
+            amount as f64 * 0.7 + count as f64 * 3.0
+        }
+        CardEffect::GainManaCrystalBoth { count } => count as f64 * 2.0,
+        CardEffect::TransformNeutralDeckToDruid => 4.0,
+        CardEffect::AddMoonfireAndStarfireWithSpellDamage => 5.0,
+        CardEffect::BuffAnotherRandomFriendlyDragon { attack, health } => {
+            (attack + health) as f64 * 0.8 + 2.0
+        }
+        CardEffect::ReduceRightmostHandCardCost { reduction } => reduction as f64 * 0.5 + 1.0,
+        CardEffect::ResurrectDeathrattleMinionCostLE { .. } => 4.0,
+        CardEffect::ResurrectDeathrattleMinionCostGE { .. } => 5.0,
+        CardEffect::GainArmorPerWisp { base } => base as f64 * 0.7 + 1.0,
+        CardEffect::DamageMinionScaledByFallen { base } => base as f64 * 1.2 + 2.0,
+        CardEffect::GrantHeroDivineShield => 2.0,
+        CardEffect::RestoreBothHeroes { amount } => amount as f64 * 0.7,
+        CardEffect::AddSelfToDeckBottomCost { .. } => 1.0,
+        CardEffect::SummonCopyOfRandomFriendlyDragon => 4.0,
+        CardEffect::GainHealthIfHeroPowerUsed { amount } => amount as f64 * 0.7,
+        CardEffect::AttackRandomEnemyMinionExcess => 4.0,
+        CardEffect::SplashHeroAttackToRandomEnemy => 3.0,
+        CardEffect::GainDeadMinionAttack => 3.0,
+        CardEffect::DrawIfMinionPlayedBefore => 2.0,
+        CardEffect::GrantRandomBonusEffect => 2.0,
     }
 }
 

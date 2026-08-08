@@ -556,6 +556,11 @@ pub enum TriggerEvent {
     /// when the hero attacks a minion; pinned to the attacker or the
     /// attacker's equipped weapon)
     AttackedMinion,
+    /// The OWNER'S HERO attacked a minion, with the DEFENDER as the subject
+    /// (Defiled Spear — the splash must exclude the attacked minion, so the
+    /// trigger carries the defender rather than the attacker; pinned to the
+    /// defender itself or the attacking hero's equipped weapon)
+    HeroAttackedMinion,
     /// A secret owned by the trigger's player is revealed (Eaglehorn Bow —
     /// +1 Durability; friendly-scoped via the revealer, unlike the played
     /// event which fires when the secret is played)

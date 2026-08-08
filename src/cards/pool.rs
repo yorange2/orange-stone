@@ -285,6 +285,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(|id| card_by_id(id))
             .collect(),
+        RandomPool::Murloc => race_pool(Race::Murloc),
     }
 }
 
@@ -338,6 +339,7 @@ pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'stati
             c.card_type == CardType::Minion && c.race == Some(Race::Demon) && c.cost >= 5
         }),
         RandomPool::OtherClassChooseOne => random_from_pool(OTHER_CLASS_CHOOSE_ONE_POOL, rng),
+        RandomPool::Murloc => random_filtered(rng, |c| c.race == Some(Race::Murloc)),
     }
 }
 
@@ -580,5 +582,27 @@ mod tests {
                 card.id
             );
         }
+    }
+
+    /// Murloc (Gnawing Greenfin — M1-W4a) — every Murloc race member in the
+    /// active window is reachable and nothing else. Expansion cards like
+    /// Gnawing Greenfin (EDR_999) stay out of the sampling pools until the
+    /// D3 cut-over (in_active_window), so a Classic-era member anchors the
+    /// "non-empty" assertion.
+    #[test]
+    fn murloc_pool_is_murloc_minions() {
+        let pool = pool_cards(RandomPool::Murloc);
+        assert!(!pool.is_empty(), "the Murloc pool must not be empty");
+        for card in &pool {
+            assert!(
+                card.race == Some(Race::Murloc),
+                "{} is not a Murloc",
+                card.id
+            );
+        }
+        assert!(
+            pool.iter().any(|c| c.id == "CLASSIC_006"),
+            "Murloc Tidehunter must be in the Murloc pool"
+        );
     }
 }

@@ -140,6 +140,33 @@ pub struct Player {
     /// hero carries the Poison component while this is true; cleared in the
     /// turn-end wrap-up (the flag and the component expire together).
     pub hero_poisonous_this_turn: bool,
+    /// Spells cast this game (2025–2026 expansions M1-W4a): the New Moon
+    /// upgrade condition ("Cast 3 spells") is approximated by this total —
+    /// the per-card tracking of the real set is simplified, see §14.3.
+    pub spells_cast_total: u32,
+    /// Hero Power uses this game (2025–2026 expansions M1-W4a): Glowroot
+    /// Lure's cost reduction keyed off this count.
+    pub hero_power_uses: u32,
+    /// The next Hero Power costs (0) (Dreambound Disciple — 2025–2026
+    /// expansions M1-W4a, one-time, consumed at the hero-power activation)
+    pub next_hero_power_free: bool,
+    /// Pending self-damage from Rotten Apple (2025–2026 expansions M1-W4a):
+    /// damage to the hero at the END of this many of the player's own turns,
+    /// and how many ticks remain (simplification: the real timing is "for
+    /// the next 2 turns" from cast, see §14.3).
+    pub self_damage_pending: i32,
+    /// Remaining Rotten Apple ticks
+    pub self_damage_turns: u8,
+    /// Pending Mana Crystal gain from Fractured Power (2025–2026 expansions
+    /// M1-W4a): crystals granted at the END of this many of the player's own
+    /// turns, and how many ticks remain (simplification, see §14.3).
+    pub crystal_gain_pending: i32,
+    /// Remaining Fractured Power ticks
+    pub crystal_gain_turns: u8,
+    /// Minion card IDs played this game (2025–2026 expansions M1-W4a):
+    /// Twisted Webweaver's "another minion you've already played" log.
+    /// `String` (not `&'static str`) so the player state stays (de)serializable.
+    pub played_minion_ids: Vec<String>,
 }
 
 impl Player {
@@ -179,6 +206,14 @@ impl Player {
             hamuul_spells_cast: 0,
             dark_gifts_given: Vec::new(),
             hero_poisonous_this_turn: false,
+            spells_cast_total: 0,
+            hero_power_uses: 0,
+            next_hero_power_free: false,
+            self_damage_pending: 0,
+            self_damage_turns: 0,
+            crystal_gain_pending: 0,
+            crystal_gain_turns: 0,
+            played_minion_ids: Vec::new(),
         }
     }
 }
