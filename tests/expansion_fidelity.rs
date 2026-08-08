@@ -56,3 +56,14 @@ fn the_lost_city_dump_fidelity() {
         183,
     );
 }
+
+/// Across the Timeways sub-roadmap W0 (M3-W0): TIME_ + END_ (miniset)
+/// prefixes.
+#[test]
+fn across_the_timeways_dump_fidelity() {
+    check_dump_fidelity(
+        include_str!("../cards/data/TIME_TRAVEL.json"),
+        &["TIME_", "END_"],
+        183,
+    );
+}
