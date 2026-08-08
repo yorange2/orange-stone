@@ -497,13 +497,13 @@ fn candidates_for_target(
         // `exclude_elusive = false` for minions).
         EffectTarget::FriendlyRace(race) => minions(owner)
             .into_iter()
-            .filter(|&e| world.race(e) == Some(race))
+            .filter(|&e| world.has_race(e, race))
             .collect(),
         EffectTarget::AnyRace(race) => {
             let mut all = minions(owner);
             all.extend(minions(enemy));
             all.into_iter()
-                .filter(|&e| world.race(e) == Some(race))
+                .filter(|&e| world.has_race(e, race))
                 .collect()
         }
         EffectTarget::AnyMinion => {

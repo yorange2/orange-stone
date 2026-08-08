@@ -15,9 +15,22 @@ use super::classic_rogue::*;
 use super::classic_shaman::*;
 use super::classic_warlock::*;
 use super::classic_warrior::*;
+use super::core_w1::*;
 // ============================================================
 // Card lists
 // ============================================================
+
+// ============================================================
+// Core Set W1 (core-set-roadmap W1) — attack-pipeline primitives.
+// Class affiliations: Demon Hunter / Death Knight cards go to their own
+// groups (new in W1) so the pilfer-style other-class pools include them.
+// ============================================================
+
+/// Core Set W1 — Demon Hunter class cards.
+pub const DEMON_HUNTER_W1: &[CardDef] = &[EYE_BEAM, ALDRACHI_WARBLADES, MYTHICAL_TERROR];
+
+/// Core Set W1 — Death Knight class cards.
+pub const DEATH_KNIGHT_W1: &[CardDef] = &[MALIGNANT_HORROR];
 
 // Classic set grouped by class
 pub const NEUTRAL_CLASSIC: &[CardDef] = &[
@@ -178,6 +191,14 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     NIGHTMARE,
     YSERA_AWAKENS,
     BARRENS_STABLEHAND,
+    // Core Set W1 (core-set-roadmap W1) — neutral attack-pipeline cards
+    IMPRISONED_VILEFIEND,
+    EVASIVE_WYRM,
+    FELRATTLER,
+    SWAMP_LEECH,
+    OBSIDIAN_STATUE,
+    MURMY,
+    LYNX,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -241,6 +262,8 @@ pub const DRUID_CLASSIC: &[CardDef] = &[
     CENARIUS_TREANT,
     KEEPER_OF_THE_GROVE,
     SOUL_OF_THE_FOREST,
+    // Core Set W1 — Underking (Rush, battlecry/deathrattle armor)
+    UNDERKING,
 ];
 
 pub const HUNTER_CLASSIC: &[CardDef] = &[
@@ -277,6 +300,8 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     HUFFER,
     LEOKK,
     MISHA,
+    // Core Set W1 — Halazzi, the Lynx (fill hand with 1/1 Lynxes)
+    HALAZZI_THE_LYNX,
 ];
 
 pub const MAGE_CLASSIC: &[CardDef] = &[
@@ -375,6 +400,10 @@ pub const PRIEST_CLASSIC: &[CardDef] = &[
     MIND_VISION,
     THOUGHTSTEAL,
     MINDGAMES,
+    // Core Set W1 — Lifesteal Priest spells
+    DEVOURING_PLAGUE,
+    DRAIN_SOUL,
+    VOID_SHARD,
 ];
 
 pub const ROGUE_CLASSIC: &[CardDef] = &[
@@ -946,6 +975,26 @@ pub const ALL_CARDS: &[CardDef] = &[
     BLESSING_OF_WISDOM,
     EYE_FOR_AN_EYE,
     REDEMPTION,
+    // Core Set W1 (core-set-roadmap W1, 2026-08-08) — attack-pipeline
+    // primitives: 15 cards + the Lynx token. Class affiliations follow the
+    // group membership above (Druid/Hunter/Priest/Neutral/Demon Hunter/
+    // Death Knight).
+    UNDERKING,
+    HALAZZI_THE_LYNX,
+    LYNX,
+    DEVOURING_PLAGUE,
+    DRAIN_SOUL,
+    VOID_SHARD,
+    EYE_BEAM,
+    ALDRACHI_WARBLADES,
+    MYTHICAL_TERROR,
+    MALIGNANT_HORROR,
+    IMPRISONED_VILEFIEND,
+    EVASIVE_WYRM,
+    FELRATTLER,
+    SWAMP_LEECH,
+    OBSIDIAN_STATUE,
+    MURMY,
 ];
 
 // ============================================================

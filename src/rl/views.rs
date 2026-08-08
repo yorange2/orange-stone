@@ -195,7 +195,7 @@ pub fn entity_view(state: &GameState, entity: Entity, is_hand: bool) -> EntityVi
         elusive: world.elusive(entity).is_some(),
         windfury: world.windfury(entity).is_some(),
         charge: world.effective_charge(entity),
-        race: match world.race(entity) {
+        race: match world.race(entity).and_then(|tribes| tribes.first()) {
             Some(crate::core::component::Race::Beast) => 1,
             Some(crate::core::component::Race::Murloc) => 2,
             Some(crate::core::component::Race::Demon) => 3,
@@ -204,6 +204,7 @@ pub fn entity_view(state: &GameState, entity: Entity, is_hand: bool) -> EntityVi
             Some(crate::core::component::Race::Mechanical) => 6,
             Some(crate::core::component::Race::Pirate) => 7,
             Some(crate::core::component::Race::Totem) => 8,
+            Some(crate::core::component::Race::Undead) => 9,
             None => 0,
         },
         frozen: world.freeze(entity).is_some(),

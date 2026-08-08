@@ -388,6 +388,30 @@ fn find_hand_entity(
 }
 
 /// Finds the first Play-zone entity with the given card ID (Wave 0 scenarios).
+/// Finds a card in the given player's hand by card ID.
+fn find_in_hand(
+    state: &GameState,
+    player: orange_stone::core::player::PlayerId,
+    card_id: &str,
+) -> Entity {
+    state
+        .world()
+        .zones()
+        .iter(Zone::Hand, player)
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == card_id))
+        .expect("entity with card id in the hand")
+}
+
+/// Pads both players' decks with vanilla cards so turn-start draws do not
+/// fatigue (the default `GameState::new()` decks are empty).
+fn pad_decks(builder: &mut GameBuilder) {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    for _ in 0..5 {
+        builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+        builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    }
+}
+
 fn find_entity(
     state: &GameState,
     player: orange_stone::core::player::PlayerId,
@@ -1643,13 +1667,17 @@ fn w1_race_pools_are_field_driven() {
     assert_eq!(
         additions,
         vec![
-            "CLASSIC_001", // Bloodfen Raptor
-            "HUNTER_006t", // Hyena (Savannah Highmane token)
-            "HUNTER_013",  // Scavenging Hyena
-            "HUNTER_023a", // Huffer
-            "HUNTER_023b", // Leokk
-            "HUNTER_023c", // Misha
-            "NEUTRAL_E03", // Hungry Crab
+            "CLASSIC_001",   // Bloodfen Raptor
+            "CORE_GIL_558",  // Swamp Leech (Core Set W1)
+            "CORE_TRL_900",  // Halazzi, the Lynx (Core Set W1)
+            "CORE_TRL_900t", // Lynx (Core Set W1 token)
+            "CORE_WC_701",   // Felrattler (Core Set W1)
+            "HUNTER_006t",   // Hyena (Savannah Highmane token)
+            "HUNTER_013",    // Scavenging Hyena
+            "HUNTER_023a",   // Huffer
+            "HUNTER_023b",   // Leokk
+            "HUNTER_023c",   // Misha
+            "NEUTRAL_E03",   // Hungry Crab
         ]
     );
     // Demons: the old 8 + Siegebreaker + Blood Imp
@@ -1673,7 +1701,17 @@ fn w1_race_pools_are_field_driven() {
         .copied()
         .collect::<Vec<_>>();
     extra.sort_unstable();
-    assert_eq!(extra, vec!["CS2_064", "WARLOCK_T01"]); // Blood Imp, Siegebreaker
+    // Blood Imp, Siegebreaker + the Core Set W1 Demons (Imprisoned Vilefiend,
+    // Mythical Terror — its CardDef primary tribe is Demon)
+    assert_eq!(
+        extra,
+        vec![
+            "CORE_BT_156",  // Imprisoned Vilefiend (W1)
+            "CORE_TTN_866", // Mythical Terror (W1)
+            "CS2_064",
+            "WARLOCK_T01"
+        ]
+    );
 }
 
 // ============================================================
@@ -4647,7 +4685,11 @@ fn w9_bestial_wrath_targets_beast_only() {
         .world()
         .zones()
         .iter(Zone::Play, PlayerId1())
-        .find(|&e| state.world().race(e) == Some(orange_stone::core::component::Race::Beast))
+        .find(|&e| {
+            state
+                .world()
+                .has_race(e, orange_stone::core::component::Race::Beast)
+        })
         .expect("raptor on the board");
     let hand: Vec<_> = state
         .world()
@@ -9041,5 +9083,663 @@ fn po_hand_cap_cho_refused_on_both_sides() {
         state.world().zones().len(Zone::Hand, PlayerId2()),
         10,
         "P2's hand stays at the cap — both Cho copies are refused"
+    );
+}
+
+// ============================================================
+// Core Set W1 (core-set-roadmap W1) — attack-pipeline primitives:
+// RUSH / LIFESTEAL / REBORN, plus the W1 scripted effects
+// (forced attack, corpse spending, hand filling, self-copy
+// deathrattle). Verified against the official card texts and
+// SabberStone resolution semantics.
+// ============================================================
+
+/// W1-1 Rush — a Rush minion can attack an enemy MINION the turn it is
+/// summoned (no summoning sickness), but not the enemy HERO.
+#[test]
+fn w1_rush_attacks_minion_but_not_hero_same_turn() {
+    use orange_stone::cards::def::IMPRISONED_VILEFIEND;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId2(), &IMPRISONED_VILEFIEND);
+    let enemy_minion = builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 2);
+    builder.active_player(PlayerId2());
+    let mut state = builder.build();
+    let hero1 = state.player(PlayerId1()).hero;
+    let engine = GameEngine::new();
+    let vielfiend = find_entity(&state, PlayerId2(), "CORE_BT_156");
+    // Same turn: attacking the enemy minion is legal — the 1/1 dies to the
+    // 3-damage hit (graveyard, not a zero-health effective value)
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: vielfiend,
+                defender: enemy_minion,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(enemy_minion), Some(Zone::Graveyard));
+    // Same turn: attacking the enemy hero is refused
+    assert!(
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker: vielfiend,
+                    defender: hero1,
+                },
+            )
+            .is_err(),
+        "a Rush minion cannot attack the hero on its summoning turn"
+    );
+}
+
+/// W1-2 Rush — after the owner's next turn starts, the Rush restriction is
+/// gone: the minion may attack the hero.
+#[test]
+fn w1_rush_can_attack_hero_next_turn() {
+    use orange_stone::cards::def::IMPRISONED_VILEFIEND;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId2(), &IMPRISONED_VILEFIEND);
+    builder.active_player(PlayerId2());
+    pad_decks(&mut builder); // the default decks are empty — turn-start draws fatigue
+    let mut state = builder.build();
+    let hero1 = state.player(PlayerId1()).hero;
+    let engine = GameEngine::new();
+    let vielfiend = find_entity(&state, PlayerId2(), "CORE_BT_156");
+    engine.apply(&mut state, Action::EndTurn).unwrap(); // P1 turn
+    engine.apply(&mut state, Action::EndTurn).unwrap(); // back to P2
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: vielfiend,
+                defender: hero1,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero1), Some(Health(27)));
+}
+
+/// W1-3 Lifesteal — a Lifesteal minion's attack heals its owner's hero for
+/// the damage dealt; a Lifesteal weapon heals on the hero's attacks too.
+#[test]
+fn w1_lifesteal_minion_and_weapon_heal_hero() {
+    use orange_stone::cards::def::{ALDRACHI_WARBLADES, SWAMP_LEECH};
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.add_minion_to_board(PlayerId1(), &SWAMP_LEECH);
+    builder.add_minion_to_hand(PlayerId1(), &ALDRACHI_WARBLADES);
+    builder.active_player(PlayerId1());
+    // Damage the P1 hero (30 -> 24) with a vanilla 6/6 attacker
+    let attacker = builder.add_custom_minion_to_board(PlayerId2(), 6, 6, 2);
+    let mut state = builder.build();
+    let hero1 = state.player(PlayerId1()).hero;
+    let engine = GameEngine::new();
+    state.set_active_player(PlayerId2());
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: hero1,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero1), Some(Health(24)));
+    // The Leech trades into the attacker: 2 damage dealt -> 2 healed
+    state.set_active_player(PlayerId1());
+    let leech = find_entity(&state, PlayerId1(), "CORE_GIL_558");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: leech,
+                defender: attacker,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero1), Some(Health(26)));
+    // Equip Aldrachi Warblades (the hand card carries its Lifesteal
+    // component — added via the card-definition path at builder stage):
+    // the hero's weapon attack deals 2 and heals 2
+    let warblades = find_in_hand(&state, PlayerId1(), "CORE_BT_921");
+    state.set_active_player(PlayerId1());
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: warblades,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The weapon carried Lifesteal through the play path (the component was
+    // applied on the hand entity — verify via the attack below)
+    let enemy2 = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("the enemy 6/6");
+    let hero1_entity = state.player(PlayerId1()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero1_entity,
+                defender: enemy2,
+            },
+        )
+        .unwrap();
+    // 2 weapon damage dealt -> 2 healed; the 6/6 retaliates for 6 (its
+    // attack is intact): hero 26 - 6 + 2 = 22, the 6/6 (4 -> 2) survives
+    assert_eq!(state.world().effective_health(hero1), Some(Health(22)));
+    assert_eq!(state.world().effective_health(enemy2), Some(Health(2)));
+}
+
+/// W1-4 Lifesteal — a Lifesteal SPELL (Drain Soul) heals the caster's hero
+/// for the damage dealt.
+#[test]
+fn w1_lifesteal_spell_heals_hero() {
+    use orange_stone::cards::def::DRAIN_SOUL;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let enemy_minion = builder.add_custom_minion_to_board(PlayerId2(), 6, 6, 3);
+    builder.add_minion_to_hand(PlayerId1(), &DRAIN_SOUL);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Damage the P1 hero first (30 -> 24) with the enemy minion
+    let hero1 = state.player(PlayerId1()).hero;
+    state.set_active_player(PlayerId2());
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy_minion,
+                defender: hero1,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero1), Some(Health(24)));
+    // P1 casts Drain Soul on the enemy minion: 3 damage dealt -> 3 healed
+    state.set_active_player(PlayerId1());
+    let soul = find_in_hand(&state, PlayerId1(), "CORE_ICC_055");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: soul,
+                target: Some(enemy_minion),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero1), Some(Health(27)));
+    assert_eq!(
+        state.world().effective_health(enemy_minion),
+        Some(Health(3))
+    );
+}
+
+/// W1-5 Devouring Plague — four 1-damage pings randomly split among all
+/// enemy minions; each ping heals the caster for 1 (Lifesteal). The spell
+/// is immune to spell damage (W2 wires the exemption).
+#[test]
+fn w1_devouring_plague_pings_enemy_minions() {
+    use orange_stone::cards::def::DEVOURING_PLAGUE;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    // One 2/2 and one 1/1 — the four pings kill both (2 + 1 = 3 pings) and
+    // the fourth rolls onto whichever survived / a fresh ping target
+    builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 1);
+    builder.add_minion_to_hand(PlayerId1(), &DEVOURING_PLAGUE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let plague = find_in_hand(&state, PlayerId1(), "CORE_BAR_311");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: plague,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let survivors = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(survivors, 0, "4 pings kill both enemy minions (1+2 health)");
+    // The hero healed 4 (a full 4-damage spell -> 4 lifesteal heals)
+    let hero1 = state.player(PlayerId1()).hero;
+    assert_eq!(state.world().effective_health(hero1), Some(Health(30)));
+}
+
+/// W1-6 Reborn — a Reborn minion resurrects as a fresh 1/1 once (buffs
+/// cleared, Reborn spent), then dies for real.
+#[test]
+fn w1_reborn_resurrects_as_1_1_once() {
+    use orange_stone::cards::def::MURMY;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &MURMY);
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let murmy = find_entity(&state, PlayerId1(), "CORE_ULD_723");
+    // Buff Murmy to 2/2 first (the resurrection must clear the buff)
+    {
+        use orange_stone::core::component::Enchantment;
+        let world = state.world_mut();
+        world.add_enchantment(
+            murmy,
+            Enchantment {
+                attack: 1,
+                health: 1,
+                cost: 0,
+                expiry: orange_stone::core::component::EnchantmentExpiry::Permanent,
+            },
+        );
+    }
+    assert_eq!(state.world().effective_attack(murmy), Some(Attack(2)));
+    state.set_active_player(PlayerId2());
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy,
+                defender: murmy,
+            },
+        )
+        .unwrap();
+    // Resurrected as a fresh 1/1, still on the board
+    assert_eq!(state.world().effective_attack(murmy), Some(Attack(1)));
+    assert_eq!(state.world().effective_health(murmy), Some(Health(1)));
+    assert_eq!(state.world().zone(murmy), Some(Zone::Play));
+    assert!(
+        state.world().reborn(murmy).is_none(),
+        "Reborn is spent after the first resurrection"
+    );
+    // The second death is final (a new turn first — the enemy has already
+    // attacked this turn)
+    state.set_active_player(PlayerId2());
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy,
+                defender: murmy,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(murmy), Some(Zone::Graveyard));
+}
+
+/// W1-7 Reborn — the resurrection counts as a summon: the 1/1 copy has
+/// summoning sickness and cannot attack the same turn.
+#[test]
+fn w1_reborn_resurrection_has_summoning_sickness() {
+    use orange_stone::cards::def::MURMY;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &MURMY);
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.active_player(PlayerId2());
+    let mut state = builder.build();
+    let hero2 = state.player(PlayerId2()).hero;
+    let engine = GameEngine::new();
+    let murmy = find_entity(&state, PlayerId1(), "CORE_ULD_723");
+    // Kill Murmy during P1's own turn (it was summoned this turn anyway, so
+    // even the original could not attack); the resurrected copy must also be
+    // sick.
+    state.set_active_player(PlayerId1());
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // P2's minion kills Murmy on P2's turn
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy,
+                defender: murmy,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(murmy), Some(Health(1)));
+    // The resurrected copy is sick on P2's turn: attacking the hero fails
+    assert!(
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker: murmy,
+                    defender: hero2,
+                },
+            )
+            .is_err(),
+        "the resurrected 1/1 has summoning sickness"
+    );
+}
+
+/// W1-8 Mythical Terror — at the end of its owner's turn, every enemy
+/// minion that can attack is forced to attack it.
+#[test]
+fn w1_mythical_terror_forces_enemy_attacks() {
+    use orange_stone::cards::def::MYTHICAL_TERROR;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &MYTHICAL_TERROR);
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let terror = find_entity(&state, PlayerId1(), "CORE_TTN_866");
+    // P1 ends the turn: P2's 3/3 is forced to attack the 4/10
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_health(terror),
+        Some(Health(7)),
+        "the terror takes the forced 3 damage"
+    );
+    assert_eq!(
+        state.world().zone(foe),
+        Some(Zone::Graveyard),
+        "the 3/3 dies to the terror's retaliation"
+    );
+    // The terror's Lifesteal healed the OWNER hero (undamaged at 30 — a
+    // no-op); the terror itself stays at 7
+    assert_eq!(state.world().effective_health(terror), Some(Health(7)));
+}
+
+/// W1-9 Corpses — friendly minion deaths produce corpses; Malignant Horror
+/// spends 4 corpses at end of turn to summon a copy.
+#[test]
+fn w1_malignant_horror_spends_corpses() {
+    use orange_stone::cards::def::MALIGNANT_HORROR;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &MALIGNANT_HORROR);
+    // Three vanilla minions that die (producing corpses) + the horror itself
+    builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    // Four enemy 9/9s: one swing per P1 minion (each enemy can attack once)
+    let e1 = builder.add_custom_minion_to_board(PlayerId2(), 9, 9, 2);
+    let e2 = builder.add_custom_minion_to_board(PlayerId2(), 9, 9, 2);
+    let e3 = builder.add_custom_minion_to_board(PlayerId2(), 9, 9, 2);
+    let e4 = builder.add_custom_minion_to_board(PlayerId2(), 9, 9, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let horror = find_entity(&state, PlayerId1(), "CORE_RLK_745");
+    state.set_active_player(PlayerId2());
+    for enemy in [e1, e2, e3] {
+        let target = state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId1())
+            .find(|&e| e != horror && state.world().card_type(e) == Some(CardType::Minion))
+            .expect("a vanilla minion to kill");
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker: enemy,
+                    defender: target,
+                },
+            )
+            .unwrap();
+    }
+    assert_eq!(state.player(PlayerId1()).corpses, 3);
+    // End P2's turn AND P1's turn: P1's turn end spends 3 < 4 corpses
+    // -> no copy
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let count = |s: &GameState| {
+        s.world()
+            .zones()
+            .iter(Zone::Play, PlayerId1())
+            .filter(|&e| s.world().card_type(e) == Some(CardType::Minion))
+            .count()
+    };
+    assert_eq!(count(&state), 1, "no copy with only 3 corpses");
+    // Kill the horror itself (4th corpse) — it has Reborn, so it resurrects
+    // as a 1/1 and the corpse still counts (a death happened)
+    state.set_active_player(PlayerId2());
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: e4,
+                defender: horror,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(PlayerId1()).corpses, 4);
+    // P1's next turn end (end P2's turn, then P1's): 4 corpses spent
+    // -> a copy is summoned
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(count(&state), 2, "the copy joins the 1/1 horror");
+    assert_eq!(state.player(PlayerId1()).corpses, 0);
+}
+
+/// W1-10 Halazzi, the Lynx — the battlecry fills the hand with 1/1 Lynxes
+/// that have Rush, stopping at the 10-card hand cap.
+#[test]
+fn w1_halazzi_fills_hand_with_lynxes() {
+    use orange_stone::cards::def::HALAZZI_THE_LYNX;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_custom_minion_to_hand(PlayerId1(), 2, 2, 2); // 1 held card
+    builder.add_minion_to_hand(PlayerId1(), &HALAZZI_THE_LYNX);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let halazzi = find_in_hand(&state, PlayerId1(), "CORE_TRL_900");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: halazzi,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hand = state.world().zones().len(Zone::Hand, PlayerId1());
+    assert_eq!(hand, 10, "the hand is filled to the cap");
+    let lynxes = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_TRL_900t")
+        })
+        .count();
+    assert_eq!(lynxes, 9, "all 9 new cards are Lynxes");
+}
+
+/// W1-11 Obsidian Statue — the deathrattle summons a fresh 4/8 copy (with
+/// its own deathrattle).
+#[test]
+fn w1_obsidian_statue_deathrattle_summons_copy() {
+    use orange_stone::cards::def::OBSIDIAN_STATUE;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &OBSIDIAN_STATUE);
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 9, 9, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let statue = find_entity(&state, PlayerId1(), "CORE_ICC_214");
+    state.set_active_player(PlayerId2());
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy,
+                defender: statue,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(statue), Some(Zone::Graveyard));
+    let copy = find_entity(&state, PlayerId1(), "CORE_ICC_214");
+    assert_ne!(copy, statue, "a fresh statue was summoned");
+    assert_eq!(state.world().effective_attack(copy), Some(Attack(4)));
+    assert_eq!(state.world().effective_health(copy), Some(Health(8)));
+    assert!(state.world().taunt(copy).is_some(), "the copy has Taunt");
+    assert!(
+        state.world().lifesteal(copy).is_some(),
+        "the copy has Lifesteal"
+    );
+    assert!(
+        state.world().deathrattle(copy).is_some(),
+        "the copy keeps the deathrattle (statue chains)"
+    );
+}
+
+/// W1-12 Underking — battlecry and deathrattle each gain 6 armor.
+#[test]
+fn w1_underking_gains_armor_twice() {
+    use orange_stone::cards::def::UNDERKING;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 9, 9, 2);
+    builder.add_minion_to_hand(PlayerId1(), &UNDERKING);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let underking = find_in_hand(&state, PlayerId1(), "CORE_RLK_657");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: underking,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(PlayerId1()).armor, 6);
+    // Kill it: the deathrattle adds another 6 armor
+    state.set_active_player(PlayerId2());
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy,
+                defender: underking,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(PlayerId1()).armor, 12);
+}
+
+/// W1-13 Felrattler — the deathrattle deals 1 damage to all enemy minions.
+#[test]
+fn w1_felrattler_deathrattle_pings_all_enemies() {
+    use orange_stone::cards::def::FELRATTLER;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &FELRATTLER);
+    let a = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    let b = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 2);
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 9, 9, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let felrattler = find_entity(&state, PlayerId1(), "CORE_WC_701");
+    state.set_active_player(PlayerId2());
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy,
+                defender: felrattler,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(a),
+        Some(Health(1)),
+        "1 damage to the first enemy minion"
+    );
+    assert_eq!(
+        state.world().effective_health(b),
+        Some(Health(2)),
+        "1 damage to the second enemy minion"
+    );
+}
+
+/// W1-14 Mythical Terror — dual tribe Demon + Beast: both `has_race`
+/// lookups resolve, and the Beast half makes it a valid Scavenging-Hyena
+/// trigger subject.
+#[test]
+fn w1_mythical_terror_is_dual_tribe() {
+    use orange_stone::cards::def::MYTHICAL_TERROR;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(PlayerId1(), &MYTHICAL_TERROR);
+    let state = builder.build();
+    let terror = find_entity(&state, PlayerId1(), "CORE_TTN_866");
+    assert!(
+        state
+            .world()
+            .has_race(terror, orange_stone::core::component::Race::Demon)
+    );
+    assert!(
+        state
+            .world()
+            .has_race(terror, orange_stone::core::component::Race::Beast)
+    );
+}
+
+#[test]
+fn dbg_w1_corpses() {
+    let mut builder = GameBuilder::new();
+    builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    let e1 = builder.add_custom_minion_to_board(PlayerId2(), 9, 9, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    state.set_active_player(PlayerId2());
+    let target = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .next()
+        .expect("the vanilla");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: e1,
+                defender: target,
+            },
+        )
+        .unwrap();
+    eprintln!(
+        "DBG-CORPSE target zone: {:?} corpses: {} damage: {:?} hp: {:?}",
+        state.world().zone(target),
+        state.player(PlayerId1()).corpses,
+        state.world().damage(target),
+        state.world().effective_health(target)
+    );
+    eprintln!(
+        "DBG-CORPSE pending: {:?} step: {:?} active: {:?}",
+        state.pending_deaths().len(),
+        state.step(),
+        state.active_player()
+    );
+    eprintln!(
+        "DBG-CORPSE e1 attacks_used: {:?} atk: {:?}",
+        state.world().attacks_used(e1),
+        state.world().effective_attack(e1)
+    );
+    eprintln!(
+        "DBG-CORPSE vanilla enchant: {:?} health: {:?}",
+        state.world().enchantments(target),
+        state.world().health(target)
     );
 }

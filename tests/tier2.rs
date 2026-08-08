@@ -1572,7 +1572,11 @@ fn find_beast(state: &orange_stone::core::state::GameState) -> Entity {
         .world()
         .zones()
         .iter(Zone::Play, PlayerId::Player1)
-        .find(|&e| state.world().race(e) == Some(orange_stone::core::component::Race::Beast))
+        .find(|&e| {
+            state
+                .world()
+                .has_race(e, orange_stone::core::component::Race::Beast)
+        })
         .expect("a friendly Beast on the board")
 }
 

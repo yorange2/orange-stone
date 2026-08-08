@@ -40,6 +40,10 @@ fn is_other_class_card(card: &CardDef) -> bool {
         crate::cards::sets::SHAMAN_CLASSIC,
         crate::cards::sets::WARLOCK_CLASSIC,
         crate::cards::sets::WARRIOR_CLASSIC,
+        // Core Set W1 — Demon Hunter / Death Knight groups (new classes,
+        // pilferable like the classic ones)
+        crate::cards::sets::DEMON_HUNTER_W1,
+        crate::cards::sets::DEATH_KNIGHT_W1,
     ]
     .iter()
     .any(|class| class.iter().any(|c| c.id == card.id))
