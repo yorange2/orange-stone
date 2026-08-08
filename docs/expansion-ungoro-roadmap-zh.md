@@ -45,7 +45,14 @@
   Temporary 原语（标记 + 回合末弃置）使 TLC_446 可行；简化登记 §15（en+zh）；
   12 个 `tlc_w2_*` F5 场景钉死 进度→奖励 时序与每玩家一任务（真实卡级）；
   W1 学派场景更新为真实双栏语义。
-- **W3 —— 同族（Q2）：** 计数原语 + 同族卡；F5 场景覆盖文本触发条件。
+- [x] **W3 —— 同族（Q2）**（PR #146）：机制按卡文本核实——"Kindred: X"
+  在本回合早先打出同类卡时激活（随从按种族、法术按卡类型；自身不算）。
+  `cards::kindred` 注册表（KindredType/KindredEffect 表，23 张）+ 玩家级
+  `kindred_played` 状态（回合末清空）+ `next_kindred_twice` 旗标；解析
+  形状 OnPlay / CostDiscount / BattlecryModifier + 专用抽牌战吼
+  （TLC_102 Torga 扫描、TLC_223/236/432 抽牌修饰）；23 卡 + 3 token 落
+  `exp_tlc_w3.rs`；简化 §16（en+zh）；22 个 `tlc_w3_*` F5 场景；
+  顺带修复既有 `resolve_destroy_minion` 缺 AnyMinion 臂的缺口。
 - **W4 —— 恐龙节迷你：** 迷你卡（机制由数据回填）；收尾波清扫衍生物/账本。
 
 ## 卡清单
@@ -66,29 +73,29 @@
 - [x] TLC_830 The Food Chain
 
 ### W3 —— 同族
-- [ ] TLC_102 Torga
-- [ ] TLC_107 Stormbrewer
-- [ ] TLC_223 Volcanic Thrasher
-- [ ] TLC_226 Conjured Bookkeeper
-- [ ] TLC_236 Hybridization
-- [ ] TLC_243 Whirling Stormdrake
-- [ ] TLC_251 Primalfin Challenger
-- [ ] TLC_366 Pterrorwing Ravager
-- [ ] TLC_428 Hot Spring Glider
-- [ ] TLC_429 Steamfin Thief
-- [ ] TLC_432 Dread Raptor
-- [ ] TLC_440 Cryosleep
-- [ ] TLC_447 Caustic Fumes
-- [ ] TLC_454 Scalehide Kodo
-- [ ] TLC_463 Razidir
-- [ ] TLC_482 Slagclaw
-- [ ] TLC_519 Ambush Predators
-- [ ] TLC_600 Windpeak Wyrm
-- [ ] TLC_815 Gravedawn Voidbulb
-- [ ] TLC_816 Gravedawn Sunbloom
-- [ ] TLC_825 Ravasaur Matriarch
-- [ ] TLC_829 Ravenous Devilsaur
-- [ ] TLC_903 Silithid Queen
+- [x] TLC_102 Torga
+- [x] TLC_107 Stormbrewer
+- [x] TLC_223 Volcanic Thrasher
+- [x] TLC_226 Conjured Bookkeeper
+- [x] TLC_236 Hybridization
+- [x] TLC_243 Whirling Stormdrake
+- [x] TLC_251 Primalfin Challenger
+- [x] TLC_366 Pterrorwing Ravager
+- [x] TLC_428 Hot Spring Glider
+- [x] TLC_429 Steamfin Thief
+- [x] TLC_432 Dread Raptor
+- [x] TLC_440 Cryosleep
+- [x] TLC_447 Caustic Fumes
+- [x] TLC_454 Scalehide Kodo
+- [x] TLC_463 Razidir
+- [x] TLC_482 Slagclaw
+- [x] TLC_519 Ambush Predators
+- [x] TLC_600 Windpeak Wyrm
+- [x] TLC_815 Gravedawn Voidbulb
+- [x] TLC_816 Gravedawn Sunbloom
+- [x] TLC_825 Ravasaur Matriarch
+- [x] TLC_829 Ravenous Devilsaur
+- [x] TLC_903 Silithid Queen
 
 ### W4 —— 其余卡 + 迷你
 - [ ] TLC_100 Elise the Navigator

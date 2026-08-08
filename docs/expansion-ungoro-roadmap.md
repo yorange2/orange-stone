@@ -55,8 +55,17 @@ registration; simplifications get ledger rows.
   12 `tlc_w2_*` F5 scenarios pin progress→reward sequencing and the
   one-quest-per-player rule with real cards; the W1 spell-school scenario
   updated to the real dual-bar semantics.
-- **W3 — Kindred (Q2):** counter primitive + Kindred cards; F5 scenarios for
-  the trigger conditions from text.
+- [x] **W3 — Kindred (Q2)** (PR #146): the mechanic verified from the card
+  texts — "Kindred: X" activates when a card of the same type was played
+  earlier this turn (tribe for minions, card type for spells; self never
+  counts). `cards::kindred` registry (KindredType/KindredEffect tables,
+  23 cards) + player-level `kindred_played` state (cleared at turn end) +
+  `next_kindred_twice` flag; resolution shapes OnPlay / CostDiscount /
+  BattlecryModifier + dedicated draw battlecries (TLC_102 Torga scan,
+  TLC_223/236/432 drawn-card modifiers); 23 cards + 3 tokens in
+  `exp_tlc_w3.rs`; simplifications §16 (en+zh); 22 `tlc_w3_*` F5
+  scenarios; fixed the pre-existing `resolve_destroy_minion` AnyMinion
+  gap.
 - **W4 — Festival of the Devilsaur mini:** miniset cards (mechanics backfilled
   from data); closing wave sweeps tokens/ledger.
 
@@ -78,29 +87,29 @@ registration; simplifications get ledger rows.
 - [x] TLC_830 The Food Chain
 
 ### W3 — Kindred
-- [ ] TLC_102 Torga
-- [ ] TLC_107 Stormbrewer
-- [ ] TLC_223 Volcanic Thrasher
-- [ ] TLC_226 Conjured Bookkeeper
-- [ ] TLC_236 Hybridization
-- [ ] TLC_243 Whirling Stormdrake
-- [ ] TLC_251 Primalfin Challenger
-- [ ] TLC_366 Pterrorwing Ravager
-- [ ] TLC_428 Hot Spring Glider
-- [ ] TLC_429 Steamfin Thief
-- [ ] TLC_432 Dread Raptor
-- [ ] TLC_440 Cryosleep
-- [ ] TLC_447 Caustic Fumes
-- [ ] TLC_454 Scalehide Kodo
-- [ ] TLC_463 Razidir
-- [ ] TLC_482 Slagclaw
-- [ ] TLC_519 Ambush Predators
-- [ ] TLC_600 Windpeak Wyrm
-- [ ] TLC_815 Gravedawn Voidbulb
-- [ ] TLC_816 Gravedawn Sunbloom
-- [ ] TLC_825 Ravasaur Matriarch
-- [ ] TLC_829 Ravenous Devilsaur
-- [ ] TLC_903 Silithid Queen
+- [x] TLC_102 Torga
+- [x] TLC_107 Stormbrewer
+- [x] TLC_223 Volcanic Thrasher
+- [x] TLC_226 Conjured Bookkeeper
+- [x] TLC_236 Hybridization
+- [x] TLC_243 Whirling Stormdrake
+- [x] TLC_251 Primalfin Challenger
+- [x] TLC_366 Pterrorwing Ravager
+- [x] TLC_428 Hot Spring Glider
+- [x] TLC_429 Steamfin Thief
+- [x] TLC_432 Dread Raptor
+- [x] TLC_440 Cryosleep
+- [x] TLC_447 Caustic Fumes
+- [x] TLC_454 Scalehide Kodo
+- [x] TLC_463 Razidir
+- [x] TLC_482 Slagclaw
+- [x] TLC_519 Ambush Predators
+- [x] TLC_600 Windpeak Wyrm
+- [x] TLC_815 Gravedawn Voidbulb
+- [x] TLC_816 Gravedawn Sunbloom
+- [x] TLC_825 Ravasaur Matriarch
+- [x] TLC_829 Ravenous Devilsaur
+- [x] TLC_903 Silithid Queen
 
 ### W4 — remaining cards + mini
 - [ ] TLC_100 Elise the Navigator
