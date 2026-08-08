@@ -38,7 +38,7 @@
 ### CORE_BAR_* — 贫瘠之地的锤炼（7 张）
 
 - [ ] `CORE_BAR_310` Lightshower Elemental — 6 费随从 6/6
-- [ ] `CORE_BAR_311` Devouring Plague — 3 费 法术
+- [x] `CORE_BAR_311` Devouring Plague — 3 费 法术
 - [ ] `CORE_BAR_313` Priest of An'she — 5 费随从 5/5
 - [ ] `CORE_BAR_541` Runed Orb — 2 费 法术
 - [ ] `CORE_BAR_801` Wound Prey — 1 费 法术
@@ -61,7 +61,7 @@
 - [ ] `CORE_BT_035` Chaos Strike — 2 费 法术
 - [ ] `CORE_BT_072` Deep Freeze — 7 费 法术
 - [ ] `CORE_BT_120` Warmaul Challenger — 3 费随从 1/10
-- [ ] `CORE_BT_156` Imprisoned Vilefiend — 2 费随从 3/5
+- [x] `CORE_BT_156` Imprisoned Vilefiend — 2 费随从 3/5
 - [ ] `CORE_BT_187` Kayn Sunfury — 4 费随从 3/5
 - [ ] `CORE_BT_201` Augmented Porcupine — 3 费随从 2/4
 - [ ] `CORE_BT_292` Hand of A'dal — 2 费 法术
@@ -74,8 +74,8 @@
 - [ ] `CORE_BT_510` Wrathspike Brute — 5 费随从 3/6
 - [ ] `CORE_BT_701` Spymistress — 1 费随从 3/1
 - [ ] `CORE_BT_781` Bulwark of Azzinoth — 3 费武器 1/4
-- [ ] `CORE_BT_801` Eye Beam — 3 费 法术
-- [ ] `CORE_BT_921` Aldrachi Warblades — 3 费武器 2/2
+- [x] `CORE_BT_801` Eye Beam — 3 费 法术
+- [x] `CORE_BT_921` Aldrachi Warblades — 3 费武器 2/2
 
 ### CORE_CATA_* — 大灾变（迷你）（18 张）
 
@@ -150,7 +150,7 @@
 ### CORE_DRG_* — 巨龙降临（5 张）
 
 - [ ] `CORE_DRG_024` Sky Raider — 1 费随从 1/2
-- [ ] `CORE_DRG_079` Evasive Wyrm — 6 费随从 5/4
+- [x] `CORE_DRG_079` Evasive Wyrm — 6 费随从 5/4
 - [ ] `CORE_DRG_107` Violet Spellwing — 1 费随从 2/1
 - [ ] `CORE_DRG_256` Dragonbane — 4 费随从 3/5
 - [ ] `CORE_DRG_403` Blowtorch Saboteur — 3 费随从 3/3
@@ -237,7 +237,7 @@
 - [ ] `CORE_GIL_191t` Imp — 1 费随从 1/1
 - [ ] `CORE_GIL_531` Witch's Apprentice — 0 费随从 0/1
 - [ ] `CORE_GIL_534` Hench-Clan Thug — 3 费随从 3/3
-- [ ] `CORE_GIL_558` Swamp Leech — 1 费随从 2/1
+- [x] `CORE_GIL_558` Swamp Leech — 1 费随从 2/1
 - [ ] `CORE_GIL_577` Rat Trap — 2 费 法术
 - [ ] `CORE_GIL_622` Lifedrinker — 4 费随从 3/3
 - [ ] `CORE_GIL_623` Witchwood Grizzly — 5 费随从 3/12
@@ -254,9 +254,9 @@
 ### CORE_ICC_* — 冰封王座的骑士（5 张）
 
 - [ ] `CORE_ICC_038` Righteous Protector — 1 费随从 1/1
-- [ ] `CORE_ICC_055` Drain Soul — 2 费 法术
+- [x] `CORE_ICC_055` Drain Soul — 2 费 法术
 - [ ] `CORE_ICC_210` Shadow Ascendant — 2 费随从 2/3
-- [ ] `CORE_ICC_214` Obsidian Statue — 9 费随从 4/8
+- [x] `CORE_ICC_214` Obsidian Statue — 9 费随从 4/8
 - [ ] `CORE_ICC_407` Gnomeferatu — 2 费随从 2/3
 
 ### CORE_KAR_* — 卡拉赞之夜（5 张）
@@ -331,10 +331,10 @@
 - [ ] `CORE_RLK_505` Marrow Manipulator — 6 费随从 5/5
 - [ ] `CORE_RLK_506` Boneguard Commander — 8 费随从 8/8
 - [ ] `CORE_RLK_567` Shadow of Demise — 0 费 法术
-- [ ] `CORE_RLK_657` Underking — 7 费随从 6/6
+- [x] `CORE_RLK_657` Underking — 7 费随从 6/6
 - [ ] `CORE_RLK_706` Alexandros Mograine — 7 费随从 7/7
 - [ ] `CORE_RLK_712` Blood Tap — 2 费 法术
-- [ ] `CORE_RLK_745` Malignant Horror — 4 费随从 2/4
+- [x] `CORE_RLK_745` Malignant Horror — 4 费随从 2/4
 - [ ] `CORE_RLK_814` Crystalsmith Cultist — 1 费随从 1/2
 
 ### CORE_SCH_* — 通灵学园（5 张）
@@ -355,7 +355,7 @@
 - [ ] `CORE_SW_108` First Flame — 1 费 法术
 - [ ] `CORE_SW_429` Best in Shell — 6 费 法术
 - [ ] `CORE_SW_439` Vibrant Squirrel — 1 费随从 2/1
-- [ ] `CORE_SW_442` Void Shard — 4 费 法术
+- [x] `CORE_SW_442` Void Shard — 4 费 法术
 
 ### CORE_TID_* — 来源系列名待补（TID）（1 张）
 
@@ -367,7 +367,7 @@
 - [ ] `CORE_TRL_240` Savage Striker — 2 费随从 2/3
 - [ ] `CORE_TRL_307` Flash of Light — 2 费 法术
 - [ ] `CORE_TRL_345` Krag'wa, the Frog — 6 费随从 4/6
-- [ ] `CORE_TRL_900` Halazzi, the Lynx — 4 费随从 4/2
+- [x] `CORE_TRL_900` Halazzi, the Lynx — 4 费随从 4/2
 
 ### CORE_TSC_* — 来源系列名待补（TSC）（2 张）
 
@@ -377,7 +377,7 @@
 ### CORE_TTN_* — 泰坦诸神（2 张）
 
 - [ ] `CORE_TTN_843` Eredar Deceptor — 4 费随从 3/5
-- [ ] `CORE_TTN_866` Mythical Terror — 7 费随从 4/10
+- [x] `CORE_TTN_866` Mythical Terror — 7 费随从 4/10
 
 ### CORE_ULD_* — 奥丹姆奇兵（8 张）
 
@@ -388,7 +388,7 @@
 - [ ] `CORE_ULD_191` Beaming Sidekick — 1 费随从 1/2
 - [ ] `CORE_ULD_271` Injured Tol'vir — 2 费随从 2/6
 - [ ] `CORE_ULD_280` Sahket Sapper — 4 费随从 4/4
-- [ ] `CORE_ULD_723` Murmy — 1 费随从 1/1
+- [x] `CORE_ULD_723` Murmy — 1 费随从 1/1
 
 ### CORE_UNG_* — 勇闯安戈洛（7 张）
 
@@ -403,7 +403,7 @@
 ### CORE_WC_* — 来源系列名待补（WC）（2 张）
 
 - [ ] `CORE_WC_042` Wailing Vapor — 1 费随从 1/3
-- [ ] `CORE_WC_701` Felrattler — 3 费随从 3/2
+- [x] `CORE_WC_701` Felrattler — 3 费随从 3/2
 
 ### CORE_WON_* — 来源系列名待补（WON）（6 张）
 
