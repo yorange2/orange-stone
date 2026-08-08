@@ -1407,3 +1407,140 @@ attack, and the deterministic multi-tribe pool). Full `cargo test` fully
 green (all suites, incl. every `tlc_w1_*`/`tlc_w2_*`/`tlc_w3_*`/
 `tlc_w4a_*`/`tlc_w4b_*` scenario — 865 passed, 1 ignored), `cargo fmt`
 clean, `cargo clippy --all-targets` zero warnings.
+### 20. 2025–2026 expansions M3-W2a — Across the Timeways sub-roadmap W2, first split (120 cards + 11 tokens) 🔓 registered
+
+The registered simplifications of the M3-W2a wave (`src/cards/exp_tmw_w2a.rs`):
+the 118 non-legendary TIME_* collectible cards (53 COMMON / 38 RARE / 27 EPIC)
+plus the two legendaries implemented in this wave (TIME_038 Mister Clocksworth,
+TIME_063 Timelord Nozdormu — their effects are W2a shapes), 120 cards in total,
+plus the 11 tokens they produce (TIME_006t1 Mirrored Mage, TIME_017t Tank,
+TIME_025t Shred of Time, TIME_059t Living Paradox, TIME_434t Temporal Shadow,
+TIME_443t Sargeran Felhound, TIME_610t2 Anomalous Shade, TIME_700t
+Chronological Drake, TIME_704t Highborne Pupil, TIME_870t Coliseum Tiger,
+TIME_873t Coliseum Crocolisk). **The M3-W2a spec's "114" count is wrong** — the
+generated baselines in `cards/cards.json` hold 118 non-legendary TIME_* cards;
+the discrepancy is disclosed in the sets.rs and exp_tmw_w2a.rs headers. As
+with §14–§19, these handwritten expansion cards are not in the RL pool
+(classic + core 668/659), so the rows are informational: they keep the code's
+simplifications traceable to the ledger. Each row stays open until its
+mechanism lands.
+
+The wave's headline mechanics are FULL primitives: **Dormant** (the new
+`core::component::Dormant { turns }` component — while dormant a minion cannot
+attack, cannot be targeted (the Stealth-like filter in `validate_attack`) and
+takes no damage (the DamageDealt arm early-return); the countdown decrements at
+the owner's turn start and the component is removed at 0 (awaken) — cards:
+TIME_046 Cyborg Patriarch (Dormant 3), TIME_063 Timelord Nozdormu (Dormant 5),
+TIME_058's deathrattle summon (Dormant 2), TIME_442's imprisoned enemy minion
+(Dormant 10,000); TIME_022 Perennial Serpent discounts (4) while ANY minion is
+dormant, via the cost pipeline); **Rewind** (the W1 machinery — the 17 Rewind
+cards replay recorded effects automatically through the play path); **Shred of
+Time** (below); the **pool-open** registry (5 cards); and **Locations**
+(TIME_044 Past Gnomeregan, TIME_436 Past Conflux, TIME_810 Past Silvermoon —
+the Core Set W8 representation, activation effects in the battlecry slot;
+their `card_type|health|durability` fields are `expansion_differential_rebalanced`
+because the generator predates the Location CardType).
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| TIME_025t | Shred of Time | "Casts When Drawn" is simplified per the established cast-when-drawn precedent (EDR_445pt3 Emerald Portal, §14): a playable 0-cost spell dealing 3 damage to your hero — drawn as a normal card | the official draw-time cast |
+| TIME_028 | Fatebreaker | "Cast a Shred of Time from your deck" is a deck scan + removal that applies the Shred's own effect inline, then +3/+3 (Lifesteal is real — the self-damage heals right back) | the official cast-from-deck timing |
+| TIME_029 | Ruinous Velocidrake | Same cast-from-deck shape, then summons a copy of this (the copy sheds its battlecry) | the official cast-from-deck timing |
+| TIME_030 | Divergence | "Split a random minion in your hand into two halves" is approximated by a plain copy — the split-card halves mechanic does not exist | the official split-card halves |
+| TIME_036 | Royal Informant | Pool-open: the "get a copy OR increase its Cost by (2)" either/or is a random pick (the established pool-open convention) | the official choice |
+| TIME_039 | Deja Vu | Pool-open discover: a D2 random pick over the opponent's hand cards (a copy joins your hand) | the official Discover |
+| TIME_041 | Futuristic Forefather | Pool-open: the guess is always right — gain +4 Health (no guess mechanic) | the official guess |
+| TIME_432 | Intertwined Fate | Pool-open: one combined choice (three deck ids, then three enemy-hand ids); the other side resolves as a random copy (D2) | the official double Discover |
+| TIME_876 | Shapeshifter | Pool-open: reads the opponent's hand for its transform target | the official target read |
+| TIME_063 | Timelord Nozdormu | "After you play a card from the newest expansion, awaken 1 turn sooner" — the newest-expansion check has no meaning in the closed pool; always awakens at turn 5 | an expansion-origin check |
+| TIME_101 | Misplaced Pyromancer | "Whenever you Shatter a card" — the Shatter mechanic is absent from the pool; the trigger is a no-op | the Shatter mechanic |
+| TIME_214 | Flux Revenant | "Whenever you WOULD damage this with a Nature spell, it gains +2/+1 instead" — no would-damage interception hook; a plain 1/4 Taunt | the official interception |
+| TIME_217 | Stormrook | "Whenever you WOULD damage this with a Nature spell, summon a random 5-Cost instead" — same unmodeled interception; a plain 5/5 | the official interception |
+| TIME_021 | Doomsday Prepper | Outcast is rendered as a plain battlecry (the outcast-position condition is unmodeled); the Immune expiry is the end of the current turn (the registered Kaldorei precedent) | an outcast check + until-your-next-turn expiry |
+| TIME_002 | Aeon Wizard | "Random spells from your class" — the class is approximated by the class-card union (RandomPool::ClassSpell) | per-class filtering |
+| TIME_014 | Instant Multiverse | "Summon 12 Mana worth of random minions" — each pick costs at most the remaining Mana so the summoning terminates | the official pool walk |
+| TIME_016 | Neon Innovation | "A Paladin Mech from the past" — the past is the active window; the +5/+5 rides the stashed modifier consumed at the pick (D2) | the full-card random |
+| TIME_027 | Tachyon Barrage | The split damage is one-damage pings that never scale with spell damage (matching the official ImmuneToSpellpower) | the official split with spellpower |
+| TIME_033 | Druid of Regrowth | "Cast 2 random Nature spells" — each pick resolves the spell's own effect against random targets | the official targetless casts |
+| TIME_038 | Mister Clocksworth | The random Legendary pool spans the active window plus TIME_063 (the closed pool's only other legendary) | the full legendary pool |
+| TIME_043 | PMM Infinitizer | The "can't attack heroes this turn" temp restriction is real (the W1 machinery); the targetable friendly-minion pick is a D2 random | the official player choice |
+| TIME_044/436/810 | Past Gnomeregan / Past Conflux / Past Silvermoon | Location activations: the targetable pick is a D2 random | the official player choice |
+| TIME_054 | Time Skipper | "At the end of each player's turn" is a per-ID EndTriggers hook (a Trigger component cannot see both boards) | a both-boards trigger |
+| TIME_057 | Wizened Truthseeker | Full: cost enchantments stripped and TurnCostReducer markers removed; attack/health enchantments stay | — |
+| TIME_212 | Lightning Rod | "Deal 2 damage to a friendly minion" — the friendly targetable pick is a D2 random | the official player choice |
+| TIME_213 | Primordial Overseer | "If you've cast a Nature spell while holding this" — "while holding this" is approximated by the game-wide Nature counter | hand-origin tracking |
+| TIME_218 | Static Shock | "Deal 1 damage to a minion" — the targetable pick is a D2 random | the official player choice |
+| TIME_431 | Amber Priestess | "Restore Health to a character" — the targetable pick is a D2 random | the official player choice |
+| TIME_442 | Timeway Warden | The imprison/awaken link is real but rides the (warden, imprisoned) entity pairs on the player record — the Dormant application itself is the full primitive | the official entity link |
+| TIME_447 | Power Word: Barrier | "Give a character Divine Shield" — the targetable pick is a D2 random | the official player choice |
+| TIME_448 | Solitude | "Discover 2" is a one-pick simplification (a D2 random minion) | the official Discover 2 |
+| TIME_613 | Cryofrozen Champion | The random Legendary pool spans the active window plus TIME_063 | the full legendary pool |
+| TIME_614 | Liferender | "If your hero's Health changed this turn" is approximated by the per-turn hero-damage counter | full change tracking |
+| TIME_615 | Forgotten Millennium | "They cost Health instead of Mana" — the "this turn" expiry is approximated by the CostHealth marker | full until-end-of-turn |
+| TIME_620 | Untimely Death | The secret's "the turn after being played" marker also fires on a same-turn death | the official turn-after filter |
+| TIME_700 | Chronological Aura | "Lasts 3 turns" — the tick counter rides the player record (summons at each own turn end while > 0) | a duration aura |
+| TIME_702 | Ebb and Flow | "If you played a minion while holding this" — "while holding this" is approximated by any minion played this turn | hand-origin tracking |
+| TIME_704/704t | Highborne Mentor / Highborne Pupil | The teach link is approximated: the discovered spell joins the hand like any Discover; the Pupil's "cast the taught spell" battlecry is unmodeled | the official taught-spell link |
+| TIME_707 | Alternate Reality | "Random Choose One cards from the past" — the pool is the active window | the full past pool |
+| TIME_730 | Kaldorei Cultivator | "Discover 2 Beasts" is a D2 random pick (bottom of deck with +5/+5) | the official Discover |
+| TIME_770 | Fast Forward | "Pick one to have its Cost reduced by (2)" — the pick is a D2 random | the official player choice |
+| TIME_856 | Algeth'ar Instructor | Spell Damage +1 — the official JSON data says +1 although the card text says +2; the engine follows the data | the official text |
+| TIME_857 | Alter Time | "Discover two Arcane spells" — the second pick is a one-pick simplification | the official Discover 2 |
+| TIME_860 | Faceless Enigma | "Pick one" of the two cast Secrets is a D2 random | the official player choice |
+
+中文小结（同上）：M3-W2a 波（"穿越时光"子路线 W2 第一拆，120 张 +
+11 衍生物）的本波核心机制都是完整原语：**休眠**（新增
+`core::component::Dormant { turns }` 组件——休眠中不能攻击、不能被指定
+（潜行式过滤）、不受到伤害（伤害管线提前返回）；每个己方回合开始倒计时、
+归零苏醒——卡牌：机械元老（3 回合）、时间领主诺兹多姆（5 回合）、
+贫瘠小翼亡语召唤的随机 2 费随从（2 回合）、时光守望者囚禁的敌方随从
+（10,000 回合）；永恒巨蟒在任意随从休眠时减 4 费，走费用管线）；
+**重放**（W1 机制，17 张重放卡自动回放已记录效果）；**时光碎片**（下方）；
+**开放池注册表**（5 张）；**地点**（过去侏儒城/过去汇聚点/过去银月城，
+Core Set W8 表示法，激活效果在战吼槽；其 card_type|health|durability 走
+expansion_differential_rebalanced，因为生成器早于地点 CardType）。已登记
+简化：时光碎片"抽到时施放"按既有先例（翡翠传送门，§14）退化为可打出
+的 0 费法术打自己英雄 3（TIME_028/029"从牌库施放"退化为牌库扫描+移除并
+内联应用碎片自身效果）；分歧"把一张手牌随从分裂成两半"退化为普通复制；
+皇家线人"获得复制或费用+2"二选一为随机选取；幻影先知"猜中"恒为猜中；
+交织命运为一次合并选择（另一侧随机复制）；塑形者读取对方手牌；时间领主
+诺兹多姆"新扩展卡"检查在封闭卡池无意义，恒在第 5 回合苏醒；错位火法师
+的"粉碎"机制池内不存在，触发为无操作；波动亡魂/风暴鸦的"将要受到自然
+法术伤害"拦截未建模（分别是白板 1/4 嘲讽与 5/5）；末日预备者的连击位置
+退化为普通战吼、免疫到期取当前回合结束（卡多雷先例）；奥术师维兹南
+"从过去"= 活动窗口；多宇宙化身按剩余法力逐次选取保证终止；类职业近似为
+职业卡并集；传奇池 = 活动窗口 + TIME_063；时光守望者的"囚禁/唤醒"联动
+走玩家记录上的实体对，休眠本身是完整原语；孤独的"发现 2"退化为一次选取
+（D2 随机随从）；永恒印记的"改为消耗生命值"用 CostHealth 标记近似
+"本回合"；海妖导师 +7/+7 的法术伤害取官方 JSON 数据的 +1（卡面文字写
++2，引擎从数据）；其余"指向性选取"一律按既有约定退化为 D2 随机选取。
+
+F5 coverage: `tmw2a_rewind_replays_previous_effect`,
+`tmw2a_clocksworth_legendary_pool`, `tmw2a_dormant_sleeps_then_awakens`,
+`tmw2a_perennial_serpent_discount`, `tmw2a_flutterwing_dormant_summon`,
+`tmw2a_hopper_shuffles_shreds`, `tmw2a_fatebreaker_casts_shred_from_deck`,
+`tmw2a_informant_copies_or_raises`, `tmw2a_deja_vu_discovers_enemy_hand_copy`,
+`tmw2a_truthseeker_resets_costs`, `tmw2a_causality_reverses_deck`,
+`tmw2a_divine_augur_sets_hand_stats`, `tmw2a_rafaam_ladder_draws_distinct_costs`,
+`tmw2a_velocity_discounts_per_damage`, `tmw2a_unknown_voyager_transforms`,
+`tmw2a_circadiamancer_reduces_each_turn` (16 scenarios in
+`tests/differential.rs` — the rewind replay shape, the D2 legendary pool,
+the 3-turn Dormant countdown with the awakening removing the component and
+the can't-attack/can't-target sleep, the any-dormant cost discount, the
+dormant-at-summon deathrattle, the two shuffled Shreds drawn as playable
+0-cost spells, the Fatebreaker deck scan + removal with its real
+Lifesteal self-heal (net zero), the pool-open either/or and the enemy-hand
+discover, the both-hands cost reset, the full-deck reversal, the set-stats
+Augur, the distinct-costs draw skipping the duplicate, the per-damage cost
+counter, the SurvivedDamage transform, and the per-turn TurnCostReducer).
+Also repaired in this wave: a pre-existing `CardEffectDe` bincode mirror
+drift — the 33-variant run (DestroyAndGainStats..BuffAnotherRandomFriendlyDragon,
+indices 81-113) sat at De indices 194-226 while the 113-variant run
+(CopyRandomEnemyHandCard..AddRandomOutcastCardNextCheaper) held 81-193, so
+every variant in that range silently deserialized as a different effect;
+the mirror was reordered to match and a structural guard test
+(`card_effect_de_mirror_order_matches` in `src/core/effect.rs`) now pins
+the declaration order. Full `cargo test` fully green (all suites, incl.
+every `tlc_w1_*`/`tlc_w2_*`/`tlc_w3_*`/`tlc_w4a_*`/`tlc_w4b_*`/`tmw1_*`
+scenario and the 16 `tmw2a_*` — 888 passed, 1 ignored), `cargo fmt` clean,
+`cargo clippy --all-targets` zero warnings.

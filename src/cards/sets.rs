@@ -2147,6 +2147,148 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_tlc_w4c::LITTLE_LONGNECK,
     super::exp_tlc_w4c::RAVENOUS_RAPTOR,
     super::exp_tlc_w4c::KHELOS,
+    // M3-W2a — Across the Timeways (src/cards/exp_tmw_w2a.rs): the 118
+    // non-legendary TIME_* cards plus TIME_038 Mister Clocksworth and
+    // TIME_063 Timelord Nozdormu (their effects are W2a shapes) — 120
+    // cards in total, then the 11 tokens they produce (tokens are
+    // handwritten-only — no generated baselines).
+    //
+    // Full/simplified decisions, the Dormant primitive and the count
+    // discrepancy vs the W2a spec (118 vs its 114) are documented in
+    // exp_tmw_w2a.rs and fidelity-debt.md §20 (+zh).
+    // Cards.
+    super::exp_tmw_w2a::SEMI_STABLE_PORTAL,
+    super::exp_tmw_w2a::CHRONO_DAGGERS,
+    super::exp_tmw_w2a::AEON_WIZARD,
+    super::exp_tmw_w2a::PORTAL_VANGUARD,
+    super::exp_tmw_w2a::CONFLUX_CRASHER,
+    super::exp_tmw_w2a::MIRROR_DIMENSION,
+    super::exp_tmw_w2a::BYGONE_DOOMSPEAKER,
+    super::exp_tmw_w2a::INSTANT_MULTIVERSE,
+    super::exp_tmw_w2a::HARDLIGHT_PROTECTOR,
+    super::exp_tmw_w2a::NEON_INNOVATION,
+    super::exp_tmw_w2a::TANKGINEER,
+    super::exp_tmw_w2a::MEND_THE_TIMELINE,
+    super::exp_tmw_w2a::MANIFESTED_TIMEWAYS,
+    super::exp_tmw_w2a::DOOMSDAY_PREPPER,
+    super::exp_tmw_w2a::PERENNIAL_SERPENT,
+    super::exp_tmw_w2a::CONTINGENCY,
+    super::exp_tmw_w2a::TWILIGHT_TIMEHOPPER,
+    super::exp_tmw_w2a::ENTROPIC_CONTINUITY,
+    super::exp_tmw_w2a::TACHYON_BARRAGE,
+    super::exp_tmw_w2a::FATEBREAKER,
+    super::exp_tmw_w2a::RUINOUS_VELOCIDRAKE,
+    super::exp_tmw_w2a::DIVERGENCE,
+    super::exp_tmw_w2a::RAFAAM_LADDER,
+    super::exp_tmw_w2a::DRUID_OF_REGROWTH,
+    super::exp_tmw_w2a::STADIUM_ANNOUNCER,
+    super::exp_tmw_w2a::TIME_MACHINE,
+    super::exp_tmw_w2a::ROYAL_INFORMANT,
+    super::exp_tmw_w2a::DISCIPLE_OF_THE_DOVE,
+    super::exp_tmw_w2a::MISTER_CLOCKSWORTH,
+    super::exp_tmw_w2a::DEJA_VU,
+    super::exp_tmw_w2a::FADING_MEMORY,
+    super::exp_tmw_w2a::FUTURISTIC_FOREFATHER,
+    super::exp_tmw_w2a::PMM_INFINITIZER,
+    super::exp_tmw_w2a::PAST_GNOMEREGAN,
+    super::exp_tmw_w2a::WHELP_OF_THE_INFINITE,
+    super::exp_tmw_w2a::CYBORG_PATRIARCH,
+    super::exp_tmw_w2a::DEVIOUS_COYOTE,
+    super::exp_tmw_w2a::CLOCKWORK_RAGER,
+    super::exp_tmw_w2a::DANGEROUS_VARIANT,
+    super::exp_tmw_w2a::SENTIENT_HOURGLASS,
+    super::exp_tmw_w2a::SOLDIER_OF_THE_INFINITE,
+    super::exp_tmw_w2a::AMBER_WARDEN,
+    super::exp_tmw_w2a::SANDMAW,
+    super::exp_tmw_w2a::TIME_SKIPPER,
+    super::exp_tmw_w2a::UNKNOWN_VOYAGER,
+    super::exp_tmw_w2a::WHELP_OF_THE_BRONZE,
+    super::exp_tmw_w2a::WIZENED_TRUTHSEEKER,
+    super::exp_tmw_w2a::PALTRY_FLUTTERWING,
+    super::exp_tmw_w2a::LIVING_PARADOX,
+    super::exp_tmw_w2a::QUANTUM_DESTABILIZER,
+    super::exp_tmw_w2a::TIMELESS_CAUSALITY,
+    super::exp_tmw_w2a::CHRONICLE_KEEPER,
+    super::exp_tmw_w2a::TIMELORD_NOZDORMU,
+    super::exp_tmw_w2a::HOURGLASS_ATTENDANT,
+    super::exp_tmw_w2a::MISPLACED_PYROMANCER,
+    super::exp_tmw_w2a::CIRCADIAMANCER,
+    super::exp_tmw_w2a::LIGHTNING_ROD,
+    super::exp_tmw_w2a::PRIMORDIAL_OVERSEER,
+    super::exp_tmw_w2a::FLUX_REVENANT,
+    super::exp_tmw_w2a::THUNDERQUAKE,
+    super::exp_tmw_w2a::NASCENT_BOLT,
+    super::exp_tmw_w2a::STORMROOK,
+    super::exp_tmw_w2a::STATIC_SHOCK,
+    super::exp_tmw_w2a::CLEANSING_LIGHTSPAWN,
+    super::exp_tmw_w2a::YESTERLOC,
+    super::exp_tmw_w2a::DIVINE_AUGUR,
+    super::exp_tmw_w2a::AMBER_PRIESTESS,
+    super::exp_tmw_w2a::INTERTWINED_FATE,
+    super::exp_tmw_w2a::CEASE_TO_EXIST,
+    super::exp_tmw_w2a::TEMPORAL_TRAVELER,
+    super::exp_tmw_w2a::PAST_CONFLUX,
+    super::exp_tmw_w2a::AEON_REND,
+    super::exp_tmw_w2a::TIMEWAY_WARDEN,
+    super::exp_tmw_w2a::HOUNDS_OF_FURY,
+    super::exp_tmw_w2a::TIME_LOST_GLAIVE,
+    super::exp_tmw_w2a::POWER_WORD_BARRIER,
+    super::exp_tmw_w2a::SOLITUDE,
+    super::exp_tmw_w2a::LASTING_LEGACY,
+    super::exp_tmw_w2a::PRECISE_SHOT,
+    super::exp_tmw_w2a::ARROW_RETRIEVER,
+    super::exp_tmw_w2a::WORMHOLE,
+    super::exp_tmw_w2a::TICKING_TIMEBOMB,
+    super::exp_tmw_w2a::EPOCH_STALKER,
+    super::exp_tmw_w2a::QUEL_DOREI_FLETCHER,
+    super::exp_tmw_w2a::SHADOWS_OF_YESTERDAY,
+    super::exp_tmw_w2a::TIMESTOP,
+    super::exp_tmw_w2a::BLOOD_DRAW,
+    super::exp_tmw_w2a::CRYOFROZEN_CHAMPION,
+    super::exp_tmw_w2a::LIFERENDER,
+    super::exp_tmw_w2a::FORGOTTEN_MILLENNIUM,
+    super::exp_tmw_w2a::MEMORIAM_MANIFEST,
+    super::exp_tmw_w2a::CHRONOCHILLER,
+    super::exp_tmw_w2a::UNTIMELY_DEATH,
+    super::exp_tmw_w2a::CHRONOLOGICAL_AURA,
+    super::exp_tmw_w2a::WAVESHAPING,
+    super::exp_tmw_w2a::EBB_AND_FLOW,
+    super::exp_tmw_w2a::ENDANGERED_DODO,
+    super::exp_tmw_w2a::HIGHBORNE_MENTOR,
+    super::exp_tmw_w2a::ALTERNATE_REALITY,
+    super::exp_tmw_w2a::TROUBLED_DOUBLE,
+    super::exp_tmw_w2a::FLASHBACK,
+    super::exp_tmw_w2a::DETHRONE,
+    super::exp_tmw_w2a::FOR_GLORY,
+    super::exp_tmw_w2a::SLOW_MOTION,
+    super::exp_tmw_w2a::SOLDIER_OF_THE_BRONZE,
+    super::exp_tmw_w2a::KALDOREI_CULTIVATOR,
+    super::exp_tmw_w2a::PRECURSORY_STRIKE,
+    super::exp_tmw_w2a::FAST_FORWARD,
+    super::exp_tmw_w2a::PAST_SILVERMOON,
+    super::exp_tmw_w2a::ARCANE_BARRAGE,
+    super::exp_tmw_w2a::ALGETH_AR_INSTRUCTOR,
+    super::exp_tmw_w2a::ALTER_TIME,
+    super::exp_tmw_w2a::TEMPORAL_CONSTRUCT,
+    super::exp_tmw_w2a::ANOMALIZE,
+    super::exp_tmw_w2a::FACELESS_ENIGMA,
+    super::exp_tmw_w2a::GLADIATORIAL_COMBAT,
+    super::exp_tmw_w2a::HEIR_OF_HEREAFTER,
+    super::exp_tmw_w2a::UNDEFEATED_CHAMPION,
+    super::exp_tmw_w2a::UNLEASH_THE_CROCOLISKS,
+    super::exp_tmw_w2a::SHAPESHIFTER,
+    // Tokens.
+    super::exp_tmw_w2a::MIRRORED_MAGE,
+    super::exp_tmw_w2a::TANK_TOKEN,
+    super::exp_tmw_w2a::SHRED_OF_TIME,
+    super::exp_tmw_w2a::LIVING_PARADOX_TOKEN,
+    super::exp_tmw_w2a::TEMPORAL_SHADOW,
+    super::exp_tmw_w2a::SARGERAN_FELHOUND,
+    super::exp_tmw_w2a::ANOMALOUS_SHADE,
+    super::exp_tmw_w2a::CHRONOLOGICAL_DRAKE,
+    super::exp_tmw_w2a::HIGHBORNE_PUPIL,
+    super::exp_tmw_w2a::COLISEUM_TIGER,
+    super::exp_tmw_w2a::COLISEUM_CROCOLISK,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated
@@ -2204,6 +2346,14 @@ pub const POOL_OPEN_CARDS: &[&str] = &[
     "TLC_521", // Eyes in the Sky — reorders the enemy's deck top 3
     "TLC_438", // Violet Treasuregill — casts a spell from the own deck
     "TLC_888", // Cloud Serpent — copies from the own hand
+    // M3-W2a — the Across the Timeways pool-open wave
+    // (src/cards/exp_tmw_w2a.rs): the five cards that read the opponent's
+    // hand (TIME_041's guess is always right, §20).
+    "TIME_036", // Royal Informant — copies the right-most enemy hand card
+    "TIME_039", // Deja Vu — discovers a copy of an enemy hand card
+    "TIME_041", // Futuristic Forefather — guesses an enemy hand card
+    "TIME_432", // Intertwined Fate — discovers a copy of a deck AND enemy hand card
+    "TIME_876", // Shapeshifter — transforms into a random enemy hand minion
 ];
 
 #[cfg(test)]
@@ -2259,6 +2409,13 @@ mod tests {
                     | CardEffect::DiscoverEnemyDeckTop
                     | CardEffect::CastRandomSpellFromDeckCostLE { .. }
                     | CardEffect::CopyRandomHandElementalOrDragon
+                    // M3-W2a — the Across the Timeways pool-open wave
+                    // (src/cards/exp_tmw_w2a.rs).
+                    | CardEffect::CopyRightmostEnemyHandCardOrIncreaseCost
+                    | CardEffect::DiscoverEnemyHandCardCopy
+                    | CardEffect::DiscoverDeckAndEnemyHandCardCopy
+                    | CardEffect::GuessEnemyHandGainHealth { .. }
+                    | CardEffect::TransformHandSelfToRandomEnemyHandMinion
             )
         };
         for card in ALL_CARDS {

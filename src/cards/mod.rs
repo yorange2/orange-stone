@@ -39,6 +39,7 @@ pub mod exp_tlc_w3;
 pub mod exp_tlc_w4a;
 pub mod exp_tlc_w4b;
 pub mod exp_tlc_w4c;
+pub mod exp_tmw_w2a;
 pub mod generated;
 pub mod kindred;
 pub mod pool;
@@ -47,8 +48,9 @@ pub mod rewind;
 pub mod sets;
 
 use crate::core::component::{
-    Attack, AttacksUsed, Aura, CardId, Cost, Deathrattle, Durability, Enrage, Health, Lifesteal,
-    Overload, Poison, Reborn, Rush, Stealth, Tradeable, Trigger, TriggerEvent, TriggerTiming,
+    Attack, AttacksUsed, Aura, CardId, Cost, Deathrattle, Dormant, Durability, Enrage, Health,
+    Lifesteal, Overload, Poison, Reborn, Rush, Stealth, Tradeable, Trigger, TriggerEvent,
+    TriggerTiming,
 };
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
@@ -110,6 +112,18 @@ pub(crate) const POOL_OPEN_KEYWORD_IDS: &[&str] = &[
     "CORE_CFM_781",  // Shaku, the Collector — Attacked copy trigger (registered below)
 ];
 
+/// M3-W2a — minions that enter play Dormant, keyed by card ID (the
+/// Across the Timeways Dormant primitive): TIME_046 Cyborg Patriarch
+/// (Dormant 3), TIME_063 Timelord Nozdormu (Dormant 5). The returned
+/// countdown starts at the owner's next turn start.
+pub(crate) fn dormant_at_summon(card_id: &str) -> Option<u32> {
+    match card_id {
+        "TIME_046" => Some(3), // Cyborg Patriarch
+        "TIME_063" => Some(5), // Timelord Nozdormu
+        _ => None,
+    }
+}
+
 pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &CardDef) {
     // Core Set W1 keywords — RUSH / LIFESTEAL / REBORN as components (Core
     // Set W1 primitives; the `CardDef` struct stays untouched per the
@@ -146,6 +160,14 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "TLC_520" // Underbrush Tracker (M2-W4a)
         | "TLC_630" // Gorishi Wasp (M2-W4a)
         | "DINO_136t" // Ravenous Raptor (M2-W4c — Horn of Feasting token)
+        // M3-W2a — Across the Timeways
+        | "TIME_022" // Perennial Serpent
+        | "TIME_029" // Ruinous Velocidrake
+        | "TIME_050" // Sentient Hourglass
+        | "TIME_051" // Soldier of the Infinite
+        | "TIME_063" // Timelord Nozdormu
+        | "TIME_605" // Epoch Stalker
+        | "TIME_872" // Undefeated Champion
     ) {
         world.set_rush(entity, Rush);
     }
@@ -170,6 +192,9 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "TLC_605" // Tar Tyrant (M2-W4a)
         | "TLC_819" // Gladesong Siren (M2-W4a)
         | "TLC_821" // Wilted Shadow (M2-W4a)
+        | "TIME_028" // Fatebreaker (M3-W2a)
+        | "TIME_056" // Whelp of the Bronze (M3-W2a)
+        | "TIME_427" // Cleansing Lightspawn (M3-W2a)
     ) {
         world.set_lifesteal(entity, Lifesteal);
     }
@@ -179,6 +204,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // (TLC_817t4, M2-W2 — the Un'Goro quest reward token), Undercover
         // Cultist and Reluctant Wrangler (M2-W4a — the main-set wave)
         "CORE_RLK_745" | "CORE_ULD_723" | "TLC_817t4" | "TLC_101" | "TLC_443"
+        // M3-W2a — Across the Timeways
+        | "TIME_045" // Whelp of the Infinite
     ) {
         world.set_reborn(entity, Reborn);
     }
@@ -643,10 +670,59 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         "CORE_EX1_259" => Some(2), // Lightning Storm
         // M2-W4a — the Un'Goro main-set wave
         "TLC_227" => Some(1), // Lava Flow
+        // M3-W2a — Across the Timeways
+        "TIME_014" => Some(3), // Instant Multiverse
         _ => None,
     };
     if let Some(amount) = overload_amount {
         world.set_overload(entity, Overload(amount));
+    }
+    // M3-W2a — minions that enter play Dormant (the Dormant primitive, see
+    // `Dormant` in core::component). Consulted by the minion play path and
+    // by effect summons (resolve_summon_doubled); the countdown starts at
+    // the owner's next turn start.
+    if let Some(turns) = dormant_at_summon(card_def.id) {
+        world.set_dormant(entity, Dormant { turns });
+    }
+    // M3-W2a — cards that cost Health instead of Mana while in hand
+    // (TIME_612 Blood Draw — the marker is read by the CardPlayed
+    // pay-health branch, the M2-W4a CostHealth machinery).
+    if card_def.id == "TIME_612" {
+        world.set_cost_health(entity, crate::core::component::CostHealth);
+    }
+    // M3-W2a — minions that permanently take double damage (TIME_060
+    // Quantum Destabilizer — the marker is exempt from the wrap-up clear).
+    if card_def.id == "TIME_060" {
+        world.set_double_damage_taken(entity, crate::core::component::DoubleDamageTaken);
+    }
+    // M3-W2a — "survives damage" triggers (the only registrants of the
+    // `TriggerEvent::SurvivedDamage` event, fired after the damage pipeline
+    // for a minion that still lives):
+    // - TIME_050 Sentient Hourglass — swap this minion's stats;
+    // - TIME_055 Unknown Voyager — transform into a random 7-Cost minion.
+    if card_def.id == "TIME_050" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::SurvivedDamage,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::SwapStatsIfSurvivesDamage,
+            },
+        );
+    }
+    if card_def.id == "TIME_055" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::SurvivedDamage,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::TransformSelfIfSurvivesDamageToRandomCost { cost: 7 },
+            },
+        );
     }
     if card_def.id == "SHAMAN_021" {
         // Unbound Elemental — gain +1/+1 whenever you play a card with Overload
@@ -725,6 +801,10 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
     if matches!(card_def.id, "TLC_468" | "TLC_468t1") {
         // Blob of Tar (M2-W4a — Poisonous, Taunt; the Taunt half rides the
         // CardDef) and its Lanky Blob token — Poisonous
+        world.set_poison(entity, Poison);
+    }
+    if card_def.id == "TIME_045" {
+        // Whelp of the Infinite (M3-W2a) — Poisonous
         world.set_poison(entity, Poison);
     }
     if card_def.id == "WARRIOR_008" {
@@ -1895,7 +1975,19 @@ mod generated_tests {
         // (the generator predates the Location CardType: the generated
         // baseline is a vanilla Minion; the handwritten card is the faithful
         // Location 1-mana / 2-durability representation).
-        id == "TLC_449" && matches!(field, "card_type" | "health" | "durability")
+        if id == "TLC_449" {
+            return matches!(field, "card_type" | "health" | "durability");
+        }
+        // M3-W2a — the three Across the Timeways Locations (TIME_044 Past
+        // Gnomeregan, TIME_436 Past Conflux, TIME_810 Past Silvermoon): the
+        // same generator-predates-Location divergence as the EDR_454 pair
+        // above. The generated baselines are vanilla Minions; the handwritten
+        // cards are the faithful Location representations (health 0,
+        // durability 3, activation in the battlecry slot).
+        if id == "TIME_044" || id == "TIME_436" || id == "TIME_810" {
+            return matches!(field, "card_type" | "health" | "durability");
+        }
+        false
     }
 
     /// The gate itself: enumerate the generated expansion baselines, compare

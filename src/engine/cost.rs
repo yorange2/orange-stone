@@ -32,6 +32,17 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
     {
         cost = Cost(0);
     }
+    // TIME_716 Slow Motion (M3-W2a): "The opponent's cards cost (1) more
+    // next turn" — the tax rides the OPPONENT's player field (the caster
+    // set it during their own turn; it applies to the caster's enemy
+    // during the enemy's next turn, cleared at the caster's next turn
+    // start).
+    let tax = state
+        .player(player.opponent())
+        .next_turn_enemy_cards_cost_more;
+    if tax > 0 {
+        cost = Cost(cost.0 + tax);
+    }
     // Preparation (W11): the next spell cast this turn costs `amount` less
     // (one-time — the flag is consumed by the first spell played)
     if state.world().card_type(card) == Some(crate::core::component::CardType::Spell) {
@@ -132,6 +143,65 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
         && state.player(player).next_murloc_discount > 0
     {
         cost = Cost((cost.0 - state.player(player).next_murloc_discount).max(0));
+    }
+    // M3-W2a — Across the Timeways cost-pipeline entries (the
+    // id-keyed discount pattern, like Everburning Phoenix):
+    // - TIME_022 Perennial Serpent: costs (4) less if ANY minion on either
+    //   board is Dormant.
+    // - TIME_047 Devious Coyote: costs (1) less for each time the enemy
+    //   hero actually lost Health this turn (the counter is bumped in the
+    //   damage pipeline; cleared at turn start).
+    // - TIME_715 For Glory!: costs (1) less for each minion the opponent
+    //   controls.
+    // - TIME_102 Circadiamancer's marked hand card: costs (1) less per own
+    //   turn start (TurnCostReducer counter).
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "TIME_022")
+    {
+        let any_dormant = [
+            crate::core::player::PlayerId::Player1,
+            crate::core::player::PlayerId::Player2,
+        ]
+        .into_iter()
+        .any(|pid| {
+            state
+                .world()
+                .zones()
+                .iter(crate::core::zone::Zone::Play, pid)
+                .any(|e| state.world().dormant(e).is_some())
+        });
+        if any_dormant {
+            cost = Cost((cost.0 - 4).max(0));
+        }
+    }
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "TIME_047")
+    {
+        let dmg = state.player(player).enemy_hero_damaged_this_turn as i32;
+        cost = Cost((cost.0 - dmg).max(0));
+    }
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "TIME_715")
+    {
+        let enemy = player.opponent();
+        let minions = state
+            .world()
+            .zones()
+            .iter(crate::core::zone::Zone::Play, enemy)
+            .filter(|&e| {
+                state.world().card_type(e) == Some(crate::core::component::CardType::Minion)
+            })
+            .count() as i32;
+        cost = Cost((cost.0 - minions).max(0));
+    }
+    if let Some(reducer) = state.world().turn_cost_reducer(card) {
+        cost = Cost((cost.0 - reducer.0 as i32).max(0));
     }
     // Sea Giant (W11): costs (1) less for each minion on the battlefield
     // (both sides — the board-count rule composes here like Dread Corsair)

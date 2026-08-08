@@ -1865,6 +1865,123 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::AddRandomOneCostMinion => 2.0,
         CardEffect::AddRandomOneCostSpell => 2.0,
         CardEffect::AddRandomMultiTribeMinion => 2.0,
+        // M3-W2a (Across the Timeways — the 120 non-legendary TIME cards)
+        CardEffect::AddRandomMinionCostsLess { reduction } => 3.0 + reduction as f64 * 0.8,
+        CardEffect::AddRandomSpellsFromClass { count } => count as f64 * 2.5,
+        CardEffect::DrawRandomMinionGiveStats { attack, health } => {
+            3.0 + (attack + health) as f64 * 0.8
+        }
+        CardEffect::BothPlayersDiscardRandomCard => 1.0,
+        CardEffect::SummonManaWorthRandomMinions { total } => total as f64 * 0.4,
+        CardEffect::GetHolySpellsRestoreHealthEqualCosts => 4.0,
+        CardEffect::CastRandomNatureSpells { count } => count as f64 * 3.0,
+        CardEffect::BothPlayersEquipRandomWeaponBuffOurs { .. } => 4.0,
+        CardEffect::AddRandomRewindCardToHand => 4.0,
+        CardEffect::CopyRightmostEnemyHandCardOrIncreaseCost => 3.0,
+        CardEffect::SummonTwoRandomLegendaryMinions => 10.0,
+        CardEffect::DiscoverEnemyHandCardCopy => 3.0,
+        CardEffect::SummonTauntAndIfHoldingDragonAgain { .. } => 3.0,
+        CardEffect::RestoreAndGrantHeroDivineShield { amount } => amount as f64 * 0.7 + 2.0,
+        CardEffect::DiscoverPaladinMechPastGiveStats { attack, health } => {
+            3.0 + (attack + health) as f64 * 0.8
+        }
+        CardEffect::DealDamageAllEnemiesIfControllingAura { amount } => amount as f64 * 1.2,
+        CardEffect::GiveHeroImmuneThisTurn => 4.0,
+        CardEffect::DrawBottomCards { count } => count as f64 * 3.0,
+        CardEffect::BuffAllFriendlyMinionsShuffleShreds { attack, health } => {
+            (attack + health) as f64 * 0.8
+        }
+        CardEffect::DealDamageSplitAmongAllEnemiesShuffleShreds { amount } => amount as f64 * 1.2,
+        CardEffect::CastShredFromDeckGainStats { attack, health } => {
+            (attack + health) as f64 * 0.8 - 1.0
+        }
+        CardEffect::CastShredFromDeckSummonCopy => 4.0,
+        CardEffect::CopyRandomHandMinion => 3.0,
+        CardEffect::DrawCardsOfDifferentCosts { count } => count as f64 * 3.0,
+        CardEffect::DrawMinionAndBuffHandMinionsHealth { health } => 3.0 + health as f64 * 0.8,
+        CardEffect::SetStatsAndCantAttackHeroesThisTurn { .. } => 5.0,
+        CardEffect::GainStatsPerTurnTaken { health, .. } => health as f64 * 0.8,
+        CardEffect::TransformSelfToRandomMinionOfCost { .. } => 4.0,
+        CardEffect::SwapStatsIfSurvivesDamage => 2.0,
+        CardEffect::GiveCoin => 2.0,
+        CardEffect::TransformSelfIfSurvivesDamageToRandomCost { .. } => 4.0,
+        CardEffect::ResetBothHandsCosts => 3.0,
+        CardEffect::SummonRandomMinionOfCostDormant { .. } => 2.0,
+        CardEffect::SummonRandomDragonCostGE { .. } => 4.0,
+        CardEffect::ReverseDeckOrder => 2.0,
+        CardEffect::GainTauntAndDivineShieldIfHoldingDragon => 3.0,
+        CardEffect::AddRandomCostMinionMarkedTurnDiscount { cost } => 2.0 + cost as f64 * 0.3,
+        CardEffect::DealDamageFriendlyMinionToRandomEnemy { amount, .. } => amount as f64 * 1.2,
+        CardEffect::GainStatsAndDrawIfNatureSpellCast { attack, health } => {
+            3.0 + (attack + health) as f64 * 0.8
+        }
+        CardEffect::DamageAllMinionsAndAddCardToHand { amount, .. } => amount as f64 * 1.0 + 2.0,
+        CardEffect::DamageAndDrawTwoIfSurvives { damage, .. } => damage as f64 * 1.2 + 3.0,
+        CardEffect::DamageMinionGiveHeroAttack { damage, attack } => {
+            damage as f64 * 1.2 + attack as f64 * 1.5
+        }
+        CardEffect::DealDamageEnemyMinionEqualToSourceHealth => 4.0,
+        CardEffect::SetHandMinionStatsToHigher => 4.0,
+        CardEffect::RestoreHealthEqualToSourceHealth => 3.0,
+        CardEffect::DiscoverDeckAndEnemyHandCardCopy => 4.0,
+        CardEffect::SilenceAndDestroyRandomEnemyMinion => 5.0,
+        CardEffect::SummonShadowAttacksRandomEnemy { .. } => 5.0,
+        CardEffect::SummonTwoDemonsAttackLowestHealthIfDeckNoMinions => 5.0,
+        CardEffect::GrantDivineShieldAndBuffHandMinionsHealth { health } => {
+            2.0 + health as f64 * 0.8
+        }
+        CardEffect::DiscoverMinionReduceHandCostsIfDeckNoMinions { reduction } => {
+            3.0 + reduction as f64
+        }
+        CardEffect::GainHeroAttackAndBuffHandMinionsIfDeckNoMinions { attack } => {
+            attack as f64 * 1.5
+        }
+        CardEffect::PreciseShot { center_amount, .. } => center_amount as f64 * 1.2,
+        CardEffect::DrawUntilHandSize { size } => size as f64 * 1.0,
+        CardEffect::SummonRandomCostBeastAttackRandomEnemy { .. } => 4.0,
+        CardEffect::SummonMinionsGrantTwoRandomBonus { count, .. } => count as f64 * 4.0,
+        CardEffect::AddRandomLegendaryMinionCostReduced { reduction } => {
+            4.0 + reduction as f64 * 0.8
+        }
+        CardEffect::DealDamageEnemyMinionIfHeroHealthChanged { amount } => amount as f64 * 1.2,
+        CardEffect::FillHandWithRandomUndeadCostHealth => 5.0,
+        CardEffect::SummonHighestCostFallenUndead => 4.0,
+        CardEffect::SetChronologicalAura { ticks } => ticks as f64 * 3.0,
+        CardEffect::DiscoverDeckCardOthersBottom => 3.0,
+        CardEffect::DamageAndGainArmorIfMinionPlayedWhileHeld { damage, armor } => {
+            damage as f64 * 1.2 + armor as f64 * 0.6
+        }
+        CardEffect::GainStatsAndSummonCopyIfHeroHealthLE { attack, health, .. } => {
+            (attack + health) as f64 * 0.8 + 4.0
+        }
+        CardEffect::GetPupilAndDiscoverSpellCostGE { .. } => 4.0,
+        CardEffect::ReplaceHandAndDeckWithRandomChooseOne => 3.0,
+        CardEffect::SummonTwoRandomCostMinionsWithAttack { bonus, .. } => 4.0 + bonus as f64,
+        CardEffect::DestroyMinionAndSummonRandomCost { .. } => 6.0,
+        CardEffect::NextTurnEnemyCardsCostMore { amount } => amount as f64 * 1.5,
+        CardEffect::AddRandomBeastsToBottomDeckWithStats {
+            count,
+            attack,
+            health,
+        } => count as f64 * 2.0 + (attack + health) as f64 * 0.4,
+        CardEffect::DamageAndDrawMinionIfHoldingCostGE { damage, .. } => damage as f64 * 1.2 + 3.0,
+        CardEffect::DrawTwoReduceRandomCost { reduction } => 6.0 + reduction as f64,
+        CardEffect::DealDamagePrimaryAndSplash { primary, splash } => {
+            primary as f64 * 1.2 + splash as f64 * 1.0
+        }
+        CardEffect::DiscoverArcaneSpellsReduced { reduction } => 3.0 + reduction as f64,
+        CardEffect::DealDamageAndDrawExcess { amount } => amount as f64 * 1.2,
+        CardEffect::SummonPairScrambleStats { .. } => 6.0,
+        CardEffect::LookAtSecretsGiveRandom => 3.0,
+        CardEffect::SummonRandomDeckMinionAndTigerForOpponent { .. } => 4.0,
+        CardEffect::GainStatsPerDamagedMinion { attack, health } => (attack + health) as f64 * 0.8,
+        CardEffect::FillEnemyBoardWithRandomCost1Minions => -2.0,
+        CardEffect::GainArmorAndSummonTwoBeastsForOpponent { armor, .. } => armor as f64 * 0.6,
+        CardEffect::ImprisonEnemyMinion => 5.0,
+        CardEffect::AwakenImprisonedMinion => 3.0,
+        CardEffect::GuessEnemyHandGainHealth { health } => health as f64 * 1.0,
+        CardEffect::TransformHandSelfToRandomEnemyHandMinion => 1.0,
+        CardEffect::ResurrectDiedMinionFull => 6.0,
     }
 }
 

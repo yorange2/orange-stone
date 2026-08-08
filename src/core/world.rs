@@ -10,12 +10,13 @@
 use serde::{Deserialize, Serialize};
 
 use crate::core::component::{
-    Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
-    Charge, ChooseOneEffect, ComboEffect, Cost, CostHealth, CostModifier, CostModifierKind, Damage,
-    DarkGiftKind, Deathrattle, DivineShield, Durability, Elusive, Enchantment, Enrage, Freeze,
-    Health, HeroPowerDef, HeroPowerUsed, Immune, Lifesteal, OutcastPlayed, Overload, Poison, Quest,
-    Race, Reborn, Rush, Secret, SpellDamage, Stealth, SummonedThisTurn, Taunt, Temporary,
-    Tradeable, Trigger, Windfury,
+    Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack,
+    CantAttackHeroesThisTurn, CardId, CardType, Charge, ChooseOneEffect, ComboEffect, Cost,
+    CostHealth, CostModifier, CostModifierKind, Damage, DarkGiftKind, Deathrattle, DivineShield,
+    Dormant, DoubleDamageTaken, Durability, Elusive, Enchantment, Enrage, Freeze, Health,
+    HeroPowerDef, HeroPowerUsed, Immune, Lifesteal, OutcastPlayed, Overload, PlayedThisTurn,
+    Poison, Quest, Race, Reborn, Rush, Secret, SpellDamage, Stealth, SummonedThisTurn, Taunt,
+    Temporary, Tradeable, Trigger, TurnCostReducer, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -188,10 +189,29 @@ pub struct World {
     /// carrying the Temporary keyword (discarded at the end of the owner's
     /// turn; plays progress the TLC_446 quest).
     temporary: SparseSet<Temporary>,
+    /// Dormant storage (2025–2026 expansions M3-W2a) — battlefield
+    /// minions asleep with the Dormant keyword. See the component docs for
+    /// the full gating rules; the aura index is maintained by
+    /// `set_dormant`/`remove_dormant` and `aura_applies_to` rejects dormant
+    /// sources and targets.
+    dormant: SparseSet<Dormant>,
+    /// CantAttackHeroesThisTurn storage (2025–2026 expansions M3-W2a) —
+    /// minions that may attack minions but not the enemy hero this turn.
+    cant_attack_heroes_this_turn: SparseSet<CantAttackHeroesThisTurn>,
+    /// TurnCostReducer storage (2025–2026 expansions M3-W2a) — hand cards
+    /// that cost (1) less per own turn start (Circadiamancer).
+    turn_cost_reducer: SparseSet<TurnCostReducer>,
+    /// DoubleDamageTaken storage (2025–2026 expansions M3-W2a) — marked
+    /// characters take double damage (Temporal Construct).
+    double_damage_taken: SparseSet<DoubleDamageTaken>,
     /// CostHealth marker storage (2025–2026 expansions M2-W4a) — hand
     /// cards that cost Health instead of Mana (Whispering Stone's gotten
     /// Fel spells).
     cost_health: SparseSet<CostHealth>,
+    /// PlayedThisTurn marker storage (2025–2026 expansions M3-W2a) —
+    /// minions played from the hand this turn (the TIME_620 secret
+    /// predicate); set at CardPlayed, cleared at the turn start.
+    played_this_turn: SparseSet<PlayedThisTurn>,
     /// Zone table — ordered entity lists per Zone
     zones: Zones,
 }
@@ -319,7 +339,12 @@ impl World {
             dark_gifts: SparseSet::new(),
             quest: SparseSet::new(),
             temporary: SparseSet::new(),
+            dormant: SparseSet::new(),
+            cant_attack_heroes_this_turn: SparseSet::new(),
+            turn_cost_reducer: SparseSet::new(),
+            double_damage_taken: SparseSet::new(),
             cost_health: SparseSet::new(),
+            played_this_turn: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -403,6 +428,10 @@ impl World {
         self.dark_gifts.remove(entity);
         self.quest.remove(entity);
         self.temporary.remove(entity);
+        self.dormant.remove(entity);
+        self.cant_attack_heroes_this_turn.remove(entity);
+        self.turn_cost_reducer.remove(entity);
+        self.double_damage_taken.remove(entity);
         // Bump the generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // Return the slot
@@ -945,6 +974,62 @@ impl World {
         remove_temporary,
         iter_temporary
     );
+    /// Get the `Dormant` component of an entity (the remaining turns asleep).
+    #[must_use]
+    pub fn dormant(&self, entity: Entity) -> Option<Dormant> {
+        self.dormant.get(entity)
+    }
+
+    /// Set the `Dormant` component of an entity, removing its aura sources
+    /// from the index (a dormant minion has no board presence — its auras
+    /// stop applying until it awakens).
+    pub fn set_dormant(&mut self, entity: Entity, value: impl Into<Dormant>) {
+        self.dormant.insert(entity, value.into());
+        self.aura_index.remove_entity(entity);
+    }
+
+    /// Remove the `Dormant` component of an entity (it awakens),
+    /// re-adding its aura sources to the index if it carries an aura.
+    pub fn remove_dormant(&mut self, entity: Entity) -> Option<Dormant> {
+        let removed = self.dormant.remove(entity);
+        if removed.is_some() {
+            if let Some(aura) = self.aura(entity) {
+                if let Some(player) = self.player(entity) {
+                    self.aura_index.add_entity(entity, aura, player);
+                }
+            }
+        }
+        removed
+    }
+
+    /// Iterate all entities with the `Dormant` component.
+    pub fn iter_dormant(&self) -> impl Iterator<Item = (Entity, &Dormant)> {
+        self.dormant.iter()
+    }
+    component_accessors!(
+        cant_attack_heroes_this_turn,
+        CantAttackHeroesThisTurn,
+        cant_attack_heroes_this_turn,
+        set_cant_attack_heroes_this_turn,
+        remove_cant_attack_heroes_this_turn,
+        iter_cant_attack_heroes_this_turn
+    );
+    component_accessors!(
+        turn_cost_reducer,
+        TurnCostReducer,
+        turn_cost_reducer,
+        set_turn_cost_reducer,
+        remove_turn_cost_reducer,
+        iter_turn_cost_reducer
+    );
+    component_accessors!(
+        double_damage_taken,
+        DoubleDamageTaken,
+        double_damage_taken,
+        set_double_damage_taken,
+        remove_double_damage_taken,
+        iter_double_damage_taken
+    );
     component_accessors!(
         cost_health,
         CostHealth,
@@ -952,6 +1037,14 @@ impl World {
         set_cost_health,
         remove_cost_health,
         iter_cost_health
+    );
+    component_accessors!(
+        played_this_turn,
+        PlayedThisTurn,
+        played_this_turn,
+        set_played_this_turn,
+        remove_played_this_turn,
+        iter_played_this_turn
     );
     /// Get the tribes of an entity (empty for tribe-less minions).
     #[must_use]
@@ -1254,6 +1347,12 @@ fn aura_applies_to(
         return false;
     }
     if !world.is_alive(target) {
+        return false;
+    }
+
+    // Dormant minions have no board presence (M3-W2a): neither do their
+    // auras apply to others, nor do friendly auras reach them.
+    if world.dormant(aura_source).is_some() || world.dormant(target).is_some() {
         return false;
     }
 

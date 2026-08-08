@@ -99,6 +99,32 @@ pub struct Player {
     /// Whether the hero was healed this turn (Core Set W3a — Death Metal
     /// Knight pays Health instead of Mana when true); cleared at turn start
     pub healed_this_turn: bool,
+    /// How many times the enemy hero actually lost Health this turn
+    /// (2025–2026 expansions M3-W2a — Devious Coyote TIME_047's "Costs (1)
+    /// less for each time the enemy hero took damage this turn").
+    /// Incremented in the damage pipeline where the hero's health drops
+    /// (armor absorption does not count); cleared at turn start.
+    pub enemy_hero_damaged_this_turn: u32,
+    /// Whether this player's hero Health changed this turn (2025–2026
+    /// expansions M3-W2a — Liferender TIME_614's battlecry check; either
+    /// direction, damage or heal). Set in the damage pipeline and by the
+    /// heal path; cleared at turn start.
+    pub hero_damaged_this_turn: bool,
+    /// Turns the player has taken this game (2025–2026 expansions M3-W2a —
+    /// Clockwork Rager TIME_048 "Gain +1 Health for each turn you've
+    /// taken"); incremented at the player's turn start.
+    pub turns_taken: u32,
+    /// The opponent's cards cost this much more during the OPPONENT's next
+    /// turn (2025–2026 expansions M3-W2a — TIME_716 Slow Motion "Your
+    /// opponent's cards cost (1) more next turn"). The tax sits on the
+    /// caster and is applied by the cost pipeline when the OTHER player
+    /// plays; it expires at the caster's next turn start (after the
+    /// opponent's taxed turn has passed).
+    pub next_turn_enemy_cards_cost_more: i32,
+    /// Nature spells cast by this player this game (2025–2026 expansions
+    /// M3-W2a — Primordial Overseer TIME_213's battlecry scales with it).
+    /// Incremented in the spell-cast path where the school is resolved.
+    pub nature_spells_cast_total: u32,
     /// The next Demon costs this much less (Raging Felscreamer — Core Set
     /// W4a, one-time, consumed on play)
     pub next_demon_discount: i32,
@@ -298,6 +324,33 @@ pub struct Player {
     /// CardPlayed before the card leaves the hand; the battlecry resolves
     /// within the same play burst, so no later play can stale it.
     pub last_played_hand_index: Option<usize>,
+    /// Whether the card the player most recently played was EXACTLY in
+    /// the center of the hand (2025–2026 expansions M3-W2a — Precise Shot
+    /// TIME_600: "If this is EXACTLY in the center of your hand, deal $5
+    /// instead" — the center exists only for odd-sized hands). Captured
+    /// at CardPlayed alongside `last_played_hand_index`.
+    pub last_played_hand_center: bool,
+    /// Chronological Aura's remaining activations (2025–2026 expansions
+    /// M3-W2a — TIME_700 "At the end of your turn, summon a 3/5 Dragon
+    /// with Taunt. Lasts 3 turns"): the tick counter rides the player;
+    /// the end-of-turn hook summons the drake and decrements while > 0.
+    pub chronological_aura_ticks: i32,
+    /// The Timeway Warden's imprisonments (2025–2026 expansions M3-W2a —
+    /// TIME_442): `(imprisoned minion, warden)` pairs; the warden's
+    /// deathrattle awakens the imprisoned minion (removes its Dormant
+    /// marker). A dead warden leaves a dangling pair until the game ends
+    /// (the imprisoned minion stays dormant — the registered §20 shape).
+    pub timeway_imprisoned: Vec<(crate::core::entity::Entity, crate::core::entity::Entity)>,
+    /// Pending hand-stats bonus from a discover effect (2025–2026
+    /// expansions M3-W2a — TIME_039 "Discover a minion. Give it +2/+2":
+    /// the discover pick would be applied to the wrong card if buffed
+    /// eagerly, so the bonus rides the player until the picked card is
+    /// added to hand in the ChoiceResolved path).
+    pub pending_discover_hand_bonus: Option<(i32, i32)>,
+    /// Pending hand-cost reduction from a discover effect (2025–2026
+    /// expansions M3-W2a — TIME_036 "Discover a minion. Reduce its cost
+    /// by (2)"; consumed exactly like `pending_discover_hand_bonus`).
+    pub pending_discover_cost_reduction: Option<i32>,
     /// Story of Sulfuras (2025–2026 expansions M2-W4a): how many times the
     /// swapped "Deal 8 damage to a random enemy" hero power has been used;
     /// after 2 uses the original hero power is restored.
@@ -377,6 +430,11 @@ impl Player {
             frozen_at_turn_start: Vec::new(),
             corpses: 0,
             healed_this_turn: false,
+            enemy_hero_damaged_this_turn: 0,
+            hero_damaged_this_turn: false,
+            turns_taken: 0,
+            nature_spells_cast_total: 0,
+            next_turn_enemy_cards_cost_more: 0,
             next_demon_discount: 0,
             next_outcast_discount: 0,
             next_combo_discount: 0,
@@ -421,6 +479,11 @@ impl Player {
             hatching_pending: 0,
             soulrest_marked: Vec::new(),
             last_played_hand_index: None,
+            last_played_hand_center: false,
+            chronological_aura_ticks: 0,
+            timeway_imprisoned: Vec::new(),
+            pending_discover_hand_bonus: None,
+            pending_discover_cost_reduction: None,
             sulfuras_uses: 0,
             sulfuras_original: None,
             platysaur_drawn: Vec::new(),

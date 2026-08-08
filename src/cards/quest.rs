@@ -284,6 +284,31 @@ pub fn spell_school(card_id: &str) -> Option<SpellSchool> {
         "RLK_048" => Some(SpellSchool::Shadow),
         "RLK_060" => Some(SpellSchool::Shadow),
         "RLK_707" => Some(SpellSchool::Shadow),
+        // M3-W2a — the Across the Timeways spell schools (extracted from
+        // the official card dump 2026-08-09): the Nature pool (TIME_033
+        // Druid of Regrowth) and the Arcane pool (TIME_857 Alter Time)
+        // read these.
+        "TIME_000" => Some(SpellSchool::Arcane),
+        "TIME_016" => Some(SpellSchool::Holy),
+        "TIME_018" => Some(SpellSchool::Holy),
+        "TIME_030" => Some(SpellSchool::Shadow),
+        "TIME_212" => Some(SpellSchool::Nature),
+        "TIME_215" => Some(SpellSchool::Nature),
+        "TIME_216" => Some(SpellSchool::Nature),
+        "TIME_218" => Some(SpellSchool::Nature),
+        "TIME_441" => Some(SpellSchool::Fel),
+        "TIME_447" => Some(SpellSchool::Holy),
+        "TIME_611" => Some(SpellSchool::Frost),
+        "TIME_612" => Some(SpellSchool::Shadow),
+        "TIME_610" => Some(SpellSchool::Shadow),
+        "TIME_616" => Some(SpellSchool::Shadow),
+        "TIME_700" => Some(SpellSchool::Holy),
+        "TIME_701" => Some(SpellSchool::Nature),
+        "TIME_702" => Some(SpellSchool::Nature),
+        "TIME_712" => Some(SpellSchool::Shadow),
+        "TIME_855" => Some(SpellSchool::Arcane),
+        "TIME_857" => Some(SpellSchool::Arcane),
+        "TIME_859" => Some(SpellSchool::Arcane),
         _ => None,
     }
 }

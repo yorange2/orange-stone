@@ -130,6 +130,18 @@ pub enum DiscoverPool {
     CostEqualRemainingMana,
     /// A Temporary 1-Cost minion (Bloodpetal Biome)
     TemporaryOneCostMinion,
+    /// A spell that costs (7) or more from the past (2025–2026 expansions
+    /// M3-W2a — TIME_704 Highborne Mentor; the SpellCostGE8 precedent)
+    SpellCostGE7,
+    /// An Arcane spell from the past (2025–2026 expansions M3-W2a —
+    /// TIME_857 Alter Time; the school filter is the FelSpell precedent)
+    ArcaneSpell,
+    /// A Paladin Mech from the past (2025–2026 expansions M3-W2a —
+    /// TIME_016 Neon Innovation; Paladin class Mechs, §20)
+    PaladinMech,
+    /// Any spell from the past (2025–2026 expansions M3-W2a — TIME_612
+    /// Blood Draw; the pool spans the whole active window, §20)
+    Spell,
 }
 
 /// Card effect — an action executed when triggered.
@@ -2976,6 +2988,518 @@ pub enum CardEffect {
     /// Tortotem's end-of-turn effect; the fixed MULTI_TRIBE_MINION_POOL is
     /// the D2 simplification, §19)
     AddRandomMultiTribeMinion,
+    // ----------------------------------------------------------------
+    // M3-W2a (Across the Timeways — the 120 non-legendary TIME cards).
+    // New CardEffect variants keep the bincode CardEffectDe mirror, the
+    // Deserialize conversion and the bot scoring arms in lockstep.
+    // ----------------------------------------------------------------
+    /// Get a random minion that costs (N) less (TIME_000 Semi-Stable
+    /// Portal — the CostModifier rides the drawn card)
+    AddRandomMinionCostsLess {
+        /// The cost reduction
+        reduction: i32,
+    },
+    /// Get N random spells from the player's class (TIME_002 Aeon Wizard;
+    /// the class is approximated by the union of the class card groups —
+    /// the engine has no per-player class, §20)
+    AddRandomSpellsFromClass {
+        /// Number of spells
+        count: i32,
+    },
+    /// Draw a random minion and give it +A/+H (TIME_003 Portal Vanguard —
+    /// the draw filter picks a random minion card from the deck)
+    DrawRandomMinionGiveStats {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// Both players discard a random card (TIME_008 Bygone Doomspeaker)
+    BothPlayersDiscardRandomCard,
+    /// Summon N Mana worth of random minions (TIME_014 Instant Multiverse
+    /// — 12 Mana: random minions until the spent Mana reaches N)
+    SummonManaWorthRandomMinions {
+        /// Total Mana worth
+        total: i32,
+    },
+    /// Get 2 random Holy spells and restore Health to the hero equal to
+    /// their Costs (TIME_018 Mend the Timeline)
+    GetHolySpellsRestoreHealthEqualCosts,
+    /// Cast N random Nature spells (TIME_033 Druid of Regrowth — each cast
+    /// runs the spell's effect against random targets where needed, §20)
+    CastRandomNatureSpells {
+        /// Number of spells to cast
+        count: i32,
+    },
+    /// Both players equip a random weapon; the player's weapon gains
+    /// +A/+H (TIME_034 Stadium Announcer)
+    BothPlayersEquipRandomWeaponBuffOurs {
+        /// Attack bonus on the player's weapon
+        attack: i32,
+        /// Health bonus on the player's weapon
+        health: i32,
+    },
+    /// Get a random Rewind card (TIME_035 Time Machine — the
+    /// REWIND_CARD_IDS pool, D2)
+    AddRandomRewindCardToHand,
+    /// Look at the right-most card in the opponent's hand; get a copy of
+    /// it OR increase its Cost by 2 (TIME_036 Royal Informant — the
+    /// either/or is a random pick, the established pool-open
+    /// simplification, §20; **pool-open**, POOL_OPEN_CARDS)
+    CopyRightmostEnemyHandCardOrIncreaseCost,
+    /// Summon 2 random Legendary minions (TIME_038 Mister Clocksworth —
+    /// the legendary pool spans the full active window, §20)
+    SummonTwoRandomLegendaryMinions,
+    /// Discover a copy of a card in the opponent's hand (TIME_039 Deja Vu
+    /// — a real three-option choice over enemy hand cards; **pool-open**,
+    /// POOL_OPEN_CARDS)
+    DiscoverEnemyHandCardCopy,
+    /// Summon a 0/4 Taunt, and another if holding a Dragon (TIME_006
+    /// Mirror Dimension)
+    SummonTauntAndIfHoldingDragonAgain {
+        /// The Taunt token's card id
+        card_id: &'static str,
+    },
+    /// Restore N Health to the hero and give them Divine Shield (TIME_015
+    /// Hardlight Protector)
+    RestoreAndGrantHeroDivineShield {
+        /// Health restored
+        amount: i32,
+    },
+    /// Discover a Paladin Mech from the past and give it +A/+H (TIME_016
+    /// Neon Innovation — the pool is Paladin class Mechs, §20)
+    DiscoverPaladinMechPastGiveStats {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// Deal N damage to all enemies if the player controls an Aura
+    /// (TIME_019 Manifested Timeways — the check scans aura sources)
+    DealDamageAllEnemiesIfControllingAura {
+        /// Damage amount
+        amount: i32,
+    },
+    /// The hero is Immune until the end of the turn (TIME_021 Doomsday
+    /// Prepper's Outcast — the "until your next turn" expiry is the
+    /// registered Kaldorei precedent, §20)
+    GiveHeroImmuneThisTurn,
+    /// Draw the bottom N cards of the deck (TIME_023 Contingency)
+    DrawBottomCards {
+        /// Number of cards
+        count: i32,
+    },
+    /// Give all friendly minions +A/+H and shuffle 2 Shreds of Time into
+    /// the deck (TIME_026 Entropic Continuity)
+    BuffAllFriendlyMinionsShuffleShreds {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// Deal N damage split among all enemies and shuffle 2 Shreds of Time
+    /// into the deck (TIME_027 Tachyon Barrage — split = N one-damage
+    /// pings, the W4a split machinery)
+    DealDamageSplitAmongAllEnemiesShuffleShreds {
+        /// Total damage
+        amount: i32,
+    },
+    /// Cast a Shred of Time from the deck to gain +A/+H (TIME_028
+    /// Fatebreaker — "cast from deck" simplified: scan the deck for a
+    /// Shred, remove it and apply its 3 damage to the hero, §20)
+    CastShredFromDeckGainStats {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// Cast a Shred of Time from the deck to summon a copy of this
+    /// (TIME_029 Ruinous Velocidrake — same cast-from-deck shape as
+    /// TIME_028, §20)
+    CastShredFromDeckSummonCopy,
+    /// Copy a random minion in the player's hand (TIME_030 Divergence —
+    /// the split-card halves mechanic is approximated by a copy, §20)
+    CopyRandomHandMinion,
+    /// Draw N cards of different Costs (TIME_031 RAFAAM LADDER!!)
+    DrawCardsOfDifferentCosts {
+        /// Number of cards
+        count: i32,
+    },
+    /// Draw a minion and give minions in the hand +H Health (TIME_037
+    /// Disciple of the Dove)
+    DrawMinionAndBuffHandMinionsHealth {
+        /// Health bonus
+        health: i32,
+    },
+    /// Set a friendly minion's stats to A/H; it can't attack heroes this
+    /// turn (TIME_043 PMM Infinitizer)
+    SetStatsAndCantAttackHeroesThisTurn {
+        /// Attack value
+        attack: i32,
+        /// Health value
+        health: i32,
+    },
+    /// Gain +H Health for each turn taken this game (TIME_048 Clockwork
+    /// Rager — the player turns_taken counter)
+    GainStatsPerTurnTaken {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// At the start of the player's turn, transform into a random N-Cost
+    /// minion (TIME_049 Dangerous Variant — the W4c transform shape)
+    TransformSelfToRandomMinionOfCost {
+        /// The target Cost
+        cost: i32,
+    },
+    /// After this survives damage, swap its stats (TIME_050 Sentient
+    /// Hourglass — the survival is predicted before the damage resolves,
+    /// the Slam convention)
+    SwapStatsIfSurvivesDamage,
+    /// At the end of each player's turn, that player gets a Coin
+    /// (TIME_054 Time Skipper)
+    GiveCoin,
+    /// After this survives damage, transform into a random N-Cost minion
+    /// (TIME_055 Unknown Voyager)
+    TransformSelfIfSurvivesDamageToRandomCost {
+        /// The target Cost
+        cost: i32,
+    },
+    /// Set the Cost of every card in both hands back to its original Cost
+    /// (TIME_057 Wizened Truthseeker — cost enchantments are stripped)
+    ResetBothHandsCosts,
+    /// Summon a random N-Cost minion that is Dormant for T turns
+    /// (TIME_058 Paltry Flutterwing)
+    SummonRandomMinionOfCostDormant {
+        /// The Cost of the summoned minion
+        cost: i32,
+        /// Dormant countdown
+        turns: u32,
+    },
+    /// Summon a random Dragon that costs N or more (TIME_436 Past Conflux
+    /// — the pool spans the active window, tokens excluded)
+    SummonRandomDragonCostGE {
+        /// The minimum Cost
+        min_cost: i32,
+    },
+    /// Reverse the order of the player's deck (TIME_061 Timeless
+    /// Causality)
+    ReverseDeckOrder,
+    /// If holding a Dragon, gain Taunt and Divine Shield (TIME_062
+    /// Chronicle Keeper)
+    GainTauntAndDivineShieldIfHoldingDragon,
+    /// Add a random N-Cost minion to hand, marked to cost (1) less at
+    /// each own turn start (TIME_102 Circadiamancer — the
+    /// TurnCostReducer marker)
+    AddRandomCostMinionMarkedTurnDiscount {
+        /// The Cost of the minion
+        cost: i32,
+    },
+    /// Deal D damage to a friendly minion to deal A damage to a random
+    /// enemy minion (TIME_212 Lightning Rod)
+    DealDamageFriendlyMinionToRandomEnemy {
+        /// Damage to the friendly minion
+        damage: i32,
+        /// Damage to the random enemy minion
+        amount: i32,
+    },
+    /// If the player has cast a Nature spell, gain +A/+H and draw a card
+    /// (TIME_213 Primordial Overseer — the "while holding this" wording
+    /// is approximated by the game-wide nature spell counter, §20)
+    GainStatsAndDrawIfNatureSpellCast {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// Deal N damage to all minions and add the given card to hand
+    /// (TIME_215 Thunderquake)
+    DamageAllMinionsAndAddCardToHand {
+        /// Damage amount
+        amount: i32,
+        /// The card id added to hand
+        card_id: &'static str,
+    },
+    /// Deal N damage to a minion; if it survives, draw 2 cards (TIME_216
+    /// Nascent Bolt)
+    DamageAndDrawTwoIfSurvives {
+        /// Damage amount
+        damage: i32,
+        /// The target set
+        target: EffectTarget,
+    },
+    /// Deal N damage to a minion and give the hero +A Attack this turn
+    /// (TIME_218 Static Shock — the hero attack is an until-end-of-turn
+    /// enchantment)
+    DamageMinionGiveHeroAttack {
+        /// Damage amount
+        damage: i32,
+        /// Hero Attack gained
+        attack: i32,
+    },
+    /// Deal damage to an enemy minion equal to this minion's Health
+    /// (TIME_427 Cleansing Lightspawn)
+    DealDamageEnemyMinionEqualToSourceHealth,
+    /// Set the Attack and Health of every hand minion to the higher of
+    /// the two stats (TIME_429 Divine Augur)
+    SetHandMinionStatsToHigher,
+    /// Restore Health to a character equal to this minion's Health
+    /// (TIME_431 Amber Priestess)
+    RestoreHealthEqualToSourceHealth,
+    /// Discover a copy of a card from the player's deck and one from the
+    /// opponent's hand (TIME_432 Intertwined Fate — one choice over both
+    /// pools; the unpicked side is a random copy, §20; **pool-open**,
+    /// POOL_OPEN_CARDS)
+    DiscoverDeckAndEnemyHandCardCopy,
+    /// Silence and destroy a random enemy minion (TIME_433 Cease to
+    /// Exist)
+    SilenceAndDestroyRandomEnemyMinion,
+    /// Summon a shadow that attacks a random enemy minion (TIME_434
+    /// Temporal Traveler's deathrattle)
+    SummonShadowAttacksRandomEnemy {
+        /// The shadow token's card id
+        card_id: &'static str,
+    },
+    /// Summon two 3/2 Demons; if the deck has no minions they attack the
+    /// lowest Health enemy (TIME_443 Hounds of Fury)
+    SummonTwoDemonsAttackLowestHealthIfDeckNoMinions,
+    /// Give a character Divine Shield and give hand minions +H Health
+    /// (TIME_447 Power Word: Barrier)
+    GrantDivineShieldAndBuffHandMinionsHealth {
+        /// Hand minion Health bonus
+        health: i32,
+    },
+    /// Discover a minion; if the deck has no minions, reduce the Cost of
+    /// hand minions by N (TIME_448 Solitude — the discover-two is
+    /// simplified to one pick, §20)
+    DiscoverMinionReduceHandCostsIfDeckNoMinions {
+        /// The cost reduction
+        reduction: i32,
+    },
+    /// Give the hero +A Attack this turn; if the deck has no minions,
+    /// give hand minions +A Attack (TIME_449 Lasting Legacy)
+    GainHeroAttackAndBuffHandMinionsIfDeckNoMinions {
+        /// Attack value
+        attack: i32,
+    },
+    /// Deal N damage, or C if this is exactly in the center of the hand
+    /// (TIME_600 Precise Shot — the center position is captured at play)
+    PreciseShot {
+        /// Base damage
+        amount: i32,
+        /// Center-of-hand damage
+        center_amount: i32,
+    },
+    /// Draw until the hand has N cards (TIME_601 Arrow Retriever)
+    DrawUntilHandSize {
+        /// Target hand size
+        size: i32,
+    },
+    /// Summon a random N-Cost Beast; it attacks a random enemy (TIME_602
+    /// Wormhole — the forced attack runs through the normal pipeline)
+    SummonRandomCostBeastAttackRandomEnemy {
+        /// The Beast's Cost
+        cost: i32,
+    },
+    /// Summon N copies of the given token; each gains two random Bonus
+    /// Effects (TIME_610 Shadows of Yesterday)
+    SummonMinionsGrantTwoRandomBonus {
+        /// The token's card id
+        card_id: &'static str,
+        /// Number of copies
+        count: i32,
+    },
+    /// Get a random Legendary minion with its Cost reduced by N (TIME_613
+    /// Cryofrozen Champion's deathrattle)
+    AddRandomLegendaryMinionCostReduced {
+        /// The cost reduction
+        reduction: i32,
+    },
+    /// If the hero's Health changed this turn, deal N damage to an enemy
+    /// minion (TIME_614 Liferender)
+    DealDamageEnemyMinionIfHeroHealthChanged {
+        /// Damage amount
+        amount: i32,
+    },
+    /// Fill the hand with random Undead that cost Health instead of Mana
+    /// (TIME_615 Forgotten Millennium — the "this turn" expiry of the
+    /// CostHealth marker is approximated, §20)
+    FillHandWithRandomUndeadCostHealth,
+    /// Summon the highest Cost friendly Undead that died this game
+    /// (TIME_616 Memoriam Manifest)
+    SummonHighestCostFallenUndead,
+    /// At the end of the player's turn, summon a 3/5 Dragon with Taunt;
+    /// the aura lasts N turns (TIME_700 Chronological Aura — the tick
+    /// counter rides the player)
+    SetChronologicalAura {
+        /// Number of turns the aura lasts
+        ticks: i32,
+    },
+    /// Discover a card from the deck; the others are put on the bottom
+    /// (TIME_701 Waveshaping)
+    DiscoverDeckCardOthersBottom,
+    /// Deal N damage; if the player played a minion this turn, gain A
+    /// Armor (TIME_702 Ebb and Flow — the "while holding this" wording
+    /// is approximated by any-minion-played-this-turn, §20)
+    DamageAndGainArmorIfMinionPlayedWhileHeld {
+        /// Damage amount
+        damage: i32,
+        /// Armor gained
+        armor: i32,
+    },
+    /// If the hero has N or less Health, gain +A/+H and summon a copy of
+    /// this (TIME_703 Endangered Dodo)
+    GainStatsAndSummonCopyIfHeroHealthLE {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+        /// The hero Health threshold
+        threshold: i32,
+    },
+    /// Get a 2/2 Pupil and discover a spell that costs N or more from the
+    /// past to teach it (TIME_704 Highborne Mentor — the teach link is
+    /// approximated, §20)
+    GetPupilAndDiscoverSpellCostGE {
+        /// The pupil token's card id
+        pupil_card_id: &'static str,
+        /// The minimum spell Cost
+        min_cost: i32,
+    },
+    /// Replace the hand and deck with random Choose One cards that cost
+    /// (1) less (TIME_707 Alternate Reality — the pool spans the
+    /// active-window choose-one cards, §20)
+    ReplaceHandAndDeckWithRandomChooseOne,
+    /// Summon two random N-Cost minions with +B Attack (TIME_711
+    /// Flashback — the Combo bonus rides the same variant)
+    SummonTwoRandomCostMinionsWithAttack {
+        /// The Cost of the summoned minions
+        cost: i32,
+        /// Attack bonus on each
+        bonus: i32,
+    },
+    /// Destroy a minion and summon a random N-Cost minion (TIME_712
+    /// Dethrone's Combo branch)
+    DestroyMinionAndSummonRandomCost {
+        /// The Cost of the summoned minion
+        cost: i32,
+    },
+    /// The opponent's cards cost N more next turn (TIME_716 Slow Motion —
+    /// the tax rides the caster's player field, applied to the
+    /// opponent's plays and cleared at the caster's next turn start)
+    NextTurnEnemyCardsCostMore {
+        /// The cost increase
+        amount: i32,
+    },
+    /// Put N random Beasts on the bottom of the deck with +A/+H (TIME_730
+    /// Kaldorei Cultivator — the discover-two is simplified to random
+    /// adds, §20)
+    AddRandomBeastsToBottomDeckWithStats {
+        /// Number of Beasts
+        count: i32,
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// Deal N damage; if holding a minion that costs C or more, draw a
+    /// minion (TIME_750 Precursory Strike)
+    DamageAndDrawMinionIfHoldingCostGE {
+        /// Damage amount
+        damage: i32,
+        /// The hand minion's minimum Cost
+        cost: i32,
+    },
+    /// Draw 2 cards; one is randomly picked to have its Cost reduced by N
+    /// (TIME_770 Fast Forward — the pick is random, §20)
+    DrawTwoReduceRandomCost {
+        /// The cost reduction
+        reduction: i32,
+    },
+    /// Deal P damage to an enemy and S damage to two other random enemies
+    /// (TIME_855 Arcane Barrage)
+    DealDamagePrimaryAndSplash {
+        /// Primary damage
+        primary: i32,
+        /// Splash damage
+        splash: i32,
+    },
+    /// Discover two Arcane spells from the past that cost (N) less
+    /// (TIME_857 Alter Time — one pick, §20)
+    DiscoverArcaneSpellsReduced {
+        /// The cost reduction
+        reduction: i32,
+    },
+    /// Deal N damage to an enemy minion and draw cards equal to the
+    /// excess damage (TIME_858 Temporal Construct — the excess is
+    /// computed after the damage resolves)
+    DealDamageAndDrawExcess {
+        /// Damage amount
+        amount: i32,
+    },
+    /// Summon a random N-Cost and C-Cost minion; scramble their stats
+    /// (TIME_859 Anomalize — each summoned minion's Attack and Health are
+    /// swapped, the §20 shape)
+    SummonPairScrambleStats {
+        /// The first minion's Cost
+        first_cost: i32,
+        /// The second minion's Cost
+        second_cost: i32,
+    },
+    /// Look at 2 random Secrets; one is cast for the player, the other
+    /// for the opponent (TIME_860 Faceless Enigma — the pick is random,
+    /// §20)
+    LookAtSecretsGiveRandom,
+    /// Summon a random minion from the deck and a tiger for the opponent
+    /// (TIME_870 Gladiatorial Combat)
+    SummonRandomDeckMinionAndTigerForOpponent {
+        /// The tiger token's card id
+        card_id: &'static str,
+    },
+    /// Gain +A/+H for each damaged minion (TIME_871 Heir of Hereafter)
+    GainStatsPerDamagedMinion {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// Fill the opponent's board with random 1-Cost minions (TIME_872
+    /// Undefeated Champion)
+    FillEnemyBoardWithRandomCost1Minions,
+    /// Gain N Armor and summon two Beasts for the opponent (TIME_873
+    /// Unleash the Crocolisks)
+    GainArmorAndSummonTwoBeastsForOpponent {
+        /// Armor gained
+        armor: i32,
+        /// The Beast token's card id
+        card_id: &'static str,
+    },
+    /// Imprison an enemy minion — it goes Dormant for 10,000 turns
+    /// (TIME_442 Timeway Warden's battlecry; the imprison/awaken link
+    /// rides the player field, §20)
+    ImprisonEnemyMinion,
+    /// Awaken the minion this minion imprisoned (TIME_442 Timeway
+    /// Warden's deathrattle)
+    AwakenImprisonedMinion,
+    /// Look at a random card in the opponent's hand and gain +H Health —
+    /// the "guess" is always right because the looked-at card IS in the
+    /// hand (TIME_041 Futuristic Forefather; **pool-open**, POOL_OPEN_CARDS,
+    /// the §20 always-right simplification)
+    GuessEnemyHandGainHealth {
+        /// Health gained
+        health: i32,
+    },
+    /// Transform this hand card into a random enemy-hand minion at the
+    /// start of the owner's turn (TIME_876 Shapeshifter; **pool-open**,
+    /// POOL_OPEN_CARDS — the transformation happens in the hand, the
+    /// TurnStarted hook resolves the effect)
+    TransformHandSelfToRandomEnemyHandMinion,
+    /// Secret-context effect — resummon the minion that died (TIME_620
+    /// Timecode the End; resolved by the secret system like
+    /// ResurrectDiedMinion but WITHOUT the 1-Health damage — the
+    /// official "resurrect it" resummons at full Health)
+    ResurrectDiedMinionFull,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -3207,6 +3731,99 @@ enum CardEffectDe {
         health: i32,
         target: EffectTarget,
     },
+    DestroyAndGainStats {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+    },
+    DestroyRandomEnemySecret,
+    DestroyAllEnemySecretsAndGainStats {
+        attack: i32,
+        health: i32,
+    },
+    DestroyAllEnemySecretsAndDraw {
+        count: u32,
+    },
+    AttachAttackDraw {
+        count: u32,
+    },
+    GainStatsPerHandCard {
+        attack: i32,
+        health_per_card: i32,
+    },
+    GainStatsPerFriendlyMinion {
+        attack: i32,
+        health_per_minion: i32,
+    },
+    DealDamageRandomly {
+        amount: i32,
+        count: i32,
+        target: EffectTarget,
+    },
+    MortalStrike {
+        damage: i32,
+        boosted: i32,
+        threshold: i32,
+    },
+    DrawPerDamagedFriendlyCharacter,
+    GainStatsIfOwnSecret {
+        attack: i32,
+        health: i32,
+    },
+    AbsorbDivineShields {
+        attack_per_shield: i32,
+        health_per_shield: i32,
+    },
+    RemoveWeaponDurability {
+        amount: i32,
+    },
+    GainAttackEqualToWeapon,
+    EnemySpellsCostZero,
+    GiveOpponentManaCrystal {
+        count: i32,
+    },
+    SetPlayedMinionHealth {
+        health: i32,
+    },
+    SilenceAllEnemyMinionsAndDraw {
+        count: u32,
+    },
+    SwapAttackAndHealth {
+        target: EffectTarget,
+    },
+    FreezeAdjacent,
+    GrantAdjacentTaunt,
+    GrantAdjacentSpellDamage {
+        amount: i32,
+    },
+    FullHealAndTaunt {
+        target: EffectTarget,
+    },
+    ChanceDraw {
+        percent: u32,
+    },
+    GainStatsThisTurn {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+    },
+    GrantDivineShieldAllFriendly,
+    GrantDivineShield {
+        target: EffectTarget,
+    },
+    YseraAwakens {
+        damage: i32,
+    },
+    GainStatsAndTauntAllFriendly {
+        attack: i32,
+        health: i32,
+    },
+    DrawAndDamageByCost,
+    RestoreDamagedFriendly {
+        amount: i32,
+    },
+    SwapWithHandMinion,
+    ResurrectDiedMinion,
     CopyRandomEnemyHandCard {
         count: u32,
     },
@@ -3476,99 +4093,6 @@ enum CardEffectDe {
         damage: i32,
     },
     AddRandomOutcastCardNextCheaper,
-    DestroyAndGainStats {
-        attack: i32,
-        health: i32,
-        target: EffectTarget,
-    },
-    DestroyRandomEnemySecret,
-    DestroyAllEnemySecretsAndGainStats {
-        attack: i32,
-        health: i32,
-    },
-    DestroyAllEnemySecretsAndDraw {
-        count: u32,
-    },
-    AttachAttackDraw {
-        count: u32,
-    },
-    GainStatsPerHandCard {
-        attack: i32,
-        health_per_card: i32,
-    },
-    GainStatsPerFriendlyMinion {
-        attack: i32,
-        health_per_minion: i32,
-    },
-    DealDamageRandomly {
-        amount: i32,
-        count: i32,
-        target: EffectTarget,
-    },
-    MortalStrike {
-        damage: i32,
-        boosted: i32,
-        threshold: i32,
-    },
-    DrawPerDamagedFriendlyCharacter,
-    GainStatsIfOwnSecret {
-        attack: i32,
-        health: i32,
-    },
-    AbsorbDivineShields {
-        attack_per_shield: i32,
-        health_per_shield: i32,
-    },
-    RemoveWeaponDurability {
-        amount: i32,
-    },
-    GainAttackEqualToWeapon,
-    EnemySpellsCostZero,
-    GiveOpponentManaCrystal {
-        count: i32,
-    },
-    SetPlayedMinionHealth {
-        health: i32,
-    },
-    SilenceAllEnemyMinionsAndDraw {
-        count: u32,
-    },
-    SwapAttackAndHealth {
-        target: EffectTarget,
-    },
-    FreezeAdjacent,
-    GrantAdjacentTaunt,
-    GrantAdjacentSpellDamage {
-        amount: i32,
-    },
-    FullHealAndTaunt {
-        target: EffectTarget,
-    },
-    ChanceDraw {
-        percent: u32,
-    },
-    GainStatsThisTurn {
-        attack: i32,
-        health: i32,
-        target: EffectTarget,
-    },
-    GrantDivineShieldAllFriendly,
-    GrantDivineShield {
-        target: EffectTarget,
-    },
-    YseraAwakens {
-        damage: i32,
-    },
-    GainStatsAndTauntAllFriendly {
-        attack: i32,
-        health: i32,
-    },
-    DrawAndDamageByCost,
-    RestoreDamagedFriendly {
-        amount: i32,
-    },
-    SwapWithHandMinion,
-    ResurrectDiedMinion,
     ImbueHeroPower,
     ImbuedHeroPower {
         class: ImbueClass,
@@ -4243,6 +4767,232 @@ enum CardEffectDe {
     AddRandomOneCostMinion,
     AddRandomOneCostSpell,
     AddRandomMultiTribeMinion,
+    // M3-W2a (Across the Timeways — the 120 non-legendary TIME cards)
+    AddRandomMinionCostsLess {
+        reduction: i32,
+    },
+    AddRandomSpellsFromClass {
+        count: i32,
+    },
+    DrawRandomMinionGiveStats {
+        attack: i32,
+        health: i32,
+    },
+    BothPlayersDiscardRandomCard,
+    SummonManaWorthRandomMinions {
+        total: i32,
+    },
+    GetHolySpellsRestoreHealthEqualCosts,
+    CastRandomNatureSpells {
+        count: i32,
+    },
+    BothPlayersEquipRandomWeaponBuffOurs {
+        attack: i32,
+        health: i32,
+    },
+    AddRandomRewindCardToHand,
+    CopyRightmostEnemyHandCardOrIncreaseCost,
+    SummonTwoRandomLegendaryMinions,
+    DiscoverEnemyHandCardCopy,
+    SummonTauntAndIfHoldingDragonAgain {
+        card_id: String,
+    },
+    RestoreAndGrantHeroDivineShield {
+        amount: i32,
+    },
+    DiscoverPaladinMechPastGiveStats {
+        attack: i32,
+        health: i32,
+    },
+    DealDamageAllEnemiesIfControllingAura {
+        amount: i32,
+    },
+    GiveHeroImmuneThisTurn,
+    DrawBottomCards {
+        count: i32,
+    },
+    BuffAllFriendlyMinionsShuffleShreds {
+        attack: i32,
+        health: i32,
+    },
+    DealDamageSplitAmongAllEnemiesShuffleShreds {
+        amount: i32,
+    },
+    CastShredFromDeckGainStats {
+        attack: i32,
+        health: i32,
+    },
+    CastShredFromDeckSummonCopy,
+    CopyRandomHandMinion,
+    DrawCardsOfDifferentCosts {
+        count: i32,
+    },
+    DrawMinionAndBuffHandMinionsHealth {
+        health: i32,
+    },
+    SetStatsAndCantAttackHeroesThisTurn {
+        attack: i32,
+        health: i32,
+    },
+    GainStatsPerTurnTaken {
+        attack: i32,
+        health: i32,
+    },
+    TransformSelfToRandomMinionOfCost {
+        cost: i32,
+    },
+    SwapStatsIfSurvivesDamage,
+    GiveCoin,
+    TransformSelfIfSurvivesDamageToRandomCost {
+        cost: i32,
+    },
+    ResetBothHandsCosts,
+    SummonRandomMinionOfCostDormant {
+        cost: i32,
+        turns: u32,
+    },
+    SummonRandomDragonCostGE {
+        min_cost: i32,
+    },
+    ReverseDeckOrder,
+    GainTauntAndDivineShieldIfHoldingDragon,
+    AddRandomCostMinionMarkedTurnDiscount {
+        cost: i32,
+    },
+    DealDamageFriendlyMinionToRandomEnemy {
+        damage: i32,
+        amount: i32,
+    },
+    GainStatsAndDrawIfNatureSpellCast {
+        attack: i32,
+        health: i32,
+    },
+    DamageAllMinionsAndAddCardToHand {
+        amount: i32,
+        card_id: String,
+    },
+    DamageAndDrawTwoIfSurvives {
+        damage: i32,
+        target: EffectTarget,
+    },
+    DamageMinionGiveHeroAttack {
+        damage: i32,
+        attack: i32,
+    },
+    DealDamageEnemyMinionEqualToSourceHealth,
+    SetHandMinionStatsToHigher,
+    RestoreHealthEqualToSourceHealth,
+    DiscoverDeckAndEnemyHandCardCopy,
+    SilenceAndDestroyRandomEnemyMinion,
+    SummonShadowAttacksRandomEnemy {
+        card_id: String,
+    },
+    SummonTwoDemonsAttackLowestHealthIfDeckNoMinions,
+    GrantDivineShieldAndBuffHandMinionsHealth {
+        health: i32,
+    },
+    DiscoverMinionReduceHandCostsIfDeckNoMinions {
+        reduction: i32,
+    },
+    GainHeroAttackAndBuffHandMinionsIfDeckNoMinions {
+        attack: i32,
+    },
+    PreciseShot {
+        amount: i32,
+        center_amount: i32,
+    },
+    DrawUntilHandSize {
+        size: i32,
+    },
+    SummonRandomCostBeastAttackRandomEnemy {
+        cost: i32,
+    },
+    SummonMinionsGrantTwoRandomBonus {
+        card_id: String,
+        count: i32,
+    },
+    AddRandomLegendaryMinionCostReduced {
+        reduction: i32,
+    },
+    DealDamageEnemyMinionIfHeroHealthChanged {
+        amount: i32,
+    },
+    FillHandWithRandomUndeadCostHealth,
+    SummonHighestCostFallenUndead,
+    SetChronologicalAura {
+        ticks: i32,
+    },
+    DiscoverDeckCardOthersBottom,
+    DamageAndGainArmorIfMinionPlayedWhileHeld {
+        damage: i32,
+        armor: i32,
+    },
+    GainStatsAndSummonCopyIfHeroHealthLE {
+        attack: i32,
+        health: i32,
+        threshold: i32,
+    },
+    GetPupilAndDiscoverSpellCostGE {
+        pupil_card_id: String,
+        min_cost: i32,
+    },
+    ReplaceHandAndDeckWithRandomChooseOne,
+    SummonTwoRandomCostMinionsWithAttack {
+        cost: i32,
+        bonus: i32,
+    },
+    DestroyMinionAndSummonRandomCost {
+        cost: i32,
+    },
+    NextTurnEnemyCardsCostMore {
+        amount: i32,
+    },
+    AddRandomBeastsToBottomDeckWithStats {
+        count: i32,
+        attack: i32,
+        health: i32,
+    },
+    DamageAndDrawMinionIfHoldingCostGE {
+        damage: i32,
+        cost: i32,
+    },
+    DrawTwoReduceRandomCost {
+        reduction: i32,
+    },
+    DealDamagePrimaryAndSplash {
+        primary: i32,
+        splash: i32,
+    },
+    DiscoverArcaneSpellsReduced {
+        reduction: i32,
+    },
+    DealDamageAndDrawExcess {
+        amount: i32,
+    },
+    SummonPairScrambleStats {
+        first_cost: i32,
+        second_cost: i32,
+    },
+    LookAtSecretsGiveRandom,
+    SummonRandomDeckMinionAndTigerForOpponent {
+        card_id: String,
+    },
+    GainStatsPerDamagedMinion {
+        attack: i32,
+        health: i32,
+    },
+    FillEnemyBoardWithRandomCost1Minions,
+    GainArmorAndSummonTwoBeastsForOpponent {
+        armor: i32,
+        card_id: String,
+    },
+    ImprisonEnemyMinion,
+    AwakenImprisonedMinion,
+    GuessEnemyHandGainHealth {
+        health: i32,
+    },
+    TransformHandSelfToRandomEnemyHandMinion,
+    ResurrectDiedMinionFull,
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -5637,6 +6387,268 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::AddRandomOneCostMinion => CardEffect::AddRandomOneCostMinion,
             CardEffectDe::AddRandomOneCostSpell => CardEffect::AddRandomOneCostSpell,
             CardEffectDe::AddRandomMultiTribeMinion => CardEffect::AddRandomMultiTribeMinion,
+            // M3-W2a (Across the Timeways — the 120 non-legendary TIME cards)
+            CardEffectDe::AddRandomMinionCostsLess { reduction } => {
+                CardEffect::AddRandomMinionCostsLess { reduction }
+            }
+            CardEffectDe::AddRandomSpellsFromClass { count } => {
+                CardEffect::AddRandomSpellsFromClass { count }
+            }
+            CardEffectDe::DrawRandomMinionGiveStats { attack, health } => {
+                CardEffect::DrawRandomMinionGiveStats { attack, health }
+            }
+            CardEffectDe::BothPlayersDiscardRandomCard => CardEffect::BothPlayersDiscardRandomCard,
+            CardEffectDe::SummonManaWorthRandomMinions { total } => {
+                CardEffect::SummonManaWorthRandomMinions { total }
+            }
+            CardEffectDe::GetHolySpellsRestoreHealthEqualCosts => {
+                CardEffect::GetHolySpellsRestoreHealthEqualCosts
+            }
+            CardEffectDe::CastRandomNatureSpells { count } => {
+                CardEffect::CastRandomNatureSpells { count }
+            }
+            CardEffectDe::BothPlayersEquipRandomWeaponBuffOurs { attack, health } => {
+                CardEffect::BothPlayersEquipRandomWeaponBuffOurs { attack, health }
+            }
+            CardEffectDe::AddRandomRewindCardToHand => CardEffect::AddRandomRewindCardToHand,
+            CardEffectDe::CopyRightmostEnemyHandCardOrIncreaseCost => {
+                CardEffect::CopyRightmostEnemyHandCardOrIncreaseCost
+            }
+            CardEffectDe::SummonTwoRandomLegendaryMinions => {
+                CardEffect::SummonTwoRandomLegendaryMinions
+            }
+            CardEffectDe::DiscoverEnemyHandCardCopy => CardEffect::DiscoverEnemyHandCardCopy,
+            CardEffectDe::SummonTauntAndIfHoldingDragonAgain { card_id } => {
+                CardEffect::SummonTauntAndIfHoldingDragonAgain {
+                    card_id: intern(card_id)?,
+                }
+            }
+            CardEffectDe::RestoreAndGrantHeroDivineShield { amount } => {
+                CardEffect::RestoreAndGrantHeroDivineShield { amount }
+            }
+            CardEffectDe::DiscoverPaladinMechPastGiveStats { attack, health } => {
+                CardEffect::DiscoverPaladinMechPastGiveStats { attack, health }
+            }
+            CardEffectDe::DealDamageAllEnemiesIfControllingAura { amount } => {
+                CardEffect::DealDamageAllEnemiesIfControllingAura { amount }
+            }
+            CardEffectDe::GiveHeroImmuneThisTurn => CardEffect::GiveHeroImmuneThisTurn,
+            CardEffectDe::DrawBottomCards { count } => CardEffect::DrawBottomCards { count },
+            CardEffectDe::BuffAllFriendlyMinionsShuffleShreds { attack, health } => {
+                CardEffect::BuffAllFriendlyMinionsShuffleShreds { attack, health }
+            }
+            CardEffectDe::DealDamageSplitAmongAllEnemiesShuffleShreds { amount } => {
+                CardEffect::DealDamageSplitAmongAllEnemiesShuffleShreds { amount }
+            }
+            CardEffectDe::CastShredFromDeckGainStats { attack, health } => {
+                CardEffect::CastShredFromDeckGainStats { attack, health }
+            }
+            CardEffectDe::CastShredFromDeckSummonCopy => CardEffect::CastShredFromDeckSummonCopy,
+            CardEffectDe::CopyRandomHandMinion => CardEffect::CopyRandomHandMinion,
+            CardEffectDe::DrawCardsOfDifferentCosts { count } => {
+                CardEffect::DrawCardsOfDifferentCosts { count }
+            }
+            CardEffectDe::DrawMinionAndBuffHandMinionsHealth { health } => {
+                CardEffect::DrawMinionAndBuffHandMinionsHealth { health }
+            }
+            CardEffectDe::SetStatsAndCantAttackHeroesThisTurn { attack, health } => {
+                CardEffect::SetStatsAndCantAttackHeroesThisTurn { attack, health }
+            }
+            CardEffectDe::GainStatsPerTurnTaken { attack, health } => {
+                CardEffect::GainStatsPerTurnTaken { attack, health }
+            }
+            CardEffectDe::TransformSelfToRandomMinionOfCost { cost } => {
+                CardEffect::TransformSelfToRandomMinionOfCost { cost }
+            }
+            CardEffectDe::SwapStatsIfSurvivesDamage => CardEffect::SwapStatsIfSurvivesDamage,
+            CardEffectDe::GiveCoin => CardEffect::GiveCoin,
+            CardEffectDe::TransformSelfIfSurvivesDamageToRandomCost { cost } => {
+                CardEffect::TransformSelfIfSurvivesDamageToRandomCost { cost }
+            }
+            CardEffectDe::ResetBothHandsCosts => CardEffect::ResetBothHandsCosts,
+            CardEffectDe::SummonRandomMinionOfCostDormant { cost, turns } => {
+                CardEffect::SummonRandomMinionOfCostDormant { cost, turns }
+            }
+            CardEffectDe::SummonRandomDragonCostGE { min_cost } => {
+                CardEffect::SummonRandomDragonCostGE { min_cost }
+            }
+            CardEffectDe::ReverseDeckOrder => CardEffect::ReverseDeckOrder,
+            CardEffectDe::GainTauntAndDivineShieldIfHoldingDragon => {
+                CardEffect::GainTauntAndDivineShieldIfHoldingDragon
+            }
+            CardEffectDe::AddRandomCostMinionMarkedTurnDiscount { cost } => {
+                CardEffect::AddRandomCostMinionMarkedTurnDiscount { cost }
+            }
+            CardEffectDe::DealDamageFriendlyMinionToRandomEnemy { damage, amount } => {
+                CardEffect::DealDamageFriendlyMinionToRandomEnemy { damage, amount }
+            }
+            CardEffectDe::GainStatsAndDrawIfNatureSpellCast { attack, health } => {
+                CardEffect::GainStatsAndDrawIfNatureSpellCast { attack, health }
+            }
+            CardEffectDe::DamageAllMinionsAndAddCardToHand { amount, card_id } => {
+                CardEffect::DamageAllMinionsAndAddCardToHand {
+                    amount,
+                    card_id: intern(card_id)?,
+                }
+            }
+            CardEffectDe::DamageAndDrawTwoIfSurvives { damage, target } => {
+                CardEffect::DamageAndDrawTwoIfSurvives { damage, target }
+            }
+            CardEffectDe::DamageMinionGiveHeroAttack { damage, attack } => {
+                CardEffect::DamageMinionGiveHeroAttack { damage, attack }
+            }
+            CardEffectDe::DealDamageEnemyMinionEqualToSourceHealth => {
+                CardEffect::DealDamageEnemyMinionEqualToSourceHealth
+            }
+            CardEffectDe::SetHandMinionStatsToHigher => CardEffect::SetHandMinionStatsToHigher,
+            CardEffectDe::RestoreHealthEqualToSourceHealth => {
+                CardEffect::RestoreHealthEqualToSourceHealth
+            }
+            CardEffectDe::DiscoverDeckAndEnemyHandCardCopy => {
+                CardEffect::DiscoverDeckAndEnemyHandCardCopy
+            }
+            CardEffectDe::SilenceAndDestroyRandomEnemyMinion => {
+                CardEffect::SilenceAndDestroyRandomEnemyMinion
+            }
+            CardEffectDe::SummonShadowAttacksRandomEnemy { card_id } => {
+                CardEffect::SummonShadowAttacksRandomEnemy {
+                    card_id: intern(card_id)?,
+                }
+            }
+            CardEffectDe::SummonTwoDemonsAttackLowestHealthIfDeckNoMinions => {
+                CardEffect::SummonTwoDemonsAttackLowestHealthIfDeckNoMinions
+            }
+            CardEffectDe::GrantDivineShieldAndBuffHandMinionsHealth { health } => {
+                CardEffect::GrantDivineShieldAndBuffHandMinionsHealth { health }
+            }
+            CardEffectDe::DiscoverMinionReduceHandCostsIfDeckNoMinions { reduction } => {
+                CardEffect::DiscoverMinionReduceHandCostsIfDeckNoMinions { reduction }
+            }
+            CardEffectDe::GainHeroAttackAndBuffHandMinionsIfDeckNoMinions { attack } => {
+                CardEffect::GainHeroAttackAndBuffHandMinionsIfDeckNoMinions { attack }
+            }
+            CardEffectDe::PreciseShot {
+                amount,
+                center_amount,
+            } => CardEffect::PreciseShot {
+                amount,
+                center_amount,
+            },
+            CardEffectDe::DrawUntilHandSize { size } => CardEffect::DrawUntilHandSize { size },
+            CardEffectDe::SummonRandomCostBeastAttackRandomEnemy { cost } => {
+                CardEffect::SummonRandomCostBeastAttackRandomEnemy { cost }
+            }
+            CardEffectDe::SummonMinionsGrantTwoRandomBonus { card_id, count } => {
+                CardEffect::SummonMinionsGrantTwoRandomBonus {
+                    card_id: intern(card_id)?,
+                    count,
+                }
+            }
+            CardEffectDe::AddRandomLegendaryMinionCostReduced { reduction } => {
+                CardEffect::AddRandomLegendaryMinionCostReduced { reduction }
+            }
+            CardEffectDe::DealDamageEnemyMinionIfHeroHealthChanged { amount } => {
+                CardEffect::DealDamageEnemyMinionIfHeroHealthChanged { amount }
+            }
+            CardEffectDe::FillHandWithRandomUndeadCostHealth => {
+                CardEffect::FillHandWithRandomUndeadCostHealth
+            }
+            CardEffectDe::SummonHighestCostFallenUndead => {
+                CardEffect::SummonHighestCostFallenUndead
+            }
+            CardEffectDe::SetChronologicalAura { ticks } => {
+                CardEffect::SetChronologicalAura { ticks }
+            }
+            CardEffectDe::DiscoverDeckCardOthersBottom => CardEffect::DiscoverDeckCardOthersBottom,
+            CardEffectDe::DamageAndGainArmorIfMinionPlayedWhileHeld { damage, armor } => {
+                CardEffect::DamageAndGainArmorIfMinionPlayedWhileHeld { damage, armor }
+            }
+            CardEffectDe::GainStatsAndSummonCopyIfHeroHealthLE {
+                attack,
+                health,
+                threshold,
+            } => CardEffect::GainStatsAndSummonCopyIfHeroHealthLE {
+                attack,
+                health,
+                threshold,
+            },
+            CardEffectDe::GetPupilAndDiscoverSpellCostGE {
+                pupil_card_id,
+                min_cost,
+            } => CardEffect::GetPupilAndDiscoverSpellCostGE {
+                pupil_card_id: intern(pupil_card_id)?,
+                min_cost,
+            },
+            CardEffectDe::ReplaceHandAndDeckWithRandomChooseOne => {
+                CardEffect::ReplaceHandAndDeckWithRandomChooseOne
+            }
+            CardEffectDe::SummonTwoRandomCostMinionsWithAttack { cost, bonus } => {
+                CardEffect::SummonTwoRandomCostMinionsWithAttack { cost, bonus }
+            }
+            CardEffectDe::DestroyMinionAndSummonRandomCost { cost } => {
+                CardEffect::DestroyMinionAndSummonRandomCost { cost }
+            }
+            CardEffectDe::NextTurnEnemyCardsCostMore { amount } => {
+                CardEffect::NextTurnEnemyCardsCostMore { amount }
+            }
+            CardEffectDe::AddRandomBeastsToBottomDeckWithStats {
+                count,
+                attack,
+                health,
+            } => CardEffect::AddRandomBeastsToBottomDeckWithStats {
+                count,
+                attack,
+                health,
+            },
+            CardEffectDe::DamageAndDrawMinionIfHoldingCostGE { damage, cost } => {
+                CardEffect::DamageAndDrawMinionIfHoldingCostGE { damage, cost }
+            }
+            CardEffectDe::DrawTwoReduceRandomCost { reduction } => {
+                CardEffect::DrawTwoReduceRandomCost { reduction }
+            }
+            CardEffectDe::DealDamagePrimaryAndSplash { primary, splash } => {
+                CardEffect::DealDamagePrimaryAndSplash { primary, splash }
+            }
+            CardEffectDe::DiscoverArcaneSpellsReduced { reduction } => {
+                CardEffect::DiscoverArcaneSpellsReduced { reduction }
+            }
+            CardEffectDe::DealDamageAndDrawExcess { amount } => {
+                CardEffect::DealDamageAndDrawExcess { amount }
+            }
+            CardEffectDe::SummonPairScrambleStats {
+                first_cost,
+                second_cost,
+            } => CardEffect::SummonPairScrambleStats {
+                first_cost,
+                second_cost,
+            },
+            CardEffectDe::LookAtSecretsGiveRandom => CardEffect::LookAtSecretsGiveRandom,
+            CardEffectDe::SummonRandomDeckMinionAndTigerForOpponent { card_id } => {
+                CardEffect::SummonRandomDeckMinionAndTigerForOpponent {
+                    card_id: intern(card_id)?,
+                }
+            }
+            CardEffectDe::GainStatsPerDamagedMinion { attack, health } => {
+                CardEffect::GainStatsPerDamagedMinion { attack, health }
+            }
+            CardEffectDe::FillEnemyBoardWithRandomCost1Minions => {
+                CardEffect::FillEnemyBoardWithRandomCost1Minions
+            }
+            CardEffectDe::GainArmorAndSummonTwoBeastsForOpponent { armor, card_id } => {
+                CardEffect::GainArmorAndSummonTwoBeastsForOpponent {
+                    armor,
+                    card_id: intern(card_id)?,
+                }
+            }
+            CardEffectDe::ImprisonEnemyMinion => CardEffect::ImprisonEnemyMinion,
+            CardEffectDe::AwakenImprisonedMinion => CardEffect::AwakenImprisonedMinion,
+            CardEffectDe::GuessEnemyHandGainHealth { health } => {
+                CardEffect::GuessEnemyHandGainHealth { health }
+            }
+            CardEffectDe::TransformHandSelfToRandomEnemyHandMinion => {
+                CardEffect::TransformHandSelfToRandomEnemyHandMinion
+            }
+            CardEffectDe::ResurrectDiedMinionFull => CardEffect::ResurrectDiedMinionFull,
         })
     }
 }
@@ -5645,6 +6657,69 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
 mod tests {
     use super::*;
     use crate::core::component::ImbueClass;
+
+    /// Structural guard (2025–2026 expansions M3-W2a): the bincode encoding of
+    /// `CardEffect` is positional — `CardEffect` derives `Serialize` while
+    /// `Deserialize` decodes through the `CardEffectDe` mirror by variant
+    /// index, so the mirror's variant ORDER must match `CardEffect`'s exactly,
+    /// or every variant at a drifted index silently deserializes as a
+    /// DIFFERENT effect (a latent pre-existing drift of the 33-variant
+    /// DestroyAndGainStats..BuffAnotherRandomFriendlyDragon run was repaired
+    /// by reordering the mirror on 2026-08-09 — the M3-W2a roundtrip test
+    /// caught it). This test compares the two declaration sequences directly
+    /// so any future insertion in one enum without the other fails loudly.
+    #[test]
+    fn card_effect_de_mirror_order_matches() {
+        let source = include_str!("effect.rs");
+        let enum_names = |text: &str| -> Vec<String> {
+            text.lines()
+                .filter_map(|line| {
+                    let name = line.split_whitespace().next()?;
+                    if !name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
+                        return None;
+                    }
+                    let name = name.trim_end_matches(['{', ',']);
+                    if name.is_empty()
+                        || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+                    {
+                        return None;
+                    }
+                    Some(name.to_string())
+                })
+                .collect::<Vec<_>>()
+        };
+        let ce = source
+            .split("pub enum CardEffect {")
+            .nth(1)
+            .expect("CardEffect")
+            .split("/// Deserialization mirror")
+            .next()
+            .expect("mirror head");
+        let de = source
+            .split("enum CardEffectDe {")
+            .nth(1)
+            .expect("CardEffectDe")
+            .split("impl<'de> serde::Deserialize<'de> for CardEffect")
+            .next()
+            .expect("impl head");
+        let ce_names = enum_names(ce);
+        let de_names = enum_names(de);
+        assert_eq!(
+            ce_names.len(),
+            de_names.len(),
+            "CardEffect ({}) and CardEffectDe ({}) must declare the same number of variants",
+            ce_names.len(),
+            de_names.len()
+        );
+        for (i, (a, b)) in ce_names.iter().zip(de_names.iter()).enumerate() {
+            assert_eq!(
+                a, b,
+                "bincode mirror drift at variant index {i}: CardEffect has {a} but \
+                 CardEffectDe has {b} — a variant was inserted into only one enum; \
+                 keep the CardEffectDe mirror in lockstep"
+            );
+        }
+    }
 
     /// Every new 2025–2026 expansions M1-W1 variant survives the bincode
     /// roundtrip (CardEffectDe → CardEffect via the interned card ids).
@@ -6149,6 +7224,182 @@ mod tests {
             assert_eq!(back, effect, "roundtrip failed for {effect:?}");
         }
     }
+
+    /// Every new 2025–2026 expansions M3-W2a variant (Across the Timeways,
+    /// src/cards/exp_tmw_w2a.rs) survives the bincode roundtrip
+    /// (CardEffectDe → CardEffect via the interned card ids).
+    #[test]
+    fn w2a_effects_serialize_roundtrip() {
+        for effect in [
+            CardEffect::AddRandomMinionCostsLess { reduction: 3 },
+            CardEffect::AddRandomSpellsFromClass { count: 2 },
+            CardEffect::DrawRandomMinionGiveStats {
+                attack: 2,
+                health: 2,
+            },
+            CardEffect::BothPlayersDiscardRandomCard,
+            CardEffect::RestoreAndGrantHeroDivineShield { amount: 3 },
+            CardEffect::ShuffleCardIntoDeck {
+                card_id: "TIME_025t",
+                count: 2,
+            },
+            CardEffect::CastShredFromDeckGainStats {
+                attack: 3,
+                health: 3,
+            },
+            CardEffect::CastShredFromDeckSummonCopy,
+            CardEffect::CastRandomNatureSpells { count: 2 },
+            CardEffect::BothPlayersEquipRandomWeaponBuffOurs {
+                attack: 1,
+                health: 1,
+            },
+            CardEffect::AddRandomRewindCardToHand,
+            CardEffect::CopyRightmostEnemyHandCardOrIncreaseCost,
+            CardEffect::DrawMinionAndBuffHandMinionsHealth { health: 2 },
+            CardEffect::SummonTwoRandomLegendaryMinions,
+            CardEffect::GuessEnemyHandGainHealth { health: 4 },
+            CardEffect::SetStatsAndCantAttackHeroesThisTurn {
+                attack: 8,
+                health: 8,
+            },
+            CardEffect::GainStatsPerTurnTaken {
+                attack: 0,
+                health: 1,
+            },
+            CardEffect::TransformSelfToRandomMinionOfCost { cost: 5 },
+            CardEffect::SwapStatsIfSurvivesDamage,
+            CardEffect::TransformSelfIfSurvivesDamageToRandomCost { cost: 7 },
+            CardEffect::SummonRandomMinionOfCostDormant { cost: 2, turns: 2 },
+            CardEffect::ResetBothHandsCosts,
+            CardEffect::ReverseDeckOrder,
+            CardEffect::GainTauntAndDivineShieldIfHoldingDragon,
+            CardEffect::GainStatsAndDrawIfNatureSpellCast {
+                attack: 1,
+                health: 1,
+            },
+            CardEffect::DealDamageEnemyMinionEqualToSourceHealth,
+            CardEffect::SetHandMinionStatsToHigher,
+            CardEffect::RestoreHealthEqualToSourceHealth,
+            CardEffect::SummonShadowAttacksRandomEnemy {
+                card_id: "TIME_434t",
+            },
+            CardEffect::ImprisonEnemyMinion,
+            CardEffect::AwakenImprisonedMinion,
+            CardEffect::DrawUntilHandSize { size: 3 },
+            CardEffect::AddRandomLegendaryMinionCostReduced { reduction: 1 },
+            CardEffect::DealDamageEnemyMinionIfHeroHealthChanged { amount: 6 },
+            CardEffect::GainStatsAndSummonCopyIfHeroHealthLE {
+                attack: 5,
+                health: 5,
+                threshold: 10,
+            },
+            CardEffect::GetPupilAndDiscoverSpellCostGE {
+                pupil_card_id: "TIME_704t",
+                min_cost: 7,
+            },
+            CardEffect::SummonManaWorthRandomMinions { total: 12 },
+            CardEffect::DiscoverPaladinMechPastGiveStats {
+                attack: 5,
+                health: 5,
+            },
+            CardEffect::GetHolySpellsRestoreHealthEqualCosts,
+            CardEffect::DrawBottomCards { count: 2 },
+            CardEffect::BuffAllFriendlyMinionsShuffleShreds {
+                attack: 1,
+                health: 1,
+            },
+            CardEffect::DealDamageSplitAmongAllEnemiesShuffleShreds { amount: 6 },
+            CardEffect::CopyRandomHandMinion,
+            CardEffect::DrawCardsOfDifferentCosts { count: 3 },
+            CardEffect::DiscoverEnemyHandCardCopy,
+            CardEffect::DealDamageFriendlyMinionToRandomEnemy {
+                damage: 2,
+                amount: 4,
+            },
+            CardEffect::DamageAllMinionsAndAddCardToHand {
+                amount: 1,
+                card_id: "TIME_218",
+            },
+            CardEffect::DamageAndDrawTwoIfSurvives {
+                damage: 5,
+                target: EffectTarget::AnyMinion,
+            },
+            CardEffect::DamageMinionGiveHeroAttack {
+                damage: 1,
+                attack: 1,
+            },
+            CardEffect::DiscoverDeckAndEnemyHandCardCopy,
+            CardEffect::SilenceAndDestroyRandomEnemyMinion,
+            CardEffect::SummonTwoDemonsAttackLowestHealthIfDeckNoMinions,
+            CardEffect::GrantDivineShieldAndBuffHandMinionsHealth { health: 2 },
+            CardEffect::DiscoverMinionReduceHandCostsIfDeckNoMinions { reduction: 2 },
+            CardEffect::GainHeroAttackAndBuffHandMinionsIfDeckNoMinions { attack: 4 },
+            CardEffect::PreciseShot {
+                amount: 3,
+                center_amount: 5,
+            },
+            CardEffect::SummonRandomCostBeastAttackRandomEnemy { cost: 3 },
+            CardEffect::SummonMinionsGrantTwoRandomBonus {
+                card_id: "TIME_610t2",
+                count: 4,
+            },
+            CardEffect::DealDamageToTwoAndFreeze { amount: 3 },
+            CardEffect::FillHandWithRandomUndeadCostHealth,
+            CardEffect::SummonHighestCostFallenUndead,
+            CardEffect::ResurrectDiedMinionFull,
+            CardEffect::SetChronologicalAura { ticks: 3 },
+            CardEffect::DiscoverDeckCardOthersBottom,
+            CardEffect::DamageAndGainArmorIfMinionPlayedWhileHeld {
+                damage: 3,
+                armor: 5,
+            },
+            CardEffect::ReplaceHandAndDeckWithRandomChooseOne,
+            CardEffect::SummonTwoRandomCostMinionsWithAttack { cost: 1, bonus: 0 },
+            CardEffect::DestroyMinionAndSummonRandomCost { cost: 0 },
+            CardEffect::DrawTwoReduceRandomCost { reduction: 2 },
+            CardEffect::DealDamagePrimaryAndSplash {
+                primary: 3,
+                splash: 2,
+            },
+            CardEffect::DiscoverArcaneSpellsReduced { reduction: 2 },
+            CardEffect::SummonPairScrambleStats {
+                first_cost: 10,
+                second_cost: 1,
+            },
+            CardEffect::SummonRandomDeckMinionAndTigerForOpponent {
+                card_id: "TIME_870t",
+            },
+            CardEffect::GainArmorAndSummonTwoBeastsForOpponent {
+                armor: 10,
+                card_id: "TIME_873t",
+            },
+            CardEffect::AddRandomCostMinionMarkedTurnDiscount { cost: 8 },
+            CardEffect::AddRandomBeastsToBottomDeckWithStats {
+                count: 2,
+                attack: 5,
+                health: 5,
+            },
+            CardEffect::DamageAndDrawMinionIfHoldingCostGE { damage: 3, cost: 5 },
+            CardEffect::NextTurnEnemyCardsCostMore { amount: 1 },
+            CardEffect::LookAtSecretsGiveRandom,
+            CardEffect::DealDamageAllEnemiesIfControllingAura { amount: 3 },
+            CardEffect::GiveHeroImmuneThisTurn,
+            CardEffect::GainStatsPerDamagedMinion {
+                attack: 2,
+                health: 2,
+            },
+            CardEffect::FillEnemyBoardWithRandomCost1Minions,
+            CardEffect::TransformHandSelfToRandomEnemyHandMinion,
+            CardEffect::DiscoverPool {
+                pool: DiscoverPool::Spell,
+            },
+            CardEffect::DamageSelfHero { damage: 3 },
+        ] {
+            let bytes = bincode::serialize(&effect).expect("serialize");
+            let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
+            assert_eq!(back, effect, "roundtrip failed for {effect:?}");
+        }
+    }
 }
 
 /// Random pool type — Tier 3 random generation.
@@ -6219,4 +7470,23 @@ pub enum RandomPool {
     /// expansions M2-W4a; the class filter is the Pilfer OtherClass
     /// precedent, restricted to weapons)
     WeaponAnotherClass,
+    /// A random minion (2025–2026 expansions M3-W2a — the generic
+    /// any-minion pool, TIME_033/602/711/859 style filters)
+    AnyMinion,
+    /// A random 5-Cost minion (2025–2026 expansions M3-W2a — TIME_040
+    /// Fading Memory)
+    Cost5Minion,
+    /// A random Rewind card (2025–2026 expansions M3-W2a — TIME_035 Time
+    /// Machine's deathrattle; the fixed REWIND_CARD_IDS table, D2)
+    RewindCard,
+    /// A random spell from the player's class (2025–2026 expansions
+    /// M3-W2a — TIME_002 Aeon Wizard; the class is approximated by the
+    /// union of the class card groups, §20)
+    ClassSpell,
+    /// A random Nature spell (2025–2026 expansions M3-W2a — TIME_033
+    /// Druid of Regrowth; the school filter is the FelSpell precedent)
+    NatureSpell,
+    /// A random weapon (2025–2026 expansions M3-W2a — TIME_034 Stadium
+    /// Announcer's "both players equip a random weapon")
+    RandomWeapon,
 }

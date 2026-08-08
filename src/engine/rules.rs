@@ -331,6 +331,11 @@ fn validate_attack(
         return Err(EngineError::InvalidTarget);
     }
 
+    // Dormant minions cannot attack (M3-W2a).
+    if world.dormant(attacker).is_some() {
+        return Err(EngineError::InvalidTarget);
+    }
+
     // Attack must be > 0 (considering weapon and auras)
     let total_atk = compute_attacker_damage(state, attacker);
     if total_atk <= 0 {
@@ -379,7 +384,7 @@ fn validate_attack(
         && world
             .zones()
             .iter(Zone::Play, enemy)
-            .any(|e| world.taunt(e).is_some());
+            .any(|e| world.taunt(e).is_some() && world.dormant(e).is_none());
     if has_taunt {
         // defender must be a taunt minion
         if world.taunt(defender).is_none() {
@@ -387,8 +392,11 @@ fn validate_attack(
         }
     }
 
-    // Stealth check: cannot attack enemy stealthed characters
-    if world.stealth(defender).is_some() && defender_player != active {
+    // Stealth / Dormant check: cannot attack enemy stealthed or dormant
+    // characters (M3-W2a — dormant is untargetable like Stealth)
+    if (world.stealth(defender).is_some() || world.dormant(defender).is_some())
+        && defender_player != active
+    {
         return Err(EngineError::InvalidTarget);
     }
 
@@ -436,7 +444,20 @@ fn validate_hero_power(state: &GameState, hero: Entity) -> Result<(), EngineErro
     // (0), so the affordability check is skipped when the flag is set)
     let hero_power = world.hero_power(hero);
     let cost = hero_power.map(|hp| hp.cost).unwrap_or(2);
-    if !state.player(active).next_hero_power_free && cost > state.player(active).current_mana {
+    // M3-W2a (TIME_606 Quel'dorei Fletcher): "Your Hero Power costs (0)
+    // while your hand has 3 or less cards" — the affordability check is
+    // skipped when a friendly Quel'dorei is on the board and the hand is
+    // small enough (the cost deduction itself happens in the HeroPowerUse
+    // handler, mirroring the cost-pipeline entries).
+    let fletcher_free = world
+        .zones()
+        .iter(Zone::Play, active)
+        .any(|e| world.card_id(e).is_some_and(|c| c.0 == "TIME_606"))
+        && world.zones().iter(Zone::Hand, active).count() <= 3;
+    if !state.player(active).next_hero_power_free
+        && !fletcher_free
+        && cost > state.player(active).current_mana
+    {
         return Err(EngineError::NotEnoughMana);
     }
 
@@ -705,6 +726,23 @@ fn queue_death_events(
 /// damage does not count; there is no HeroDamaged trigger event). Fires on
 /// the owner's turn only, one random enemy-minion ping per friendly
 /// Emberroot Destroyer on the board.
+/// M3-W2a hero-damage counters — fires at the exact point the hero's
+/// Health is actually reduced (the Emberroot site): bumps the damaged
+/// hero's owner's `hero_damaged_this_turn` flag and the opponent's
+/// `enemy_hero_damaged_this_turn` count (the opponent is the player whose
+/// "enemy hero" this hero is — their Devious Coyotes read the count).
+fn fire_hero_damage_counters(state: &mut GameState, target: Entity) {
+    if state.world().card_type(target) != Some(CardType::Hero) {
+        return;
+    }
+    let Some(pid) = state.world().player(target) else {
+        return;
+    };
+    let inner = state.make_mut();
+    inner.players[pid.index()].hero_damaged_this_turn = true;
+    inner.players[pid.opponent().index()].enemy_hero_damaged_this_turn += 1;
+}
+
 fn fire_emberroot_hook(state: &mut GameState, queue: &mut EventQueue, target: Entity) {
     if state.world().card_type(target) != Some(CardType::Hero) {
         return;
@@ -869,14 +907,86 @@ pub fn apply_event(
                 // opponent hero and Wave of Tar's enemy-minion cost tax.
                 inner.players[player.index()].enemy_hero_cant_be_healed = false;
                 inner.players[player.index()].minions_cost_more = false;
+                // M3-W2a — per-turn hero-damage counters expire at turn start
+                // (Devious Coyote's discount, Liferender's battlecry check).
+                inner.players[player.index()].enemy_hero_damaged_this_turn = 0;
+                inner.players[player.index()].hero_damaged_this_turn = false;
+                // M3-W2a — Clockwork Rager counts the turns taken this game.
+                inner.players[player.index()].turns_taken += 1;
+                // M3-W2a — TIME_716 Slow Motion's tax applied to the
+                // opponent's cards during their (just-finished) turn:
+                // the caster's tax expires at the caster's next turn start.
+                inner.players[player.index()].next_turn_enemy_cards_cost_more = 0;
+            }
+            // M3-W2a — Dormant countdown: at the owner's turn start each
+            // dormant minion sleeps one less turn; at 0 it awakens (the
+            // component is removed and the aura index is restored by
+            // `remove_dormant`). Runs before the StartTriggers step, so an
+            // awakening minion's triggers fire the same turn.
+            {
+                let slumbering: SmallList<(Entity, u32)> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, player)
+                    .filter_map(|e| state.world().dormant(e).map(|d| (e, d.turns)))
+                    .collect();
+                for (entity, turns) in slumbering {
+                    if turns <= 1 {
+                        state.world_mut().remove_dormant(entity);
+                    } else {
+                        state.world_mut().set_dormant(
+                            entity,
+                            crate::core::component::Dormant { turns: turns - 1 },
+                        );
+                    }
+                }
+            }
+            // M3-W2a — the played-this-turn markers expire at the owner's
+            // turn start (the TIME_620 secret predicate: "the turn after it
+            // was played" is approximated as "any later turn" — the marker
+            // set at CardPlayed lasts until the play's turn ends, so a
+            // same-turn death also fires the secret, §20).
+            {
+                let marked: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, player)
+                    .filter(|&e| state.world().played_this_turn(e).is_some())
+                    .collect();
+                for e in marked {
+                    state.world_mut().remove_played_this_turn(e);
+                }
+            }
+            // M3-W2a — TIME_876 Shapeshifter: "At the start of your turn,
+            // transform into a random minion in your opponent's hand" — a
+            // hand card marked by the card id (pool-open read, §20).
+            {
+                let shapeshifters: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Hand, player)
+                    .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_876"))
+                    .collect();
+                for e in shapeshifters {
+                    trigger::resolve_effect(
+                        state,
+                        queue,
+                        e,
+                        player,
+                        crate::core::effect::CardEffect::TransformHandSelfToRandomEnemyHandMinion,
+                        None,
+                        None,
+                    );
+                }
             }
             state.set_active_player(player);
             state.set_turn(new_turn);
             // Enter the start-of-turn sequence. The mana refill and the draw are
             // NOT done here: the step machine runs StartTriggers (start-of-turn
             // secrets already fired on this event via check_secrets, start-turn
-            // card effects fire next) → ManaRefill → DrawStep → Main, so that
-            // start-of-turn triggers resolve before the refill and the draw.
+            // card effects fire next) → ManaRefill → TurnCostReduce → DrawStep →
+            // Main, so that start-of-turn triggers resolve before the refill
+            // and the draw.
             state.set_step(Step::StartTriggers);
         }
         Event::TurnEnded { player } => {
@@ -1212,6 +1322,12 @@ pub fn apply_event(
             if let Some(k) = hand_index {
                 state.make_mut().players[player.index()].last_played_hand_index = Some(k);
             }
+            // M3-W2a Precise Shot (TIME_600): "If this is EXACTLY in the
+            // center of your hand" — the center exists only for odd-sized
+            // hands (the middle card). Captured here before the card
+            // leaves the hand, like the Skittish Saucier position above.
+            state.make_mut().players[player.index()].last_played_hand_center =
+                hand_len >= 1 && hand_len % 2 == 1 && hand_index == Some((hand_len - 1) / 2);
 
             // Detect combo: another card was played this turn (cards_played > 1 because it was just incremented)
             let combo_active = state.player(player).cards_played_this_turn > 1;
@@ -1702,6 +1818,29 @@ pub fn apply_event(
                 // happened earlier in this handler — the check counts the
                 // card itself plus any earlier same-type card (>= 2).
                 crate::cards::kindred::resolve_on_play(state, queue, card, player);
+                // M3-W2a — minions that enter play Dormant (Cyborg
+                // Patriarch, Timelord Nozdormu): the dormant component is
+                // applied right after the card enters the battlefield, so
+                // the battlecry resolution below (MinionSummoned) skips
+                // nothing — the card's own battlecry resolves normally
+                // (none of the dormant-at-summon cards carry one), and the
+                // countdown starts at the next turn start. The aura index
+                // is maintained by `set_dormant`.
+                if let Some(turns) = state
+                    .world()
+                    .card_id(card)
+                    .and_then(|cid| crate::cards::dormant_at_summon(cid.0))
+                {
+                    state
+                        .world_mut()
+                        .set_dormant(card, crate::core::component::Dormant { turns });
+                }
+                // M3-W2a — the played-this-turn marker (TIME_620 Timecode
+                // the End's secret predicate): set when a minion is played
+                // from the hand, cleared at the owner's turn start.
+                state
+                    .world_mut()
+                    .set_played_this_turn(card, crate::core::component::PlayedThisTurn);
                 // Quest progress (M2-W1): minion plays feed the Un'Goro quest
                 // conditions — TLC_229 (unique types: the primary race as the
                 // marker, 0 for race-less minions), TLC_830 (Beast attack
@@ -2278,9 +2417,13 @@ pub fn apply_event(
                     None,
                 );
             }
-            // Unified damage pipeline: immune → divine shield → armor → health → death check
+            // Unified damage pipeline: immune → dormant → divine shield → armor → health → death check
             // Immune: damage is completely ignored (the attack is still consumed)
             if state.world().immune(target).is_some() {
+                return Ok(());
+            }
+            // Dormant minions take no damage while asleep (M3-W2a).
+            if state.world().dormant(target).is_some() {
                 return Ok(());
             }
             // Tichondrius (Core Set W4b): a friendly Tichondrius makes the
@@ -2376,6 +2519,13 @@ pub fn apply_event(
                     amount += 2;
                 }
             }
+            // M3-W2a (TIME_060 Quantum Destabilizer): "This minion takes
+            // double damage from all sources" — a marker the battlecry/
+            // summon paths apply; the doubling runs at the same entry point
+            // as Goldrinn (before the divine-shield absorption).
+            if state.world().double_damage_taken(target).is_some() {
+                amount *= 2;
+            }
             // Divine shield absorbs: if the target has a divine shield, remove it and zero the damage
             if state.world().divine_shield(target).is_some() {
                 state.world_mut().remove_divine_shield(target);
@@ -2451,6 +2601,7 @@ pub fn apply_event(
                             .world_mut()
                             .set_damage(target, crate::core::component::Damage(new_damage));
                         fire_emberroot_hook(state, queue, target);
+                        fire_hero_damage_counters(state, target);
                         queue_death_events(state, queue, target, card_type);
                         return Ok(());
                     }
@@ -2501,6 +2652,13 @@ pub fn apply_event(
             // reduced (armor-absorbed damage does not count).
             fire_emberroot_hook(state, queue, target);
 
+            // M3-W2a per-turn hero-damage counters (Devious Coyote
+            // TIME_047's "enemy hero took damage this turn" discount;
+            // Liferender TIME_614's "hero's Health changed this turn"
+            // battlecry check). Same site as the Emberroot hook: only
+            // real health loss counts (armor absorption does not).
+            fire_hero_damage_counters(state, target);
+
             // Lifesteal (Core Set W1): damage dealt by a Lifesteal source
             // heals the source's owner hero for the damage dealt. Weapon,
             // minion and spell damage all count; the divine-shield/immune
@@ -2536,6 +2694,31 @@ pub fn apply_event(
 
             // Death check (using effective health to account for aura bonuses)
             queue_death_events(state, queue, target, card_type);
+            // M3-W2a — SurvivedDamage: "after this survives damage"
+            // (TIME_050 Sentient Hourglass's stat swap, TIME_055 Unknown
+            // Voyager's transform) fires when the damage was applied and
+            // the minion is still alive (effective health not dead — the
+            // Primal Sabretooth kill-check convention; a heal-rescued
+            // target never fired, matching the "survives" wording). The
+            // trigger is pinned to the damaged minion by subject.
+            if amount > 0 && card_type == Some(CardType::Minion) {
+                if let Some(owner) = state.world().player(target) {
+                    if state
+                        .world()
+                        .effective_health(target)
+                        .is_some_and(|h| !h.is_dead())
+                    {
+                        fire_triggers(
+                            state,
+                            queue,
+                            TriggerEvent::SurvivedDamage,
+                            owner,
+                            Some(target),
+                            None,
+                        );
+                    }
+                }
+            }
             // Primal Sabretooth (M2-W4a): "After this attacks and kills a
             // minion, get a copy of it" — the kill is detected right here
             // (the damage pipeline's death check, where the source of the
@@ -2739,11 +2922,23 @@ pub fn apply_event(
             // Deduct mana (Blowtorch Saboteur — Core Set W4b: the opponent's
             // next Hero Power costs more; Dreambound Disciple — M1-W4a: the
             // next Hero Power costs (0), one-time, consumed here)
-            let cost = state
+            let mut cost = state
                 .world()
                 .hero_power(hero)
                 .map(|hp| hp.cost + state.player(player).hero_power_cost_more)
                 .unwrap_or(2 + state.player(player).hero_power_cost_more);
+            // M3-W2a (TIME_606 Quel'dorei Fletcher): "Your Hero Power costs
+            // (0) while your hand has 3 or less cards" — the deduction
+            // mirrors the affordability check in validate_hero_power.
+            let fletcher_free = state
+                .world()
+                .zones()
+                .iter(Zone::Play, player)
+                .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_606"))
+                && state.world().zones().iter(Zone::Hand, player).count() <= 3;
+            if fletcher_free {
+                cost = 0;
+            }
             let free = state.player(player).next_hero_power_free;
             {
                 let inner = state.make_mut();
@@ -2857,6 +3052,11 @@ pub fn apply_event(
                     }
                     crate::cards::quest::SpellSchool::Shadow => {
                         state.make_mut().players[player.index()].shadow_cast_this_turn = true;
+                    }
+                    crate::cards::quest::SpellSchool::Nature => {
+                        // M3-W2a — Primordial Overseer TIME_213's battlecry
+                        // scales with the Nature spells cast this game.
+                        state.make_mut().players[player.index()].nature_spells_cast_total += 1;
                     }
                     _ => {}
                 }
@@ -3030,6 +3230,31 @@ pub fn apply_event(
                                     pending.card,
                                     entity,
                                 );
+                                // M3-W2a: consume the discover-time modifiers
+                                // stashed by the effect arms — Neon Innovation's
+                                // +A/+H (TIME_016) and Alter Time's cost
+                                // reduction (TIME_857) must land on the PICKED
+                                // card, not on the effect's source.
+                                let pending_bonus = state.make_mut().players[player.index()]
+                                    .pending_discover_hand_bonus
+                                    .take();
+                                if let Some((attack, health)) = pending_bonus {
+                                    state.world_mut().add_enchantment(
+                                        entity,
+                                        crate::core::component::Enchantment {
+                                            attack,
+                                            health,
+                                            cost: 0,
+                                            expiry: crate::core::component::EnchantmentExpiry::Permanent,
+                                        },
+                                    );
+                                }
+                                let pending_reduction = state.make_mut().players[player.index()]
+                                    .pending_discover_cost_reduction
+                                    .take();
+                                if let Some(reduction) = pending_reduction {
+                                    trigger::reduce_hand_card_cost(state, entity, reduction);
+                                }
                                 // The Map chain (M2-W4a, fidelity-debt §17): the
                                 // OTHER options are stored so playing the
                                 // discovered card this turn adds one of them.
@@ -3170,6 +3395,101 @@ pub fn apply_event(
                     world.zones_mut().remove(Zone::Deck, enemy, picked);
                     world.zones_mut().insert_at(Zone::Deck, enemy, picked, 0);
                 }
+                ChoiceKind::DiscoverEnemyHandCopy => {
+                    // Deja Vu (M3-W2a — TIME_039): discover a COPY of a card
+                    // in the opponent's hand (pool-open — the pool holds
+                    // enemy-hand card ids; the pick adds the card's
+                    // definition to the player's hand, the original stays).
+                    let player = state
+                        .world()
+                        .player(pending.card)
+                        .unwrap_or(state.active_player());
+                    state.make_mut().players[player.index()].discovered_this_turn = true;
+                    let Some(picked_id) = pending.pool.get(option as usize) else {
+                        return Ok(());
+                    };
+                    if let Some(card_def) = crate::cards::def::card_by_id(picked_id) {
+                        trigger::add_card_to_hand(state, player, card_def);
+                    }
+                }
+                ChoiceKind::DiscoverDeckAndEnemyHandCopy => {
+                    // Intertwined Fate (M3-W2a — TIME_432): discover a copy
+                    // of a card from the player's deck and one from the
+                    // opponent's hand. The pool holds three deck ids
+                    // followed by three enemy-hand ids; the picked option's
+                    // copy goes to the hand and a random copy from the
+                    // OTHER pool follows (the §20 combined-choice shape).
+                    let player = state
+                        .world()
+                        .player(pending.card)
+                        .unwrap_or(state.active_player());
+                    state.make_mut().players[player.index()].discovered_this_turn = true;
+                    let Some(picked_id) = pending.pool.get(option as usize) else {
+                        return Ok(());
+                    };
+                    if let Some(card_def) = crate::cards::def::card_by_id(picked_id) {
+                        trigger::add_card_to_hand(state, player, card_def);
+                    }
+                    let (deck_pool, enemy_pool) = pending.pool.split_at(3);
+                    let other_pool = if option < 3 { enemy_pool } else { deck_pool };
+                    if let Some(other) =
+                        other_pool.get(state.rng_mut().next_usize(other_pool.len()))
+                    {
+                        if let Some(other_def) = crate::cards::def::card_by_id(other) {
+                            trigger::add_card_to_hand(state, player, other_def);
+                        }
+                    }
+                }
+                ChoiceKind::DiscoverDeckOthersBottom => {
+                    // Waveshaping (M3-W2a — TIME_701): discover a card from
+                    // the deck; the others are put on the bottom. The pool
+                    // holds deck card ids; the picked card's EXISTING entity
+                    // moves to hand and the unpicked ones move to the deck's
+                    // bottom (the last positions — reverse draw order).
+                    let player = state
+                        .world()
+                        .player(pending.card)
+                        .unwrap_or(state.active_player());
+                    state.make_mut().players[player.index()].discovered_this_turn = true;
+                    let deck: Vec<Entity> = state
+                        .world()
+                        .zones()
+                        .iter(Zone::Deck, player)
+                        .filter(|&e| {
+                            pending
+                                .pool
+                                .iter()
+                                .any(|id| state.world().card_id(e).is_some_and(|c| c.0 == id))
+                        })
+                        .collect();
+                    let Some(picked_id) = pending.pool.get(option as usize) else {
+                        return Ok(());
+                    };
+                    let Some(picked) = deck
+                        .iter()
+                        .find(|&&e| {
+                            state
+                                .world()
+                                .card_id(e)
+                                .is_some_and(|c| c.0 == picked_id.as_str())
+                        })
+                        .copied()
+                    else {
+                        return Ok(());
+                    };
+                    let _ = state.world_mut().move_to_zone(picked, Zone::Hand);
+                    // The unpicked entries move to the bottom — re-inserted
+                    // after removal so they sit after the remaining deck
+                    // cards (the deck's last positions).
+                    for &e in &deck {
+                        if e == picked {
+                            continue;
+                        }
+                        let world = state.world_mut();
+                        world.zones_mut().remove(Zone::Deck, player, e);
+                        world.zones_mut().insert(Zone::Deck, player, e);
+                    }
+                }
                 ChoiceKind::Mulligan => {
                     // Opening mulligan (roadmap G7): "Keep all" (option 0) or
                     // replace the chosen starting card — the card returns to the
@@ -3219,10 +3539,11 @@ pub fn apply_event(
 /// Advances the step state machine at an event-queue boundary.
 ///
 /// Steps are entered by state: the turn-start sequence runs StartTriggers →
-/// ManaRefill → DrawStep → Main (start-of-turn card effects fire before the
-/// mana refill and the draw); the end sequence runs EndTriggers → WrapUp →
-/// next player's TurnStarted. Pending deaths (roadmap G3) enter the death
-/// step from any boundary and return to the interrupted step afterwards.
+/// ManaRefill → TurnCostReduce → DrawStep → Main (start-of-turn card
+/// effects fire before the mana refill, the Circadiamancer discount and the
+/// draw); the end sequence runs EndTriggers → WrapUp → next player's
+/// TurnStarted. Pending deaths (roadmap G3) enter the death step from any
+/// boundary and return to the interrupted step afterwards.
 /// Returns `false` when the machine is waiting for player input (Main step
 /// with an empty queue) or the game is over — the engine loop should stop then.
 pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
@@ -3266,6 +3587,29 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
             // Naralex (M1-W4b): the per-turn Dragon counter resets with the
             // turn ("your first Dragon each turn costs (1)")
             p.dragons_played_this_turn = 0;
+            // M3-W2a: chain into the TurnCostReduce step (Circadiamancer's
+            // marked-hand discount) before the draw.
+            state.set_step(Step::TurnCostReduce);
+            true
+        }
+        Step::TurnCostReduce => {
+            // M3-W2a (Circadiamancer TIME_102): "At the start of your turns,
+            // reduce its Cost by (1)" — the marked hand card's accumulated
+            // discount grows with every own turn start. Runs between the
+            // mana refill and the draw, matching the card's wording.
+            let active = state.active_player();
+            let marked: SmallList<(Entity, u32)> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, active)
+                .filter_map(|e| state.world().turn_cost_reducer(e).map(|t| (e, t.0)))
+                .collect();
+            for (entity, count) in marked {
+                state.world_mut().set_turn_cost_reducer(
+                    entity,
+                    crate::core::component::TurnCostReducer(count + 1),
+                );
+            }
             state.set_step(Step::DrawStep);
             true
         }
@@ -3276,7 +3620,17 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
             // construction, so a DrawStep on turn 1 only appears in constructed
             // states, where the draw runs normally (no turn-1 skip).
             let active = state.active_player();
-            trigger::draw_card(state, queue, active);
+            // M3-W2a (TIME_617 Chronochiller): "You no longer draw a card
+            // at the start of your turn" — an ID-based board check at the
+            // draw point (the Tichondrius/Petrified-Ogre precedent).
+            let skip_draw = state
+                .world()
+                .zones()
+                .iter(Zone::Play, active)
+                .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_617"));
+            if !skip_draw {
+                trigger::draw_card(state, queue, active);
+            }
             state.set_step(Step::Main);
             true
         }
@@ -3284,6 +3638,44 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
             // End-of-turn triggers fire before the wrap-up cleanup
             let active = state.active_player();
             fire_triggers(state, queue, TriggerEvent::TurnEnd, active, None, None);
+            // M3-W2a — TIME_054 Time Skipper: "At the end of each player's
+            // turn, that player gets a Coin" — a per-Skipper check across
+            // BOTH boards (a Trigger component cannot express this: TurnEnd
+            // triggers are owner-scoped, so an enemy Skipper would never
+            // fire for the active player). One Coin per Skipper on either
+            // board goes to the active player (§20).
+            {
+                let skippers = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, active)
+                    .chain(state.world().zones().iter(Zone::Play, active.opponent()))
+                    .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_054"))
+                    .count();
+                for _ in 0..skippers {
+                    let def = crate::cards::def::card_by_id("GAME_005");
+                    if let Some(def) = def {
+                        trigger::add_card_to_hand(state, active, def);
+                    }
+                }
+            }
+            // M3-W2a — TIME_700 Chronological Aura: "At the end of your
+            // turn, summon a 3/5 Dragon with Taunt. Lasts 3 turns" — the
+            // tick counter rides the player (the effect set it); each own
+            // turn end summons the drake and decrements while > 0 (§20).
+            if state.player(active).chronological_aura_ticks > 0 {
+                {
+                    let p = &mut state.make_mut().players[active.index()];
+                    p.chronological_aura_ticks -= 1;
+                }
+                trigger::resolve_summon(
+                    state,
+                    queue,
+                    state.player(active).hero,
+                    active,
+                    "TIME_700t",
+                );
+            }
             state.set_step(Step::WrapUp);
             true
         }
@@ -3367,6 +3759,7 @@ pub fn fire_triggers(
                 .filter(|&e| {
                     Some(e) != exclude
                         && state.world().is_alive(e)
+                        && state.world().dormant(e).is_none()
                         && state.world().trigger(e).is_some_and(|t| {
                             t.event == event
                                 && t.timing == timing
@@ -3405,8 +3798,10 @@ fn trigger_applies(
     trigger: crate::core::component::Trigger,
 ) -> bool {
     match event {
-        // Pinned to the entity the event happened to
-        TriggerEvent::ThisMinionDamaged => {
+        // Pinned to the entity the event happened to (SurvivedDamage — the
+        // M3-W2a survives-damage trigger — rides the damaged minion like
+        // ThisMinionDamaged)
+        TriggerEvent::ThisMinionDamaged | TriggerEvent::SurvivedDamage => {
             if Some(entity) != subject {
                 return false;
             }
@@ -3605,6 +4000,39 @@ fn wrap_up_turn(state: &mut GameState) {
             inner.world.iter_immune().map(|(e, _)| e).collect();
         for &e in immune_entities.iter() {
             inner.world.remove_immune(e);
+        }
+        // M3-W2a — "can't attack heroes this turn" (PMM Infinitizer) and
+        // "takes double damage" (Quantum Destabilizer — its permanent
+        // marker is kept; see the filter below) expire with the turn. The
+        // TurnCostReducer marker only counts while the card sits in hand.
+        let cant_attack_heroes: SmallList<Entity> = inner
+            .world
+            .iter_cant_attack_heroes_this_turn()
+            .map(|(e, _)| e)
+            .collect();
+        for &e in cant_attack_heroes.iter() {
+            inner.world.remove_cant_attack_heroes_this_turn(e);
+        }
+        let double_damage: SmallList<Entity> = inner
+            .world
+            .iter_double_damage_taken()
+            // Quantum Destabilizer's marker is PERMANENT (id-keyed carve-out
+            // like Tichondrius — its "takes double damage" trait never
+            // expires; the marker is applied at summon).
+            .filter(|(e, _)| inner.world.card_id(*e).is_some_and(|c| c.0 != "TIME_060"))
+            .map(|(e, _)| e)
+            .collect();
+        for &e in double_damage.iter() {
+            inner.world.remove_double_damage_taken(e);
+        }
+        let reducers: SmallList<Entity> = inner
+            .world
+            .iter_turn_cost_reducer()
+            .filter(|(e, _)| inner.world.zone(*e) != Some(Zone::Hand))
+            .map(|(e, _)| e)
+            .collect();
+        for &e in reducers.iter() {
+            inner.world.remove_turn_cost_reducer(e);
         }
         // Barbed Thorn's "Poisonous this turn" expires at the turn end (M1-W3)
         if p.hero_poisonous_this_turn {
