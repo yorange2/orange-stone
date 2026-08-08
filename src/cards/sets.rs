@@ -23,6 +23,7 @@ use super::core_w3c::*;
 use super::core_w3d::*;
 use super::core_w4a::*;
 use super::core_w4b::*;
+use super::core_w5::*;
 // ============================================================
 // Card lists
 // ============================================================
@@ -54,6 +55,9 @@ pub const DEMON_HUNTER_W1: &[CardDef] = &[
     CORE_SAVAGE_STRIKER,
     CORE_KRAGWA_THE_FROG,
     CORE_RIFTCLEAVER,
+    // Core Set W5 — demon hunter batch
+    CORE_KAYN_SUNFURY,
+    CORE_AUGMENTED_PORCUPINE,
 ];
 
 /// Core Set W1 — Death Knight class cards.
@@ -323,6 +327,28 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     CORE_MURLOC_TIDEHUNTER,
     CORE_INJURED_TOLVIR,
     CORE_ARCHWITCH_WILLOW,
+    // Core Set W5 — neutrals + tokens
+    CORE_CHILLMAW,
+    CORE_MOUNTAIN_BEAR,
+    CORE_LIGHTSHOWER_ELEMENTAL,
+    CORE_VIOLET_SPELLWING,
+    CORE_BLOODMAGE_THALNOS,
+    CORE_LOOT_HOARDER,
+    CORE_CAIRNE_BLOODHOOF,
+    CORE_TIRION_FORDRING,
+    CORE_SNEEDS_OLD_SHREDDER,
+    CORE_PLATED_BEETLE,
+    CORE_VIBRANT_SQUIRREL,
+    CORE_SAHKET_SAPPER,
+    CORE_FIENDISH_SERVANT,
+    CORE_RAID_LEADER,
+    CORE_STORMWIND_CHAMPION,
+    CORE_DIRE_WOLF_ALPHA,
+    CORE_MURLOC_WARLEADER,
+    CORE_SOUTHSEA_CAPTAIN,
+    CORE_MOUNTAIN_CUB,
+    CORE_WATER_ELEMENTAL,
+    CORE_TWILIGHT_ELEMENTAL,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -402,6 +428,8 @@ pub const DRUID_CLASSIC: &[CardDef] = &[
     // Core Set W4b — druid batch
     CORE_ASTROMANCER,
     CORE_MENAGERIE_MUG,
+    // Core Set W5 — Fandral Staghelm
+    CORE_FANDRAL_STAGHELM,
 ];
 
 pub const HUNTER_CLASSIC: &[CardDef] = &[
@@ -456,6 +484,11 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     // Core Set W4a — hunter batch
     CORE_JEWELED_MACAW,
     CORE_RAPTOR_HERALD,
+    // Core Set W5 — hunter secrets
+    CORE_EXPLOSIVE_TRAP,
+    CORE_FREEZING_TRAP,
+    CORE_RAT_TRAP,
+    CORE_PRESSURE_PLATE,
 ];
 
 pub const MAGE_CLASSIC: &[CardDef] = &[
@@ -505,6 +538,10 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     CORE_GLACIAL_SHARD,
     // Core Set W4b — Maze Guide
     CORE_MAZE_GUIDE,
+    // Core Set W5 — mage secrets
+    CORE_COUNTERSPELL,
+    CORE_ICE_BARRIER,
+    CORE_OASIS_ALLY,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -748,6 +785,8 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     CORE_TICHONDRIUS,
     CORE_DOOMGUARD,
     CORE_FLAME_IMP,
+    // Core Set W5 — Voidlord
+    CORE_VOIDLORD,
 ];
 
 pub const WARRIOR_CLASSIC: &[CardDef] = &[
@@ -1483,6 +1522,44 @@ pub const ALL_CARDS: &[CardDef] = &[
     CORE_DARK_PEDDLER,
     CORE_MENAGERIE_MUG,
     CORE_AVATAR_OF_HEARTHSTONE,
+    // Core Set W5 (2026-08-08) — 33 cards + 3 tokens.
+    CORE_CHILLMAW,
+    CORE_MOUNTAIN_BEAR,
+    CORE_LIGHTSHOWER_ELEMENTAL,
+    CORE_OASIS_ALLY,
+    CORE_KAYN_SUNFURY,
+    CORE_AUGMENTED_PORCUPINE,
+    CORE_RAID_LEADER,
+    CORE_STORMWIND_CHAMPION,
+    CORE_WAGGLE_PICK,
+    CORE_VIOLET_SPELLWING,
+    CORE_BLOODMAGE_THALNOS,
+    CORE_LOOT_HOARDER,
+    CORE_CAIRNE_BLOODHOOF,
+    CORE_DIRE_WOLF_ALPHA,
+    CORE_COUNTERSPELL,
+    CORE_ICE_BARRIER,
+    CORE_TIRION_FORDRING,
+    CORE_MURLOC_WARLEADER,
+    CORE_EXPLOSIVE_TRAP,
+    CORE_FREEZING_TRAP,
+    CORE_RAT_TRAP,
+    CORE_SNEEDS_OLD_SHREDDER,
+    CORE_VOIDLORD,
+    CORE_PLATED_BEETLE,
+    CORE_SOUTHSEA_CAPTAIN,
+    CORE_HAMMER_OF_TWILIGHT,
+    CORE_FANDRAL_STAGHELM,
+    CORE_FROSTMOURNE,
+    CORE_MOARG_FORGEFIEND,
+    CORE_VIBRANT_SQUIRREL,
+    CORE_PRESSURE_PLATE,
+    CORE_SAHKET_SAPPER,
+    CORE_FIENDISH_SERVANT,
+    CORE_MOUNTAIN_CUB,
+    CORE_WATER_ELEMENTAL,
+    CORE_TWILIGHT_ELEMENTAL,
+    CORE_DOOM_RAT,
 ];
 
 // ============================================================

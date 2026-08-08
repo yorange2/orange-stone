@@ -268,12 +268,19 @@ fn validate_attack(
         return Err(EngineError::InvalidTarget);
     }
 
-    // Taunt check: if the enemy board has taunt minions, a taunt must be attacked
+    // Taunt check: if the enemy board has taunt minions, a taunt must be
+    // attacked — unless a friendly Kayn Sunfury is on the board (Core Set
+    // W5: friendly attacks ignore Taunt)
     let enemy = active.opponent();
-    let has_taunt = world
+    let kayn_sunfury = world
         .zones()
-        .iter(Zone::Play, enemy)
-        .any(|e| world.taunt(e).is_some());
+        .iter(Zone::Play, active)
+        .any(|e| world.card_id(e).is_some_and(|c| c.0 == "CORE_BT_187"));
+    let has_taunt = !kayn_sunfury
+        && world
+            .zones()
+            .iter(Zone::Play, enemy)
+            .any(|e| world.taunt(e).is_some());
     if has_taunt {
         // defender must be a taunt minion
         if world.taunt(defender).is_none() {

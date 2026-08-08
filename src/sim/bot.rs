@@ -1400,6 +1400,15 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::BuffThreeDifferentRaces { attack, health } => (attack + health) as f64 * 0.8,
         CardEffect::AddFiveRandomCards => 8.0,
         CardEffect::DiscardTwoRandomCards => -2.0,
+        // Core Set W5
+        CardEffect::DamageAllMinionsIfHoldingDragon { damage } => damage as f64 * 1.2,
+        CardEffect::DamageAllEnemiesByAttack => 3.0,
+        CardEffect::ReturnRandomFriendlyAndReduceCost { .. } => 2.0,
+        CardEffect::GrantAttackToRandomFriendly => 2.0,
+        CardEffect::SummonRandomLegendaryMinion => 5.0,
+        CardEffect::ResurrectWeaponKilled => 4.0,
+        CardEffect::DestroyRandomEnemyMinion => 4.0,
+        CardEffect::SummonOasisWaterElemental => 4.0,
     }
 }
 

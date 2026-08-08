@@ -340,6 +340,8 @@ pub enum SecretTrigger {
     WhenFriendlyHeroDamaged,
     /// When the friendly hero takes fatal damage (Ice Block — the hit would kill)
     WhenFriendlyHeroFatallyDamaged,
+    /// After the opponent plays three cards in a turn (Rat Trap — Core Set W5)
+    AfterEnemyPlaysThreeCards,
 }
 
 /// Divine Shield — absorbs one instance of damage, then disappears.

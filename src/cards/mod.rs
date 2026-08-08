@@ -23,6 +23,7 @@ pub mod core_w3c;
 pub mod core_w3d;
 pub mod core_w4a;
 pub mod core_w4b;
+pub mod core_w5;
 pub mod def;
 pub mod generated;
 pub mod pool;
