@@ -1912,6 +1912,39 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_tlc_w2::SOLETOS_LIFES_BREATH,
     super::exp_tlc_w2::SOLETOS_DEATHS_TOUCH,
     super::exp_tlc_w2::SHOKK_JUNGLE_TYRANT,
+    // M2-W3 — the Un'Goro Kindred wave (src/cards/exp_tlc_w3.rs): the 23
+    // Kindred cards (TLC_102..TLC_903) shadow their generated baselines —
+    // same stat lines, plus the `cards/kindred.rs` mechanic hooked through
+    // the play path / cost pipeline / battlecry resolution. The collectible
+    // TLC_249 Sizzling Cinder is written here too (Slagclaw's summon
+    // token; it shadows its generated baseline).
+    super::exp_tlc_w3::TORGA,
+    super::exp_tlc_w3::STORMBREWER,
+    super::exp_tlc_w3::VOLCANIC_THRASHER,
+    super::exp_tlc_w3::CONJURED_BOOKKEEPER,
+    super::exp_tlc_w3::HYBRIDIZATION,
+    super::exp_tlc_w3::WHIRLING_STORMDRAGON,
+    super::exp_tlc_w3::SIZZLING_CINDER,
+    super::exp_tlc_w3::PRIMALFIN_CHALLENGER,
+    super::exp_tlc_w3::PTERRORWING_RAVAGER,
+    super::exp_tlc_w3::HOT_SPRING_GLIDER,
+    super::exp_tlc_w3::STEAMFIN_THIEF,
+    super::exp_tlc_w3::DREAD_RAPTOR,
+    super::exp_tlc_w3::CRYOSLEEP,
+    super::exp_tlc_w3::CAUSTIC_FUMES,
+    super::exp_tlc_w3::SCALEHIDE_KODO,
+    super::exp_tlc_w3::RAZIDIR,
+    super::exp_tlc_w3::SLAGCLAW,
+    super::exp_tlc_w3::AMBUSH_PREDATORS,
+    super::exp_tlc_w3::WINDPEAK_WYRM,
+    super::exp_tlc_w3::GRAVEDAWN_VOIDBULB,
+    super::exp_tlc_w3::GRAVEDAWN_SUNBLOOM,
+    super::exp_tlc_w3::RAVASAUR_MATRIARCH,
+    super::exp_tlc_w3::RAVENOUS_DEVILSAUR,
+    super::exp_tlc_w3::SILITHID_QUEEN,
+    // M2-W3 tokens (handwritten only — no generated baselines)
+    super::exp_tlc_w3::VENOMOUS_SPITTER,
+    super::exp_tlc_w3::JUVENILE_STEAMFIN,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated

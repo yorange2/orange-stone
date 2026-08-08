@@ -115,6 +115,24 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
         let played = state.player(player).cards_played_this_turn;
         cost = Cost((cost.0 - played as i32).max(0));
     }
+    // Kindred (M2-W3): TLC_366/600/816 cost less while the activation
+    // condition holds. Computed BEFORE the CardPlayed path pushes the
+    // card's own type, so the check counts earlier same-type cards only
+    // (>= 1 — the current card never discounts itself).
+    cost =
+        Cost((cost.0 - crate::cards::kindred::kindred_cost_discount(state, card, player)).max(0));
+    // Hot Spring Glider (M2-W3): "your next Murloc costs (1) less"
+    // (one-time, consumed by the next Murloc play — cleared on play at the
+    // CardPlayed path)
+    if state
+        .world()
+        .card_id(card)
+        .and_then(|cid| crate::cards::def::card_by_id(cid.0))
+        .is_some_and(|def| def.race == Some(crate::core::component::Race::Murloc))
+        && state.player(player).next_murloc_discount > 0
+    {
+        cost = Cost((cost.0 - state.player(player).next_murloc_discount).max(0));
+    }
     // Sea Giant (W11): costs (1) less for each minion on the battlefield
     // (both sides — the board-count rule composes here like Dread Corsair)
     if state

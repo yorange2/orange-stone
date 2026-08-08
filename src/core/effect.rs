@@ -2129,6 +2129,82 @@ pub enum CardEffect {
         /// Health increase
         health: i32,
     },
+    /// Give the source minion Rush (Stormbrewer's Kindred — 2025–2026
+    /// expansions M2-W3)
+    GainRush {
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Give the source minion Immune until the end of the turn (Whirling
+    /// Stormdrake's Kindred — M2-W3; the temporary immunity clears in the
+    /// turn-end wrap-up)
+    GainImmuneThisTurn {
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// The player's next Murloc costs `amount` less (Hot Spring Glider's
+    /// battlecry — M2-W3; one-time, applied by the cost pipeline and
+    /// consumed by the next Murloc play, no turn-end clear)
+    NextMurlocCostsLess {
+        /// Discount amount
+        amount: i32,
+    },
+    /// The player's next Murloc gains Divine Shield (Hot Spring Glider's
+    /// Kindred — M2-W3; consumed together with `NextMurlocCostsLess` by
+    /// the next Murloc play)
+    GiveNextMurlocDivineShield,
+    /// The player's next Kindred triggers twice (Primalfin Challenger's
+    /// battlecry — M2-W3; consumed by the next OnPlay Kindred resolution)
+    SetNextKindredTwice,
+    /// Draw the first Kindred card from the deck, then the first remaining
+    /// card of the same Kindred type (Torga's battlecry — M2-W3; an empty
+    /// match draws nothing)
+    DrawKindredAndActivator,
+    /// Draw a Fire spell (Volcanic Thrasher's battlecry — M2-W3); when
+    /// the Kindred condition holds, the drawn spell gains Spell Damage +2
+    DrawSpellGiveSpellDamage {
+        /// Spell Damage granted by the Kindred half
+        amount: i32,
+    },
+    /// Draw a minion of each cost from 1 to `up_to` (Hybridization's
+    /// battlecry — M2-W3); when the Kindred condition holds, each drawn
+    /// card costs (1) less
+    DrawMinionsOfEachCost {
+        /// Highest cost drawn (draws one of each cost 1..=up_to)
+        up_to: i32,
+    },
+    /// Draw a Deathrattle minion costing at most `max_cost` (Dread
+    /// Raptor's battlecry — M2-W3); when the Kindred condition holds, the
+    /// drawn card costs (0)
+    DrawDeathrattleMinionCostLE {
+        /// Maximum cost of the drawn minion
+        max_cost: i32,
+    },
+    /// Destroy the enemy minion with the lowest Attack (Scalehide Kodo's
+    /// battlecry — M2-W3; the Kindred half switches it to the highest)
+    DestroyLowestAttackEnemy,
+    /// Trigger the Deathrattles of all friendly Sizzling Cinders
+    /// (Slagclaw's Kindred add-on — M2-W3)
+    TriggerFriendlyCinderDeathrattles,
+    /// Destroy a minion and give the source its stats (Ravenous
+    /// Devilsaur's Kindred — M2-W3; the stats are read before the destroy)
+    DestroyMinionAndGainItsStats {
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Deal damage equal to the source's Attack to the target (Ravasaur
+    /// Matriarch's Kindred — M2-W3)
+    DealSelfAttackDamage {
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Summon a random minion of the given cost and give it Taunt
+    /// (Gravedawn Voidbulb — M2-W3; the random pool follows the D2
+    /// simplification — a filtered ALL_CARDS window, token-excluded, §16)
+    SummonRandomMinionCostTaunt {
+        /// Cost of the summoned minion
+        cost: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -3068,6 +3144,38 @@ enum CardEffectDe {
     BuffAllHandMinions {
         attack: i32,
         health: i32,
+    },
+    GainRush {
+        target: EffectTarget,
+    },
+    GainImmuneThisTurn {
+        target: EffectTarget,
+    },
+    NextMurlocCostsLess {
+        amount: i32,
+    },
+    GiveNextMurlocDivineShield,
+    SetNextKindredTwice,
+    DrawKindredAndActivator,
+    DrawSpellGiveSpellDamage {
+        amount: i32,
+    },
+    DrawMinionsOfEachCost {
+        up_to: i32,
+    },
+    DrawDeathrattleMinionCostLE {
+        max_cost: i32,
+    },
+    DestroyLowestAttackEnemy,
+    TriggerFriendlyCinderDeathrattles,
+    DestroyMinionAndGainItsStats {
+        target: EffectTarget,
+    },
+    DealSelfAttackDamage {
+        target: EffectTarget,
+    },
+    SummonRandomMinionCostTaunt {
+        cost: i32,
     },
 }
 
@@ -4068,6 +4176,38 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::BuffAllHandMinions { attack, health } => {
                 CardEffect::BuffAllHandMinions { attack, health }
             }
+            CardEffectDe::GainRush { target } => CardEffect::GainRush { target },
+            CardEffectDe::GainImmuneThisTurn { target } => {
+                CardEffect::GainImmuneThisTurn { target }
+            }
+            CardEffectDe::NextMurlocCostsLess { amount } => {
+                CardEffect::NextMurlocCostsLess { amount }
+            }
+            CardEffectDe::GiveNextMurlocDivineShield => CardEffect::GiveNextMurlocDivineShield,
+            CardEffectDe::SetNextKindredTwice => CardEffect::SetNextKindredTwice,
+            CardEffectDe::DrawKindredAndActivator => CardEffect::DrawKindredAndActivator,
+            CardEffectDe::DrawSpellGiveSpellDamage { amount } => {
+                CardEffect::DrawSpellGiveSpellDamage { amount }
+            }
+            CardEffectDe::DrawMinionsOfEachCost { up_to } => {
+                CardEffect::DrawMinionsOfEachCost { up_to }
+            }
+            CardEffectDe::DrawDeathrattleMinionCostLE { max_cost } => {
+                CardEffect::DrawDeathrattleMinionCostLE { max_cost }
+            }
+            CardEffectDe::DestroyLowestAttackEnemy => CardEffect::DestroyLowestAttackEnemy,
+            CardEffectDe::TriggerFriendlyCinderDeathrattles => {
+                CardEffect::TriggerFriendlyCinderDeathrattles
+            }
+            CardEffectDe::DestroyMinionAndGainItsStats { target } => {
+                CardEffect::DestroyMinionAndGainItsStats { target }
+            }
+            CardEffectDe::DealSelfAttackDamage { target } => {
+                CardEffect::DealSelfAttackDamage { target }
+            }
+            CardEffectDe::SummonRandomMinionCostTaunt { cost } => {
+                CardEffect::SummonRandomMinionCostTaunt { cost }
+            }
         })
     }
 }
@@ -4314,6 +4454,28 @@ mod tests {
             CardEffect::CardsCostOneThisGame,
             CardEffect::SetMurlocSummonBuff,
             CardEffect::SetDealExact2Bonus,
+            CardEffect::GainRush {
+                target: EffectTarget::Self_,
+            },
+            CardEffect::GainImmuneThisTurn {
+                target: EffectTarget::Self_,
+            },
+            CardEffect::NextMurlocCostsLess { amount: 1 },
+            CardEffect::GiveNextMurlocDivineShield,
+            CardEffect::SetNextKindredTwice,
+            CardEffect::DrawKindredAndActivator,
+            CardEffect::DrawSpellGiveSpellDamage { amount: 2 },
+            CardEffect::DrawMinionsOfEachCost { up_to: 4 },
+            CardEffect::DrawDeathrattleMinionCostLE { max_cost: 3 },
+            CardEffect::DestroyLowestAttackEnemy,
+            CardEffect::TriggerFriendlyCinderDeathrattles,
+            CardEffect::DestroyMinionAndGainItsStats {
+                target: EffectTarget::AnyMinion,
+            },
+            CardEffect::DealSelfAttackDamage {
+                target: EffectTarget::AnyEnemyMinion,
+            },
+            CardEffect::SummonRandomMinionCostTaunt { cost: 4 },
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");

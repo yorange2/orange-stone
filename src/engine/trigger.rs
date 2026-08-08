@@ -5822,6 +5822,282 @@ pub fn resolve_effect(
                 );
             }
         }
+        // ============================================================
+        // 2025–2026 expansions M2-W3 — the Un'Goro Kindred wave (the
+        // activation checks below run inside the arms: the played-type
+        // push happened at the CardPlayed path, so `kindred_active(..., 2)`
+        // counts the card itself plus an earlier same-type card).
+        // ============================================================
+        CardEffect::GainRush { target: _ } => {
+            // Stormbrewer's Kindred (M2-W3) — give the source Rush
+            let candidates: SmallList<Entity> = [source].into_iter().collect();
+            if let Some(t) = select_target(explicit_target, &candidates, state.rng_mut()) {
+                state.world_mut().set_rush(t, Rush);
+            }
+        }
+        CardEffect::GainImmuneThisTurn { target: _ } => {
+            // Whirling Stormdrake's Kindred (M2-W3) — Immune until the end
+            // of the turn (the temporary immunity clears in the turn-end
+            // wrap-up)
+            let candidates: SmallList<Entity> = [source].into_iter().collect();
+            if let Some(t) = select_target(explicit_target, &candidates, state.rng_mut()) {
+                state.world_mut().set_immune(t, Immune);
+            }
+        }
+        CardEffect::NextMurlocCostsLess { amount } => {
+            // Hot Spring Glider's battlecry (M2-W3) — "your next Murloc
+            // costs (1) less" (one-time, consumed by the next Murloc play)
+            state.make_mut().players[owner.index()].next_murloc_discount = amount;
+        }
+        CardEffect::GiveNextMurlocDivineShield => {
+            // Hot Spring Glider's Kindred (M2-W3) — "your next Murloc
+            // gains Divine Shield" (consumed by the next Murloc play)
+            state.make_mut().players[owner.index()].next_murloc_divine_shield = true;
+        }
+        CardEffect::SetNextKindredTwice => {
+            // Primalfin Challenger's battlecry (M2-W3) — "your next
+            // Kindred triggers twice" (consumed by the next OnPlay Kindred
+            // resolution, which resolves its effect twice)
+            state.make_mut().players[owner.index()].next_kindred_twice = true;
+        }
+        CardEffect::DrawKindredAndActivator => {
+            // Torga's battlecry (M2-W3): draw the first Kindred-registry
+            // card from the deck, then the first remaining card of the
+            // same kindred type ("another card that activates it"). The
+            // scans are top-down over the actual deck; an empty match
+            // draws nothing (the deck-scan draw pattern — no fatigue for
+            // scans).
+            let deck: SmallList<Entity> = state.world().zones().iter(Zone::Deck, owner).collect();
+            let Some(kindred_idx) = deck.iter().position(|&e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .is_some_and(|cid| crate::cards::kindred::kindred_type(cid.0).is_some())
+            }) else {
+                return;
+            };
+            let kindred_card = deck[kindred_idx];
+            let kindred_type = state
+                .world()
+                .card_id(kindred_card)
+                .and_then(|cid| crate::cards::kindred::kindred_type(cid.0));
+            let _ = state.world_mut().move_to_zone(kindred_card, Zone::Hand);
+            queue.push(Event::CardDrawn {
+                player: owner,
+                card: kindred_card,
+            });
+            let Some(kindred_type) = kindred_type else {
+                return;
+            };
+            for e in deck.iter().skip(kindred_idx + 1) {
+                let Some(def) = state
+                    .world()
+                    .card_id(*e)
+                    .and_then(|cid| crate::cards::def::card_by_id(cid.0))
+                else {
+                    continue;
+                };
+                if crate::cards::kindred::played_type_of(def) == Some(kindred_type) {
+                    let _ = state.world_mut().move_to_zone(*e, Zone::Hand);
+                    queue.push(Event::CardDrawn {
+                        player: owner,
+                        card: *e,
+                    });
+                    return;
+                }
+            }
+        }
+        CardEffect::DrawSpellGiveSpellDamage { amount } => {
+            // Volcanic Thrasher's battlecry (M2-W3): draw a Fire spell;
+            // the Kindred half gives it Spell Damage +2 (the spell-school
+            // filter uses the W1 registry — the Fire school; the drawn
+            // spell's SpellDamage boosts its own damage when cast, the
+            // real "Give it Spell Damage" behavior).
+            let fire_spell: Option<Entity> =
+                state.world().zones().iter(Zone::Deck, owner).find(|&e| {
+                    state.world().card_id(e).is_some_and(|cid| {
+                        crate::cards::quest::spell_school(cid.0)
+                            == Some(crate::cards::quest::SpellSchool::Fire)
+                    })
+                });
+            let Some(drawn) = fire_spell else {
+                return;
+            };
+            let _ = state.world_mut().move_to_zone(drawn, Zone::Hand);
+            queue.push(Event::CardDrawn {
+                player: owner,
+                card: drawn,
+            });
+            if crate::cards::kindred::kindred_active(
+                state,
+                owner,
+                crate::cards::kindred::KindredType::Minion(crate::core::component::Race::Elemental),
+                2,
+            ) {
+                let cur = state.world().spell_damage(drawn).map_or(0, |s| s.0);
+                state
+                    .world_mut()
+                    .set_spell_damage(drawn, crate::core::component::SpellDamage(cur + amount));
+            }
+        }
+        CardEffect::DrawMinionsOfEachCost { up_to } => {
+            // Hybridization's battlecry (M2-W3): draw a minion of each
+            // cost from 1 to `up_to` (the exact-cost scan; a missing cost
+            // draws nothing for that slot). The Kindred half makes each
+            // drawn card cost (1) less.
+            let mut drawn: SmallList<Entity> = SmallList::new();
+            for target_cost in 1..=up_to {
+                let Some(e) = state.world().zones().iter(Zone::Deck, owner).find(|&e| {
+                    state.world().card_type(e) == Some(CardType::Minion)
+                        && state.world().effective_cost(e).map_or(0, |c| c.0) == target_cost
+                }) else {
+                    continue;
+                };
+                let _ = state.world_mut().move_to_zone(e, Zone::Hand);
+                queue.push(Event::CardDrawn {
+                    player: owner,
+                    card: e,
+                });
+                drawn.push(e);
+            }
+            if crate::cards::kindred::kindred_active(
+                state,
+                owner,
+                crate::cards::kindred::KindredType::Spell,
+                2,
+            ) {
+                for e in drawn {
+                    let cur = state.world().effective_cost(e).map_or(0, |c| c.0);
+                    state.world_mut().set_cost(e, Cost((cur - 1).max(0)));
+                }
+            }
+        }
+        CardEffect::DrawDeathrattleMinionCostLE { max_cost } => {
+            // Dread Raptor's battlecry (M2-W3): draw a Deathrattle minion
+            // costing at most `max_cost`; the Kindred half makes it cost
+            // (0).
+            let Some(e) = state.world().zones().iter(Zone::Deck, owner).find(|&e| {
+                state.world().card_type(e) == Some(CardType::Minion)
+                    && state.world().deathrattle(e).is_some()
+                    && state.world().effective_cost(e).map_or(0, |c| c.0) <= max_cost
+            }) else {
+                return;
+            };
+            let _ = state.world_mut().move_to_zone(e, Zone::Hand);
+            queue.push(Event::CardDrawn {
+                player: owner,
+                card: e,
+            });
+            if crate::cards::kindred::kindred_active(
+                state,
+                owner,
+                crate::cards::kindred::KindredType::Minion(crate::core::component::Race::Undead),
+                2,
+            ) {
+                state.world_mut().set_cost(e, Cost(0));
+            }
+        }
+        CardEffect::DestroyLowestAttackEnemy => {
+            // Scalehide Kodo's battlecry (M2-W3) — destroy the
+            // lowest-Attack enemy minion (the DestroyHighestAttackEnemy
+            // pattern; ties break toward the first — the stable sort).
+            let mut enemies: SmallList<Entity> = collect_enemy_minions(state, owner, None);
+            if enemies.is_empty() {
+                return;
+            }
+            enemies.sort_by_key(|&e| state.world().effective_attack(e).unwrap_or(Attack(0)).0);
+            let target = enemies[0];
+            let hp = state.world().effective_health(target).map_or(0, |h| h.0);
+            queue.push(Event::DamageDealt {
+                source,
+                target,
+                amount: hp.max(1),
+            });
+        }
+        CardEffect::TriggerFriendlyCinderDeathrattles => {
+            // Slagclaw's Kindred add-on (M2-W3): trigger the Deathrattles
+            // of all friendly Sizzling Cinders (the two his battlecry
+            // summoned — the deathrattle pattern from rules.rs, the
+            // deathrattle component resolves per Cinder).
+            let cinders: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_249"))
+                .collect();
+            for cinder in cinders {
+                if let (Some(dr), Some(cinder_owner)) = (
+                    state.world().deathrattle(cinder),
+                    state.world().player(cinder),
+                ) {
+                    resolve_effect(state, queue, cinder, cinder_owner, dr.0, None, None);
+                }
+            }
+        }
+        CardEffect::DestroyMinionAndGainItsStats { target } => {
+            // Ravenous Devilsaur's Kindred (M2-W3): destroy a minion and
+            // give the source its stats (the stats are read BEFORE the
+            // destroy — the target's deathrattles still fire through the
+            // destroy machinery).
+            let enemies: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .chain(state.world().zones().iter(Zone::Play, owner.opponent()))
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            let Some(selected) = select_target(explicit_target, &enemies, state.rng_mut()) else {
+                return;
+            };
+            let atk = state
+                .world()
+                .effective_attack(selected)
+                .unwrap_or(Attack(0))
+                .0;
+            let hp = state
+                .world()
+                .effective_health(selected)
+                .unwrap_or(Health(0))
+                .0;
+            resolve_destroy_minion(state, queue, owner, source, target, Some(selected));
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack: atk,
+                    health: hp,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::DealSelfAttackDamage { target } => {
+            // Ravasaur Matriarch's Kindred (M2-W3): deal damage equal to
+            // the source's Attack to the target
+            let atk = state
+                .world()
+                .effective_attack(source)
+                .unwrap_or(Attack(0))
+                .0;
+            resolve_deal_damage(state, queue, source, owner, atk, target, explicit_target);
+        }
+        CardEffect::SummonRandomMinionCostTaunt { cost } => {
+            // Gravedawn Voidbulb (M2-W3): summon a random minion of the
+            // given cost and give it Taunt. The random pool follows the D2
+            // simplification — ALL_CARDS minions of that cost, token
+            // excluded (the BuffAndSummonRandomCost2 convention, §16).
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion && c.cost == cost && !c.id.ends_with('t')
+                    })
+                    .collect();
+            if let Some(&pick) = pool.get(state.rng_mut().next_usize(pool.len())) {
+                if let Some(e) = resolve_summon(state, queue, source, owner, pick.id) {
+                    state.world_mut().set_taunt(e, Taunt);
+                }
+            }
+        }
     }
 }
 
@@ -7497,6 +7773,13 @@ fn resolve_destroy_minion(
         // friendly minion (the explicit play target, or a random one)
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner, Some(source)),
+        // A minion on either side (Ravenous Devilsaur — "destroy a minion";
+        // the friendly side is legal too, mirroring resolve_silence's scope)
+        EffectTarget::AnyMinion => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all
+        }
         EffectTarget::AnyRace(race) => {
             // Any minion of the race on either side (Hungry Crab — destroy a Murloc)
             let mut all = collect_friendly_minions(state, owner);

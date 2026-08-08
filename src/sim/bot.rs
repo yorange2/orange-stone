@@ -1707,6 +1707,24 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::BuffAllHandMinions { attack, health } => (attack + health) as f64 * 0.8 + 1.0,
         CardEffect::SetMurlocSummonBuff => 4.0,
         CardEffect::SetDealExact2Bonus => 4.0,
+        // M2-W3 — the Un'Goro Kindred wave (src/cards/exp_tlc_w3.rs): the
+        // OnPlay / drawn-card Kindred effects score like their base
+        // equivalents (the bot has no lookahead for activation conditions,
+        // so these arms approximate the value as if active).
+        CardEffect::GainRush { .. } => 2.0,
+        CardEffect::GainImmuneThisTurn { .. } => 3.0,
+        CardEffect::NextMurlocCostsLess { amount } => (amount as f64).min(2.0) * 1.0,
+        CardEffect::GiveNextMurlocDivineShield => 3.0,
+        CardEffect::SetNextKindredTwice => 3.0,
+        CardEffect::DrawKindredAndActivator => 4.0,
+        CardEffect::DrawSpellGiveSpellDamage { amount } => 2.0 + amount as f64 * 1.5,
+        CardEffect::DrawMinionsOfEachCost { up_to } => 1.0 + up_to as f64 * 1.5,
+        CardEffect::DrawDeathrattleMinionCostLE { .. } => 3.0,
+        CardEffect::DestroyLowestAttackEnemy => 4.0,
+        CardEffect::TriggerFriendlyCinderDeathrattles => 4.0,
+        CardEffect::DestroyMinionAndGainItsStats { .. } => 6.0,
+        CardEffect::DealSelfAttackDamage { .. } => 4.0,
+        CardEffect::SummonRandomMinionCostTaunt { cost } => 1.0 + cost as f64 * 1.2,
     }
 }
 

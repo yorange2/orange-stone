@@ -23959,3 +23959,925 @@ fn tlc_w2_one_quest_per_player_real_cards() {
     assert_eq!(q.progress, 0, "the new quest starts fresh");
     assert!(q.markers.is_empty());
 }
+
+// ============================================================
+// M2-W3 — the Un'Goro Kindred wave (2025–2026 expansions): the
+// Kindred mechanic ("if you played a card of the same type earlier
+// this turn" — tribe for minions, SPELL for spells; the card itself
+// never counts) on the 23 Kindred cards. The played-type push
+// happens at the CardPlayed path BEFORE the OnPlay/battlecry checks
+// (>= 2 — the card plus an earlier same-type card) and AFTER the
+// cost pipeline (>= 1 — earlier same-type cards only).
+// ============================================================
+
+/// TLC_W3-1 — Kindred requires a same-type card earlier this turn: a
+/// Beast played before Steamfin Thief does NOT activate it, and with no
+/// earlier Murloc the thief summons nothing; a Murloc first, then the
+/// thief, summons two Juvenile Steamfins with Rush.
+#[test]
+fn tlc_w3_kindred_requires_same_type_earlier_this_turn() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, STEAMFIN_THIEF};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &STEAMFIN_THIEF);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // A Beast first — the Murloc thief's Kindred stays inactive.
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    let minions = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(minions, 2, "a Beast does not activate the Murloc Kindred");
+    // A Murloc first activates it: two Juvenile Steamfins land.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &orange_stone::cards::def::BLUEGILL_WARRIOR)
+        .add_minion_to_hand(p1, &STEAMFIN_THIEF);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    let minions = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(minions, 4, "the thief + Bluegill + two steamfins");
+    let steamfin = find_entity(&state, p1, "TLC_429t");
+    assert!(
+        state.world().rush(steamfin).is_some(),
+        "Juvenile Steamfin has Rush"
+    );
+}
+
+/// TLC_W3-2 — spell Kindred fires after any spell: Gravedawn Sunbloom
+/// first (draw 2), then Cryosleep deals 4 to an enemy and draws TWO
+/// cards (base + the Kindred extra).
+#[test]
+fn tlc_w3_spell_kindred_fires_after_any_spell() {
+    use orange_stone::cards::def::{CRYOSLEEP, GRAVEDAWN_SUNBLOOM, WISP};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let victim = builder.add_custom_minion_to_board(PlayerId2(), 10, 10, 10);
+    builder.set_mana(p1, 10, 10);
+    for _ in 0..5 {
+        builder.add_minion_to_deck(p1, &WISP);
+    }
+    builder.add_minion_to_hand(p1, &GRAVEDAWN_SUNBLOOM);
+    builder.add_minion_to_hand(p1, &CRYOSLEEP);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Sunbloom — a spell
+    let cryo = find_in_hand(&state, p1, "TLC_440");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: cryo,
+                target: Some(victim),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(victim),
+        Some(Health(6)),
+        "Cryosleep deals 4 to the explicit target"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        4,
+        "Sunbloom's two draws + Cryosleep's base and Kindred draws"
+    );
+}
+
+/// TLC_W3-3 — cost-time Kindred discounts (>= 1, before the push):
+/// TLC_366 Pterrorwing Ravager (Beast, -2), TLC_600 Windpeak Wyrm
+/// (Dragon, -3), TLC_816 Gravedawn Sunbloom (Spell, -2) — all inactive
+/// without an earlier same-type card.
+#[test]
+fn tlc_w3_cost_discount_kindred() {
+    use orange_stone::cards::def::{
+        AMBUSH_PREDATORS, BLOODFEN_RAPTOR, EVASIVE_WYRM, GRAVEDAWN_SUNBLOOM, PTERRORWING_RAVAGER,
+        WINDPEAK_WYRM,
+    };
+    let p1 = PlayerId1();
+    // Base: no discount without an earlier same-type card.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 12, 12)
+        .add_minion_to_hand(p1, &PTERRORWING_RAVAGER)
+        .add_minion_to_hand(p1, &WINDPEAK_WYRM)
+        .add_minion_to_hand(p1, &GRAVEDAWN_SUNBLOOM);
+    let state = builder.build();
+    let ravager = find_in_hand(&state, p1, "TLC_366");
+    let wyrm = find_in_hand(&state, p1, "TLC_600");
+    let sunbloom = find_in_hand(&state, p1, "TLC_816");
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, ravager, p1),
+        Cost(6),
+        "no Beast played yet"
+    );
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, wyrm, p1),
+        Cost(8),
+        "no Dragon played yet"
+    );
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, sunbloom, p1),
+        Cost(4),
+        "no spell played yet"
+    );
+    // Active: an earlier Beast, Dragon, and Spell each unlock the discount.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 12, 12)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &EVASIVE_WYRM)
+        .add_minion_to_hand(p1, &AMBUSH_PREDATORS)
+        .add_minion_to_hand(p1, &PTERRORWING_RAVAGER)
+        .add_minion_to_hand(p1, &WINDPEAK_WYRM)
+        .add_minion_to_hand(p1, &GRAVEDAWN_SUNBLOOM);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Raptor
+    play_front_card(&mut state, &engine, p1); // Evasive Wyrm
+    play_front_card(&mut state, &engine, p1); // Ambush Predators
+    let ravager = find_in_hand(&state, p1, "TLC_366");
+    let wyrm = find_in_hand(&state, p1, "TLC_600");
+    let sunbloom = find_in_hand(&state, p1, "TLC_816");
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, ravager, p1),
+        Cost(4),
+        "Beast Kindred: costs (2) less"
+    );
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, wyrm, p1),
+        Cost(5),
+        "Dragon Kindred: costs (3) less"
+    );
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, sunbloom, p1),
+        Cost(2),
+        "Spell Kindred: costs (2) less"
+    );
+}
+
+/// TLC_W3-4 — Primalfin Challenger's "your next Kindred triggers twice":
+/// the challenger (Murloc) first, then Steamfin Thief (Murloc) summons
+/// FOUR Juvenile Steamfins instead of two.
+#[test]
+fn tlc_w3_next_kindred_triggers_twice() {
+    use orange_stone::cards::def::{PRIMALFIN_CHALLENGER, STEAMFIN_THIEF};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &PRIMALFIN_CHALLENGER)
+        .add_minion_to_hand(p1, &STEAMFIN_THIEF);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    let minions = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(minions, 6, "challenger + thief + four steamfins");
+}
+
+/// TLC_W3-5 — Stormbrewer's Kindred grants Rush; its attack hook deals
+/// 3 damage to the target BEFORE the attack damage (the Lake Thresher
+/// precedent — the strike enqueues ahead of the attack damage).
+#[test]
+fn tlc_w3_stormbrewer_gains_rush() {
+    use orange_stone::cards::def::{SIZZLING_CINDER, STORMBREWER};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 10, 10, 10);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SIZZLING_CINDER)
+        .add_minion_to_hand(p1, &STORMBREWER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Cinder (Elemental)
+    play_front_card(&mut state, &engine, p1); // Stormbrewer
+    let brewer = find_entity(&state, p1, "TLC_107");
+    assert!(state.world().rush(brewer).is_some(), "Kindred grants Rush");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: brewer,
+                defender: enemy,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy),
+        Some(Health(4)),
+        "3 damage first, then the attack's 3"
+    );
+}
+
+/// TLC_W3-6 — Whirling Stormdrake's Kindred grants Immune this turn
+/// (cleared at the turn end); the Windfury keyword is on the card.
+#[test]
+fn tlc_w3_stormdrake_immune_this_turn() {
+    use orange_stone::cards::def::{SIZZLING_CINDER, WHIRLING_STORMDRAGON};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 12, 12)
+        .add_minion_to_hand(p1, &SIZZLING_CINDER)
+        .add_minion_to_hand(p1, &WHIRLING_STORMDRAGON);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Cinder (Elemental)
+    play_front_card(&mut state, &engine, p1); // Stormdrake
+    let drake = find_entity(&state, p1, "TLC_243");
+    assert!(
+        state.world().windfury(drake).is_some(),
+        "Windfury is the card keyword"
+    );
+    assert!(
+        state.world().immune(drake).is_some(),
+        "Kindred grants Immune"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert!(
+        state.world().immune(drake).is_none(),
+        "Immune lasts until the end of the turn"
+    );
+}
+
+/// TLC_W3-7 — Torga draws the first Kindred-registry card from the deck,
+/// then the first remaining card of the same Kindred type (a Murloc
+/// Kindred card is followed by the next Murloc in the deck; the Elemental
+/// card stays).
+#[test]
+fn tlc_w3_torga_draws_kindred_and_activator() {
+    use orange_stone::cards::def::{
+        BLOODFEN_RAPTOR, HOT_SPRING_GLIDER, PRIMALFIN_CHALLENGER, STORMBREWER, TORGA,
+    };
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR) // top — not a Kindred card
+        .add_minion_to_deck(p1, &PRIMALFIN_CHALLENGER) // first Kindred card (Murloc)
+        .add_minion_to_deck(p1, &HOT_SPRING_GLIDER) // matches: Murloc
+        .add_minion_to_deck(p1, &STORMBREWER) // Elemental — does not match
+        .add_minion_to_hand(p1, &TORGA);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let challenger = find_in_hand(&state, p1, "TLC_251");
+    let glider = find_in_hand(&state, p1, "TLC_428");
+    assert!(
+        state.world().zone(challenger) == Some(Zone::Hand),
+        "the first Kindred card is drawn"
+    );
+    assert!(
+        state.world().zone(glider) == Some(Zone::Hand),
+        "the first matching card is drawn"
+    );
+    assert_eq!(
+        state.world().zones().iter(Zone::Deck, p1).count(),
+        2,
+        "the Beast and the Elemental stay in the deck"
+    );
+    assert!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Deck, p1)
+            .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_107")),
+        "the Elemental Kindred card stays in the deck (does not match the Murloc)"
+    );
+}
+
+/// TLC_W3-8 — Scalehide Kodo's battlecry destroys the lowest-Attack
+/// enemy minion; the Kindred modifier REPLACES it with the highest.
+#[test]
+fn tlc_w3_kodo_high_attack_replaces_lowest() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, SCALEHIDE_KODO};
+    let p1 = PlayerId1();
+    // Base: destroys the lowest (2/2).
+    let mut builder = GameBuilder::new();
+    let small = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    let big = builder.add_custom_minion_to_board(PlayerId2(), 6, 6, 6);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SCALEHIDE_KODO);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zone(small),
+        Some(Zone::Graveyard),
+        "the 2/2 goes"
+    );
+    assert_eq!(state.world().zone(big), Some(Zone::Play), "the 6/6 stays");
+    // Kindred: the modifier replaces the battlecry — the highest goes.
+    let mut builder = GameBuilder::new();
+    let small = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    let big = builder.add_custom_minion_to_board(PlayerId2(), 6, 6, 6);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &SCALEHIDE_KODO);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Beast — activates the Kindred
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().zone(small), Some(Zone::Play), "the 2/2 stays");
+    assert_eq!(
+        state.world().zone(big),
+        Some(Zone::Graveyard),
+        "the 6/6 goes"
+    );
+}
+
+/// TLC_W3-9 — Razidir's battlecry discards a random card from the OWN
+/// hand; the Kindred modifier REPLACES it with a discard from the
+/// OPPONENT's hand.
+#[test]
+fn tlc_w3_razidir_opponent_hand_discard() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, RAZIDIR, VOIDWALKER, WORGEN_INFILTRATOR};
+    let p1 = PlayerId1();
+    // Base: own-hand discard (two cards left in hand after the play, the
+    // battlecry discards one of them).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &RAZIDIR)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // filler (becomes discard fodder)
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        2,
+        "two cards left after the play"
+    );
+    play_front_card(&mut state, &engine, p1); // Razidir — the own-hand discard
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        0,
+        "the battlecry discarded the remaining hand card"
+    );
+    assert_eq!(
+        state.world().zones().iter(Zone::Graveyard, p1).count(),
+        1,
+        "exactly one card went to the graveyard"
+    );
+    // Kindred (a Demon was played earlier): the opponent's hand is hit.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &VOIDWALKER) // Demon — activates the Kindred
+        .add_minion_to_hand(p1, &RAZIDIR)
+        .add_minion_to_hand(PlayerId2(), &WORGEN_INFILTRATOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId2()),
+        0,
+        "the Kindred discard hit the opponent's hand"
+    );
+}
+
+/// TLC_W3-10 — Slagclaw's battlecry summons two Sizzling Cinders; the
+/// Kindred add-on triggers their Deathrattles (2 random pings each —
+/// asserted on the total enemy health pool: hero + minion lose exactly 4).
+#[test]
+fn tlc_w3_slagclaw_triggers_cinder_deathrattles() {
+    use orange_stone::cards::def::{SIZZLING_CINDER, SLAGCLAW};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 10, 10, 10);
+    builder.hero_health(PlayerId2(), 30);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SIZZLING_CINDER)
+        .add_minion_to_hand(p1, &SLAGCLAW);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Cinder (Elemental)
+    play_front_card(&mut state, &engine, p1); // Slagclaw
+    let minions = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(minions, 4, "Slagclaw + the played Cinder + two summoned");
+    let hero = state.player(PlayerId2()).hero;
+    let hero_hp = state.world().effective_health(hero).unwrap().0;
+    let enemy_hp = state.world().effective_health(enemy).unwrap().0;
+    assert_eq!(
+        hero_hp + enemy_hp,
+        34,
+        "three Cinder Deathrattles x 2 damage (split) across the enemy side"
+    );
+}
+
+/// TLC_W3-11 — Ravenous Devilsaur's Kindred REPLACES the destroy battlecry
+/// with "destroy a minion and gain its stats" (the stats are read before
+/// the destroy).
+#[test]
+fn tlc_w3_devilsaur_gains_destroyed_stats() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, RAVENOUS_DEVILSAUR};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let prey = builder.add_custom_minion_to_board(PlayerId2(), 7, 7, 7);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &RAVENOUS_DEVILSAUR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Beast — activates the Kindred
+    let devilsaur = find_in_hand(&state, p1, "TLC_829");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: devilsaur,
+                target: Some(prey),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(prey),
+        Some(Zone::Graveyard),
+        "the prey dies"
+    );
+    let devilsaur = find_entity(&state, p1, "TLC_829");
+    assert_eq!(
+        state.world().effective_attack(devilsaur),
+        Some(Attack(10)),
+        "3 + the prey's 7"
+    );
+    assert_eq!(
+        state.world().effective_health(devilsaur),
+        Some(Health(10)),
+        "3 + the prey's 7"
+    );
+}
+
+/// TLC_W3-12 — Cryosleep without Kindred draws one card; the Kindred
+/// (an earlier spell) draws another.
+#[test]
+fn tlc_w3_cryosleep_draws_another() {
+    use orange_stone::cards::def::{CRYOSLEEP, GRAVEDAWN_SUNBLOOM, WISP};
+    let p1 = PlayerId1();
+    // Base: one draw.
+    let mut builder = GameBuilder::new();
+    let victim = builder.add_custom_minion_to_board(PlayerId2(), 10, 10, 10);
+    builder.set_mana(p1, 10, 10);
+    for _ in 0..4 {
+        builder.add_minion_to_deck(p1, &WISP);
+    }
+    builder.add_minion_to_hand(p1, &CRYOSLEEP);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let cryo = find_in_hand(&state, p1, "TLC_440");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: cryo,
+                target: Some(victim),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zones().len(Zone::Hand, p1), 1, "base draw");
+    assert_eq!(
+        state.world().effective_health(victim),
+        Some(Health(6)),
+        "4 damage"
+    );
+    // Kindred: an earlier spell adds a second draw.
+    let mut builder = GameBuilder::new();
+    let victim = builder.add_custom_minion_to_board(PlayerId2(), 10, 10, 10);
+    builder.set_mana(p1, 10, 10);
+    for _ in 0..5 {
+        builder.add_minion_to_deck(p1, &WISP);
+    }
+    builder.add_minion_to_hand(p1, &GRAVEDAWN_SUNBLOOM);
+    builder.add_minion_to_hand(p1, &CRYOSLEEP);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Sunbloom (draw 2)
+    let cryo = find_in_hand(&state, p1, "TLC_440");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: cryo,
+                target: Some(victim),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        4,
+        "Sunbloom's two draws + Cryosleep's base and Kindred draws"
+    );
+}
+
+/// TLC_W3-13 — Ravasaur Matriarch's Kindred deals damage to an enemy
+/// minion equal to her Attack (5); the Kindred target surfaces through
+/// the PlayCard target (unsurfaced in the RL view, §16).
+#[test]
+fn tlc_w3_matriarch_attack_damage() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, RAVASAUR_MATRIARCH};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 10, 10, 10);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &RAVASAUR_MATRIARCH);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Beast — activates the Kindred
+    let matriarch = find_in_hand(&state, p1, "TLC_825");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: matriarch,
+                target: Some(enemy),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy),
+        Some(Health(5)),
+        "5 damage = the Matriarch's Attack"
+    );
+}
+
+/// TLC_W3-14 — Silithid Queen's Kindred gives the hero +5 Attack this
+/// turn (a temporary enchantment, gone at the turn end).
+#[test]
+fn tlc_w3_queen_hero_attack() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, SILITHID_QUEEN};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &SILITHID_QUEEN);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Beast — activates the Kindred
+    play_front_card(&mut state, &engine, p1); // Queen
+    let hero = state.player(p1).hero;
+    assert_eq!(
+        state.world().effective_attack(hero),
+        Some(Attack(5)),
+        "+5 Attack this turn"
+    );
+    assert!(
+        state
+            .world()
+            .rush(find_entity(&state, p1, "TLC_903"))
+            .is_some()
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_attack(hero),
+        Some(Attack(0)),
+        "the temporary attack expires"
+    );
+}
+
+/// TLC_W3-15 — Volcanic Thrasher's battlecry draws a Fire spell (the
+/// quest spell-school registry filters the deck); the Kindred gives the
+/// drawn spell Spell Damage +2.
+#[test]
+fn tlc_w3_thrasher_drawn_spell_damage() {
+    use orange_stone::cards::def::{SIZZLING_CINDER, VOLCANIC_THRASHER};
+    use orange_stone::cards::generated::TLC_221;
+    use orange_stone::core::component::SpellDamage;
+    let p1 = PlayerId1();
+    // Base: the Fire spell is drawn, no Spell Damage.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_deck(p1, &TLC_221)
+        .add_minion_to_hand(p1, &VOLCANIC_THRASHER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let spell = find_in_hand(&state, p1, "TLC_221");
+    assert_eq!(state.world().spell_damage(spell), None, "no Kindred yet");
+    // Kindred: an Elemental earlier hands the drawn spell Spell Damage +2.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_deck(p1, &TLC_221)
+        .add_minion_to_hand(p1, &SIZZLING_CINDER)
+        .add_minion_to_hand(p1, &VOLCANIC_THRASHER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Cinder (Elemental)
+    play_front_card(&mut state, &engine, p1); // Thrasher
+    let spell = find_in_hand(&state, p1, "TLC_221");
+    assert_eq!(
+        state.world().spell_damage(spell),
+        Some(SpellDamage(2)),
+        "the Kindred grants Spell Damage +2"
+    );
+}
+
+/// TLC_W3-16 — Dread Raptor's battlecry draws a Deathrattle minion
+/// costing at most 3; the Kindred makes it cost (0). Both halves use the
+/// first matching deck card (top-down scan).
+#[test]
+fn tlc_w3_dread_raptor_costs_zero() {
+    use orange_stone::cards::def::{DREAD_RAPTOR, HARVEST_GOLEM, LEPER_GNOME, UNDERKING};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 20, 20)
+        .add_minion_to_deck(p1, &LEPER_GNOME)
+        .add_minion_to_deck(p1, &HARVEST_GOLEM)
+        .add_minion_to_hand(p1, &DREAD_RAPTOR)
+        .add_minion_to_hand(p1, &UNDERKING) // Undead — activates the Kindred
+        .add_minion_to_hand(p1, &DREAD_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Raptor 1 — no Kindred
+    let leper = find_in_hand(&state, p1, "NEUTRAL_C02");
+    assert_eq!(
+        state.world().effective_cost(leper),
+        Some(Cost(1)),
+        "the base draw keeps the cost"
+    );
+    play_front_card(&mut state, &engine, p1); // Underking (Undead)
+    play_front_card(&mut state, &engine, p1); // Raptor 2 — Kindred active
+    let golem = find_in_hand(&state, p1, "CLASSIC_007");
+    assert_eq!(
+        state.world().effective_cost(golem),
+        Some(Cost(0)),
+        "the Kindred makes the drawn minion cost (0)"
+    );
+}
+
+/// TLC_W3-17 — the activation condition resets at the player's turn end:
+/// a Steamfin Thief alone on turn 2 (nothing else this turn) summons no
+/// steamfins, even though a Murloc was played on turn 1.
+#[test]
+fn tlc_w3_kindred_resets_next_turn() {
+    use orange_stone::cards::def::{BLUEGILL_WARRIOR, STEAMFIN_THIEF};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BLUEGILL_WARRIOR)
+        .add_minion_to_hand(p1, &STEAMFIN_THIEF)
+        .add_minion_to_hand(p1, &STEAMFIN_THIEF);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Murloc — activates turn-1 Kindred
+    play_front_card(&mut state, &engine, p1); // Thief 1 — two steamfins
+    let minions = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(minions, 4, "turn 1: the Kindred fired");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    play_front_card(&mut state, &engine, p1); // Thief 2 — the list was cleared
+    let minions = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(minions, 5, "turn 2: only the thief lands");
+}
+
+/// TLC_W3-18 — Gravedawn Voidbulb summons a random 4-Cost minion with
+/// Taunt (the D2 random pool — ALL_CARDS 4-Cost minions, tokens
+/// excluded); the Kindred does it again.
+#[test]
+fn tlc_w3_voidbulb_summons_taunt_4cost() {
+    use orange_stone::cards::def::{GRAVEDAWN_SUNBLOOM, GRAVEDAWN_VOIDBULB, WISP};
+    let p1 = PlayerId1();
+    // Base: one summoned 4-Cost Taunt minion.
+    let mut builder = GameBuilder::new();
+    builder.set_mana(p1, 10, 10);
+    for _ in 0..5 {
+        builder.add_minion_to_deck(p1, &WISP);
+    }
+    builder.add_minion_to_hand(p1, &GRAVEDAWN_VOIDBULB);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let board: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    assert!(!board.is_empty(), "at least one random 4-Cost minion");
+    assert!(
+        board
+            .iter()
+            .all(|&e| state.world().effective_cost(e) == Some(Cost(4)))
+    );
+    assert!(
+        board.iter().all(|&e| state.world().taunt(e).is_some()),
+        "all have Taunt"
+    );
+    // Kindred: a spell first summons a second.
+    let mut builder = GameBuilder::new();
+    builder.set_mana(p1, 10, 10);
+    for _ in 0..5 {
+        builder.add_minion_to_deck(p1, &WISP);
+    }
+    builder.add_minion_to_hand(p1, &GRAVEDAWN_SUNBLOOM);
+    builder.add_minion_to_hand(p1, &GRAVEDAWN_VOIDBULB);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Sunbloom (draw 2)
+    play_front_card(&mut state, &engine, p1); // Voidbulb — Kindred active
+    let board: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    assert!(
+        board.len() >= 2,
+        "the Kindred summons at least one more (the pool pick's own battlecry may cascade)"
+    );
+    assert!(
+        board
+            .iter()
+            .all(|&e| state.world().effective_cost(e) == Some(Cost(4)))
+    );
+    assert!(board.iter().all(|&e| state.world().taunt(e).is_some()));
+}
+
+/// TLC_W3-19 — Ambush Predators summons a 1/1 Venomous Spitter with
+/// Stealth and Poisonous; the Kindred (a spell earlier) summons a second.
+#[test]
+fn tlc_w3_ambush_predators_spitter() {
+    use orange_stone::cards::def::{AMBUSH_PREDATORS, GRAVEDAWN_SUNBLOOM, WISP};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder.set_mana(p1, 10, 10);
+    for _ in 0..5 {
+        builder.add_minion_to_deck(p1, &WISP);
+    }
+    builder.add_minion_to_hand(p1, &GRAVEDAWN_SUNBLOOM);
+    builder.add_minion_to_hand(p1, &AMBUSH_PREDATORS);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Sunbloom (Spell)
+    play_front_card(&mut state, &engine, p1); // Ambush — Kindred active
+    let board: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_519t"))
+        .collect();
+    assert_eq!(board.len(), 2, "two Venomous Spitters");
+    for spitter in board {
+        assert!(state.world().stealth(spitter).is_some(), "Stealth");
+        assert!(state.world().poison(spitter).is_some(), "Poisonous");
+    }
+}
+
+/// TLC_W3-20 — Hot Spring Glider's battlecry makes the next Murloc cost
+/// (1) less; the Kindred gives the next Murloc Divine Shield. Both flags
+/// are consumed by the next Murloc play (the Glider itself never counts).
+#[test]
+fn tlc_w3_hot_spring_glider_murloc_flags() {
+    use orange_stone::cards::def::{BLUEGILL_WARRIOR, HOT_SPRING_GLIDER, MURLOC_TIDEHUNTER};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BLUEGILL_WARRIOR) // Murloc — activates the Kindred
+        .add_minion_to_hand(p1, &HOT_SPRING_GLIDER)
+        .add_minion_to_hand(p1, &MURLOC_TIDEHUNTER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let glider = find_in_hand(&state, p1, "TLC_428");
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, glider, p1),
+        Cost(3),
+        "the Glider itself costs full"
+    );
+    play_front_card(&mut state, &engine, p1);
+    let tidehunter = find_in_hand(&state, p1, "CLASSIC_006");
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, tidehunter, p1),
+        Cost(1),
+        "the next Murloc costs (1) less"
+    );
+    play_front_card(&mut state, &engine, p1);
+    assert!(
+        state.world().divine_shield(tidehunter).is_some(),
+        "the next Murloc has Divine Shield"
+    );
+}
+
+/// TLC_W3-21 — Hybridization's battlecry draws one minion of each cost
+/// 1–4 (top-down deck scan); the Kindred makes each drawn card cost (1)
+/// less.
+#[test]
+fn tlc_w3_hybridization_draws_each_cost() {
+    use orange_stone::cards::def::{
+        AMBUSH_PREDATORS, BLOODFEN_RAPTOR, HARVEST_GOLEM, HYBRIDIZATION, LEPER_GNOME,
+        SENJIN_SHIELDMASTA,
+    };
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_deck(p1, &LEPER_GNOME) // cost 1
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR) // cost 2
+        .add_minion_to_deck(p1, &HARVEST_GOLEM) // cost 3
+        .add_minion_to_deck(p1, &SENJIN_SHIELDMASTA) // cost 4
+        .add_minion_to_hand(p1, &AMBUSH_PREDATORS)
+        .add_minion_to_hand(p1, &HYBRIDIZATION);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Ambush (Spell) — activates the Kindred
+    play_front_card(&mut state, &engine, p1); // Hybridization
+    assert_eq!(state.world().zones().len(Zone::Hand, p1), 4, "four draws");
+    let costs: Vec<i32> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .map(|e| state.world().effective_cost(e).unwrap_or(Cost(0)).0)
+        .collect();
+    assert_eq!(costs, vec![0, 1, 2, 3], "each drawn minion costs (1) less");
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), 0, "deck emptied");
+}
+
+/// TLC_W3-22 — Conjured Bookkeeper's Kindred summons a copy of itself;
+/// the copy is effect-summoned, so it never re-fires (no loop — the
+/// played-type push is the only way into the activation list).
+#[test]
+fn tlc_w3_bookkeeper_copy_does_not_loop() {
+    use orange_stone::cards::def::{CONJURED_BOOKKEEPER, SIZZLING_CINDER};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SIZZLING_CINDER)
+        .add_minion_to_hand(p1, &CONJURED_BOOKKEEPER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Cinder (Elemental)
+    play_front_card(&mut state, &engine, p1); // Bookkeeper — Kindred active
+    let bookkeepers: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TLC_226"))
+        .collect();
+    assert_eq!(bookkeepers.len(), 2, "the copy is summoned once");
+    assert_eq!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Play, p1)
+            .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+            .count(),
+        3,
+        "cinder + two bookkeepers — the copy did not loop"
+    );
+}
