@@ -77,6 +77,21 @@ fn choose_one_labels(state: &GameState, card: Entity) -> [&'static str; 2] {
         .unwrap_or(["First option", "Second option"])
 }
 
+/// How many times a choose-one choice surfaces for the given card —
+/// 1 for every card except Forest Lord Cenarius (EDR_209, "Choose Thrice",
+/// M1-W4b: the two options may be picked up to three times in total).
+fn choose_one_repeat(state: &GameState, card: Entity) -> u8 {
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "EDR_209")
+    {
+        3
+    } else {
+        1
+    }
+}
+
 /// Validates an action's legality in the current state (read-only).
 ///
 /// Returns `Ok(())` or `Err(EngineError)`.
@@ -809,6 +824,12 @@ pub fn apply_event(
             } else {
                 None
             };
+            // Naralex (M1-W4b): whether the played card is a Dragon — the
+            // first Dragon played each turn costs (1) while he is on the board
+            let is_dragon = is_minion
+                && state
+                    .world()
+                    .has_race(card, crate::core::component::Race::Dragon);
             let pay_health = state.player(player).healed_this_turn
                 && state
                     .world()
@@ -833,10 +854,18 @@ pub fn apply_event(
                 p.next_demon_discount = 0;
                 p.next_outcast_discount = 0; // Illidari Studies (W6)
                 p.next_combo_discount = 0;
+                // Agamaggan (M1-W4b): the next-card-costs-zero flag is
+                // one-time, consumed on play (its cost already included it)
+                p.next_card_costs_zero = false;
                 if is_minion {
                     p.minions_played_this_turn += 1;
                     if let Some(id) = played_minion_id {
                         p.played_minion_ids.push(id.to_string());
+                    }
+                    // Naralex (M1-W4b): the per-turn Dragon play counter —
+                    // "your first Dragon each turn costs (1)"
+                    if is_dragon {
+                        p.dragons_played_this_turn += 1;
                     }
                 }
                 // Preparation (W11): the discount is one-time — the first
@@ -998,11 +1027,14 @@ pub fn apply_event(
                                 // The option labels come from the cards-side table
                                 // (M1-W3, P3 real choice resolution).
                                 let labels = choose_one_labels(state, card);
-                                state.set_pending_choice(
+                                let repeat = choose_one_repeat(state, card);
+                                state.set_pending_choice_repeat(
                                     ChoiceKind::ChooseOne,
                                     card,
                                     vec![String::from(labels[0]), String::from(labels[1])],
                                     Vec::new(),
+                                    false,
+                                    repeat,
                                 );
                             } else {
                                 // Spell card: resolve the effect (combo-aware), then move to the graveyard
@@ -1025,6 +1057,19 @@ pub fn apply_event(
                                     trigger::resolve_effect(
                                         state, queue, card, player, effect, target, None,
                                     );
+                                }
+                                // Tyrande (M1-W4b): "the next 3 spells you cast
+                                // cast twice" — the second resolution uses no
+                                // explicit target and fires no second SpellCast
+                                // event (registered timing simplification, §14.4).
+                                if state.player(player).spells_cast_twice_pending > 0 {
+                                    state.make_mut().players[player.index()]
+                                        .spells_cast_twice_pending -= 1;
+                                    if let Some(effect) = chosen_effect {
+                                        trigger::resolve_effect(
+                                            state, queue, card, player, effect, None, None,
+                                        );
+                                    }
                                 }
                                 // Push the spell-cast event
                                 // After-cast triggers fire at Lowest priority — after the
@@ -1082,11 +1127,14 @@ pub fn apply_event(
                 // resolves the chosen branch (same pattern as spells/minions).
                 if state.world().choose_one_effect(card).is_some() {
                     let labels = choose_one_labels(state, card);
-                    state.set_pending_choice(
+                    let repeat = choose_one_repeat(state, card);
+                    state.set_pending_choice_repeat(
                         ChoiceKind::ChooseOne,
                         card,
                         vec![String::from(labels[0]), String::from(labels[1])],
                         Vec::new(),
+                        false,
+                        repeat,
                     );
                 } else {
                     // Weapon battlecry (combo-aware): resolved after equipping, e.g. Perdition's Blade
@@ -1195,11 +1243,14 @@ pub fn apply_event(
                 // The option labels come from the cards-side table (M1-W3, P3).
                 if state.world().choose_one_effect(card).is_some() {
                     let labels = choose_one_labels(state, card);
-                    state.set_pending_choice(
+                    let repeat = choose_one_repeat(state, card);
+                    state.set_pending_choice_repeat(
                         ChoiceKind::ChooseOne,
                         card,
                         vec![String::from(labels[0]), String::from(labels[1])],
                         Vec::new(),
+                        false,
+                        repeat,
                     );
                 }
             }
@@ -1586,6 +1637,28 @@ pub fn apply_event(
                     .world_mut()
                     .set_freeze(target, crate::core::component::Freeze);
             }
+            // Goldrinn, the Great Wolf (M1-W4b): your Beasts deal double
+            // damage — a damage-pipeline hook at the entry point (the aura
+            // approximation is registered in fidelity-debt §14.4). Any
+            // damage source owned by the Goldrinn player with the Beast race
+            // doubles while EDR_480 is on that player's board (the shield
+            // absorption below is amount-agnostic, so doubling before it is
+            // safe).
+            let goldrinn_doubling = state.world().player(source).is_some_and(|pid| {
+                state
+                    .world()
+                    .has_race(source, crate::core::component::Race::Beast)
+                    && state
+                        .world()
+                        .zones()
+                        .iter(Zone::Play, pid)
+                        .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_480"))
+            });
+            let amount = if goldrinn_doubling {
+                amount * 2
+            } else {
+                amount
+            };
             // Divine shield absorbs: if the target has a divine shield, remove it and zero the damage
             if state.world().divine_shield(target).is_some() {
                 state.world_mut().remove_divine_shield(target);
@@ -2025,6 +2098,10 @@ pub fn apply_event(
                 inner.pending_choice = Some(pending);
                 return Err(EngineError::InvalidChoice);
             }
+            // Choose Thrice (Cenarius, M1-W4b): the remaining repeats of a
+            // repeatable choose-one choice — captured before the match
+            // consumes `pending` and re-surfaced after each branch resolves.
+            let repeat = pending.repeat;
             match pending.kind {
                 ChoiceKind::ChooseOne => {
                     let card = pending.card;
@@ -2042,6 +2119,15 @@ pub fn apply_event(
                     if let Some(effect) = chosen_effect {
                         trigger::resolve_effect(state, queue, card, player, effect, None, None);
                     }
+                    // Tyrande (M1-W4b): the choose-one branch is also a spell
+                    // cast — the "cast twice" re-resolution fires here too
+                    // (no explicit target, no second SpellCast event, §14.4).
+                    if state.player(player).spells_cast_twice_pending > 0 {
+                        state.make_mut().players[player.index()].spells_cast_twice_pending -= 1;
+                        if let Some(effect) = chosen_effect {
+                            trigger::resolve_effect(state, queue, card, player, effect, None, None);
+                        }
+                    }
                     if card_type == Some(CardType::Spell) {
                         // Spells: the SpellCast event and graveyard move complete
                         // the play that was deferred when the choice surfaced.
@@ -2058,6 +2144,37 @@ pub fn apply_event(
                         if !returns_to_hand {
                             let _ = state.world_mut().move_to_zone(card, Zone::Graveyard);
                         }
+                    }
+                    // Choose Thrice (Cenarius, M1-W4b): re-surface the choice
+                    // for the remaining picks — each pick resolves one branch
+                    // (options may be mixed, like the official card).
+                    if repeat > 1 {
+                        let labels = choose_one_labels(state, card);
+                        state.set_pending_choice_repeat(
+                            ChoiceKind::ChooseOne,
+                            card,
+                            vec![String::from(labels[0]), String::from(labels[1])],
+                            Vec::new(),
+                            false,
+                            repeat - 1,
+                        );
+                    }
+                }
+                ChoiceKind::QonzuKeepOrTop => {
+                    // Q'onzu (M1-W4b): option 0 keeps the discovered spell in
+                    // hand (nothing to do — it already is there); option 1
+                    // places it on top of the opponent's deck. The card's
+                    // PLAYER component must switch to the enemy — zone
+                    // movement (draws, discard) derives the owner from it.
+                    if option == 1 {
+                        let card = pending.card;
+                        let player = state.world().player(card).unwrap_or(state.active_player());
+                        let enemy = player.opponent();
+                        let world = state.world_mut();
+                        world.zones_mut().remove(Zone::Hand, player, card);
+                        world.set_zone(card, Zone::Deck);
+                        world.set_player(card, enemy);
+                        world.zones_mut().insert_at(Zone::Deck, enemy, card, 0);
                     }
                 }
                 ChoiceKind::Discover => {
@@ -2178,6 +2295,9 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
             p.current_mana = (p.mana_crystals - locked).max(0);
             p.cards_played_this_turn = 0;
             p.minions_played_this_turn = 0;
+            // Naralex (M1-W4b): the per-turn Dragon counter resets with the
+            // turn ("your first Dragon each turn costs (1)")
+            p.dragons_played_this_turn = 0;
             state.set_step(Step::DrawStep);
             true
         }

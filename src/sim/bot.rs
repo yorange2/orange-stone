@@ -1633,6 +1633,32 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::GainDeadMinionAttack => 3.0,
         CardEffect::DrawIfMinionPlayedBefore => 2.0,
         CardEffect::GrantRandomBonusEffect => 2.0,
+        // 2025–2026 expansions M1-W4b — the elite Wild Gods wave
+        CardEffect::YseraEmeraldAspect => 5.0,
+        CardEffect::ResurrectAllDifferentFriendlyCostGE { cost } => 4.0 + cost as f64 * 0.3,
+        CardEffect::CastHighestCostSpellFromHand => 4.0,
+        CardEffect::IncrementOmenAttack => 1.0,
+        CardEffect::OmenDeathrattle => 4.0,
+        CardEffect::SplitDamageAmongAllEnemiesIfFallen { amount, .. } => amount as f64 * 0.8,
+        CardEffect::NextSpellsCastTwice { count } => count as f64 * 2.0,
+        CardEffect::SummonRandomDragonPerSelfDeath => 4.0,
+        CardEffect::GainArmorAndSelfAttack { armor, attack } => {
+            armor as f64 * 0.6 + attack as f64 * 0.8
+        }
+        CardEffect::NextCardCostsZero => 3.0,
+        CardEffect::TransformHandMinionsToRandomDemons => 4.0,
+        CardEffect::DiscoverSpellKeepOrTop => 3.0,
+        CardEffect::DiscardRandomEnemyHandCard => 2.0,
+        CardEffect::FillHandWithEnemyDeckCopies { .. } => 5.0,
+        CardEffect::SummonBeetles { count } => count as f64,
+        CardEffect::UrsocBattlecry => 4.0,
+        CardEffect::UrsocDeathrattle => 3.0,
+        CardEffect::GainStatsAllOtherFriendlyMinions { attack, health } => {
+            (attack + health) as f64 * 0.8
+        }
+        CardEffect::SummonRandomAnimalCompanion => 3.0,
+        CardEffect::AddAllDreamCards => 5.0,
+        CardEffect::CardsCostOneThisGame => 4.0,
     }
 }
 
