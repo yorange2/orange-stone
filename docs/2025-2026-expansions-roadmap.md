@@ -63,10 +63,15 @@ the expansions. M0 is the foundation:
   id/name/cost/type/attack/health/durability, **race/class**, **text** (effect
   prose), keywords (mechanics) and collectibility. Reproduce via
   `tools/fetch_expansion_sets.py`; dump sha256 pinned in `cards/data/SOURCE.md`.
-- [ ] **Schema extension** — extend `cards/cards.json` entries (and `build.rs`/
-  `generated.rs`) with the fields above; keep the generated-const baseline for
-  vanilla cards and keep hand-written effect files for everything with prose
-  (the Core Set `core_w*.rs` pattern).
+- [x] **Schema extension** — `cards/cards.json` entries gain optional
+  `text`/`race`/`cardClass`/`classes`/`set`/`collectible` fields (M0.2, PR #132:
+  764/1190 entries backfilled by ID from the dump; `tools/backfill_card_fields.py`
+  reproduces). `build.rs`/`generated.rs`: generated CardDef literals carry real
+  races (`Race::Naga` added; "ALL" has no single-tribe mapping and stays None)
+  and a new `generated::card_set(id)` registry (`CardSet`: Classic/Core/five
+  expansions/Other; unknown/custom IDs default to Classic). Vanilla cards keep
+  the generated-const baseline; cards with prose keep hand-written effect files
+  (`core_w*.rs` pattern). text/class/collectible stay in the JSON layer.
 - [ ] **Set registration** — new per-set card files + registration in
   `sets.rs::ALL_CARDS`; per-set tagging so pool filters can select a Standard
   window (`POOL_*` style, decision D3).

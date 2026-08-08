@@ -52,9 +52,13 @@
   （135）；每张卡带 id/name/cost/type/攻/血/耐久/**种族/职业**/**效果文本**（叙述）、
   关键字（mechanics）、可收集性。复现：`tools/fetch_expansion_sets.py`；转储 sha256 见
   `cards/data/SOURCE.md`。
-- [ ] **Schema 扩展**——为 `cards/cards.json` 条目（与 `build.rs`/`generated.rs`）
-  补上述字段；白板卡保持生成常量基线，有效果叙述的卡照核心系列 `core_w*.rs`
-  模式手写效果文件。
+- [x] **Schema 扩展**——`cards/cards.json` 条目补可选字段 `text`/`race`/`cardClass`/
+  `classes`/`set`/`collectible`（M0.2，PR #132：764/1190 条从转储按 ID 回填，
+  复现脚本 `tools/backfill_card_fields.py`）。`build.rs`/`generated.rs`：生成
+  CardDef 字面量填真实 `race`（新增 `Race::Naga`；"ALL" 无单一种族映射保持 None），
+  新增 `generated::card_set(id)` 注册表（`CardSet` 枚举：Classic/Core/五扩展/Other，
+  未知/自定义 ID 兜底 Classic）。白板卡保持生成常量基线；有效果叙述的卡照
+  `core_w*.rs` 模式手写效果文件。text/class/collectible 留在 JSON 层（接线元数据）。
 - [ ] **系列注册**——新建按系列划分的卡文件并注册进 `sets.rs::ALL_CARDS`；加按系列
   标记，使池过滤器能选标准环境窗口（`POOL_*` 风格，决策 D3）。
 - [ ] **校验**——ID 唯一性与生成-vs-手写保真测试（`core_reprints_match_originals`
