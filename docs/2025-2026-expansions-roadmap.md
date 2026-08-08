@@ -53,25 +53,27 @@ contains essentially **zero** real 2025–2026 cards — the DREAM/TOY/GIFT/Stor
 prefixes present are Ysera's dream cards, the Gift heroes and puzzle cards, not
 the expansions. M0 is the foundation:
 
-1. **Data source (decision D1)** — acquire the real card dumps. Candidates:
-   [hearthstonejson.com](https://hearthstonejson.com) (community, full card DB,
-   the SabberStone ecosystem's source), HSReplay.net card endpoints, or a
-   hand-maintained JSON per set. The chosen source must carry, per card: id,
-   name, cost, type, attack/health/durability, **race/class**, **text**
-   (effect prose), keywords (mechanics), and collectibility — the current
-   schema lacks text, race and class, which the expansions need to hand-wire
-   effects.
-2. **Schema extension** — extend `cards/cards.json` entries (and `build.rs`/
-   `generated.rs`) with the fields above; keep the generated-const baseline for
-   vanilla cards and keep hand-written effect files for everything with prose
-   (the Core Set `core_w*.rs` pattern).
-3. **Set registration** — new per-set card files + registration in
-   `sets.rs::ALL_CARDS`; per-set tagging so pool filters can select a Standard
-   window (`POOL_*` style, decision D3).
-4. **Validation** — ID-uniqueness and generated-vs-handwritten fidelity tests
-   (`core_reprints_match_originals` pattern), plus a `differential` gate that
-   every expansion card is either hand-written or matches its generated
-   baseline.
+- [x] **Data source (decision D1)** — acquire the real card dumps. Decided
+  (2026-08-08): **hearthstonejson dump**
+  (`api.hearthstonejson.com/v1/latest/enUS/cards.collectible.json`, community,
+  full card DB, the SabberStone ecosystem's source). Sliced per set into
+  `cards/data/EMERALD_DREAM.json` (183, 38 mini), `THE_LOST_CITY.json` (183,
+  38 mini), `TIME_TRAVEL.json` (183, 38 mini), `CATACLYSM.json` (164, 29 Class
+  Sets), `ESCAPEFROM_VIOLET_HOLD.json` (135); every card carries
+  id/name/cost/type/attack/health/durability, **race/class**, **text** (effect
+  prose), keywords (mechanics) and collectibility. Reproduce via
+  `tools/fetch_expansion_sets.py`; dump sha256 pinned in `cards/data/SOURCE.md`.
+- [ ] **Schema extension** — extend `cards/cards.json` entries (and `build.rs`/
+  `generated.rs`) with the fields above; keep the generated-const baseline for
+  vanilla cards and keep hand-written effect files for everything with prose
+  (the Core Set `core_w*.rs` pattern).
+- [ ] **Set registration** — new per-set card files + registration in
+  `sets.rs::ALL_CARDS`; per-set tagging so pool filters can select a Standard
+  window (`POOL_*` style, decision D3).
+- [ ] **Validation** — ID-uniqueness and generated-vs-handwritten fidelity tests
+  (`core_reprints_match_originals` pattern), plus a `differential` gate that
+  every expansion card is either hand-written or matches its generated
+  baseline.
 
 ## Engine mechanism gaps (what the expansions need vs. what exists)
 
@@ -110,23 +112,24 @@ sub-roadmaps run sequentially (a later set can reuse earlier primitives; the
 reverse never happens). Every sub-roadmap: W0 wiring/data → mechanic waves →
 closing wave (tokens, legendary finishing touches, ledger sweep).
 
-## Decisions (open — resolve in order D1 → D5 before the first card lands)
+## Decisions (resolved — all five recorded 2026-08-08 as part of M0)
 
-- **D1 — Card data source** (M0 blocker): hearthstonejson dump vs. HSReplay
-  API vs. hand-curated JSON. Picks the schema-extension shape in M0.3.
-- **D2 — Simplification registration**: complex expansion effects (random
-  Discover pools, Shatter recombination, some Dark Gifts) must land with
-  `(simplified …)` markers and `fidelity-debt.md` rows like the Core waves —
-  unless the wave implements them fully.
-- **D3 — RL pool policy**: real Standard pool (2025–2026 + Core) vs. keep
-  classic+core as the training pool with expansion cards engine-only. The
-  engine must support both via pool filters; the training switch (if any) is a
-  single cut-over like D4-2026-08-08, with observation-encoding extensions
-  (quest progress, imbue level, location charges already exist) and a
-  `_load_debt_ids()` glob extension for the new wave files.
-- **D4 — Wave shape**: per-expansion waves (recommended — mechanics are
-  set-specific and data lands per set) vs. mechanic-first across sets.
-- **D5 — zh naming**: set names/class names backfilled from official
+- **D1 — Card data source** ✅ **hearthstonejson dump**
+  (`api.hearthstonejson.com` collectible dump; landed in M0.1, data under
+  `cards/data/`, sha256 in `SOURCE.md`).
+- **D2 — Simplification registration** ✅ per the text above: complex expansion
+  effects (random Discover pools, Shatter recombination, some Dark Gifts) land
+  with `(simplified …)` markers and `fidelity-debt.md` rows like the Core
+  waves — unless the wave implements them fully.
+- **D3 — RL pool policy** ✅ **real Standard pool**: the training pool
+  switches to 2025–2026 + Core. The engine supports both states via pool
+  filters; the training switch is a single cut-over at the closing stage
+  (like D4-2026-08-08), with observation-encoding extensions (quest progress,
+  imbue level, location charges already exist) and a `_load_debt_ids()` glob
+  extension for the new wave files.
+- **D4 — Wave shape** ✅ **per-expansion waves** (mechanics are set-specific
+  and data lands per set).
+- **D5 — zh naming** ✅ set names/class names backfilled from official
   localization during M0; card names keep English in `classic-cards-zh.md`
   convention.
 

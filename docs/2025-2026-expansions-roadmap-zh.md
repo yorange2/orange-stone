@@ -44,18 +44,21 @@
 里几乎没有真实的 2025–2026 卡——现存的 DREAM/TOY/GIFT/Story 前缀是伊瑟拉的
 梦境卡、礼物英雄与谜题卡，不是扩展。M0 是地基：
 
-1. **数据源（决策 D1）**——获取真实卡库转储。候选：[hearthstonejson.com](https://hearthstonejson.com)
-   （社区维护、完整卡库、SabberStone 生态同源）、HSReplay.net 卡牌端点、或按系列
-   手工维护的 JSON。所选来源每张卡必须带：id、name、cost、type、攻/血/耐久、
-   **种族/职业**、**效果文本**（叙述）、关键字（mechanics）、可收集性——现 schema
-   缺文本、种族与职业，而扩展卡接线效果正需要它们。
-2. **Schema 扩展**——为 `cards/cards.json` 条目（与 `build.rs`/`generated.rs`）
-   补上述字段；白板卡保持生成常量基线，有效果叙述的卡照核心系列 `core_w*.rs`
-   模式手写效果文件。
-3. **系列注册**——新建按系列划分的卡文件并注册进 `sets.rs::ALL_CARDS`；加按系列
-   标记，使池过滤器能选标准环境窗口（`POOL_*` 风格，决策 D3）。
-4. **校验**——ID 唯一性与生成-vs-手写保真测试（`core_reprints_match_originals`
-   模式），外加 `differential` 闸门：每张扩展卡要么手写、要么与生成基线一致。
+- [x] **数据源（决策 D1）**——获取真实卡库转储。决策（2026-08-08）：**hearthstonejson
+  转储**（`api.hearthstonejson.com/v1/latest/enUS/cards.collectible.json`，社区维护、
+  完整卡库、SabberStone 生态同源）。已按系列切片入库：`cards/data/EMERALD_DREAM.json`
+  （183，含 38 迷你）、`THE_LOST_CITY.json`（183，含 38）、`TIME_TRAVEL.json`
+  （183，含 38）、`CATACLYSM.json`（164，含 29 职业套装）、`ESCAPEFROM_VIOLET_HOLD.json`
+  （135）；每张卡带 id/name/cost/type/攻/血/耐久/**种族/职业**/**效果文本**（叙述）、
+  关键字（mechanics）、可收集性。复现：`tools/fetch_expansion_sets.py`；转储 sha256 见
+  `cards/data/SOURCE.md`。
+- [ ] **Schema 扩展**——为 `cards/cards.json` 条目（与 `build.rs`/`generated.rs`）
+  补上述字段；白板卡保持生成常量基线，有效果叙述的卡照核心系列 `core_w*.rs`
+  模式手写效果文件。
+- [ ] **系列注册**——新建按系列划分的卡文件并注册进 `sets.rs::ALL_CARDS`；加按系列
+  标记，使池过滤器能选标准环境窗口（`POOL_*` 风格，决策 D3）。
+- [ ] **校验**——ID 唯一性与生成-vs-手写保真测试（`core_reprints_match_originals`
+  模式），外加 `differential` 闸门：每张扩展卡要么手写、要么与生成基线一致。
 
 ## 引擎机制缺口（扩展需要 vs. 现状）
 
@@ -92,20 +95,19 @@ M0 数据管线（本文件）
 反之不成立）。每个子路线图：W0 接线/数据 → 机制波 → 收尾波（衍生物、传说收尾、
 账本清扫）。
 
-## 决策点（待决——按 D1→D5 顺序，首张卡落地前定案）
+## 决策点（已决——2026-08-08 全部定案，随 M0 记录）
 
-- **D1 —— 卡数据源**（M0 阻塞项）：hearthstonejson 转储 vs. HSReplay API vs.
-  手工整理 JSON。决定 M0.3 的 schema 扩展形态。
-- **D2 —— 简化登记**：复杂扩展效果（随机发现池、粉碎重组、部分黑暗赠礼）落地时
-  须带 `(simplified …)` 标记与 `fidelity-debt.md` 行，与核心波一致——除非该波
+- **D1 —— 卡数据源** ✅ **hearthstonejson 转储**（`api.hearthstonejson.com`
+  collectible 转储；M0.1 落地，数据在 `cards/data/`，sha256 见 `SOURCE.md`）。
+- **D2 —— 简化登记** ✅ 按原文：复杂扩展效果（随机发现池、粉碎重组、部分黑暗赠礼）
+  落地时带 `(simplified …)` 标记与 `fidelity-debt.md` 行，与核心波一致——除非该波
   完整实现。
-- **D3 —— RL 池策略**：真实标准池（2025–2026 + 核心）vs. 训练池保持经典+核心、
-  扩展卡仅引擎可用。引擎须通过池过滤器同时支持两者；训练切换（若做）是单次
-  切换（同 2026-08-08 的 D4 决策），观测编码扩展（任务进度、灌注等级；地点充能
-  已有）与 `_load_debt_ids()` 对新波文件的 glob 扩展一并处理。
-- **D4 —— 波形态**：按扩展分波（推荐——机制随系列走、数据按系列落地）vs. 跨系列
-  机制先行。
-- **D5 —— 中文命名**：M0 期间按官方本地化回填系列/职业名；卡名沿用
+- **D3 —— RL 池策略** ✅ **真实标准池**：训练池切 2025–2026 + 核心。引擎经池
+  过滤器同时支持两态；训练切换在收尾单次执行（同 2026-08-08 的 D4 决策流程），
+  观测编码扩展（任务进度、灌注等级；地点充能已有）与 `_load_debt_ids()` 对新波
+  文件的 glob 扩展一并处理。
+- **D4 —— 波形态** ✅ **按扩展分波**（机制随系列走、数据按系列落地）。
+- **D5 —— 中文命名** ✅ M0 期间按官方本地化回填系列/职业名；卡名沿用
   `classic-cards-zh.md` 惯例（英文）。
 
 ## 跨扩展里程碑
