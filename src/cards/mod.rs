@@ -33,6 +33,7 @@ pub mod exp_edr_w2;
 pub mod exp_edr_w3;
 pub mod exp_edr_w4a;
 pub mod exp_edr_w4b;
+pub mod exp_edr_w5;
 pub mod generated;
 pub mod pool;
 pub mod sets;
@@ -124,6 +125,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "EDR_262t" // Wolf (M1-W4a — Spirit Bond token)
         | "EDR_421" // Omen (M1-W4b — the Wild Gods wave)
         | "EDR_480" // Goldrinn (M1-W4b — the Wild Gods wave)
+        | "FIR_951" // Volcoross (M1-W5 — the Embers of the World Tree wave)
+        | "FIR_953" // Magma Hound (M1-W5 — the Embers of the World Tree wave)
     ) {
         world.set_rush(entity, Rush);
     }
@@ -143,6 +146,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "EDR_255" // Renewing Flames (M1-W4a — spell)
         | "EDR_272" // Evergreen Stag (M1-W4a)
         | "EDR_486" // Scorching Observer (M1-W4a)
+        | "FIR_777" // Spirit of the Kaldorei (M1-W5 — the Embers wave)
     ) {
         world.set_lifesteal(entity, Lifesteal);
     }
@@ -198,6 +202,24 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                     armor: 1,
                     attack: 1,
                 },
+            },
+        );
+    }
+    // M1-W5 per-card trigger — Magma Hound (FIR_953, the Embers of the
+    // World Tree wave): after this attacks a minion and survives, deal its
+    // Attack damage split among all enemies. The trigger is pinned to the
+    // attacker (AttackedMinion), and the handler re-checks the survive
+    // condition at trigger time (§14.5 — the "and survives" reads effective
+    // health, the attacker-dead-from-the-trade splash case).
+    if card_def.id == "FIR_953" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::AttackedMinion,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::MagmaHoundSplash,
             },
         );
     }
@@ -1535,8 +1557,14 @@ mod generated_tests {
         // cards use the faithful location representation (CardType::Location,
         // health 0, durability from the official data) — the same convention
         // as the Core Set W8 locations.
-        (id == "EDR_454" || id == "EDR_520")
-            && matches!(field, "card_type" | "health" | "durability")
+        if id == "EDR_454" || id == "EDR_520" {
+            return matches!(field, "card_type" | "health" | "durability");
+        }
+        // FIR_907 Amirdrassil (M1-W5) — the same Location divergence as the
+        // EDR_454/EDR_520 pair above (the miniset wave predates the Location
+        // CardType in the generator; the handwritten card is the faithful
+        // Location 5-mana / 3-durability representation).
+        id == "FIR_907" && matches!(field, "card_type" | "health" | "durability")
     }
 
     /// The gate itself: enumerate the generated expansion baselines, compare

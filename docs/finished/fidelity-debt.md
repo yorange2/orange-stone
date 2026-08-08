@@ -883,3 +883,110 @@ F5 coverage: `edr_w4b_ysera_mana`, `edr_w4b_ohnahra_draws_three`,
 `edr_w4b_shaladrassil_dream_cards`, `edr_w4b_broll_companion`,
 `edr_w4b_aviana_cards_cost_one` (23 scenarios in `tests/differential.rs`).
 Full `cargo test` green; `cargo clippy --all-targets` clean.
+### 14.5 2025–2026 expansions M1-W5 — the Embers of the World Tree miniset (38 cards + 1 token) 🔓 registered
+
+The registered simplifications of the M1-W5 wave (`src/cards/exp_edr_w5.rs`,
+38 consts = the FIR_777~FIR_961 miniset, plus 1 token: FIR_901t Frostburn
+Broodling, the 4/4 Taunt Dragon Frostburn Matriarch summons; FIR_918t Light
+of the Full Moon — the upgraded form — is NOT implemented, the upgrade step
+is registered in the FIR_918 row). The wave is the roadmap's final wave and
+reuses the W1–W4 primitives only — no new engine mechanism. New facilities
+this wave: a per-player "next turn only" Mana Crystal flag
+(`Player::temp_mana_crystal_pending` — Emberscarred Whelp, granted at the
+owner's ManaRefill step, the crystal_gain_pending precedent); a
+damage-pipeline hook on hero health loss (`fire_emberroot_hook` in rules.rs
+— Emberroot Destroyer, since no HeroDamaged trigger event exists, fired at
+the two points where the hero's health is actually reduced, on the owner's
+turn only); the Everburning Phoenix cost discount (a cost.rs arm reading the
+per-turn play counter, which bumps AFTER the discount computes so the
+current card is excluded); and Magma Hound's AttackedMinion trigger
+(registered in apply_card_keywords, pinned to the attacker; the "and
+survives" clause reads effective health at trigger time). FIR_907
+Amirdrassil is a Location (the EDR_454/EDR_520 convention: CardType::Location,
+health 0, durability 3, effect in the battlecry slot) and its baseline
+divergence is registered in `expansion_differential_rebalanced`. As with
+§14–§14.4, these handwritten expansion cards are not in the RL pool
+(classic + core 668/659), so the rows are informational: they keep the
+code's `(simplified: …)` markers traceable to the ledger. Each row stays
+open until its mechanism lands.
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| FIR_900 | Cremate | Discover → a random minion given a random Dark Gift and costing (2) less | a real Discover pipeline |
+| FIR_902 | Sigil of Cinder | The "start of your next turn" timing is unmodeled — the 6 damage resolves immediately as random 1-damage pings | a delayed-secret timing |
+| FIR_904 | Felfire Blaze | The Fel-spell filter is unmodeled — fires on ANY friendly spell cast | a spell-school field |
+| FIR_906 | Overheat | The Nature-spell filter is unmodeled — any hand spell can be discarded | a spell-school field |
+| FIR_907 | Amirdrassil | The "Improves each use!" escalation is unmodeled — every activation resolves the first-tier effect (the Location convention is faithful) | per-use escalations |
+| FIR_909 | Bursting Shot | The three random pings may hit the same target | distinct random targets |
+| FIR_910 | Scorching Winds | The Fire-spell filter is unmodeled — any hand spell can be discarded | a spell-school field |
+| FIR_911 | Smoldering Grove | The "Upgrades each turn, but discards after N" cycle is unmodeled — the spell always plays its first-turn version | per-turn upgrade cycles |
+| FIR_913 | Inferno Herald | The Fire-spell filter is unmodeled — fires on ANY friendly spell cast | a spell-school field |
+| FIR_914 | Smoldering Strength | The "Upgrades each turn, but discards after N" cycle is unmodeled — the spell always plays its first-turn version | per-turn upgrade cycles |
+| FIR_916 | Smoldering Ascent | The "Upgrades each turn, but discards after N" cycle is unmodeled — the spell always plays its first-turn version | per-turn upgrade cycles |
+| FIR_918 | Light of the New Moon | The per-play return counter is approximated by the player's spell total (the current cast counts) and the returned card is a fresh copy; the FIR_918t Light of the Full Moon upgrade step is unmodeled | a per-card play counter |
+| FIR_919 | Everburning Phoenix | The "at end of turn" deathrattle fires immediately | an end-of-turn deathrattle |
+| FIR_920 | Smoke Bomb | Discover → a random Combo/Battlecry/Stealth minion given a random Dark Gift | a real Discover pipeline |
+| FIR_924 | Shadowflame Stalker | Discover → a random Demon given a random Dark Gift (the copy IS faithful) | a real Discover pipeline |
+| FIR_927 | Emberscarred Whelp | Discover → a random 5-Cost card; the "next turn only" Mana Crystal is granted at the owner's ManaRefill | a real Discover pipeline; until-end-of-next-turn timing |
+| FIR_928 | Keeper of Flame | The "destroyed in 3 turns" clause is unmodeled — the +3/+3 buff only | a delayed-destroy mechanic |
+| FIR_929 | Living Flame | The Fire-spell filter is unmodeled — the deathrattle draws any card | a spell-school field |
+| FIR_939 | Shadowflame Suffusion | Discover → a random Warrior minion given a random Dark Gift (the damage IS faithful) | a real Discover pipeline |
+| FIR_941 | Searing Reflection | The tutor is a first-match deck scan — the non-minion cards above the drawn minion stay in the deck | a draw-through tutor |
+| FIR_951 | Volcoross | The three-way choose-one is unmodeled — the largest affordable 10/20/30 Corpse option is spent automatically | a real choose-one |
+| FIR_952 | Scorchreaver | Discover → a random spell and the Fel-spell filter unmodeled — every hand spell is reduced | a real Discover pipeline; a spell-school field |
+| FIR_953 | Magma Hound | The splash trigger fires at attack declaration, before the trade damage resolves (the W2 porcupine convention) — the pings queued at declaration still splash when the Hound dies to the retaliation | an after-attack trigger |
+| FIR_955 | Emberroot Destroyer | No HeroDamaged event exists — a damage-pipeline hook fires on any hero health loss on the owner's turn | a HeroDamaged event |
+| FIR_959 | Fyrakk the Blazing | The Immune-to-Fire clause is unmodeled and "15 Mana worth of Fire spells" is approximated as 15 random 1-damage pings | a spell-school field; mana-weighted casts |
+
+中文小结（同上）：M1-W5 波（迷你系列"世界之树的余烬"，38 张 + 1 张
+衍生物 FIR_901t 冰霜巢母雏龙 4/4 嘲讽龙）沿用 W1–W4 全部原语，不引入新
+引擎原语；新设施：每玩家"仅限下回合"法力水晶标志
+（`temp_mana_crystal_pending`——烬痕幼龙，在持有者 ManaRefill 步骤结算，
+沿用 crystal_gain_pending 先例）、英雄受伤管线钩子（`fire_emberroot_hook`
+——余烬根毁灭者，引擎无 HeroDamaged 事件，在英雄血量实际减少的两处
+结算、仅持有者回合）、永恒烈焰凤凰的降费（cost.rs 分支读每回合打出
+计数，计数在降费计算之后才递增，当前牌不计入）以及岩浆猎犬的
+AttackedMinion 触发（apply_card_keywords 注册、钉在攻击者上；在攻击
+宣告时触发、溅射先于对撞伤害结算）。FIR_907 阿梅达希尔为地点（沿用 EDR_454/
+EDR_520 惯例：Location、血量 0、耐久 3、效果放战吼槽），基线差异登记
+于 `expansion_differential_rebalanced`。本波简化与既往一致：发现 → 随机
+（FIR_900/920/924/927/939/952）；法术学派过滤未建模（烈焰焚身/炼狱使者
+任意友方法术触发、炽热风暴/灼热之戒任意手牌法术可弃、活体烈焰任意抽牌、
+炼狱收割者任意法术降费——引擎无法术学派字段）；三张渐燃卡的"每回合
+升级、N 回合后弃置"周期未建模（FIR_911/914/916 只打首回合版本）；燃尽
+信标的"下回合开始"改为立即结算（FIR_902）；月华之光回手计数用玩家
+法术总数近似、回手为全新复制、满月升级步骤未建模（FIR_918，FIR_918t
+不实现）；凤凰亡语的"回合结束时"改为立即（FIR_919）；狱火烈焰的
+"3 回合后摧毁"未建模（FIR_928）；炽焰倒映的导师效果为牌库首张随从
+直取（FIR_941，前置非随从卡留在牌库）；沃克罗斯的 10/20/30 三选改为
+自动选最大可承担尸体档（FIR_951）；岩浆猎犬的溅射触发在攻击宣告时
+（结算于对撞伤害之前，沿用 W2 豪猪惯例）——宣告时已入队的 1 点溅射
+即使猎犬被反击杀死仍会落地（FIR_953）；余烬根毁灭者按持有者回合任意
+英雄掉血触发（FIR_955）；
+菲莱克之怒"免疫火焰法术"未建模、"15 点法力值的火焰法术"近似为 15 次
+随机 1 点伤害（FIR_959）。扩展手写卡均不在 RL 池（经典 + 核心 668/659），
+本表仅作登记追踪，各行在机制落地前保持开放。
+
+F5 coverage: `edr_w5_spirit_of_the_kaldorei`, `edr_w5_avatar_of_destruction`,
+`edr_w5_cremate`, `edr_w5_frostburn_matriarch`, `edr_w5_sigil_of_cinder`,
+`edr_w5_felfire_blaze`, `edr_w5_overheat`, `edr_w5_amirdrassil`,
+`edr_w5_charred_chameleon`, `edr_w5_bursting_shot`, `edr_w5_scorching_winds`,
+`edr_w5_smoldering_grove`, `edr_w5_inferno_herald`,
+`edr_w5_smoldering_strength`, `edr_w5_smoldering_ascent`,
+`edr_w5_light_of_the_new_moon`, `edr_w5_everburning_phoenix`,
+`edr_w5_smoke_bomb`, `edr_w5_petal_picker`, `edr_w5_cindersword`,
+`edr_w5_flames_of_the_firelord`, `edr_w5_shadowflame_stalker`,
+`edr_w5_emberscarred_whelp`, `edr_w5_keeper_of_flame`,
+`edr_w5_living_flame`, `edr_w5_shadowflame_suffusion`,
+`edr_w5_zaqali_flamemancer`, `edr_w5_searing_reflection`,
+`edr_w5_volcoross`, `edr_w5_scorchreaver`, `edr_w5_magma_hound`,
+`edr_w5_conflagrate`, `edr_w5_emberroot_destroyer`, `edr_w5_dragon_turtle`,
+`edr_w5_tindral_sageswift`, `edr_w5_fyrakk_the_blazing`,
+`edr_w5_tending_dragonkin`, `edr_w5_ashleaf_pixie` (38 scenarios in
+`tests/differential.rs` — every miniset card at least once). The 7 Dark
+Gift cards get dedicated scenarios: the gift-granting quartet with their
+extra effects — FIR_900 (discount), FIR_924 (copy), FIR_939 (dual
+damage + grant) and FIR_920 — plus the holding-gift trio FIR_901
+(Frostburn Matriarch), FIR_922 (Cindersword) and FIR_956 (Dragon
+Turtle); Petal Picker's imbue-twice condition is exercised both ways.
+Full `cargo test` green; `cargo clippy --all-targets` clean.

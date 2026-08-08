@@ -16,7 +16,7 @@
 use crate::core::component::{
     ALL_DARK_GIFTS, Attack, AttacksUsed, CardId, CardType, Charge, Cost, Damage, DarkGiftKind,
     Deathrattle, DivineShield, Durability, Elusive, Enchantment, EnchantmentExpiry, Freeze, Health,
-    HeroPowerDef, ImbueClass, Immune, Lifesteal, Poison, Reborn, Stealth, Taunt, Trigger,
+    HeroPowerDef, ImbueClass, Immune, Lifesteal, Poison, Reborn, Rush, Stealth, Taunt, Trigger,
     TriggerEvent, TriggerTiming, Windfury,
 };
 use crate::core::effect::{CardEffect, EffectTarget, RandomPool};
@@ -5048,7 +5048,658 @@ pub fn resolve_effect(
             let inner = state.make_mut();
             inner.players[owner.index()].cards_cost_1 = true;
         }
+        // ----------------------------------------------------------------
+        // 2025–2026 expansions M1-W5 (exp_edr_w5) — the Embers of the
+        // World Tree miniset (see the design brief; simplifications
+        // registered in fidelity-debt §14.5).
+        // ----------------------------------------------------------------
+        CardEffect::GainStatsIfHeroPowerUsed { attack, health } => {
+            // Spirit of the Kaldorei (M1-W5) — +N/+M while the owner used
+            // their hero power this turn (the Barkshield Sentinel W4a
+            // pattern: the check runs at play time).
+            let hero = state.player(owner).hero;
+            if state.world().hero_power_used(hero).is_some_and(|u| u.0) {
+                state.world_mut().add_enchantment(
+                    source,
+                    Enchantment {
+                        attack,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::GiveMinionStatsRushIfHeroPowerUsed { attack, health } => {
+            // Charred Chameleon (M1-W5) — the friendly minion target gains
+            // +N/+M and Rush only while the owner used their hero power
+            // this turn.
+            let hero = state.player(owner).hero;
+            if !state.world().hero_power_used(hero).is_some_and(|u| u.0) {
+                return;
+            }
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner);
+            let Some(target) = select_target(explicit_target, &minions, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().add_enchantment(
+                target,
+                Enchantment {
+                    attack,
+                    health,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+            state.world_mut().set_rush(target, Rush);
+        }
+        CardEffect::DrawIfImbuedTwice { count } => {
+            // Petal Picker (M1-W5) — draw while the owner has Imbued at
+            // least twice (the W1 Dreamweaver threshold pattern).
+            if state.player(owner).imbue_count >= 2 {
+                for _ in 0..count {
+                    draw_card(state, queue, owner);
+                }
+            }
+        }
+        CardEffect::DealDamageToAllEnemyMinions { damage } => {
+            // Avatar of Destruction (M1-W5) deathrattle — damage to every
+            // enemy minion (the hero is excluded).
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                damage,
+                EffectTarget::AllEnemyMinions,
+                None,
+            );
+        }
+        CardEffect::DiscoverWithDarkGiftCostReduction { reduction } => {
+            // Cremate (M1-W5) — a random minion to hand, given a random
+            // dark gift and costing the reduction less (Discover
+            // simplified to random, §14.5).
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            if let Some(added) = add_random_minion_to_hand(state, owner, candidates[idx]) {
+                let gift = random_dark_gift(state.rng_mut());
+                apply_dark_gift(state, added, gift, owner);
+                let world = state.world_mut();
+                let cur = world.effective_cost(added).unwrap_or(Cost(0));
+                world.set_cost(added, Cost((cur.0 - i32::from(reduction)).max(0)));
+            }
+        }
+        CardEffect::SummonBroodlingsIfHoldingGift => {
+            // Frostburn Matriarch (M1-W5) — while the owner holds a hand
+            // minion with a dark gift, summon two 4/4 Taunt Dragons.
+            if holding_minion_with_dark_gift(state, owner) {
+                for _ in 0..2 {
+                    let _ = resolve_summon(state, queue, source, owner, "FIR_901t");
+                }
+            }
+        }
+        CardEffect::FelfireBlazeTrigger { damage } => {
+            // Felfire Blaze (M1-W5) spell trigger — destroy this and deal
+            // damage to all enemies (the Fel-spell filter is unmodeled —
+            // any friendly spell triggers it, §14.5). The self-destroy
+            // follows the destroy convention: damage equal to its health
+            // routed through the death pipeline.
+            let hp = state.world().effective_health(source).unwrap_or(Health(1));
+            queue.push(Event::DamageDealt {
+                source,
+                target: source,
+                amount: hp.0.max(1),
+            });
+            for enemy in collect_all_enemy_characters(state, owner) {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: enemy,
+                    amount: damage,
+                });
+            }
+        }
+        CardEffect::BuffFriendlyMinionsDiscardBonus {
+            attack,
+            health,
+            bonus_attack,
+            bonus_health,
+        } => {
+            // Overheat (M1-W5) — all friendly minions +N/+M; discarding a
+            // random hand spell grants the bonus instead (the Nature-spell
+            // filter is unmodeled, §14.5).
+            let spells: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Spell))
+                .collect();
+            let discarded = if spells.is_empty() {
+                false
+            } else {
+                let idx = state.rng_mut().next_usize(spells.len());
+                let _ = state.world_mut().move_to_zone(spells[idx], Zone::Graveyard);
+                true
+            };
+            let (a, h) = if discarded {
+                (attack + bonus_attack, health + bonus_health)
+            } else {
+                (attack, health)
+            };
+            for m in collect_friendly_minions(state, owner) {
+                state.world_mut().add_enchantment(
+                    m,
+                    Enchantment {
+                        attack: a,
+                        health: h,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::AmirdrassilActivate => {
+            // Amirdrassil (M1-W5) location activation — summon a random
+            // 1-Cost minion, gain 1 Armor, draw a card and refresh 1 Mana
+            // (the "Improves each use!" escalation is unmodeled, §14.5).
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.cost == 1
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if !candidates.is_empty() {
+                let idx = state.rng_mut().next_usize(candidates.len());
+                let _ = resolve_summon(state, queue, source, owner, candidates[idx].id);
+            }
+            {
+                let inner = state.make_mut();
+                let p = &mut inner.players[owner.index()];
+                p.armor += 1;
+                // Refresh 1 Mana — a top-up capped at the current crystal count
+                p.current_mana = (p.current_mana + 1).min(p.mana_crystals);
+            }
+            draw_card(state, queue, owner);
+        }
+        CardEffect::InfernoHeraldTrigger { reduction } => {
+            // Inferno Herald (M1-W5) spell trigger — a random Elemental to
+            // hand, costing the reduction less (the Fire-spell filter is
+            // unmodeled, §14.5).
+            if let Some(def) = crate::cards::pool::random_card(
+                state.rng_mut(),
+                crate::core::effect::RandomPool::Elemental,
+            ) {
+                if let Some(added) = add_random_minion_to_hand(state, owner, def) {
+                    let world = state.world_mut();
+                    let cur = world.effective_cost(added).unwrap_or(Cost(0));
+                    world.set_cost(added, Cost((cur.0 - i32::from(reduction)).max(0)));
+                }
+            }
+        }
+        CardEffect::BuffMinionReturnIfSpellsCast {
+            attack,
+            health,
+            threshold,
+        } => {
+            // Light of the New Moon (M1-W5) — give a minion +N/+M; the
+            // return-to-hand counter is approximated by the player's spell
+            // total (the W4a Wish of the New Moon pattern — the current
+            // cast counts, §14.5). The returned card is a fresh copy; the
+            // Light of the Full Moon upgrade step is unmodeled.
+            let mut minions = collect_friendly_minions(state, owner);
+            minions.extend(collect_all_enemy_minions(state, owner));
+            let Some(target) = select_target(explicit_target, &minions, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().add_enchantment(
+                target,
+                Enchantment {
+                    attack,
+                    health,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+            if state.player(owner).spells_cast_total + 1 >= threshold {
+                if let Some(def) = crate::cards::def::card_by_id("FIR_918") {
+                    add_card_to_hand(state, owner, def);
+                }
+            }
+        }
+        CardEffect::GainWeaponAttackIfHoldingGift { amount } => {
+            // Cindersword (M1-W5) — the weapon gains Attack while the owner
+            // holds a hand minion with a dark gift.
+            if holding_minion_with_dark_gift(state, owner) {
+                resolve_buff_weapon(state, owner, amount, 0);
+            }
+        }
+        CardEffect::DamageRandomEnemyMinionHoldingCostGE {
+            base,
+            upgraded,
+            threshold,
+        } => {
+            // Flames of the Firelord (M1-W5) — damage to a random enemy
+            // minion, upgraded while the owner holds a card costing the
+            // threshold or more.
+            let holding = state.world().zones().iter(Zone::Hand, owner).any(|e| {
+                state
+                    .world()
+                    .effective_cost(e)
+                    .is_some_and(|c| c.0 >= threshold)
+            });
+            let damage = if holding { upgraded } else { base };
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                damage,
+                EffectTarget::AnyEnemyMinion,
+                None,
+            );
+        }
+        CardEffect::DiscoverComboBattlecryStealthWithDarkGift => {
+            // Smoke Bomb (M1-W5) — a random Combo, Battlecry or Stealth
+            // minion to hand, given a random dark gift (Discover
+            // simplified to random, §14.5).
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && (c.combo_effect.is_some() || c.battlecry.is_some() || c.stealth)
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            if let Some(added) = add_random_minion_to_hand(state, owner, candidates[idx]) {
+                let gift = random_dark_gift(state.rng_mut());
+                apply_dark_gift(state, added, gift, owner);
+            }
+        }
+        CardEffect::DiscoverDemonWithDarkGiftCopy => {
+            // Shadowflame Stalker (M1-W5) — a random Demon to hand, given a
+            // random dark gift, then "get a copy of it": a fresh copy
+            // carrying the SAME gift (Discover simplified to random, §14.5).
+            if let Some(def) = crate::cards::pool::random_card(
+                state.rng_mut(),
+                crate::core::effect::RandomPool::Demon,
+            ) {
+                if let Some(added) = add_random_minion_to_hand(state, owner, def) {
+                    let gift = random_dark_gift(state.rng_mut());
+                    apply_dark_gift(state, added, gift, owner);
+                    let hand_before = state.world().zones().len(Zone::Hand, owner);
+                    add_card_to_hand(state, owner, def);
+                    let hand: SmallList<Entity> =
+                        state.world().zones().iter(Zone::Hand, owner).collect();
+                    if let Some(&copy) = hand.iter().nth(hand_before) {
+                        apply_dark_gift(state, copy, gift, owner);
+                    }
+                }
+            }
+        }
+        CardEffect::DiscoverCostCardGainTempMana { cost, mana } => {
+            // Emberscarred Whelp (M1-W5) — a random card of the given Cost
+            // to hand (Discover simplified to random, §14.5) and Mana
+            // Crystals next turn only (a per-player flag spent at the
+            // ManaRefill step — the crystal_gain_pending precedent).
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.cost == i32::from(cost) && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if !candidates.is_empty() {
+                let idx = state.rng_mut().next_usize(candidates.len());
+                add_card_to_hand(state, owner, candidates[idx]);
+            }
+            let inner = state.make_mut();
+            inner.players[owner.index()].temp_mana_crystal_pending += i32::from(mana);
+        }
+        CardEffect::DamageAndDiscoverWarriorWithGift { damage } => {
+            // Shadowflame Suffusion (M1-W5) — damage to the target, then a
+            // random Warrior minion to hand, given a random dark gift
+            // (Discover simplified to random, §14.5).
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                damage,
+                EffectTarget::AnyEnemy,
+                explicit_target,
+            );
+            if let Some(def) = crate::cards::pool::random_card(
+                state.rng_mut(),
+                crate::core::effect::RandomPool::WarriorMinion,
+            ) {
+                if let Some(added) = add_random_minion_to_hand(state, owner, def) {
+                    let gift = random_dark_gift(state.rng_mut());
+                    apply_dark_gift(state, added, gift, owner);
+                }
+            }
+        }
+        CardEffect::ReduceHandCostIfAllDistinct { reduction } => {
+            // Zaqali Flamemancer (M1-W5) — when every hand card has a
+            // distinct Cost, all hand cards cost the reduction less.
+            let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, owner).collect();
+            if hand.is_empty() {
+                return;
+            }
+            let mut costs: Vec<i32> = hand
+                .iter()
+                .filter_map(|&e| state.world().effective_cost(e))
+                .map(|c| c.0)
+                .collect();
+            costs.sort_unstable();
+            if costs.windows(2).any(|w| w[0] == w[1]) {
+                return;
+            }
+            for e in hand {
+                let world = state.world_mut();
+                let cur = world.effective_cost(e).unwrap_or(Cost(0));
+                world.set_cost(e, Cost((cur.0 - i32::from(reduction)).max(0)));
+            }
+        }
+        CardEffect::DrawMinionSummonDivineShieldCopy => {
+            // Searing Reflection (M1-W5) — draw the first minion in the
+            // deck and summon an 8/8 copy of it with Divine Shield (the
+            // copy keeps the drawn card's identity with the FIR_941e1
+            // token's 8/8 stats; a full hand burns the draw per F-A11).
+            let minions: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            let Some(&drawn) = minions.iter().next() else {
+                return;
+            };
+            let hand_before = state.world().zones().len(Zone::Hand, owner);
+            let _ = state.world_mut().move_to_zone(drawn, Zone::Hand);
+            if state.world().zones().len(Zone::Hand, owner) > hand_before {
+                queue.push(Event::CardDrawn {
+                    player: owner,
+                    card: drawn,
+                });
+            }
+            let Some(def) = state
+                .world()
+                .card_id(drawn)
+                .and_then(|c| crate::cards::def::card_by_id(c.0))
+            else {
+                return;
+            };
+            if let Some(copy) = resolve_summon(state, queue, source, owner, def.id) {
+                let world = state.world_mut();
+                world.set_attack(copy, Attack(8));
+                world.set_health(copy, Health(8));
+                world.set_divine_shield(copy, DivineShield);
+            }
+        }
+        CardEffect::VolcorossBattlecry => {
+            // Volcoross (M1-W5) — spend 10/20/30 Corpses to gain that many
+            // stats; the real choose-one is simplified to the largest
+            // affordable option (§14.5).
+            let have = state.player(owner).corpses;
+            let spend = if have >= 30 {
+                30
+            } else if have >= 20 {
+                20
+            } else if have >= 10 {
+                10
+            } else {
+                return;
+            };
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].corpses -= spend;
+            }
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack: spend as i32,
+                    health: spend as i32,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::DiscoverSpellReduceHandSpells { reduction } => {
+            // Scorchreaver (M1-W5) — reduce every hand spell's Cost by the
+            // reduction, then add a random spell to hand, also reduced
+            // (the Fel-spell filter is unmodeled, §14.5).
+            let spells: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Spell))
+                .collect();
+            for e in &spells {
+                let world = state.world_mut();
+                let cur = world.effective_cost(*e).unwrap_or(Cost(0));
+                world.set_cost(*e, Cost((cur.0 - i32::from(reduction)).max(0)));
+            }
+            if let Some(def) = crate::cards::pool::random_card(
+                state.rng_mut(),
+                crate::core::effect::RandomPool::Spell,
+            ) {
+                let hand_before = state.world().zones().len(Zone::Hand, owner);
+                add_card_to_hand(state, owner, def);
+                let hand: SmallList<Entity> =
+                    state.world().zones().iter(Zone::Hand, owner).collect();
+                if let Some(&added) = hand.iter().nth(hand_before) {
+                    let world = state.world_mut();
+                    let cur = world.effective_cost(added).unwrap_or(Cost(0));
+                    world.set_cost(added, Cost((cur.0 - i32::from(reduction)).max(0)));
+                }
+            }
+        }
+        CardEffect::MagmaHoundSplash => {
+            // Magma Hound (M1-W5) — after this attacks a minion and
+            // survives, its Attack is dealt split among all enemies (the
+            // Augmented Porcupine ping pattern). The trigger fires at
+            // attack declaration (the W2 porcupine convention, §14.5) — the
+            // pings are queued before the trade damage resolves, so a Hound
+            // killed by the retaliation still splashes the pings queued at
+            // declaration. The survive check reads effective health at
+            // trigger time (the hound has not taken the trade damage yet).
+            if !state
+                .world()
+                .effective_health(source)
+                .is_some_and(|h| !h.is_dead())
+            {
+                return;
+            }
+            let atk = state
+                .world()
+                .effective_attack(source)
+                .unwrap_or(Attack(0))
+                .0;
+            if atk <= 0 {
+                return;
+            }
+            let enemies = collect_all_enemy_characters(state, owner);
+            if enemies.is_empty() {
+                return;
+            }
+            for _ in 0..atk {
+                let idx = state.rng_mut().next_usize(enemies.len());
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: enemies[idx],
+                    amount: 1,
+                });
+            }
+        }
+        CardEffect::DamageMinionOwnerDraws { damage } => {
+            // Conflagrate (M1-W5) — damage to a minion (either side); its
+            // owner draws a card.
+            let mut minions = collect_friendly_minions(state, owner);
+            minions.extend(collect_all_enemy_minions(state, owner));
+            let Some(target) = select_target(explicit_target, &minions, state.rng_mut()) else {
+                return;
+            };
+            queue.push(Event::DamageDealt {
+                source,
+                target,
+                amount: damage,
+            });
+            let target_owner = state.world().player(target).unwrap_or(owner);
+            draw_card(state, queue, target_owner);
+        }
+        CardEffect::DeathrattleDamageAllEnemiesTurnScaled { base, boosted } => {
+            // Tindral Sageswift (M1-W5) — damage to all enemy characters;
+            // the boosted amount while it is the opponent's turn.
+            let amount = if state.active_player() != owner {
+                boosted
+            } else {
+                base
+            };
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                amount,
+                EffectTarget::AllEnemies,
+                None,
+            );
+        }
+        CardEffect::DealDamageSplitAmongAllEnemies { amount } => {
+            // Sigil of Cinder (M1-W5) — the damage is dealt as random
+            // 1-damage pings across all enemy characters (the "start of
+            // your next turn" timing is simplified to immediate, §14.5).
+            let enemies = collect_all_enemy_characters(state, owner);
+            if enemies.is_empty() {
+                return;
+            }
+            for _ in 0..amount {
+                let idx = state.rng_mut().next_usize(enemies.len());
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: enemies[idx],
+                    amount: 1,
+                });
+            }
+        }
+        CardEffect::CopyLowestCostBeastInHand => {
+            // Tending Dragonkin (M1-W5) — add a copy of the lowest-Cost
+            // Beast in the hand (ties break toward hand order; a full hand
+            // creates nothing, F-A11).
+            let beasts: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| {
+                    state
+                        .world()
+                        .has_race(e, crate::core::component::Race::Beast)
+                })
+                .collect();
+            let Some(&lowest) = beasts
+                .iter()
+                .min_by_key(|&&e| state.world().effective_cost(e).map_or(0, |c| c.0))
+            else {
+                return;
+            };
+            copy_card_to_hand(state, lowest, owner);
+        }
+        CardEffect::GainDivineShieldLifestealIfHoldingSpellGE { cost } => {
+            // Ashleaf Pixie (M1-W5) — Divine Shield and Lifesteal while the
+            // owner holds a spell costing the threshold or more.
+            let holding = state.world().zones().iter(Zone::Hand, owner).any(|e| {
+                state.world().card_type(e) == Some(CardType::Spell)
+                    && state.world().effective_cost(e).is_some_and(|c| c.0 >= cost)
+            });
+            if holding {
+                state.world_mut().set_divine_shield(source, DivineShield);
+                state.world_mut().set_lifesteal(source, Lifesteal);
+            }
+        }
+        CardEffect::GainHeroAttackArmorIfHoldingGift { attack, armor } => {
+            // Dragon Turtle (M1-W5) — the hero gains Attack this turn and
+            // Armor while the owner holds a hand minion with a dark gift.
+            if holding_minion_with_dark_gift(state, owner) {
+                resolve_gain_hero_attack(state, owner, attack, armor);
+            }
+        }
+        CardEffect::DamageAndDiscardSpellMore { base, bonus } => {
+            // Scorching Winds (M1-W5) — damage to the target; a random hand
+            // spell is discarded for the bonus damage on the same target
+            // (the Fire-spell filter is unmodeled, §14.5).
+            let spells: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Spell))
+                .collect();
+            let total = if spells.is_empty() {
+                base
+            } else {
+                let idx = state.rng_mut().next_usize(spells.len());
+                let _ = state.world_mut().move_to_zone(spells[idx], Zone::Graveyard);
+                base + bonus
+            };
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                total,
+                EffectTarget::AnyEnemy,
+                explicit_target,
+            );
+        }
+        CardEffect::BuffAllHandMinions { attack, health } => {
+            // Keeper of Flame (M1-W5) — all hand minions gain +N/+M (the
+            // "destroyed in 3 turns" clause is unmodeled, §14.5).
+            let hand: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            for e in hand {
+                state.world_mut().add_enchantment(
+                    e,
+                    Enchantment {
+                        attack,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
     }
+}
+
+/// Whether the owner's hand holds a minion with a dark gift (Frostburn
+/// Matriarch, Cindersword, Dragon Turtle — M1-W5).
+fn holding_minion_with_dark_gift(state: &GameState, owner: PlayerId) -> bool {
+    state.world().zones().iter(Zone::Hand, owner).any(|e| {
+        state.world().card_type(e) == Some(CardType::Minion)
+            && state
+                .world()
+                .dark_gifts(e)
+                .is_some_and(|gifts| !gifts.is_empty())
+    })
 }
 
 /// True when the card definition belongs to no class (Neutral — Envoy of

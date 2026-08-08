@@ -163,6 +163,11 @@ pub struct Player {
     pub crystal_gain_pending: i32,
     /// Remaining Fractured Power ticks
     pub crystal_gain_turns: u8,
+    /// Temporary Mana Crystals granted "next turn only" (Emberscarred
+    /// Whelp, 2025–2026 expansions M1-W5): granted at the player's next
+    /// ManaRefill and spent at the same time (simplification of the real
+    /// "until the end of your next turn" timing, see §14.5).
+    pub temp_mana_crystal_pending: i32,
     /// Minion card IDs played this game (2025–2026 expansions M1-W4a):
     /// Twisted Webweaver's "another minion you've already played" log.
     /// `String` (not `&'static str`) so the player state stays (de)serializable.
@@ -235,6 +240,7 @@ impl Player {
             self_damage_turns: 0,
             crystal_gain_pending: 0,
             crystal_gain_turns: 0,
+            temp_mana_crystal_pending: 0,
             played_minion_ids: Vec::new(),
             omen_attacks: 0,
             spells_cast_twice_pending: 0,

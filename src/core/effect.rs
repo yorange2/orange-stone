@@ -1922,6 +1922,203 @@ pub enum CardEffect {
     /// Your cards cost (1) this game (Aviana — the three-turn lunar cycle
     /// is simplified to an immediate effect, §14.4)
     CardsCostOneThisGame,
+    /// Gain +Attack/+Health when the owner used their Hero Power this turn
+    /// (Spirit of the Kaldorei — 2025–2026 expansions M1-W5; buffs the
+    /// source itself)
+    GainStatsIfHeroPowerUsed {
+        /// Attack gained
+        attack: i32,
+        /// Health gained
+        health: i32,
+    },
+    /// Give a friendly minion +Attack/+Health and Rush when the owner used
+    /// their Hero Power this turn (Charred Chameleon — M1-W5)
+    GiveMinionStatsRushIfHeroPowerUsed {
+        /// Attack gained
+        attack: i32,
+        /// Health gained
+        health: i32,
+    },
+    /// Draw N cards when the owner has Imbued their Hero Power at least
+    /// twice (Petal Picker — M1-W5; the W1 DealDamageIfImbuedTwice
+    /// threshold pattern)
+    DrawIfImbuedTwice {
+        /// Cards drawn
+        count: u32,
+    },
+    /// Deal N damage to ALL enemy minions (Avatar of Destruction's
+    /// deathrattle and Smoldering Ascent — M1-W5)
+    DealDamageToAllEnemyMinions {
+        /// Damage to each enemy minion
+        damage: i32,
+    },
+    /// Add a random qualifying minion to the hand with a random dark gift,
+    /// then reduce its Cost by `reduction` (Cremate — M1-W5, the
+    /// Discover→random simplification)
+    DiscoverWithDarkGiftCostReduction {
+        /// Cost reduction on the added minion
+        reduction: u8,
+    },
+    /// Summon two 4/4 Dragon Broodlings with Taunt while the owner holds a
+    /// minion with a dark gift (Frostburn Matriarch — M1-W5)
+    SummonBroodlingsIfHoldingGift,
+    /// Destroy this and deal N damage to all enemies (Felfire Blaze — the
+    /// Fel-spell filter is unmodeled: fires on ANY friendly spell cast,
+    /// §14.5)
+    FelfireBlazeTrigger {
+        /// Damage to all enemies
+        damage: i32,
+    },
+    /// Give all friendly minions +A/+H, then discard a random hand spell
+    /// for an extra +A2/+H2 (Overheat — the Nature-spell filter is
+    /// unmodeled, §14.5)
+    BuffFriendlyMinionsDiscardBonus {
+        /// Base attack gained
+        attack: i32,
+        /// Base health gained
+        health: i32,
+        /// Bonus attack gained on the discard
+        bonus_attack: i32,
+        /// Bonus health gained on the discard
+        bonus_health: i32,
+    },
+    /// Summon a random 1-Cost minion, gain 1 Armor, draw 1 card and refresh
+    /// 1 Mana (Amirdrassil — the "Improves each use" escalation is
+    /// unmodeled, the fixed effect applies every use, §14.5)
+    AmirdrassilActivate,
+    /// Get a random Elemental and reduce its Cost by `reduction`
+    /// (Inferno Herald — the Fire-spell filter is unmodeled: fires on ANY
+    /// friendly spell cast, §14.5)
+    InfernoHeraldTrigger {
+        /// Cost reduction on the added Elemental
+        reduction: u8,
+    },
+    /// Give a minion +A/+H; once the owner has cast `threshold` spells, add
+    /// a Light of the New Moon back to hand (the official per-play
+    /// counter is approximated by the player spell total, §14.5)
+    BuffMinionReturnIfSpellsCast {
+        /// Attack gained
+        attack: i32,
+        /// Health gained
+        health: i32,
+        /// Spell-cast threshold for the return
+        threshold: u32,
+    },
+    /// The equipped weapon gains +N Attack while the owner holds a minion
+    /// with a dark gift (Cindersword — M1-W5)
+    GainWeaponAttackIfHoldingGift {
+        /// Attack gained
+        amount: i32,
+    },
+    /// Deal `base` damage to a random enemy minion, or `upgraded` while the
+    /// owner holds a card costing at least the threshold (Flames of the
+    /// Firelord — M1-W5)
+    DamageRandomEnemyMinionHoldingCostGE {
+        /// Base damage
+        base: i32,
+        /// Upgraded damage
+        upgraded: i32,
+        /// Cost threshold for the upgrade
+        threshold: i32,
+    },
+    /// Add a random Combo/Battlecry/Stealth minion with a random dark gift
+    /// to the hand (Smoke Bomb — the Discover→random simplification, §14.5)
+    DiscoverComboBattlecryStealthWithDarkGift,
+    /// Add a random Demon with a random dark gift to the hand, then a copy
+    /// of it (Shadowflame Stalker — the Discover→random simplification,
+    /// §14.5)
+    DiscoverDemonWithDarkGiftCopy,
+    /// Add a random card of the Cost to the hand and set a temporary mana
+    /// crystal for the owner's next turn only (Emberscarred Whelp — M1-W5)
+    DiscoverCostCardGainTempMana {
+        /// Cost of the discovered card
+        cost: u8,
+        /// Temporary mana crystals for the next turn
+        mana: u8,
+    },
+    /// Deal N damage (the explicit target or a random enemy) and add a
+    /// random Warrior minion with a random dark gift to the hand
+    /// (Shadowflame Suffusion — M1-W5, the Discover→random simplification)
+    DamageAndDiscoverWarriorWithGift {
+        /// Damage dealt
+        damage: i32,
+    },
+    /// Reduce the Cost of every hand card by `reduction` while all hand
+    /// cards cost differently (Zaqali Flamemancer — M1-W5)
+    ReduceHandCostIfAllDistinct {
+        /// Cost reduction
+        reduction: u8,
+    },
+    /// Draw a minion (deck scan) and summon an 8/8 copy of it with Divine
+    /// Shield (Searing Reflection — the tutor is a first-match scan, §14.5)
+    DrawMinionSummonDivineShieldCopy,
+    /// Spend the largest affordable 10/20/30 Corpses to gain that many
+    /// stats on this minion (Volcoross — the 3-way choose is unmodeled:
+    /// the largest affordable option is picked automatically, §14.5)
+    VolcorossBattlecry,
+    /// Add a random spell to the hand and reduce the Cost of every hand
+    /// spell by `reduction` (Scorchreaver — the Fel-spell filter is
+    /// unmodeled, §14.5)
+    DiscoverSpellReduceHandSpells {
+        /// Cost reduction on hand spells
+        reduction: u8,
+    },
+    /// Deal this minion's Attack damage split among all enemies after it
+    /// attacks a minion and survives (Magma Hound — M1-W5)
+    MagmaHoundSplash,
+    /// Deal N damage to a minion; its owner draws a card (Conflagrate —
+    /// M1-W5)
+    DamageMinionOwnerDraws {
+        /// Damage dealt
+        damage: i32,
+    },
+    /// Deal `base` damage to all enemies, or `boosted` when it is the
+    /// opponent's turn (Tindral Sageswift's deathrattle — M1-W5)
+    DeathrattleDamageAllEnemiesTurnScaled {
+        /// Damage on the owner's turn
+        base: i32,
+        /// Damage on the opponent's turn
+        boosted: i32,
+    },
+    /// Deal N damage randomly split among all enemies — N independent
+    /// 1-damage pings (Fyrakk's "cast 15 Mana worth of Fire spells" is
+    /// approximated as 15 split damage, §14.5)
+    DealDamageSplitAmongAllEnemies {
+        /// Total damage dealt as 1-damage pings
+        amount: i32,
+    },
+    /// Copy the lowest-Cost Beast in the hand (Tending Dragonkin — M1-W5)
+    CopyLowestCostBeastInHand,
+    /// Gain Divine Shield and Lifesteal while the owner holds a spell
+    /// costing at least the threshold (Ashleaf Pixie — M1-W5)
+    GainDivineShieldLifestealIfHoldingSpellGE {
+        /// Cost threshold of the held spell
+        cost: i32,
+    },
+    /// Give the hero +N Attack this turn and M Armor while the owner holds
+    /// a minion with a dark gift (Dragon Turtle — M1-W5)
+    GainHeroAttackArmorIfHoldingGift {
+        /// Hero Attack gained this turn
+        attack: i32,
+        /// Armor gained
+        armor: i32,
+    },
+    /// Deal N damage, then discard a random hand spell to deal N more
+    /// (Scorching Winds — the Fire-spell filter is unmodeled, §14.5)
+    DamageAndDiscardSpellMore {
+        /// Base damage
+        base: i32,
+        /// Bonus damage on the discard
+        bonus: i32,
+    },
+    /// Give all minions in the hand +N/+M (Keeper of Flame — M1-W5; the
+    /// "destroyed in 3 turns" clause is unmodeled, §14.5)
+    BuffAllHandMinions {
+        /// Attack increase
+        attack: i32,
+        /// Health increase
+        health: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -2772,6 +2969,94 @@ enum CardEffectDe {
     SummonRandomAnimalCompanion,
     AddAllDreamCards,
     CardsCostOneThisGame,
+    GainStatsIfHeroPowerUsed {
+        attack: i32,
+        health: i32,
+    },
+    GiveMinionStatsRushIfHeroPowerUsed {
+        attack: i32,
+        health: i32,
+    },
+    DrawIfImbuedTwice {
+        count: u32,
+    },
+    DealDamageToAllEnemyMinions {
+        damage: i32,
+    },
+    DiscoverWithDarkGiftCostReduction {
+        reduction: u8,
+    },
+    SummonBroodlingsIfHoldingGift,
+    FelfireBlazeTrigger {
+        damage: i32,
+    },
+    BuffFriendlyMinionsDiscardBonus {
+        attack: i32,
+        health: i32,
+        bonus_attack: i32,
+        bonus_health: i32,
+    },
+    AmirdrassilActivate,
+    InfernoHeraldTrigger {
+        reduction: u8,
+    },
+    BuffMinionReturnIfSpellsCast {
+        attack: i32,
+        health: i32,
+        threshold: u32,
+    },
+    GainWeaponAttackIfHoldingGift {
+        amount: i32,
+    },
+    DamageRandomEnemyMinionHoldingCostGE {
+        base: i32,
+        upgraded: i32,
+        threshold: i32,
+    },
+    DiscoverComboBattlecryStealthWithDarkGift,
+    DiscoverDemonWithDarkGiftCopy,
+    DiscoverCostCardGainTempMana {
+        cost: u8,
+        mana: u8,
+    },
+    DamageAndDiscoverWarriorWithGift {
+        damage: i32,
+    },
+    ReduceHandCostIfAllDistinct {
+        reduction: u8,
+    },
+    DrawMinionSummonDivineShieldCopy,
+    VolcorossBattlecry,
+    DiscoverSpellReduceHandSpells {
+        reduction: u8,
+    },
+    MagmaHoundSplash,
+    DamageMinionOwnerDraws {
+        damage: i32,
+    },
+    DeathrattleDamageAllEnemiesTurnScaled {
+        base: i32,
+        boosted: i32,
+    },
+    DealDamageSplitAmongAllEnemies {
+        amount: i32,
+    },
+    CopyLowestCostBeastInHand,
+    GainDivineShieldLifestealIfHoldingSpellGE {
+        cost: i32,
+    },
+    GainHeroAttackArmorIfHoldingGift {
+        attack: i32,
+        armor: i32,
+    },
+    DamageAndDiscardSpellMore {
+        base: i32,
+        bonus: i32,
+    },
+    BuffAllHandMinions {
+        attack: i32,
+        health: i32,
+    },
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -3669,6 +3954,106 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::SummonRandomAnimalCompanion => CardEffect::SummonRandomAnimalCompanion,
             CardEffectDe::AddAllDreamCards => CardEffect::AddAllDreamCards,
             CardEffectDe::CardsCostOneThisGame => CardEffect::CardsCostOneThisGame,
+            CardEffectDe::GainStatsIfHeroPowerUsed { attack, health } => {
+                CardEffect::GainStatsIfHeroPowerUsed { attack, health }
+            }
+            CardEffectDe::GiveMinionStatsRushIfHeroPowerUsed { attack, health } => {
+                CardEffect::GiveMinionStatsRushIfHeroPowerUsed { attack, health }
+            }
+            CardEffectDe::DrawIfImbuedTwice { count } => CardEffect::DrawIfImbuedTwice { count },
+            CardEffectDe::DealDamageToAllEnemyMinions { damage } => {
+                CardEffect::DealDamageToAllEnemyMinions { damage }
+            }
+            CardEffectDe::DiscoverWithDarkGiftCostReduction { reduction } => {
+                CardEffect::DiscoverWithDarkGiftCostReduction { reduction }
+            }
+            CardEffectDe::SummonBroodlingsIfHoldingGift => {
+                CardEffect::SummonBroodlingsIfHoldingGift
+            }
+            CardEffectDe::FelfireBlazeTrigger { damage } => {
+                CardEffect::FelfireBlazeTrigger { damage }
+            }
+            CardEffectDe::BuffFriendlyMinionsDiscardBonus {
+                attack,
+                health,
+                bonus_attack,
+                bonus_health,
+            } => CardEffect::BuffFriendlyMinionsDiscardBonus {
+                attack,
+                health,
+                bonus_attack,
+                bonus_health,
+            },
+            CardEffectDe::AmirdrassilActivate => CardEffect::AmirdrassilActivate,
+            CardEffectDe::InfernoHeraldTrigger { reduction } => {
+                CardEffect::InfernoHeraldTrigger { reduction }
+            }
+            CardEffectDe::BuffMinionReturnIfSpellsCast {
+                attack,
+                health,
+                threshold,
+            } => CardEffect::BuffMinionReturnIfSpellsCast {
+                attack,
+                health,
+                threshold,
+            },
+            CardEffectDe::GainWeaponAttackIfHoldingGift { amount } => {
+                CardEffect::GainWeaponAttackIfHoldingGift { amount }
+            }
+            CardEffectDe::DamageRandomEnemyMinionHoldingCostGE {
+                base,
+                upgraded,
+                threshold,
+            } => CardEffect::DamageRandomEnemyMinionHoldingCostGE {
+                base,
+                upgraded,
+                threshold,
+            },
+            CardEffectDe::DiscoverComboBattlecryStealthWithDarkGift => {
+                CardEffect::DiscoverComboBattlecryStealthWithDarkGift
+            }
+            CardEffectDe::DiscoverDemonWithDarkGiftCopy => {
+                CardEffect::DiscoverDemonWithDarkGiftCopy
+            }
+            CardEffectDe::DiscoverCostCardGainTempMana { cost, mana } => {
+                CardEffect::DiscoverCostCardGainTempMana { cost, mana }
+            }
+            CardEffectDe::DamageAndDiscoverWarriorWithGift { damage } => {
+                CardEffect::DamageAndDiscoverWarriorWithGift { damage }
+            }
+            CardEffectDe::ReduceHandCostIfAllDistinct { reduction } => {
+                CardEffect::ReduceHandCostIfAllDistinct { reduction }
+            }
+            CardEffectDe::DrawMinionSummonDivineShieldCopy => {
+                CardEffect::DrawMinionSummonDivineShieldCopy
+            }
+            CardEffectDe::VolcorossBattlecry => CardEffect::VolcorossBattlecry,
+            CardEffectDe::DiscoverSpellReduceHandSpells { reduction } => {
+                CardEffect::DiscoverSpellReduceHandSpells { reduction }
+            }
+            CardEffectDe::MagmaHoundSplash => CardEffect::MagmaHoundSplash,
+            CardEffectDe::DamageMinionOwnerDraws { damage } => {
+                CardEffect::DamageMinionOwnerDraws { damage }
+            }
+            CardEffectDe::DeathrattleDamageAllEnemiesTurnScaled { base, boosted } => {
+                CardEffect::DeathrattleDamageAllEnemiesTurnScaled { base, boosted }
+            }
+            CardEffectDe::DealDamageSplitAmongAllEnemies { amount } => {
+                CardEffect::DealDamageSplitAmongAllEnemies { amount }
+            }
+            CardEffectDe::CopyLowestCostBeastInHand => CardEffect::CopyLowestCostBeastInHand,
+            CardEffectDe::GainDivineShieldLifestealIfHoldingSpellGE { cost } => {
+                CardEffect::GainDivineShieldLifestealIfHoldingSpellGE { cost }
+            }
+            CardEffectDe::GainHeroAttackArmorIfHoldingGift { attack, armor } => {
+                CardEffect::GainHeroAttackArmorIfHoldingGift { attack, armor }
+            }
+            CardEffectDe::DamageAndDiscardSpellMore { base, bonus } => {
+                CardEffect::DamageAndDiscardSpellMore { base, bonus }
+            }
+            CardEffectDe::BuffAllHandMinions { attack, health } => {
+                CardEffect::BuffAllHandMinions { attack, health }
+            }
         })
     }
 }
@@ -3971,4 +4356,9 @@ pub enum RandomPool {
     OtherClassChooseOne,
     /// A random Murloc (Gnawing Greenfin — 2025–2026 expansions M1-W4a)
     Murloc,
+    /// A random Elemental (Inferno Herald — 2025–2026 expansions M1-W5)
+    Elemental,
+    /// A random Warrior minion (Shadowflame Suffusion — 2025–2026
+    /// expansions M1-W5; the class filter is the MageSpell precedent)
+    WarriorMinion,
 }

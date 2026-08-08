@@ -153,6 +153,7 @@ pub use super::exp_edr_w2::*;
 pub use super::exp_edr_w3::*;
 pub use super::exp_edr_w4a::*;
 pub use super::exp_edr_w4b::*;
+pub use super::exp_edr_w5::*;
 
 /// Look up a card definition by card ID — the handwritten pool first, then
 /// the handwritten 2025–2026 expansion cards (the M1+ effect waves override
