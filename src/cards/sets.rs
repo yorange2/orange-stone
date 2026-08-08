@@ -1885,6 +1885,33 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_edr_w5::ASHLEAF_PIXIE,
     // M1-W5 tokens (handwritten only — no generated baselines)
     super::exp_edr_w5::FROSTBURN_BROODLING,
+    // M2-W2 — the Un'Goro quest wave (src/cards/exp_tlc_w2.rs): the 11
+    // quest cards shadow their generated baselines (plain 1-cost SPELLs —
+    // the play path diverts them to the quest zone, see cards/quest.rs)
+    super::exp_tlc_w2::SPIRIT_OF_THE_MOUNTAIN,
+    super::exp_tlc_w2::RESTORE_THE_WILD,
+    super::exp_tlc_w2::DIVE_THE_GOLAKKA_DEPTHS,
+    super::exp_tlc_w2::REANIMATE_THE_TERROR,
+    super::exp_tlc_w2::ESCAPE_THE_UNDERFEL,
+    super::exp_tlc_w2::THE_FORBIDDEN_SEQUENCE,
+    super::exp_tlc_w2::LIE_IN_WAIT,
+    super::exp_tlc_w2::ENTER_THE_LOST_CITY,
+    super::exp_tlc_w2::UNLEASH_THE_COLOSSUS,
+    super::exp_tlc_w2::REACH_EQUILIBRIUM,
+    super::exp_tlc_w2::THE_FOOD_CHAIN,
+    // M2-W2 tokens (handwritten only — no generated baselines)
+    super::exp_tlc_w2::ASHALON_RIDGE_GUARDIAN,
+    super::exp_tlc_w2::THE_EVERBLOOM,
+    super::exp_tlc_w2::TYRAX_BONE_TERROR,
+    super::exp_tlc_w2::UNDERFEL_RIFT,
+    super::exp_tlc_w2::THE_ORIGIN_STONE,
+    super::exp_tlc_w2::MASTER_DUSK,
+    super::exp_tlc_w2::TORTOLLAN_NINJA,
+    super::exp_tlc_w2::LATORVIUS_GAZE_OF_THE_CITY,
+    super::exp_tlc_w2::GORISHI_COLOSSUS,
+    super::exp_tlc_w2::SOLETOS_LIFES_BREATH,
+    super::exp_tlc_w2::SOLETOS_DEATHS_TOUCH,
+    super::exp_tlc_w2::SHOKK_JUNGLE_TYRANT,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated

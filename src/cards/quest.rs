@@ -90,10 +90,9 @@ pub enum QuestCondition {
     },
     /// Spend 15 Corpses (TLC_433)
     SpendCorpses,
-    /// Play 6 Temporary cards (TLC_446) — no call site in W1: the
-    /// Temporary keyword does not exist in the engine yet (W2/W4
-    /// introduce it). The variant exists so the full condition set is
-    /// defined; W2 wires the call site.
+    /// Play 6 Temporary cards (TLC_446) — wired in W2: the play path fires
+    /// it when a played card carries the Temporary marker (the W2
+    /// primitive; W4 cards create the markers).
     PlayTemporaryCards,
     /// Discover 7 cards (TLC_460)
     DiscoverCards,
@@ -122,11 +121,29 @@ pub struct QuestDef {
     pub condition: QuestCondition,
     /// Progress needed to complete the quest
     pub target: u32,
-    /// Reward resolved on completion (battlecry-style resolution; token
-    /// CardDefs land in W2, so unregistered reward IDs no-op gracefully)
+    /// Reward resolved on completion (battlecry-style resolution)
     pub reward: CardEffect,
     /// Repeatable quests reset to 0 on completion and stay in the slot
     pub repeatable: bool,
+    /// Optional second progress bar (TLC_817, M2-W2): `None` for every
+    /// single-bar quest. When present, each bar progresses independently
+    /// (each condition matches its own bar) and its reward resolves at its
+    /// own target; the card leaves the quest slot only when BOTH bars are
+    /// done.
+    pub second: Option<SecondQuestDef>,
+}
+
+/// The optional second progress bar of a dual-bar quest (TLC_817 Reach
+/// Equilibrium, 2025–2026 expansions M2-W2 — cast 4 Holy spells AND 4
+/// Shadow spells). Not repeatable.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SecondQuestDef {
+    /// The second bar's progress condition
+    pub condition: QuestCondition,
+    /// Progress needed to complete the second bar
+    pub target: u32,
+    /// Reward resolved when the second bar completes
+    pub reward: CardEffect,
 }
 
 /// Look up the quest definition of a card id.
@@ -141,101 +158,119 @@ pub fn quest_def(card_id: &str) -> Option<&'static QuestDef> {
             condition: QuestCondition::PlayMinionsOfUniqueTypes,
             target: 6,
             reward: CardEffect::SummonMinion {
-                card_id: "TLC_229t14", // Ashalon, Ridge Guardian (W2)
+                card_id: "TLC_229t14", // Ashalon, Ridge Guardian
             },
             repeatable: false,
+            second: None,
         }),
         "TLC_239" => Some(&QuestDef {
             condition: QuestCondition::FillBoardOnTurns,
             target: 3,
             reward: CardEffect::EquipWeapon {
-                card_id: "TLC_239t", // The Everbloom (W2)
+                card_id: "TLC_239t", // The Everbloom
             },
             repeatable: false,
+            second: None,
         }),
         "TLC_426" => Some(&QuestDef {
             condition: QuestCondition::SummonMinionsOfRace { race: Race::Murloc },
             target: 6,
-            // W2: pin the permanent "Murlocs you summon gain +1/+1" passive
-            // — no existing effect expresses it, so the reward is a no-op
-            // placeholder (unregistered id) until the passive lands.
-            reward: CardEffect::SummonMinion {
-                card_id: "TLC_426_W2_PASSIVE",
-            },
+            // The repeatable reward: permanently, Murlocs the owner summons
+            // gain +1/+1 (the player flag consumed by the summon hook).
+            reward: CardEffect::SetMurlocSummonBuff,
             repeatable: true,
+            second: None,
         }),
         "TLC_433" => Some(&QuestDef {
             condition: QuestCondition::SpendCorpses,
             target: 15,
             reward: CardEffect::SummonMinion {
-                card_id: "TLC_433t", // Tyrax, Bone Terror (W2)
+                card_id: "TLC_433t", // Tyrax, Bone Terror
             },
             repeatable: false,
+            second: None,
         }),
         "TLC_446" => Some(&QuestDef {
             condition: QuestCondition::PlayTemporaryCards,
             target: 6,
             reward: CardEffect::SummonMinion {
-                card_id: "TLC_446t1", // Underfel Rift (W2)
+                card_id: "TLC_446t1", // Underfel Rift
             },
             repeatable: false,
+            second: None,
         }),
         "TLC_460" => Some(&QuestDef {
             condition: QuestCondition::DiscoverCards,
             target: 7,
             reward: CardEffect::EquipWeapon {
-                card_id: "TLC_460t", // The Origin Stone (W2)
+                card_id: "TLC_460t", // The Origin Stone
             },
             repeatable: false,
+            second: None,
         }),
         "TLC_513" => Some(&QuestDef {
             condition: QuestCondition::ShuffleCards,
             target: 5,
-            // W2: hero replacement — no hero-replace effect exists yet; the
-            // reward is a no-op placeholder (unregistered id) until W2 adds
-            // the effect. A SummonMinion-shaped placeholder is safe: it
-            // resolves via `card_by_id` and no-ops for unregistered ids.
-            reward: CardEffect::SummonMinion {
-                card_id: "TLC_513_W2_HERO",
+            // The official reward replaces the hero with TLC_513t Master
+            // Dusk — hero replacement is simplified away (§15): the reward
+            // summons the two Tortollan Ninjas (TLC_513t2) directly.
+            reward: CardEffect::SummonMultipleMinions {
+                card_id: "TLC_513t2",
+                count: 2,
             },
             repeatable: false,
+            second: None,
         }),
         "TLC_602" => Some(&QuestDef {
             condition: QuestCondition::SurviveTurns,
             target: 10,
             reward: CardEffect::SummonMinion {
-                card_id: "TLC_602t", // Latorvius, Gaze of the City (W2)
+                card_id: "TLC_602t", // Latorvius, Gaze of the City
             },
             repeatable: false,
+            second: None,
         }),
         "TLC_631" => Some(&QuestDef {
             condition: QuestCondition::DealExactDamage { amount: 2 },
             target: 12,
             reward: CardEffect::SummonMinion {
-                card_id: "TLC_631t", // Gorishi Colossus (W2)
+                card_id: "TLC_631t", // Gorishi Colossus
             },
             repeatable: false,
+            second: None,
         }),
-        // The W1 entry covers the first quest (Holy, reward TLC_817t3);
-        // W2 wires the second (Shadow, reward TLC_817t4) bar — the official
-        // card tracks both quests on one card.
+        // The dual-bar quest (M2-W2): the official card tracks both quests
+        // on one card — cast 4 Holy spells (reward TLC_817t3 Sol'etos,
+        // Life's Breath) AND 4 Shadow spells (reward TLC_817t4 Sol'etos,
+        // Death's Touch); the card leaves the quest slot only when both
+        // bars complete.
         "TLC_817" => Some(&QuestDef {
             condition: QuestCondition::CastSpellsOfSchool {
                 school: SpellSchool::Holy,
             },
             target: 4,
             reward: CardEffect::SummonMinion {
-                card_id: "TLC_817t3", // Sol'etos, Life's Breath (W2)
+                card_id: "TLC_817t3", // Sol'etos, Life's Breath
             },
             repeatable: false,
+            second: Some(SecondQuestDef {
+                condition: QuestCondition::CastSpellsOfSchool {
+                    school: SpellSchool::Shadow,
+                },
+                target: 4,
+                reward: CardEffect::SummonMinion {
+                    card_id: "TLC_817t4", // Sol'etos, Death's Touch
+                },
+            }),
         }),
         "TLC_830" => Some(&QuestDef {
             condition: QuestCondition::PlayBeastsOfAttack,
             target: 4,
             reward: CardEffect::SummonMinion {
-                card_id: "TLC_830t", // Shokk, Jungle Tyrant (W2)
+                card_id: "TLC_830t", // Shokk, Jungle Tyrant
             },
             repeatable: false,
+            second: None,
         }),
         _ => None,
     }

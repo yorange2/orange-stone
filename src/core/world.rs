@@ -14,8 +14,8 @@ use crate::core::component::{
     Charge, ChooseOneEffect, ComboEffect, Cost, CostModifier, CostModifierKind, Damage,
     DarkGiftKind, Deathrattle, DivineShield, Durability, Elusive, Enchantment, Enrage, Freeze,
     Health, HeroPowerDef, HeroPowerUsed, Immune, Lifesteal, OutcastPlayed, Overload, Poison, Quest,
-    Race, Reborn, Rush, Secret, SpellDamage, Stealth, SummonedThisTurn, Taunt, Tradeable, Trigger,
-    Windfury,
+    Race, Reborn, Rush, Secret, SpellDamage, Stealth, SummonedThisTurn, Taunt, Temporary,
+    Tradeable, Trigger, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -184,6 +184,10 @@ pub struct World {
     /// Quest component storage (2025–2026 expansions M2-W1) — progress state
     /// of quest cards sitting in `Zone::Quest`.
     quest: SparseSet<Quest>,
+    /// Temporary marker storage (2025–2026 expansions M2-W2) — hand cards
+    /// carrying the Temporary keyword (discarded at the end of the owner's
+    /// turn; plays progress the TLC_446 quest).
+    temporary: SparseSet<Temporary>,
     /// Zone table — ordered entity lists per Zone
     zones: Zones,
 }
@@ -310,6 +314,7 @@ impl World {
             overload: SparseSet::new(),
             dark_gifts: SparseSet::new(),
             quest: SparseSet::new(),
+            temporary: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -392,6 +397,7 @@ impl World {
         self.overload.remove(entity);
         self.dark_gifts.remove(entity);
         self.quest.remove(entity);
+        self.temporary.remove(entity);
         // Bump the generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // Return the slot
@@ -926,6 +932,14 @@ impl World {
         iter_overload
     );
     component_accessors!(quest, Quest, quest, set_quest, remove_quest, iter_quest);
+    component_accessors!(
+        temporary,
+        Temporary,
+        temporary,
+        set_temporary,
+        remove_temporary,
+        iter_temporary
+    );
     /// Get the tribes of an entity (empty for tribe-less minions).
     #[must_use]
     pub fn race(&self, entity: Entity) -> Option<&[Race]> {

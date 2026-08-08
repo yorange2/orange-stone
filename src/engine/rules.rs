@@ -954,6 +954,20 @@ pub fn apply_event(
 
             // Detect combo: another card was played this turn (cards_played > 1 because it was just incremented)
             let combo_active = state.player(player).cards_played_this_turn > 1;
+            // Quest progress (M2-W2): TLC_446 — "Play 6 Temporary cards" —
+            // a played card carrying the Temporary marker counts for its
+            // owner. No W2 card creates Temporary cards (the creators are
+            // W4); the F5 scenarios inject the marker directly.
+            if state.world().temporary(card).is_some() {
+                crate::engine::quest::progress(
+                    state,
+                    queue,
+                    player,
+                    crate::cards::quest::QuestCondition::PlayTemporaryCards,
+                    1,
+                    None,
+                );
+            }
             // Quest card (2025–2026 expansions M2-W1): quests are 1-cost
             // legendary spells played into the per-player quest slot instead
             // of the spell path — no move-to-Play, no secret handling, no
@@ -984,6 +998,15 @@ pub fn apply_event(
                         target: qdef.target,
                         repeatable: qdef.repeatable,
                         markers: Vec::new(),
+                        // M2-W2: dual-bar quests (TLC_817) mirror their
+                        // second bar in the component state.
+                        second: qdef
+                            .second
+                            .map(|s| crate::core::component::QuestSecondState {
+                                progress: 0,
+                                target: s.target,
+                                markers: Vec::new(),
+                            }),
                     },
                 );
             } else if card_type == Some(CardType::Spell) {
@@ -1442,6 +1465,26 @@ pub fn apply_event(
                     None,
                 );
             }
+            // M2-W2 (TLC_426 — Dive the Golakka Depths): the repeatable
+            // quest's permanent "Murlocs you summon gain +1/+1". The flag
+            // is set by the quest reward; every friendly Murloc summon
+            // while it is active arrives with a +1/+1 enchantment (the
+            // MinionSummoned event is the single funnel for ALL summons).
+            if state.player(player).murloc_summon_buff
+                && state
+                    .world()
+                    .has_race(minion, crate::core::component::Race::Murloc)
+            {
+                state.world_mut().add_enchantment(
+                    minion,
+                    crate::core::component::Enchantment {
+                        attack: 1,
+                        health: 1,
+                        cost: 0,
+                        expiry: crate::core::component::EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
             // Summoning sickness: minions without charge cannot attack this
             // turn (a Charge aura — Tundra Rhino — counts as charge). Rush
             // (Core Set W1) also skips sickness — it can attack enemy MINIONS
@@ -1836,11 +1879,31 @@ pub fn apply_event(
                         .iter(Zone::Play, pid)
                         .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_480"))
             });
-            let amount = if goldrinn_doubling {
+            let mut amount = if goldrinn_doubling {
                 amount * 2
             } else {
                 amount
             };
+            // M2-W2 (TLC_631t Gorishi Colossus): the battlecry's permanent
+            // "whenever you deal exactly 2 damage to an enemy, deal 2 more".
+            // The flag is set by the quest reward's battlecry (fired when
+            // the reward-summoned Gorishi resolves); the hook reuses the
+            // DealExactDamage quest call site above. The bonus is applied
+            // in-place (the Goldrinn pattern above) — an extra DamageDealt
+            // event would re-enter this handler and recurse. The check runs
+            // on the amount after Goldrinn doubling: the amount the target
+            // actually takes is what the "exactly 2" refers to.
+            if let Some(src_owner) = state.world().player(source) {
+                if state.player(src_owner).deal_exact_2_bonus
+                    && amount == 2
+                    && state
+                        .world()
+                        .player(target)
+                        .is_some_and(|owner| owner != src_owner)
+                {
+                    amount += 2;
+                }
+            }
             // Divine shield absorbs: if the target has a divine shield, remove it and zero the damage
             if state.world().divine_shield(target).is_some() {
                 state.world_mut().remove_divine_shield(target);
@@ -2740,6 +2803,25 @@ fn wrap_up_turn(state: &mut GameState) {
             if inner.world.is_alive(e) {
                 inner.world.remove_freeze(e);
             }
+        }
+    }
+    // Temporary cards (M2-W2 — the Un'Goro quest wave primitive): every
+    // card in the player's hand carrying the Temporary marker is discarded
+    // at the end of their turn (official rule). The marker's creators are
+    // W4 cards; W2's F5 scenarios inject it directly.
+    {
+        let inner = state.make_mut();
+        let temporary_hand: SmallList<Entity> = inner
+            .world
+            .iter_temporary()
+            .filter(|(e, _)| inner.world.zone(*e) == Some(Zone::Hand))
+            .filter(|(e, _)| inner.world.player(*e) == Some(player))
+            .map(|(e, _)| e)
+            .collect();
+        for &e in temporary_hand.iter() {
+            // The filter above already guarantees hand + owner, so the move
+            // cannot fail for an alive entity.
+            let _ = inner.world.move_to_zone(e, Zone::Graveyard);
         }
     }
     // Expire "until end of turn" enchantments (temporary attack buffs/debuffs)

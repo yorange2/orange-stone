@@ -194,6 +194,18 @@ pub struct Player {
     /// M1-W4b — Agamaggan's simplified cost, §14.4; one-time, consumed on
     /// play).
     pub next_card_costs_zero: bool,
+    /// Murlocs the player summons gain +1/+1 (2025–2026 expansions M2-W2 —
+    /// Dive the Golakka Depths's repeatable quest reward). Set by
+    /// `CardEffect::SetMurlocSummonBuff`; the friendly-summon hook in
+    /// rules.rs applies a +1/+1 enchantment to every friendly Murloc
+    /// summon while it is set. Game-long, permanent.
+    pub murloc_summon_buff: bool,
+    /// Whenever the player deals exactly 2 damage to an enemy, deal 2 more
+    /// (2025–2026 expansions M2-W2 — Gorishi Colossus's battlecry). Set by
+    /// `CardEffect::SetDealExact2Bonus`; the damage hook in rules.rs
+    /// (the DealExactDamage quest call site) applies the bonus in-place.
+    /// Game-long, permanent.
+    pub deal_exact_2_bonus: bool,
 }
 
 impl Player {
@@ -248,6 +260,8 @@ impl Player {
             ursoc_killed_ids: Vec::new(),
             cards_cost_1: false,
             next_card_costs_zero: false,
+            murloc_summon_buff: false,
+            deal_exact_2_bonus: false,
         }
     }
 }

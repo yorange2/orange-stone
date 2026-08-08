@@ -431,3 +431,60 @@ W5）。
   注释写 `(pool-open: …)`，**不写** `(simplified: …)` —— 它们是读对手牌的忠实实现，
   不是简化。提取器认的是 "simplified"，所以它们留在 RL 卡池里；注册表在
   `pool-openness-zh.md`。
+
+### 15. 2025–2026 扩展 M2-W2 — 失落之城任务波（23 张）🔓 已登记
+
+M2-W2 波（`src/cards/exp_tlc_w2.rs`）的简化登记：11 张任务卡（1 费传说
+法术，`spell_effect: None`，出牌路径将其送入任务区）加 12 张奖励衍生物。
+任务机制（M2-W1）本波扩展：TLC_817 第二进度条（`QuestDef::second` /
+`Quest::second`——两条都满才离场）、可重复任务（TLC_426 完成后进度清零、
+永久奖励标志常驻）、Temporary 手牌标记（回合结束时弃置，真实制造卡在
+W4）、两个玩家级奖励标志（`Player::murloc_summon_buff` 由召唤钩子消费、
+`Player::deal_exact_2_bonus` 由伤害钩子消费）。W1 占位奖励已换成真实奖励：
+TLC_426 设置永久标志、TLC_513 直接召唤两只忍龟、TLC_817 每条各召唤一尊
+索莱托斯。与 §14–§14.5 一致，扩展手写卡均不在 RL 池（经典 + 核心
+668/659），本表仅作登记追踪，各行在机制落地前保持开放。
+
+| ID | 卡名 | 简化 | 真实机制 |
+| --- | --- | --- | --- |
+| TLC_229t14 | 阿沙隆·山脊卫士 | 官方 Adapt 战吼（三选一）固定为全体友方随从 +1/+1 | Adapt / 抉择管线 |
+| TLC_433t | 泰拉克斯·骨中恐兽 | 官方"恐怖之墓"地点链条（泰拉克斯变形成坟墓、坟墓再复活他）未建模——亡语直接复活 8/8 复制 | 变形 / 地点亡语链条 |
+| TLC_446t1 | 安杜菲尔裂隙 | 官方"激活"步骤（消耗英雄血量激活）未建模——纯白板 0/1 | 激活机制 |
+| TLC_460t | 起源之石 | 官方"你发现一张卡后，本武器 +1 耐久"未建模——纯白板 0/8 | 发现回放耐久增益 |
+| TLC_513t | 暮光大师 | 官方奖励把英雄替换为暮光大师——未建模；奖励直接召唤两只忍龟（TLC_513t2） | 英雄替换 |
+| TLC_602t | 拉托维乌斯·城市之眼 | 官方任务奖励战吼把 4 张奖励牌加入发现池——未建模（无战吼；奖励池在 W4 落地） | 真实发现管线 |
+| TLC_817t5 | 索莱托斯·生命之触 | 官方"同时控制两个索莱托斯形态则合体"步骤未建模——t3 与 t4 相互独立 | 合体 / 双子机制 |
+| TLC_830t | 肖克·丛林暴君 | 官方战吼的攻击力过滤发现池未建模（无战吼） | 真实发现管线 |
+
+本波新增原语一览：任务第二进度条（双条计数、双条完成才离场、已完成条
+在另一条进行时封顶并忽略后续事件）、可重复任务（完成后进度与标记清零、
+卡牌留在任务区）、Temporary 手牌标记（回合结束弃置，`World` 新增
+sparse-set 存储与访问器）、`murloc_summon_buff`（MinionSummoned 钩子在
+种族进度循环之后消费，友方鱼人召唤即带 +1/+1 永久附魔）、
+`deal_exact_2_bonus`（DamageDealt 钩子在 Goldrinn 翻倍之后消费，恰好 2 点
+敌方伤害再加 2）。简化与既往一致：发现 → 无战吼（TLC_602t/830t）；
+Adapt 三选一 → 固定全体 +1/+1（TLC_229t14）；泰拉克斯的"恐怖之墓"地点
+链条 → 亡语直接复活 8/8 复制（TLC_433t）；安杜菲尔裂隙的激活步骤 →
+纯白板 0/1（TLC_446t1）；起源之石"发现后 +1 耐久" → 纯白板 0/8
+（TLC_460t）；英雄替换 → 直接召唤奖励随从（TLC_513t）；TLC_817t5 的
+"双形态合体"步骤未建模（t3/t4 相互独立）。
+
+F5 覆盖：`tlc_w2_spirit_of_the_mountain_reward_summoned`、
+`tlc_w2_restore_the_wild_everbloom_buffs_after_hero_attack`、
+`tlc_w2_golakka_depths_repeatable_murloc_buff`、
+`tlc_w2_reanimate_the_terror_tyrax_deathrattle`、
+`tlc_w2_escape_the_underfel_temporary_discard`、
+`tlc_w2_forbidden_sequence_origin_stone_equipped`、
+`tlc_w2_lie_in_wait_master_dusk_ninjas`、
+`tlc_w2_enter_the_lost_city_survive_turns`、
+`tlc_w2_unleash_the_colossus_bonus_damage`、
+`tlc_w2_reach_equilibrium_double_bar`、
+`tlc_w2_food_chain_shokk_battlecry`、
+`tlc_w2_one_quest_per_player_real_cards`（tests/differential.rs 共 12 个
+场景——每张任务卡至少一个，外加 Temporary 原语、两个玩家标志与真实卡的
+单人一任务规则）。全量 `cargo test`：433 项中 432 通过——唯一红项是
+`tlc_w1_spell_school_lookup_and_progress`：它的两条断言（tests/differential.rs
+约 23074/23083 行：四次圣光施放后任务离场、且无衍生物被召唤）钉住了 W1
+占位语义，与 W2 真实双条 TLC_817 相矛盾（任务留在任务区、第二条待完成、
+并召唤两尊 TLC_817t3）——按波次规范，最小化的两条断言更新待执行。
+`cargo clippy --all-targets` 无警告。
