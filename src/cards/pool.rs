@@ -22,7 +22,7 @@ use crate::sim::rng::GameRng;
 /// **not** sampled until the single cut-over — at which point this predicate
 /// flips to the Standard window (`CardSet::Core | the five expansions`, see
 /// `is_standard`).
-fn in_active_window(card: &CardDef) -> bool {
+pub(crate) fn in_active_window(card: &CardDef) -> bool {
     matches!(
         crate::cards::generated::card_set(card.id),
         CardSet::Classic | CardSet::Core
@@ -286,6 +286,21 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .filter_map(|id| card_by_id(id))
             .collect(),
         RandomPool::Murloc => race_pool(Race::Murloc),
+        RandomPool::Elemental => race_pool(Race::Elemental),
+        RandomPool::WarriorMinion => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Minion
+                    && crate::cards::sets::WARRIOR_CLASSIC
+                        .iter()
+                        .any(|w| w.id == c.id)
+                    && in_active_window(c)
+            })
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
     }
 }
 
@@ -340,6 +355,13 @@ pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'stati
         }),
         RandomPool::OtherClassChooseOne => random_from_pool(OTHER_CLASS_CHOOSE_ONE_POOL, rng),
         RandomPool::Murloc => random_filtered(rng, |c| c.race == Some(Race::Murloc)),
+        RandomPool::Elemental => random_filtered(rng, |c| c.race == Some(Race::Elemental)),
+        RandomPool::WarriorMinion => random_filtered(rng, |c| {
+            c.card_type == CardType::Minion
+                && crate::cards::sets::WARRIOR_CLASSIC
+                    .iter()
+                    .any(|w| w.id == c.id)
+        }),
     }
 }
 

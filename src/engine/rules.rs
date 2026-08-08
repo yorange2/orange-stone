@@ -666,6 +666,51 @@ fn queue_death_events(
     }
 }
 
+/// Emberroot Destroyer (M1-W5) — "Whenever your hero takes damage on your
+/// turn, deal 3 damage to a random enemy minion." A damage-pipeline hook at
+/// the point where a hero's health is actually reduced (armor-absorbed
+/// damage does not count; there is no HeroDamaged trigger event). Fires on
+/// the owner's turn only, one random enemy-minion ping per friendly
+/// Emberroot Destroyer on the board.
+fn fire_emberroot_hook(state: &mut GameState, queue: &mut EventQueue, target: Entity) {
+    if state.world().card_type(target) != Some(CardType::Hero) {
+        return;
+    }
+    let Some(pid) = state.world().player(target) else {
+        return;
+    };
+    if state.active_player() != pid {
+        return;
+    }
+    let emberroots: SmallList<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, pid)
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "FIR_955"))
+        .collect();
+    if emberroots.is_empty() {
+        return;
+    }
+    let enemy = pid.opponent();
+    let enemies: SmallList<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, enemy)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    if enemies.is_empty() {
+        return;
+    }
+    for emberroot in emberroots {
+        let idx = state.rng_mut().next_usize(enemies.len());
+        queue.push(Event::DamageDealt {
+            source: emberroot,
+            target: enemies[idx],
+            amount: 3,
+        });
+    }
+}
+
 /// Applies a single event, possibly enqueueing new events.
 ///
 /// This is the core of the event loop. Each event is processed exactly once;
@@ -1733,6 +1778,7 @@ pub fn apply_event(
                         state
                             .world_mut()
                             .set_damage(target, crate::core::component::Damage(new_damage));
+                        fire_emberroot_hook(state, queue, target);
                         queue_death_events(state, queue, target, card_type);
                         return Ok(());
                     }
@@ -1777,6 +1823,11 @@ pub fn apply_event(
             state
                 .world_mut()
                 .set_damage(target, crate::core::component::Damage(new_damage));
+
+            // Emberroot Destroyer (M1-W5) — "Whenever your hero takes damage
+            // on your turn" fires here, where the hero's health is actually
+            // reduced (armor-absorbed damage does not count).
+            fire_emberroot_hook(state, queue, target);
 
             // Lifesteal (Core Set W1): damage dealt by a Lifesteal source
             // heals the source's owner hero for the damage dealt. Weapon,
@@ -2293,6 +2344,12 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
             let locked = p.overload_locked;
             p.overload_locked = 0;
             p.current_mana = (p.mana_crystals - locked).max(0);
+            // Emberscarred Whelp (M1-W5): "next turn only" Mana Crystals
+            // granted last turn are added at this refill (simplification of
+            // the real until-end-of-next-turn timing, §14.5)
+            let temp = p.temp_mana_crystal_pending;
+            p.temp_mana_crystal_pending = 0;
+            p.current_mana = (p.current_mana + temp).min(10);
             p.cards_played_this_turn = 0;
             p.minions_played_this_turn = 0;
             // Naralex (M1-W4b): the per-turn Dragon counter resets with the

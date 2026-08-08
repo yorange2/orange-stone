@@ -21251,3 +21251,1601 @@ fn edr_w4b_aviana_cards_cost_one() {
         "the 9-Cost Goldrinn costs (1)"
     );
 }
+
+// ============================================================
+// Wave edr_w5 — the Embers of the World Tree miniset F5
+// (2025-2026 expansions M1-W5, FIR_777~FIR_961, 38 scenarios —
+// every miniset card at least once). Simplifications registered
+// in fidelity-debt §14.5.
+// ============================================================
+
+/// F5-W5-1 — Spirit of the Kaldorei: +3/+3 while the owner used their
+/// Hero Power this turn; a vanilla 1/3 Taunt Lifesteal otherwise.
+#[test]
+fn edr_w5_spirit_of_the_kaldorei() {
+    use orange_stone::cards::def::SPIRIT_OF_THE_KALDOREI;
+    use orange_stone::core::component::HeroPowerUsed;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &SPIRIT_OF_THE_KALDOREI);
+    let mut state = builder.build();
+    let hero = state.player(p1).hero;
+    state
+        .world_mut()
+        .set_hero_power_used(hero, HeroPowerUsed(true));
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let minion = find_entity(&state, p1, "FIR_777");
+    assert_eq!(
+        state.world().effective_attack(minion),
+        Some(Attack(4)),
+        "1 + 3 with the Hero Power used"
+    );
+    assert_eq!(state.world().effective_health(minion), Some(Health(6)));
+    assert!(state.world().taunt(minion).is_some());
+    assert!(state.world().lifesteal(minion).is_some());
+    // Without the Hero Power the battlecry does nothing
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &SPIRIT_OF_THE_KALDOREI);
+    let mut state = builder.build();
+    play_front_card(&mut state, &engine, p1);
+    let minion = find_entity(&state, p1, "FIR_777");
+    assert_eq!(state.world().effective_attack(minion), Some(Attack(1)));
+    assert_eq!(state.world().effective_health(minion), Some(Health(3)));
+}
+
+/// F5-W5-2 — Avatar of Destruction's deathrattle deals 9 to ALL enemy
+/// minions (the enemy hero is untouched).
+#[test]
+fn edr_w5_avatar_of_destruction() {
+    use orange_stone::cards::def::AVATAR_OF_DESTRUCTION;
+    use orange_stone::core::effect::{CardEffect, EffectTarget};
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &AVATAR_OF_DESTRUCTION)
+        .add_custom_minion_to_board(p2, 2, 2, 2);
+    builder.add_custom_minion_to_board(p2, 3, 3, 3);
+    builder.set_hero_power(
+        p1,
+        0,
+        CardEffect::DealDamage {
+            amount: 9,
+            target: EffectTarget::AnyCharacter,
+        },
+    );
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let avatar = find_entity(&state, p1, "FIR_778");
+    let hero = state.player(p1).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::HeroPower {
+                hero,
+                target: Some(avatar),
+            },
+        )
+        .unwrap();
+    assert!(
+        !board_minions(&state, p1)
+            .iter()
+            .any(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "FIR_778")),
+        "the Avatar died"
+    );
+    assert_eq!(board_minions(&state, p2).len(), 0, "both enemy minions die");
+    let hero2 = state.player(p2).hero;
+    assert_eq!(
+        state.world().effective_health(hero2),
+        Some(Health(30)),
+        "the enemy hero is not an enemy minion"
+    );
+}
+
+/// F5-W5-3 — Cremate: a random minion to hand with a dark gift, costing
+/// (2) less (the Discover→random simplification, §14.5).
+#[test]
+fn edr_w5_cremate() {
+    use orange_stone::cards::def::{CREMATE, card_by_id};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &CREMATE)
+        .with_rng_seed(7);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    // The random gift may be the deck-top gift, which moves the discovered
+    // minion on top of the deck instead of the hand — accept either spot.
+    let added = if state.world().zones().len(Zone::Hand, p1) == 1 {
+        first_hand_card(&state, p1)
+    } else {
+        state
+            .world()
+            .zones()
+            .iter(Zone::Deck, p1)
+            .next()
+            .expect("the discovered minion on top of the deck")
+    };
+    let id = state.world().card_id(added).expect("card id").0;
+    let def = card_by_id(id).expect("def");
+    assert_eq!(def.card_type, CardType::Minion, "{id} is a minion");
+    assert!(
+        state
+            .world()
+            .dark_gifts(added)
+            .is_some_and(|g| !g.is_empty()),
+        "a dark gift"
+    );
+    assert!(
+        state.world().effective_cost(added).unwrap_or(Cost(0)).0 <= (def.cost - 2).max(0),
+        "{id} costs (2) less — the gift may reduce it further"
+    );
+}
+
+/// F5-W5-4 — Frostburn Matriarch: while the owner holds a minion with a
+/// dark gift, summon two 4/4 Taunt Dragons; without one, nothing.
+#[test]
+fn edr_w5_frostburn_matriarch() {
+    use orange_stone::cards::def::FROSTBURN_MATRIARCH;
+    use orange_stone::core::component::DarkGiftKind;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let gifted = builder
+        .active_player(p1)
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &FROSTBURN_MATRIARCH)
+        .add_custom_minion_to_hand(p1, 1, 1, 1);
+    let mut state = builder.build();
+    state
+        .world_mut()
+        .add_dark_gift(gifted, DarkGiftKind::Charge);
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(board_count(&state, p1, "FIR_901t"), 2, "two Broodlings");
+    for e in board_minions(&state, p1) {
+        if state.world().card_id(e).is_some_and(|c| c.0 == "FIR_901t") {
+            assert_eq!(state.world().effective_attack(e), Some(Attack(4)));
+            assert_eq!(state.world().effective_health(e), Some(Health(4)));
+            assert!(state.world().taunt(e).is_some());
+        }
+    }
+    // Without a gifted minion in hand the battlecry is empty
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &FROSTBURN_MATRIARCH)
+        .add_custom_minion_to_hand(p1, 1, 1, 1);
+    let mut state = builder.build();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(board_count(&state, p1, "FIR_901t"), 0, "no Broodlings");
+}
+
+/// F5-W5-5 — Sigil of Cinder: 6 damage split as random 1-damage pings
+/// among all enemies (the immediate resolution, §14.5).
+#[test]
+fn edr_w5_sigil_of_cinder() {
+    use orange_stone::cards::def::SIGIL_OF_CINDER;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    let m1 = builder
+        .active_player(p1)
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &SIGIL_OF_CINDER)
+        .add_custom_minion_to_board(p2, 5, 5, 5);
+    let m2 = builder.add_custom_minion_to_board(p2, 5, 5, 5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero2 = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1);
+    let loss = |e: Entity| 5 - state.world().effective_health(e).unwrap_or(Health(0)).0;
+    let total = loss(m1) + loss(m2) + (30 - state.world().effective_health(hero2).unwrap().0);
+    assert_eq!(total, 6, "6 pings of 1 across the enemy side");
+}
+
+/// F5-W5-6 — Felfire Blaze: after a friendly spell is cast, destroy this
+/// and deal 2 damage to all enemies (the Fel filter unmodeled, §14.5).
+#[test]
+fn edr_w5_felfire_blaze() {
+    use orange_stone::cards::def::{FELFIRE_BLAZE, SMOLDERING_GROVE};
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &FELFIRE_BLAZE)
+        .add_minion_to_hand(p1, &SMOLDERING_GROVE)
+        .add_custom_minion_to_board(p2, 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(board_count(&state, p1, "FIR_904"), 1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        board_count(&state, p1, "FIR_904"),
+        0,
+        "the Blaze destroyed itself"
+    );
+    assert_eq!(board_minions(&state, p2).len(), 0, "enemy minion took 2");
+    let hero2 = state.player(p2).hero;
+    assert_eq!(
+        state.world().effective_health(hero2),
+        Some(Health(28)),
+        "the enemy hero took 2"
+    );
+}
+
+/// F5-W5-7 — Overheat: +1/+1 to all friendly minions, +1/+1 more while a
+/// hand spell is discarded (any spell — the Nature filter unmodeled).
+#[test]
+fn edr_w5_overheat() {
+    use orange_stone::cards::def::{OVERHEAT, SMOLDERING_GROVE};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let m1 = builder
+        .active_player(p1)
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &OVERHEAT)
+        .add_minion_to_hand(p1, &SMOLDERING_GROVE)
+        .add_custom_minion_to_board(p1, 2, 2, 2);
+    let m2 = builder.add_custom_minion_to_board(p1, 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().effective_attack(m1),
+        Some(Attack(4)),
+        "2 + 1 base + 1 bonus"
+    );
+    assert_eq!(state.world().effective_health(m1), Some(Health(4)));
+    assert_eq!(state.world().effective_attack(m2), Some(Attack(4)));
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        0,
+        "spell discarded"
+    );
+    // Without a hand spell only the base buff applies
+    let mut builder = GameBuilder::new();
+    let m = builder
+        .active_player(p1)
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &OVERHEAT)
+        .add_custom_minion_to_board(p1, 2, 2, 2);
+    let mut state = builder.build();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().effective_attack(m), Some(Attack(3)));
+    assert_eq!(state.world().effective_health(m), Some(Health(3)));
+}
+
+/// F5-W5-8 — Amirdrassil: the Location summons a random 1-Cost minion,
+/// gains 1 Armor, draws a card and refreshes 1 Mana (durability 3).
+#[test]
+fn edr_w5_amirdrassil() {
+    use orange_stone::cards::def::AMIRDRASSIL;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &AMIRDRASSIL);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let location = find_entity(&state, p1, "FIR_907");
+    assert_eq!(
+        state.world().card_type(location),
+        Some(CardType::Location),
+        "a Location"
+    );
+    assert_eq!(
+        state.world().durability(location),
+        Some(orange_stone::core::component::Durability(3))
+    );
+    // A location cannot be activated the turn it was played — the effect
+    // (summon a 1-Cost minion, +1 Armor, draw, refresh 1 Mana) resolves on
+    // the next turn's activation and consumes one durability charge.
+    assert!(
+        engine
+            .apply(
+                &mut state,
+                Action::ActivateLocation {
+                    location,
+                    target: None,
+                },
+            )
+            .is_err(),
+        "the play cooldown blocks the same-turn activation"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // The two turn-start draws have resolved by now — measure the counts
+    // right before the activation so they stay exact.
+    let hand_before = state.world().zones().len(Zone::Hand, p1);
+    let deck_before = state.world().zones().len(Zone::Deck, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::ActivateLocation {
+                location,
+                target: None,
+            },
+        )
+        .unwrap();
+    let summoned = board_minions(&state, p1)
+        .iter()
+        .find(|&&e| e != location)
+        .copied()
+        .expect("a 1-Cost minion summoned");
+    assert_eq!(state.world().effective_cost(summoned), Some(Cost(1)));
+    assert_eq!(state.player(p1).armor, 1, "gained 1 Armor");
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        hand_before + 1,
+        "drew a card"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, p1),
+        deck_before - 1,
+        "the draw came from the deck"
+    );
+    assert_eq!(
+        state.world().durability(location),
+        Some(orange_stone::core::component::Durability(2)),
+        "one charge consumed"
+    );
+}
+
+/// F5-W5-9 — Charred Chameleon: the friendly minion target gains +1/+2 and
+/// Rush while the owner used their Hero Power this turn.
+#[test]
+fn edr_w5_charred_chameleon() {
+    use orange_stone::cards::def::CHARRED_CHAMELEON;
+    use orange_stone::core::component::HeroPowerUsed;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let target = builder
+        .active_player(p1)
+        .set_mana(p1, 1, 1)
+        .add_minion_to_hand(p1, &CHARRED_CHAMELEON)
+        .add_custom_minion_to_board(p1, 2, 2, 2);
+    let mut state = builder.build();
+    let hero = state.player(p1).hero;
+    state
+        .world_mut()
+        .set_hero_power_used(hero, HeroPowerUsed(true));
+    let engine = GameEngine::new();
+    let chameleon = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: chameleon,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(target),
+        Some(Attack(3)),
+        "2 + 1"
+    );
+    assert_eq!(state.world().effective_health(target), Some(Health(4)));
+    assert!(state.world().rush(target).is_some(), "gained Rush");
+    // Without the Hero Power the battlecry is empty
+    let mut builder = GameBuilder::new();
+    let target = builder
+        .active_player(p1)
+        .set_mana(p1, 1, 1)
+        .add_minion_to_hand(p1, &CHARRED_CHAMELEON)
+        .add_custom_minion_to_board(p1, 2, 2, 2);
+    let mut state = builder.build();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().effective_attack(target), Some(Attack(2)));
+    assert_eq!(state.world().effective_health(target), Some(Health(2)));
+    assert!(state.world().rush(target).is_none());
+}
+
+/// F5-W5-10 — Bursting Shot: three random enemies take 2 damage each
+/// (repeated targets allowed, §14.5).
+#[test]
+fn edr_w5_bursting_shot() {
+    use orange_stone::cards::def::BURSTING_SHOT;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    let m1 = builder
+        .active_player(p1)
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &BURSTING_SHOT)
+        .add_custom_minion_to_board(p2, 5, 5, 5);
+    let m2 = builder.add_custom_minion_to_board(p2, 5, 5, 5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero2 = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1);
+    let loss = |e: Entity| 5 - state.world().effective_health(e).unwrap_or(Health(0)).0;
+    let total = loss(m1) + loss(m2) + (30 - state.world().effective_health(hero2).unwrap().0);
+    assert_eq!(total, 6, "three pings of 2");
+}
+
+/// F5-W5-11 — Scorching Winds: 3 damage, or 6 while a hand spell is
+/// discarded (any spell — the Fire filter unmodeled).
+#[test]
+fn edr_w5_scorching_winds() {
+    use orange_stone::cards::def::{SCORCHING_WINDS, SMOLDERING_GROVE};
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    let target = builder
+        .active_player(p1)
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &SCORCHING_WINDS)
+        .add_minion_to_hand(p1, &SMOLDERING_GROVE)
+        .add_custom_minion_to_board(p2, 7, 7, 7);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().effective_health(target),
+        Some(Health(1)),
+        "7 - 6 with the discard"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        0,
+        "spell discarded"
+    );
+    // Without a hand spell the base 3 applies
+    let mut builder = GameBuilder::new();
+    let target = builder
+        .active_player(p1)
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &SCORCHING_WINDS)
+        .add_custom_minion_to_board(p2, 7, 7, 7);
+    let mut state = builder.build();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().effective_health(target),
+        Some(Health(4)),
+        "7 - 3"
+    );
+}
+
+/// F5-W5-12 — Smoldering Grove: draws a card (the first-turn version of
+/// the upgrade cycle, §14.5).
+#[test]
+fn edr_w5_smoldering_grove() {
+    use orange_stone::cards::def::SMOLDERING_GROVE;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &SMOLDERING_GROVE);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let deck_before = state.world().zones().len(Zone::Deck, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().zones().len(Zone::Hand, p1), 1, "drew 1");
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), deck_before - 1);
+}
+
+/// F5-W5-13 — Inferno Herald: after a friendly spell is cast, a random
+/// Elemental joins the hand costing (3) less (the Fire filter unmodeled).
+#[test]
+fn edr_w5_inferno_herald() {
+    use orange_stone::cards::def::{INFERNO_HERALD, SMOLDERING_GROVE, card_by_id};
+    use orange_stone::core::component::Race;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &INFERNO_HERALD)
+        .add_minion_to_hand(p1, &SMOLDERING_GROVE);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(board_count(&state, p1, "FIR_913"), 1);
+    play_front_card(&mut state, &engine, p1);
+    let elemental = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .and_then(|c| card_by_id(c.0))
+                .is_some_and(|d| d.race == Some(Race::Elemental))
+        })
+        .expect("an Elemental in hand");
+    let id = state.world().card_id(elemental).expect("card id").0;
+    let def = card_by_id(id).expect("def");
+    assert_eq!(
+        state.world().effective_cost(elemental),
+        Some(Cost((def.cost - 3).max(0))),
+        "costs (3) less"
+    );
+}
+
+/// F5-W5-14 — Smoldering Strength: +1/+1 to a friendly minion (the
+/// first-turn version of the upgrade cycle, §14.5).
+#[test]
+fn edr_w5_smoldering_strength() {
+    use orange_stone::cards::def::SMOLDERING_STRENGTH;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let target = builder
+        .active_player(p1)
+        .set_mana(p1, 1, 1)
+        .add_minion_to_hand(p1, &SMOLDERING_STRENGTH)
+        .add_custom_minion_to_board(p1, 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let card = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(target), Some(Attack(3)));
+    assert_eq!(state.world().effective_health(target), Some(Health(3)));
+}
+
+/// F5-W5-15 — Smoldering Ascent: 1 damage to all enemy minions (the hero
+/// is excluded; the first-turn version of the upgrade cycle, §14.5).
+#[test]
+fn edr_w5_smoldering_ascent() {
+    use orange_stone::cards::def::SMOLDERING_ASCENT;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    let m1 = builder
+        .active_player(p1)
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &SMOLDERING_ASCENT)
+        .add_custom_minion_to_board(p2, 2, 2, 2);
+    let m2 = builder.add_custom_minion_to_board(p2, 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().effective_health(m1), Some(Health(1)));
+    assert_eq!(state.world().effective_health(m2), Some(Health(1)));
+    let hero2 = state.player(p2).hero;
+    assert_eq!(
+        state.world().effective_health(hero2),
+        Some(Health(30)),
+        "enemy hero untouched"
+    );
+}
+
+/// F5-W5-16 — Light of the New Moon: +3/+3 to a minion; after three
+/// spells cast (the current cast counting), a fresh copy returns to the
+/// hand (the Full Moon upgrade unmodeled, §14.5).
+#[test]
+fn edr_w5_light_of_the_new_moon() {
+    use orange_stone::cards::def::{LIGHT_OF_THE_NEW_MOON, SMOLDERING_ASCENT, SMOLDERING_GROVE};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let target = builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SMOLDERING_GROVE)
+        .add_minion_to_hand(p1, &SMOLDERING_ASCENT)
+        .add_minion_to_hand(p1, &LIGHT_OF_THE_NEW_MOON)
+        .add_custom_minion_to_board(p1, 2, 2, 2);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).spells_cast_total, 2);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().effective_attack(target), Some(Attack(5)));
+    assert_eq!(state.world().effective_health(target), Some(Health(5)));
+    assert_eq!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Hand, p1)
+            .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "FIR_918"))
+            .count(),
+        1,
+        "a fresh copy returned to hand"
+    );
+    // Without three spells cast there is no return
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &LIGHT_OF_THE_NEW_MOON)
+        .add_custom_minion_to_board(p1, 2, 2, 2);
+    let mut state = builder.build();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().zones().len(Zone::Hand, p1), 0, "no return");
+}
+
+/// F5-W5-17 — Everburning Phoenix: costs (1) less per card played this
+/// turn (the current card excluded), and the deathrattle adds a fresh
+/// Phoenix (the end-of-turn timing simplified, §14.5).
+#[test]
+fn edr_w5_everburning_phoenix() {
+    use orange_stone::cards::def::EVERBURNING_PHOENIX;
+    use orange_stone::core::effect::{CardEffect, EffectTarget};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &EVERBURNING_PHOENIX)
+        .set_hero_power(
+            p1,
+            2,
+            CardEffect::DealDamage {
+                amount: 3,
+                target: EffectTarget::AnyCharacter,
+            },
+        );
+    let mut state = builder.build();
+    state.make_mut().players[p1.index()].cards_played_this_turn = 2;
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.player(p1).current_mana,
+        8,
+        "4 - 2 for the two cards played earlier"
+    );
+    let phoenix = find_entity(&state, p1, "FIR_919");
+    let hero = state.player(p1).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::HeroPower {
+                hero,
+                target: Some(phoenix),
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Hand, p1)
+            .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "FIR_919"))
+            .count(),
+        1,
+        "the deathrattle adds a fresh Phoenix"
+    );
+}
+
+/// F5-W5-18 — Smoke Bomb: a random Combo/Battlecry/Stealth minion with a
+/// dark gift joins the hand (the Discover→random simplification, §14.5).
+#[test]
+fn edr_w5_smoke_bomb() {
+    use orange_stone::cards::def::{SMOKE_BOMB, card_by_id};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &SMOKE_BOMB)
+        .with_rng_seed(11);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    // The random gift may be the deck-top gift — the minion then sits on top
+    // of the deck instead of the hand (accept either spot).
+    let added = if state.world().zones().len(Zone::Hand, p1) == 1 {
+        first_hand_card(&state, p1)
+    } else {
+        state
+            .world()
+            .zones()
+            .iter(Zone::Deck, p1)
+            .next()
+            .expect("the discovered minion on top of the deck")
+    };
+    let id = state.world().card_id(added).expect("card id").0;
+    let def = card_by_id(id).expect("def");
+    assert_eq!(def.card_type, CardType::Minion);
+    assert!(
+        def.combo_effect.is_some() || def.battlecry.is_some() || def.stealth,
+        "{id} is a Combo, Battlecry or Stealth minion"
+    );
+    assert!(
+        state
+            .world()
+            .dark_gifts(added)
+            .is_some_and(|g| !g.is_empty()),
+        "a dark gift"
+    );
+}
+
+/// F5-W5-19 — Petal Picker: draws 2 only while the owner has Imbued their
+/// Hero Power at least twice.
+#[test]
+fn edr_w5_petal_picker() {
+    use orange_stone::cards::def::PETAL_PICKER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &PETAL_PICKER);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    state.make_mut().players[p1.index()].imbue_count = 2;
+    let engine = GameEngine::new();
+    let deck_before = state.world().zones().len(Zone::Deck, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().zones().len(Zone::Hand, p1), 2, "drew 2");
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), deck_before - 2);
+    // A single imbue draws nothing
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &PETAL_PICKER);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    state.make_mut().players[p1.index()].imbue_count = 1;
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().zones().len(Zone::Hand, p1), 0, "no draw");
+}
+
+/// F5-W5-20 — Cindersword: the weapon gains +3 Attack while the owner
+/// holds a minion with a dark gift.
+#[test]
+fn edr_w5_cindersword() {
+    use orange_stone::cards::def::CINDERSWORD;
+    use orange_stone::core::component::DarkGiftKind;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let gifted = builder
+        .active_player(p1)
+        .set_mana(p1, 1, 1)
+        .add_minion_to_hand(p1, &CINDERSWORD)
+        .add_custom_minion_to_hand(p1, 1, 1, 1);
+    let mut state = builder.build();
+    state
+        .world_mut()
+        .add_dark_gift(gifted, DarkGiftKind::Charge);
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let weapon = state.player(p1).weapon.expect("weapon equipped");
+    assert_eq!(
+        state.world().effective_attack(weapon),
+        Some(Attack(4)),
+        "1 + 3"
+    );
+    assert_eq!(
+        state.world().durability(weapon),
+        Some(orange_stone::core::component::Durability(2))
+    );
+    // Without a gifted minion the weapon stays 1/2
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 1, 1)
+        .add_minion_to_hand(p1, &CINDERSWORD)
+        .add_custom_minion_to_hand(p1, 1, 1, 1);
+    let mut state = builder.build();
+    play_front_card(&mut state, &engine, p1);
+    let weapon = state.player(p1).weapon.expect("weapon equipped");
+    assert_eq!(state.world().effective_attack(weapon), Some(Attack(1)));
+}
+
+/// F5-W5-21 — Flames of the Firelord: 4 damage to a random enemy minion,
+/// or 8 while the owner holds a card costing (8) or more.
+#[test]
+fn edr_w5_flames_of_the_firelord() {
+    use orange_stone::cards::def::{FLAMES_OF_THE_FIRELORD, FYRAKK_THE_BLAZING};
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &FLAMES_OF_THE_FIRELORD)
+        .add_minion_to_hand(p1, &FYRAKK_THE_BLAZING);
+    builder.add_custom_minion_to_board(p2, 5, 5, 5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(board_minions(&state, p2).len(), 0, "8 damage kills the 5/5");
+    // Without a card costing 8+ only 4 damage lands
+    let mut builder = GameBuilder::new();
+    let target = builder
+        .active_player(p1)
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &FLAMES_OF_THE_FIRELORD)
+        .add_custom_minion_to_board(p2, 5, 5, 5);
+    let mut state = builder.build();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().effective_health(target),
+        Some(Health(1)),
+        "4 damage leaves 1"
+    );
+}
+
+/// F5-W5-22 — Shadowflame Stalker: a random Demon with a dark gift joins
+/// the hand, then a copy of it carrying the SAME gift (the Discover→random
+/// simplification, §14.5).
+#[test]
+fn edr_w5_shadowflame_stalker() {
+    use orange_stone::cards::def::{SHADOWFLAME_STALKER, card_by_id};
+    use orange_stone::core::component::Race;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &SHADOWFLAME_STALKER)
+        .with_rng_seed(13);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    // The random gift may be the deck-top gift, which moves both the Demon
+    // and its copy on top of the deck — the pair is either in the hand or
+    // (in order, copy on top) in the deck. The deck is otherwise empty.
+    let pair: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .chain(state.world().zones().iter(Zone::Deck, p1))
+        .collect();
+    assert_eq!(pair.len(), 2, "the Demon and its copy");
+    let id0 = state.world().card_id(pair[0]).expect("card id").0;
+    let id1 = state.world().card_id(pair[1]).expect("card id").0;
+    assert_eq!(id0, id1, "the copy has the same identity");
+    assert_eq!(
+        card_by_id(id0).expect("def").race,
+        Some(Race::Demon),
+        "{id0} is a Demon"
+    );
+    let gifts0 = state.world().dark_gifts(pair[0]).expect("gift").to_vec();
+    let gifts1 = state.world().dark_gifts(pair[1]).expect("gift").to_vec();
+    assert!(!gifts0.is_empty(), "the Demon carries a dark gift");
+    assert_eq!(gifts0, gifts1, "the copy carries the same gift");
+}
+
+/// F5-W5-23 — Emberscarred Whelp: a random 5-Cost card joins the hand and
+/// the owner gains 1 Mana Crystal next turn only (the pending flag is
+/// spent at the next ManaRefill, §14.5).
+#[test]
+fn edr_w5_emberscarred_whelp() {
+    use orange_stone::cards::def::EMBERSCARRED_WHELP;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &EMBERSCARRED_WHELP);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let discovered = first_hand_card(&state, p1);
+    assert_eq!(
+        state.world().effective_cost(discovered),
+        Some(Cost(5)),
+        "a 5-Cost card"
+    );
+    assert_eq!(state.player(p1).temp_mana_crystal_pending, 1);
+    // P1's next ManaRefill grants the extra (capped) mana once
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.player(p1).current_mana, 5, "4 crystals + 1 pending");
+    assert_eq!(state.player(p1).temp_mana_crystal_pending, 0, "spent");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.player(p1).current_mana,
+        state.player(p1).mana_crystals,
+        "the extra crystal does not repeat"
+    );
+}
+
+/// F5-W5-24 — Keeper of Flame: all hand minions gain +3/+3 (the
+/// "destroyed in 3 turns" clause unmodeled, §14.5).
+#[test]
+fn edr_w5_keeper_of_flame() {
+    use orange_stone::cards::def::KEEPER_OF_FLAME;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &KEEPER_OF_FLAME)
+        .add_custom_minion_to_hand(p1, 2, 2, 2);
+    builder.add_custom_minion_to_hand(p1, 3, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 2);
+    let stats: Vec<(i32, i32)> = hand
+        .iter()
+        .map(|&e| {
+            (
+                state.world().effective_attack(e).unwrap_or(Attack(0)).0,
+                state.world().effective_health(e).unwrap_or(Health(0)).0,
+            )
+        })
+        .collect();
+    assert_eq!(stats, vec![(5, 5), (6, 6)], "both +3/+3");
+}
+
+/// F5-W5-25 — Living Flame: the deathrattle draws a card (the Fire filter
+/// unmodeled, §14.5).
+#[test]
+fn edr_w5_living_flame() {
+    use orange_stone::cards::def::LIVING_FLAME;
+    use orange_stone::core::effect::{CardEffect, EffectTarget};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &LIVING_FLAME)
+        .set_hero_power(
+            p1,
+            0,
+            CardEffect::DealDamage {
+                amount: 3,
+                target: EffectTarget::AnyCharacter,
+            },
+        );
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let deck_before = state.world().zones().len(Zone::Deck, p1);
+    play_front_card(&mut state, &engine, p1);
+    let flame = find_entity(&state, p1, "FIR_929");
+    let hero = state.player(p1).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::HeroPower {
+                hero,
+                target: Some(flame),
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zones().len(Zone::Hand, p1), 1, "drew 1");
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), deck_before - 1);
+}
+
+/// F5-W5-26 — Shadowflame Suffusion: 2 damage to the target and a random
+/// Warrior minion with a dark gift joins the hand (the Discover→random
+/// simplification, §14.5).
+#[test]
+fn edr_w5_shadowflame_suffusion() {
+    use orange_stone::cards::def::SHADOWFLAME_SUFFUSION;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    let target = builder
+        .active_player(p1)
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &SHADOWFLAME_SUFFUSION)
+        .add_custom_minion_to_board(p2, 5, 5, 5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().effective_health(target), Some(Health(3)));
+    // The random gift may be the deck-top gift — the Warrior then sits on
+    // top of the deck instead of the hand (accept either spot).
+    let added = if state.world().zones().len(Zone::Hand, p1) == 1 {
+        first_hand_card(&state, p1)
+    } else {
+        state
+            .world()
+            .zones()
+            .iter(Zone::Deck, p1)
+            .next()
+            .expect("the Warrior on top of the deck")
+    };
+    assert_eq!(
+        state.world().card_type(added),
+        Some(CardType::Minion),
+        "a minion joined the hand"
+    );
+    assert!(
+        state
+            .world()
+            .dark_gifts(added)
+            .is_some_and(|g| !g.is_empty()),
+        "a dark gift"
+    );
+}
+
+/// F5-W5-27 — Zaqali Flamemancer: while every hand card costs differently,
+/// all hand cards cost (2) less.
+#[test]
+fn edr_w5_zaqali_flamemancer() {
+    use orange_stone::cards::def::ZAQALI_FLAMEMANCER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 6, 6)
+        .add_minion_to_hand(p1, &ZAQALI_FLAMEMANCER)
+        .add_custom_minion_to_hand(p1, 1, 1, 1);
+    builder.add_custom_minion_to_hand(p1, 1, 1, 2);
+    builder.add_custom_minion_to_hand(p1, 1, 1, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let mut costs: Vec<i32> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .map(|e| state.world().effective_cost(e).unwrap_or(Cost(0)).0)
+        .collect();
+    costs.sort_unstable();
+    assert_eq!(costs, vec![0, 0, 1], "1/2/3 minus 2");
+    // With duplicate costs the battlecry is empty
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 6, 6)
+        .add_minion_to_hand(p1, &ZAQALI_FLAMEMANCER)
+        .add_custom_minion_to_hand(p1, 1, 1, 1);
+    builder.add_custom_minion_to_hand(p1, 1, 1, 1);
+    builder.add_custom_minion_to_hand(p1, 1, 1, 2);
+    let mut state = builder.build();
+    play_front_card(&mut state, &engine, p1);
+    let mut costs: Vec<i32> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .map(|e| state.world().effective_cost(e).unwrap_or(Cost(0)).0)
+        .collect();
+    costs.sort_unstable();
+    assert_eq!(costs, vec![1, 1, 2], "unchanged");
+}
+
+/// F5-W5-28 — Searing Reflection: draws the first minion in the deck and
+/// summons an 8/8 copy of it with Divine Shield.
+#[test]
+fn edr_w5_searing_reflection() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, SEARING_REFLECTION};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 7, 7)
+        .add_minion_to_hand(p1, &SEARING_REFLECTION)
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let drawn = first_hand_card(&state, p1);
+    assert_eq!(
+        state.world().card_id(drawn).map(|c| c.0),
+        Some("CLASSIC_001"),
+        "the deck minion was drawn"
+    );
+    let copy = find_entity(&state, p1, "CLASSIC_001");
+    assert_eq!(state.world().effective_attack(copy), Some(Attack(8)));
+    assert_eq!(state.world().effective_health(copy), Some(Health(8)));
+    assert!(state.world().divine_shield(copy).is_some());
+}
+
+/// F5-W5-29 — Volcoross: spends the largest affordable 10/20/30 Corpses
+/// for that many stats (the choose-one simplified, §14.5).
+#[test]
+fn edr_w5_volcoross() {
+    use orange_stone::cards::def::VOLCOROSS;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 8, 8)
+        .add_minion_to_hand(p1, &VOLCOROSS);
+    let mut state = builder.build();
+    state.make_mut().players[p1.index()].corpses = 25;
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let volcoross = find_entity(&state, p1, "FIR_951");
+    assert_eq!(
+        state.world().effective_attack(volcoross),
+        Some(Attack(25)),
+        "5 + 20"
+    );
+    assert_eq!(state.world().effective_health(volcoross), Some(Health(25)));
+    assert_eq!(state.player(p1).corpses, 5, "25 - 20 spent");
+    // Below 10 corpses nothing is spent
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 8, 8)
+        .add_minion_to_hand(p1, &VOLCOROSS);
+    let mut state = builder.build();
+    state.make_mut().players[p1.index()].corpses = 5;
+    play_front_card(&mut state, &engine, p1);
+    let volcoross = find_entity(&state, p1, "FIR_951");
+    assert_eq!(state.world().effective_attack(volcoross), Some(Attack(5)));
+    assert_eq!(state.player(p1).corpses, 5, "nothing spent");
+    // 30 corpses spend all 30
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 8, 8)
+        .add_minion_to_hand(p1, &VOLCOROSS);
+    let mut state = builder.build();
+    state.make_mut().players[p1.index()].corpses = 30;
+    play_front_card(&mut state, &engine, p1);
+    let volcoross = find_entity(&state, p1, "FIR_951");
+    assert_eq!(state.world().effective_attack(volcoross), Some(Attack(35)));
+    assert_eq!(state.player(p1).corpses, 0);
+}
+
+/// F5-W5-30 — Scorchreaver: every hand spell costs (1) less and a random
+/// spell joins the hand, also reduced (the Discover→random and Fel filter
+/// simplifications, §14.5).
+#[test]
+fn edr_w5_scorchreaver() {
+    use orange_stone::cards::def::{SCORCHREAVER, SMOLDERING_ASCENT, SMOLDERING_GROVE, card_by_id};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &SCORCHREAVER)
+        .add_minion_to_hand(p1, &SMOLDERING_GROVE)
+        .add_minion_to_hand(p1, &SMOLDERING_ASCENT);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 3, "two reduced spells + the new one");
+    let mut reduced_at_1 = 0;
+    for e in hand {
+        let id = state.world().card_id(e).expect("card id").0;
+        let def = card_by_id(id).expect("def");
+        assert_eq!(def.card_type, CardType::Spell, "{id} is a spell");
+        let cost = state.world().effective_cost(e).unwrap_or(Cost(0)).0;
+        assert_eq!(
+            cost,
+            (def.cost - 1).max(0),
+            "{id} costs (1) less — the two hand spells and the new one"
+        );
+        if cost == 1 {
+            reduced_at_1 += 1;
+        }
+    }
+    assert_eq!(
+        reduced_at_1, 2,
+        "the two existing (2)-Cost spells now cost 1"
+    );
+}
+
+/// F5-W5-31 — Magma Hound: after attacking a minion and surviving, its
+/// Attack is dealt split among all enemies. The splash trigger fires at
+/// attack declaration, before the trade resolves (the W2 porcupine
+/// convention, §14.5) — the pings land first, then the attack damage, so
+/// the total enemy-side loss is deterministic: 5 Attack + 5 pings = 10.
+#[test]
+fn edr_w5_magma_hound() {
+    use orange_stone::cards::def::MAGMA_HOUND;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    let m1 = builder
+        .active_player(p1)
+        .set_mana(p1, 8, 8)
+        .add_minion_to_hand(p1, &MAGMA_HOUND)
+        .add_custom_minion_to_board(p2, 1, 100, 100);
+    let m2 = builder.add_custom_minion_to_board(p2, 1, 50, 50);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hound = find_entity(&state, p1, "FIR_953");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hound,
+                defender: m1,
+            },
+        )
+        .unwrap();
+    assert!(
+        board_minions(&state, p2).contains(&m1),
+        "the 1/100 survived the 5-attack trade"
+    );
+    let hero2 = state.player(p2).hero;
+    let loss = |e: Entity| {
+        let start = if e == m1 {
+            100
+        } else if e == m2 {
+            50
+        } else {
+            30
+        };
+        start - state.world().effective_health(e).unwrap_or(Health(0)).0
+    };
+    let total = loss(m1) + loss(m2) + loss(hero2);
+    assert_eq!(
+        total, 10,
+        "5 Attack on the traded minion + the 5-ping splash — every ping is observable"
+    );
+    assert_eq!(
+        state.world().effective_health(hound),
+        Some(Health(7)),
+        "the Hound survived the trade (8 - 1 retaliation)"
+    );
+    // A Hound killed by the retaliation: the pings were queued at attack
+    // declaration, so they still splash — the total enemy-side loss is
+    // again 10 (the declaration-timing simplification, §14.5).
+    let mut builder = GameBuilder::new();
+    let big = builder
+        .active_player(p1)
+        .set_mana(p1, 8, 8)
+        .add_minion_to_hand(p1, &MAGMA_HOUND)
+        .add_custom_minion_to_board(p2, 9, 100, 100);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hound = find_entity(&state, p1, "FIR_953");
+    let hero2 = state.player(p2).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hound,
+                defender: big,
+            },
+        )
+        .unwrap();
+    assert!(
+        !board_minions(&state, p1).contains(&hound),
+        "the Hound died to the 9-attack retaliation"
+    );
+    let loss = |e: Entity| {
+        let start = if e == big { 100 } else { 30 };
+        start - state.world().effective_health(e).unwrap_or(Health(0)).0
+    };
+    let total = loss(big) + loss(hero2);
+    assert_eq!(
+        total, 10,
+        "the declaration-time pings still splash after the Hound dies"
+    );
+}
+
+/// F5-W5-32 — Conflagrate: 5 damage to a minion and its owner draws a
+/// card (either side is a valid target).
+#[test]
+fn edr_w5_conflagrate() {
+    use orange_stone::cards::def::CONFLAGRATE;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    let target = builder
+        .active_player(p1)
+        .set_mana(p1, 1, 1)
+        .add_minion_to_hand(p1, &CONFLAGRATE)
+        .add_custom_minion_to_board(p2, 5, 5, 5);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p2_deck_before = state.world().zones().len(Zone::Deck, p2);
+    let card = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(board_minions(&state, p2).len(), 0, "the 5/5 died");
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p2),
+        1,
+        "the owner drew"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, p2),
+        p2_deck_before - 1
+    );
+}
+
+/// F5-W5-33 — Emberroot Destroyer: while the owner's hero takes damage on
+/// their turn, a random enemy minion takes 3 (the damage-pipeline hook,
+/// §14.5).
+#[test]
+fn edr_w5_emberroot_destroyer() {
+    use orange_stone::cards::def::EMBERROOT_DESTROYER;
+    use orange_stone::core::effect::{CardEffect, EffectTarget};
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &EMBERROOT_DESTROYER);
+    builder.add_custom_minion_to_board(p2, 3, 3, 3);
+    builder.set_hero_power(
+        p1,
+        0,
+        CardEffect::DealDamage {
+            amount: 3,
+            target: EffectTarget::AnyCharacter,
+        },
+    );
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hero = state.player(p1).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::HeroPower {
+                hero,
+                target: Some(hero),
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(27)),
+        "the hero took 3"
+    );
+    assert_eq!(
+        board_minions(&state, p2).len(),
+        0,
+        "the enemy minion took 3"
+    );
+}
+
+/// F5-W5-34 — Dragon Turtle: while the owner holds a minion with a dark
+/// gift, the hero gains +3 Attack this turn and 6 Armor.
+#[test]
+fn edr_w5_dragon_turtle() {
+    use orange_stone::cards::def::DRAGON_TURTLE;
+    use orange_stone::core::component::DarkGiftKind;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    let gifted = builder
+        .active_player(p1)
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &DRAGON_TURTLE)
+        .add_custom_minion_to_hand(p1, 1, 1, 1);
+    let mut state = builder.build();
+    state
+        .world_mut()
+        .add_dark_gift(gifted, DarkGiftKind::Charge);
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hero = state.player(p1).hero;
+    assert_eq!(state.world().effective_attack(hero), Some(Attack(3)));
+    assert_eq!(state.player(p1).armor, 6);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_attack(hero),
+        Some(Attack(0)),
+        "the Attack expires at end of turn"
+    );
+    assert_eq!(state.player(p1).armor, 6, "the Armor persists");
+    // Without a gifted minion nothing is gained
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &DRAGON_TURTLE)
+        .add_custom_minion_to_hand(p1, 1, 1, 1);
+    let mut state = builder.build();
+    play_front_card(&mut state, &engine, p1);
+    let hero = state.player(p1).hero;
+    assert_eq!(state.world().effective_attack(hero), Some(Attack(0)));
+    assert_eq!(state.player(p1).armor, 0);
+}
+
+/// F5-W5-35 — Tindral Sageswift: the deathrattle deals 1 to all enemies
+/// on the owner's turn, 4 on the opponent's turn.
+#[test]
+fn edr_w5_tindral_sageswift() {
+    use orange_stone::cards::def::TINDRAL_SAGESWIFT;
+    use orange_stone::core::effect::{CardEffect, EffectTarget};
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    let enemy_minion = builder
+        .active_player(p1)
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &TINDRAL_SAGESWIFT)
+        .add_custom_minion_to_board(p2, 2, 2, 2);
+    builder.set_hero_power(
+        p1,
+        0,
+        CardEffect::DealDamage {
+            amount: 3,
+            target: EffectTarget::AnyCharacter,
+        },
+    );
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let tindral = find_entity(&state, p1, "FIR_958");
+    let hero1 = state.player(p1).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::HeroPower {
+                hero: hero1,
+                target: Some(tindral),
+            },
+        )
+        .unwrap();
+    let hero2 = state.player(p2).hero;
+    assert_eq!(
+        state.world().effective_health(enemy_minion),
+        Some(Health(1)),
+        "1 damage on the owner's turn"
+    );
+    assert_eq!(state.world().effective_health(hero2), Some(Health(29)));
+    // On the opponent's turn the deathrattle deals 4
+    let mut builder = GameBuilder::new();
+    let _enemy_minion = builder
+        .active_player(p1)
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &TINDRAL_SAGESWIFT)
+        .add_custom_minion_to_board(p2, 2, 2, 2);
+    builder.set_hero_power(
+        p2,
+        0,
+        CardEffect::DealDamage {
+            amount: 3,
+            target: EffectTarget::AnyCharacter,
+        },
+    );
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let tindral = find_entity(&state, p1, "FIR_958");
+    let hero2 = state.player(p2).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::HeroPower {
+                hero: hero2,
+                target: Some(tindral),
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_minions(&state, p2).len(),
+        0,
+        "the enemy's own minion took 4"
+    );
+    assert_eq!(
+        state.world().effective_health(hero2),
+        Some(Health(26)),
+        "the enemy hero took 4"
+    );
+}
+
+/// F5-W5-36 — Fyrakk the Blazing: the battlecry deals 15 split damage
+/// across the enemies (the mana-weighted spell cast approximated, §14.5).
+#[test]
+fn edr_w5_fyrakk_the_blazing() {
+    use orange_stone::cards::def::FYRAKK_THE_BLAZING;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    let m1 = builder
+        .active_player(p1)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &FYRAKK_THE_BLAZING)
+        .add_custom_minion_to_board(p2, 20, 20, 20);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero2 = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1);
+    let loss = |e: Entity| 20 - state.world().effective_health(e).unwrap_or(Health(0)).0;
+    let total = loss(m1) + (30 - state.world().effective_health(hero2).unwrap().0);
+    assert_eq!(total, 15, "15 pings of 1");
+    assert_eq!(
+        state
+            .world()
+            .effective_attack(find_entity(&state, p1, "FIR_959")),
+        Some(Attack(7)),
+        "Fyrakk himself"
+    );
+}
+
+/// F5-W5-37 — Tending Dragonkin: copies the lowest-Cost Beast in the
+/// hand.
+#[test]
+fn edr_w5_tending_dragonkin() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, TENDING_DRAGONKIN, TIMBER_WOLF};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &TENDING_DRAGONKIN)
+        .add_minion_to_hand(p1, &TIMBER_WOLF)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let timber = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "HUNTER_010")
+        })
+        .count();
+    assert_eq!(timber, 2, "the 1-Cost Beast was copied");
+    assert_eq!(board_count(&state, p1, "FIR_960"), 1, "the Dragonkin");
+}
+
+/// F5-W5-38 — Ashleaf Pixie: gains Divine Shield and Lifesteal while the
+/// owner holds a spell costing (5) or more.
+#[test]
+fn edr_w5_ashleaf_pixie() {
+    use orange_stone::cards::def::{ASHLEAF_PIXIE, SEARING_REFLECTION};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &ASHLEAF_PIXIE)
+        .add_minion_to_hand(p1, &SEARING_REFLECTION);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let pixie = find_entity(&state, p1, "FIR_961");
+    assert!(state.world().divine_shield(pixie).is_some());
+    assert!(state.world().lifesteal(pixie).is_some());
+    // Without a 5+ spell the keywords are not gained
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(p1)
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &ASHLEAF_PIXIE)
+        .add_minion_to_hand(p1, &orange_stone::cards::def::SMOLDERING_GROVE);
+    let mut state = builder.build();
+    play_front_card(&mut state, &engine, p1);
+    let pixie = find_entity(&state, p1, "FIR_961");
+    assert!(state.world().divine_shield(pixie).is_none());
+    assert!(state.world().lifesteal(pixie).is_none());
+}

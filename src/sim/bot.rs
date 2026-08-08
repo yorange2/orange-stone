@@ -1659,6 +1659,52 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::SummonRandomAnimalCompanion => 3.0,
         CardEffect::AddAllDreamCards => 5.0,
         CardEffect::CardsCostOneThisGame => 4.0,
+        // 2025–2026 expansions M1-W5 — the Embers of the World Tree miniset
+        CardEffect::GainStatsIfHeroPowerUsed { attack, health } => (attack + health) as f64 * 0.8,
+        CardEffect::GiveMinionStatsRushIfHeroPowerUsed { attack, health } => {
+            (attack + health) as f64 * 0.8 + 1.0
+        }
+        CardEffect::DrawIfImbuedTwice { count } => count as f64 * 3.0,
+        CardEffect::DealDamageToAllEnemyMinions { damage } => damage as f64 * 1.0,
+        CardEffect::DiscoverWithDarkGiftCostReduction { reduction } => 3.0 + reduction as f64 * 0.5,
+        CardEffect::SummonBroodlingsIfHoldingGift => 5.0,
+        CardEffect::FelfireBlazeTrigger { damage } => damage as f64 * 1.0 + 2.0,
+        CardEffect::BuffFriendlyMinionsDiscardBonus {
+            attack,
+            health,
+            bonus_attack,
+            bonus_health,
+        } => (attack + health + bonus_attack + bonus_health) as f64 * 0.6,
+        CardEffect::AmirdrassilActivate => 4.0,
+        CardEffect::InfernoHeraldTrigger { reduction } => 3.0 + reduction as f64 * 0.5,
+        CardEffect::BuffMinionReturnIfSpellsCast { attack, health, .. } => {
+            (attack + health) as f64 * 0.8 + 2.0
+        }
+        CardEffect::GainWeaponAttackIfHoldingGift { amount } => amount as f64 * 0.8 + 1.0,
+        CardEffect::DamageRandomEnemyMinionHoldingCostGE { base, upgraded, .. } => {
+            upgraded as f64 * 0.6 + base as f64 * 0.4
+        }
+        CardEffect::DiscoverComboBattlecryStealthWithDarkGift => 4.0,
+        CardEffect::DiscoverDemonWithDarkGiftCopy => 4.0,
+        CardEffect::DiscoverCostCardGainTempMana { .. } => 4.0,
+        CardEffect::DamageAndDiscoverWarriorWithGift { damage } => damage as f64 * 0.8 + 3.0,
+        CardEffect::ReduceHandCostIfAllDistinct { reduction } => reduction as f64 * 0.5 + 2.0,
+        CardEffect::DrawMinionSummonDivineShieldCopy => 6.0,
+        CardEffect::VolcorossBattlecry => 5.0,
+        CardEffect::DiscoverSpellReduceHandSpells { reduction } => 3.0 + reduction as f64 * 0.5,
+        CardEffect::MagmaHoundSplash => 4.0,
+        CardEffect::DamageMinionOwnerDraws { damage } => damage as f64 * 0.8 + 2.0,
+        CardEffect::DeathrattleDamageAllEnemiesTurnScaled { base, boosted } => {
+            base as f64 * 0.8 + boosted as f64 * 0.4
+        }
+        CardEffect::DealDamageSplitAmongAllEnemies { amount } => amount as f64 * 0.8,
+        CardEffect::CopyLowestCostBeastInHand => 3.0,
+        CardEffect::GainDivineShieldLifestealIfHoldingSpellGE { .. } => 3.0,
+        CardEffect::GainHeroAttackArmorIfHoldingGift { attack, armor } => {
+            attack as f64 * 0.8 + armor as f64 * 0.6
+        }
+        CardEffect::DamageAndDiscardSpellMore { base, bonus } => (base + bonus) as f64 * 0.8,
+        CardEffect::BuffAllHandMinions { attack, health } => (attack + health) as f64 * 0.8 + 1.0,
     }
 }
 

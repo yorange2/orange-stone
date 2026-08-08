@@ -103,6 +103,18 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
         let uses = state.player(player).hero_power_uses;
         cost = Cost((cost.0 - uses as i32).max(0));
     }
+    // Everburning Phoenix (2025–2026 expansions M1-W5): costs (1) less for
+    // each card the owner played this turn. The counter is bumped at the
+    // CardPlayed path AFTER this discount computes, so the current card is
+    // excluded — matching the official discount.
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "FIR_919")
+    {
+        let played = state.player(player).cards_played_this_turn;
+        cost = Cost((cost.0 - played as i32).max(0));
+    }
     // Sea Giant (W11): costs (1) less for each minion on the battlefield
     // (both sides — the board-count rule composes here like Dread Corsair)
     if state
