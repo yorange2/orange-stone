@@ -45,7 +45,9 @@ pub struct EntityView {
     pub windfury: bool,
     /// Charge keyword (effective — a Charge aura counts)
     pub charge: bool,
-    /// Race / tribe: 0=none, 1=Beast, 2=Murloc, 3=Demon (fidelity-debt W1)
+    /// Race / tribe: 0=none, 1=Beast, 2=Murloc, 3=Demon, 4=Dragon,
+    /// 5=Elemental, 6=Mechanical, 7=Pirate, 8=Totem (fidelity-debt W1;
+    /// Core Set W0)
     pub race: i32,
     /// Frozen this turn
     pub frozen: bool,
@@ -197,6 +199,11 @@ pub fn entity_view(state: &GameState, entity: Entity, is_hand: bool) -> EntityVi
             Some(crate::core::component::Race::Beast) => 1,
             Some(crate::core::component::Race::Murloc) => 2,
             Some(crate::core::component::Race::Demon) => 3,
+            Some(crate::core::component::Race::Dragon) => 4,
+            Some(crate::core::component::Race::Elemental) => 5,
+            Some(crate::core::component::Race::Mechanical) => 6,
+            Some(crate::core::component::Race::Pirate) => 7,
+            Some(crate::core::component::Race::Totem) => 8,
             None => 0,
         },
         frozen: world.freeze(entity).is_some(),

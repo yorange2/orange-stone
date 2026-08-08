@@ -200,7 +200,9 @@ pub struct Aura {
     pub target: AuraTarget,
 }
 
-/// Minion race / tribe (fidelity-debt W1) — Beast, Murloc, Demon.
+/// Minion race / tribe (fidelity-debt W1; Core Set W0 added the five
+/// non-Classic races) — Beast, Murloc, Demon, Dragon, Elemental, Mechanical,
+/// Pirate, Totem.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Race {
     /// Beast
@@ -209,6 +211,16 @@ pub enum Race {
     Murloc,
     /// Demon
     Demon,
+    /// Dragon (Core Set W0)
+    Dragon,
+    /// Elemental (Core Set W0)
+    Elemental,
+    /// Mechanical (Core Set W0)
+    Mechanical,
+    /// Pirate (Core Set W0)
+    Pirate,
+    /// Totem (Core Set W0)
+    Totem,
 }
 
 /// Aura effect kind.
