@@ -51,8 +51,11 @@ register in `sets.rs::ALL_CARDS`; simplifications carry `(simplified …)` marke
   (level = count); the 6 classes' 15 Imbue cards; 13 F5 scenarios pin the
   2x-Imbue threshold sequencing and per-class power resolution. 5 D2
   simplifications registered in fidelity-debt.md §14.
-- **W2 — Dark Gifts (P2):** the 10-gift pool + Discover-application on the 5
-  classes' Dark Gift cards.
+- [x] **W2 — Dark Gifts (P2)** (PR #138): the 10-gift pool (`ALL_DARK_GIFTS`)
+  + card-level gift markers + per-player gift log; the 5 classes' 9 Dark Gift
+  cards; 15 F5 scenarios (per-gift resolution, cross-zone persistence,
+  Combo/corpse/dragon-hand conditions, Wallow sync). Nightmare Fuel registered
+  in POOL_OPEN_CARDS; 7 D2 simplifications in fidelity-debt.md §14.1.
 - **W3 — Choose One for all classes (P3):** real choice resolution; the W10
   Discover choice pattern generalized; EDR choose-one cards playable with
   explicit branches in `legal_actions`.
@@ -85,15 +88,15 @@ register in `sets.rs::ALL_CARDS`; simplifications carry `(simplified …)` marke
 - [x] EDR_970 Kaldorei Priestess
 
 ### W2 — Dark Gifts (DK/DH/Rogue/Warlock/Warrior)
-- [ ] EDR_102 Treacherous Tormentor
-- [ ] EDR_456 Darkrider
-- [ ] EDR_487 Wallow, the Wretched
-- [ ] EDR_488 Avant-Gardening
-- [ ] EDR_528 Nightmare Fuel
-- [ ] EDR_654 Overgrown Horror
-- [ ] EDR_811 Rite of Atrocity
-- [ ] EDR_856 Nightmare Lord Xavius
-- [ ] EDR_882 Jumpscare!
+- [x] EDR_102 Treacherous Tormentor
+- [x] EDR_456 Darkrider
+- [x] EDR_487 Wallow, the Wretched
+- [x] EDR_488 Avant-Gardening
+- [x] EDR_528 Nightmare Fuel
+- [x] EDR_654 Overgrown Horror
+- [x] EDR_811 Rite of Atrocity
+- [x] EDR_856 Nightmare Lord Xavius
+- [x] EDR_882 Jumpscare!
 
 ### W3 — Choose One (all classes)
 - [ ] EDR_233 Spirits of the Forest

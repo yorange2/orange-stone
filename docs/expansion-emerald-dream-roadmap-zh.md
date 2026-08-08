@@ -42,7 +42,10 @@
 - [x] **W1 —— 灌注（P1）**（PR #137）：每玩家灌注计数 + 首次灌注替换为职业灌注
   形态 + 每次灌注数字 +1（等级 = 计数）；6 职业 15 张灌注卡；13 个 F5 场景钉死
   2 次灌注阈值时序与各职业技能结算。5 项 D2 简化登记进 fidelity-debt.md §14。
-- **W2 —— 黑暗赠礼（P2）：** 10 种赠礼池 + 对 5 职业黑暗赠礼卡应用发现。
+- [x] **W2 —— 黑暗赠礼（P2）**（PR #138）：10 种赠礼池（`ALL_DARK_GIFTS`）+ 卡级
+  赠礼标记 + 每玩家赠礼日志；5 职业 9 张黑暗赠礼卡；15 个 F5 场景（各赠礼结算、
+  跨区存续、Combo/尸体/持龙条件、Wallow 同步）。Nightmare Fuel 登记 POOL_OPEN_CARDS；
+  7 项 D2 简化登记进 fidelity-debt.md §14.1。
 - **W3 —— 全职业 Choose One（P3）：** 真实抉择结算；泛化 W10 发现选择机制；
   EDR 抉择卡在 `legal_actions` 里给出显式分支。
 - **W4 —— 野神 + 杂项效果（P5）：** 其余随从/法术；职业传说野神；收尾波清扫
@@ -72,15 +75,15 @@
 - [x] EDR_970 Kaldorei Priestess
 
 ### W2 —— 黑暗赠礼（DK/DH/潜行者/术士/战士）
-- [ ] EDR_102 Treacherous Tormentor
-- [ ] EDR_456 Darkrider
-- [ ] EDR_487 Wallow, the Wretched
-- [ ] EDR_488 Avant-Gardening
-- [ ] EDR_528 Nightmare Fuel
-- [ ] EDR_654 Overgrown Horror
-- [ ] EDR_811 Rite of Atrocity
-- [ ] EDR_856 Nightmare Lord Xavius
-- [ ] EDR_882 Jumpscare!
+- [x] EDR_102 Treacherous Tormentor
+- [x] EDR_456 Darkrider
+- [x] EDR_487 Wallow, the Wretched
+- [x] EDR_488 Avant-Gardening
+- [x] EDR_528 Nightmare Fuel
+- [x] EDR_654 Overgrown Horror
+- [x] EDR_811 Rite of Atrocity
+- [x] EDR_856 Nightmare Lord Xavius
+- [x] EDR_882 Jumpscare!
 
 ### W3 —— Choose One（全职业）
 - [ ] EDR_233 Spirits of the Forest
