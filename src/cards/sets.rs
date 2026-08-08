@@ -22,6 +22,7 @@ use super::core_w3b::*;
 use super::core_w3c::*;
 use super::core_w3d::*;
 use super::core_w4a::*;
+use super::core_w4b::*;
 // ============================================================
 // Card lists
 // ============================================================
@@ -46,6 +47,13 @@ pub const DEMON_HUNTER_W1: &[CardDef] = &[
     CORE_RAGING_FELSCREAMER,
     CORE_NETHERWALKER,
     CORE_RAGING_FELSCREAMER,
+    // Core Set W4b — demon hunter batch
+    CORE_ULFAR,
+    CORE_SKY_RAIDER,
+    CORE_BLOWTORCH_SABOTEUR,
+    CORE_SAVAGE_STRIKER,
+    CORE_KRAGWA_THE_FROG,
+    CORE_RIFTCLEAVER,
 ];
 
 /// Core Set W1 — Death Knight class cards.
@@ -300,6 +308,21 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     CORE_PRIMORDIAL_DRAKE,
     CORE_FLAME_ELEMENTAL,
     CORE_RISEN_FOOTMAN,
+    // Core Set W4b — neutrals
+    CORE_ELVEN_ARCHER,
+    CORE_VOODOO_DOCTOR,
+    CORE_KING_MUKLA,
+    CORE_TWILIGHT_DRAKE,
+    CORE_MAD_BOMBER,
+    CORE_COLDLIGHT_SEER,
+    CORE_BRIGHTWING,
+    CORE_NATALIE_SELINE,
+    CORE_SIAMAT,
+    CORE_AVATAR_OF_HEARTHSTONE,
+    CORE_FIRE_ELEMENTAL,
+    CORE_MURLOC_TIDEHUNTER,
+    CORE_INJURED_TOLVIR,
+    CORE_ARCHWITCH_WILLOW,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -376,6 +399,9 @@ pub const DRUID_CLASSIC: &[CardDef] = &[
     CORE_MARK_OF_THE_WILD,
     CORE_OAKEN_SUMMONS,
     CORE_CRYSTAL_MERCHANT,
+    // Core Set W4b — druid batch
+    CORE_ASTROMANCER,
+    CORE_MENAGERIE_MUG,
 ];
 
 pub const HUNTER_CLASSIC: &[CardDef] = &[
@@ -477,6 +503,8 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     // Core Set W4a — mage batch
     CORE_BABBLING_BOOKCASE,
     CORE_GLACIAL_SHARD,
+    // Core Set W4b — Maze Guide
+    CORE_MAZE_GUIDE,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -521,6 +549,10 @@ pub const PALADIN_CLASSIC: &[CardDef] = &[
     CORE_COGHAMMER,
     CORE_BATTLE_VICAR,
     CORE_DETONATION_JUGGERNAUT,
+    // Core Set W4b — paladin batch
+    CORE_SUNFURY_PROTECTOR,
+    CORE_ARGENT_PROTECTOR,
+    CORE_HEADHUNTERS_HATCHET,
 ];
 
 pub const PRIEST_CLASSIC: &[CardDef] = &[
@@ -575,6 +607,10 @@ pub const PRIEST_CLASSIC: &[CardDef] = &[
     // Core Set W4a — priest batch
     CORE_PRIEST_OF_ANSHE,
     CORE_CRYSTALSMITH_CULTIST,
+    // Core Set W4b — priest batch
+    CORE_CALIA_MENETHIL,
+    CORE_BEAMING_SIDEKICK,
+    CORE_DARK_PEDDLER,
 ];
 
 pub const ROGUE_CLASSIC: &[CardDef] = &[
@@ -619,6 +655,9 @@ pub const ROGUE_CLASSIC: &[CardDef] = &[
     // Core Set W4a — rogue batch
     CORE_SWASHBURGLAR,
     CORE_FOXY_FRAUD,
+    // Core Set W4b — rogue batch
+    CORE_PSYCHIC_CONJURER,
+    CORE_CRAZED_ALCHEMIST,
 ];
 
 pub const SHAMAN_CLASSIC: &[CardDef] = &[
@@ -705,6 +744,10 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     // Core Set W4a — warlock batch
     CORE_VULGAR_HOMUNCULUS,
     CORE_GNOMEFERATU,
+    // Core Set W4b — warlock batch
+    CORE_TICHONDRIUS,
+    CORE_DOOMGUARD,
+    CORE_FLAME_IMP,
 ];
 
 pub const WARRIOR_CLASSIC: &[CardDef] = &[
@@ -750,6 +793,11 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
     // Core Set W4a — warrior batch (if not already)
     CORE_BLOODSAIL_RAIDER,
     CORE_IRONFORGE_PORTAL,
+    // Core Set W4b — warrior batch
+    CORE_ABUSIVE_SERGEANT,
+    CORE_RAVAGING_GHOUL,
+    CORE_STEAMCLEANER,
+    CORE_CULT_NEOPHYTE,
 ];
 
 pub const ALL_CARDS: &[CardDef] = &[
@@ -1396,6 +1444,45 @@ pub const ALL_CARDS: &[CardDef] = &[
     CORE_DETONATION_JUGGERNAUT,
     CORE_FLAME_ELEMENTAL,
     CORE_RISEN_FOOTMAN,
+    // Core Set W4b (2026-08-08) — 38 cards.
+    CORE_ASTROMANCER,
+    CORE_TICHONDRIUS,
+    CORE_CALIA_MENETHIL,
+    CORE_ULFAR,
+    CORE_FIRE_ELEMENTAL,
+    CORE_ABUSIVE_SERGEANT,
+    CORE_ELVEN_ARCHER,
+    CORE_SKY_RAIDER,
+    CORE_BLOWTORCH_SABOTEUR,
+    CORE_VOODOO_DOCTOR,
+    CORE_KING_MUKLA,
+    CORE_TWILIGHT_DRAKE,
+    CORE_SUNFURY_PROTECTOR,
+    CORE_CRAZED_ALCHEMIST,
+    CORE_MAD_BOMBER,
+    CORE_COLDLIGHT_SEER,
+    CORE_BRIGHTWING,
+    CORE_PSYCHIC_CONJURER,
+    CORE_NATALIE_SELINE,
+    CORE_DOOMGUARD,
+    CORE_FLAME_IMP,
+    CORE_ARGENT_PROTECTOR,
+    CORE_MURLOC_TIDEHUNTER,
+    CORE_RAVAGING_GHOUL,
+    CORE_MAZE_GUIDE,
+    CORE_STEAMCLEANER,
+    CORE_ARCHWITCH_WILLOW,
+    CORE_CULT_NEOPHYTE,
+    CORE_HEADHUNTERS_HATCHET,
+    CORE_SAVAGE_STRIKER,
+    CORE_KRAGWA_THE_FROG,
+    CORE_RIFTCLEAVER,
+    CORE_SIAMAT,
+    CORE_BEAMING_SIDEKICK,
+    CORE_INJURED_TOLVIR,
+    CORE_DARK_PEDDLER,
+    CORE_MENAGERIE_MUG,
+    CORE_AVATAR_OF_HEARTHSTONE,
 ];
 
 // ============================================================
@@ -1423,6 +1510,7 @@ pub const POOL_OPEN_CARDS: &[&str] = &[
     "CORE_CFM_781",  // Shaku, the Collector (Core Set W3a) — copies from the enemy deck
     "CORE_CFM_790",  // Dirty Rat (Core Set W4a) — summons from the enemy hand
     "CORE_ICC_407",  // Gnomeferatu (Core Set W4a) — removes the enemy deck top
+    "CORE_EX1_193",  // Psychic Conjurer (Core Set W4b) — copies from the enemy deck
 ];
 
 #[cfg(test)]

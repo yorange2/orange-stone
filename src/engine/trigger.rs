@@ -2159,6 +2159,259 @@ pub fn resolve_effect(
                 world.set_health(e, Health(base_hp.0 + health));
             }
         }
+        CardEffect::SummonRandomMinionCostEqHandSize => {
+            // Astromancer — a random minion with Cost equal to the hand size
+            let hand_size = state.world().zones().len(Zone::Hand, owner) as i32;
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Minion && c.cost == hand_size)
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            let _ = resolve_summon(state, queue, source, owner, candidates[idx].id);
+        }
+        CardEffect::ResurrectHighestCostFallen => {
+            // Calia Menethil — the highest-Cost friendly minion that died
+            let fallen: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Graveyard, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            let best = fallen
+                .iter()
+                .max_by_key(|&&e| state.world().cost(e).map_or(0, |c| c.0));
+            if let Some(&best) = best {
+                if let Some(def) = state
+                    .world()
+                    .card_id(best)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+            }
+        }
+        CardEffect::GrantDeathrattleSummonOwnCost => {
+            // Ulfar — other friendly minions get a cost-based summon deathrattle
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| e != source)
+                .collect();
+            for m in minions {
+                let dr = Deathrattle(CardEffect::SummonRandomMinionOfCost {
+                    cost: state.world().cost(m).map_or(0, |c| c.0),
+                });
+                state.world_mut().set_deathrattle(m, dr);
+            }
+        }
+        CardEffect::AddRandomPirateToHand => {
+            // Sky Raider — a random Pirate
+            let pirates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.race == Some(crate::core::component::Race::Pirate))
+                    .collect();
+            if pirates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(pirates.len());
+            add_card_to_hand(state, owner, pirates[idx]);
+        }
+        CardEffect::NextEnemyHeroPowerCostMore { amount } => {
+            // Blowtorch Saboteur — the opponent's next Hero Power costs more
+            let inner = state.make_mut();
+            inner.players[owner.opponent().index()].hero_power_cost_more =
+                (inner.players[owner.opponent().index()].hero_power_cost_more + amount).max(0);
+        }
+        CardEffect::SummonRandomMinionOfCost { cost } => {
+            // Maze Guide / Ulfar's deathrattle — a random minion of the cost
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Minion && c.cost == cost)
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            let _ = resolve_summon(state, queue, source, owner, candidates[idx].id);
+        }
+        CardEffect::SummonRandomDemonFromHandOrDeck => {
+            // Archwitch Willow — a random Demon from hand and deck
+            let mut demons: SmallList<Entity> = SmallList::new();
+            for zone in [Zone::Hand, Zone::Deck] {
+                for e in state.world().zones().iter(zone, owner) {
+                    if state
+                        .world()
+                        .card_id(e)
+                        .and_then(|c| crate::cards::def::card_by_id(c.0))
+                        .is_some_and(|d| d.race == Some(crate::core::component::Race::Demon))
+                    {
+                        demons.push(e);
+                    }
+                }
+            }
+            if demons.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(demons.len());
+            let picked = demons[idx];
+            if let Some(def) = state
+                .world()
+                .card_id(picked)
+                .and_then(|c| crate::cards::def::card_by_id(c.0))
+            {
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+        }
+        CardEffect::NextEnemySpellsCostMore { amount } => {
+            // Cult Neophyte — the opponent's spells cost more next turn
+            let inner = state.make_mut();
+            inner.players[owner.opponent().index()].enemy_spell_cost_more =
+                (inner.players[owner.opponent().index()].enemy_spell_cost_more + amount).max(0);
+        }
+        CardEffect::BuffWeaponDurabilityIfBeast { amount } => {
+            // Headhunter's Hatchet — +durability while a Beast is controlled
+            let has_beast = state.world().zones().iter(Zone::Play, owner).any(|e| {
+                state.world().card_type(e) == Some(CardType::Minion)
+                    && state
+                        .world()
+                        .has_race(e, crate::core::component::Race::Beast)
+            });
+            if !has_beast {
+                return;
+            }
+            if let Some(weapon) = state.player(owner).weapon {
+                let dur = state.world().durability(weapon).unwrap_or(Durability(0));
+                state
+                    .world_mut()
+                    .set_durability(weapon, Durability(dur.0 + amount));
+            }
+        }
+        CardEffect::ReturnLastTurnSpells => {
+            // Krag'wa, the Frog — return last turn's spells to hand
+            let spells: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Graveyard, owner)
+                .filter(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .and_then(|c| crate::cards::def::card_by_id(c.0))
+                        .is_some_and(|d| d.card_type == CardType::Spell)
+                })
+                .collect();
+            for s in spells {
+                let world = state.world_mut();
+                world.set_zone(s, Zone::Hand);
+                world.zones_mut().insert(Zone::Hand, owner, s);
+            }
+        }
+        CardEffect::DestroyMinionAndSelfDamage => {
+            // Riftcleaver — destroy a minion; the hero takes its Health
+            let minions: SmallList<Entity> = {
+                let mut all = collect_friendly_minions(state, owner);
+                all.extend(collect_enemy_minions(state, owner, None));
+                all
+            };
+            let Some(target) = select_target(explicit_target, &minions, state.rng_mut()) else {
+                return;
+            };
+            let hp = state.world().effective_health(target).map_or(0, |h| h.0);
+            queue.push(Event::DamageDealt {
+                source,
+                target,
+                amount: hp.max(1),
+            });
+            let hero = state.player(owner).hero;
+            queue.push(Event::DamageDealt {
+                source,
+                target: hero,
+                amount: hp.max(1),
+            });
+        }
+        CardEffect::DamageSelfMinion { damage } => {
+            // Injured Tol'vir — damage this minion
+            queue.push(Event::DamageDealt {
+                source,
+                target: source,
+                amount: damage,
+            });
+        }
+        CardEffect::AddRandomOneCostCard => {
+            // Dark Peddler — a random 1-Cost card (Discover simplified)
+            let cards: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.cost == 1)
+                    .collect();
+            if cards.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(cards.len());
+            add_card_to_hand(state, owner, cards[idx]);
+        }
+        CardEffect::BuffThreeDifferentRaces { attack, health } => {
+            // Menagerie Mug — 3 friendly minions of different races
+            let mut chosen: Vec<Entity> = Vec::new();
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner);
+            for m in &minions {
+                let race = state.world().race(*m).and_then(|r| r.first()).copied();
+                if race.is_some()
+                    && chosen
+                        .iter()
+                        .all(|&c| state.world().race(c).and_then(|r| r.first()).copied() != race)
+                {
+                    chosen.push(*m);
+                    if chosen.len() == 3 {
+                        break;
+                    }
+                }
+            }
+            for m in chosen {
+                let world = state.world_mut();
+                let base = world.attack(m).unwrap_or(Attack(0));
+                world.set_attack(m, Attack(base.0 + attack));
+                let base_hp = world.health(m).unwrap_or(Health(1));
+                world.set_health(m, Health(base_hp.0 + health));
+            }
+        }
+        CardEffect::AddFiveRandomCards => {
+            // Avatar of Hearthstone — the pack simplified to five random cards
+            for _ in 0..5 {
+                let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                    crate::cards::sets::ALL_CARDS
+                        .iter()
+                        .filter(|c| {
+                            c.card_type == CardType::Minion || c.card_type == CardType::Spell
+                        })
+                        .collect();
+                if candidates.is_empty() {
+                    return;
+                }
+                let idx = state.rng_mut().next_usize(candidates.len());
+                add_card_to_hand(state, owner, candidates[idx]);
+            }
+        }
+        CardEffect::DiscardTwoRandomCards => {
+            // Doomguard — discard two random cards
+            for _ in 0..2 {
+                let hand: SmallList<Entity> =
+                    state.world().zones().iter(Zone::Hand, owner).collect();
+                if hand.is_empty() {
+                    return;
+                }
+                let idx = state.rng_mut().next_usize(hand.len());
+                state
+                    .world_mut()
+                    .move_to_zone(hand[idx], Zone::Graveyard)
+                    .ok();
+            }
+        }
         CardEffect::CopyEnemyDeckCardOnSelfAttack => {
             // Shaku — copy a random enemy deck card to hand, only when THIS
             // minion is the one attacking

@@ -1670,7 +1670,9 @@ fn w1_race_pools_are_field_driven() {
             "CLASSIC_001",   // Bloodfen Raptor
             "CORE_AT_062t",  // Spider (Core Set W3a token)
             "CORE_BAR_801t", // Swift Hyena (Core Set W3b token)
+            "CORE_CATA_006", // Ulfar (Core Set W4b)
             "CORE_EDR_004",  // Raptor Herald (Core Set W4a)
+            "CORE_EX1_014",  // King Mukla (Core Set W4b)
             "CORE_EX1_246t", // Frog (Core Set W3a token)
             "CORE_GIL_531",  // Witch's Apprentice (Core Set W4a)
             "CORE_GIL_558",  // Swamp Leech (Core Set W1)
@@ -1678,6 +1680,7 @@ fn w1_race_pools_are_field_driven() {
             "CORE_GIL_623",  // Witchwood Grizzly (Core Set W4a)
             "CORE_SCH_605",  // Lake Thresher (Core Set W3b)
             "CORE_SW_429t",  // Turtle (Core Set W2 token)
+            "CORE_TRL_345",  // Krag'wa, the Frog (Core Set W4b)
             "CORE_TRL_900",  // Halazzi, the Lynx (Core Set W1)
             "CORE_TRL_900t", // Lynx (Core Set W1 token)
             "CORE_UNG_912",  // Jeweled Macaw (Core Set W4a)
@@ -1723,10 +1726,14 @@ fn w1_race_pools_are_field_driven() {
             "CORE_BT_480",   // Crimson Sigil Runner (W2)
             "CORE_BT_493",   // Priestess of Fury (W3c)
             "CORE_BT_510",   // Wrathspike Brute (W3c)
+            "CORE_CATA_001", // Tichondrius (W4b)
+            "CORE_EX1_310",  // Doomguard (W4b)
+            "CORE_EX1_319",  // Flame Imp (W4b)
             "CORE_LOOT_013", // Vulgar Homunculus (W4a)
             "CORE_TTN_843",  // Eredar Deceptor (W3b)
             "CORE_TTN_843t", // Invading Felbat (W3b token)
             "CORE_TTN_866",  // Mythical Terror (W1)
+            "CORE_ULD_165",  // Riftcleaver (W4b)
             "CS2_064",
             "WARLOCK_T01"
         ]
@@ -12006,4 +12013,231 @@ fn w4a_primordial_drake_damages_others() {
         state.world().effective_health(drake_entity),
         Some(Health(8))
     );
+}
+
+// ============================================================
+// Core Set W4b (core-set-roadmap W4b) — the second battlecry batch.
+// ============================================================
+
+/// W4b-1 Tichondrius — the hero is Immune while it is on the board.
+#[test]
+fn w4b_tichondrius_hero_immune() {
+    use orange_stone::cards::def::CORE_TICHONDRIUS;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_TICHONDRIUS);
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 5, 5, 5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let tich = find_in_hand(&state, PlayerId1(), "CORE_CATA_001");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: tich,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero1 = state.player(PlayerId1()).hero;
+    state.set_active_player(PlayerId2());
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: foe,
+                defender: hero1,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero1), Some(Health(30)));
+}
+
+/// W4b-2 Psychic Conjurer — copies a random enemy deck card (pool-open).
+#[test]
+fn w4b_psychic_conjurer_copies_enemy_deck() {
+    use orange_stone::cards::def::CORE_PSYCHIC_CONJURER;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_PSYCHIC_CONJURER);
+    builder.add_minion_to_deck(PlayerId2(), &orange_stone::cards::def::CORE_HOLY_SMITE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let conjurer = find_in_hand(&state, PlayerId1(), "CORE_EX1_193");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: conjurer,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let copied = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .any(|e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_CS1_130")
+        });
+    assert!(copied, "a copy of the enemy deck card reached hand");
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId2()), 1);
+}
+
+/// W4b-3 Cult Neophyte — the opponent's spells cost more next turn.
+#[test]
+fn w4b_cult_neophyte_spell_tax() {
+    use orange_stone::cards::def::CORE_CULT_NEOPHYTE;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_CULT_NEOPHYTE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let neophyte = find_in_hand(&state, PlayerId1(), "CORE_SCH_713");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: neophyte,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // P2's turn: a 1-cost spell now costs 2
+    state.set_active_player(PlayerId2());
+    {
+        let inner = state.make_mut();
+        inner.players[PlayerId2().index()].current_mana = 10;
+    }
+    let smite = {
+        use orange_stone::core::component::Cost;
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_card_id(e, orange_stone::core::component::CardId("CORE_CS1_130"));
+        world.set_card_type(e, CardType::Spell);
+        world.set_cost(e, Cost(1));
+        world.set_player(e, PlayerId2());
+        world.set_zone(e, Zone::Hand);
+        world.zones_mut().insert(Zone::Hand, PlayerId2(), e);
+        e
+    };
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, smite, PlayerId2()).0,
+        2,
+        "the spell costs 2 with the tax"
+    );
+}
+
+/// W4b-4 Krag'wa — returns last turn's spells to hand.
+#[test]
+fn w4b_kragwa_returns_last_turn_spells() {
+    use orange_stone::cards::def::CORE_KRAGWA_THE_FROG;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &orange_stone::cards::def::CORE_HOLY_SMITE);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_KRAGWA_THE_FROG);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Cast the spell this turn
+    let smite = find_in_hand(&state, PlayerId1(), "CORE_CS1_130");
+    let hero2 = state.player(PlayerId2()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: smite,
+                target: Some(hero2),
+                position: None,
+            },
+        )
+        .unwrap();
+    // Play Krag'wa next turn (spells from LAST turn return)
+    state.set_active_player(PlayerId2());
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let kragwa = find_in_hand(&state, PlayerId1(), "CORE_TRL_345");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: kragwa,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let returned = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .any(|e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_CS1_130")
+        });
+    assert!(returned, "last turn's spell returned to hand");
+}
+
+/// W4b-5 Doomguard — charge and discard two random cards.
+#[test]
+fn w4b_doomguard_discards_two() {
+    use orange_stone::cards::def::CORE_DOOMGUARD;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_DOOMGUARD);
+    builder.add_custom_minion_to_hand(PlayerId1(), 2, 2, 2);
+    builder.add_custom_minion_to_hand(PlayerId1(), 3, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let doomguard = find_in_hand(&state, PlayerId1(), "CORE_EX1_310");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: doomguard,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId1()), 0);
+    assert_eq!(state.world().zones().len(Zone::Graveyard, PlayerId1()), 2);
+    let dg = find_entity(&state, PlayerId1(), "CORE_EX1_310");
+    assert!(state.world().charge(dg).is_some(), "Doomguard has Charge");
+}
+
+/// W4b-6 Siamat — simplified to Rush (registered keyword).
+#[test]
+fn w4b_siamat_has_rush() {
+    use orange_stone::cards::def::CORE_SIAMAT;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId1(), &CORE_SIAMAT);
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let siamat = find_entity(&state, PlayerId1(), "CORE_ULD_178");
+    assert!(state.world().rush(siamat).is_some());
+    // Rush: can attack a minion on the summoning turn
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: siamat,
+                defender: foe,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(foe), Some(Zone::Graveyard));
 }

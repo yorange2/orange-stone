@@ -1150,6 +1150,71 @@ pub enum CardEffect {
         /// Health gained
         health: i32,
     },
+    // ----------------------------------------------------------------
+    // Core Set W4b effects (core-set-roadmap W4b) — the second battlecry
+    // batch. Simplified where flagged: no choice system (Siamat random),
+    // no pack-opening flow (Avatar adds cards to hand), Steamcleaner has no
+    // card-origin tracking (no-op).
+    // ----------------------------------------------------------------
+    /// Summon a random minion with Cost equal to the owner's hand size
+    /// (Astromancer)
+    SummonRandomMinionCostEqHandSize,
+    /// Resurrect the highest-Cost friendly minion that died this game
+    /// (Calia Menethil)
+    ResurrectHighestCostFallen,
+    /// Give other friendly minions "Deathrattle: summon a random minion of
+    /// this minion's Cost" (Ulfar)
+    GrantDeathrattleSummonOwnCost,
+    /// Add a random Pirate to hand (Sky Raider)
+    AddRandomPirateToHand,
+    /// The opponent's next Hero Power costs more (Blowtorch Saboteur)
+    NextEnemyHeroPowerCostMore {
+        /// Cost increase
+        amount: i32,
+    },
+    /// Summon a random minion of the given cost (Maze Guide)
+    SummonRandomMinionOfCost {
+        /// Cost of the summoned minion
+        cost: i32,
+    },
+    /// Summon a random Demon from hand and deck (Archwitch Willow)
+    SummonRandomDemonFromHandOrDeck,
+    /// The opponent's spells cost more next turn (Cult Neophyte)
+    NextEnemySpellsCostMore {
+        /// Cost increase
+        amount: i32,
+    },
+    /// If the owner controls a Beast, buff the weapon durability (Headhunter's
+    /// Hatchet)
+    BuffWeaponDurabilityIfBeast {
+        /// Durability gained
+        amount: i32,
+    },
+    /// Return all spells played last turn to hand (Krag'wa, the Frog)
+    ReturnLastTurnSpells,
+    /// Destroy a minion; the hero takes damage equal to its Health
+    /// (Riftcleaver)
+    DestroyMinionAndSelfDamage,
+    /// Deal damage to this minion (Injured Tol'vir)
+    DamageSelfMinion {
+        /// Damage amount
+        damage: i32,
+    },
+    /// Add a random 1-Cost card to hand (Dark Peddler — Discover simplified)
+    AddRandomOneCostCard,
+    /// Give 3 random friendly minions of different races +attack/+health
+    /// (Menagerie Mug)
+    BuffThreeDifferentRaces {
+        /// Attack gained
+        attack: i32,
+        /// Health gained
+        health: i32,
+    },
+    /// Add 5 random cards to hand (Avatar of Hearthstone — the pack-opening
+    /// flow is simplified to card generation)
+    AddFiveRandomCards,
+    /// Discard two random cards (Doomguard)
+    DiscardTwoRandomCards,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -1591,6 +1656,35 @@ enum CardEffectDe {
         attack: i32,
         health: i32,
     },
+    SummonRandomMinionCostEqHandSize,
+    ResurrectHighestCostFallen,
+    GrantDeathrattleSummonOwnCost,
+    AddRandomPirateToHand,
+    NextEnemyHeroPowerCostMore {
+        amount: i32,
+    },
+    SummonRandomMinionOfCost {
+        cost: i32,
+    },
+    SummonRandomDemonFromHandOrDeck,
+    NextEnemySpellsCostMore {
+        amount: i32,
+    },
+    BuffWeaponDurabilityIfBeast {
+        amount: i32,
+    },
+    ReturnLastTurnSpells,
+    DestroyMinionAndSelfDamage,
+    DamageSelfMinion {
+        damage: i32,
+    },
+    AddRandomOneCostCard,
+    BuffThreeDifferentRaces {
+        attack: i32,
+        health: i32,
+    },
+    AddFiveRandomCards,
+    DiscardTwoRandomCards,
     DestroyAndGainStats {
         attack: i32,
         health: i32,
@@ -2131,6 +2225,38 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::BuffTauntHandMinions { attack, health } => {
                 CardEffect::BuffTauntHandMinions { attack, health }
             }
+            CardEffectDe::SummonRandomMinionCostEqHandSize => {
+                CardEffect::SummonRandomMinionCostEqHandSize
+            }
+            CardEffectDe::ResurrectHighestCostFallen => CardEffect::ResurrectHighestCostFallen,
+            CardEffectDe::GrantDeathrattleSummonOwnCost => {
+                CardEffect::GrantDeathrattleSummonOwnCost
+            }
+            CardEffectDe::AddRandomPirateToHand => CardEffect::AddRandomPirateToHand,
+            CardEffectDe::NextEnemyHeroPowerCostMore { amount } => {
+                CardEffect::NextEnemyHeroPowerCostMore { amount }
+            }
+            CardEffectDe::SummonRandomMinionOfCost { cost } => {
+                CardEffect::SummonRandomMinionOfCost { cost }
+            }
+            CardEffectDe::SummonRandomDemonFromHandOrDeck => {
+                CardEffect::SummonRandomDemonFromHandOrDeck
+            }
+            CardEffectDe::NextEnemySpellsCostMore { amount } => {
+                CardEffect::NextEnemySpellsCostMore { amount }
+            }
+            CardEffectDe::BuffWeaponDurabilityIfBeast { amount } => {
+                CardEffect::BuffWeaponDurabilityIfBeast { amount }
+            }
+            CardEffectDe::ReturnLastTurnSpells => CardEffect::ReturnLastTurnSpells,
+            CardEffectDe::DestroyMinionAndSelfDamage => CardEffect::DestroyMinionAndSelfDamage,
+            CardEffectDe::DamageSelfMinion { damage } => CardEffect::DamageSelfMinion { damage },
+            CardEffectDe::AddRandomOneCostCard => CardEffect::AddRandomOneCostCard,
+            CardEffectDe::BuffThreeDifferentRaces { attack, health } => {
+                CardEffect::BuffThreeDifferentRaces { attack, health }
+            }
+            CardEffectDe::AddFiveRandomCards => CardEffect::AddFiveRandomCards,
+            CardEffectDe::DiscardTwoRandomCards => CardEffect::DiscardTwoRandomCards,
             CardEffectDe::DestroyAndGainStats {
                 attack,
                 health,

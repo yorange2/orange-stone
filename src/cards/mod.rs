@@ -22,6 +22,7 @@ pub mod core_w3b;
 pub mod core_w3c;
 pub mod core_w3d;
 pub mod core_w4a;
+pub mod core_w4b;
 pub mod def;
 pub mod generated;
 pub mod pool;
@@ -92,6 +93,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "CORE_TRL_900" // Halazzi, the Lynx
         | "CORE_WC_701" // Felrattler
         | "CORE_BAR_801t" // Swift Hyena (W3b token)
+        | "CORE_ULD_178" // Siamat (W4b — simplified to Rush+Taunt)
     ) {
         world.set_rush(entity, Rush);
     }
