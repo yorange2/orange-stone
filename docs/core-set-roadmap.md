@@ -59,7 +59,7 @@ inventory is confirmed — every card is a checkbox.
 
 ### CORE_BRM_* — 黑石山的火焰（1 张）
 
-- [ ] `CORE_BRM_013` Quick Shot — 2 费 法术
+- [x] `CORE_BRM_013` Quick Shot — 2 费 法术
 
 ### CORE_BT_* — 外域的灰烬（18 张）
 
@@ -73,8 +73,8 @@ inventory is confirmed — every card is a checkbox.
 - [ ] `CORE_BT_321` Netherwalker — 2 费随从 2/2
 - [ ] `CORE_BT_351` Battlefiend — 1 费随从 1/2
 - [ ] `CORE_BT_416` Raging Felscreamer — 4 费随从 4/4
-- [ ] `CORE_BT_480` Crimson Sigil Runner — 1 费随从 1/1
-- [ ] `CORE_BT_491` Spectral Sight — 2 费 法术
+- [x] `CORE_BT_480` Crimson Sigil Runner — 1 费随从 1/1
+- [x] `CORE_BT_491` Spectral Sight — 2 费 法术
 - [ ] `CORE_BT_493` Priestess of Fury — 7 费随从 6/7
 - [ ] `CORE_BT_510` Wrathspike Brute — 5 费随从 3/6
 - [ ] `CORE_BT_701` Spymistress — 1 费随从 3/1
@@ -181,8 +181,8 @@ inventory is confirmed — every card is a checkbox.
 
 ### CORE_EX1_* — 经典系列（55 张）
 
-- [ ] `CORE_EX1_002` The Black Knight — 4 费随从 4/4
-- [ ] `CORE_EX1_005` Big Game Hunter — 4 费随从 4/2
+- [x] `CORE_EX1_002` The Black Knight — 4 费随从 4/4
+- [x] `CORE_EX1_005` Big Game Hunter — 4 费随从 4/2
 - [ ] `CORE_EX1_007` Acolyte of Pain — 3 费随从 1/4
 - [ ] `CORE_EX1_010` Worgen Infiltrator — 1 费随从 2/1
 - [ ] `CORE_EX1_011` Voodoo Doctor — 1 费随从 2/1
@@ -280,11 +280,11 @@ inventory is confirmed — every card is a checkbox.
 
 - [ ] `CORE_LOOT_013` Vulgar Homunculus — 2 费随从 2/4
 - [ ] `CORE_LOOT_044` Bladed Gauntlet — 2 费武器 0/2
-- [ ] `CORE_LOOT_101` Explosive Runes — 3 费 法术
+- [x] `CORE_LOOT_101` Explosive Runes — 3 费 法术
 - [ ] `CORE_LOOT_137` Sleepy Dragon — 9 费随从 6/12
 - [ ] `CORE_LOOT_309` Oaken Summons — 4 费 法术
 - [ ] `CORE_LOOT_368` Voidlord — 9 费随从 3/9
-- [ ] `CORE_LOOT_373` Healing Rain — 3 费 法术
+- [x] `CORE_LOOT_373` Healing Rain — 3 费 法术
 - [ ] `CORE_LOOT_413` Plated Beetle — 2 费随从 2/3
 
 ### CORE_NEW1_* — 经典补充（7 张）
@@ -317,7 +317,7 @@ inventory is confirmed — every card is a checkbox.
 
 ### CORE_REV_* — 来源系列名待补（REV）（4 张）
 
-- [ ] `CORE_REV_023` Demolition Renovator — 3 费随从 3/3
+- [x] `CORE_REV_023` Demolition Renovator — 3 费随从 3/3
 - [ ] `CORE_REV_308` Maze Guide — 2 费随从 1/1
 - [ ] `CORE_REV_946` Steamcleaner — 5 费随从 5/5
 - [ ] `CORE_REV_990` Sanguine Depths — 地点（1 费）
@@ -353,12 +353,12 @@ inventory is confirmed — every card is a checkbox.
 ### CORE_SW_* — 暴风城下的集结（9 张）
 
 - [ ] `CORE_SW_047` Highlord Fordragon — 6 费随从 5/5
-- [ ] `CORE_SW_066` Royal Librarian — 4 费随从 4/4
+- [x] `CORE_SW_066` Royal Librarian — 4 费随从 4/4
 - [ ] `CORE_SW_068` Mo'arg Forgefiend — 8 费随从 8/8
-- [ ] `CORE_SW_072` Rustrot Viper — 3 费随从 3/4
+- [x] `CORE_SW_072` Rustrot Viper — 3 费随从 3/4
 - [ ] `CORE_SW_088` Demonic Assault — 4 费 法术
 - [ ] `CORE_SW_108` First Flame — 1 费 法术
-- [ ] `CORE_SW_429` Best in Shell — 6 费 法术
+- [x] `CORE_SW_429` Best in Shell — 6 费 法术
 - [ ] `CORE_SW_439` Vibrant Squirrel — 1 费随从 2/1
 - [x] `CORE_SW_442` Void Shard — 4 费 法术
 
@@ -495,8 +495,14 @@ the same card under two IDs (re-check during W4a).
   `CORE_BT_156 CORE_BT_801 CORE_BT_921 CORE_BAR_311 CORE_DRG_079 CORE_GIL_558
   CORE_ICC_055 CORE_ICC_214 CORE_SW_442 CORE_TTN_866 CORE_RLK_657 CORE_RLK_745
   CORE_TRL_900 CORE_ULD_723 CORE_WC_701`
-- **W2 — hand/spell-pipeline primitives (11 + F5):** TRADEABLE (6) +
-  OUTCAST (3) + ImmuneToSpellpower (3) + AFFECTED_BY_SPELL_POWER (1).
+- **W2 — hand/spell-pipeline primitives (11 + F5) ✅ (PR #118, 2026-08-08):**
+  TRADEABLE (6) + OUTCAST (3) + ImmuneToSpellpower (3) +
+  AFFECTED_BY_SPELL_POWER (1). New primitives: `Action::TradeCard` (1 mana,
+  shuffle back, draw), OutcastPlayed edge marker + `DrawCardOutcast` /
+  `OutcastDamage` variants, spell-power exemption, `RestoreRandomFriendly`,
+  `DamagePlayedMinionAndExcess` (secret excess to hero), `DestroyEnemyLocation`
+  (fizzles until W8), `DealDamage` explicit-target support for AnyMinion.
+  Eye Beam / Devouring Plague completed (Outcast / exemption).
   `CORE_EX1_002 CORE_EX1_005 CORE_REV_023 CORE_SW_066 CORE_SW_072 CORE_SW_429
   CORE_BT_480 CORE_BT_491 CORE_BT_801 CORE_BAR_311 CORE_LOOT_101 CORE_LOOT_373
   CORE_BRM_013`
