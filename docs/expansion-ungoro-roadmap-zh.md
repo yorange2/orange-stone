@@ -99,116 +99,116 @@
 
 ### W4 —— 其余卡 + 迷你
 - [ ] TLC_100 Elise the Navigator
-- [ ] TLC_101 Undercover Cultist
+- [x] TLC_101 Undercover Cultist
 - [ ] TLC_106 Endbringer Umbra
-- [ ] TLC_109 Relic Miner
+- [x] TLC_109 Relic Miner
 - [ ] TLC_110 City Chief Esho
-- [ ] TLC_220 Windswept Pageturner
-- [ ] TLC_221 Sizzling Swarm
-- [ ] TLC_222 Flight of the Firehawk
-- [ ] TLC_224 Mechanized Magma
-- [ ] TLC_225 Cinderfin
-- [ ] TLC_227 Lava Flow
+- [x] TLC_220 Windswept Pageturner
+- [x] TLC_221 Sizzling Swarm
+- [x] TLC_222 Flight of the Firehawk
+- [x] TLC_224 Mechanized Magma
+- [x] TLC_225 Cinderfin
+- [x] TLC_227 Lava Flow
 - [ ] TLC_228 Bralma Searstone
-- [ ] TLC_230 TREEEES!!!
-- [ ] TLC_231 Story of Barnabus
-- [ ] TLC_232 Ravenous Flock
-- [ ] TLC_233 Hatchery Helper
-- [ ] TLC_234 Eternal Bloodpetal
-- [ ] TLC_235 Life Cycle
-- [ ] TLC_237 Skyscreamer Eggs
-- [ ] TLC_240 Tyrannogill
+- [x] TLC_230 TREEEES!!!
+- [x] TLC_231 Story of Barnabus
+- [x] TLC_232 Ravenous Flock
+- [x] TLC_233 Hatchery Helper
+- [x] TLC_234 Eternal Bloodpetal
+- [x] TLC_235 Life Cycle
+- [x] TLC_237 Skyscreamer Eggs
+- [x] TLC_240 Tyrannogill
 - [ ] TLC_241 Ido of the Threshfleet
-- [ ] TLC_242 Ancient Stegodon
-- [ ] TLC_244 Curious Explorer
-- [ ] TLC_245 Ancient Raptor
-- [ ] TLC_246 Ancient Pterrordax
-- [ ] TLC_247 Primal Sabretooth
-- [ ] TLC_248 Ultragigasaur
-- [ ] TLC_249 Sizzling Cinder
-- [ ] TLC_250 Crater Gator
-- [ ] TLC_252 Dissolving Ooze
-- [ ] TLC_253 Petrified Ogre
-- [ ] TLC_254 Tortollan Storyteller
-- [ ] TLC_255 Crystal Tender
-- [ ] TLC_256 Marshland Thresher
+- [x] TLC_242 Ancient Stegodon
+- [x] TLC_244 Curious Explorer
+- [x] TLC_245 Ancient Raptor
+- [x] TLC_246 Ancient Pterrordax
+- [x] TLC_247 Primal Sabretooth
+- [x] TLC_248 Ultragigasaur
+- [x] TLC_249 Sizzling Cinder
+- [x] TLC_250 Crater Gator
+- [x] TLC_252 Dissolving Ooze
+- [x] TLC_253 Petrified Ogre
+- [x] TLC_254 Tortollan Storyteller
+- [x] TLC_255 Crystal Tender
+- [x] TLC_256 Marshland Thresher
 - [ ] TLC_257 Loh, the Living Legend
-- [ ] TLC_334 Relic of Kings
-- [ ] TLC_364 Story of the Waygate
-- [ ] TLC_365 Storage Scuffle
-- [ ] TLC_401 Bonechill Stegodon
-- [ ] TLC_427 Rockskipper
-- [ ] TLC_430 Creature of the Sacred Cave
-- [ ] TLC_434 Paleomancy
-- [ ] TLC_435 Crypt Map
-- [ ] TLC_436 Reanimated Pterrordax
-- [ ] TLC_438 Violet Treasuregill
-- [ ] TLC_439 Wave of Tar
-- [ ] TLC_441 Ready the Fleet
-- [ ] TLC_442 Submerged Map
-- [ ] TLC_443 Reluctant Wrangler
-- [ ] TLC_444 Story of Galvadon
-- [ ] TLC_449 Bloodpetal Biome
-- [ ] TLC_450 Spelunker
-- [ ] TLC_451 Cursed Catacombs
+- [x] TLC_334 Relic of Kings
+- [x] TLC_364 Story of the Waygate
+- [x] TLC_365 Storage Scuffle
+- [x] TLC_401 Bonechill Stegodon
+- [x] TLC_427 Rockskipper
+- [x] TLC_430 Creature of the Sacred Cave
+- [x] TLC_434 Paleomancy
+- [x] TLC_435 Crypt Map
+- [x] TLC_436 Reanimated Pterrordax
+- [x] TLC_438 Violet Treasuregill
+- [x] TLC_439 Wave of Tar
+- [x] TLC_441 Ready the Fleet
+- [x] TLC_442 Submerged Map
+- [x] TLC_443 Reluctant Wrangler
+- [x] TLC_444 Story of Galvadon
+- [x] TLC_449 Bloodpetal Biome
+- [x] TLC_450 Spelunker
+- [x] TLC_451 Cursed Catacombs
 - [ ] TLC_452 Titanographer Osk
-- [ ] TLC_461 Scrappy Scavenger
-- [ ] TLC_462 Unearthed Artifacts
-- [ ] TLC_464 Mountain Map
-- [ ] TLC_465 Stranglevine
-- [ ] TLC_466 Story of Lakkari
-- [ ] TLC_467 Whispering Stone
-- [ ] TLC_468 Blob of Tar
-- [ ] TLC_469 Tunnel Terror
-- [ ] TLC_477 Threshrider's Blessing
-- [ ] TLC_478 Axe of the Forefathers
-- [ ] TLC_479 Deathrot Maw
+- [x] TLC_461 Scrappy Scavenger
+- [x] TLC_462 Unearthed Artifacts
+- [x] TLC_464 Mountain Map
+- [x] TLC_465 Stranglevine
+- [x] TLC_466 Story of Lakkari
+- [x] TLC_467 Whispering Stone
+- [x] TLC_468 Blob of Tar
+- [x] TLC_469 Tunnel Terror
+- [x] TLC_477 Threshrider's Blessing
+- [x] TLC_478 Axe of the Forefathers
+- [x] TLC_479 Deathrot Maw
 - [ ] TLC_480 Krog, Crater King
-- [ ] TLC_483 Vault Breaker
-- [ ] TLC_514 Merchant of Legend
-- [ ] TLC_515 Cultist Map
-- [ ] TLC_516 Neferset Weaponsmith
-- [ ] TLC_517 Knockback
-- [ ] TLC_518 Interrogation
-- [ ] TLC_520 Underbrush Tracker
-- [ ] TLC_521 Eyes in the Sky
+- [x] TLC_483 Vault Breaker
+- [x] TLC_514 Merchant of Legend
+- [x] TLC_515 Cultist Map
+- [x] TLC_516 Neferset Weaponsmith
+- [x] TLC_517 Knockback
+- [x] TLC_518 Interrogation
+- [x] TLC_520 Underbrush Tracker
+- [x] TLC_521 Eyes in the Sky
 - [ ] TLC_522 Opu the Unseen
-- [ ] TLC_601 Shellnado
-- [ ] TLC_603 Platysaur
-- [ ] TLC_605 Tar Tyrant
-- [ ] TLC_606 Latorvian Armorer
-- [ ] TLC_620 Fortify
-- [ ] TLC_621 Willful Watcher
-- [ ] TLC_622 City Defenses
-- [ ] TLC_623 Stonecarver
+- [x] TLC_601 Shellnado
+- [x] TLC_603 Platysaur
+- [x] TLC_605 Tar Tyrant
+- [x] TLC_606 Latorvian Armorer
+- [x] TLC_620 Fortify
+- [x] TLC_621 Willful Watcher
+- [x] TLC_622 City Defenses
+- [x] TLC_623 Stonecarver
 - [ ] TLC_624 Nablya, the Watcher
-- [ ] TLC_630 Gorishi Wasp
-- [ ] TLC_632 Story of Sulfuras
-- [ ] TLC_633 Bugsquasher
+- [x] TLC_630 Gorishi Wasp
+- [x] TLC_632 Story of Sulfuras
+- [x] TLC_633 Bugsquasher
 - [ ] TLC_810 High Cultist Herenn
 - [ ] TLC_811 Archaios
-- [ ] TLC_814 Twilight Mender
-- [ ] TLC_818 Resuscitate
-- [ ] TLC_819 Gladesong Siren
-- [ ] TLC_820 Glade Ecologist
-- [ ] TLC_821 Wilted Shadow
-- [ ] TLC_822 Dinositter
-- [ ] TLC_823 Cower in Fear
-- [ ] TLC_824 Odd Map
-- [ ] TLC_826 Story of Carnassa
-- [ ] TLC_827 Grazing Stegodon
-- [ ] TLC_828 Supreme Dinomancy
-- [ ] TLC_831 Pterrordax Egg
-- [ ] TLC_833 Insect Claw
-- [ ] TLC_835 Story of Amara
+- [x] TLC_814 Twilight Mender
+- [x] TLC_818 Resuscitate
+- [x] TLC_819 Gladesong Siren
+- [x] TLC_820 Glade Ecologist
+- [x] TLC_821 Wilted Shadow
+- [x] TLC_822 Dinositter
+- [x] TLC_823 Cower in Fear
+- [x] TLC_824 Odd Map
+- [x] TLC_826 Story of Carnassa
+- [x] TLC_827 Grazing Stegodon
+- [x] TLC_828 Supreme Dinomancy
+- [x] TLC_831 Pterrordax Egg
+- [x] TLC_833 Insect Claw
+- [x] TLC_835 Story of Amara
 - [ ] TLC_836 Niri of the Crater
-- [ ] TLC_840 Gorishi Tunneler
+- [x] TLC_840 Gorishi Tunneler
 - [ ] TLC_841 Entomologist Toru
-- [ ] TLC_888 Cloud Serpent
-- [ ] TLC_900 Hive Map
-- [ ] TLC_901 Fumigate
-- [ ] TLC_902 Infestation
-- [ ] TLC_987 Questing Assistant
+- [x] TLC_888 Cloud Serpent
+- [x] TLC_900 Hive Map
+- [x] TLC_901 Fumigate
+- [x] TLC_902 Infestation
+- [x] TLC_987 Questing Assistant
 - [ ] DINO_130 Longneck Egg
 - [ ] DINO_131 Possessed Animancer
 - [ ] DINO_132 Asphyxiodon
