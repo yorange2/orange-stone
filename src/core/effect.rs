@@ -710,6 +710,60 @@ pub enum CardEffect {
         /// Corpses to spend
         cost: u32,
     },
+    // ----------------------------------------------------------------
+    // Core Set W2 effects (core-set-roadmap W2) — hand/spell-pipeline
+    // primitives: TRADEABLE / OUTCAST / spell-power exemption. TRADEABLE
+    // itself is a component (`Action::TradeCard`); OUTCAST effects are
+    // these two variants, resolved against the OutcastPlayed marker.
+    // ----------------------------------------------------------------
+    /// Draw `normal` cards, or `outcast` when the card was played from the
+    /// leftmost/rightmost hand position (Spectral Sight 1/2, Crimson Sigil
+    /// Runner 0/1 — Core Set W2)
+    DrawCardOutcast {
+        /// Cards drawn in the normal case
+        normal: u32,
+        /// Cards drawn when played from the hand edge (Outcast)
+        outcast: u32,
+    },
+    /// Deal `amount` damage, or `outcast_amount` when played from the hand
+    /// edge (Eye Beam 3/6 — Core Set W2; the Lifesteal half is the W1
+    /// component)
+    OutcastDamage {
+        /// Damage in the normal case
+        amount: i32,
+        /// Damage when played from the hand edge (Outcast)
+        outcast_amount: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Restore `amount` health in 1-point pings randomly spread across all
+    /// friendly characters, hero included (Healing Rain — Core Set W2;
+    /// overhealing is wasted, matching HS)
+    RestoreRandomFriendly {
+        /// Total health restored (as 1-point pings)
+        amount: i32,
+    },
+    /// Destroy an enemy location (Demolition Renovator — Core Set W2; the
+    /// engine has no Location card type until W8, so the effect resolves
+    /// against no targets and fizzles for now)
+    DestroyEnemyLocation,
+    /// Deal damage to the just-played enemy minion, excess carries to the
+    /// enemy hero (Explosive Runes — Core Set W2; resolved by the secret
+    /// system with the played-minion event)
+    DamagePlayedMinionAndExcess {
+        /// Damage to the played minion
+        amount: i32,
+    },
+    /// Deal damage; when the caster's hand is empty, also draw a card
+    /// (Quick Shot — Core Set W2; the official AFFECTED_BY_SPELL_POWER
+    /// marker needs no special handling — spells are spell-powered by
+    /// default in this engine)
+    DamageAndDrawIfHandEmpty {
+        /// Damage amount
+        damage: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -957,6 +1011,26 @@ enum CardEffectDe {
     ForceEnemyMinionsAttackThis,
     SpendCorpsesSummonCopy {
         cost: u32,
+    },
+    DrawCardOutcast {
+        normal: u32,
+        outcast: u32,
+    },
+    OutcastDamage {
+        amount: i32,
+        outcast_amount: i32,
+        target: EffectTarget,
+    },
+    RestoreRandomFriendly {
+        amount: i32,
+    },
+    DestroyEnemyLocation,
+    DamagePlayedMinionAndExcess {
+        amount: i32,
+    },
+    DamageAndDrawIfHandEmpty {
+        damage: i32,
+        target: EffectTarget,
     },
     DestroyAndGainStats {
         attack: i32,
@@ -1291,6 +1365,28 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::ForceEnemyMinionsAttackThis => CardEffect::ForceEnemyMinionsAttackThis,
             CardEffectDe::SpendCorpsesSummonCopy { cost } => {
                 CardEffect::SpendCorpsesSummonCopy { cost }
+            }
+            CardEffectDe::DrawCardOutcast { normal, outcast } => {
+                CardEffect::DrawCardOutcast { normal, outcast }
+            }
+            CardEffectDe::OutcastDamage {
+                amount,
+                outcast_amount,
+                target,
+            } => CardEffect::OutcastDamage {
+                amount,
+                outcast_amount,
+                target,
+            },
+            CardEffectDe::RestoreRandomFriendly { amount } => {
+                CardEffect::RestoreRandomFriendly { amount }
+            }
+            CardEffectDe::DestroyEnemyLocation => CardEffect::DestroyEnemyLocation,
+            CardEffectDe::DamagePlayedMinionAndExcess { amount } => {
+                CardEffect::DamagePlayedMinionAndExcess { amount }
+            }
+            CardEffectDe::DamageAndDrawIfHandEmpty { damage, target } => {
+                CardEffect::DamageAndDrawIfHandEmpty { damage, target }
             }
             CardEffectDe::DestroyAndGainStats {
                 attack,

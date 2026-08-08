@@ -80,7 +80,30 @@ pub fn validate(state: &GameState, action: Action) -> Result<(), EngineError> {
         Action::EndTurn => validate_end_turn(state),
         Action::HeroPower { hero, target: _ } => validate_hero_power(state, hero),
         Action::Choose { choice_id, option } => validate_choose(state, choice_id, option),
+        Action::TradeCard { card } => validate_trade_card(state, card),
     }
+}
+
+/// Validates a Tradeable trade (Core Set W2): the card must be a Tradeable
+/// hand card and the player must afford the 1-mana trade.
+fn validate_trade_card(state: &GameState, card: Entity) -> Result<(), EngineError> {
+    let world = state.world();
+    let active = state.active_player();
+    check_entity(world, card)?;
+    let card_player = world.player(card).ok_or(EngineError::EntityGone(card))?;
+    if card_player != active {
+        return Err(EngineError::NotYourCard);
+    }
+    if world.zone(card) != Some(Zone::Hand) {
+        return Err(EngineError::CardNotInHand);
+    }
+    if world.tradeable(card).is_none() {
+        return Err(EngineError::InvalidTarget);
+    }
+    if state.player(active).current_mana < 1 {
+        return Err(EngineError::NotEnoughMana);
+    }
+    Ok(())
 }
 
 /// Validates a choice resolution (roadmap G6): a choice must be pending and
@@ -417,6 +440,11 @@ pub fn enqueue(
             let active = state.active_player();
             queue.push(Event::TurnEnded { player: active });
         }
+        Action::TradeCard { card } => {
+            // Tradeable (Core Set W2): the state changes run in the
+            // event handler (`TradeCardExecuted`); enqueue is read-only.
+            queue.push(Event::TradeCardExecuted { card });
+        }
         Action::HeroPower { hero, target } => {
             let active = state.active_player();
             queue.push(Event::HeroPowerActivated {
@@ -630,6 +658,22 @@ pub fn apply_event(
                     p.next_spell_discount = 0;
                 }
             }
+            // Outcast (Core Set W2): a card played from the leftmost or
+            // rightmost hand position carries the Outcast marker — read
+            // BEFORE the card leaves the hand. A one-card hand counts as
+            // both edges (official rule).
+            let hand_len = state.world().zones().len(Zone::Hand, player);
+            let hand_index = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, player)
+                .position(|e| e == card);
+            if hand_index == Some(0) || hand_index == Some(hand_len - 1) {
+                state
+                    .world_mut()
+                    .set_outcast_played(card, crate::core::component::OutcastPlayed);
+            }
+
             // Detect combo: another card was played this turn (cards_played > 1 because it was just incremented)
             let combo_active = state.player(player).cards_played_this_turn > 1;
             if card_type == Some(CardType::Spell) {
@@ -1306,6 +1350,37 @@ pub fn apply_event(
         }
         Event::CardDrawn { .. } => {
             // Notification event — the card was already moved to hand in draw_card
+        }
+        Event::TradeCardExecuted { card } => {
+            // Tradeable (Core Set W2): spend 1 mana, shuffle the card back
+            // into the deck at a random position, draw a card.
+            let active = state.active_player();
+            {
+                let inner = state.make_mut();
+                inner.players[active.index()].current_mana =
+                    (inner.players[active.index()].current_mana - 1).max(0);
+            }
+            let deck_count = state.world().zones().len(Zone::Deck, active);
+            let position = if deck_count > 0 {
+                state.rng_mut().next_usize(deck_count + 1)
+            } else {
+                0
+            };
+            // Shuffle the card into the deck at a random position (the
+            // official trade semantics). Manually remove + insert: a
+            // move_to_zone would append at the deck bottom, and a second
+            // insert_at on top of it would duplicate the card.
+            state
+                .world_mut()
+                .zones_mut()
+                .remove(Zone::Hand, active, card);
+            state.world_mut().set_zone(card, Zone::Deck);
+            state
+                .world_mut()
+                .zones_mut()
+                .insert_at(Zone::Deck, active, card, position);
+            // draw_card pushes its own CardDrawn event for the drawn card
+            trigger::draw_card(state, queue, active);
         }
         Event::HeroPowerActivated {
             player,

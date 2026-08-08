@@ -631,6 +631,17 @@ pub struct Reborn;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct SummonedThisTurn;
 
+/// Tradeable (Core Set W2) — a hand card with Tradeable may be shuffled
+/// back into the deck for 1 mana to draw a card (`Action::TradeCard`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct Tradeable;
+
+/// OutcastPlayed (Core Set W2) — set on a card at the moment it is played
+/// when it sat at the leftmost or rightmost position of the hand; the
+/// outcast effects resolve against this marker.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct OutcastPlayed;
+
 /// Elusive (扰咒) — cannot be targeted by spells or hero powers (M5).
 /// Attacks and battlecries CAN target it; AOE still hits it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]

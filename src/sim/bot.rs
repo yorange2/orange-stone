@@ -1288,6 +1288,15 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::FillHandWithMinion { .. } => 4.0,
         CardEffect::ForceEnemyMinionsAttackThis => 3.0,
         CardEffect::SpendCorpsesSummonCopy { .. } => 3.0,
+        // Core Set W2: outcast draws/damage and the random heal are worth
+        // their top-end values; the location destroy is worth nothing until
+        // W8 brings the Location type (no targets today).
+        CardEffect::DrawCardOutcast { outcast, .. } => outcast as f64 * 3.0,
+        CardEffect::OutcastDamage { outcast_amount, .. } => outcast_amount as f64 * 1.2,
+        CardEffect::RestoreRandomFriendly { amount } => amount as f64 * 0.7,
+        CardEffect::DestroyEnemyLocation => 0.0,
+        CardEffect::DamagePlayedMinionAndExcess { amount } => amount as f64 * 1.2,
+        CardEffect::DamageAndDrawIfHandEmpty { damage, .. } => damage as f64 * 1.2 + 3.0,
     }
 }
 

@@ -1,8 +1,9 @@
-//! Core Set W1 cards (core-set-roadmap W1) — attack-pipeline primitives.
+//! Core Set W2 cards (core-set-roadmap W2) — hand/spell-pipeline primitives.
 //!
-//! RUSH / LIFESTEAL / REBORN are components applied by `apply_card_keywords`
-//! (the `CardDef` struct stays untouched); this file holds the card
-//! definitions, their scripted effects and the Lynx token. Chinese names
+//! TRADEABLE is a component applied by `apply_card_keywords`
+//! (`Action::TradeCard`); OUTCAST effects are the `DrawCardOutcast` /
+//! `OutcastDamage` variants resolved against the OutcastPlayed marker;
+//! ImmuneToSpellpower cards are exempt in `apply_spell_power`. Chinese names
 //! follow the `classic-cards-zh.md` convention once the cards land.
 //!
 //! Card data: `cards/cards.json` (CORE_* IDs); card texts verified against
@@ -14,237 +15,19 @@ use crate::core::component::Race;
 use crate::core::effect::CardEffect;
 use crate::core::effect::EffectTarget;
 
-/// CORE_BT_156 Imprisoned Vilefiend — 2/3/5 Demon, Rush (the Core version
-/// dropped the original's Dormant-for-2-turns).
-pub const IMPRISONED_VILEFIEND: CardDef = CardDef {
-    id: "CORE_BT_156",
-    name: "Imprisoned Vilefiend",
-    card_type: CardType::Minion,
-    cost: 2,
-    attack: 3,
-    health: 5,
-    durability: 0,
-    battlecry: None,
-    deathrattle: None,
-    taunt: false,
-    stealth: false,
-    elusive: false,
-    race: Some(Race::Demon),
-    hero_power: None,
-    aura: None,
-    secret: None,
-    divine_shield: false,
-    windfury: false,
-    charge: false,
-    spell_damage: 0,
-    cant_attack: false,
-    end_turn_effect: None,
-    start_turn_effect: None,
-    spell_effect: None,
-    spell_trigger: None,
-    death_trigger: None,
-    summon_trigger: None,
-    choose_one_effect: None,
-    combo_effect: None,
-    attack_equals_health: false,
-};
-
-/// CORE_DRG_079 Evasive Wyrm — 6/5/4 Dragon, Divine Shield, Elusive, Rush.
-pub const EVASIVE_WYRM: CardDef = CardDef {
-    id: "CORE_DRG_079",
-    name: "Evasive Wyrm",
-    card_type: CardType::Minion,
-    cost: 6,
-    attack: 5,
-    health: 4,
-    durability: 0,
-    battlecry: None,
-    deathrattle: None,
-    taunt: false,
-    stealth: false,
-    elusive: true,
-    race: Some(Race::Dragon),
-    hero_power: None,
-    aura: None,
-    secret: None,
-    divine_shield: true,
-    windfury: false,
-    charge: false,
-    spell_damage: 0,
-    cant_attack: false,
-    end_turn_effect: None,
-    start_turn_effect: None,
-    spell_effect: None,
-    spell_trigger: None,
-    death_trigger: None,
-    summon_trigger: None,
-    choose_one_effect: None,
-    combo_effect: None,
-    attack_equals_health: false,
-};
-
-/// CORE_RLK_657 Underking — 7/6/6 Undead, Rush. Battlecry and Deathrattle:
-/// gain 6 Armor.
-pub const UNDERKING: CardDef = CardDef {
-    id: "CORE_RLK_657",
-    name: "Underking",
-    card_type: CardType::Minion,
-    cost: 7,
-    attack: 6,
-    health: 6,
-    durability: 0,
-    battlecry: Some(CardEffect::GainArmor {
-        amount: 6,
-        target: EffectTarget::FriendlyHero,
-    }),
-    deathrattle: Some(CardEffect::GainArmor {
-        amount: 6,
-        target: EffectTarget::FriendlyHero,
-    }),
-    taunt: false,
-    stealth: false,
-    elusive: false,
-    race: Some(Race::Undead),
-    hero_power: None,
-    aura: None,
-    secret: None,
-    divine_shield: false,
-    windfury: false,
-    charge: false,
-    spell_damage: 0,
-    cant_attack: false,
-    end_turn_effect: None,
-    start_turn_effect: None,
-    spell_effect: None,
-    spell_trigger: None,
-    death_trigger: None,
-    summon_trigger: None,
-    choose_one_effect: None,
-    combo_effect: None,
-    attack_equals_health: false,
-};
-
-/// CORE_TRL_900 Halazzi, the Lynx — 4/4/2 Beast, Rush. Battlecry: fill your
-/// hand with 1/1 Lynxes that have Rush.
-pub const HALAZZI_THE_LYNX: CardDef = CardDef {
-    id: "CORE_TRL_900",
-    name: "Halazzi, the Lynx",
+/// CORE_EX1_002 The Black Knight — 4/4, Tradeable. Battlecry: destroy an
+/// enemy minion with Taunt.
+pub const CORE_THE_BLACK_KNIGHT: CardDef = CardDef {
+    id: "CORE_EX1_002",
+    name: "The Black Knight",
     card_type: CardType::Minion,
     cost: 4,
     attack: 4,
-    health: 2,
+    health: 4,
     durability: 0,
-    battlecry: Some(CardEffect::FillHandWithMinion {
-        card_id: "CORE_TRL_900t",
+    battlecry: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::TauntEnemyMinion,
     }),
-    deathrattle: None,
-    taunt: false,
-    stealth: false,
-    elusive: false,
-    race: Some(Race::Beast),
-    hero_power: None,
-    aura: None,
-    secret: None,
-    divine_shield: false,
-    windfury: false,
-    charge: false,
-    spell_damage: 0,
-    cant_attack: false,
-    end_turn_effect: None,
-    start_turn_effect: None,
-    spell_effect: None,
-    spell_trigger: None,
-    death_trigger: None,
-    summon_trigger: None,
-    choose_one_effect: None,
-    combo_effect: None,
-    attack_equals_health: false,
-};
-
-/// CORE_TRL_900t Lynx — 1/1 Beast with Rush (Halazzi's battlecry token;
-/// id ends in 't', so the RL pool filters it out).
-pub const LYNX: CardDef = CardDef {
-    id: "CORE_TRL_900t",
-    name: "Lynx",
-    card_type: CardType::Minion,
-    cost: 1,
-    attack: 1,
-    health: 1,
-    durability: 0,
-    battlecry: None,
-    deathrattle: None,
-    taunt: false,
-    stealth: false,
-    elusive: false,
-    race: Some(Race::Beast),
-    hero_power: None,
-    aura: None,
-    secret: None,
-    divine_shield: false,
-    windfury: false,
-    charge: false,
-    spell_damage: 0,
-    cant_attack: false,
-    end_turn_effect: None,
-    start_turn_effect: None,
-    spell_effect: None,
-    spell_trigger: None,
-    death_trigger: None,
-    summon_trigger: None,
-    choose_one_effect: None,
-    combo_effect: None,
-    attack_equals_health: false,
-};
-
-/// CORE_WC_701 Felrattler — 3/3/2 Beast, Rush. Deathrattle: deal 1 damage
-/// to all enemy minions.
-pub const FELRATTLER: CardDef = CardDef {
-    id: "CORE_WC_701",
-    name: "Felrattler",
-    card_type: CardType::Minion,
-    cost: 3,
-    attack: 3,
-    health: 2,
-    durability: 0,
-    battlecry: None,
-    deathrattle: Some(CardEffect::DealDamage {
-        amount: 1,
-        target: EffectTarget::AllEnemyMinions,
-    }),
-    taunt: false,
-    stealth: false,
-    elusive: false,
-    race: Some(Race::Beast),
-    hero_power: None,
-    aura: None,
-    secret: None,
-    divine_shield: false,
-    windfury: false,
-    charge: false,
-    spell_damage: 0,
-    cant_attack: false,
-    end_turn_effect: None,
-    start_turn_effect: None,
-    spell_effect: None,
-    spell_trigger: None,
-    death_trigger: None,
-    summon_trigger: None,
-    choose_one_effect: None,
-    combo_effect: None,
-    attack_equals_health: false,
-};
-
-/// CORE_BT_921 Aldrachi Warblades — 3-cost 2/2 weapon, Lifesteal (weapon
-/// attacks heal the hero).
-pub const ALDRACHI_WARBLADES: CardDef = CardDef {
-    id: "CORE_BT_921",
-    name: "Aldrachi Warblades",
-    card_type: CardType::Weapon,
-    cost: 3,
-    attack: 2,
-    health: 0,
-    durability: 2,
-    battlecry: None,
     deathrattle: None,
     taunt: false,
     stealth: false,
@@ -269,21 +52,24 @@ pub const ALDRACHI_WARBLADES: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// CORE_GIL_558 Swamp Leech — 1/2/1 Beast, Lifesteal.
-pub const SWAMP_LEECH: CardDef = CardDef {
-    id: "CORE_GIL_558",
-    name: "Swamp Leech",
+/// CORE_EX1_005 Big Game Hunter — 4/2, Tradeable. Battlecry: destroy an
+/// enemy minion with 5 or more Attack.
+pub const CORE_BIG_GAME_HUNTER: CardDef = CardDef {
+    id: "CORE_EX1_005",
+    name: "Big Game Hunter",
     card_type: CardType::Minion,
-    cost: 1,
-    attack: 2,
-    health: 1,
+    cost: 4,
+    attack: 4,
+    health: 2,
     durability: 0,
-    battlecry: None,
+    battlecry: Some(CardEffect::DestroyMinion {
+        target: EffectTarget::EnemyMinionAttackGE(5),
+    }),
     deathrattle: None,
     taunt: false,
     stealth: false,
     elusive: false,
-    race: Some(Race::Beast),
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -303,13 +89,121 @@ pub const SWAMP_LEECH: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// CORE_ICC_055 Drain Soul — 2-cost Priest spell, Lifesteal: deal 3 damage
-/// to a minion.
-pub const DRAIN_SOUL: CardDef = CardDef {
-    id: "CORE_ICC_055",
-    name: "Drain Soul",
+/// CORE_REV_023 Demolition Renovator — 3/3, Tradeable. Battlecry: destroy
+/// an enemy location (no Location card type until W8 — the effect resolves
+/// against no targets and fizzles for now).
+pub const DEMOLITION_RENOVATOR: CardDef = CardDef {
+    id: "CORE_REV_023",
+    name: "Demolition Renovator",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::DestroyEnemyLocation),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// CORE_SW_066 Royal Librarian — 4/4, Tradeable. Battlecry: silence a
+/// minion.
+pub const ROYAL_LIBRARIAN: CardDef = CardDef {
+    id: "CORE_SW_066",
+    name: "Royal Librarian",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 4,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::SilenceMinion {
+        target: EffectTarget::AnyMinion,
+    }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// CORE_SW_072 Rustrot Viper — 3/4, Tradeable. Battlecry: destroy your
+/// opponent's weapon.
+pub const RUSTROT_VIPER: CardDef = CardDef {
+    id: "CORE_SW_072",
+    name: "Rustrot Viper",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::DestroyWeapon),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// CORE_SW_429 Best in Shell — 6-cost spell, Tradeable. Summon two 2/7
+/// Turtles with Taunt.
+pub const BEST_IN_SHELL: CardDef = CardDef {
+    id: "CORE_SW_429",
+    name: "Best in Shell",
     card_type: CardType::Spell,
-    cost: 2,
+    cost: 6,
     attack: 0,
     health: 0,
     durability: 0,
@@ -329,9 +223,9 @@ pub const DRAIN_SOUL: CardDef = CardDef {
     cant_attack: false,
     end_turn_effect: None,
     start_turn_effect: None,
-    spell_effect: Some(CardEffect::DealDamage {
-        amount: 3,
-        target: EffectTarget::AnyEnemyMinion,
+    spell_effect: Some(CardEffect::SummonMultipleMinions {
+        card_id: "CORE_SW_429t",
+        count: 2,
     }),
     spell_trigger: None,
     death_trigger: None,
@@ -341,24 +235,22 @@ pub const DRAIN_SOUL: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// CORE_ICC_214 Obsidian Statue — 9/4/8, Taunt, Lifesteal. Deathrattle:
-/// summon a 4/8 Obsidian Statue (a fresh copy with its own Deathrattle).
-pub const OBSIDIAN_STATUE: CardDef = CardDef {
-    id: "CORE_ICC_214",
-    name: "Obsidian Statue",
+/// CORE_SW_429t Turtle — 2/7 Beast with Taunt (Best in Shell's token;
+/// id ends in 't', so the RL pool filters it out).
+pub const TURTLE: CardDef = CardDef {
+    id: "CORE_SW_429t",
+    name: "Turtle",
     card_type: CardType::Minion,
-    cost: 9,
-    attack: 4,
-    health: 8,
+    cost: 4,
+    attack: 2,
+    health: 7,
     durability: 0,
     battlecry: None,
-    deathrattle: Some(CardEffect::SummonMinion {
-        card_id: "CORE_ICC_214",
-    }),
+    deathrattle: None,
     taunt: true,
     stealth: false,
     elusive: false,
-    race: None,
+    race: Some(Race::Beast),
     hero_power: None,
     aura: None,
     secret: None,
@@ -378,13 +270,50 @@ pub const OBSIDIAN_STATUE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// CORE_SW_442 Void Shard — 4-cost Priest spell, Lifesteal: deal 4 damage
-/// to a minion.
-pub const VOID_SHARD: CardDef = CardDef {
-    id: "CORE_SW_442",
-    name: "Void Shard",
+/// CORE_BT_480 Crimson Sigil Runner — 1/1 Demon, Outcast: draw a card.
+pub const CRIMSON_SIGIL_RUNNER: CardDef = CardDef {
+    id: "CORE_BT_480",
+    name: "Crimson Sigil Runner",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 1,
+    health: 1,
+    durability: 0,
+    battlecry: Some(CardEffect::DrawCardOutcast {
+        normal: 0,
+        outcast: 1,
+    }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: Some(Race::Demon),
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// CORE_BT_491 Spectral Sight — 2-cost spell, Outcast: draw a card, or two
+/// when played from the hand edge.
+pub const SPECTRAL_SIGHT: CardDef = CardDef {
+    id: "CORE_BT_491",
+    name: "Spectral Sight",
     card_type: CardType::Spell,
-    cost: 4,
+    cost: 2,
     attack: 0,
     health: 0,
     durability: 0,
@@ -404,9 +333,9 @@ pub const VOID_SHARD: CardDef = CardDef {
     cant_attack: false,
     end_turn_effect: None,
     start_turn_effect: None,
-    spell_effect: Some(CardEffect::DealDamage {
-        amount: 4,
-        target: EffectTarget::AnyEnemyMinion,
+    spell_effect: Some(CardEffect::DrawCardOutcast {
+        normal: 1,
+        outcast: 2,
     }),
     spell_trigger: None,
     death_trigger: None,
@@ -416,91 +345,23 @@ pub const VOID_SHARD: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// CORE_TTN_866 Mythical Terror — 7/4/10 Demon + Beast, Lifesteal. At the
-/// end of your turn, force all enemy minions to attack this.
-pub const MYTHICAL_TERROR: CardDef = CardDef {
-    id: "CORE_TTN_866",
-    name: "Mythical Terror",
-    card_type: CardType::Minion,
-    cost: 7,
-    attack: 4,
-    health: 10,
+/// CORE_BT_801 Eye Beam — 3-cost spell, Lifesteal (W1 component). Deal 3
+/// damage to a minion; Outcast: 6 instead. (The W1 half shipped in W1; the
+/// Outcast half completes the card in W2.)
+pub const EYE_BEAM: CardDef = CardDef {
+    id: "CORE_BT_801",
+    name: "Eye Beam",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
     durability: 0,
     battlecry: None,
     deathrattle: None,
     taunt: false,
     stealth: false,
     elusive: false,
-    race: Some(Race::Demon),
-    hero_power: None,
-    aura: None,
-    secret: None,
-    divine_shield: false,
-    windfury: false,
-    charge: false,
-    spell_damage: 0,
-    cant_attack: false,
-    end_turn_effect: Some(CardEffect::ForceEnemyMinionsAttackThis),
-    start_turn_effect: None,
-    spell_effect: None,
-    spell_trigger: None,
-    death_trigger: None,
-    summon_trigger: None,
-    choose_one_effect: None,
-    combo_effect: None,
-    attack_equals_health: false,
-};
-
-/// CORE_RLK_745 Malignant Horror — 4/2/4 Undead, Reborn. At the end of your
-/// turn, spend 4 Corpses to summon a copy of this minion.
-pub const MALIGNANT_HORROR: CardDef = CardDef {
-    id: "CORE_RLK_745",
-    name: "Malignant Horror",
-    card_type: CardType::Minion,
-    cost: 4,
-    attack: 2,
-    health: 4,
-    durability: 0,
-    battlecry: None,
-    deathrattle: None,
-    taunt: false,
-    stealth: false,
-    elusive: false,
-    race: Some(Race::Undead),
-    hero_power: None,
-    aura: None,
-    secret: None,
-    divine_shield: false,
-    windfury: false,
-    charge: false,
-    spell_damage: 0,
-    cant_attack: false,
-    end_turn_effect: Some(CardEffect::SpendCorpsesSummonCopy { cost: 4 }),
-    start_turn_effect: None,
-    spell_effect: None,
-    spell_trigger: None,
-    death_trigger: None,
-    summon_trigger: None,
-    choose_one_effect: None,
-    combo_effect: None,
-    attack_equals_health: false,
-};
-
-/// CORE_ULD_723 Murmy — 1/1/1 Murloc, Reborn.
-pub const MURMY: CardDef = CardDef {
-    id: "CORE_ULD_723",
-    name: "Murmy",
-    card_type: CardType::Minion,
-    cost: 1,
-    attack: 1,
-    health: 1,
-    durability: 0,
-    battlecry: None,
-    deathrattle: None,
-    taunt: false,
-    stealth: false,
-    elusive: false,
-    race: Some(Race::Murloc),
+    race: None,
     hero_power: None,
     aura: None,
     secret: None,
@@ -511,7 +372,162 @@ pub const MURMY: CardDef = CardDef {
     cant_attack: false,
     end_turn_effect: None,
     start_turn_effect: None,
+    spell_effect: Some(CardEffect::OutcastDamage {
+        amount: 3,
+        outcast_amount: 6,
+        target: EffectTarget::AnyEnemyMinion,
+    }),
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// CORE_BAR_311 Devouring Plague — 3-cost Priest spell, Lifesteal (W1).
+/// Deal 4 damage randomly split among all enemy minions; Immune to spell
+/// damage (the W2 exemption completes the card).
+pub const DEVOURING_PLAGUE: CardDef = CardDef {
+    id: "CORE_BAR_311",
+    name: "Devouring Plague",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: Some(CardEffect::DealDamageRandomly {
+        amount: 1,
+        count: 4,
+        target: EffectTarget::AnyEnemyMinion,
+    }),
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// CORE_LOOT_101 Explosive Runes — 3-cost secret, Immune to spell damage.
+/// Secret: after your opponent plays a minion, deal 6 damage to it and any
+/// excess to their hero.
+pub const EXPLOSIVE_RUNES: CardDef = CardDef {
+    id: "CORE_LOOT_101",
+    name: "Explosive Runes",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: Some(CardEffect::DamagePlayedMinionAndExcess { amount: 6 }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: Some(crate::core::component::SecretTrigger::AfterEnemyMinionPlayed),
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
     spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// CORE_LOOT_373 Healing Rain — 3-cost Priest spell, Immune to spell
+/// damage. Restore 12 health randomly split among all friendly characters.
+pub const HEALING_RAIN: CardDef = CardDef {
+    id: "CORE_LOOT_373",
+    name: "Healing Rain",
+    card_type: CardType::Spell,
+    cost: 3,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: Some(CardEffect::RestoreRandomFriendly { amount: 12 }),
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// CORE_BRM_013 Quick Shot — 2-cost Hunter spell, affected by spell damage
+/// (the official AFFECTED_BY_SPELL_POWER marker — the engine applies spell
+/// damage to all spells by default). Deal 3 damage to a minion; if your
+/// hand is empty, draw a card.
+pub const QUICK_SHOT: CardDef = CardDef {
+    id: "CORE_BRM_013",
+    name: "Quick Shot",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: Some(CardEffect::DamageAndDrawIfHandEmpty {
+        damage: 3,
+        target: EffectTarget::AnyMinion,
+    }),
     spell_trigger: None,
     death_trigger: None,
     summon_trigger: None,

@@ -247,6 +247,7 @@ fn two_bots_battle() {
                 Action::EndTurn => "结束回合".to_string(),
                 Action::HeroPower { .. } => "使用英雄技能".to_string(),
                 Action::Choose { .. } => "抉择".to_string(),
+                Action::TradeCard { .. } => "交易".to_string(),
             };
             println!("  [{}/{}] {}", i + 1, actions.len(), action_desc);
 
@@ -306,6 +307,9 @@ fn two_bots_battle() {
                             }
                             orange_stone::core::event::Event::CardDrawn { player, .. } => {
                                 format!("  ↪ 抽牌: {}", player_name(*player))
+                            }
+                            orange_stone::core::event::Event::TradeCardExecuted { .. } => {
+                                "  ↪ 交易".to_string()
                             }
                             orange_stone::core::event::Event::GameOver { winner } => {
                                 format!("  ↪ 🏆 游戏结束! 胜者: {}", player_name(*winner))
@@ -498,6 +502,7 @@ fn two_smart_bots_battle() {
                 Action::EndTurn => "结束回合".to_string(),
                 Action::HeroPower { .. } => "使用英雄技能".to_string(),
                 Action::Choose { .. } => "抉择".to_string(),
+                Action::TradeCard { .. } => "交易".to_string(),
             };
             println!("  [{}/{}] {}", i + 1, actions.len(), action_desc);
 
@@ -557,6 +562,9 @@ fn two_smart_bots_battle() {
                             }
                             orange_stone::core::event::Event::CardDrawn { player, .. } => {
                                 format!("  ↪ 抽牌: {}", player_name(*player))
+                            }
+                            orange_stone::core::event::Event::TradeCardExecuted { .. } => {
+                                "  ↪ 交易".to_string()
                             }
                             orange_stone::core::event::Event::GameOver { winner } => {
                                 format!("  ↪ 🏆 游戏结束! 胜者: {}", player_name(*winner))

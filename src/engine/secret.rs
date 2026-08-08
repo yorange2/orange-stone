@@ -212,6 +212,32 @@ fn resolve_secret_effect(
                 });
             }
         }
+        CardEffect::DamagePlayedMinionAndExcess { amount } => {
+            // Explosive Runes (Core Set W2): deal `amount` to the just-played
+            // minion; any excess carries over to the enemy hero
+            if let Event::MinionSummoned { minion, .. } = event {
+                let target_hp = state
+                    .world()
+                    .effective_health(*minion)
+                    .map(|h| h.0)
+                    .unwrap_or(0);
+                let to_minion = amount.min(target_hp);
+                queue.push(Event::DamageDealt {
+                    source: entity,
+                    target: *minion,
+                    amount: to_minion,
+                });
+                let excess = amount - to_minion;
+                if excess > 0 {
+                    let enemy_hero = state.player(state.active_player()).hero;
+                    queue.push(Event::DamageDealt {
+                        source: entity,
+                        target: enemy_hero,
+                        amount: excess,
+                    });
+                }
+            }
+        }
         CardEffect::ReflectDamage => {
             // Eye for an Eye — the enemy hero takes the same damage the
             // friendly hero just took

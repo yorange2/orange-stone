@@ -97,6 +97,16 @@ fn apply_spell_power(
     if !is_spell_powered(state, source) {
         return effect;
     }
+    // ImmuneToSpellpower (Core Set W2): Devouring Plague, Explosive Runes,
+    // Healing Rain are explicitly exempt from the Spell Damage pipeline
+    // (the official data marks them ImmuneToSpellpower).
+    if state
+        .world()
+        .card_id(source)
+        .is_some_and(|c| matches!(c.0, "CORE_BAR_311" | "CORE_LOOT_101" | "CORE_LOOT_373"))
+    {
+        return effect;
+    }
     let bonus = state.world().total_spell_damage(owner);
     let velen = state
         .world()
@@ -580,6 +590,7 @@ pub fn resolve_effect(
         }
         // The following secret-only effects are handled by secret.rs's resolve_secret_effect (they need event context)
         CardEffect::DamagePlayedMinion { .. }
+        | CardEffect::DamagePlayedMinionAndExcess { .. }
         | CardEffect::RedirectAttackToRandomCharacter
         | CardEffect::SummonAndRedirectAttack { .. }
         | CardEffect::SummonSpellbender => {}
@@ -997,6 +1008,73 @@ pub fn resolve_effect(
             );
             if let Some(card_def) = card_def {
                 let _ = resolve_summon(state, queue, source, owner, card_def.id);
+            }
+        }
+        CardEffect::DrawCardOutcast { normal, outcast } => {
+            // Outcast (Core Set W2): the outcast amount applies when the
+            // card was played from the hand edge (Spectral Sight, Crimson
+            // Sigil Runner)
+            let count = if state.world().outcast_played(source).is_some() {
+                outcast
+            } else {
+                normal
+            };
+            for _ in 0..count {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::OutcastDamage {
+            amount,
+            outcast_amount,
+            target,
+        } => {
+            // Eye Beam — 3 damage, or 6 when played from the hand edge
+            let damage = if state.world().outcast_played(source).is_some() {
+                outcast_amount
+            } else {
+                amount
+            };
+            resolve_deal_damage(state, queue, source, owner, damage, target, None);
+        }
+        CardEffect::RestoreRandomFriendly { amount } => {
+            // Healing Rain — `amount` 1-point heals randomly spread across
+            // all friendly characters, hero included (overhealing wasted)
+            let chars: SmallList<Entity> = {
+                let mut all = collect_friendly_characters(state, owner, None);
+                all.extend([state.player(owner).hero]);
+                all
+            };
+            if chars.is_empty() {
+                return;
+            }
+            for _ in 0..amount {
+                let idx = state.rng_mut().next_usize(chars.len());
+                let target = chars[idx];
+                // Inline heal: reduce accumulated damage by 1 (same shape as
+                // resolve_restore_health's nested helper)
+                let dmg = state.world().damage(target).unwrap_or(Damage(0)).0;
+                if dmg > 0 {
+                    let new_dmg = (dmg - 1).max(0);
+                    if new_dmg > 0 {
+                        state.world_mut().set_damage(target, Damage(new_dmg));
+                    } else {
+                        state.world_mut().remove_damage(target);
+                    }
+                    fire_healed_trigger(state, queue, target);
+                }
+            }
+        }
+        CardEffect::DestroyEnemyLocation => {
+            // Demolition Renovator — destroy an enemy location. The engine
+            // has no Location card type until W8 (CORE_REV_990 Sanguine
+            // Depths), so there are no targets and the effect fizzles.
+        }
+        CardEffect::DamageAndDrawIfHandEmpty { damage, target } => {
+            // Quick Shot — deal damage; draw only when the hand is empty
+            resolve_deal_damage(state, queue, source, owner, damage, target, explicit_target);
+            let hand_count = state.world().zones().len(Zone::Hand, owner);
+            if hand_count == 0 {
+                draw_card(state, queue, owner);
             }
         }
         CardEffect::ResurrectDiedMinion => {
@@ -1432,9 +1510,20 @@ fn resolve_deal_damage(
         | EffectTarget::AnyMinionAttackGE(_)
         | EffectTarget::EnemyMinionAttackGE(_)
         | EffectTarget::DamagedFriendlyMinion
-        | EffectTarget::DamagedMinion
-        | EffectTarget::AnyMinion => {
+        | EffectTarget::DamagedMinion => {
             return None;
+        }
+        EffectTarget::AnyMinion => {
+            // Any minion on either side (Quick Shot — Core Set W2): an
+            // explicit target is required; without one the effect fizzles
+            // (G9), matching the engine's other any-minion damage effects.
+            let t = explicit?;
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_enemy_minions(state, owner, None));
+            if !all.contains(&t) {
+                return None;
+            }
+            [t].into_iter().collect()
         }
     };
 

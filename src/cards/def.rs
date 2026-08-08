@@ -112,6 +112,7 @@ pub use super::classic_shaman::*;
 pub use super::classic_warlock::*;
 pub use super::classic_warrior::*;
 pub use super::core_w1::*;
+pub use super::core_w2::*;
 
 /// Look up a card definition by card ID.
 pub fn card_by_id(id: &str) -> Option<&'static CardDef> {
