@@ -1,6 +1,7 @@
 # Core Set (核心系列) Roadmap — implementing the 281 CORE cards
 
-> Status: **active** (created 2026-08-07). Chinese mirror: `core-set-roadmap-zh.md`.
+> Status: **active** (created 2026-08-07; decisions D1–D5 resolved 2026-08-08,
+> wave plan below). Chinese mirror: `core-set-roadmap-zh.md`.
 > Scope: all `CORE_*` cards in `cards/cards.json` — the modern Core Set, 281 cards
 > (173 minions / 95 spells / 8 weapons / 1 hero / 1 location / 3 enchantment tokens),
 > drawn from **42 original sets** (the ID's middle part encodes the source).
@@ -432,30 +433,132 @@ inventory is confirmed — every card is a checkbox.
 - [ ] `CORE_YOP_001` Illidari Studies — 1 费 法术
 - [ ] `CORE_YOP_034` Runaway Blackwing — 10 费随从 10/10
 
-## Open decisions (resolve when planning milestones)
+## Decisions (resolved 2026-08-08)
 
-1. **Pool definition** — `ALL_CARDS` is Classic-only and the pool closure
-   invariant guards it. The Core Set expands the pool to Classic + Core:
-   decide whether `ALL_CARDS` stays the single source (with CORE added) or a
-   second registry appears, and how the closure test + `POOL_OPEN_CARDS`
-   interact (a Core card that reads the opponent's zones is pool-open too).
-2. **Overlap with Classic** — many CORE cards are Core-version reprints of
-   Classic cards (e.g. `CORE_EX1_100` Lorewalker Cho vs `LEGENDARY_024`).
-   Decide whether both versions coexist in the pool (HS does) or the CORE
-   version supersedes; the generated-vs-handwritten name check
-   (`cards_generated_match_handwritten`) will collide either way.
-3. **New mechanics inventory** — from the data: LIFESTEAL (8), TRADEABLE (6),
-   RUSH (5), OUTCAST (3), REBORN (2), POISONOUS, ImmuneToSpellpower /
-   AFFECTED_BY_SPELL_POWER (spell-power interaction), plus the LOCATION card
-   type (CORE_REV_990 Sanguine Depths) and the HERO card (CORE_EX1_323 Lord
-   Jaraxxus). Each needs an engine primitive + F5 scenario before its wave.
-4. **RL pool** — `full_pool()` = 396 today; adding CORE cards changes the
-   training pool size and the `include_pool_open` semantics. Re-measure and
-   decide whether the RL pool follows the engine pool or stays Classic-only
-   for now.
-5. **Wave shape** — 42 source sets is not 42 waves. Group by mechanic
-   dependency (like W0–W16): wiring-first, then primitives, then per-set
-   batches.
+The five open decisions were settled in a decision round (2026-08-08);
+research basis: `ALL_CARDS` is the single pool source that `GameEnv.
+all_card_ids()`/RL `full_pool()` follow, `build.rs` already generates static
+consts for all 281 CORE cards, and the engine has no primitives for
+RUSH/LIFESTEAL/TRADEABLE/OUTCAST/REBORN/spell-power exemption — POISONOUS /
+FREEZE / ENRAGED / OVERLOAD / CHOOSE_ONE / COMBO / DISCOVER / SECRET / AURA
+already exist.
+
+1. **Pool definition — `ALL_CARDS` stays the single source.** Implemented
+   CORE cards join `ALL_CARDS` one by one (no second registry). Core cards
+   that read an opponent zone (Dirty Rat, Gnomeferatu, Shaku, Swashburglar,
+   …) must register in `POOL_OPEN_CARDS` (+ `POOL_OPEN_KEYWORD_IDS` where the
+   effect is keyword-mapped); the `pool_open_effects_require_registry` test
+   enforces it, and the RL pool follows automatically.
+2. **Overlap with Classic — both versions coexist** (as in real Hearthstone).
+   The 88 reprints (CS1 2 + CS2 22 + DS1 2 + EX1 55 + NEW1 7) and their
+   Classic counterparts are all in the pool; the Classic 413-card pool,
+   SabberStone reference and training cadence stay untouched. The
+   generated-vs-handwritten check switches to ID-suffix matching first
+   (`CORE_EX1_100` ↔ generated `EX1_100`), verifying reprint fidelity (W0).
+3. **New mechanics inventory — primitives by dependency.** New primitives +
+   F5 scenarios: W1 RUSH (5) + LIFESTEAL (8) + REBORN (2); W2 TRADEABLE (6) +
+   OUTCAST (3) + ImmuneToSpellpower (3) + AFFECTED_BY_SPELL_POWER (1); the
+   `Race` enum grows Dragon / Elemental / Mechanical / Pirate / Totem (W0).
+   The HERO card (CORE_EX1_323 Lord Jaraxxus), LOCATION card (CORE_REV_990
+   Sanguine Depths, new `CardType::Location`), the 3 ENCHANTMENT cards and
+   the Imp token are deferred to the closing wave (W8) with their own
+   primitives.
+4. **RL pool — follows the engine pool, switched in one go after all cards
+   land.** Until then the training pool stays 396. The switch (W9) also
+   extends `_load_debt_ids()`'s `classic_*.rs` glob to `core_*.rs` so the
+   simplified-debt scan covers Core cards.
+5. **Wave shape — wiring first, then primitives, then mechanic batches.**
+   See the wave plan below; waves are mechanic-first (not per-set), matching
+   W0–W16.
+
+## Wave plan (2026-08-08)
+
+One PR per wave; every card lands with an F5 differential scenario. The
+checkbox list above is the authoritative card inventory — check off each card
+as its wave lands. Known wrinkle: `CORE_EDR_004` and `CORE_EDR_004_2026` are
+the same card under two IDs (re-check during W4a).
+
+- **W0 — wiring (no cards):** generated-vs-handwritten matching switches to
+  ID-suffix priority (`CORE_<P>_<n>` ↔ generated `<P>_<n>` reprint pair);
+  `Race` gains Dragon / Elemental / Mechanical / Pirate / Totem.
+- **W1 — attack-pipeline primitives (15 + F5):** RUSH (5) + LIFESTEAL (8) +
+  REBORN (2). `CORE_BT_801` (Eye Beam) and `CORE_BAR_311` (Devouring Plague)
+  carry a W2 mechanic — land the W1 part, finish with W2.
+  `CORE_BT_156 CORE_BT_801 CORE_BT_921 CORE_BAR_311 CORE_DRG_079 CORE_GIL_558
+  CORE_ICC_055 CORE_ICC_214 CORE_SW_442 CORE_TTN_866 CORE_RLK_657 CORE_RLK_745
+  CORE_TRL_900 CORE_ULD_723 CORE_WC_701`
+- **W2 — hand/spell-pipeline primitives (11 + F5):** TRADEABLE (6) +
+  OUTCAST (3) + ImmuneToSpellpower (3) + AFFECTED_BY_SPELL_POWER (1).
+  `CORE_EX1_002 CORE_EX1_005 CORE_REV_023 CORE_SW_066 CORE_SW_072 CORE_SW_429
+  CORE_BT_480 CORE_BT_491 CORE_BT_801 CORE_BAR_311 CORE_LOOT_101 CORE_LOOT_373
+  CORE_BRM_013`
+- **W3a/b/c — whiteboard batches (115 cards):** no new primitives; vanilla
+  minions/weapons, direct-damage/heal/draw spells, keyword-only cards
+  (Taunt/Charge/Divine Shield/Stealth/Elusive/…). Split by set, three PRs.
+  - W3a (39): `CORE_AT_055 CORE_AT_062 CORE_AT_064 CORE_CFM_344 CORE_CFM_604
+    CORE_CFM_670 CORE_CFM_781 CORE_CS1_112 CORE_CS1_130 CORE_DAL_575
+    CORE_DRG_256 CORE_DS1_185 CORE_EDR_002 CORE_ETC_111 CORE_ETC_523
+    CORE_EX1_007 CORE_EX1_010 CORE_EX1_028 CORE_EX1_100 CORE_EX1_129
+    CORE_EX1_145 CORE_EX1_169 CORE_EX1_197 CORE_EX1_246 CORE_EX1_278
+    CORE_EX1_302 CORE_EX1_309 CORE_EX1_312 CORE_EX1_391 CORE_EX1_506a
+    CORE_EX1_509 CORE_EX1_559 CORE_EX1_604 CORE_EX1_606 CORE_EX1_619
+    CORE_TSC_076 CORE_UNG_928 CORE_UNG_952 CORE_YOP_034`
+  - W3b (38): `CORE_BAR_801 CORE_BAR_878 CORE_CATA_003 CORE_CATA_004
+    CORE_CATA_005 CORE_CATA_007 CORE_CATA_008 CORE_CATA_009 CORE_CATA_010
+    CORE_CATA_011 CORE_CATA_012 CORE_CATA_013 CORE_CATA_014 CORE_CATA_015
+    CORE_CATA_016 CORE_CATA_017 CORE_GIL_534 CORE_GVG_061 CORE_GVG_085
+    CORE_GVG_103 CORE_ICC_038 CORE_ICC_210 CORE_KAR_077 CORE_NEW1_020
+    CORE_NEW1_021 CORE_NEW1_022 CORE_NEW1_023 CORE_NEW1_031 CORE_SCH_512
+    CORE_SCH_605 CORE_SCH_717 CORE_SW_047 CORE_SW_088 CORE_SW_108 CORE_TID_931
+    CORE_TTN_843 CORE_WC_042 CORE_WW_374`
+  - W3c (38): `CORE_BOT_222 CORE_BT_035 CORE_BT_292 CORE_BT_351 CORE_BT_493
+    CORE_BT_510 CORE_BT_701 CORE_BT_781 CORE_CS2_004 CORE_CS2_009 CORE_CS2_023
+    CORE_CS2_029 CORE_CS2_032 CORE_CS2_053 CORE_CS2_062 CORE_CS2_072
+    CORE_CS2_074 CORE_CS2_076 CORE_CS2_093 CORE_CS2_094 CORE_CS2_108
+    CORE_CS2_179 CORE_LOOT_044 CORE_LOOT_137 CORE_LOOT_309 CORE_NX2_028
+    CORE_OG_211 CORE_RLK_063 CORE_RLK_083 CORE_RLK_087 CORE_RLK_118
+    CORE_RLK_121 CORE_RLK_567 CORE_RLK_712 CORE_TRL_307 CORE_ULD_133
+    CORE_WON_337 CORE_WON_351`
+- **W4a/b — battlecry batches (76 cards):** two PRs, split by set.
+  - W4a (38): `CORE_BAR_313 CORE_BT_120 CORE_BT_321 CORE_BT_416 CORE_CFM_753
+    CORE_CFM_790 CORE_DMF_067 CORE_DMF_511 CORE_EDR_001 CORE_EDR_003
+    CORE_EDR_004 CORE_EDR_004_2026 CORE_GIL_531 CORE_GIL_622 CORE_GIL_623
+    CORE_GVG_059 CORE_ICC_407 CORE_KAR_057 CORE_KAR_061 CORE_KAR_062
+    CORE_KAR_069 CORE_LOE_039 CORE_LOOT_013 CORE_NEW1_018 CORE_ONY_022
+    CORE_RLK_062 CORE_RLK_066 CORE_RLK_116 CORE_RLK_505 CORE_RLK_506
+    CORE_RLK_706 CORE_RLK_814 CORE_UNG_084 CORE_UNG_205 CORE_UNG_809
+    CORE_UNG_848 CORE_UNG_912 CORE_WW_329`
+  - W4b (38): `CORE_BOT_256 CORE_CATA_001 CORE_CATA_002 CORE_CATA_006
+    CORE_CS2_042 CORE_CS2_188 CORE_CS2_189 CORE_DRG_024 CORE_DRG_403
+    CORE_EX1_011 CORE_EX1_014 CORE_EX1_043 CORE_EX1_058 CORE_EX1_059
+    CORE_EX1_082 CORE_EX1_103 CORE_EX1_189 CORE_EX1_193 CORE_EX1_198
+    CORE_EX1_310 CORE_EX1_319 CORE_EX1_362 CORE_EX1_506 CORE_OG_149
+    CORE_REV_308 CORE_REV_946 CORE_SCH_181 CORE_SCH_713 CORE_TRL_111
+    CORE_TRL_240 CORE_TRL_345 CORE_ULD_165 CORE_ULD_178 CORE_ULD_191
+    CORE_ULD_271 CORE_WON_096 CORE_WON_141 CORE_WON_145`
+- **W5 — deathrattle/secret/aura (33 + F5):** `CORE_AT_123 CORE_AV_337
+  CORE_BAR_310 CORE_BAR_812 CORE_BT_187 CORE_BT_201 CORE_CS2_122 CORE_CS2_222
+  CORE_DAL_720 CORE_DRG_107 CORE_EX1_012 CORE_EX1_096 CORE_EX1_110
+  CORE_EX1_162 CORE_EX1_287 CORE_EX1_289 CORE_EX1_383 CORE_EX1_507
+  CORE_EX1_610 CORE_EX1_611 CORE_GIL_577 CORE_GVG_114 CORE_LOOT_368
+  CORE_LOOT_413 CORE_NEW1_027 CORE_OG_031 CORE_OG_044 CORE_RLK_086 CORE_SW_068
+  CORE_SW_439 CORE_ULD_152 CORE_ULD_280 CORE_YOD_026`
+- **W6 — discover/choose-one/combo/overload/freeze (23 + F5):**
+  `CORE_AT_037 CORE_AT_052 CORE_AV_107 CORE_BAR_541 CORE_BOT_451 CORE_BOT_576
+  CORE_BT_072 CORE_CS2_024 CORE_CS2_028 CORE_DS1_184 CORE_EX1_131
+  CORE_EX1_134 CORE_EX1_154 CORE_EX1_160 CORE_EX1_238 CORE_EX1_250
+  CORE_EX1_259 CORE_GIL_836 CORE_OG_047 CORE_ONY_018 CORE_TSC_650
+  CORE_WON_350 CORE_YOP_001`
+- **W7 — enrage finish (2 + F5):** `CORE_EX1_414 CORE_OG_218`
+- **W8 — special types (6 + F5):** the deferred HERO (CORE_EX1_323 Lord
+  Jaraxxus — hero replacement primitive), LOCATION (CORE_REV_990 Sanguine
+  Depths — `CardType::Location` primitive), ENCHANTMENT cards (CORE_CATA_006e
+  CORE_CS2_039e CORE_EDR_002e) and the Imp token (CORE_GIL_191t).
+- **W9 — RL pool switch (orange-reinforcement PR, no cards):** extend
+  `_load_debt_ids()` glob to `core_*.rs`; `full_pool()` now includes the
+  landed CORE cards (follows the engine pool per D4); re-measure and record
+  the new pool size here; archive both roadmap files to `docs/finished/` and
+  update the workspace `CLAUDE.md`.
 
 ## Definition of done
 

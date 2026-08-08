@@ -1,6 +1,7 @@
 # 核心系列路线图 —— 实现 281 张 CORE 卡
 
-> 状态：**活跃**（2026-08-07 创建）。英文对照：`core-set-roadmap.md`。
+> 状态：**活跃**（2026-08-07 创建；决策 D1~D5 已于 2026-08-08 定案，波次计划见下）。
+> 英文对照：`core-set-roadmap.md`。
 > 范围：`cards/cards.json` 里全部 `CORE_*` 卡 —— 现代核心系列，共 281 张
 > （173 随从 / 95 法术 / 8 武器 / 1 英雄 / 1 地点 / 3 附魔衍生物），
 > 来自 **42 个原始系列**（卡 ID 中段即来源系列前缀）。
@@ -427,24 +428,115 @@
 - [ ] `CORE_YOP_001` Illidari Studies — 1 费 法术
 - [ ] `CORE_YOP_034` Runaway Blackwing — 10 费随从 10/10
 
-## 待定决策（规划里程碑时解决）
+## 决策记录（2026-08-08 决策轮已定）
 
-1. **池的定义** —— `ALL_CARDS` 目前只含经典卡，池封闭不变量守着它。核心系列把池
-   扩成「经典 + 核心」：决定 `ALL_CARDS` 是否仍是唯一来源（把 CORE 加进去），还是
-   出现第二个注册表；封闭性测试与 `POOL_OPEN_CARDS` 如何互动（读对手区域的核心卡
-   同样开放池）。
-2. **与经典的重复** —— 很多 CORE 卡是经典卡的「核心版」重印（如 `CORE_EX1_100`
-   游学者周卓 vs `LEGENDARY_024`）。决定两个版本是否共存于池（真实炉石共存），还是
-   核心版取代；generated-vs-handwritten 按名比对测试（`cards_generated_match_handwritten`）
-   无论哪种都会撞。
-3. **新机制清单** —— 从数据看：吸血（8）、可交易（6）、突袭（5）、流放（3）、复生
-   （2）、剧毒，以及法术伤害豁免/受法术伤害影响（法术伤害管线的交互），外加地点卡
-   类型（CORE_REV_990 猩红之渊）与英雄卡（CORE_EX1_323 贾拉克瑟斯）。每项都需要
-   引擎原语 + F5 场景才能进波次。
-4. **RL 池** —— 今天 `full_pool()` = 396；加入 CORE 卡会改变训练池大小与
-   `include_pool_open` 的语义。重新实测，并决定 RL 池是跟随引擎池还是暂保持经典。
-5. **波次形状** —— 42 个来源系列不等于 42 个波次。按机制依赖分组（同 W0~W16）：
-   先接线、再原语、然后按系列批量。
+五个开放决策在一次决策轮中定案；研究依据：`ALL_CARDS` 是 `GameEnv.
+all_card_ids()`/RL `full_pool()` 跟随的唯一池来源，`build.rs` 已为全部 281 张
+CORE 卡生成静态 const，引擎缺失 RUSH/LIFESTEAL/TRADEABLE/OUTCAST/REBORN/法术
+伤害豁免原语——剧毒/冻结/激怒/过载/抉择/连击/发现/奥秘/光环已有。
+
+1. **池的定义 —— `ALL_CARDS` 保持单一来源。** 实现的 CORE 卡逐个加入
+   `ALL_CARDS`（不搞第二注册表）。读对手区域的核心卡（脏鼠、恶魔吞噬者、沙库、
+   偷牌狂徒……）必须注册进 `POOL_OPEN_CARDS`（走关键词映射的加进
+   `POOL_OPEN_KEYWORD_IDS`）；`pool_open_effects_require_registry` 测试强制，
+   RL 池自动跟随。
+2. **与经典的重复 —— 两版本共存**（真实炉石口径）。88 张重印（CS1 2 + CS2 22 +
+   DS1 2 + EX1 55 + NEW1 7）与经典版同在池中；经典 413 张池、SabberStone 对拍
+   基准与训练口径零破坏。generated-vs-handwritten 测试先改 ID 后缀优先匹配
+   （`CORE_EX1_100` ↔ 生成的 `EX1_100`），校验重印保真（W0）。
+3. **新机制清单 —— 按依赖分原语波次。** 新原语 + F5 场景：W1 RUSH（5）+ 吸血
+   （8）+ 复生（2）；W2 可交易（6）+ 流放（3）+ 法术伤害豁免（3）+ 受法术伤害
+   影响（1）；`Race` 枚举补 Dragon/Elemental/Mechanical/Pirate/Totem（W0）。
+   英雄卡（CORE_EX1_323 贾拉克瑟斯）、地点卡（CORE_REV_990 猩红之渊，新增
+   `CardType::Location`）、3 张 ENCHANTMENT 卡与 Imp 衍生物推迟到收尾波（W8），
+   带各自的原语。
+4. **RL 池 —— 跟随引擎池，全卡落地后一次性切换。** 切换前训练池保持 396。
+   切换（W9）顺带把 `_load_debt_ids()` 的 `classic_*.rs` glob 扩到 `core_*.rs`，
+   简化债扫描覆盖核心卡。
+5. **波次形状 —— 先接线、再原语、然后按机制批量。** 见下方波次计划；按机制
+   分组（对齐 W0~W16），不按系列。
+
+## 波次计划（2026-08-08 定）
+
+一波一个 PR；每张卡带 F5 差分场景落地。上方的复选框清单是权威卡表——卡随波次
+落地时逐个勾选。已知坑：`CORE_EDR_004` 与 `CORE_EDR_004_2026` 是同一张卡的
+两个 ID（W4a 落地时核对去重）。
+
+- **W0 — 接线（无卡）：** generated-vs-handwritten 匹配改 ID 后缀优先
+  （`CORE_<系列>_<n>` ↔ 生成的 `<系列>_<n>` 重印对）；`Race` 补 Dragon /
+  Elemental / Mechanical / Pirate / Totem。
+- **W1 — 攻击管线原语（15 张 + F5）：** 突袭（5）+ 吸血（8）+ 复生（2）。
+  `CORE_BT_801`（眼棱）与 `CORE_BAR_311`（吞噬瘟疫）带 W2 机制——先落 W1 部分，
+  W2 补全。卡：`CORE_BT_156 CORE_BT_801 CORE_BT_921 CORE_BAR_311 CORE_DRG_079
+  CORE_GIL_558 CORE_ICC_055 CORE_ICC_214 CORE_SW_442 CORE_TTN_866 CORE_RLK_657
+  CORE_RLK_745 CORE_TRL_900 CORE_ULD_723 CORE_WC_701`
+- **W2 — 手牌/法术管线原语（11 张 + F5）：** 可交易（6）+ 流放（3）+ 法术伤害
+  豁免（3）+ 受法术伤害影响（1）。卡：`CORE_EX1_002 CORE_EX1_005 CORE_REV_023
+  CORE_SW_066 CORE_SW_072 CORE_SW_429 CORE_BT_480 CORE_BT_491 CORE_BT_801
+  CORE_BAR_311 CORE_LOOT_101 CORE_LOOT_373 CORE_BRM_013`
+- **W3a/b/c — 白板批（115 张）：** 无新原语；白板随从/武器、直伤/治疗/抽牌法术、
+  纯关键词卡（嘲讽/冲锋/圣盾/潜行/扰咒/……）。按系列拆三个 PR。
+  - W3a（39）：`CORE_AT_055 CORE_AT_062 CORE_AT_064 CORE_CFM_344 CORE_CFM_604
+    CORE_CFM_670 CORE_CFM_781 CORE_CS1_112 CORE_CS1_130 CORE_DAL_575
+    CORE_DRG_256 CORE_DS1_185 CORE_EDR_002 CORE_ETC_111 CORE_ETC_523
+    CORE_EX1_007 CORE_EX1_010 CORE_EX1_028 CORE_EX1_100 CORE_EX1_129
+    CORE_EX1_145 CORE_EX1_169 CORE_EX1_197 CORE_EX1_246 CORE_EX1_278
+    CORE_EX1_302 CORE_EX1_309 CORE_EX1_312 CORE_EX1_391 CORE_EX1_506a
+    CORE_EX1_509 CORE_EX1_559 CORE_EX1_604 CORE_EX1_606 CORE_EX1_619
+    CORE_TSC_076 CORE_UNG_928 CORE_UNG_952 CORE_YOP_034`
+  - W3b（38）：`CORE_BAR_801 CORE_BAR_878 CORE_CATA_003 CORE_CATA_004
+    CORE_CATA_005 CORE_CATA_007 CORE_CATA_008 CORE_CATA_009 CORE_CATA_010
+    CORE_CATA_011 CORE_CATA_012 CORE_CATA_013 CORE_CATA_014 CORE_CATA_015
+    CORE_CATA_016 CORE_CATA_017 CORE_GIL_534 CORE_GVG_061 CORE_GVG_085
+    CORE_GVG_103 CORE_ICC_038 CORE_ICC_210 CORE_KAR_077 CORE_NEW1_020
+    CORE_NEW1_021 CORE_NEW1_022 CORE_NEW1_023 CORE_NEW1_031 CORE_SCH_512
+    CORE_SCH_605 CORE_SCH_717 CORE_SW_047 CORE_SW_088 CORE_SW_108 CORE_TID_931
+    CORE_TTN_843 CORE_WC_042 CORE_WW_374`
+  - W3c（38）：`CORE_BOT_222 CORE_BT_035 CORE_BT_292 CORE_BT_351 CORE_BT_493
+    CORE_BT_510 CORE_BT_701 CORE_BT_781 CORE_CS2_004 CORE_CS2_009 CORE_CS2_023
+    CORE_CS2_029 CORE_CS2_032 CORE_CS2_053 CORE_CS2_062 CORE_CS2_072
+    CORE_CS2_074 CORE_CS2_076 CORE_CS2_093 CORE_CS2_094 CORE_CS2_108
+    CORE_CS2_179 CORE_LOOT_044 CORE_LOOT_137 CORE_LOOT_309 CORE_NX2_028
+    CORE_OG_211 CORE_RLK_063 CORE_RLK_083 CORE_RLK_087 CORE_RLK_118
+    CORE_RLK_121 CORE_RLK_567 CORE_RLK_712 CORE_TRL_307 CORE_ULD_133
+    CORE_WON_337 CORE_WON_351`
+- **W4a/b — 战吼批（76 张）：** 按系列拆两个 PR。
+  - W4a（38）：`CORE_BAR_313 CORE_BT_120 CORE_BT_321 CORE_BT_416 CORE_CFM_753
+    CORE_CFM_790 CORE_DMF_067 CORE_DMF_511 CORE_EDR_001 CORE_EDR_003
+    CORE_EDR_004 CORE_EDR_004_2026 CORE_GIL_531 CORE_GIL_622 CORE_GIL_623
+    CORE_GVG_059 CORE_ICC_407 CORE_KAR_057 CORE_KAR_061 CORE_KAR_062
+    CORE_KAR_069 CORE_LOE_039 CORE_LOOT_013 CORE_NEW1_018 CORE_ONY_022
+    CORE_RLK_062 CORE_RLK_066 CORE_RLK_116 CORE_RLK_505 CORE_RLK_506
+    CORE_RLK_706 CORE_RLK_814 CORE_UNG_084 CORE_UNG_205 CORE_UNG_809
+    CORE_UNG_848 CORE_UNG_912 CORE_WW_329`
+  - W4b（38）：`CORE_BOT_256 CORE_CATA_001 CORE_CATA_002 CORE_CATA_006
+    CORE_CS2_042 CORE_CS2_188 CORE_CS2_189 CORE_DRG_024 CORE_DRG_403
+    CORE_EX1_011 CORE_EX1_014 CORE_EX1_043 CORE_EX1_058 CORE_EX1_059
+    CORE_EX1_082 CORE_EX1_103 CORE_EX1_189 CORE_EX1_193 CORE_EX1_198
+    CORE_EX1_310 CORE_EX1_319 CORE_EX1_362 CORE_EX1_506 CORE_OG_149
+    CORE_REV_308 CORE_REV_946 CORE_SCH_181 CORE_SCH_713 CORE_TRL_111
+    CORE_TRL_240 CORE_TRL_345 CORE_ULD_165 CORE_ULD_178 CORE_ULD_191
+    CORE_ULD_271 CORE_WON_096 CORE_WON_141 CORE_WON_145`
+- **W5 — 亡语/奥秘/光环（33 张 + F5）：** `CORE_AT_123 CORE_AV_337 CORE_BAR_310
+  CORE_BAR_812 CORE_BT_187 CORE_BT_201 CORE_CS2_122 CORE_CS2_222 CORE_DAL_720
+  CORE_DRG_107 CORE_EX1_012 CORE_EX1_096 CORE_EX1_110 CORE_EX1_162 CORE_EX1_287
+  CORE_EX1_289 CORE_EX1_383 CORE_EX1_507 CORE_EX1_610 CORE_EX1_611 CORE_GIL_577
+  CORE_GVG_114 CORE_LOOT_368 CORE_LOOT_413 CORE_NEW1_027 CORE_OG_031 CORE_OG_044
+  CORE_RLK_086 CORE_SW_068 CORE_SW_439 CORE_ULD_152 CORE_ULD_280 CORE_YOD_026`
+- **W6 — 发现/抉择/连击/过载/冻结（23 张 + F5）：** `CORE_AT_037 CORE_AT_052
+  CORE_AV_107 CORE_BAR_541 CORE_BOT_451 CORE_BOT_576 CORE_BT_072 CORE_CS2_024
+  CORE_CS2_028 CORE_DS1_184 CORE_EX1_131 CORE_EX1_134 CORE_EX1_154 CORE_EX1_160
+  CORE_EX1_238 CORE_EX1_250 CORE_EX1_259 CORE_GIL_836 CORE_OG_047 CORE_ONY_018
+  CORE_TSC_650 CORE_WON_350 CORE_YOP_001`
+- **W7 — 激怒收尾（2 张 + F5）：** `CORE_EX1_414 CORE_OG_218`
+- **W8 — 特殊类型（6 张 + F5）：** 推迟的英雄卡（CORE_EX1_323 贾拉克瑟斯——英雄
+  替换原语）、地点卡（CORE_REV_990 猩红之渊——`CardType::Location` 原语）、
+  ENCHANTMENT 卡（CORE_CATA_006e CORE_CS2_039e CORE_EDR_002e）与 Imp 衍生物
+  （CORE_GIL_191t）。
+- **W9 — RL 池切换（orange-reinforcement 的 PR，无卡）：** `_load_debt_ids()`
+  glob 扩到 `core_*.rs`；`full_pool()` 纳入已落地的 CORE 卡（按 D4 跟随引擎池）；
+  重新实测并把新池大小记录到本文件；两份文件移入 `docs/finished/` 并更新工作区
+  `CLAUDE.md`。
 
 ## 完成标准
 
