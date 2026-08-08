@@ -29,6 +29,7 @@ pub mod core_w7;
 pub mod core_w8;
 pub mod def;
 pub mod exp_edr_w1;
+pub mod exp_edr_w2;
 pub mod generated;
 pub mod pool;
 pub mod sets;

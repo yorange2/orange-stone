@@ -225,6 +225,43 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
+        RandomPool::DeathrattleMinion => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Minion
+                    && (c.deathrattle.is_some() || c.death_trigger.is_some())
+                    && in_active_window(c)
+            })
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
+        RandomPool::UndeadMinion => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Minion
+                    && c.race == Some(Race::Undead)
+                    && in_active_window(c)
+            })
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
+        RandomPool::DemonCost5Plus => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Minion
+                    && c.race == Some(Race::Demon)
+                    && c.cost >= 5
+                    && in_active_window(c)
+            })
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
     }
 }
 
@@ -266,6 +303,16 @@ pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'stati
                 && crate::cards::sets::PRIEST_CLASSIC
                     .iter()
                     .any(|p| p.id == c.id)
+        }),
+        RandomPool::DeathrattleMinion => random_filtered(rng, |c| {
+            c.card_type == CardType::Minion
+                && (c.deathrattle.is_some() || c.death_trigger.is_some())
+        }),
+        RandomPool::UndeadMinion => random_filtered(rng, |c| {
+            c.card_type == CardType::Minion && c.race == Some(Race::Undead)
+        }),
+        RandomPool::DemonCost5Plus => random_filtered(rng, |c| {
+            c.card_type == CardType::Minion && c.race == Some(Race::Demon) && c.cost >= 5
         }),
     }
 }
@@ -365,6 +412,114 @@ mod tests {
                 "{} is not a Priest minion or spell",
                 card.id
             );
+        }
+    }
+
+    /// DeathrattleMinion (Avant-Gardening — M1-W2 dark gifts) — exactly the
+    /// in-window minions carrying a Deathrattle effect or a death trigger.
+    #[test]
+    fn deathrattle_minion_pool_is_minions_with_deathrattle() {
+        let pool = pool_cards(RandomPool::DeathrattleMinion);
+        assert!(
+            !pool.is_empty(),
+            "the DeathrattleMinion pool must not be empty"
+        );
+        let ids: Vec<&str> = pool.iter().map(|c| c.id).collect();
+        for card in sets::ALL_CARDS {
+            let in_window = crate::cards::generated::card_set(card.id)
+                == crate::cards::def::CardSet::Classic
+                || crate::cards::generated::card_set(card.id) == crate::cards::def::CardSet::Core;
+            if card.card_type == CardType::Minion
+                && (card.deathrattle.is_some() || card.death_trigger.is_some())
+                && in_window
+            {
+                assert!(
+                    ids.contains(&card.id),
+                    "{} must be in the DeathrattleMinion pool",
+                    card.id
+                );
+            }
+        }
+        for card in pool {
+            assert_eq!(
+                card.card_type,
+                CardType::Minion,
+                "{} is not a minion",
+                card.id
+            );
+            assert!(
+                card.deathrattle.is_some() || card.death_trigger.is_some(),
+                "{} has no Deathrattle",
+                card.id
+            );
+        }
+    }
+
+    /// UndeadMinion (Rite of Atrocity — M1-W2 dark gifts) — exactly the
+    /// in-window Undead minions.
+    #[test]
+    fn undead_minion_pool_is_undead() {
+        let pool = pool_cards(RandomPool::UndeadMinion);
+        assert!(!pool.is_empty(), "the UndeadMinion pool must not be empty");
+        let ids: Vec<&str> = pool.iter().map(|c| c.id).collect();
+        for card in sets::ALL_CARDS {
+            let in_window = crate::cards::generated::card_set(card.id)
+                == crate::cards::def::CardSet::Classic
+                || crate::cards::generated::card_set(card.id) == crate::cards::def::CardSet::Core;
+            if card.card_type == CardType::Minion && card.race == Some(Race::Undead) && in_window {
+                assert!(
+                    ids.contains(&card.id),
+                    "{} must be in the UndeadMinion pool",
+                    card.id
+                );
+            }
+        }
+        for card in pool {
+            assert_eq!(
+                card.card_type,
+                CardType::Minion,
+                "{} is not a minion",
+                card.id
+            );
+            assert_eq!(card.race, Some(Race::Undead), "{} is not Undead", card.id);
+        }
+    }
+
+    /// DemonCost5Plus (Jumpscare! — M1-W2 dark gifts) — exactly the
+    /// in-window Demons costing (5) or more.
+    #[test]
+    fn demon_cost_5_plus_pool_is_costly_demons() {
+        let pool = pool_cards(RandomPool::DemonCost5Plus);
+        assert!(
+            !pool.is_empty(),
+            "the DemonCost5Plus pool must not be empty"
+        );
+        let ids: Vec<&str> = pool.iter().map(|c| c.id).collect();
+        for card in sets::ALL_CARDS {
+            let in_window = crate::cards::generated::card_set(card.id)
+                == crate::cards::def::CardSet::Classic
+                || crate::cards::generated::card_set(card.id) == crate::cards::def::CardSet::Core;
+            if card.card_type == CardType::Minion
+                && card.race == Some(Race::Demon)
+                && card.cost >= 5
+                && in_window
+            {
+                assert!(
+                    ids.contains(&card.id),
+                    "{} must be in the DemonCost5Plus pool",
+                    card.id
+                );
+            }
+        }
+        for card in pool {
+            assert_eq!(
+                card.card_type,
+                CardType::Minion,
+                "{} is not a minion",
+                card.id
+            );
+            assert_eq!(card.race, Some(Race::Demon), "{} is not a Demon", card.id);
+            assert!(card.cost >= 5, "{} costs less than 5", card.id);
         }
     }
 }

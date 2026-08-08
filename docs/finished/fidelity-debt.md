@@ -353,6 +353,73 @@ F5 coverage: `edr_w1_imbue_threshold_sequence`,
 (13 scenarios in `tests/differential.rs`). Full `cargo test` green; `cargo clippy
 --all-targets` clean.
 
+### 14.1 2025–2026 expansions M1-W2 — the Emerald Dream dark gifts (9 cards) 🔓 registered
+
+The registered simplifications of the M1-W2 wave (`src/cards/exp_edr_w2.rs` + the
+dark-gift engine: `DarkGiftKind`, `ApplyDarkGift`, the per-entity `dark_gifts`
+marker, `Player.dark_gifts_given`). As with §14, these handwritten expansion
+cards are not in the RL pool, so the rows are informational: they keep the
+code's `(simplified: …)` markers traceable to the ledger. Each row stays open
+until its mechanism lands in a later wave (W3 brings the real choice/discover
+pipeline).
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| EDR_102 | Treacherous Tormentor | Discover a Legendary minion → a random pick over the in-window Legendary pool (25 cards), then one random dark gift | the real Discover pipeline (W3) |
+| EDR_456 | Darkrider | Discover a Dragon → a random pick over the in-window Dragon pool (9); the holding-Dragon hand condition is enforced (as written) | the real Discover pipeline (W3) |
+| EDR_487 | Wallow, the Wretched | The log (`Player.dark_gifts_given`) records gift kinds only, not the source cards; Wallow copies gifts non-retroactively (only gifts given while it is in hand/deck) and never re-logs the copies | a full per-gift source log |
+| EDR_488 | Avant-Gardening | Discover a Deathrattle minion → a random pick over the in-window Deathrattle pool (29), then one random dark gift | the real Discover pipeline (W3) |
+| EDR_528 | Nightmare Fuel | Discover a copy of a minion from the opponent's deck → a random pick over the actual enemy deck (pool-open card — registered in `POOL_OPEN_CARDS`); the copy is a freshly generated card (no enchantments) | a real Discover pipeline + a copy-that-copies-enchantments pipeline |
+| EDR_654 | Overgrown Horror | faithful | — |
+| EDR_811 | Rite of Atrocity | Discover an Undead minion → a random pick over the in-window Undead pool (17), then one random dark gift if you spend 2 corpses (exactly as written — no gift without the corpses) | the real Discover pipeline (W3) |
+| EDR_856 | Nightmare Lord Xavius | Discover a minion from your own deck → a random pick over the actual friendly deck, then one random dark gift (own deck = in-pool, not pool-open) | the real Discover pipeline (W3) |
+| EDR_882 | Jumpscare! | Discover an expensive Demon → a random pick over the in-window Demon-costing-5+ pool (12); the official "shuffle the other two options into your deck" clause is moot under the random Discover simplification and is skipped | the real Discover pipeline (W3) |
+
+Dark-gift simplifications (the ten gifts in `ALL_DARK_GIFTS`): gift 3 ("costs
+(2) less, attack -2, attack can't go below 1") skips the attack floor — attack
+is simply reduced by 2; gift 6 ("if it has a battlecry, it triggers twice")
+skips the has-a-battlecry eligibility filter — the gift re-resolves whatever
+effect the minion carries; gift 9 (place on top of the deck with +4/+5) moves
+the minion to the deck BEFORE the enchantment lands (move-before-buff), so a
+play-zone target's enchantments are wiped by the zone bounce per the engine's
+established move_to_zone convention; gift 5 ("when you play this, summon a 2/2
+copy") summons the copy through `resolve_summon`, so the copy's battlecry fires
+per the engine's summon convention; the gift log is kinds-only and the gifts
+ride a per-entity marker (`World::dark_gifts`) that persists across zones, so a
+gifted card keeps its gifts deck → hand → play, and Wallow's sync and
+Overgrown Horror's discount read the same marker.
+
+中文小结（同上十行 + 赠礼简化）：七张发现卡（Tormentor / Darkrider /
+Avant-Gardening / Nightmare Fuel / Rite of Atrocity / Xavius / Jumpscare）的
+发现统一简化为随机取一（Discover 管线 W3 落地）；发现池按当前经典/核心窗口
+实测 25 张传说 / 9 张龙 / 29 张亡语 / 17 张亡灵 / 12 张费用≥5 恶魔，Nightmare
+Fuel 与 Xavius 直接从真实牌库随机取（前者从对手牌库复制——已登记
+POOL_OPEN_CARDS——复制品为全新生成卡、不带附魔，后者从己方牌库取走并附赠礼）；
+Jumpscare "把另外两张洗回牌库"在随机发现下无意义、不实现；赠礼 3 跳过
+"攻击力不低于 1"的下限过滤（直接 -2 攻击）；赠礼 6 跳过"须有战吼"的资格
+过滤（无条件二次结算效果）；赠礼 9 先移入牌库再附加 +4/+5（move-before-buff，
+场上目标的附魔按既有 move_to_zone 弹回约定被清除）；赠礼 5 的 2/2 复制经
+`resolve_summon` 召唤、其战吼按引擎召唤惯例触发；赠礼日志只记种类、Wallow
+的同步不回溯且不重复记日志；赠礼以实体标记（`World::dark_gifts`）随身携带、
+跨区域保留，Wallow 同步与 Overgrown Horror 减费均读取该标记。
+
+F5 coverage: `edr_w2_treacherous_tormentor_legendary_gift_attack_lifesteal`,
+`edr_w2_avant_gardening_deathrattle_gift_cost_discount`,
+`edr_w2_jumpscare_demon_gift_shield_windfury`,
+`edr_w2_rite_of_atrocity_corpses_gift_charge`,
+`edr_w2_rite_of_atrocity_no_corpses_undead_ungifted`,
+`edr_w2_nightmare_fuel_combo_gift_health_taunt`,
+`edr_w2_nightmare_fuel_without_combo_copy_ungifted`,
+`edr_w2_darkrider_holding_dragon_gift_deck_top_buff`,
+`edr_w2_darkrider_no_dragon_condition_fizzles`,
+`edr_w2_wallow_copies_gift_to_hand_and_deck`,
+`edr_w2_xavius_deck_minion_gift_stats_elusive`,
+`edr_w2_overgrown_horror_reduces_gifted_hand_minions`,
+`edr_w2_gift_summon_copy_on_play_two_two_copy`,
+`edr_w2_gift_battlecry_triggers_twice`, `edr_w2_gift_reborn_full_keeps_enchantments`
+(15 scenarios in `tests/differential.rs`). Full `cargo test` green; `cargo clippy
+--all-targets` clean.
+
 ## Findings from the 2026-08-06 audit pass (all resolved in PR #77 / PR #31)
 
 These were F4 work items discovered while compiling the ledger. All structural

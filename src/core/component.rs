@@ -280,6 +280,54 @@ impl ImbueClass {
     }
 }
 
+/// Dark gifts (2025–2026 expansions M1-W2 — the Emerald Dream dark-gift
+/// mechanic): the ten card-level upgrades applied by the EDR dark-gift
+/// Discover cards. A gift is attached to a minion card and persists across
+/// zones (hand / deck / play) — the `World` `dark_gifts` component carries
+/// the markers and `engine::trigger::apply_dark_gift` applies the static
+/// effects (enchantments + keyword components). The variant order IS the
+/// fixed gift pool (index 0..=9 drives `ALL_DARK_GIFTS`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum DarkGiftKind {
+    /// +3 attack and Lifesteal
+    AttackLifesteal,
+    /// +2/+2 and Elusive
+    StatsElusive,
+    /// Cost (2) less, -2 attack (the official "only if attack stays at
+    /// least 1" filter is not applied — registered simplification)
+    CostDiscount,
+    /// Charge
+    Charge,
+    /// When you play this, summon a 2/2 copy of it
+    SummonCopyOnPlay,
+    /// Your Battlecries trigger twice (official "only if it has a battlecry"
+    /// filter is not applied — registered simplification)
+    BattlecryTwice,
+    /// +4 health and Taunt
+    HealthTaunt,
+    /// Reborn, and reborn at full health with enchantments
+    RebornFull,
+    /// +4/+5 and place this on top of your deck
+    DeckTopBuff,
+    /// Divine Shield and Windfury
+    ShieldWindfury,
+}
+
+/// The fixed dark-gift pool — index order defines the random gift pick
+/// (`engine::trigger` resolves gifts by this order).
+pub const ALL_DARK_GIFTS: [DarkGiftKind; 10] = [
+    DarkGiftKind::AttackLifesteal,
+    DarkGiftKind::StatsElusive,
+    DarkGiftKind::CostDiscount,
+    DarkGiftKind::Charge,
+    DarkGiftKind::SummonCopyOnPlay,
+    DarkGiftKind::BattlecryTwice,
+    DarkGiftKind::HealthTaunt,
+    DarkGiftKind::RebornFull,
+    DarkGiftKind::DeckTopBuff,
+    DarkGiftKind::ShieldWindfury,
+];
+
 /// Aura effect kind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AuraEffect {

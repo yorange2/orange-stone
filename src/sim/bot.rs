@@ -1506,6 +1506,14 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DiscoverWildGodIfImbued4 => 5.0,
         CardEffect::ImbueEveryThirdSpell => 2.0,
         CardEffect::SummonRandomDragonOfCost { .. } => 4.0,
+        // 2025-2026 expansions M1-W2 (the Emerald Dream dark-gift mechanic)
+        CardEffect::ApplyDarkGift { .. } => 3.0,
+        CardEffect::DiscoverWithDarkGift { .. } => 4.0,
+        CardEffect::DiscoverDragonWithDarkGift => 4.0,
+        CardEffect::DiscoverUndeadWithCorpseGift { .. } => 3.0,
+        CardEffect::DiscoverEnemyDeckMinionCopy { .. } => 3.0,
+        CardEffect::DiscoverDeckMinionWithDarkGift => 4.0,
+        CardEffect::ReduceHandMinionGiftCost => 3.0,
     }
 }
 

@@ -12,9 +12,10 @@ use serde::{Deserialize, Serialize};
 use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
     Charge, ChooseOneEffect, ComboEffect, Cost, CostModifier, CostModifierKind, Damage,
-    Deathrattle, DivineShield, Durability, Elusive, Enchantment, Enrage, Freeze, Health,
-    HeroPowerDef, HeroPowerUsed, Immune, Lifesteal, OutcastPlayed, Overload, Poison, Race, Reborn,
-    Rush, Secret, SpellDamage, Stealth, SummonedThisTurn, Taunt, Tradeable, Trigger, Windfury,
+    DarkGiftKind, Deathrattle, DivineShield, Durability, Elusive, Enchantment, Enrage, Freeze,
+    Health, HeroPowerDef, HeroPowerUsed, Immune, Lifesteal, OutcastPlayed, Overload, Poison, Race,
+    Reborn, Rush, Secret, SpellDamage, Stealth, SummonedThisTurn, Taunt, Tradeable, Trigger,
+    Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -174,6 +175,12 @@ pub struct World {
     immune: SparseSet<Immune>,
     /// Overload component storage (overload marker)
     overload: SparseSet<Overload>,
+    /// Dark gift markers (2025–2026 expansions M1-W2 — the Emerald Dream
+    /// dark-gift mechanic): the card-level dark gifts attached to a minion,
+    /// in application order, deduplicated. The markers persist across zones
+    /// (hand / deck / play); the matching static effects (enchantments,
+    /// keyword components) are applied by `engine::trigger::apply_dark_gift`.
+    dark_gifts: SparseSet<Vec<DarkGiftKind>>,
     /// Zone table — ordered entity lists per Zone
     zones: Zones,
 }
@@ -298,6 +305,7 @@ impl World {
             elusive: SparseSet::new(),
             immune: SparseSet::new(),
             overload: SparseSet::new(),
+            dark_gifts: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -378,6 +386,7 @@ impl World {
         self.elusive.remove(entity);
         self.immune.remove(entity);
         self.overload.remove(entity);
+        self.dark_gifts.remove(entity);
         // Bump the generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // Return the slot
@@ -767,6 +776,36 @@ impl World {
     /// Iterate all entities with enchantments.
     pub fn iter_enchantments(&self) -> impl Iterator<Item = (Entity, &Vec<Enchantment>)> {
         self.enchantments.iter()
+    }
+
+    /// Get the dark gifts attached to an entity (2025–2026 expansions
+    /// M1-W2 — the Emerald Dream dark-gift mechanic).
+    #[must_use]
+    pub fn dark_gifts(&self, entity: Entity) -> Option<&[DarkGiftKind]> {
+        self.dark_gifts.get_ref(entity).map(Vec::as_slice)
+    }
+
+    /// Whether the entity carries the given dark gift.
+    #[must_use]
+    pub fn has_dark_gift(&self, entity: Entity, gift: DarkGiftKind) -> bool {
+        self.dark_gifts
+            .get_ref(entity)
+            .is_some_and(|list| list.contains(&gift))
+    }
+
+    /// Attach a dark gift marker to an entity (deduplicated — a gift is
+    /// granted once per entity).
+    pub fn add_dark_gift(&mut self, entity: Entity, gift: DarkGiftKind) {
+        let mut list = self.dark_gifts.get(entity).unwrap_or_default();
+        if !list.contains(&gift) {
+            list.push(gift);
+            self.dark_gifts.insert(entity, list);
+        }
+    }
+
+    /// Remove all dark gift markers from an entity.
+    pub fn remove_dark_gifts(&mut self, entity: Entity) {
+        self.dark_gifts.remove(entity);
     }
 
     /// Get the accumulated damage on an entity.

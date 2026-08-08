@@ -14,9 +14,10 @@
 //! - `AllEnemyMinions` → all enemy minions
 
 use crate::core::component::{
-    Attack, AttacksUsed, CardId, CardType, Charge, Cost, Damage, Deathrattle, DivineShield,
-    Durability, Enchantment, EnchantmentExpiry, Freeze, Health, HeroPowerDef, ImbueClass, Immune,
-    Poison, Reborn, Stealth, Taunt, Trigger, TriggerEvent, TriggerTiming, Windfury,
+    ALL_DARK_GIFTS, Attack, AttacksUsed, CardId, CardType, Charge, Cost, Damage, DarkGiftKind,
+    Deathrattle, DivineShield, Durability, Elusive, Enchantment, EnchantmentExpiry, Freeze, Health,
+    HeroPowerDef, ImbueClass, Immune, Lifesteal, Poison, Reborn, Stealth, Taunt, Trigger,
+    TriggerEvent, TriggerTiming, Windfury,
 };
 use crate::core::effect::{CardEffect, EffectTarget, RandomPool};
 use crate::core::entity::Entity;
@@ -3120,6 +3121,320 @@ pub fn resolve_effect(
             }
             let idx = state.rng_mut().next_usize(dragons.len());
             let _ = resolve_summon(state, queue, source, owner, dragons[idx].id);
+        }
+        // ----------------------------------------------------------------
+        // 2025–2026 expansions M1-W2 (exp_edr_w2) — the Emerald Dream
+        // dark-gift mechanic (see the design brief; simplifications
+        // registered in fidelity-debt §14). The W2 Discover cards add a
+        // random qualifying minion to the hand and apply a random dark
+        // gift; the gift marker rides the World `dark_gifts` component and
+        // the static effects (enchantments + keyword components) are
+        // applied by `apply_dark_gift`.
+        // ----------------------------------------------------------------
+        CardEffect::ApplyDarkGift { gift } => {
+            // Direct grant — applies to the event subject (falling back to
+            // the explicit target)
+            if let Some(target) = event_subject.or(explicit_target) {
+                apply_dark_gift(state, target, gift, owner);
+            }
+        }
+        CardEffect::DiscoverWithDarkGift { pool } => {
+            // Treacherous Tormentor (Legendary), Avant-Gardening (Deathrattle
+            // minions), Jumpscare! (Demons costing 5+): a random qualifying
+            // minion to hand, then a random dark gift (Discover simplified,
+            // fidelity-debt §14)
+            if let Some(def) = crate::cards::pool::random_card(state.rng_mut(), pool) {
+                if let Some(added) = add_random_minion_to_hand(state, owner, def) {
+                    let gift = random_dark_gift(state.rng_mut());
+                    apply_dark_gift(state, added, gift, owner);
+                }
+            }
+        }
+        CardEffect::DiscoverDragonWithDarkGift => {
+            // Darkrider — only while the owner is holding a Dragon
+            let holding_dragon = state.world().zones().iter(Zone::Hand, owner).any(|e| {
+                state
+                    .world()
+                    .has_race(e, crate::core::component::Race::Dragon)
+            });
+            if holding_dragon {
+                if let Some(def) = crate::cards::pool::random_card(
+                    state.rng_mut(),
+                    crate::core::effect::RandomPool::Dragon,
+                ) {
+                    if let Some(added) = add_random_minion_to_hand(state, owner, def) {
+                        let gift = random_dark_gift(state.rng_mut());
+                        apply_dark_gift(state, added, gift, owner);
+                    }
+                }
+            }
+        }
+        CardEffect::DiscoverUndeadWithCorpseGift { corpses } => {
+            // Rite of Atrocity — a random Undead to hand; the dark gift is
+            // given only when the owner can spend the corpses
+            if let Some(def) = crate::cards::pool::random_card(
+                state.rng_mut(),
+                crate::core::effect::RandomPool::UndeadMinion,
+            ) {
+                if let Some(added) = add_random_minion_to_hand(state, owner, def) {
+                    let have = state.player(owner).corpses;
+                    if have >= corpses {
+                        let inner = state.make_mut();
+                        inner.players[owner.index()].corpses -= corpses;
+                        let gift = random_dark_gift(state.rng_mut());
+                        apply_dark_gift(state, added, gift, owner);
+                    }
+                }
+            }
+        }
+        CardEffect::DiscoverEnemyDeckMinionCopy { with_gift } => {
+            // Nightmare Fuel — copy a random minion from the enemy deck into
+            // the hand (**pool-open**, registered in POOL_OPEN_CARDS); the
+            // Combo branch gives the copy a dark gift
+            let enemy = owner.opponent();
+            let candidates: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, enemy)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            let hand_before = state.world().zones().len(Zone::Hand, owner);
+            copy_card_to_hand(state, candidates[idx], owner);
+            if with_gift {
+                // the copy is the hand card at the pre-copy index (a full
+                // hand creates nothing — F-A11 — and skips the gift)
+                let added = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Hand, owner)
+                    .nth(hand_before);
+                if let Some(added) = added {
+                    let gift = random_dark_gift(state.rng_mut());
+                    apply_dark_gift(state, added, gift, owner);
+                }
+            }
+        }
+        CardEffect::DiscoverDeckMinionWithDarkGift => {
+            // Nightmare Lord Xavius — a random minion from the player's own
+            // deck moves to the hand (the own deck is in-pool, not
+            // pool-open) and receives a dark gift
+            let candidates: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            if state.world().zones().len(Zone::Hand, owner) >= MAX_HAND_SIZE {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            let chosen = candidates[idx];
+            let _ = state.world_mut().move_to_zone(chosen, Zone::Hand);
+            let gift = random_dark_gift(state.rng_mut());
+            apply_dark_gift(state, chosen, gift, owner);
+        }
+        CardEffect::ReduceHandMinionGiftCost => {
+            // Overgrown Horror — hand minions carrying a dark gift cost (2)
+            // less
+            let targets: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Minion)
+                        && state
+                            .world()
+                            .dark_gifts(e)
+                            .is_some_and(|gifts| !gifts.is_empty())
+                })
+                .collect();
+            for target in targets {
+                let world = state.world_mut();
+                let cur = world.effective_cost(target).unwrap_or(Cost(0));
+                world.set_cost(target, Cost((cur.0 - 2).max(0)));
+            }
+        }
+    }
+}
+
+/// Picks a random dark gift from the fixed ten-gift pool
+/// (`component::ALL_DARK_GIFTS`).
+fn random_dark_gift(rng: &mut GameRng) -> DarkGiftKind {
+    ALL_DARK_GIFTS[rng.next_usize(ALL_DARK_GIFTS.len())]
+}
+
+/// Adds a fresh minion card to the hand (F-A11: a full hand creates
+/// nothing). Returns the added entity, or `None` when the hand is full.
+fn add_random_minion_to_hand(
+    state: &mut GameState,
+    owner: PlayerId,
+    def: &'static crate::cards::def::CardDef,
+) -> Option<Entity> {
+    let hand_before = state.world().zones().len(Zone::Hand, owner);
+    add_card_to_hand(state, owner, def);
+    if state.world().zones().len(Zone::Hand, owner) <= hand_before {
+        return None;
+    }
+    state
+        .world()
+        .zones()
+        .iter(Zone::Hand, owner)
+        .nth(hand_before)
+}
+
+/// Applies a dark gift to a minion (2025–2026 expansions M1-W2 — the
+/// Emerald Dream dark-gift mechanic): records the marker on the entity
+/// (`World` `dark_gifts` — persists across zones), logs the kind in the
+/// source player's `dark_gifts_given` list (Wallow, the Wretched reads the
+/// log), applies the static effects, and syncs the gift onto every friendly
+/// Wallow in the hand or deck. Gifts are deduplicated per entity.
+pub(crate) fn apply_dark_gift(
+    state: &mut GameState,
+    target: Entity,
+    gift: DarkGiftKind,
+    source: PlayerId,
+) {
+    // The marker is the card-level source of truth (deduplicated)
+    if state.world().has_dark_gift(target, gift) {
+        return;
+    }
+    state.world_mut().add_dark_gift(target, gift);
+    // Log the kind only (registered simplification: no targets —
+    // fidelity-debt §14)
+    state.make_mut().players[source.index()]
+        .dark_gifts_given
+        .push(gift);
+    // Static effects (enchantments + keyword components)
+    grant_dark_gift_static(state, target, gift);
+    // Wallow sync — every friendly Wallow, the Wretched in the hand or deck
+    // gains a copy of the gift (registered simplification: not retroactive —
+    // fidelity-debt §14; copies are not re-logged)
+    let wallows: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, source)
+        .chain(state.world().zones().iter(Zone::Deck, source))
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_487"))
+        .collect();
+    for wallow in wallows {
+        if wallow == target || state.world().has_dark_gift(wallow, gift) {
+            continue;
+        }
+        state.world_mut().add_dark_gift(wallow, gift);
+        grant_dark_gift_static(state, wallow, gift);
+    }
+}
+
+/// Applies a dark gift's static effects (enchantments + keyword components)
+/// to the entity. The behavioral gifts (SummonCopyOnPlay, BattlecryTwice,
+/// RebornFull) are resolved by the `engine/rules.rs` hooks reading the
+/// marker, not here.
+fn grant_dark_gift_static(state: &mut GameState, target: Entity, gift: DarkGiftKind) {
+    match gift {
+        DarkGiftKind::AttackLifesteal => {
+            let world = state.world_mut();
+            world.add_enchantment(
+                target,
+                Enchantment {
+                    attack: 3,
+                    health: 0,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+            world.set_lifesteal(target, Lifesteal);
+        }
+        DarkGiftKind::StatsElusive => {
+            let world = state.world_mut();
+            world.add_enchantment(
+                target,
+                Enchantment {
+                    attack: 2,
+                    health: 2,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+            world.set_elusive(target, Elusive);
+        }
+        DarkGiftKind::CostDiscount => {
+            // Cost (2) less, -2 attack (the official "only if attack stays
+            // at least 1" filter is not applied — registered simplification)
+            let world = state.world_mut();
+            world.add_enchantment(
+                target,
+                Enchantment {
+                    attack: -2,
+                    health: 0,
+                    cost: -2,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        DarkGiftKind::Charge => {
+            state.world_mut().set_charge(target, Charge);
+        }
+        DarkGiftKind::SummonCopyOnPlay => {
+            // Behavioral — the MinionSummoned hook in `engine/rules.rs`
+            // reads the marker.
+        }
+        DarkGiftKind::BattlecryTwice => {
+            // Behavioral — the MinionSummoned hook in `engine/rules.rs`
+            // reads the marker.
+        }
+        DarkGiftKind::HealthTaunt => {
+            let world = state.world_mut();
+            world.add_enchantment(
+                target,
+                Enchantment {
+                    attack: 0,
+                    health: 4,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+            world.set_taunt(target, Taunt);
+        }
+        DarkGiftKind::RebornFull => {
+            state.world_mut().set_reborn(target, Reborn);
+        }
+        DarkGiftKind::DeckTopBuff => {
+            // +4/+5 and on top of the deck. The move runs first so the buff
+            // survives a play-zone target (the Play → elsewhere wipe clears
+            // enchantments added before the move; buffing after keeps them).
+            if let Some(player) = state.world().player(target) {
+                let _ = state.world_mut().move_to_zone(target, Zone::Deck);
+                state
+                    .world_mut()
+                    .zones_mut()
+                    .remove(Zone::Deck, player, target);
+                state
+                    .world_mut()
+                    .zones_mut()
+                    .insert_at(Zone::Deck, player, target, 0);
+            }
+            let world = state.world_mut();
+            world.add_enchantment(
+                target,
+                Enchantment {
+                    attack: 4,
+                    health: 5,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        DarkGiftKind::ShieldWindfury => {
+            let world = state.world_mut();
+            world.set_divine_shield(target, DivineShield);
+            world.set_windfury(target, Windfury);
         }
     }
 }
