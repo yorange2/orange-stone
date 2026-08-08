@@ -462,9 +462,11 @@ CORE 卡生成静态 const，引擎缺失 RUSH/LIFESTEAL/TRADEABLE/OUTCAST/REBOR
 落地时逐个勾选。已知坑：`CORE_EDR_004` 与 `CORE_EDR_004_2026` 是同一张卡的
 两个 ID（W4a 落地时核对去重）。
 
-- **W0 — 接线（无卡）：** generated-vs-handwritten 匹配改 ID 后缀优先
-  （`CORE_<系列>_<n>` ↔ 生成的 `<系列>_<n>` 重印对）；`Race` 补 Dragon /
-  Elemental / Mechanical / Pirate / Totem。
+- **W0 — 接线（无卡）✅（PR #116，2026-08-08）：** generated-vs-handwritten
+  匹配改 ID 后缀优先（`CORE_<系列>_<n>` ↔ 生成的 `<系列>_<n>` 重印对）；
+  `Race` 补 Dragon / Elemental / Mechanical / Pirate / Totem（观测编码扩到
+  8 种族，维度不变）。新增 `core_reprints_match_originals` 测试守护重印
+  保真（90/90 对全匹配）。
 - **W1 — 攻击管线原语（15 张 + F5）：** 突袭（5）+ 吸血（8）+ 复生（2）。
   `CORE_BT_801`（眼棱）与 `CORE_BAR_311`（吞噬瘟疫）带 W2 机制——先落 W1 部分，
   W2 补全。卡：`CORE_BT_156 CORE_BT_801 CORE_BT_921 CORE_BAR_311 CORE_DRG_079

@@ -478,9 +478,12 @@ checkbox list above is the authoritative card inventory — check off each card
 as its wave lands. Known wrinkle: `CORE_EDR_004` and `CORE_EDR_004_2026` are
 the same card under two IDs (re-check during W4a).
 
-- **W0 — wiring (no cards):** generated-vs-handwritten matching switches to
-  ID-suffix priority (`CORE_<P>_<n>` ↔ generated `<P>_<n>` reprint pair);
-  `Race` gains Dragon / Elemental / Mechanical / Pirate / Totem.
+- **W0 — wiring (no cards) ✅ (PR #116, 2026-08-08):** generated-vs-
+  handwritten matching switches to ID-suffix priority (`CORE_<P>_<n>` ↔
+  generated `<P>_<n>` reprint pair); `Race` gains Dragon / Elemental /
+  Mechanical / Pirate / Totem (observation encoding extends to 8 tribes,
+  dimensionality unchanged). New `core_reprints_match_originals` test guards
+  reprint fidelity (90/90 pairs match).
 - **W1 — attack-pipeline primitives (15 + F5):** RUSH (5) + LIFESTEAL (8) +
   REBORN (2). `CORE_BT_801` (Eye Beam) and `CORE_BAR_311` (Devouring Plague)
   carry a W2 mechanic — land the W1 part, finish with W2.
