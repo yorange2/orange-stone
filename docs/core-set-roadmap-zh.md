@@ -25,9 +25,9 @@
 
 - [ ] `CORE_AT_037` Living Roots — 1 费 法术
 - [ ] `CORE_AT_052` Totem Golem — 2 费随从 3/4
-- [ ] `CORE_AT_055` Flash Heal — 1 费 法术
-- [ ] `CORE_AT_062` Ball of Spiders — 3 费 法术
-- [ ] `CORE_AT_064` Bash — 2 费 法术
+- [x] `CORE_AT_055` Flash Heal — 1 费 法术
+- [x] `CORE_AT_062` Ball of Spiders — 3 费 法术
+- [x] `CORE_AT_064` Bash — 2 费 法术
 - [ ] `CORE_AT_123` Chillmaw — 7 费随从 6/6
 
 ### CORE_AV_* — 奥特兰克的决裂（2 张）
@@ -101,7 +101,7 @@
 ### CORE_CFM_* — 龙争虎斗加基森（6 张）
 
 - [ ] `CORE_CFM_344` Finja, the Flying Star — 5 费随从 3/5
-- [ ] `CORE_CFM_604` Greater Healing Potion — 4 费 法术
+- [x] `CORE_CFM_604` Greater Healing Potion — 4 费 法术
 - [ ] `CORE_CFM_670` Mayor Noggenfogger — 9 费随从 5/4
 - [ ] `CORE_CFM_753` Grimestreet Outfitter — 2 费随从 2/2
 - [ ] `CORE_CFM_781` Shaku, the Collector — 3 费随从 2/4
@@ -109,8 +109,8 @@
 
 ### CORE_CS1_* — 基础系列（2 张）
 
-- [ ] `CORE_CS1_112` Holy Nova — 3 费 法术
-- [ ] `CORE_CS1_130` Holy Smite — 1 费 法术
+- [x] `CORE_CS1_112` Holy Nova — 3 费 法术
+- [x] `CORE_CS1_130` Holy Smite — 1 费 法术
 
 ### CORE_CS2_* — 基础系列（22 张）
 
@@ -152,18 +152,18 @@
 - [ ] `CORE_DRG_024` Sky Raider — 1 费随从 1/2
 - [x] `CORE_DRG_079` Evasive Wyrm — 6 费随从 5/4
 - [ ] `CORE_DRG_107` Violet Spellwing — 1 费随从 2/1
-- [ ] `CORE_DRG_256` Dragonbane — 4 费随从 3/5
+- [x] `CORE_DRG_256` Dragonbane — 4 费随从 3/5
 - [ ] `CORE_DRG_403` Blowtorch Saboteur — 3 费随从 3/3
 
 ### CORE_DS1_* — 基础系列（猎人）（2 张）
 
 - [ ] `CORE_DS1_184` Tracking — 1 费 法术
-- [ ] `CORE_DS1_185` Arcane Shot — 1 费 法术
+- [x] `CORE_DS1_185` Arcane Shot — 1 费 法术
 
 ### CORE_EDR_* — 来源系列名待补（EDR）（6 张）
 
 - [ ] `CORE_EDR_001` Babbling Bookcase — 3 费随从 2/4
-- [ ] `CORE_EDR_002` Poison Breath — 2 费 法术
+- [x] `CORE_EDR_002` Poison Breath — 2 费 法术
 - [ ] `CORE_EDR_002e` Deathly Poison — 附魔衍生物（0 费）
 - [ ] `CORE_EDR_003` Falric — 3 费随从 2/4
 - [ ] `CORE_EDR_004` Raptor Herald — 3 费随从 4/2
@@ -178,59 +178,59 @@
 
 - [x] `CORE_EX1_002` The Black Knight — 4 费随从 4/4
 - [x] `CORE_EX1_005` Big Game Hunter — 4 费随从 4/2
-- [ ] `CORE_EX1_007` Acolyte of Pain — 3 费随从 1/4
-- [ ] `CORE_EX1_010` Worgen Infiltrator — 1 费随从 2/1
+- [x] `CORE_EX1_007` Acolyte of Pain — 3 费随从 1/4
+- [x] `CORE_EX1_010` Worgen Infiltrator — 1 费随从 2/1
 - [ ] `CORE_EX1_011` Voodoo Doctor — 1 费随从 2/1
 - [ ] `CORE_EX1_012` Bloodmage Thalnos — 2 费随从 1/1
 - [ ] `CORE_EX1_014` King Mukla — 3 费随从 5/6
-- [ ] `CORE_EX1_028` Stranglethorn Tiger — 5 费随从 5/5
+- [x] `CORE_EX1_028` Stranglethorn Tiger — 5 费随从 5/5
 - [ ] `CORE_EX1_043` Twilight Drake — 4 费随从 4/1
 - [ ] `CORE_EX1_058` Sunfury Protector — 2 费随从 2/3
 - [ ] `CORE_EX1_059` Crazed Alchemist — 2 费随从 2/2
 - [ ] `CORE_EX1_082` Mad Bomber — 2 费随从 3/2
 - [ ] `CORE_EX1_096` Loot Hoarder — 2 费随从 2/1
-- [ ] `CORE_EX1_100` Lorewalker Cho — 2 费随从 0/4
+- [x] `CORE_EX1_100` Lorewalker Cho — 2 费随从 0/4
 - [ ] `CORE_EX1_103` Coldlight Seer — 3 费随从 2/3
 - [ ] `CORE_EX1_110` Cairne Bloodhoof — 6 费随从 5/5
-- [ ] `CORE_EX1_129` Fan of Knives — 2 费 法术
+- [x] `CORE_EX1_129` Fan of Knives — 2 费 法术
 - [ ] `CORE_EX1_131` Defias Ringleader — 2 费随从 3/2
 - [ ] `CORE_EX1_134` SI:7 Agent — 3 费随从 3/3
-- [ ] `CORE_EX1_145` Preparation — 0 费 法术
+- [x] `CORE_EX1_145` Preparation — 0 费 法术
 - [ ] `CORE_EX1_154` Wrath — 2 费 法术
 - [ ] `CORE_EX1_160` Power of the Wild — 2 费 法术
 - [ ] `CORE_EX1_162` Dire Wolf Alpha — 2 费随从 2/2
-- [ ] `CORE_EX1_169` Innervate — 0 费 法术
+- [x] `CORE_EX1_169` Innervate — 0 费 法术
 - [ ] `CORE_EX1_189` Brightwing — 2 费随从 3/2
 - [ ] `CORE_EX1_193` Psychic Conjurer — 1 费随从 1/2
-- [ ] `CORE_EX1_197` Shadow Word: Ruin — 4 费 法术
+- [x] `CORE_EX1_197` Shadow Word: Ruin — 4 费 法术
 - [ ] `CORE_EX1_198` Natalie Seline — 7 费随从 7/1
 - [ ] `CORE_EX1_238` Lightning Bolt — 1 费 法术
-- [ ] `CORE_EX1_246` Hex — 3 费 法术
+- [x] `CORE_EX1_246` Hex — 3 费 法术
 - [ ] `CORE_EX1_250` Earth Elemental — 5 费随从 7/9
 - [ ] `CORE_EX1_259` Lightning Storm — 3 费 法术
-- [ ] `CORE_EX1_278` Shiv — 2 费 法术
+- [x] `CORE_EX1_278` Shiv — 2 费 法术
 - [ ] `CORE_EX1_287` Counterspell — 3 费 法术
 - [ ] `CORE_EX1_289` Ice Barrier — 3 费 法术
-- [ ] `CORE_EX1_302` Mortal Coil — 1 费 法术
-- [ ] `CORE_EX1_309` Siphon Soul — 4 费 法术
+- [x] `CORE_EX1_302` Mortal Coil — 1 费 法术
+- [x] `CORE_EX1_309` Siphon Soul — 4 费 法术
 - [ ] `CORE_EX1_310` Doomguard — 5 费随从 5/7
-- [ ] `CORE_EX1_312` Twisting Nether — 8 费 法术
+- [x] `CORE_EX1_312` Twisting Nether — 8 费 法术
 - [ ] `CORE_EX1_319` Flame Imp — 1 费随从 3/2
 - [ ] `CORE_EX1_323` Lord Jaraxxus — 英雄（8 费）
 - [ ] `CORE_EX1_362` Argent Protector — 2 费随从 3/2
 - [ ] `CORE_EX1_383` Tirion Fordring — 8 费随从 8/8
-- [ ] `CORE_EX1_391` Slam — 1 费 法术
+- [x] `CORE_EX1_391` Slam — 1 费 法术
 - [ ] `CORE_EX1_414` Grommash Hellscream — 8 费随从 4/9
 - [ ] `CORE_EX1_506` Murloc Tidehunter — 2 费随从 2/1
-- [ ] `CORE_EX1_506a` Murloc Scout — 1 费随从 1/1
+- [x] `CORE_EX1_506a` Murloc Scout — 1 费随从 1/1
 - [ ] `CORE_EX1_507` Murloc Warleader — 3 费随从 3/3
-- [ ] `CORE_EX1_509` Murloc Tidecaller — 1 费随从 1/2
-- [ ] `CORE_EX1_559` Archmage Antonidas — 7 费随从 5/7
-- [ ] `CORE_EX1_604` Frothing Berserker — 3 费随从 2/4
-- [ ] `CORE_EX1_606` Shield Block — 2 费 法术
+- [x] `CORE_EX1_509` Murloc Tidecaller — 1 费随从 1/2
+- [x] `CORE_EX1_559` Archmage Antonidas — 7 费随从 5/7
+- [x] `CORE_EX1_604` Frothing Berserker — 3 费随从 2/4
+- [x] `CORE_EX1_606` Shield Block — 2 费 法术
 - [ ] `CORE_EX1_610` Explosive Trap — 2 费 法术
 - [ ] `CORE_EX1_611` Freezing Trap — 2 费 法术
-- [ ] `CORE_EX1_619` Equality — 2 费 法术
+- [x] `CORE_EX1_619` Equality — 2 费 法术
 
 ### CORE_GIL_* — 女巫森林（8 张）
 
@@ -397,8 +397,8 @@
 - [ ] `CORE_UNG_809` Fire Fly — 1 费随从 1/2
 - [ ] `CORE_UNG_848` Primordial Drake — 8 费随从 4/8
 - [ ] `CORE_UNG_912` Jeweled Macaw — 1 费随从 1/2
-- [ ] `CORE_UNG_928` Tar Creeper — 3 费随从 1/5
-- [ ] `CORE_UNG_952` Spikeridged Steed — 5 费 法术
+- [x] `CORE_UNG_928` Tar Creeper — 3 费随从 1/5
+- [x] `CORE_UNG_952` Spikeridged Steed — 5 费 法术
 
 ### CORE_WC_* — 来源系列名待补（WC）（2 张）
 
