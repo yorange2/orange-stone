@@ -42,9 +42,10 @@ One PR per wave; every card lands with an F5 differential scenario; cards
 register in `sets.rs::ALL_CARDS`; simplifications carry `(simplified …)` markers
 + `fidelity-debt.md` rows.
 
-- **W0 — wiring + data (no cards):** M0 data for this set lands (schema fields,
-  generated baseline); the card inventory below is backfilled from the dump;
-  ID-prefix + name fidelity tests for this set's generated cards.
+- [x] **W0 — wiring + data (no cards)**: M0 data for this set landed (M0.1–M0.5,
+  PR #131–#135: schema fields, generated baseline, inventory backfilled);
+  ID-prefix + name fidelity tests (M1-W0, PR #136: `tests/expansion_fidelity.rs`,
+  EDR_/FIR_ bidirectional coverage over 183 cards).
 - **W1 — Imbue (P1):** hero-power upgrade counter + threshold trigger +
   hero-power swap; the 6 classes' Imbue cards (W2+ in EDR terms); F5 scenarios
   pin the 2x-Imbue threshold sequencing.
