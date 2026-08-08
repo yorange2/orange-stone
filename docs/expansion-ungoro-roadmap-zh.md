@@ -98,18 +98,18 @@
 - [x] TLC_903 Silithid Queen
 
 ### W4 —— 其余卡 + 迷你
-- [ ] TLC_100 Elise the Navigator
+- [x] TLC_100 Elise the Navigator
 - [x] TLC_101 Undercover Cultist
-- [ ] TLC_106 Endbringer Umbra
+- [x] TLC_106 Endbringer Umbra
 - [x] TLC_109 Relic Miner
-- [ ] TLC_110 City Chief Esho
+- [x] TLC_110 City Chief Esho
 - [x] TLC_220 Windswept Pageturner
 - [x] TLC_221 Sizzling Swarm
 - [x] TLC_222 Flight of the Firehawk
 - [x] TLC_224 Mechanized Magma
 - [x] TLC_225 Cinderfin
 - [x] TLC_227 Lava Flow
-- [ ] TLC_228 Bralma Searstone
+- [x] TLC_228 Bralma Searstone
 - [x] TLC_230 TREEEES!!!
 - [x] TLC_231 Story of Barnabus
 - [x] TLC_232 Ravenous Flock
@@ -118,7 +118,7 @@
 - [x] TLC_235 Life Cycle
 - [x] TLC_237 Skyscreamer Eggs
 - [x] TLC_240 Tyrannogill
-- [ ] TLC_241 Ido of the Threshfleet
+- [x] TLC_241 Ido of the Threshfleet
 - [x] TLC_242 Ancient Stegodon
 - [x] TLC_244 Curious Explorer
 - [x] TLC_245 Ancient Raptor
@@ -132,7 +132,7 @@
 - [x] TLC_254 Tortollan Storyteller
 - [x] TLC_255 Crystal Tender
 - [x] TLC_256 Marshland Thresher
-- [ ] TLC_257 Loh, the Living Legend
+- [x] TLC_257 Loh, the Living Legend
 - [x] TLC_334 Relic of Kings
 - [x] TLC_364 Story of the Waygate
 - [x] TLC_365 Storage Scuffle
@@ -151,7 +151,7 @@
 - [x] TLC_449 Bloodpetal Biome
 - [x] TLC_450 Spelunker
 - [x] TLC_451 Cursed Catacombs
-- [ ] TLC_452 Titanographer Osk
+- [x] TLC_452 Titanographer Osk
 - [x] TLC_461 Scrappy Scavenger
 - [x] TLC_462 Unearthed Artifacts
 - [x] TLC_464 Mountain Map
@@ -163,7 +163,7 @@
 - [x] TLC_477 Threshrider's Blessing
 - [x] TLC_478 Axe of the Forefathers
 - [x] TLC_479 Deathrot Maw
-- [ ] TLC_480 Krog, Crater King
+- [x] TLC_480 Krog, Crater King
 - [x] TLC_483 Vault Breaker
 - [x] TLC_514 Merchant of Legend
 - [x] TLC_515 Cultist Map
@@ -172,7 +172,7 @@
 - [x] TLC_518 Interrogation
 - [x] TLC_520 Underbrush Tracker
 - [x] TLC_521 Eyes in the Sky
-- [ ] TLC_522 Opu the Unseen
+- [x] TLC_522 Opu the Unseen
 - [x] TLC_601 Shellnado
 - [x] TLC_603 Platysaur
 - [x] TLC_605 Tar Tyrant
@@ -181,12 +181,12 @@
 - [x] TLC_621 Willful Watcher
 - [x] TLC_622 City Defenses
 - [x] TLC_623 Stonecarver
-- [ ] TLC_624 Nablya, the Watcher
+- [x] TLC_624 Nablya, the Watcher
 - [x] TLC_630 Gorishi Wasp
 - [x] TLC_632 Story of Sulfuras
 - [x] TLC_633 Bugsquasher
-- [ ] TLC_810 High Cultist Herenn
-- [ ] TLC_811 Archaios
+- [x] TLC_810 High Cultist Herenn
+- [x] TLC_811 Archaios
 - [x] TLC_814 Twilight Mender
 - [x] TLC_818 Resuscitate
 - [x] TLC_819 Gladesong Siren
@@ -201,9 +201,9 @@
 - [x] TLC_831 Pterrordax Egg
 - [x] TLC_833 Insect Claw
 - [x] TLC_835 Story of Amara
-- [ ] TLC_836 Niri of the Crater
+- [x] TLC_836 Niri of the Crater
 - [x] TLC_840 Gorishi Tunneler
-- [ ] TLC_841 Entomologist Toru
+- [x] TLC_841 Entomologist Toru
 - [x] TLC_888 Cloud Serpent
 - [x] TLC_900 Hive Map
 - [x] TLC_901 Fumigate
