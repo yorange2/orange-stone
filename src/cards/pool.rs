@@ -132,6 +132,25 @@ pub const WILD_GOD_POOL: &[&str] = &[
     "EDR_819", // Ursoc
 ];
 
+/// Other-class Choose One pool — Symbiosis's "Discover a Choose One card
+/// from another class" pool (2025–2026 expansions M1-W3). The design brief's
+/// formula ("in-window choose-one cards of the other class groups") yields an
+/// empty set because every in-window choose-one card is Druid, so the pool is
+/// the fixed table of the non-Druid EDR choose-one cards of this wave — the
+/// WILD_GOD_POOL precedent (fidelity-debt §14.2).
+pub const OTHER_CLASS_CHOOSE_ONE_POOL: &[&str] = &[
+    "EDR_233", // Spirits of the Forest (Shaman)
+    "EDR_257", // Lightmender (Paladin)
+    "EDR_263", // Grace of the Greatwolf (Hunter)
+    "EDR_463", // Twilight Influence (Priest)
+    "EDR_490", // Sleep Paralysis (Warlock)
+    "EDR_525", // Barbed Thorn (Rogue)
+    "EDR_570", // Ominous Nightmares (Warrior)
+    "EDR_813", // Morbid Swarm (Death Knight)
+    "EDR_820", // Wyvern's Slumber (Demon Hunter)
+    "EDR_872", // Spark of Life (Mage)
+];
+
 /// Draws a random card definition from an ID pool.
 pub(crate) fn random_from_pool(pool: &[&str], rng: &mut GameRng) -> Option<&'static CardDef> {
     if pool.is_empty() {
@@ -262,6 +281,10 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
+        RandomPool::OtherClassChooseOne => OTHER_CLASS_CHOOSE_ONE_POOL
+            .iter()
+            .filter_map(|id| card_by_id(id))
+            .collect(),
     }
 }
 
@@ -314,6 +337,7 @@ pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'stati
         RandomPool::DemonCost5Plus => random_filtered(rng, |c| {
             c.card_type == CardType::Minion && c.race == Some(Race::Demon) && c.cost >= 5
         }),
+        RandomPool::OtherClassChooseOne => random_from_pool(OTHER_CLASS_CHOOSE_ONE_POOL, rng),
     }
 }
 
@@ -520,6 +544,41 @@ mod tests {
             );
             assert_eq!(card.race, Some(Race::Demon), "{} is not a Demon", card.id);
             assert!(card.cost >= 5, "{} costs less than 5", card.id);
+        }
+    }
+
+    /// OtherClassChooseOne (Symbiosis — M1-W3) — exactly the fixed
+    /// OTHER_CLASS_CHOOSE_ONE_POOL table of the ten non-Druid EDR choose-one
+    /// cards; every member is resolvable through card_by_id.
+    #[test]
+    fn other_class_choose_one_pool_is_fixed_table() {
+        let pool = pool_cards(RandomPool::OtherClassChooseOne);
+        assert!(
+            !pool.is_empty(),
+            "the OtherClassChooseOne pool must not be empty"
+        );
+        let ids: Vec<&str> = pool.iter().map(|c| c.id).collect();
+        assert_eq!(ids.len(), OTHER_CLASS_CHOOSE_ONE_POOL.len());
+        for id in OTHER_CLASS_CHOOSE_ONE_POOL {
+            assert!(ids.contains(id), "{id} must be in the pool");
+            assert!(
+                card_by_id(id).is_some(),
+                "{id} must resolve through card_by_id"
+            );
+        }
+        for card in pool {
+            assert!(
+                card.choose_one_effect.is_some() || card.id == "EDR_525",
+                "{} is not a choose-one card (Barbed Thorn uses the weapon slots)",
+                card.id
+            );
+            // Every member belongs to a non-Druid class: none is a Druid
+            // class-list member.
+            assert!(
+                !sets::DRUID_CLASSIC.iter().any(|c| c.id == card.id),
+                "{} is a Druid card — not 'another class'",
+                card.id
+            );
         }
     }
 }

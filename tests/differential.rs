@@ -15833,3 +15833,850 @@ fn edr_w2_gift_reborn_full_keeps_enchantments() {
     );
     assert!(state.world().reborn(gifted).is_none(), "Reborn was spent");
 }
+
+// ============================================================
+// 2025–2026 expansions M1-W3 (exp_edr_w3) — the choose-one wave:
+// real Choose One branch resolution (P3), 12 EDR cards + tokens.
+// The pending choice is answered with an explicit
+// `Action::Choose { choice_id, option }`; option 0 resolves the
+// battlecry slot, option 1 the choose_one_effect slot.
+// ============================================================
+
+/// Plays a choose-one card and answers the pending choice with `option`.
+fn play_choose_option(state: &mut GameState, engine: &GameEngine, card: Entity, option: u8) {
+    let res = engine
+        .apply_choices(
+            state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .expect("choose-one card is playable");
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("a choose-one play must surface a choice"),
+    };
+    engine
+        .apply_choices(
+            state,
+            Action::Choose {
+                choice_id: choice.id,
+                option,
+            },
+        )
+        .expect("the chosen option resolves");
+}
+
+/// The first card in `player`'s hand.
+fn first_hand_card(state: &GameState, player: orange_stone::core::player::PlayerId) -> Entity {
+    state
+        .world()
+        .zones()
+        .iter(Zone::Hand, player)
+        .next()
+        .expect("a card in hand")
+}
+
+/// The `player`'s minions in play (heroes are not minions).
+fn board_minions(state: &GameState, player: orange_stone::core::player::PlayerId) -> Vec<Entity> {
+    state
+        .world()
+        .zones()
+        .iter(Zone::Play, player)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect()
+}
+
+/// Number of `player`'s board minions with the given card id.
+fn board_count(state: &GameState, player: orange_stone::core::player::PlayerId, id: &str) -> usize {
+    board_minions(state, player)
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == id))
+        .count()
+}
+
+/// The hand card ids of `player`, in hand order.
+fn hand_ids(state: &GameState, player: orange_stone::core::player::PlayerId) -> Vec<String> {
+    state
+        .world()
+        .zones()
+        .iter(Zone::Hand, player)
+        .filter_map(|e| state.world().card_id(e).map(|c| c.0.to_string()))
+        .collect()
+}
+
+/// F5-EDR-W3-1 — Spirits of the Forest: three 2/3 Taunt Wolves, or two
+/// 4/3 Windfury Falcons.
+#[test]
+fn edr_w3_spirits_of_the_forest_both_branches() {
+    use orange_stone::cards::def::SPIRITS_OF_THE_FOREST;
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &SPIRITS_OF_THE_FOREST)
+        .add_minion_to_hand(PlayerId1(), &SPIRITS_OF_THE_FOREST);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+
+    // Branch 0 — three 2/3 Wolves with Taunt
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 0);
+    assert_eq!(board_count(&state, PlayerId1(), "EDR_233t1"), 3);
+    let wolves: Vec<_> = board_minions(&state, PlayerId1())
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_233t1"))
+        .collect();
+    for w in &wolves {
+        assert_eq!(state.world().effective_attack(*w), Some(Attack(2)));
+        assert_eq!(state.world().effective_health(*w), Some(Health(3)));
+        assert!(state.world().taunt(*w).is_some(), "wolf has Taunt");
+        assert!(state.world().windfury(*w).is_none());
+    }
+    assert_eq!(board_minions(&state, PlayerId2()).len(), 0);
+
+    // Branch 1 — two 4/3 Falcons with Windfury
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 1);
+    assert_eq!(board_count(&state, PlayerId1(), "EDR_233t2"), 2);
+    let falcons: Vec<_> = board_minions(&state, PlayerId1())
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_233t2"))
+        .collect();
+    for f in &falcons {
+        assert_eq!(state.world().effective_attack(*f), Some(Attack(4)));
+        assert_eq!(state.world().effective_health(*f), Some(Health(3)));
+        assert!(state.world().windfury(*f).is_some(), "falcon has Windfury");
+        assert!(state.world().taunt(*f).is_none());
+    }
+}
+
+/// F5-EDR-W3-2 — Lightmender: +3 Attack and Divine Shield, or +3 Health
+/// and Lifesteal, both on the minion itself.
+#[test]
+fn edr_w3_lightmender_both_branches() {
+    use orange_stone::cards::def::LIGHTMENDER;
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &LIGHTMENDER)
+        .add_minion_to_hand(PlayerId1(), &LIGHTMENDER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+
+    // Branch 0 — +3 Attack and Divine Shield
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 0);
+    let first = board_minions(&state, PlayerId1());
+    assert_eq!(first.len(), 1);
+    assert_eq!(state.world().effective_attack(first[0]), Some(Attack(6)));
+    assert_eq!(state.world().effective_health(first[0]), Some(Health(3)));
+    assert!(
+        state.world().divine_shield(first[0]).is_some(),
+        "branch 0 grants Divine Shield"
+    );
+    assert!(state.world().lifesteal(first[0]).is_none());
+
+    // Branch 1 — +3 Health and Lifesteal
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 1);
+    let all = board_minions(&state, PlayerId1());
+    assert_eq!(all.len(), 2);
+    let second = all
+        .into_iter()
+        .find(|&e| e != first[0])
+        .expect("second lightmender");
+    assert_eq!(state.world().effective_health(second), Some(Health(6)));
+    assert_eq!(state.world().effective_attack(second), Some(Attack(3)));
+    assert!(
+        state.world().lifesteal(second).is_some(),
+        "branch 1 grants Lifesteal"
+    );
+    assert!(state.world().divine_shield(second).is_none());
+}
+
+/// F5-EDR-W3-3 — Grace of the Greatwolf: 4 damage to the enemy hero, or
+/// two 3/2 Wolves with Rush.
+#[test]
+fn edr_w3_grace_of_the_greatwolf_both_branches() {
+    use orange_stone::cards::def::GRACE_OF_THE_GREATWOLF;
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &GRACE_OF_THE_GREATWOLF)
+        .add_minion_to_hand(PlayerId1(), &GRACE_OF_THE_GREATWOLF);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero2 = state.player(PlayerId2()).hero;
+
+    // Branch 0 — 4 damage to the enemy hero
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 0);
+    assert_eq!(state.world().effective_health(hero2), Some(Health(26)));
+    assert_eq!(board_minions(&state, PlayerId1()).len(), 0);
+
+    // Branch 1 — two 3/2 Wolves with Rush
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 1);
+    assert_eq!(board_count(&state, PlayerId1(), "EDR_263t"), 2);
+    let wolves: Vec<_> = board_minions(&state, PlayerId1())
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_263t"))
+        .collect();
+    for w in &wolves {
+        assert_eq!(state.world().effective_attack(*w), Some(Attack(3)));
+        assert_eq!(state.world().effective_health(*w), Some(Health(2)));
+        assert!(state.world().rush(*w).is_some(), "wolf has Rush");
+    }
+    assert_eq!(
+        state.world().effective_health(hero2),
+        Some(Health(26)),
+        "branch 1 deals no damage (the hero stays at 26 from the first play)"
+    );
+}
+
+/// F5-EDR-W3-4 — Symbiosis: a random other-class Choose One card joins the
+/// hand (the Discover simplified to a random pick over the fixed
+/// `OTHER_CLASS_CHOOSE_ONE_POOL` — fidelity-debt §14.2).
+#[test]
+fn edr_w3_symbiosis_adds_other_class_choose_one() {
+    use orange_stone::cards::def::SYMBIOSIS;
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &SYMBIOSIS);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let card = first_hand_card(&state, PlayerId1());
+    // Symbiosis is a Discover card (not a Choose One): the play resolves
+    // immediately as a random pick — no pending choice surfaces.
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.pending_choice().is_none(),
+        "no choose-one on Symbiosis"
+    );
+    let ids = hand_ids(&state, PlayerId1());
+    assert_eq!(ids.len(), 1, "one card added to hand");
+    assert!(
+        orange_stone::cards::pool::OTHER_CLASS_CHOOSE_ONE_POOL.contains(&ids[0].as_str()),
+        "added card {} must be in the other-class choose-one pool",
+        ids[0]
+    );
+}
+
+/// F5-EDR-W3-5 — Twilight Influence: destroy a minion with 3 or less
+/// Attack (either side), or summon a random 2-Cost minion.
+#[test]
+fn edr_w3_twilight_influence_both_branches() {
+    use orange_stone::cards::def::TWILIGHT_INFLUENCE;
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &TWILIGHT_INFLUENCE)
+        .add_minion_to_hand(PlayerId1(), &TWILIGHT_INFLUENCE);
+    builder.add_custom_minion_to_board(PlayerId1(), 5, 5, 5);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 3, 2);
+    builder.add_custom_minion_to_board(PlayerId2(), 3, 2, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+
+    // Branch 0 — exactly one of the two eligible (≤3 Attack) minions is
+    // destroyed; the 5/5 is untouched.
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 0);
+    assert_eq!(board_minions(&state, PlayerId1()).len(), 1, "5/5 untouched");
+    let survivors = board_minions(&state, PlayerId2());
+    assert_eq!(survivors.len(), 1, "exactly one eligible minion destroyed");
+    assert!(
+        matches!(
+            state.world().effective_attack(survivors[0]).map(|a| a.0),
+            Some(2) | Some(3)
+        ),
+        "the survivor is one of the two eligible minions"
+    );
+
+    // Branch 1 — a random 2-Cost minion joins the board
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 1);
+    let minions = board_minions(&state, PlayerId1());
+    assert_eq!(minions.len(), 2, "5/5 + the summoned 2-cost minion");
+    assert!(
+        minions
+            .iter()
+            .any(|&e| state.world().cost(e).map(|c| c.0) == Some(2)),
+        "a 2-Cost minion was summoned"
+    );
+}
+
+/// F5-EDR-W3-6 — Sleep Paralysis: two 3/6 Taunt Demons that can't attack,
+/// or destroy an enemy minion.
+#[test]
+fn edr_w3_sleep_paralysis_both_branches() {
+    use orange_stone::cards::def::SLEEP_PARALYSIS;
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &SLEEP_PARALYSIS)
+        .add_minion_to_hand(PlayerId1(), &SLEEP_PARALYSIS);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+
+    // Branch 0 — two 3/6 Taunt Demons that can't attack
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 0);
+    assert_eq!(board_count(&state, PlayerId1(), "EDR_490t"), 2);
+    let demons: Vec<_> = board_minions(&state, PlayerId1())
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_490t"))
+        .collect();
+    for d in &demons {
+        assert_eq!(state.world().effective_attack(*d), Some(Attack(3)));
+        assert_eq!(state.world().effective_health(*d), Some(Health(6)));
+        assert!(state.world().taunt(*d).is_some(), "demon has Taunt");
+        assert!(
+            state.world().cant_attack(*d).is_some(),
+            "demon can't attack"
+        );
+        assert!(
+            state
+                .world()
+                .has_race(*d, orange_stone::core::component::Race::Demon),
+            "demon has the Demon race"
+        );
+    }
+
+    // Branch 1 — destroy an enemy minion
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 1);
+    assert_eq!(
+        board_minions(&state, PlayerId2()).len(),
+        0,
+        "enemy minion destroyed"
+    );
+}
+
+/// F5-EDR-W3-7 — Barbed Thorn branch 1: the hero is Poisonous this turn.
+/// A 1-damage hero attack destroys a 2/5 minion outright; the poison
+/// expires in the turn-end wrap-up, so the same attack next turn only
+/// chips a fresh 2/5 to 4 health.
+#[test]
+fn edr_w3_barbed_thorn_poisonous_this_turn() {
+    use orange_stone::cards::def::BARBED_THORN;
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &BARBED_THORN);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 5, 2);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 5, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero1 = state.player(PlayerId1()).hero;
+    let hero2 = state.player(PlayerId2()).hero;
+
+    // Equip Barbed Thorn and take branch 0 — Poisonous this turn
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 0);
+    assert!(state.player(PlayerId1()).hero_poisonous_this_turn);
+    assert!(state.world().poison(hero1).is_some(), "hero is Poisonous");
+    assert!(
+        state.player(PlayerId1()).weapon.is_some(),
+        "the weapon is equipped (the hero swings with its attack)"
+    );
+
+    // A 1-damage hero attack destroys the 2/5 minion outright (poison)
+    let victims = board_minions(&state, PlayerId2());
+    assert_eq!(victims.len(), 2);
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero1,
+                defender: victims[0],
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(victims[0]),
+        Some(Zone::Graveyard),
+        "poison kills regardless of remaining health"
+    );
+    assert_eq!(board_minions(&state, PlayerId2()).len(), 1);
+    assert_eq!(state.world().effective_health(hero2), Some(Health(30)));
+
+    // The poison expires in the turn-end wrap-up
+    engine.apply(&mut state, Action::EndTurn).unwrap(); // P2's turn
+    engine.apply(&mut state, Action::EndTurn).unwrap(); // back to P1
+    assert!(!state.player(PlayerId1()).hero_poisonous_this_turn);
+    assert!(state.world().poison(hero1).is_none(), "poison expired");
+
+    // Next turn the same 1-damage attack only chips the fresh 2/5
+    let survivor = board_minions(&state, PlayerId2());
+    assert_eq!(survivor.len(), 1);
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero1,
+                defender: survivor[0],
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(survivor[0]),
+        Some(Health(4)),
+        "1 damage without poison, minion survives"
+    );
+    assert_eq!(state.world().zone(survivor[0]), Some(Zone::Play));
+}
+
+/// F5-EDR-W3-8 — Barbed Thorn branch 2: the weapon gains "Deathrattle:
+/// deal 2 damage to all enemies"; replacing it with a second Barbed Thorn
+/// fires the deathrattle (2 damage to the enemy hero and enemy minion,
+/// friendly side untouched).
+#[test]
+fn edr_w3_barbed_thorn_deathrattle_on_replace() {
+    use orange_stone::cards::def::BARBED_THORN;
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &BARBED_THORN)
+        .add_minion_to_hand(PlayerId1(), &BARBED_THORN);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 3, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero1 = state.player(PlayerId1()).hero;
+    let hero2 = state.player(PlayerId2()).hero;
+
+    // First thorn: branch 1 — the weapon carries the deathrattle
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 1);
+    let weapon = state.player(PlayerId1()).weapon.expect("weapon equipped");
+    assert!(
+        state.world().deathrattle(weapon).is_some(),
+        "the weapon carries the deathrattle"
+    );
+
+    // Second thorn replaces it: the old weapon's deathrattle fires —
+    // 2 damage to the enemy hero and the enemy minion; friendly side
+    // is untouched (AllEnemies is the enemy side only).
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 0);
+    assert_eq!(
+        state.world().effective_health(hero2),
+        Some(Health(28)),
+        "enemy hero takes 2"
+    );
+    let enemy = board_minions(&state, PlayerId2());
+    assert_eq!(enemy.len(), 1);
+    assert_eq!(
+        state.world().effective_health(enemy[0]),
+        Some(Health(1)),
+        "enemy minion takes 2"
+    );
+    assert_eq!(
+        state.world().effective_health(hero1),
+        Some(Health(30)),
+        "friendly hero untouched"
+    );
+    assert!(
+        state.player(PlayerId1()).weapon.is_some(),
+        "the second thorn is equipped"
+    );
+}
+
+/// F5-EDR-W3-9 — Ominous Nightmares: 1 damage to all minions, or +2/+2 to
+/// a damaged minion.
+#[test]
+fn edr_w3_ominous_nightmares_both_branches() {
+    use orange_stone::cards::def::OMINOUS_NIGHTMARES;
+    use orange_stone::core::component::Damage;
+
+    // Branch 0 — 1 damage to all minions: the wounded 2/4 drops to 2/3,
+    // the enemy 1/1 dies
+    let mut builder = GameBuilder::new();
+    let wounded = builder.add_custom_minion_to_board(PlayerId1(), 2, 4, 3);
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &OMINOUS_NIGHTMARES);
+    builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    {
+        let world = builder.state_mut().world_mut();
+        world.set_damage(wounded, Damage(1));
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    assert!(state.world().is_damaged(wounded), "pre-damaged minion");
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 0);
+    assert_eq!(
+        state.world().effective_health(wounded),
+        Some(Health(2)),
+        "wounded minion takes 1 more"
+    );
+    assert_eq!(board_minions(&state, PlayerId2()).len(), 0, "the 1/1 dies");
+
+    // Branch 1 — +2/+2 to the only damaged minion
+    let mut builder = GameBuilder::new();
+    let wounded = builder.add_custom_minion_to_board(PlayerId1(), 2, 4, 3);
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &OMINOUS_NIGHTMARES);
+    builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    {
+        let world = builder.state_mut().world_mut();
+        world.set_damage(wounded, Damage(1));
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 1);
+    assert_eq!(
+        state.world().effective_attack(wounded),
+        Some(Attack(4)),
+        "damaged minion gets +2 Attack"
+    );
+    assert_eq!(
+        state.world().effective_health(wounded),
+        Some(Health(5)),
+        "damaged minion gets +2 Health (6 - 1 damage)"
+    );
+    assert_eq!(
+        state
+            .world()
+            .effective_health(board_minions(&state, PlayerId2())[0]),
+        Some(Health(3)),
+        "the undamaged minion is untouched"
+    );
+}
+
+/// F5-EDR-W3-10 — Morbid Swarm: two 1/1 Ants, or spend 2 Corpses to deal
+/// 4 damage to a minion (a no-op without the corpses).
+#[test]
+fn edr_w3_morbid_swarm_both_branches_and_corpse_gate() {
+    use orange_stone::cards::def::MORBID_SWARM;
+
+    // Branch 0 — two 1/1 Ants
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &MORBID_SWARM);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 5, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 0);
+    assert_eq!(board_count(&state, PlayerId1(), "EDR_813t"), 2);
+    let ants: Vec<_> = board_minions(&state, PlayerId1())
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_813t"))
+        .collect();
+    for a in &ants {
+        assert_eq!(state.world().effective_attack(*a), Some(Attack(1)));
+        assert_eq!(state.world().effective_health(*a), Some(Health(1)));
+    }
+
+    // Branch 1 with 3 corpses — spend 2, deal 4 to a minion
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &MORBID_SWARM);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 5, 2);
+    let mut state = builder.build();
+    {
+        let inner = state.make_mut();
+        inner.players[PlayerId1().index()].corpses = 3;
+    }
+    let engine = GameEngine::new();
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 1);
+    assert_eq!(state.player(PlayerId1()).corpses, 1, "2 corpses spent");
+    assert_eq!(
+        board_minions(&state, PlayerId1()).len(),
+        0,
+        "no ants on this branch"
+    );
+    let enemy = board_minions(&state, PlayerId2());
+    assert_eq!(enemy.len(), 1);
+    assert_eq!(
+        state.world().effective_health(enemy[0]),
+        Some(Health(1)),
+        "4 damage to the minion"
+    );
+
+    // Branch 1 without enough corpses — a no-op
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &MORBID_SWARM);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 5, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 1);
+    assert_eq!(state.player(PlayerId1()).corpses, 0, "nothing spent");
+    let enemy = board_minions(&state, PlayerId2());
+    assert_eq!(
+        state.world().effective_health(enemy[0]),
+        Some(Health(5)),
+        "no damage without the corpses"
+    );
+}
+
+/// F5-EDR-W3-11 — Wyvern's Slumber: two Dormant Dreadseeds (simplified
+/// 0/3 can't-attack tokens — fidelity-debt §14.2), or 2 damage to all
+/// minions.
+#[test]
+fn edr_w3_wyverns_slumber_both_branches() {
+    use orange_stone::cards::def::WYVERNS_SLUMBER;
+
+    // Branch 0 — two 0/3 can't-attack Dreadseeds
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &WYVERNS_SLUMBER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 0);
+    assert_eq!(board_count(&state, PlayerId1(), "EDR_820t"), 2);
+    let seeds: Vec<_> = board_minions(&state, PlayerId1())
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_820t"))
+        .collect();
+    for s in &seeds {
+        assert_eq!(state.world().effective_attack(*s), Some(Attack(0)));
+        assert_eq!(state.world().effective_health(*s), Some(Health(3)));
+        assert!(
+            state.world().cant_attack(*s).is_some(),
+            "Dormant can't attack"
+        );
+    }
+
+    // Branch 1 — 2 damage to all minions
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &WYVERNS_SLUMBER);
+    builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 3);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero2 = state.player(PlayerId2()).hero;
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 1);
+    assert_eq!(
+        state.world().effective_health(hero2),
+        Some(Health(30)),
+        "heroes are untouched"
+    );
+    let p1_minions = board_minions(&state, PlayerId1());
+    assert_eq!(p1_minions.len(), 1);
+    assert_eq!(
+        state.world().effective_health(p1_minions[0]),
+        Some(Health(1)),
+        "the 3/3 takes 2"
+    );
+    assert_eq!(board_minions(&state, PlayerId2()).len(), 0, "the 2/2 dies");
+}
+
+/// F5-EDR-W3-12 — Reforestation: draw a spell, or draw a minion (the
+/// 蓄力-style hold mechanic omitted — fidelity-debt §14.2). Deck order:
+/// [FIREBALL, BLOODFEN_RAPTOR].
+#[test]
+fn edr_w3_reforestation_draws_by_card_type() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, FIREBALL, REFORESTATION};
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &REFORESTATION)
+        .add_minion_to_hand(PlayerId1(), &REFORESTATION)
+        .add_minion_to_deck(PlayerId1(), &FIREBALL)
+        .add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+
+    // Branch 0 — draw the spell; the minion stays in the deck
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 0);
+    let ids = hand_ids(&state, PlayerId1());
+    assert!(
+        ids.contains(&"MAGE_005".to_string()),
+        "spell drawn: {ids:?}"
+    );
+    assert!(
+        !ids.iter().any(|i| i == "CLASSIC_001"),
+        "the minion stays in the deck"
+    );
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 1);
+
+    // Branch 1 — draw the minion; the deck empties
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 1);
+    let ids = hand_ids(&state, PlayerId1());
+    assert!(
+        ids.contains(&"CLASSIC_001".to_string()),
+        "minion drawn: {ids:?}"
+    );
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 0);
+}
+
+/// F5-EDR-W3-13 — Spark of Life: a random Mage spell, or a random Druid
+/// spell (the Discover simplified to a random pick — fidelity-debt §14.2).
+#[test]
+fn edr_w3_spark_of_life_discover_class_spells() {
+    use orange_stone::cards::def::SPARK_OF_LIFE;
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &SPARK_OF_LIFE)
+        .add_minion_to_hand(PlayerId1(), &SPARK_OF_LIFE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+
+    // Branch 0 — a Mage spell (the second Spark stays in hand)
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 0);
+    let ids = hand_ids(&state, PlayerId1());
+    assert_eq!(ids.len(), 2, "second Spark + the added Mage spell");
+    assert_eq!(
+        ids.iter().filter(|i| i.as_str() == "EDR_872").count(),
+        1,
+        "the second Spark remains in hand: {ids:?}"
+    );
+    assert_eq!(
+        ids.iter()
+            .filter(|i| orange_stone::cards::sets::MAGE_CLASSIC
+                .iter()
+                .any(|c| c.id == i.as_str()))
+            .count(),
+        1,
+        "a Mage spell was added: {ids:?}"
+    );
+
+    // Branch 1 — a Druid spell
+    let card = first_hand_card(&state, PlayerId1());
+    play_choose_option(&mut state, &engine, card, 1);
+    let ids = hand_ids(&state, PlayerId1());
+    assert_eq!(ids.len(), 2, "the Mage spell + the added Druid spell");
+    assert!(
+        ids.iter().any(|i| orange_stone::cards::sets::MAGE_CLASSIC
+            .iter()
+            .any(|c| c.id == i.as_str())),
+        "the Mage spell from branch 0 is still there: {ids:?}"
+    );
+    assert!(
+        ids.iter().any(|i| orange_stone::cards::sets::DRUID_CLASSIC
+            .iter()
+            .any(|c| c.id == i.as_str())),
+        "a Druid spell was added: {ids:?}"
+    );
+}
+
+/// F5-EDR-W3-14 — the P3 choice gate: while a choice is pending, every
+/// non-Choose action is rejected (`EngineError::ChoicePending`), stale
+/// choice ids are rejected, and the default policy (`GameEngine::apply`)
+/// auto-resolves with exactly one branch taking effect.
+#[test]
+fn edr_w3_pending_choice_gate_and_auto_resolve() {
+    use orange_stone::cards::def::GRACE_OF_THE_GREATWOLF;
+    use orange_stone::engine::rules::EngineError;
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &GRACE_OF_THE_GREATWOLF);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+
+    let card = first_hand_card(&state, PlayerId1());
+    let res = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .expect("grace is playable");
+    let choice = match res {
+        Resolution::NeedsChoice { choice } => choice,
+        _ => panic!("choose-one choice expected"),
+    };
+    assert_eq!(
+        engine.apply_choices(&mut state, Action::EndTurn),
+        Err(EngineError::ChoicePending),
+        "EndTurn is rejected while a choice is pending"
+    );
+    assert_eq!(
+        engine.apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id + 1,
+                option: 0,
+            },
+        ),
+        Err(EngineError::InvalidChoice),
+        "a stale choice id is rejected"
+    );
+
+    // The default policy (engine.apply) auto-resolves the choice randomly —
+    // exactly one branch takes effect (4 damage to the hero XOR 2 wolves).
+    let mut builder = GameBuilder::new();
+    builder
+        .active_player(PlayerId1())
+        .set_mana(PlayerId1(), 10, 10)
+        .add_minion_to_hand(PlayerId1(), &GRACE_OF_THE_GREATWOLF);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero2 = state.player(PlayerId2()).hero;
+    let card = first_hand_card(&state, PlayerId1());
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.pending_choice().is_none(),
+        "auto-resolved by the default policy"
+    );
+    let hero_hit = state.world().effective_health(hero2) == Some(Health(26));
+    let wolves = board_count(&state, PlayerId1(), "EDR_263t");
+    assert!(
+        hero_hit ^ (wolves == 2),
+        "exactly one branch resolved (hero hit: {hero_hit}, wolves: {wolves})"
+    );
+}

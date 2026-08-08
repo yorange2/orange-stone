@@ -1699,6 +1699,26 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_edr_w2::RITE_OF_ATROCITY,
     super::exp_edr_w2::NIGHTMARE_LORD_XAVIUS,
     super::exp_edr_w2::JUMPSCARE,
+    // M1-W3 — the Emerald Dream choose-one wave (src/cards/exp_edr_w3.rs)
+    super::exp_edr_w3::SPIRITS_OF_THE_FOREST,
+    super::exp_edr_w3::LIGHTMENDER,
+    super::exp_edr_w3::GRACE_OF_THE_GREATWOLF,
+    super::exp_edr_w3::SYMBIOSIS,
+    super::exp_edr_w3::TWILIGHT_INFLUENCE,
+    super::exp_edr_w3::SLEEP_PARALYSIS,
+    super::exp_edr_w3::BARBED_THORN,
+    super::exp_edr_w3::OMINOUS_NIGHTMARES,
+    super::exp_edr_w3::MORBID_SWARM,
+    super::exp_edr_w3::WYVERNS_SLUMBER,
+    super::exp_edr_w3::REFORESTATION,
+    super::exp_edr_w3::SPARK_OF_LIFE,
+    // M1-W3 tokens (handwritten only — no generated baselines)
+    super::exp_edr_w3::FOREST_WOLF,
+    super::exp_edr_w3::FALCON,
+    super::exp_edr_w3::GREATWOLF,
+    super::exp_edr_w3::NIGHTMARE_DEMON,
+    super::exp_edr_w3::ANT,
+    super::exp_edr_w3::DREADSEED,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated

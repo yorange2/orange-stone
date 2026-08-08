@@ -4,7 +4,7 @@
 //! Effects are stored as `Copy` enum constants in `CardDef` and the `Battlecry`/`Deathrattle` components.
 use serde::{Deserialize, Serialize};
 
-use crate::core::component::{DarkGiftKind, ImbueClass};
+use crate::core::component::{CardType, DarkGiftKind, ImbueClass};
 
 /// Effect target selector.
 ///
@@ -55,6 +55,9 @@ pub enum EffectTarget {
     EnemyMinionAttackLE(i32),
     /// A random minion on either side with attack ≥ N (Big Game Hunter)
     AnyMinionAttackGE(i32),
+    /// A random minion on either side with attack ≤ N (Twilight Influence —
+    /// "destroy a minion with 3 or less Attack" targets either side)
+    AnyMinionAttackLE(i32),
     /// A random damaged friendly minion (Rampage)
     DamagedFriendlyMinion,
     /// A random damaged minion on either side (Rampage)
@@ -1411,6 +1414,75 @@ pub enum CardEffect {
     /// Reduce the Cost of the player's hand minions carrying a dark gift
     /// by (2) (Overgrown Horror)
     ReduceHandMinionGiftCost,
+    // ----------------------------------------------------------------
+    // 2025–2026 expansions M1-W3 effects (exp_edr_w3) — the Emerald Dream
+    // choose-one cards: real Choose One resolution surfaces the branch
+    // options through `legal_actions` (P3); the branch effects below cover
+    // the two non-trivial shape families (buff + keyword, weapon-upgrade,
+    // draw-by-type, corpse-spend damage, board-wide damage, simplified
+    // Discover→random).
+    // ----------------------------------------------------------------
+    /// Give the target minion the given stats and Divine Shield (Lightmender
+    /// choose branch 1)
+    GainStatsAndGrantDivineShield {
+        /// Attack gained
+        attack: i32,
+        /// Health gained
+        health: i32,
+        /// The buffed minion
+        target: EffectTarget,
+    },
+    /// Give the target minion the given stats and Lifesteal (Lightmender
+    /// choose branch 2)
+    GainStatsAndGrantLifesteal {
+        /// Attack gained
+        attack: i32,
+        /// Health gained
+        health: i32,
+        /// The buffed minion
+        target: EffectTarget,
+    },
+    /// The player's hero gains Poisonous until the end of this turn (Barbed
+    /// Thorn choose branch 1 — weapon attacks poison what they hit)
+    GrantPoisonousThisTurn,
+    /// The player's weapon gains "Deathrattle: deal damage to all enemies"
+    /// (Barbed Thorn choose branch 2 — the deathrattle fires when the weapon
+    /// breaks or is replaced)
+    GrantWeaponDeathrattleAllEnemies {
+        /// Damage dealt to all enemies
+        damage: i32,
+    },
+    /// Draw the given number of cards of the given type from the player's
+    /// deck (Reforestation — "draw a spell" / "draw a minion"; the real
+    /// card's 蓄力/Forge-esque hold mechanic is omitted, see §14.2)
+    DrawCardByType {
+        /// Cards drawn
+        count: u32,
+        /// The drawn card type (Spell or Minion)
+        card_type: CardType,
+    },
+    /// Spend the given corpses to deal damage to a minion (Morbid Swarm
+    /// choose branch 2 — the corpseless branch is a no-op, matching the
+    /// spend-corpses precedent)
+    SpendCorpsesDamageMinion {
+        /// Corpses spent
+        cost: u32,
+        /// Damage dealt
+        damage: i32,
+    },
+    /// Deal damage to ALL minions (Ominous Nightmares choose branch 1,
+    /// Wyvern's Slumber choose branch 2)
+    DamageAllMinions {
+        /// Damage amount
+        damage: i32,
+    },
+    /// Add a random Druid spell to hand (Spark of Life choose branch 2 —
+    /// the real Discover lets the player choose, simplified to random)
+    AddRandomDruidSpell,
+    /// Add a random Choose One card of another class to hand (Symbiosis —
+    /// the real Discover lets the player choose, simplified to a random
+    /// pick over the fixed OTHER_CLASS_CHOOSE_ONE_POOL, see §14.2)
+    AddRandomOtherClassChooseOneCard,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -2043,6 +2115,33 @@ enum CardEffectDe {
     },
     DiscoverDeckMinionWithDarkGift,
     ReduceHandMinionGiftCost,
+    GainStatsAndGrantDivineShield {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+    },
+    GainStatsAndGrantLifesteal {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+    },
+    GrantPoisonousThisTurn,
+    GrantWeaponDeathrattleAllEnemies {
+        damage: i32,
+    },
+    DrawCardByType {
+        count: u32,
+        card_type: CardType,
+    },
+    SpendCorpsesDamageMinion {
+        cost: u32,
+        damage: i32,
+    },
+    DamageAllMinions {
+        damage: i32,
+    },
+    AddRandomDruidSpell,
+    AddRandomOtherClassChooseOneCard,
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -2698,6 +2797,39 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 CardEffect::DiscoverDeckMinionWithDarkGift
             }
             CardEffectDe::ReduceHandMinionGiftCost => CardEffect::ReduceHandMinionGiftCost,
+            CardEffectDe::GainStatsAndGrantDivineShield {
+                attack,
+                health,
+                target,
+            } => CardEffect::GainStatsAndGrantDivineShield {
+                attack,
+                health,
+                target,
+            },
+            CardEffectDe::GainStatsAndGrantLifesteal {
+                attack,
+                health,
+                target,
+            } => CardEffect::GainStatsAndGrantLifesteal {
+                attack,
+                health,
+                target,
+            },
+            CardEffectDe::GrantPoisonousThisTurn => CardEffect::GrantPoisonousThisTurn,
+            CardEffectDe::GrantWeaponDeathrattleAllEnemies { damage } => {
+                CardEffect::GrantWeaponDeathrattleAllEnemies { damage }
+            }
+            CardEffectDe::DrawCardByType { count, card_type } => {
+                CardEffect::DrawCardByType { count, card_type }
+            }
+            CardEffectDe::SpendCorpsesDamageMinion { cost, damage } => {
+                CardEffect::SpendCorpsesDamageMinion { cost, damage }
+            }
+            CardEffectDe::DamageAllMinions { damage } => CardEffect::DamageAllMinions { damage },
+            CardEffectDe::AddRandomDruidSpell => CardEffect::AddRandomDruidSpell,
+            CardEffectDe::AddRandomOtherClassChooseOneCard => {
+                CardEffect::AddRandomOtherClassChooseOneCard
+            }
         })
     }
 }
@@ -2733,6 +2865,43 @@ mod tests {
             CardEffect::DiscoverWildGodIfImbued4,
             CardEffect::ImbueEveryThirdSpell,
             CardEffect::SummonRandomDragonOfCost { cost: 1 },
+        ] {
+            let bytes = bincode::serialize(&effect).expect("serialize");
+            let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
+            assert_eq!(back, effect);
+        }
+    }
+
+    /// Every new 2025–2026 expansions M1-W3 variant survives the bincode
+    /// roundtrip (CardEffectDe → CardEffect).
+    #[test]
+    fn choose_one_effects_serialize_roundtrip() {
+        use crate::core::component::CardType;
+        for effect in [
+            CardEffect::GainStatsAndGrantDivineShield {
+                attack: 3,
+                health: 0,
+                target: EffectTarget::Self_,
+            },
+            CardEffect::GainStatsAndGrantLifesteal {
+                attack: 0,
+                health: 3,
+                target: EffectTarget::Self_,
+            },
+            CardEffect::GrantPoisonousThisTurn,
+            CardEffect::GrantWeaponDeathrattleAllEnemies { damage: 2 },
+            CardEffect::DrawCardByType {
+                count: 1,
+                card_type: CardType::Spell,
+            },
+            CardEffect::DrawCardByType {
+                count: 1,
+                card_type: CardType::Minion,
+            },
+            CardEffect::SpendCorpsesDamageMinion { cost: 2, damage: 4 },
+            CardEffect::DamageAllMinions { damage: 2 },
+            CardEffect::AddRandomDruidSpell,
+            CardEffect::AddRandomOtherClassChooseOneCard,
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
@@ -2815,4 +2984,9 @@ pub enum RandomPool {
     /// A random Demon costing (5) or more (Jumpscare! — 2025–2026
     /// expansions M1-W2 dark gifts)
     DemonCost5Plus,
+    /// A random Choose One card of another class (Symbiosis — 2025–2026
+    /// expansions M1-W3; sampled from the fixed
+    /// `OTHER_CLASS_CHOOSE_ONE_POOL` table, the real Discover simplified to
+    /// random, see §14.2)
+    OtherClassChooseOne,
 }

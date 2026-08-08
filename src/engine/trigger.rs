@@ -3261,6 +3261,169 @@ pub fn resolve_effect(
                 world.set_cost(target, Cost((cur.0 - 2).max(0)));
             }
         }
+        CardEffect::GainStatsAndGrantDivineShield {
+            attack,
+            health,
+            target,
+        } => {
+            // Lightmender choose branch 1 (M1-W3) — +stats and Divine Shield
+            resolve_gain_stats(
+                state,
+                queue,
+                source,
+                owner,
+                attack,
+                health,
+                target,
+                explicit_target,
+                event_subject,
+            );
+            // The keyword lands on the same entity: Self_ resolves to the
+            // source (the only target shape the W3 cards use); the generic
+            // path re-selects a random eligible minion.
+            if target == EffectTarget::Self_ {
+                state.world_mut().set_divine_shield(source, DivineShield);
+            } else {
+                let mut all = collect_friendly_minions(state, owner);
+                all.extend(collect_all_enemy_minions(state, owner));
+                if let Some(t) = select_target(explicit_target, &all, state.rng_mut()) {
+                    state.world_mut().set_divine_shield(t, DivineShield);
+                }
+            }
+        }
+        CardEffect::GainStatsAndGrantLifesteal {
+            attack,
+            health,
+            target,
+        } => {
+            // Lightmender choose branch 2 (M1-W3) — +stats and Lifesteal
+            resolve_gain_stats(
+                state,
+                queue,
+                source,
+                owner,
+                attack,
+                health,
+                target,
+                explicit_target,
+                event_subject,
+            );
+            if target == EffectTarget::Self_ {
+                state.world_mut().set_lifesteal(source, Lifesteal);
+            } else {
+                let mut all = collect_friendly_minions(state, owner);
+                all.extend(collect_all_enemy_minions(state, owner));
+                if let Some(t) = select_target(explicit_target, &all, state.rng_mut()) {
+                    state.world_mut().set_lifesteal(t, Lifesteal);
+                }
+            }
+        }
+        CardEffect::GrantPoisonousThisTurn => {
+            // Barbed Thorn choose branch 1 (M1-W3) — the hero is Poisonous
+            // until the end of this turn (weapon attacks check the attacker's
+            // Poison component); the per-player flag expires both in the
+            // turn-end wrap-up.
+            let inner = state.make_mut();
+            inner
+                .world
+                .set_poison(inner.players[owner.index()].hero, Poison);
+            inner.players[owner.index()].hero_poisonous_this_turn = true;
+        }
+        CardEffect::GrantWeaponDeathrattleAllEnemies { damage } => {
+            // Barbed Thorn choose branch 2 (M1-W3) — the equipped weapon
+            // gains the deathrattle; it fires on break or replace
+            // (WeaponDestroyed path in rules.rs).
+            if let Some(weapon) = state.player(owner).weapon {
+                state.world_mut().set_deathrattle(
+                    weapon,
+                    Deathrattle(CardEffect::DealDamage {
+                        amount: damage,
+                        target: EffectTarget::AllEnemies,
+                    }),
+                );
+            }
+        }
+        CardEffect::DrawCardByType { count, card_type } => {
+            // Reforestation choose branches (M1-W3) — draw a spell / draw a
+            // minion: the deck is scanned for the first matches in deck order
+            // (the resolve_draw_by_race pattern); no fatigue applies (a scan
+            // draws what exists and nothing more).
+            let matches: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| state.world().card_type(e) == Some(card_type))
+                .take(count as usize)
+                .collect();
+            for card in matches {
+                if state.world_mut().move_to_zone(card, Zone::Hand).is_ok() {
+                    queue.push(Event::CardDrawn {
+                        player: owner,
+                        card,
+                    });
+                }
+            }
+        }
+        CardEffect::SpendCorpsesDamageMinion { cost, damage } => {
+            // Morbid Swarm choose branch 2 (M1-W3) — spend the corpses, then
+            // deal damage to a minion; without the corpses the branch is a
+            // no-op (the spend-corpses precedent).
+            let have = state.player(owner).corpses;
+            if have < cost {
+                return;
+            }
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].corpses -= cost;
+            }
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            if let Some(t) = select_target(explicit_target, &all, state.rng_mut()) {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: t,
+                    amount: damage,
+                });
+            }
+        }
+        CardEffect::DamageAllMinions { damage } => {
+            // Ominous Nightmares choose branch 1 / Wyvern's Slumber choose
+            // branch 2 (M1-W3) — damage every minion on either side.
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            for minion in &all {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: *minion,
+                    amount: damage,
+                });
+            }
+        }
+        CardEffect::AddRandomDruidSpell => {
+            // Spark of Life choose branch 2 (M1-W3) — a random Druid spell
+            // (the real Discover simplified to random, §14.2).
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::DRUID_CLASSIC
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Spell)
+                    .collect();
+            if spells.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(spells.len());
+            add_card_to_hand(state, owner, spells[idx]);
+        }
+        CardEffect::AddRandomOtherClassChooseOneCard => {
+            // Symbiosis (M1-W3) — a random Choose One card of another class
+            // from the fixed OTHER_CLASS_CHOOSE_ONE_POOL table (the real
+            // Discover simplified to random, §14.2).
+            if let Some(def) = crate::cards::pool::random_from_pool(
+                crate::cards::pool::OTHER_CLASS_CHOOSE_ONE_POOL,
+                state.rng_mut(),
+            ) {
+                add_card_to_hand(state, owner, def);
+            }
+        }
     }
 }
 
@@ -3735,6 +3898,25 @@ fn resolve_deal_damage(
             let mut all = collect_friendly_minions(state, owner);
             all.extend(collect_enemy_minions(state, owner, None));
             if !all.contains(&t) {
+                return None;
+            }
+            [t].into_iter().collect()
+        }
+        EffectTarget::AnyMinionAttackLE(limit) => {
+            // A minion on either side with attack ≤ N (Twilight Influence,
+            // M1-W3 — "Destroy a minion with 3 or less Attack"): an explicit
+            // target is required; without one the effect fizzles (the
+            // any-minion convention). Effective attack — enchantments and
+            // auras count.
+            let t = explicit?;
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_enemy_minions(state, owner, None));
+            if !all.contains(&t)
+                || state
+                    .world()
+                    .effective_attack(t)
+                    .is_none_or(|a| a.0 > limit)
+            {
                 return None;
             }
             [t].into_iter().collect()
@@ -4897,6 +5079,20 @@ fn resolve_destroy_minion(
                         .world()
                         .effective_attack(e)
                         .is_some_and(|a| a.0 >= min_atk)
+                })
+                .collect()
+        }
+        // A minion on either side with attack ≤ N (Twilight Influence, M1-W3 —
+        // "Destroy a minion with 3 or less Attack" targets either side)
+        EffectTarget::AnyMinionAttackLE(max_atk) => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all.into_iter()
+                .filter(|&e| {
+                    state
+                        .world()
+                        .effective_attack(e)
+                        .is_some_and(|a| a.0 <= max_atk)
                 })
                 .collect()
         }

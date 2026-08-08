@@ -77,10 +77,14 @@ impl GameEngine {
         let mut log = Vec::new();
         loop {
             // A pending choice pauses resolution — unless the choice's own
-            // resolution event is already in flight.
+            // resolution event is already in flight, or events queued before
+            // the choice surfaced are still pending (they complete first:
+            // equipping a Choose One weapon destroys the old one — its
+            // WeaponDestroyed/deathrattle must resolve before the prompt,
+            // Barbed Thorn M1-W3; CardPlayed triggers likewise).
             if let Some(choice) = state.pending_choice().cloned() {
                 let resolving = matches!(queue.front(), Some(Event::ChoiceResolved { .. }));
-                if !resolving {
+                if !resolving && queue.is_empty() {
                     return Ok(Resolution::NeedsChoice { choice });
                 }
             }

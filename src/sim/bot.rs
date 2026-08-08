@@ -45,6 +45,15 @@ impl GreedyBot {
         if matches!(state.step(), crate::core::state::Step::GameOver { .. }) {
             return vec![];
         }
+        // A pending choice (Choose One / Discover / Mulligan) is the only
+        // legal action (2025–2026 expansions M1-W3, P3 real choice
+        // resolution); the bot plays the simple heuristic: branch option 0.
+        if let Some(choice) = state.pending_choice() {
+            return vec![Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            }];
+        }
 
         let active = state.active_player();
         let mut actions = Vec::new();
@@ -472,6 +481,15 @@ impl SmartBot {
     pub fn decide_actions(&self, state: &GameState) -> Vec<Action> {
         if matches!(state.step(), crate::core::state::Step::GameOver { .. }) {
             return vec![];
+        }
+        // A pending choice (Choose One / Discover / Mulligan) is the only
+        // legal action (2025–2026 expansions M1-W3, P3 real choice
+        // resolution); the bot plays the simple heuristic: branch option 0.
+        if let Some(choice) = state.pending_choice() {
+            return vec![Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            }];
         }
 
         let active = state.active_player();
@@ -1514,6 +1532,20 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DiscoverEnemyDeckMinionCopy { .. } => 3.0,
         CardEffect::DiscoverDeckMinionWithDarkGift => 4.0,
         CardEffect::ReduceHandMinionGiftCost => 3.0,
+        // 2025-2026 expansions M1-W3 (the Emerald Dream choose-one wave)
+        CardEffect::GainStatsAndGrantDivineShield { attack, health, .. } => {
+            (attack + health) as f64 * 0.8 + 2.0
+        }
+        CardEffect::GainStatsAndGrantLifesteal { attack, health, .. } => {
+            (attack + health) as f64 * 0.8 + 2.0
+        }
+        CardEffect::GrantPoisonousThisTurn => 2.0,
+        CardEffect::GrantWeaponDeathrattleAllEnemies { damage } => damage as f64 * 1.2,
+        CardEffect::DrawCardByType { count, .. } => count as f64 * 3.0,
+        CardEffect::SpendCorpsesDamageMinion { damage, .. } => damage as f64 * 1.2,
+        CardEffect::DamageAllMinions { damage } => damage as f64 * 1.2,
+        CardEffect::AddRandomDruidSpell => 3.0,
+        CardEffect::AddRandomOtherClassChooseOneCard => 4.0,
     }
 }
 
