@@ -13196,6 +13196,108 @@ fn w6_defias_and_si7_combo() {
     assert_eq!(bandits, 1, "combo summoned the 2/1 Defias Bandit");
 }
 
+/// Classic Defias Ringleader (ROGUE_011) — Combo must summon the 2/1 Defias
+/// Bandit (EX1_131t). Regression: the classic combo referenced a missing
+/// ROGUE_t token, so `resolve_summon` silently summoned nothing (F-A12).
+#[test]
+fn classic_defias_bandit_combo() {
+    use orange_stone::cards::def::{DEFIAS_RINGLEADER, WISP};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &DEFIAS_RINGLEADER);
+    builder.add_minion_to_hand(PlayerId1(), &WISP);
+    builder.add_minion_to_hand(PlayerId1(), &DEFIAS_RINGLEADER);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // First card of the turn: no combo
+    let ringleader = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "ROGUE_011")
+        })
+        .expect("ringleader in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: ringleader,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let bandits = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EX1_131t"))
+        .count();
+    assert_eq!(bandits, 0, "no combo on the first card of the turn");
+    // Play Wisp, then a second Defias Ringleader — combo summons the Bandit
+    let wisp = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "NEUTRAL_T01")
+        })
+        .expect("wisp in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: wisp,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let ringleader2 = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "ROGUE_011")
+        })
+        .expect("second ringleader in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: ringleader2,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let bandits = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EX1_131t"))
+        .count();
+    assert_eq!(bandits, 1, "combo summoned the 2/1 Defias Bandit");
+    let bandit = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EX1_131t"))
+        .expect("bandit on board");
+    assert_eq!(state.world().attack(bandit), Some(Attack(2)));
+    assert_eq!(state.world().effective_health(bandit), Some(Health(1)));
+}
+
 /// W6-13 Wrath — Choose One: 3 damage (branch 0) or 1 damage + draw
 /// (branch 1).
 #[test]

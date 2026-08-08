@@ -859,8 +859,8 @@ pub const CORE_ILLIDARI_STUDIES: CardDef = CardDef {
 };
 
 /// EX1_131t Defias Bandit — 1费 Minion (Defias Ringleader's Combo summon;
-/// the real token id. The Classic pool's ROGUE_011 still references a
-/// missing ROGUE_t token — fixed here for the Core reprint only)
+/// the real token id. The Classic pool's ROGUE_011 used to reference a
+/// missing ROGUE_t token; both reprints now summon this token)
 pub const CORE_DEFIAS_BANDIT: CardDef = CardDef {
     id: "EX1_131t",
     name: "Defias Bandit",
