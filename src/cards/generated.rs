@@ -7,7 +7,7 @@
 #![allow(missing_docs)]
 #![allow(non_upper_case_globals)]
 
-use crate::cards::def::CardDef;
-use crate::core::component::CardType;
+use crate::cards::def::{CardDef, CardSet};
+use crate::core::component::{CardType, Race};
 
 include!(concat!(env!("OUT_DIR"), "/cards_generated.rs"));

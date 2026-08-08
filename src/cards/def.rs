@@ -9,6 +9,31 @@ use crate::core::effect::CardEffect;
 
 use super::sets::ALL_CARDS;
 
+/// Card set membership (2025–2026 expansions M0.2) — which collection a card
+/// belongs to. Used by pool filters to select a Standard window (decision D3);
+/// the mapping from official set codes lives in the generated code
+/// (`generated::card_set`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CardSet {
+    /// Classic-era constructed sets (EXPERT1 / LEGACY / VANILLA and the
+    /// custom-ID handwritten pool) — the current training pool
+    Classic,
+    /// Modern Core Set
+    Core,
+    /// Into the Emerald Dream + Embers of the World Tree (mini)
+    EmeraldDream,
+    /// The Lost City of Un'Goro + Festival of the Devilsaur (mini)
+    TheLostCity,
+    /// Across the Timeways + The End of Time (mini)
+    TimeTravel,
+    /// Cataclysm (+ Class Sets)
+    Cataclysm,
+    /// Escape from Violet Hold
+    EscapeFromVioletHold,
+    /// Everything else (tokens, hero skins, event cards)
+    Other,
+}
+
 /// Static card definition — describes a card's basic attributes and effects.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CardDef {

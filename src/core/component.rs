@@ -235,6 +235,8 @@ pub enum Race {
     Quilboar,
     /// Draenei (Core Set W4a — Battle Vicar)
     Draenei,
+    /// Naga (2025–2026 expansions M0.2 — Gladesong Siren, Azshara Ocean Lord, …)
+    Naga,
 }
 
 /// Aura effect kind.
