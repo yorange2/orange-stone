@@ -46,8 +46,11 @@
   赠礼标记 + 每玩家赠礼日志；5 职业 9 张黑暗赠礼卡；15 个 F5 场景（各赠礼结算、
   跨区存续、Combo/尸体/持龙条件、Wallow 同步）。Nightmare Fuel 登记 POOL_OPEN_CARDS；
   7 项 D2 简化登记进 fidelity-debt.md §14.1。
-- **W3 —— 全职业 Choose One（P3）：** 真实抉择结算；泛化 W10 发现选择机制；
-  EDR 抉择卡在 `legal_actions` 里给出显式分支。
+- [x] **W3 —— 全职业 Choose One（P3）**（PR #139）：自动随机欠债已清偿——选择面
+  暴露进 `legal_actions`（逐选项 `Action::Choose` + `ChoicePending` 门）与结构化
+  视图/绑定；法术/随从/武器三个 surface 点（武器路径新增）+ 入队事件排序修复；
+  12 张 EDR 抉择卡 + 6 衍生物；14 个 F5 场景钉死两分支；4 项 D2 简化登记进
+  fidelity-debt.md §14.2。
 - **W4 —— 野神 + 杂项效果（P5）：** 其余随从/法术；职业传说野神；收尾波清扫
   衍生物/附魔与账本。
 - **W5 —— 世界之树的余烬迷你：** 迷你 38 张卡（既有原语：黑暗赠礼补充 7 张等）；
@@ -86,18 +89,18 @@
 - [x] EDR_882 Jumpscare!
 
 ### W3 —— Choose One（全职业）
-- [ ] EDR_233 Spirits of the Forest
-- [ ] EDR_257 Lightmender
-- [ ] EDR_263 Grace of the Greatwolf
-- [ ] EDR_273 Symbiosis
-- [ ] EDR_463 Twilight Influence
-- [ ] EDR_490 Sleep Paralysis
-- [ ] EDR_525 Barbed Thorn
-- [ ] EDR_570 Ominous Nightmares
-- [ ] EDR_813 Morbid Swarm
-- [ ] EDR_820 Wyvern's Slumber
-- [ ] EDR_843 Reforestation
-- [ ] EDR_872 Spark of Life
+- [x] EDR_233 Spirits of the Forest
+- [x] EDR_257 Lightmender
+- [x] EDR_263 Grace of the Greatwolf
+- [x] EDR_273 Symbiosis
+- [x] EDR_463 Twilight Influence
+- [x] EDR_490 Sleep Paralysis
+- [x] EDR_525 Barbed Thorn
+- [x] EDR_570 Ominous Nightmares
+- [x] EDR_813 Morbid Swarm
+- [x] EDR_820 Wyvern's Slumber
+- [x] EDR_843 Reforestation
+- [x] EDR_872 Spark of Life
 
 ### W4 —— 野神 + 其余卡
 - [ ] EDR_000 Ysera, Emerald Aspect

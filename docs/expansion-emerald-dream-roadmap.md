@@ -56,9 +56,12 @@ register in `sets.rs::ALL_CARDS`; simplifications carry `(simplified …)` marke
   cards; 15 F5 scenarios (per-gift resolution, cross-zone persistence,
   Combo/corpse/dragon-hand conditions, Wallow sync). Nightmare Fuel registered
   in POOL_OPEN_CARDS; 7 D2 simplifications in fidelity-debt.md §14.1.
-- **W3 — Choose One for all classes (P3):** real choice resolution; the W10
-  Discover choice pattern generalized; EDR choose-one cards playable with
-  explicit branches in `legal_actions`.
+- [x] **W3 — Choose One for all classes (P3)** (PR #139): the auto-random debt
+  is paid — pending choices surface in `legal_actions` (option-wise
+  `Action::Choose`, `ChoicePending` gate) and the structured views/bindings;
+  three surface sites (spell/minion/weapon, the weapon path added) with
+  queued-event ordering fix; 12 EDR choose-one cards + 6 tokens; 14 F5
+  scenarios pin both branches; 4 D2 simplifications in fidelity-debt.md §14.2.
 - **W4 — Wild Gods + misc effects (P5):** remaining minions/spells; the
   legendary Wild Gods; closing wave sweeps tokens/enchantments and the ledger.
 - **W5 — Embers of the World Tree miniset:** the 38 miniset cards (existing
@@ -99,18 +102,18 @@ register in `sets.rs::ALL_CARDS`; simplifications carry `(simplified …)` marke
 - [x] EDR_882 Jumpscare!
 
 ### W3 — Choose One (all classes)
-- [ ] EDR_233 Spirits of the Forest
-- [ ] EDR_257 Lightmender
-- [ ] EDR_263 Grace of the Greatwolf
-- [ ] EDR_273 Symbiosis
-- [ ] EDR_463 Twilight Influence
-- [ ] EDR_490 Sleep Paralysis
-- [ ] EDR_525 Barbed Thorn
-- [ ] EDR_570 Ominous Nightmares
-- [ ] EDR_813 Morbid Swarm
-- [ ] EDR_820 Wyvern's Slumber
-- [ ] EDR_843 Reforestation
-- [ ] EDR_872 Spark of Life
+- [x] EDR_233 Spirits of the Forest
+- [x] EDR_257 Lightmender
+- [x] EDR_263 Grace of the Greatwolf
+- [x] EDR_273 Symbiosis
+- [x] EDR_463 Twilight Influence
+- [x] EDR_490 Sleep Paralysis
+- [x] EDR_525 Barbed Thorn
+- [x] EDR_570 Ominous Nightmares
+- [x] EDR_813 Morbid Swarm
+- [x] EDR_820 Wyvern's Slumber
+- [x] EDR_843 Reforestation
+- [x] EDR_872 Spark of Life
 
 ### W4 — Wild Gods + remaining cards
 - [ ] EDR_000 Ysera, Emerald Aspect
