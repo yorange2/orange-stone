@@ -100,11 +100,11 @@
 
 ### CORE_CFM_* — 龙争虎斗加基森（6 张）
 
-- [ ] `CORE_CFM_344` Finja, the Flying Star — 5 费随从 3/5
+- [x] `CORE_CFM_344` Finja, the Flying Star — 5 费随从 3/5
 - [x] `CORE_CFM_604` Greater Healing Potion — 4 费 法术
-- [ ] `CORE_CFM_670` Mayor Noggenfogger — 9 费随从 5/4
+- [x] `CORE_CFM_670` Mayor Noggenfogger — 9 费随从 5/4
 - [ ] `CORE_CFM_753` Grimestreet Outfitter — 2 费随从 2/2
-- [ ] `CORE_CFM_781` Shaku, the Collector — 3 费随从 2/4
+- [x] `CORE_CFM_781` Shaku, the Collector — 3 费随从 2/4
 - [ ] `CORE_CFM_790` Dirty Rat — 2 费随从 2/6
 
 ### CORE_CS1_* — 基础系列（2 张）
@@ -139,7 +139,7 @@
 
 ### CORE_DAL_* — 暗影崛起（2 张）
 
-- [ ] `CORE_DAL_575` Khadgar — 2 费随从 2/2
+- [x] `CORE_DAL_575` Khadgar — 2 费随从 2/2
 - [ ] `CORE_DAL_720` Waggle Pick — 4 费武器 4/2
 
 ### CORE_DMF_* — 疯狂的暗月马戏团（2 张）
@@ -171,8 +171,8 @@
 
 ### CORE_ETC_* — 来源系列名待补（ETC）（2 张）
 
-- [ ] `CORE_ETC_111` Merch Seller — 4 费随从 3/5
-- [ ] `CORE_ETC_523` Death Metal Knight — 3 费随从 3/4
+- [x] `CORE_ETC_111` Merch Seller — 4 费随从 3/5
+- [x] `CORE_ETC_523` Death Metal Knight — 3 费随从 3/4
 
 ### CORE_EX1_* — 经典系列（55 张）
 
@@ -371,7 +371,7 @@
 
 ### CORE_TSC_* — 来源系列名待补（TSC）（2 张）
 
-- [ ] `CORE_TSC_076` Immortalized in Stone — 7 费 法术
+- [x] `CORE_TSC_076` Immortalized in Stone — 7 费 法术
 - [ ] `CORE_TSC_650` Flipper Friends — 5 费 法术
 
 ### CORE_TTN_* — 泰坦诸神（2 张）
@@ -426,7 +426,7 @@
 ### CORE_YOP_* — 来源系列名待补（YOP）（2 张）
 
 - [ ] `CORE_YOP_001` Illidari Studies — 1 费 法术
-- [ ] `CORE_YOP_034` Runaway Blackwing — 10 费随从 10/10
+- [x] `CORE_YOP_034` Runaway Blackwing — 10 费随从 10/10
 
 ## 决策记录（2026-08-08 决策轮已定）
 
