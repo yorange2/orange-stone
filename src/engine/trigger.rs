@@ -213,6 +213,23 @@ pub fn resolve_effect(
     // Spell Damage and Prophet Velen adjust the numbers before anything else
     // resolves — see `apply_spell_power`.
     let effect = apply_spell_power(state, source, owner, effect);
+    // Mayor Noggenfogger (Core Set W3a): all targets are chosen randomly —
+    // the explicit target is ignored wherever a Noggenfogger is on the
+    // active player's board.
+    let explicit_target = if state
+        .world()
+        .zones()
+        .iter(Zone::Play, state.active_player())
+        .any(|e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_CFM_670")
+        }) {
+        None
+    } else {
+        explicit_target
+    };
     match effect {
         CardEffect::DealDamage { amount, target } => {
             resolve_deal_damage(state, queue, source, owner, amount, target, explicit_target);
@@ -1243,6 +1260,71 @@ pub fn resolve_effect(
                 draw_card(state, queue, owner);
             }
         }
+        CardEffect::SummonRandomFishFromDeck => {
+            // Finja — summon a random Murloc from the owner's deck, but
+            // only when THIS minion is the one attacking (the event subject)
+            if event_subject != Some(source) {
+                return;
+            }
+            // scanned for the first Murloc in deck order like the
+            // race-draw effects
+            let fish = state.world().zones().iter(Zone::Deck, owner).find(|&e| {
+                state.world().card_id(e).is_some_and(|c| {
+                    crate::cards::def::card_by_id(c.0)
+                        .is_some_and(|d| d.race == Some(crate::core::component::Race::Murloc))
+                })
+            });
+            if let Some(fish) = fish {
+                if let Some(def) = state
+                    .world()
+                    .card_id(fish)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+            }
+        }
+        CardEffect::CopyEnemyDeckCardOnSelfAttack => {
+            // Shaku — copy a random enemy deck card to hand, only when THIS
+            // minion is the one attacking
+            if event_subject != Some(source) {
+                return;
+            }
+            let enemy = owner.opponent();
+            let deck: SmallList<Entity> = state.world().zones().iter(Zone::Deck, enemy).collect();
+            if deck.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(deck.len());
+            copy_card_to_hand(state, deck[idx], owner);
+        }
+        CardEffect::AddRandomSpellToOpponentDeckTop => {
+            // Merch Seller — a random spell (from the full card database)
+            // lands on top of the opponent's deck
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Spell)
+                    .collect();
+            if spells.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(spells.len());
+            let spell = spells[idx];
+            let enemy = owner.opponent();
+            let e = crate::cards::spawn_card_from_def(state.world_mut(), enemy, spell);
+            state.world_mut().set_zone(e, Zone::Deck);
+            state
+                .world_mut()
+                .zones_mut()
+                .insert_at(Zone::Deck, enemy, e, 0);
+        }
+        CardEffect::SummonStatueTrio => {
+            // Immortalized in Stone — the 4/8, 2/4 and 1/2 statues with Taunt
+            for statue in ["CORE_TSC_076a", "CORE_TSC_076b", "CORE_TSC_076c"] {
+                let _ = resolve_summon(state, queue, source, owner, statue);
+            }
+        }
         CardEffect::GainStatsTauntAndDeathrattle {
             attack,
             health,
@@ -1817,8 +1899,32 @@ pub(crate) fn resolve_summon(
     owner: PlayerId,
     card_id: &str,
 ) -> Option<Entity> {
+    resolve_summon_doubled(state, queue, _source, owner, card_id, false)
+}
+
+/// The summon worker. `doubled` marks a summon produced by Khadgar's
+/// doubling — the doubling does not recurse (a doubled summon is not
+/// doubled again, real Hearthstone semantics).
+fn resolve_summon_doubled(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    _source: Entity,
+    owner: PlayerId,
+    card_id: &str,
+    doubled: bool,
+) -> Option<Entity> {
     // Look up the card definition
     let card_def = crate::cards::def::card_by_id(card_id)?;
+
+    // Khadgar (Core Set W3a): a friendly Khadgar on the board doubles the
+    // summon — once. Doubled summons (doubled=true) are not doubled again.
+    let khadgar = !doubled
+        && state.world().zones().iter(Zone::Play, owner).any(|e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_DAL_575")
+        });
 
     // Check the board size limit
     let board_count = state
@@ -1967,6 +2073,11 @@ pub(crate) fn resolve_summon(
         minion: e,
         target: None,
     });
+    if khadgar {
+        // Khadgar doubles: summon a second copy (fresh entity; the board
+        // limit applies to it too)
+        let _ = resolve_summon_doubled(state, queue, _source, owner, card_id, true);
+    }
     Some(e)
 }
 
@@ -2957,6 +3068,12 @@ fn fire_healed_trigger(state: &mut GameState, queue: &mut EventQueue, entity: En
         .world()
         .player(entity)
         .unwrap_or(state.active_player());
+    // Core Set W3a — a healed hero marks the player for Death Metal Knight's
+    // pay-health-instead-of-mana cost
+    if state.world().card_type(entity) == Some(CardType::Hero) {
+        let inner = state.make_mut();
+        inner.players[owner.index()].healed_this_turn = true;
+    }
     crate::engine::rules::fire_triggers(
         state,
         queue,

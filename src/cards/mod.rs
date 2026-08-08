@@ -18,6 +18,7 @@ pub mod classic_warrior;
 pub mod core_w1;
 pub mod core_w2;
 pub mod core_w3a;
+pub mod core_w3b;
 pub mod def;
 pub mod generated;
 pub mod pool;
@@ -64,10 +65,15 @@ mod lookup_tests {
 /// (`trigger::resolve_summon`) and building cards (`GameBuilder::spawn_minion`).
 ///
 /// Pool-open triggers registered through this hook (no `CardDef` field to live
-/// in): the sets.rs closure test treats these IDs as pool-open as well.
+/// in): the sets.rs closure test treats these IDs as pool-open as well. The
+/// registration itself is per-ID in `apply_card_keywords` (Cho's AnySpellCast
+/// copy, Shaku's Attacked copy) — this list is the test's second source of
+/// truth only.
+#[allow(dead_code)] // consumed by the sets.rs registry test (cfg(test))
 pub(crate) const POOL_OPEN_KEYWORD_IDS: &[&str] = &[
     "LEGENDARY_024", // Lorewalker Cho — AnySpellCast copy trigger
     "CORE_EX1_100",  // Lorewalker Cho (Core Set W3a) — same trigger
+    "CORE_CFM_781",  // Shaku, the Collector — Attacked copy trigger (registered below)
 ];
 
 pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &CardDef) {
@@ -151,6 +157,34 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                     health: 0,
                     target: EffectTarget::Self_,
                 },
+            },
+        );
+    }
+    if card_def.id == "CORE_CFM_344" {
+        // Finja, the Flying Star — when this minion attacks, summon a random
+        // Murloc from the deck (the subject check lives in the effect)
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::Attacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::SummonRandomFishFromDeck,
+            },
+        );
+    }
+    if card_def.id == "CORE_CFM_781" {
+        // Shaku, the Collector — when this minion attacks, copy a random
+        // enemy deck card (pool-open; registered in POOL_OPEN_CARDS)
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::Attacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::CopyEnemyDeckCardOnSelfAttack,
             },
         );
     }
@@ -344,7 +378,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // Emperor Cobra — Poison
         world.set_poison(entity, Poison);
     }
-    if POOL_OPEN_KEYWORD_IDS.contains(&card_def.id) {
+    if matches!(card_def.id, "LEGENDARY_024" | "CORE_EX1_100") {
         // Lorewalker Cho — whenever a player casts a spell, put a copy into
         // the other player's hand. Pool-open (reads the cast spell — it can
         // move a card across a pool boundary); registered here by ID because

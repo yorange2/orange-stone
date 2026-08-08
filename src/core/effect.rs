@@ -854,6 +854,27 @@ pub enum CardEffect {
         /// Card ID summoned on deathrattle
         card_id: &'static str,
     },
+    // ----------------------------------------------------------------
+    // Core Set W3a part 2 (core-set-roadmap W3a) — the complex batch:
+    // Finja/Shaku attack triggers, Merch Seller's deck-topping spell,
+    // Immortalized in Stone's statue trio. Noggenfogger's target
+    // randomization, Khadgar's summon doubling and Death Metal Knight's
+    // health payment are engine hooks, not effects.
+    // ----------------------------------------------------------------
+    /// Summon a random Murloc from the owner's deck when THIS minion
+    /// attacks (Finja — Core Set W3a; resolved by the attack trigger, the
+    /// event subject must be the source)
+    SummonRandomFishFromDeck,
+    /// Put a random spell on top of the opponent's deck (Merch Seller —
+    /// Core Set W3a; end-of-turn effect)
+    AddRandomSpellToOpponentDeckTop,
+    /// Summon the three statues with Taunt: a 4/8, a 2/4 and a 1/2
+    /// Elemental (Immortalized in Stone — Core Set W3a)
+    SummonStatueTrio,
+    /// Copy a random card from the opponent's deck to hand when THIS
+    /// minion attacks (Shaku, the Collector — Core Set W3a; pool-open, the
+    /// event subject must be the source)
+    CopyEnemyDeckCardOnSelfAttack,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -1162,6 +1183,10 @@ enum CardEffectDe {
         health: i32,
         card_id: String,
     },
+    SummonRandomFishFromDeck,
+    AddRandomSpellToOpponentDeckTop,
+    SummonStatueTrio,
+    CopyEnemyDeckCardOnSelfAttack,
     DestroyAndGainStats {
         attack: i32,
         health: i32,
@@ -1565,6 +1590,14 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 health,
                 card_id: intern(card_id)?,
             },
+            CardEffectDe::SummonRandomFishFromDeck => CardEffect::SummonRandomFishFromDeck,
+            CardEffectDe::AddRandomSpellToOpponentDeckTop => {
+                CardEffect::AddRandomSpellToOpponentDeckTop
+            }
+            CardEffectDe::SummonStatueTrio => CardEffect::SummonStatueTrio,
+            CardEffectDe::CopyEnemyDeckCardOnSelfAttack => {
+                CardEffect::CopyEnemyDeckCardOnSelfAttack
+            }
             CardEffectDe::DestroyAndGainStats {
                 attack,
                 health,

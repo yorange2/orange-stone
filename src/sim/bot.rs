@@ -1315,6 +1315,11 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::GainStatsTauntAndDeathrattle { attack, health, .. } => {
             (attack + health) as f64 * 0.8 + 3.0
         }
+        // Core Set W3a part 2
+        CardEffect::SummonRandomFishFromDeck => 3.0,
+        CardEffect::AddRandomSpellToOpponentDeckTop => 2.0,
+        CardEffect::SummonStatueTrio => 5.0,
+        CardEffect::CopyEnemyDeckCardOnSelfAttack => 3.0,
     }
 }
 

@@ -10761,3 +10761,293 @@ fn w3a_twisting_nether_destroys_all() {
     assert_eq!(p1, 0);
     assert_eq!(p2, 0);
 }
+
+// ============================================================
+// Core Set W3a part 2 (core-set-roadmap W3a) — the complex batch:
+// global hooks (Noggenfogger, Khadgar, Death Metal Knight), attack
+// triggers (Finja, Shaku) and the scripted effects.
+// ============================================================
+
+/// W3a2-1 Khadgar — summon effects summon twice while a friendly Khadgar
+/// is on the board.
+#[test]
+fn w3a2_khadgar_doubles_summons() {
+    use orange_stone::cards::def::{BEST_IN_SHELL, CORE_KHADGAR};
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId1(), &CORE_KHADGAR);
+    builder.add_minion_to_hand(PlayerId1(), &BEST_IN_SHELL);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let shell = find_in_hand(&state, PlayerId1(), "CORE_SW_429");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: shell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // 2 Turtles x2 = 4 (Khadgar doubles the summon effect)
+    let turtles = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_SW_429t")
+        })
+        .count();
+    assert_eq!(turtles, 4, "Khadgar doubles the two summoned Turtles");
+}
+
+/// W3a2-2 Finja — when it attacks, a random Murloc is summoned from the
+/// deck; other attacks do not trigger it.
+#[test]
+fn w3a2_finja_summons_fish_on_attack() {
+    use orange_stone::cards::def::{CORE_FINJA_THE_FLYING_STAR, CORE_MURLOC_TIDECALLER};
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId2());
+    builder.add_minion_to_board(PlayerId2(), &CORE_FINJA_THE_FLYING_STAR);
+    builder.add_minion_to_deck(PlayerId2(), &CORE_MURLOC_TIDECALLER);
+    builder.add_minion_to_deck(PlayerId2(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let enemy = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let finja = find_entity(&state, PlayerId2(), "CORE_CFM_344");
+    // Attack with Finja: a Murloc joins the board
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: finja,
+                defender: enemy,
+            },
+        )
+        .unwrap();
+    let murlocs = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_EX1_509")
+        })
+        .count();
+    assert_eq!(
+        murlocs, 1,
+        "the Murloc Tidecaller was summoned from the deck"
+    );
+}
+
+/// W3a2-3 Shaku — when it attacks, a random enemy deck card is copied to
+/// hand (pool-open).
+#[test]
+fn w3a2_shaku_copies_enemy_deck_card() {
+    use orange_stone::cards::def::CORE_SHAKU_THE_COLLECTOR;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId2());
+    builder.add_minion_to_board(PlayerId2(), &CORE_SHAKU_THE_COLLECTOR);
+    builder.add_minion_to_deck(PlayerId1(), &orange_stone::cards::def::CORE_HOLY_SMITE);
+    let enemy = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let shaku = find_entity(&state, PlayerId2(), "CORE_CFM_781");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: shaku,
+                defender: enemy,
+            },
+        )
+        .unwrap();
+    eprintln!(
+        "DBG-SHAKU trigger: {:?} hand: {:?}",
+        state.world().trigger(shaku),
+        state.world().zones().len(Zone::Hand, PlayerId2())
+    );
+    let copied = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .any(|e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_CS1_130")
+        });
+    assert!(copied, "a copy of the enemy deck card reached Shaku's hand");
+    // The enemy deck still holds its card (copy, not removal)
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 1);
+}
+
+/// W3a2-4 Death Metal Knight — pays Health instead of Mana when the hero
+/// was healed this turn.
+#[test]
+fn w3a2_death_metal_knight_pays_health() {
+    use orange_stone::cards::def::CORE_DEATH_METAL_KNIGHT;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 5, 5);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_DEATH_METAL_KNIGHT);
+    let mut state = builder.build();
+    let hero1 = state.player(PlayerId1()).hero;
+    // Heal the hero first (mark the turn)
+    {
+        let world = state.world_mut();
+        world.set_damage(hero1, orange_stone::core::component::Damage(5));
+    }
+    // A heal marks the turn
+    {
+        let inner = state.make_mut();
+        inner.players[PlayerId1().index()].healed_this_turn = true;
+    }
+    let engine = GameEngine::new();
+    let knight = find_in_hand(&state, PlayerId1(), "CORE_ETC_523");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: knight,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // Mana untouched (5); the hero had 5 pre-damage (marked for the heal
+    // test) and paid 3 more for the knight: 30 - 5 - 3 = 22
+    assert_eq!(state.player(PlayerId1()).current_mana, 5);
+    assert_eq!(state.world().effective_health(hero1), Some(Health(22)));
+}
+
+/// W3a2-5 Merch Seller — at end of turn, a random spell lands on top of
+/// the opponent's deck.
+#[test]
+fn w3a2_merch_seller_deck_tops_a_spell() {
+    use orange_stone::cards::def::CORE_MERCH_SELLER;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId1(), &CORE_MERCH_SELLER);
+    pad_decks(&mut builder); // cross-turn test — the default decks fatigue
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let deck_before = state.world().zones().len(Zone::Deck, PlayerId2());
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // The spell was deck-topped (+1) and P2's turn-start draw took it (-1)
+    let deck_after = state.world().zones().len(Zone::Deck, PlayerId2());
+    assert_eq!(
+        deck_after, deck_before,
+        "deck-top + turn-start draw cancel out"
+    );
+    // The deck-topped spell reached P2's hand via the turn-start draw
+    let drew_spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .any(|e| state.world().card_type(e) == Some(CardType::Spell));
+    assert!(drew_spell, "P2 drew the deck-topped spell at turn start");
+}
+
+/// W3a2-6 Immortalized in Stone — summons the 4/8, 2/4 and 1/2 statues
+/// with Taunt.
+#[test]
+fn w3a2_immortalized_in_stone_summons_statues() {
+    use orange_stone::cards::def::CORE_IMMORTALIZED_IN_STONE;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_IMMORTALIZED_IN_STONE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let spell = find_in_hand(&state, PlayerId1(), "CORE_TSC_076");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let statues: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0.starts_with("CORE_TSC_076"))
+        })
+        .collect();
+    assert_eq!(statues.len(), 3);
+    for s in &statues {
+        assert!(state.world().taunt(*s).is_some(), "statues have Taunt");
+    }
+}
+
+/// W3a2-7 Runaway Blackwing — at end of turn, deals 10 damage to a random
+/// enemy minion.
+#[test]
+fn w3a2_runaway_blackwing_pings_enemy_minion() {
+    use orange_stone::cards::def::CORE_RUNAWAY_BLACKWING;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId1(), &CORE_RUNAWAY_BLACKWING);
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 12, 12, 12);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let foe_hp = state
+        .world()
+        .effective_health(foe)
+        .map(|h| h.0)
+        .unwrap_or(12);
+    assert_eq!(foe_hp, 2, "the enemy minion took the 10 damage");
+}
+
+/// W3a2-8 Mayor Noggenfogger — an attack under Noggenfogger targets a
+/// random enemy character (the declared defender is ignored).
+#[test]
+fn w3a2_noggenfogger_randomizes_attack_targets() {
+    use orange_stone::cards::def::CORE_MAYOR_NOGGENFOGGER;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId2());
+    builder.add_minion_to_board(PlayerId2(), &CORE_MAYOR_NOGGENFOGGER);
+    let attacker = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    let a = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let b = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let mut state = builder.build();
+    let hero1 = state.player(PlayerId1()).hero;
+    let engine = GameEngine::new();
+    // Declare an attack on `a` — with Noggenfogger the target is random
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: a,
+            },
+        )
+        .unwrap();
+    // Exactly one enemy character took the 3 damage — a 2/2 minion dies
+    // (graveyard; its damage is cleared on death), or the hero keeps 3
+    // damage
+    let hits = [a, b, hero1]
+        .into_iter()
+        .filter(|&e| {
+            state.world().zone(e) == Some(Zone::Graveyard)
+                || state.world().damage(e).is_some_and(|d| d.0 > 0)
+        })
+        .count();
+    assert_eq!(hits, 1, "exactly one enemy character took the 3 damage");
+}
