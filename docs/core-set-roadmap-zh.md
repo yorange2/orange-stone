@@ -220,7 +220,7 @@
 - [x] `CORE_EX1_362` Argent Protector — 2 费随从 3/2
 - [x] `CORE_EX1_383` Tirion Fordring — 8 费随从 8/8
 - [x] `CORE_EX1_391` Slam — 1 费 法术
-- [ ] `CORE_EX1_414` Grommash Hellscream — 8 费随从 4/9
+- [x] `CORE_EX1_414` Grommash Hellscream — 8 费随从 4/9
 - [x] `CORE_EX1_506` Murloc Tidehunter — 2 费随从 2/1
 - [x] `CORE_EX1_506a` Murloc Scout — 1 费随从 1/1
 - [x] `CORE_EX1_507` Murloc Warleader — 3 费随从 3/3
@@ -303,7 +303,7 @@
 - [x] `CORE_OG_047` Feral Rage — 3 费 法术
 - [x] `CORE_OG_149` Ravaging Ghoul — 3 费随从 3/3
 - [x] `CORE_OG_211` Call of the Wild — 8 费 法术
-- [ ] `CORE_OG_218` Bloodhoof Brave — 4 费随从 2/6
+- [x] `CORE_OG_218` Bloodhoof Brave — 4 费随从 2/6
 
 ### CORE_ONY_* — 奥妮克希亚的巢穴（迷你）（2 张）
 
@@ -539,7 +539,7 @@ CORE 卡生成静态 const，引擎缺失 RUSH/LIFESTEAL/TRADEABLE/OUTCAST/REBOR
   CORE_CS2_028 CORE_DS1_184 CORE_EX1_131 CORE_EX1_134 CORE_EX1_154 CORE_EX1_160
   CORE_EX1_238 CORE_EX1_250 CORE_EX1_259 CORE_GIL_836 CORE_OG_047 CORE_ONY_018
   CORE_TSC_650 CORE_WON_350 CORE_YOP_001`
-- **W7 — 激怒收尾（2 张 + F5）：** `CORE_EX1_414 CORE_OG_218`
+- **W7 — 激怒收尾（2 张 + F5）✅（PR #127，2026-08-08）：** 格罗玛什·地狱咆哮（8 费 4/9，冲锋，激怒 +6——沿用 §13 的读取式 Enrage，治愈失效）与血蹄勇士（4 费 2/6，嘲讽，激怒 +3）。 `CORE_EX1_414 CORE_OG_218`
 - **W8 — 特殊类型（6 张 + F5）：** 推迟的英雄卡（CORE_EX1_323 贾拉克瑟斯——英雄
   替换原语）、地点卡（CORE_REV_990 猩红之渊——`CardType::Location` 原语）、
   ENCHANTMENT 卡（CORE_CATA_006e CORE_CS2_039e CORE_EDR_002e）与 Imp 衍生物

@@ -225,7 +225,7 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_EX1_362` Argent Protector — 2 费随从 3/2
 - [x] `CORE_EX1_383` Tirion Fordring — 8 费随从 8/8
 - [x] `CORE_EX1_391` Slam — 1 费 法术
-- [ ] `CORE_EX1_414` Grommash Hellscream — 8 费随从 4/9
+- [x] `CORE_EX1_414` Grommash Hellscream — 8 费随从 4/9
 - [x] `CORE_EX1_506` Murloc Tidehunter — 2 费随从 2/1
 - [x] `CORE_EX1_506a` Murloc Scout — 1 费随从 1/1
 - [x] `CORE_EX1_507` Murloc Warleader — 3 费随从 3/3
@@ -308,7 +308,7 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_OG_047` Feral Rage — 3 费 法术
 - [x] `CORE_OG_149` Ravaging Ghoul — 3 费随从 3/3
 - [x] `CORE_OG_211` Call of the Wild — 8 费 法术
-- [ ] `CORE_OG_218` Bloodhoof Brave — 4 费随从 2/6
+- [x] `CORE_OG_218` Bloodhoof Brave — 4 费随从 2/6
 
 ### CORE_ONY_* — 奥妮克希亚的巢穴（迷你）（2 张）
 
@@ -596,7 +596,7 @@ the same card under two IDs (re-check during W4a).
   CORE_EX1_134 CORE_EX1_154 CORE_EX1_160 CORE_EX1_238 CORE_EX1_250
   CORE_EX1_259 CORE_GIL_836 CORE_OG_047 CORE_ONY_018 CORE_TSC_650
   CORE_WON_350 CORE_YOP_001`
-- **W7 — enrage finish (2 + F5):** `CORE_EX1_414 CORE_OG_218`
+- **W7 — enrage finish (2 + F5) ✅ (PR #127, 2026-08-08):** Grommash Hellscream (8/4/9, Charge, Enrage +6) and Bloodhoof Brave (4/2/6, Taunt, Enrage +3) — both ride the read-based Enrage component (fidelity-debt §13). `CORE_EX1_414 CORE_OG_218`
 - **W8 — special types (6 + F5):** the deferred HERO (CORE_EX1_323 Lord
   Jaraxxus — hero replacement primitive), LOCATION (CORE_REV_990 Sanguine
   Depths — `CardType::Location` primitive), ENCHANTMENT cards (CORE_CATA_006e
