@@ -27,6 +27,7 @@ use super::core_w5::*;
 use super::core_w6::*;
 use super::core_w7::*;
 use super::core_w8::*;
+use super::generated::*;
 // ============================================================
 // Card lists
 // ============================================================
@@ -1659,6 +1660,16 @@ pub const ALL_CARDS: &[CardDef] = &[
     CORE_INFERNAL,
 ];
 
+/// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated
+/// baselines, engine-available via `card_by_id` (deck building) but **not**
+/// part of `ALL_CARDS`: the sampling pools keep the current training window
+/// (Classic-era + Core) until the single cut-over (decision D3), and effect
+/// waves (M1+) replace members with hand-written consts in the per-set files.
+/// The generated group consts (`generated::EMERALD_DREAM_CARDS`, …) enumerate
+/// per-set membership; `generated::card_set` powers the window filters.
+pub const EXPANSION_CARDS: &[CardDef] =
+    &include!(concat!(env!("OUT_DIR"), "/cards_expansion_list.rs"));
+
 // ============================================================
 // Pool-open registry
 // ============================================================
@@ -1667,11 +1678,13 @@ pub const ALL_CARDS: &[CardDef] = &[
 /// without that card having been sampled from a pool `cards/pool.rs` controls:
 /// they read the opponent's actual hand/deck, or copy a cast spell.
 ///
-/// The Classic pool is closed today (`ALL_CARDS` is Classic-only, so anything
-/// in the opponent's zones is already in the pool), but this registry keeps the
-/// closure invariant auditable for the day a second set is supported: the
-/// zone-reading effect variants may appear only on registered cards (enforced
-/// by `pool_open_effects_require_registry` in `trigger.rs`), and any new
+/// The active sampling pool is closed today — every sampling pool is a
+/// filtered subset of the active window (Classic-era + Core, enforced via
+/// `cards::pool::in_active_window`, 2025–2026 expansions M0.3), so anything
+/// in the opponent's zones within that window is already in the pool. This
+/// registry keeps the closure invariant auditable: the zone-reading effect
+/// variants may appear only on registered cards (enforced by
+/// `pool_open_effects_require_registry` in `trigger.rs`), and any new
 /// zone-reading card must register here first. See `docs/pool-openness.md`.
 pub const POOL_OPEN_CARDS: &[&str] = &[
     // Pool-open (pool-open-cards-roadmap M2/M3) — read the opponent's

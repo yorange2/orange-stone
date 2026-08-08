@@ -42,13 +42,17 @@ use crate::core::player::PlayerId;
 use crate::core::world::World;
 use def::CardDef;
 
-/// Looks up a card by its ID (first match in `ALL_CARDS`, which deduplicates IDs).
+/// Looks up a card by its ID (first match in `ALL_CARDS`, which deduplicates
+/// IDs; falls back to the 2025–2026 expansion baselines `EXPANSION_CARDS`).
 ///
 /// Used by the RL environment and Python bindings to build explicit decks
 /// (roadmap M1-G2); `None` for unknown IDs.
 #[must_use]
 pub fn card_by_id(id: &str) -> Option<&'static CardDef> {
-    sets::ALL_CARDS.iter().find(|c| c.id == id)
+    sets::ALL_CARDS
+        .iter()
+        .find(|c| c.id == id)
+        .or_else(|| sets::EXPANSION_CARDS.iter().find(|c| c.id == id))
 }
 
 #[cfg(test)]
@@ -1013,6 +1017,10 @@ mod generated_tests {
             "Laughing Sister" => &["cost"],
             "Huffer" => &["charge", "health"],
             "Leokk" => &["attack", "health"],
+            // 2025–2026 expansions M0.3: Core Set reprints of expansion
+            // originals are rebalances by design — Babbling Bookcase is the
+            // 2/4 Core version of the original 3/3 EDR_001.
+            "Babbling Bookcase" => &["attack", "health"],
             _ => &[],
         };
         fields.contains(&field)
@@ -1090,14 +1098,27 @@ mod generated_tests {
         );
     }
 
+    /// Whether a Core Set reprint of an expansion original is a documented
+    /// rebalance (2025–2026 expansions M0.3): the Core version may differ
+    /// from the original by design, e.g. Babbling Bookcase 2/4 vs 3/3.
+    fn core_reprint_rebalanced(id: &str, field: &str) -> bool {
+        match id {
+            "CORE_EDR_001" => ["attack", "health"].contains(&field),
+            _ => false,
+        }
+    }
+
     /// Core Set reprint fidelity (decision D2, 2026-08-08): every generated
     /// `CORE_<P>_<n>` card whose classic-era original `<P>_<n>` exists in the
     /// generated database must agree with it on the statically representable
     /// fields — the Core version is a reprint, not a rebalance (verified
-    /// 2026-08-08: all 90 reprint pairs in `cards.json` match exactly).
+    /// 2026-08-08: all 90 classic reprint pairs in `cards.json` match
+    /// exactly). Reprints of 2025–2026 expansion originals are Core
+    /// rebalances by design and land in `core_reprint_rebalanced`.
     #[test]
     fn core_reprints_match_originals() {
         let mut pairs = 0;
+        let mut rebalanced = 0;
         for id in generated::GENERATED_IDS {
             let Some(original_id) = id.strip_prefix("CORE_") else {
                 continue; // not a Core Set card
@@ -1109,50 +1130,41 @@ mod generated_tests {
                 continue; // no classic-era original (e.g. CORE_AV_* from newer sets)
             };
             pairs += 1;
-            assert_eq!(
-                core_card.card_type, original.card_type,
-                "card_type mismatch: {id} vs {original_id}"
-            );
-            assert_eq!(
-                core_card.cost, original.cost,
-                "cost mismatch: {id} vs {original_id}"
-            );
-            assert_eq!(
-                core_card.attack, original.attack,
-                "attack mismatch: {id} vs {original_id}"
-            );
-            assert_eq!(
-                core_card.health, original.health,
-                "health mismatch: {id} vs {original_id}"
-            );
-            assert_eq!(
-                core_card.durability, original.durability,
-                "durability mismatch: {id} vs {original_id}"
-            );
-            assert_eq!(
-                core_card.taunt, original.taunt,
-                "taunt mismatch: {id} vs {original_id}"
-            );
-            assert_eq!(
-                core_card.divine_shield, original.divine_shield,
-                "divine_shield mismatch: {id} vs {original_id}"
-            );
-            assert_eq!(
-                core_card.windfury, original.windfury,
-                "windfury mismatch: {id} vs {original_id}"
-            );
-            assert_eq!(
-                core_card.charge, original.charge,
-                "charge mismatch: {id} vs {original_id}"
-            );
-            assert_eq!(
-                core_card.spell_damage, original.spell_damage,
-                "spell_damage mismatch: {id} vs {original_id}"
-            );
+            for (field, compare) in [
+                ("card_type", core_card.card_type == original.card_type),
+                ("cost", core_card.cost == original.cost),
+                ("attack", core_card.attack == original.attack),
+                ("health", core_card.health == original.health),
+                ("durability", core_card.durability == original.durability),
+                ("taunt", core_card.taunt == original.taunt),
+                (
+                    "divine_shield",
+                    core_card.divine_shield == original.divine_shield,
+                ),
+                ("windfury", core_card.windfury == original.windfury),
+                ("charge", core_card.charge == original.charge),
+                (
+                    "spell_damage",
+                    core_card.spell_damage == original.spell_damage,
+                ),
+            ] {
+                if compare {
+                    continue;
+                }
+                assert!(
+                    core_reprint_rebalanced(id, field),
+                    "{field} mismatch: {id} vs {original_id} (rebalance not documented)"
+                );
+                rebalanced += 1;
+            }
         }
         assert!(
             pairs > 50,
             "reprint-pair coverage should cover the Classic reprints (got {pairs})"
+        );
+        assert!(
+            rebalanced < 10,
+            "too many undocumented Core rebalances (got {rebalanced})"
         );
     }
 
@@ -1201,5 +1213,74 @@ mod generated_tests {
             generated::find_by_id("CORE_AT_037").map(|c| c.race),
             Some(None) // Living Roots — untribed spell
         );
+    }
+
+    /// 2025–2026 expansions M0.3 — per-set registration: the generated group
+    /// consts enumerate the dumped card counts, `card_set` maps every
+    /// expansion ID to its set, and `EXPANSION_CARDS` is engine-available via
+    /// `card_by_id` while staying out of the sampling pools.
+    #[test]
+    fn expansion_sets_registered() {
+        use crate::cards::def::CardSet;
+        use crate::cards::sets;
+
+        assert_eq!(generated::EMERALD_DREAM_CARDS.len(), 183);
+        assert_eq!(generated::THE_LOST_CITY_CARDS.len(), 183);
+        assert_eq!(generated::TIME_TRAVEL_CARDS.len(), 183);
+        assert_eq!(generated::CATACLYSM_CARDS.len(), 164);
+        assert_eq!(generated::ESCAPEFROM_VIOLET_HOLD_CARDS.len(), 135);
+        assert_eq!(sets::EXPANSION_CARDS.len(), 848);
+
+        assert_eq!(generated::card_set("EDR_000"), CardSet::EmeraldDream);
+        assert_eq!(generated::card_set("DINO_130"), CardSet::TheLostCity);
+        assert_eq!(generated::card_set("END_000"), CardSet::TimeTravel);
+        assert_eq!(generated::card_set("CATA_111"), CardSet::Cataclysm);
+        assert_eq!(
+            generated::card_set("JAIL_007"),
+            CardSet::EscapeFromVioletHold
+        );
+
+        // Engine-wide availability via card_by_id …
+        assert!(crate::cards::card_by_id("EDR_000").is_some());
+        assert!(crate::cards::card_by_id("JAIL_007").is_some());
+        // … without entering ALL_CARDS (the sampling pools keep the current
+        // training window until the D3 cut-over).
+        assert!(!sets::ALL_CARDS.iter().any(|c| c.id == "EDR_000"));
+        assert!(!sets::ALL_CARDS.iter().any(|c| c.id == "JAIL_007"));
+    }
+
+    /// 2025–2026 expansions M0.3 — D3 window filters: `is_standard` marks
+    /// Core + the five expansions; every pool-sampled card stays inside the
+    /// current training window (Classic-era + Core).
+    #[test]
+    fn sampling_pools_keep_current_window() {
+        use crate::cards::pool;
+        use crate::core::effect::RandomPool;
+
+        let edr = crate::cards::card_by_id("EDR_000").expect("expansion card");
+        let core = generated::find_by_id("CORE_AT_037").expect("core card");
+        let classic = generated::find_by_id("CS2_172").expect("classic card");
+        assert!(pool::is_standard(edr));
+        assert!(pool::is_standard(&core));
+        assert!(!pool::is_standard(&classic));
+
+        for pool_kind in [
+            RandomPool::Beast,
+            RandomPool::Demon,
+            RandomPool::Dragon,
+            RandomPool::Mechanical,
+            RandomPool::Spell,
+            RandomPool::Legendary,
+            RandomPool::MageSpell,
+            RandomPool::ShadowSpell,
+            RandomPool::OtherClass,
+        ] {
+            let cards = pool::pool_cards(pool_kind);
+            assert!(
+                cards.iter().all(|c| !pool::is_expansion(c)),
+                "{pool_kind:?} leaked an expansion card: {:?}",
+                cards.iter().find(|c| pool::is_expansion(c)).map(|c| c.id)
+            );
+        }
     }
 }

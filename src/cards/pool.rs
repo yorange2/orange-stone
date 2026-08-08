@@ -1,23 +1,70 @@
-//! Random pools — filtered sampling from the Classic pool.
+//! Random pools — filtered sampling from the active card window.
 //!
-//! Pool closure is guaranteed: every sampling pool is a filtered subset of `ALL_CARDS`
-//! (all Classic cards) or built-in token pools, so no cards outside the Classic set are introduced.
+//! Pool closure is guaranteed: every sampling pool is a filtered subset of the
+//! active window (`ALL_CARDS` ∩ `in_active_window`, i.e. Classic-era + Core as
+//! of 2025–2026 expansions M0.3) or built-in token pools, so no cards outside
+//! the active window are introduced.
 //!
 //! Beast/Demon pools are field-driven (fidelity-debt W1): `CardDef.race` decides
 //! membership, so the pools stay in sync with the card data automatically.
 //! Legendary/class filtering is computed dynamically from the group lists in `sets`.
 
-use crate::cards::def::{CardDef, card_by_id};
+use crate::cards::def::{CardDef, CardSet, card_by_id};
 use crate::core::component::{CardType, Race};
 use crate::core::effect::RandomPool;
 use crate::core::player::PlayerId;
 use crate::sim::rng::GameRng;
 
-/// All Classic cards of the given race (field-driven — `CardDef.race`).
+/// Whether the card is inside the active sampling window (decision D3,
+/// 2025–2026 expansions M0.3): the current training pool (Classic-era + Core).
+///
+/// The 2025–2026 expansion cards are engine-available via `ALL_CARDS` but are
+/// **not** sampled until the single cut-over — at which point this predicate
+/// flips to the Standard window (`CardSet::Core | the five expansions`, see
+/// `is_standard`).
+fn in_active_window(card: &CardDef) -> bool {
+    matches!(
+        crate::cards::generated::card_set(card.id),
+        CardSet::Classic | CardSet::Core
+    )
+}
+
+/// Whether the card belongs to the Standard window (decision D3): Core + the
+/// five 2025–2026 expansions. This is the future training pool; today it only
+/// drives explicit filters, never the sampling pools.
+#[must_use]
+pub fn is_standard(card: &CardDef) -> bool {
+    matches!(
+        crate::cards::generated::card_set(card.id),
+        CardSet::Core
+            | CardSet::EmeraldDream
+            | CardSet::TheLostCity
+            | CardSet::TimeTravel
+            | CardSet::Cataclysm
+            | CardSet::EscapeFromVioletHold
+    )
+}
+
+/// Whether the card belongs to one of the five 2025–2026 expansions — the
+/// cards excluded from the sampling pools until the D3 cut-over.
+#[must_use]
+pub fn is_expansion(card: &CardDef) -> bool {
+    matches!(
+        crate::cards::generated::card_set(card.id),
+        CardSet::EmeraldDream
+            | CardSet::TheLostCity
+            | CardSet::TimeTravel
+            | CardSet::Cataclysm
+            | CardSet::EscapeFromVioletHold
+    )
+}
+
+/// All cards of the given race inside the active window (field-driven —
+/// `CardDef.race`).
 fn race_pool(race: Race) -> Vec<&'static CardDef> {
     crate::cards::sets::ALL_CARDS
         .iter()
-        .filter(|c| c.race == Some(race))
+        .filter(|c| c.race == Some(race) && in_active_window(c))
         .collect()
 }
 
@@ -100,6 +147,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
                     && crate::cards::sets::LEGENDARY_CLASSIC
                         .iter()
                         .any(|l| l.id == c.id)
+                    && in_active_window(c)
             })
             .copied()
             .collect::<Vec<CardDef>>()
@@ -113,6 +161,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
                     && crate::cards::sets::MAGE_CLASSIC
                         .iter()
                         .any(|m| m.id == c.id)
+                    && in_active_window(c)
             })
             .copied()
             .collect::<Vec<CardDef>>()
@@ -121,7 +170,9 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .collect(),
         RandomPool::ShadowSpell => crate::cards::sets::ALL_CARDS
             .iter()
-            .filter(|c| c.card_type == CardType::Spell && c.name.contains("Shadow"))
+            .filter(|c| {
+                c.card_type == CardType::Spell && c.name.contains("Shadow") && in_active_window(c)
+            })
             .copied()
             .collect::<Vec<CardDef>>()
             .iter()
@@ -129,7 +180,9 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .collect(),
         RandomPool::Spell => crate::cards::sets::ALL_CARDS
             .iter()
-            .filter(|c| c.card_type == crate::core::component::CardType::Spell)
+            .filter(|c| {
+                c.card_type == crate::core::component::CardType::Spell && in_active_window(c)
+            })
             .copied()
             .collect::<Vec<CardDef>>()
             .iter()
@@ -137,7 +190,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .collect(),
         RandomPool::OtherClass => crate::cards::sets::ALL_CARDS
             .iter()
-            .filter(|c| is_other_class_card(c))
+            .filter(|c| is_other_class_card(c) && in_active_window(c))
             .copied()
             .collect::<Vec<CardDef>>()
             .iter()
@@ -189,7 +242,7 @@ fn random_filtered(
 ) -> Option<&'static CardDef> {
     let pool: Vec<&CardDef> = crate::cards::sets::ALL_CARDS
         .iter()
-        .filter(|c| predicate(c))
+        .filter(|c| predicate(c) && in_active_window(c))
         .collect();
     if pool.is_empty() {
         return None;
