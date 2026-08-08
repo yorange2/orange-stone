@@ -165,6 +165,27 @@ pub const FROST_RUNE_POOL: &[&str] = &[
     "TLC_440", // (W1 — Frost Rune Death Knight card)
 ];
 
+/// The Mask pool — Costume Merchant's "get a random Mask from another
+/// class" (2025–2026 expansions M2-W4c): all five Masks are non-Rogue, so
+/// the "from another class" filter leaves the full set. The fixed table is
+/// the D2 random simplification (fidelity-debt §19).
+pub const MASK_POOL: &[&str] = &[
+    "DINO_402", // Bat Mask (Warlock)
+    "DINO_403", // Devilsaur Mask (Hunter)
+    "DINO_428", // Behemoth Mask (Priest)
+    "DINO_429", // Sheep Mask (Mage)
+    "DINO_432", // Panther Mask (Druid)
+];
+
+/// The multi-tribe minion pool — Tortotem's "get a random minion with
+/// multiple minion types" (2025–2026 expansions M2-W4c). The engine models
+/// a second tribe per-card in apply_card_keywords; filtering the active
+/// window for cards that carry two tribes yields exactly one minion —
+/// Mythical Terror (Core Set). The fixed table is the D2 random
+/// simplification (fidelity-debt §19) — the pool-closure invariant (a
+/// fixed pool is a subset of the active window) holds.
+pub const MULTI_TRIBE_MINION_POOL: &[&str] = &["CORE_TTN_866"]; // Mythical Terror
+
 /// Card rarity (2025–2026 expansions M2-W4a — Relic Miner's "Discover a
 /// card of the same Rarity" pool). The engine has no rarity model; the
 /// table below is the static extraction of the official dump.

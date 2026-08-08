@@ -2092,6 +2092,61 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_tlc_w4b::ENTOMOLOGIST_TORU,
     // M2-W4b tokens (handwritten only — no generated baselines)
     super::exp_tlc_w4b::CALL_THE_THRESHFLEET,
+    // M2-W4c — the Festival of the Devilsaur miniset
+    // (src/cards/exp_tlc_w4c.rs): all 38 DINO_* collectible cards + the 3
+    // collectible tokens. Full implementations: Longneck Egg, Possessed
+    // Animancer, Asphyxiodon, Skittish Saucier, Diabolus Rex, Barricade
+    // Basher, The Great Dracorex, Firegill, Crystal Tusk, Holy Eggbearer,
+    // Tortotem, Chillspine Stegodon, Hollow Direhorn, Soulrest Ceremony,
+    // Herbivore Assistant, Seismopod, Ankylodon, Costume Merchant,
+    // Raptor-Nest Nurse, Crater Experiment, the masks (Bat/Devilsaur/
+    // Behemoth/Sheep/Panther), Hatching Ceremony, Fire Breath, Horn of
+    // Feasting. Simplified (§19): Mirrex, Techysaurus, The Egg of Khelos,
+    // Tribute Dance, Beast Speaker Taka + the D2 random Discover/random
+    // summons (Story of Umbra, Hero's Welcome, Ritual of Life, Atlasaurus,
+    // Guard Duty).
+    super::exp_tlc_w4c::LONGNECK_EGG,
+    super::exp_tlc_w4c::POSSESSED_ANIMANCER,
+    super::exp_tlc_w4c::ASPHYXIODON,
+    super::exp_tlc_w4c::SKITTISH_SAUCIER,
+    super::exp_tlc_w4c::DIABOLUS_REX,
+    super::exp_tlc_w4c::BARRICADE_BASHER,
+    super::exp_tlc_w4c::THE_GREAT_DRACOREX,
+    super::exp_tlc_w4c::FIREGILL,
+    super::exp_tlc_w4c::MIRREX_THE_CRYSTALLINE,
+    super::exp_tlc_w4c::TECHYSAURUS,
+    super::exp_tlc_w4c::THE_EGG_OF_KHELOS,
+    super::exp_tlc_w4c::HOLY_EGGBEARER,
+    super::exp_tlc_w4c::TORTOTEM,
+    super::exp_tlc_w4c::CHILLSPINE_STEGODON,
+    super::exp_tlc_w4c::HOLLOW_DIREHORN,
+    super::exp_tlc_w4c::HERBIVORE_ASSISTANT,
+    super::exp_tlc_w4c::SEISMOPOD,
+    super::exp_tlc_w4c::ANKYLODON,
+    super::exp_tlc_w4c::COSTUME_MERCHANT,
+    super::exp_tlc_w4c::BEAST_SPEAKER_TAKA,
+    super::exp_tlc_w4c::ATLASAURUS,
+    super::exp_tlc_w4c::RAPTOR_NEST_NURSE,
+    super::exp_tlc_w4c::CRATER_EXPERIMENT,
+    super::exp_tlc_w4c::HORN_OF_FEASTING,
+    super::exp_tlc_w4c::BAT_MASK,
+    super::exp_tlc_w4c::DEVILSAUR_MASK,
+    super::exp_tlc_w4c::HATCHING_CEREMONY,
+    super::exp_tlc_w4c::FIRE_BREATH,
+    super::exp_tlc_w4c::TRIBUTE_DANCE,
+    super::exp_tlc_w4c::STORY_OF_UMBRA,
+    super::exp_tlc_w4c::SOULREST_CEREMONY,
+    super::exp_tlc_w4c::HEROS_WELCOME,
+    super::exp_tlc_w4c::RITUAL_OF_LIFE,
+    super::exp_tlc_w4c::BEHEMOTH_MASK,
+    super::exp_tlc_w4c::SHEEP_MASK,
+    super::exp_tlc_w4c::PANTHER_MASK,
+    super::exp_tlc_w4c::GUARD_DUTY,
+    super::exp_tlc_w4c::CRYSTAL_TUSK,
+    // M2-W4c tokens (handwritten only — no generated baselines)
+    super::exp_tlc_w4c::LITTLE_LONGNECK,
+    super::exp_tlc_w4c::RAVENOUS_RAPTOR,
+    super::exp_tlc_w4c::KHELOS,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated

@@ -38,6 +38,7 @@ pub mod exp_tlc_w2;
 pub mod exp_tlc_w3;
 pub mod exp_tlc_w4a;
 pub mod exp_tlc_w4b;
+pub mod exp_tlc_w4c;
 pub mod generated;
 pub mod kindred;
 pub mod pool;
@@ -143,6 +144,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "TLC_436" // Reanimated Pterrordax (M2-W4a)
         | "TLC_520" // Underbrush Tracker (M2-W4a)
         | "TLC_630" // Gorishi Wasp (M2-W4a)
+        | "DINO_136t" // Ravenous Raptor (M2-W4c — Horn of Feasting token)
     ) {
         world.set_rush(entity, Rush);
     }
@@ -226,6 +228,42 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
     if card_def.id == "TLC_482" {
         // Slagclaw — Elemental + Dragon
         world.add_race(entity, crate::core::component::Race::Dragon);
+    }
+    // M2-W4c dual tribes — the Festival of the Devilsaur wave (the same
+    // convention: the CardDef carries the first dump-listed race, the
+    // second tribe lands here — the Kindred cards' race matches the
+    // registry in cards/kindred.rs)
+    if card_def.id == "DINO_132" {
+        // Asphyxiodon — Demon + Beast
+        world.add_race(entity, crate::core::component::Race::Beast);
+    }
+    if card_def.id == "DINO_138" {
+        // Diabolus Rex — Demon + Beast
+        world.add_race(entity, crate::core::component::Race::Beast);
+    }
+    if card_def.id == "DINO_401" {
+        // The Great Dracorex — Beast + Dragon
+        world.add_race(entity, crate::core::component::Race::Dragon);
+    }
+    if card_def.id == "DINO_404" {
+        // Firegill — Elemental + Murloc
+        world.add_race(entity, crate::core::component::Race::Murloc);
+    }
+    if card_def.id == "DINO_407" {
+        // Mirrex, the Crystalline — Elemental + Beast
+        world.add_race(entity, crate::core::component::Race::Beast);
+    }
+    if card_def.id == "DINO_409" {
+        // Techysaurus — Mechanical + Beast
+        world.add_race(entity, crate::core::component::Race::Beast);
+    }
+    if card_def.id == "DINO_413" {
+        // Chillspine Stegodon — Elemental + Beast
+        world.add_race(entity, crate::core::component::Race::Beast);
+    }
+    if card_def.id == "DINO_416" {
+        // Hollow Direhorn — Undead + Beast
+        world.add_race(entity, crate::core::component::Race::Beast);
     }
     // M1-W4b per-card triggers — the Wild Gods wave:
     // - Omen (EDR_421): every attack improves his deathrattle (the
@@ -399,6 +437,38 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 race: None,
                 max_attack: None,
                 effect: CardEffect::NiriOfTheCrater,
+            },
+        );
+    }
+    // M2-W4c per-card triggers — the Festival of the Devilsaur wave:
+    // - The Great Dracorex (DINO_401): "after this attacks an enemy
+    //   minion, it damages ALL other enemy minions" — the new
+    //   AttackedEnemyMinion event (friendly scope, the DEFENDER as the
+    //   subject so the splash can exclude the attacked minion, not pinned
+    //   — the trigger rides the Dracorex);
+    // - Hollow Direhorn (DINO_416): "after a friendly minion dies, spend
+    //   3 Corpses to gain Reborn" — a plain FriendlyMinionDied trigger.
+    if card_def.id == "DINO_401" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::AttackedEnemyMinion,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::DracorexSplash,
+            },
+        );
+    }
+    if card_def.id == "DINO_416" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionDied,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::SpendCorpsesGainReborn { amount: 3 },
             },
         );
     }

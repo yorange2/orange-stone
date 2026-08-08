@@ -15879,6 +15879,20 @@ fn first_hand_card(state: &GameState, player: orange_stone::core::player::Player
         .expect("a card in hand")
 }
 
+/// The card with the given id in `player`'s hand.
+fn find_hand_card(
+    state: &GameState,
+    player: orange_stone::core::player::PlayerId,
+    card_id: &str,
+) -> Entity {
+    state
+        .world()
+        .zones()
+        .iter(Zone::Hand, player)
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == card_id))
+        .expect("entity with card id in hand")
+}
+
 /// The `player`'s minions in play (heroes are not minions).
 fn board_minions(state: &GameState, player: orange_stone::core::player::PlayerId) -> Vec<Entity> {
     state
@@ -26518,5 +26532,774 @@ fn tlc_w4b_osk_toru_smoke_pins() {
         state.world().zones().len(Zone::Hand, p1),
         0,
         "nothing else was generated"
+    );
+}
+
+// ============================================================
+// M2-W4c — Festival of the Devilsaur (F5 scenarios).
+// ============================================================
+
+/// TLC_W4C-1 — Diabolus Rex: with the Kindred (Demon) condition met,
+/// deal 6 damage to the opponent's left- and right-most minions only —
+/// the middle of the enemy board survives untouched.
+#[test]
+fn tlc_w4c_diabolus_rex_hits_edge_minions() {
+    use orange_stone::cards::classic_warlock::VOIDWALKER;
+    use orange_stone::cards::exp_tlc_w4c::DIABOLUS_REX;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    // Three enemy minions — the edges are the two first-in-board-order.
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &VOIDWALKER)
+        .add_minion_to_hand(p1, &DIABOLUS_REX);
+    builder.add_custom_minion_to_board(p2, 5, 5, 3);
+    builder.add_custom_minion_to_board(p2, 5, 5, 3);
+    builder.add_custom_minion_to_board(p2, 5, 5, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // The Voidwalker is the earlier Demon that activates the Kindred.
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    let survivors = board_minions(&state, p2);
+    assert_eq!(survivors.len(), 1, "the two edge minions died to 6 each");
+    assert_eq!(
+        state.world().effective_health(survivors[0]),
+        Some(Health(5)),
+        "the middle minion was not hit"
+    );
+    // Without an earlier Demon play the Kindred is inactive: a fresh
+    // Rex deals nothing.
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &DIABOLUS_REX);
+    builder.add_custom_minion_to_board(p2, 5, 5, 3);
+    builder.add_custom_minion_to_board(p2, 5, 5, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        board_minions(&state, p2).len(),
+        2,
+        "no activation, no damage"
+    );
+}
+
+/// TLC_W4C-2 — Firegill: with the Kindred (Elemental) condition met,
+/// the owner's OTHER minions gain Rush — the Kindred card itself does
+/// not.
+#[test]
+fn tlc_w4c_firegill_gives_others_rush() {
+    use orange_stone::cards::classic_neutral::WISP;
+    use orange_stone::cards::exp_tlc_w4c::FIREGILL;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &FIREGILL)
+        .add_minion_to_hand(p1, &FIREGILL);
+    builder.add_minion_to_board(p1, &WISP);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // First Firegill: only one Elemental played — no activation.
+    play_front_card(&mut state, &engine, p1);
+    // Second Firegill: two Elementals this turn — the Kindred fires and
+    // gives the OTHER minions (the Wisp and the first Firegill) Rush.
+    play_front_card(&mut state, &engine, p1);
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 3);
+    let wisp = find_entity(&state, p1, "NEUTRAL_T01");
+    let first = find_entity(&state, p1, "DINO_404");
+    let second = minions
+        .iter()
+        .find(|&&e| state.world().card_id(e).is_some_and(|c| c.0 == "DINO_404") && e != first)
+        .expect("the second Firegill");
+    assert!(state.world().rush(wisp).is_some(), "the Wisp gained Rush");
+    assert!(
+        state.world().rush(first).is_some(),
+        "the first Firegill is 'another minion' — it gained Rush"
+    );
+    assert!(
+        state.world().rush(*second).is_none(),
+        "the Kindred card itself does not gain Rush"
+    );
+}
+
+/// TLC_W4C-3 — Chillspine Stegodon: the base battlecry deals 2 damage
+/// to two random enemy minions; with the Kindred (Elemental) condition
+/// met, the same two minions are also Frozen.
+#[test]
+fn tlc_w4c_chillspine_freezes() {
+    use orange_stone::cards::exp_tlc_w4c::CHILLSPINE_STEGODON;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &CHILLSPINE_STEGODON)
+        .add_minion_to_hand(p1, &CHILLSPINE_STEGODON);
+    builder.add_custom_minion_to_board(p2, 3, 4, 3);
+    builder.add_custom_minion_to_board(p2, 3, 4, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // First Chillspine: only one Elemental played — damage, no freeze.
+    play_front_card(&mut state, &engine, p1);
+    let enemies = board_minions(&state, p2);
+    assert_eq!(enemies.len(), 2);
+    let total_damage: i32 = enemies
+        .iter()
+        .map(|&e| state.world().damage(e).map(|d| d.0).unwrap_or(0))
+        .sum();
+    assert_eq!(total_damage, 4, "both enemy minions took 2");
+    for e in enemies {
+        assert!(state.world().freeze(e).is_none(), "no Kindred — no freeze");
+    }
+    // Second Chillspine: the Kindred fires — the same two minions take
+    // 2 more AND freeze.
+    play_front_card(&mut state, &engine, p1);
+    for e in board_minions(&state, p2) {
+        assert!(state.world().freeze(e).is_some(), "the Kindred froze it");
+    }
+}
+
+/// TLC_W4C-4 — Crater Experiment: with the Kindred (Beast) condition
+/// met, playing it summons a copy of itself.
+#[test]
+fn tlc_w4c_crater_experiment_copies_self() {
+    use orange_stone::cards::classic_neutral::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tlc_w4c::CRATER_EXPERIMENT;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &CRATER_EXPERIMENT);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // The first play is the Raptor — the Beast that activates the
+    // Kindred for the Experiment that follows.
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        board_count(&state, p1, "DINO_435"),
+        0,
+        "no Experiment played yet"
+    );
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        board_count(&state, p1, "DINO_435"),
+        2,
+        "the Kindred summoned a copy"
+    );
+    // A lone Experiment without an earlier Beast does nothing extra.
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &CRATER_EXPERIMENT);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(board_count(&state, p1, "DINO_435"), 1, "no activation");
+}
+
+/// TLC_W4C-5 — Bat Mask: set a friendly minion's stats to 1/1 and fill
+/// the board with 1/1 copies of it.
+#[test]
+fn tlc_w4c_bat_mask_sets_and_fills() {
+    use orange_stone::cards::classic_neutral::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tlc_w4c::BAT_MASK;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &BAT_MASK)
+        .add_minion_to_board(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    // A real card id so the fill can summon copies of it.
+    let target = find_entity(&state, p1, "CLASSIC_001");
+    let engine = GameEngine::new();
+    let mask = find_hand_card(&state, p1, "DINO_402");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: mask,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 7, "the board is full of 1/1 copies");
+    for e in minions {
+        assert_eq!(state.world().effective_attack(e), Some(Attack(1)));
+        assert_eq!(state.world().effective_health(e), Some(Health(1)));
+    }
+}
+
+/// TLC_W4C-6 — Devilsaur Mask: set a minion's stats to 8/8 and give it
+/// Charge.
+#[test]
+fn tlc_w4c_devilsaur_mask_sets_charge() {
+    use orange_stone::cards::exp_tlc_w4c::DEVILSAUR_MASK;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &DEVILSAUR_MASK);
+    let target = builder.add_custom_minion_to_board(p1, 2, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let mask = find_hand_card(&state, p1, "DINO_403");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: mask,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(target), Some(Attack(8)));
+    assert_eq!(state.world().effective_health(target), Some(Health(8)));
+    assert!(
+        state.world().charge(target).is_some(),
+        "the mask granted Charge"
+    );
+}
+
+/// TLC_W4C-7 — Behemoth Mask: set a minion's stats to 8/10, give it
+/// Lifesteal, and force a random enemy minion to attack it (through the
+/// normal attack pipeline — the attacker dies to the retaliation).
+#[test]
+fn tlc_w4c_behemoth_mask_forces_attack() {
+    use orange_stone::cards::exp_tlc_w4c::BEHEMOTH_MASK;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &BEHEMOTH_MASK);
+    let target = builder.add_custom_minion_to_board(p1, 1, 1, 2);
+    builder.add_custom_minion_to_board(p2, 4, 4, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let mask = find_hand_card(&state, p1, "DINO_428");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: mask,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(target), Some(Attack(8)));
+    assert!(
+        state.world().lifesteal(target).is_some(),
+        "Lifesteal granted"
+    );
+    // The forced enemy attack resolved during the mask's resolution: the
+    // 4/4 hit the masked minion (set to 10, now 10 - 4 = 6) and died to
+    // the 8 retaliation.
+    assert_eq!(
+        state.world().effective_health(target),
+        Some(Health(6)),
+        "set to 10, then the forced attacker dealt 4"
+    );
+    assert_eq!(
+        board_minions(&state, p2).len(),
+        0,
+        "the forced attacker died to the retaliation"
+    );
+}
+
+/// TLC_W4C-8 — Sheep Mask: set a minion's stats to 1/1 and attach the
+/// "deal 2 damage to all minions" deathrattle — it fires when the masked
+/// minion dies.
+#[test]
+fn tlc_w4c_sheep_mask_deathrattle() {
+    use orange_stone::cards::exp_tlc_w4c::SHEEP_MASK;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &SHEEP_MASK);
+    let target = builder.add_custom_minion_to_board(p1, 4, 4, 3);
+    builder.add_custom_minion_to_board(p1, 3, 3, 3);
+    let attacker = builder.add_custom_minion_to_board(p2, 3, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let mask = find_hand_card(&state, p1, "DINO_429");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: mask,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(target), Some(Attack(1)));
+    assert_eq!(state.world().effective_health(target), Some(Health(1)));
+    // P2 kills the masked 1/1 — the attached deathrattle deals 2 to ALL
+    // minions.
+    state.set_active_player(p2);
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: target,
+            },
+        )
+        .unwrap();
+    assert_eq!(board_minions(&state, p1).len(), 1, "the masked minion died");
+    let survivor = board_minions(&state, p1)[0];
+    assert_eq!(
+        state.world().effective_health(survivor),
+        Some(Health(1)),
+        "the friendly survivor took 2"
+    );
+    assert_eq!(
+        state.world().zone(attacker),
+        Some(Zone::Graveyard),
+        "the enemy attacker died to the retaliation plus the deathrattle"
+    );
+}
+
+/// TLC_W4C-9 — Panther Mask: set a minion's stats to 5/4, give it
+/// Stealth and draw 2 cards.
+#[test]
+fn tlc_w4c_panther_mask_sets_stealth_draws() {
+    use orange_stone::cards::exp_tlc_w4c::PANTHER_MASK;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &PANTHER_MASK);
+    let target = builder.add_custom_minion_to_board(p1, 3, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hand_before = state.world().zones().len(Zone::Hand, p1);
+    let mask = find_hand_card(&state, p1, "DINO_432");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: mask,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(target), Some(Attack(5)));
+    assert_eq!(state.world().effective_health(target), Some(Health(4)));
+    assert!(state.world().stealth(target).is_some(), "Stealth granted");
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        hand_before + 1,
+        "drew 2: mask out, two cards in"
+    );
+}
+
+/// TLC_W4C-10 — The Great Dracorex: after it attacks an enemy minion it
+/// damages ALL other enemy minions (the attacked minion excluded from
+/// the splash).
+#[test]
+fn tlc_w4c_dracorex_aoe_on_attack() {
+    use orange_stone::cards::exp_tlc_w4c::THE_GREAT_DRACOREX;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.add_minion_to_board(p1, &THE_GREAT_DRACOREX);
+    builder.add_custom_minion_to_board(p2, 4, 4, 3);
+    builder.add_custom_minion_to_board(p2, 4, 4, 3);
+    builder.add_custom_minion_to_board(p2, 4, 4, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let dracorex = find_entity(&state, p1, "DINO_401");
+    let attacked = board_minions(&state, p2)[1]; // the middle one
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: dracorex,
+                defender: attacked,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_minions(&state, p2).len(),
+        0,
+        "the attacked minion took 5, both others took the 5 splash"
+    );
+}
+
+/// TLC_W4C-11 — Hatching Ceremony: the +2/+2 to the owner's minions
+/// lands at the end of the owner's NEXT turn after the cast — not at
+/// the cast's own turn end.
+#[test]
+fn tlc_w4c_hatching_ceremony_next_turn_buff() {
+    use orange_stone::cards::exp_tlc_w4c::HATCHING_CEREMONY;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &HATCHING_CEREMONY);
+    let minion = builder.add_custom_minion_to_board(p1, 2, 2, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_attack(minion),
+        Some(Attack(2)),
+        "the cast's own turn end does NOT buff"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap(); // P2's turn
+    engine.apply(&mut state, Action::EndTurn).unwrap(); // P1's next turn end
+    assert_eq!(
+        state.world().effective_attack(minion),
+        Some(Attack(4)),
+        "the owner's NEXT turn end buffs"
+    );
+    assert_eq!(state.world().effective_health(minion), Some(Health(4)));
+}
+
+/// TLC_W4C-12 — Hollow Direhorn: after a friendly minion dies, spend 3
+/// Corpses to gain Reborn (the dead minion's corpse lands after the
+/// trigger).
+#[test]
+fn tlc_w4c_hollow_direhorn_corpse_reborn() {
+    use orange_stone::cards::exp_tlc_w4c::HOLLOW_DIREHORN;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.add_minion_to_board(p1, &HOLLOW_DIREHORN);
+    let victim = builder.add_custom_minion_to_board(p1, 1, 1, 2);
+    builder.add_custom_minion_to_board(p2, 3, 3, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let direhorn = find_entity(&state, p1, "DINO_416");
+    state.make_mut().players[p1.index()].corpses = 4;
+    let attacker = board_minions(&state, p2)[0];
+    state.set_active_player(p2);
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: victim,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.world().reborn(direhorn).is_some(),
+        "3 Corpses spent, Reborn gained"
+    );
+    assert_eq!(
+        state.player(p1).corpses,
+        2,
+        "4 - 3 spent, then the victim's corpse landed"
+    );
+}
+
+/// TLC_W4C-13 — Soulrest Ceremony: give the owner's minions +1 Attack
+/// and Rush; they die at the end of the owner's turn (deathrattles
+/// fire).
+#[test]
+fn tlc_w4c_soulrest_turn_end_dies() {
+    use orange_stone::cards::classic_neutral::LEPER_GNOME;
+    use orange_stone::cards::exp_tlc_w4c::SOULREST_CEREMONY;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &SOULREST_CEREMONY);
+    builder.add_minion_to_board(p1, &LEPER_GNOME);
+    builder.add_custom_minion_to_board(p1, 2, 2, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p2_hero = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1);
+    let gnome = find_entity(&state, p1, "NEUTRAL_C02");
+    assert_eq!(
+        state.world().effective_attack(gnome),
+        Some(Attack(3)),
+        "+1 Attack"
+    );
+    assert!(state.world().rush(gnome).is_some(), "Rush granted");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        board_minions(&state, p1).len(),
+        0,
+        "both minions died at the turn end"
+    );
+    assert_eq!(
+        state.world().effective_health(p2_hero),
+        Some(Health(28)),
+        "the Leper Gnome's deathrattle fired"
+    );
+}
+
+/// TLC_W4C-14 — Seismopod: deathrattle gives all minions in the hand
+/// and deck +3/+3.
+#[test]
+fn tlc_w4c_seismopod_wherever_buff() {
+    use orange_stone::cards::classic_neutral::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tlc_w4c::SEISMOPOD;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.add_minion_to_board(p1, &SEISMOPOD);
+    builder.add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    builder.add_custom_minion_to_board(p2, 10, 10, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let seismopod = find_entity(&state, p1, "DINO_421");
+    let hand_raptor = find_hand_card(&state, p1, "CLASSIC_001");
+    let deck_raptor = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, p1)
+        .next()
+        .expect("a padded deck card");
+    let attacker = board_minions(&state, p2)[0];
+    state.set_active_player(p2);
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: seismopod,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_minions(&state, p1).len(),
+        0,
+        "the 10/10 killed the 9/9"
+    );
+    assert_eq!(
+        state.world().effective_attack(hand_raptor),
+        Some(Attack(6)),
+        "hand minion 3/2 -> 6/5"
+    );
+    assert_eq!(state.world().effective_health(hand_raptor), Some(Health(5)));
+    assert_eq!(
+        state.world().effective_attack(deck_raptor),
+        Some(Attack(6)),
+        "deck minion buffed too"
+    );
+}
+
+/// TLC_W4C-15 — Skittish Saucier: the battlecry reduces the Cost of the
+/// adjacent hand cards by (1) — edge plays reduce the single neighbor.
+#[test]
+fn tlc_w4c_saucier_reduces_adjacent() {
+    use orange_stone::cards::classic_neutral::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tlc_w4c::SKITTISH_SAUCIER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &SKITTISH_SAUCIER) // index 0 (edge)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR) // index 1 — right neighbor
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR); // index 2 — not adjacent
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(
+        state.world().effective_cost(hand[0]),
+        Some(Cost(1)),
+        "the right neighbor (now index 0) costs (1) less"
+    );
+    assert_eq!(
+        state.world().effective_cost(hand[1]),
+        Some(Cost(2)),
+        "the far card is untouched"
+    );
+    // Middle play reduces BOTH neighbors.
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR) // index 0 — left neighbor
+        .add_minion_to_hand(p1, &SKITTISH_SAUCIER) // index 1 — the Saucier
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR); // index 2 — right neighbor
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Play the Saucier straight from the middle of the hand.
+    let saucier = find_hand_card(&state, p1, "DINO_137");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: saucier,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    for e in state.world().zones().iter(Zone::Hand, p1) {
+        assert_eq!(
+            state.world().effective_cost(e),
+            Some(Cost(1)),
+            "both neighbors are (1) cheaper"
+        );
+    }
+}
+
+/// TLC_W4C-16 — Horn of Feasting: three 2/1 Raptors with Rush; Outcast
+/// additionally gives them Immune for the rest of the turn.
+#[test]
+fn tlc_w4c_horn_of_feasting_outcast() {
+    use orange_stone::cards::classic_neutral::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tlc_w4c::HORN_OF_FEASTING;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &HORN_OF_FEASTING) // index 0 — outcast
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let raptors: Vec<Entity> = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "DINO_136t"))
+        .collect();
+    assert_eq!(raptors.len(), 3, "three Raptors summoned");
+    for e in &raptors {
+        assert_eq!(state.world().effective_attack(*e), Some(Attack(2)));
+        assert_eq!(state.world().effective_health(*e), Some(Health(1)));
+        assert!(state.world().rush(*e).is_some(), "Rush");
+        assert!(
+            state.world().immune(*e).is_some(),
+            "Outcast gave Immune for the turn"
+        );
+    }
+    // Non-outcast: three Raptors, no Immune.
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &HORN_OF_FEASTING) // middle — not outcast
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Play the Horn straight from the middle of the hand.
+    let horn = find_hand_card(&state, p1, "DINO_136");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: horn,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let raptors: Vec<Entity> = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "DINO_136t"))
+        .collect();
+    assert_eq!(raptors.len(), 3);
+    for e in &raptors {
+        assert!(state.world().immune(*e).is_none(), "no Outcast — no Immune");
+    }
+}
+
+/// TLC_W4C-17 — Barricade Basher: whenever the owner gains Armor, the
+/// Basher gains +2/+2 and attacks a random enemy minion.
+#[test]
+fn tlc_w4c_basher_armor_trigger() {
+    use orange_stone::cards::classic_warrior::SHIELD_BLOCK;
+    use orange_stone::cards::exp_tlc_w4c::BARRICADE_BASHER;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &SHIELD_BLOCK);
+    builder.add_minion_to_board(p1, &BARRICADE_BASHER);
+    builder.add_custom_minion_to_board(p2, 3, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let basher = find_entity(&state, p1, "DINO_400");
+    let enemy = board_minions(&state, p2)[0];
+    play_front_card(&mut state, &engine, p1); // Shield Block — gain 5 Armor
+    assert_eq!(state.player(p1).armor, 5);
+    assert_eq!(
+        state.world().effective_attack(basher),
+        Some(Attack(6)),
+        "+2/+2"
+    );
+    assert_eq!(
+        state.world().effective_health(basher),
+        Some(Health(2)),
+        "took the 3 retaliation"
+    );
+    assert_eq!(
+        board_minions(&state, p2).len(),
+        0,
+        "the Basher's triggered attack killed the 3/3"
+    );
+    assert_eq!(state.world().zone(enemy), Some(Zone::Graveyard));
+}
+
+/// TLC_W4C-18 — Tortotem: at the end of the owner's turn, get a random
+/// minion with multiple minion types (the fixed pool — Mythical Terror,
+/// the only in-window multi-tribe minion).
+#[test]
+fn tlc_w4c_tortotem_multi_tribe_pool() {
+    use orange_stone::cards::exp_tlc_w4c::TORTOTEM;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &TORTOTEM);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().zones().len(Zone::Hand, p1), 0);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1, "the turn-end grant landed");
+    assert!(
+        state
+            .world()
+            .card_id(hand[0])
+            .is_some_and(|c| c.0 == "CORE_TTN_866"),
+        "Mythical Terror — the multi-tribe pool"
     );
 }
