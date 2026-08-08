@@ -20,6 +20,7 @@ pub mod core_w2;
 pub mod core_w3a;
 pub mod core_w3b;
 pub mod core_w3c;
+pub mod core_w3d;
 pub mod def;
 pub mod generated;
 pub mod pool;
@@ -257,6 +258,78 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 race: None,
                 max_attack: None,
                 effect: CardEffect::SummonFelbatOnDraw,
+            },
+        );
+    }
+    if card_def.id == "CORE_BT_351" {
+        // Battlefiend — after your hero attacks, +1 Attack
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::HeroAttacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::GainStats {
+                    attack: 1,
+                    health: 0,
+                    target: EffectTarget::Self_,
+                },
+            },
+        );
+    }
+    if card_def.id == "CORE_BT_510" {
+        // Wrathspike Brute — after this is attacked, 1 damage to all enemies
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::ThisMinionAttacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::DealDamage {
+                    amount: 1,
+                    target: EffectTarget::AllEnemies,
+                },
+            },
+        );
+    }
+    if card_def.id == "CORE_NX2_028" {
+        // Hookfist-3000 — after your hero attacks, 4 armor and draw
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::HeroAttacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::GainArmorAndDrawOnHeroAttack { armor: 4 },
+            },
+        );
+    }
+    if card_def.id == "CORE_RLK_121" {
+        // Acolyte of Death — after a friendly Undead dies, draw
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionDied,
+                timing: TriggerTiming::Whenever,
+                race: Some(crate::core::component::Race::Undead),
+                max_attack: None,
+                effect: CardEffect::DrawCard { count: 1 },
+            },
+        );
+    }
+    if card_def.id == "CORE_RLK_567" {
+        // Shadow of Demise — each cast spell transforms this into a copy
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::AnySpellCast,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::TransformSelfToCastSpell,
             },
         );
     }

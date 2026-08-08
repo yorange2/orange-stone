@@ -15,8 +15,8 @@
 
 use crate::core::component::{
     Attack, AttacksUsed, CardId, CardType, Charge, Cost, Damage, Deathrattle, DivineShield,
-    Durability, Enchantment, EnchantmentExpiry, Freeze, Health, Immune, Poison, Stealth, Taunt,
-    Trigger, TriggerEvent, TriggerTiming, Windfury,
+    Durability, Enchantment, EnchantmentExpiry, Freeze, Health, Immune, Poison, Reborn, Stealth,
+    Taunt, Trigger, TriggerEvent, TriggerTiming, Windfury,
 };
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
@@ -1564,6 +1564,262 @@ pub fn resolve_effect(
                 crate::cards::sets::ALL_CARDS
                     .iter()
                     .filter(|c| c.card_type == CardType::Minion && c.cost == spend)
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            let _ = resolve_summon(state, queue, source, owner, candidates[idx].id);
+        }
+        CardEffect::GainStatsAndDraw {
+            attack,
+            health,
+            target: _,
+            draw,
+        } => {
+            // Power Word: Shield / Hand of A'dal — buff and draw
+            let minions: SmallList<Entity> = {
+                let mut all = collect_friendly_minions(state, owner);
+                all.extend(collect_enemy_minions(state, owner, None));
+                all
+            };
+            if let Some(t) = select_target(explicit_target, &minions, state.rng_mut()) {
+                let world = state.world_mut();
+                let base = world.attack(t).unwrap_or(Attack(0));
+                world.set_attack(t, Attack(base.0 + attack));
+                let base_hp = world.health(t).unwrap_or(Health(1));
+                world.set_health(t, Health(base_hp.0 + health));
+            }
+            for _ in 0..draw {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::DamageUndamaged { damage } => {
+            // Backstab — 2 damage to an UNDAMAGED minion
+            let minions: SmallList<Entity> = {
+                let mut all = collect_friendly_minions(state, owner);
+                all.extend(collect_enemy_minions(state, owner, None));
+                all
+            };
+            let Some(t) = select_target(explicit_target, &minions, state.rng_mut()) else {
+                return;
+            };
+            if state.world().damage(t).is_some_and(|d| d.0 > 0) {
+                return; // damaged — Backstab fizzles
+            }
+            queue.push(Event::DamageDealt {
+                source,
+                target: t,
+                amount: damage,
+            });
+        }
+        CardEffect::DamageMinionAndSelfHero { damage } => {
+            // Spirit Bomb — damage a minion and the caster's hero
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                damage,
+                EffectTarget::AnyMinion,
+                explicit_target,
+            );
+            let hero = state.player(owner).hero;
+            queue.push(Event::DamageDealt {
+                source,
+                target: hero,
+                amount: damage,
+            });
+        }
+        CardEffect::GainHeroAttackAndDraw { attack } => {
+            // Chaos Strike — hero attack this turn + draw
+            let hero = state.player(owner).hero;
+            {
+                let world = state.world_mut();
+                let base = world.attack(hero).unwrap_or(Attack(0));
+                world.set_attack(hero, Attack(base.0 + attack));
+                world.add_enchantment(
+                    hero,
+                    Enchantment {
+                        attack,
+                        health: 0,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::UntilEndOfTurn,
+                    },
+                );
+            }
+            draw_card(state, queue, owner);
+        }
+        CardEffect::GainArmorAndSummonDeckMinion { armor, max_cost } => {
+            // Oaken Summons — armor + a deck minion of at most max_cost
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].armor += armor;
+            }
+            let deck: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .and_then(|c| crate::cards::def::card_by_id(c.0))
+                        .is_some_and(|d| d.card_type == CardType::Minion && d.cost <= max_cost)
+                })
+                .collect();
+            if let Some(&m) = deck.iter().next() {
+                if let Some(def) = state
+                    .world()
+                    .card_id(m)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+            }
+        }
+        CardEffect::GainArmorAndDrawOnHeroAttack { armor } => {
+            // Hookfist-3000 — the OWNER'S HERO attacked
+            let hero = state.player(owner).hero;
+            if event_subject != Some(hero) {
+                return;
+            }
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].armor += armor;
+            }
+            draw_card(state, queue, owner);
+        }
+        CardEffect::SummonAllCompanions => {
+            // Call of the Wild — all three Animal Companions
+            for companion in ["HUNTER_023a", "HUNTER_023b", "HUNTER_023c"] {
+                let _ = resolve_summon(state, queue, source, owner, companion);
+            }
+        }
+        CardEffect::DamageFreezeAllAndSummon { damage, card_id } => {
+            // Frostwyrm's Fury — damage, freeze all enemy minions, summon
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                damage,
+                EffectTarget::AnyEnemy,
+                explicit_target,
+            );
+            let enemies = collect_all_enemy_minions(state, owner);
+            for m in &enemies {
+                state.world_mut().set_freeze(*m, Freeze);
+            }
+            let _ = resolve_summon(state, queue, source, owner, card_id);
+        }
+        CardEffect::DestroyHighestAttackEnemy => {
+            // Asphyxiate — destroy the highest-Attack enemy minion
+            let mut enemies: SmallList<Entity> = collect_enemy_minions(state, owner, None);
+            if enemies.is_empty() {
+                return;
+            }
+            enemies.sort_by_key(|&e| state.world().effective_attack(e).unwrap_or(Attack(0)).0);
+            let target = enemies[enemies.len() - 1];
+            let hp = state.world().effective_health(target).map_or(0, |h| h.0);
+            queue.push(Event::DamageDealt {
+                source,
+                target,
+                amount: hp.max(1),
+            });
+        }
+        CardEffect::SummonZombiesWithCorpseReborn { corpses } => {
+            // Tomb Guardians — two 2/2 Taunt Zombies; corpses give Reborn
+            let mut summoned = Vec::new();
+            for _ in 0..2 {
+                if let Some(e) = resolve_summon(state, queue, source, owner, "CORE_RLK_118t") {
+                    summoned.push(e);
+                }
+            }
+            let have = state.player(owner).corpses;
+            if have >= corpses && !summoned.is_empty() {
+                {
+                    let inner = state.make_mut();
+                    inner.players[owner.index()].corpses -= corpses;
+                }
+                for e in summoned {
+                    state.world_mut().set_reborn(e, Reborn);
+                }
+            }
+        }
+        CardEffect::TransformSelfToCastSpell => {
+            // Shadow of Demise — transform into a copy of the just-cast spell
+            let Some(subject) = event_subject else {
+                return;
+            };
+            let Some(def) = state
+                .world()
+                .card_id(subject)
+                .and_then(|c| crate::cards::def::card_by_id(c.0))
+            else {
+                return;
+            };
+            if def.card_type != CardType::Spell {
+                return;
+            }
+            let world = state.world_mut();
+            world.set_card_id(source, CardId(def.id));
+            world.set_cost(source, Cost(def.cost));
+        }
+        CardEffect::BuffHandMinionsWithCorpses { corpses } => {
+            // Blood Tap — hand minions +1/+1; corpses for another +1/+1
+            let hand: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            let have = state.player(owner).corpses;
+            let extra = if have >= corpses { 1 } else { 0 };
+            if extra == 1 {
+                let inner = state.make_mut();
+                inner.players[owner.index()].corpses -= corpses;
+            }
+            let bonus = 1 + extra;
+            for e in hand {
+                let world = state.world_mut();
+                let base = world.attack(e).unwrap_or(Attack(0));
+                world.set_attack(e, Attack(base.0 + bonus));
+                let base_hp = world.health(e).unwrap_or(Health(1));
+                world.set_health(e, Health(base_hp.0 + bonus));
+            }
+        }
+        CardEffect::RestoreHealthAndDraw { amount, target: _ } => {
+            // Flash of Light — heal and draw
+            let chars: SmallList<Entity> = {
+                let mut all = collect_friendly_characters(state, owner, None);
+                all.extend(collect_enemy_characters(state, owner, None));
+                all
+            };
+            if let Some(t) = select_target(explicit_target, &chars, state.rng_mut()) {
+                if heal_char(state.world_mut(), t, amount) {
+                    fire_healed_trigger(state, queue, t);
+                }
+            }
+            draw_card(state, queue, owner);
+        }
+        CardEffect::DrawIfUnspentMana => {
+            // Crystal Merchant — end of turn with unspent mana: draw
+            let p = state.player(owner);
+            if p.current_mana > 0 {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::GainArmorAndSummonRandomCost { armor, cost } => {
+            // Ironforge Portal — armor and a random minion of exactly cost
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].armor += armor;
+            }
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Minion && c.cost == cost)
                     .collect();
             if candidates.is_empty() {
                 return;

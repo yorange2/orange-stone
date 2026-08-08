@@ -341,7 +341,32 @@ fn validate_hero_power(state: &GameState, hero: Entity) -> Result<(), EngineErro
 /// enqueues attacks from the trigger resolver.
 pub(crate) fn compute_attacker_damage(state: &GameState, attacker: Entity) -> i32 {
     let world = state.world();
-    let base = world.effective_attack(attacker).unwrap_or(Attack(0));
+    let mut base = world.effective_attack(attacker).unwrap_or(Attack(0));
+    // Bladed Gauntlet (Core Set W3c): the weapon's Attack equals the
+    // owner's armor (the effective_attack base is 0)
+    let hero_has_gauntlet = world.card_type(attacker) == Some(CardType::Hero)
+        && world.player(attacker).is_some_and(|pid| {
+            state
+                .player(pid)
+                .weapon
+                .is_some_and(|w| world.card_id(w).is_some_and(|c| c.0 == "CORE_LOOT_044"))
+        });
+    if hero_has_gauntlet {
+        if let Some(pid) = world.player(attacker) {
+            base = Attack(state.player(pid).armor);
+        }
+    }
+    // Small-Time Buccaneer (Core Set W3c): +2 Attack while the owner has a
+    // weapon equipped
+    if world
+        .card_id(attacker)
+        .is_some_and(|c| c.0 == "CORE_WON_351")
+        && world
+            .player(attacker)
+            .is_some_and(|pid| state.player(pid).weapon.is_some())
+    {
+        base = Attack(base.0 + 2);
+    }
     // `effective_attack` rather than the raw component so weapon enchantments
     // and Spiteful Smith's Enrage (+2 Attack to your weapon while damaged)
     // reach the hero's swing. Auras never apply to weapons.
@@ -1119,6 +1144,20 @@ pub fn apply_event(
                 Some(attacker),
                 None,
             );
+            // ThisMinionAttacked (Core Set W3c — Wrathspike Brute): the
+            // defender minion fires when it is attacked
+            if state.world().card_type(defender) == Some(CardType::Minion) {
+                if let Some(defender_player) = state.world().player(defender) {
+                    fire_triggers(
+                        state,
+                        queue,
+                        TriggerEvent::ThisMinionAttacked,
+                        defender_player,
+                        Some(attacker),
+                        None,
+                    );
+                }
+            }
             // HeroAttacked (Core Set W3b — Hench-Clan Thug): the hero
             // attacking fires a friendly-scoped trigger
             if state.world().card_type(attacker) == Some(CardType::Hero) {
@@ -1264,10 +1303,31 @@ pub fn apply_event(
             // Get the target's card type
             let card_type = state.world().card_type(target);
 
-            // Heroes lose armor first; remaining damage leaks through to health
+            // Bulwark of Azzinoth (Core Set W3c): whenever the hero would
+            // take damage, the weapon loses 1 Durability instead
             if card_type == Some(CardType::Hero) {
                 let target_player = state.world().player(target);
                 if let Some(pid) = target_player {
+                    if let Some(weapon) = state.player(pid).weapon {
+                        if state
+                            .world()
+                            .card_id(weapon)
+                            .is_some_and(|c| c.0 == "CORE_BT_781")
+                        {
+                            let dur = state.world().durability(weapon).unwrap_or(Durability(0));
+                            let new_dur = Durability(dur.0 - 1);
+                            state.world_mut().set_durability(weapon, new_dur);
+                            if new_dur.0 <= 0 {
+                                let inner = state.make_mut();
+                                inner.players[pid.index()].weapon = None;
+                                queue.push(Event::WeaponDestroyed {
+                                    player: pid,
+                                    weapon,
+                                });
+                            }
+                            return Ok(());
+                        }
+                    }
                     let armor = state.player(pid).armor;
                     if armor > 0 {
                         let absorbed = amount.min(armor);

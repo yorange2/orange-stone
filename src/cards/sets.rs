@@ -20,6 +20,7 @@ use super::core_w2::*;
 use super::core_w3a::*;
 use super::core_w3b::*;
 use super::core_w3c::*;
+use super::core_w3d::*;
 // ============================================================
 // Card lists
 // ============================================================
@@ -47,6 +48,13 @@ pub const DEATH_KNIGHT_W1: &[CardDef] = &[
     CORE_POISON_BREATH,
     // Core Set W3a part 2 — Death Metal Knight (health payment)
     CORE_DEATH_METAL_KNIGHT,
+    // Core Set W3c — death knight batch
+    CORE_FROSTWYRMS_FURY,
+    CORE_DEATHCHILLER,
+    CORE_ASPHYXIATE,
+    CORE_TOMB_GUARDIANS,
+    CORE_ACOLYTE_OF_DEATH,
+    CORE_BLOOD_TAP,
 ];
 
 // Classic set grouped by class
@@ -257,6 +265,14 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     CORE_SILVER_HAND_RECRUIT,
     CORE_INVADING_FELBAT,
     CORE_SECOND_FLAME,
+    // Core Set W3c — neutrals + tokens
+    CORE_BATTLEFIEND,
+    CORE_PRIESTESS_OF_FURY,
+    CORE_WRATHSPIKE_BRUTE,
+    CORE_SPYMISTRESS,
+    CORE_SMALL_TIME_BUCCANEER,
+    CORE_ZOMBIE,
+    CORE_FROSTWYRM,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -329,6 +345,10 @@ pub const DRUID_CLASSIC: &[CardDef] = &[
     CORE_SPIKERIDGED_STEED,
     // Core Set W3b — Consumption
     CORE_CONSUMPTION,
+    // Core Set W3c — druid batch
+    CORE_MARK_OF_THE_WILD,
+    CORE_OAKEN_SUMMONS,
+    CORE_CRYSTAL_MERCHANT,
 ];
 
 pub const HUNTER_CLASSIC: &[CardDef] = &[
@@ -378,6 +398,8 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     CORE_ANIMAL_COMPANION,
     CORE_LAKE_THRESHER,
     CORE_EREDAR_DECEPTOR,
+    // Core Set W3c — Call of the Wild
+    CORE_CALL_OF_THE_WILD,
 ];
 
 pub const MAGE_CLASSIC: &[CardDef] = &[
@@ -418,6 +440,10 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     // Core Set W3b — First Flame, Initiation
     CORE_FIRST_FLAME,
     CORE_INITIATION,
+    // Core Set W3c — mage batch
+    CORE_ARCANE_INTELLECT,
+    CORE_FIREBALL,
+    CORE_FLAMESTRIKE,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -454,6 +480,10 @@ pub const PALADIN_CLASSIC: &[CardDef] = &[
     CORE_RIGHTEOUS_PROTECTOR,
     CORE_SILVERMOON_PORTAL,
     CORE_HIGHLORD_FORDRAGON,
+    // Core Set W3c — paladin batch
+    CORE_CONSECRATION,
+    CORE_HAMMER_OF_WRATH,
+    CORE_FLASH_OF_LIGHT,
 ];
 
 pub const PRIEST_CLASSIC: &[CardDef] = &[
@@ -502,6 +532,9 @@ pub const PRIEST_CLASSIC: &[CardDef] = &[
     CORE_DEATHS_ADVANCE,
     CORE_SHADOW_ASCENDANT,
     CORE_KEYMASTER_ALABASTER,
+    // Core Set W3c — priest batch
+    CORE_POWER_WORD_SHIELD,
+    CORE_HAND_OF_ADAL,
 ];
 
 pub const ROGUE_CLASSIC: &[CardDef] = &[
@@ -538,6 +571,11 @@ pub const ROGUE_CLASSIC: &[CardDef] = &[
     CORE_FAN_OF_KNIVES,
     // Core Set W3b — Jackpot!
     CORE_JACKPOT,
+    // Core Set W3c — rogue batch
+    CORE_BACKSTAB,
+    CORE_DEADLY_POISON,
+    CORE_ASSASSINATE,
+    CORE_SHADOW_OF_DEMISE,
 ];
 
 pub const SHAMAN_CLASSIC: &[CardDef] = &[
@@ -574,6 +612,8 @@ pub const SHAMAN_CLASSIC: &[CardDef] = &[
     CORE_HEX,
     // Core Set W3b — Rehgar Earthfury
     CORE_REHGAR_EARTHFURY,
+    // Core Set W3c — Far Sight
+    CORE_FAR_SIGHT,
 ];
 
 pub const WARLOCK_CLASSIC: &[CardDef] = &[
@@ -613,6 +653,9 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     // Core Set W3b — warlock batch
     CORE_DEMONIC_ASSAULT,
     CORE_CORPSE_FARM,
+    // Core Set W3c — warlock batch
+    CORE_HELLFIRE,
+    CORE_SPIRIT_BOMB,
 ];
 
 pub const WARRIOR_CLASSIC: &[CardDef] = &[
@@ -649,6 +692,12 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
     CORE_SLAM,
     CORE_SHIELD_BLOCK,
     CORE_FROTHING_BERSERKER,
+    // Core Set W3c — warrior batch
+    CORE_EXECUTE,
+    CORE_BLADED_GAUNTLET,
+    CORE_BULWARK_OF_AZZINOTH,
+    CORE_HOOKFIST_3000,
+    CORE_IRONFORGE_PORTAL,
 ];
 
 pub const ALL_CARDS: &[CardDef] = &[
@@ -1215,6 +1264,46 @@ pub const ALL_CARDS: &[CardDef] = &[
     CORE_SILVER_HAND_RECRUIT,
     CORE_SECOND_FLAME,
     CORE_INVADING_FELBAT,
+    // Core Set W3c (2026-08-08) — 38 cards + 2 tokens.
+    CORE_POWER_WORD_SHIELD,
+    CORE_MARK_OF_THE_WILD,
+    CORE_ARCANE_INTELLECT,
+    CORE_FIREBALL,
+    CORE_FLAMESTRIKE,
+    CORE_FAR_SIGHT,
+    CORE_HELLFIRE,
+    CORE_BACKSTAB,
+    CORE_DEADLY_POISON,
+    CORE_ASSASSINATE,
+    CORE_CONSECRATION,
+    CORE_HAMMER_OF_WRATH,
+    CORE_EXECUTE,
+    CORE_SENJIN_SHIELDMASTA,
+    CORE_SPIRIT_BOMB,
+    CORE_CHAOS_STRIKE,
+    CORE_HAND_OF_ADAL,
+    CORE_BATTLEFIEND,
+    CORE_PRIESTESS_OF_FURY,
+    CORE_WRATHSPIKE_BRUTE,
+    CORE_SPYMISTRESS,
+    CORE_BULWARK_OF_AZZINOTH,
+    CORE_BLADED_GAUNTLET,
+    CORE_OAKEN_SUMMONS,
+    CORE_HOOKFIST_3000,
+    CORE_CALL_OF_THE_WILD,
+    CORE_FROSTWYRMS_FURY,
+    CORE_DEATHCHILLER,
+    CORE_ASPHYXIATE,
+    CORE_TOMB_GUARDIANS,
+    CORE_ACOLYTE_OF_DEATH,
+    CORE_SHADOW_OF_DEMISE,
+    CORE_BLOOD_TAP,
+    CORE_FLASH_OF_LIGHT,
+    CORE_CRYSTAL_MERCHANT,
+    CORE_IRONFORGE_PORTAL,
+    CORE_SMALL_TIME_BUCCANEER,
+    CORE_ZOMBIE,
+    CORE_FROSTWYRM,
 ];
 
 // ============================================================

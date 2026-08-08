@@ -1336,6 +1336,27 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::AddRandomOtherClassSpells { count, .. } => count as f64 * 3.0,
         CardEffect::SummonFelbatOnDraw => 3.0,
         CardEffect::SpendCorpsesSummonRandomMinion { .. } => 3.0,
+        // Core Set W3c
+        CardEffect::GainStatsAndDraw {
+            attack,
+            health,
+            draw,
+            ..
+        } => (attack + health) as f64 * 0.8 + draw as f64 * 3.0,
+        CardEffect::DamageUndamaged { damage } => damage as f64 * 1.2,
+        CardEffect::DamageMinionAndSelfHero { damage } => damage as f64 * 1.2,
+        CardEffect::GainHeroAttackAndDraw { attack } => attack as f64 * 1.5 + 3.0,
+        CardEffect::GainArmorAndSummonDeckMinion { armor, .. } => armor as f64 * 0.6 + 3.0,
+        CardEffect::GainArmorAndDrawOnHeroAttack { armor } => armor as f64 * 0.6 + 3.0,
+        CardEffect::SummonAllCompanions => 6.0,
+        CardEffect::DamageFreezeAllAndSummon { damage, .. } => damage as f64 * 1.2 + 5.0,
+        CardEffect::DestroyHighestAttackEnemy => 5.0,
+        CardEffect::SummonZombiesWithCorpseReborn { .. } => 4.0,
+        CardEffect::TransformSelfToCastSpell => 3.0,
+        CardEffect::BuffHandMinionsWithCorpses { .. } => 3.0,
+        CardEffect::RestoreHealthAndDraw { amount, .. } => amount as f64 * 0.7 + 3.0,
+        CardEffect::DrawIfUnspentMana => 3.0,
+        CardEffect::GainArmorAndSummonRandomCost { armor, .. } => armor as f64 * 0.6 + 4.0,
     }
 }
 
