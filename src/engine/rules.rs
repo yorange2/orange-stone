@@ -795,6 +795,23 @@ pub fn apply_event(
             state.set_step(Step::StartTriggers);
         }
         Event::TurnEnded { player } => {
+            // Quest progress (M2-W1): TLC_602 — "Survive 10 turns" — fires
+            // for the player ending their turn while their hero is alive
+            // (W2 pins the official timing).
+            if state
+                .world()
+                .health(state.player(player).hero)
+                .is_some_and(|h| h.0 > 0)
+            {
+                crate::engine::quest::progress(
+                    state,
+                    queue,
+                    player,
+                    crate::cards::quest::QuestCondition::SurviveTurns,
+                    1,
+                    None,
+                );
+            }
             // End-of-turn effects fire in the EndTriggers step — before the
             // wrap-up cleanup — so effects resolve at full strength and deaths
             // they cause are processed before "until end of turn" buffs expire.
@@ -937,7 +954,39 @@ pub fn apply_event(
 
             // Detect combo: another card was played this turn (cards_played > 1 because it was just incremented)
             let combo_active = state.player(player).cards_played_this_turn > 1;
-            if card_type == Some(CardType::Spell) {
+            // Quest card (2025–2026 expansions M2-W1): quests are 1-cost
+            // legendary spells played into the per-player quest slot instead
+            // of the spell path — no move-to-Play, no secret handling, no
+            // SpellCast event, no graveyard move. The generic played-card
+            // side effects (mana deduction above, Overload, CardPlayed
+            // triggers below) still apply.
+            if let Some(qdef) = state
+                .world()
+                .card_id(card)
+                .and_then(|cid| crate::cards::quest::quest_def(cid.0))
+            {
+                // One quest per player: an occupied slot's quest is destroyed
+                // (progress lost, no reward — the official replace rule).
+                for old in state.world().zones().entities(Zone::Quest, player) {
+                    state
+                        .world_mut()
+                        .move_to_zone(old, Zone::Graveyard)
+                        .map_err(|_| EngineError::EntityGone(old))?;
+                }
+                state
+                    .world_mut()
+                    .move_to_zone(card, Zone::Quest)
+                    .map_err(|_| EngineError::EntityGone(card))?;
+                state.world_mut().set_quest(
+                    card,
+                    crate::core::component::Quest {
+                        progress: 0,
+                        target: qdef.target,
+                        repeatable: qdef.repeatable,
+                        markers: Vec::new(),
+                    },
+                );
+            } else if card_type == Some(CardType::Spell) {
                 // A played spell leaves the hand immediately (HS: the card is
                 // in play while its effect resolves). The hand-size cap
                 // (F-A11) counts it outside the hand, so a cast at 9 cards
@@ -1298,6 +1347,49 @@ pub fn apply_event(
                         repeat,
                     );
                 }
+                // Quest progress (M2-W1): minion plays feed the Un'Goro quest
+                // conditions — TLC_229 (unique types: the primary race as the
+                // marker, 0 for race-less minions), TLC_830 (Beast attack
+                // values at play time), TLC_239 (full-board turns — fires
+                // only when the board is full after the play; W2 pins the
+                // official timing).
+                let races = state.world().race(card).unwrap_or_default();
+                let type_marker = races.first().map_or(0, |r| *r as u32 + 1);
+                crate::engine::quest::progress(
+                    state,
+                    queue,
+                    player,
+                    crate::cards::quest::QuestCondition::PlayMinionsOfUniqueTypes,
+                    1,
+                    Some(type_marker),
+                );
+                if state
+                    .world()
+                    .has_race(card, crate::core::component::Race::Beast)
+                {
+                    let attack = state
+                        .world()
+                        .effective_attack(card)
+                        .map_or(0, |a| a.0 as u32);
+                    crate::engine::quest::progress(
+                        state,
+                        queue,
+                        player,
+                        crate::cards::quest::QuestCondition::PlayBeastsOfAttack,
+                        1,
+                        Some(attack),
+                    );
+                }
+                if count_board_minions(state.world(), player) == MAX_BOARD_SIZE {
+                    crate::engine::quest::progress(
+                        state,
+                        queue,
+                        player,
+                        crate::cards::quest::QuestCondition::FillBoardOnTurns,
+                        1,
+                        Some(state.turn()),
+                    );
+                }
             }
             // Overload (roadmap F1): playing an overload card locks mana for the
             // owner's next turn (applied at the ManaRefill step)
@@ -1330,6 +1422,26 @@ pub fn apply_event(
             minion,
             target,
         } => {
+            // Quest progress (M2-W1): TLC_426 — "Summon 6 Murlocs" — fires
+            // for every race of the summoned minion (progress() matches the
+            // quest's exact race, so a race-less minion fires nothing). The
+            // MinionSummoned event is the single funnel for ALL summons —
+            // played minions route through it too (via enqueue), so played
+            // Murlocs count, matching Hearthstone.
+            let minion_races: Vec<crate::core::component::Race> = state
+                .world()
+                .race(minion)
+                .map_or_else(Vec::new, |r| r.to_vec());
+            for race in minion_races {
+                crate::engine::quest::progress(
+                    state,
+                    queue,
+                    player,
+                    crate::cards::quest::QuestCondition::SummonMinionsOfRace { race },
+                    1,
+                    None,
+                );
+            }
             // Summoning sickness: minions without charge cannot attack this
             // turn (a Charge aura — Tundra Rhino — counts as charge). Rush
             // (Core Set W1) also skips sickness — it can attack enemy MINIONS
@@ -1648,6 +1760,31 @@ pub fn apply_event(
             amount,
             source,
         } => {
+            // Quest progress (M2-W1): TLC_631 — "Deal exactly 2 damage to an
+            // enemy on your turn" — fires when the active player damages a
+            // target owned by the opponent; the condition is built from the
+            // event's actual amount, so progress() only matches a quest whose
+            // exact amount equals the damage dealt (a 3-damage hit does not
+            // progress an exact-2 quest). The "on your turn" guard is
+            // implicit: the quest owner is the active player (W2 pins the
+            // official timing, e.g. shield absorption).
+            if state
+                .world()
+                .player(target)
+                .is_some_and(|owner| owner == state.active_player().opponent())
+            {
+                let active = state.active_player();
+                crate::engine::quest::progress(
+                    state,
+                    queue,
+                    active,
+                    crate::cards::quest::QuestCondition::DealExactDamage {
+                        amount: amount as u32,
+                    },
+                    1,
+                    None,
+                );
+            }
             // Unified damage pipeline: immune → divine shield → armor → health → death check
             // Immune: damage is completely ignored (the attack is still consumed)
             if state.world().immune(target).is_some() {
@@ -2109,6 +2246,24 @@ pub fn apply_event(
             // the deferral branch so a re-pushed SpellCast event only counts
             // once (the Wish/Ritual upgrade condition, §14.3).
             state.make_mut().players[player.index()].spells_cast_total += 1;
+            // Quest progress (M2-W1): TLC_817 — "Cast 4 Holy spells" — the
+            // cast spell's school comes from the quest registry's static
+            // spell-school table (the 22 dump entries); school-less spells
+            // fire nothing.
+            if let Some(school) = state
+                .world()
+                .card_id(spell)
+                .and_then(|cid| crate::cards::quest::spell_school(cid.0))
+            {
+                crate::engine::quest::progress(
+                    state,
+                    queue,
+                    player,
+                    crate::cards::quest::QuestCondition::CastSpellsOfSchool { school },
+                    1,
+                    None,
+                );
+            }
             // Spell triggers: registered FriendlySpellCast triggers fire in
             // play order. The cast spell rides as the subject — behaviour-
             // neutral for the existing triggers (none of them read it; the

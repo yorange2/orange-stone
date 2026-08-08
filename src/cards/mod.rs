@@ -36,6 +36,7 @@ pub mod exp_edr_w4b;
 pub mod exp_edr_w5;
 pub mod generated;
 pub mod pool;
+pub mod quest;
 pub mod sets;
 
 use crate::core::component::{

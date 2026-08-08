@@ -22849,3 +22849,341 @@ fn edr_w5_ashleaf_pixie() {
     assert!(state.world().divine_shield(pixie).is_none());
     assert!(state.world().lifesteal(pixie).is_none());
 }
+
+// ============================================================
+// Wave tlc_w1 — the Un'Goro quest zone primitive
+// (2025-2026 expansions M2-W1): quest cards are 1-cost legendary
+// spells played into the per-player quest slot (Zone::Quest);
+// game events accumulate progress; at the target the reward
+// resolves. The reward tokens are W2 — their unregistered ids
+// no-op gracefully, so the scenarios assert zone moves and
+// progress values, not tokens.
+// ============================================================
+
+/// TLC_W1-1 — a quest card plays into the quest zone: mana is deducted,
+/// the card sits in `Zone::Quest` (not Play/Graveyard), the Quest
+/// component is attached, and no SpellCast side-effect fires.
+#[test]
+fn tlc_w1_quest_card_plays_into_quest_zone() {
+    use orange_stone::cards::generated::TLC_229;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder.set_mana(p1, 1, 1).add_minion_to_hand(p1, &TLC_229);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_229");
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).current_mana, 0, "the quest costs 1");
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Quest),
+        "the quest card sits in the quest slot, not Play/Graveyard"
+    );
+    assert_eq!(state.world().zones().len(Zone::Quest, p1), 1);
+    let q = state
+        .world()
+        .quest(quest)
+        .expect("Quest component attached");
+    assert_eq!(q.progress, 0);
+    assert_eq!(q.target, 6);
+    assert!(!q.repeatable);
+    assert!(q.markers.is_empty());
+    assert_eq!(
+        state.player(p1).spells_cast_total,
+        0,
+        "no SpellCast event fires for a quest play"
+    );
+}
+
+/// TLC_W1-2 — one quest per player: playing a second quest while the slot
+/// is occupied destroys the old quest (progress lost, no reward) and the
+/// new quest enters the slot fresh.
+#[test]
+fn tlc_w1_second_quest_destroys_first() {
+    use orange_stone::cards::generated::{TLC_229, TLC_426};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &TLC_229)
+        .add_minion_to_hand(p1, &TLC_426);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let first = find_in_hand(&state, p1, "TLC_229");
+    let second = find_in_hand(&state, p1, "TLC_426");
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().zone(first), Some(Zone::Quest));
+    // Give the old quest progress so the replace rule demonstrably loses it.
+    let mut q = state.world().quest(first).unwrap();
+    q.progress = 4;
+    state.world_mut().set_quest(first, q);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zone(first),
+        Some(Zone::Graveyard),
+        "the old quest is destroyed"
+    );
+    assert_eq!(
+        state.world().zone(second),
+        Some(Zone::Quest),
+        "the new quest occupies the slot"
+    );
+    assert_eq!(state.world().zones().len(Zone::Quest, p1), 1);
+    let q = state.world().quest(second).unwrap();
+    assert_eq!(q.progress, 0, "the new quest starts fresh");
+    assert!(q.markers.is_empty());
+}
+
+/// TLC_W1-3 — set-based progress dedup and completion: two Beasts + one
+/// Murloc progress a unique-types quest by 2 (the second Beast is
+/// deduped); distinct races drive it to 6 and the quest leaves the slot
+/// (the reward no-ops — the token is not registered until W2).
+#[test]
+fn tlc_w1_progress_dedup_and_completion() {
+    use orange_stone::cards::classic_neutral::BLUEGILL_WARRIOR;
+    use orange_stone::cards::classic_warlock::VOIDWALKER;
+    use orange_stone::cards::core_w1::{MALIGNANT_HORROR, SWAMP_LEECH};
+    use orange_stone::cards::core_w3a::CORE_DRAGONBANE;
+    use orange_stone::cards::def::HARVEST_GOLEM;
+    use orange_stone::cards::generated::TLC_229;
+    use orange_stone::core::component::CardType;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 17, 17)
+        .add_minion_to_hand(p1, &TLC_229)
+        .add_minion_to_hand(p1, &SWAMP_LEECH) // Beast
+        .add_minion_to_hand(p1, &SWAMP_LEECH) // Beast again (dedup)
+        .add_minion_to_hand(p1, &BLUEGILL_WARRIOR) // Murloc
+        .add_minion_to_hand(p1, &VOIDWALKER) // Demon
+        .add_minion_to_hand(p1, &CORE_DRAGONBANE) // Dragon
+        .add_minion_to_hand(p1, &HARVEST_GOLEM) // Mechanical
+        .add_minion_to_hand(p1, &MALIGNANT_HORROR); // Undead
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_229");
+    play_front_card(&mut state, &engine, p1);
+    // Two Beasts + one Murloc: the same race dedups → progress 2
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().quest(quest).unwrap().progress,
+        2,
+        "same-race plays dedup"
+    );
+    // Distinct races: Demon, Dragon, Mechanical, Undead → 6 distinct types
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Graveyard),
+        "the completed quest leaves the slot"
+    );
+    assert_eq!(state.world().zones().len(Zone::Quest, p1), 0);
+    let minions = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(
+        minions, 7,
+        "the reward no-ops: only the 7 played minions, no TLC_229t14 token"
+    );
+}
+
+/// TLC_W1-4 — a Repeatable Quest resets: after 6 Murloc summons the quest
+/// stays in the slot with progress 0 (the passive reward is a W2
+/// placeholder and no-ops); a 7th Murloc restarts the progress.
+#[test]
+fn tlc_w1_repeatable_quest_resets() {
+    use orange_stone::cards::core_w1::MURMY;
+    use orange_stone::cards::generated::TLC_426;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TLC_426);
+    for _ in 0..7 {
+        builder.add_minion_to_hand(p1, &MURMY);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_426");
+    play_front_card(&mut state, &engine, p1);
+    for _ in 0..6 {
+        play_front_card(&mut state, &engine, p1);
+    }
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Quest),
+        "repeatable quest stays in the slot"
+    );
+    let q = state.world().quest(quest).unwrap();
+    assert_eq!(q.progress, 0, "progress resets on completion");
+    assert!(q.markers.is_empty(), "markers clear on completion");
+    assert!(q.repeatable);
+    assert_eq!(q.target, 6);
+    // A 7th Murloc restarts the progress
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().quest(quest).unwrap().progress,
+        1,
+        "the repeatable quest starts over"
+    );
+}
+
+/// TLC_W1-5 — the spell-school table feeds the school quest: casting a
+/// Holy spell progresses the TLC_817 quest, a Fire spell does not, and
+/// four Holy casts complete it (reward no-ops until W2).
+#[test]
+fn tlc_w1_spell_school_lookup_and_progress() {
+    use orange_stone::cards::generated::{TLC_221, TLC_816, TLC_817};
+    use orange_stone::cards::quest::{SpellSchool, spell_school};
+    let p1 = PlayerId1();
+    assert_eq!(spell_school("TLC_816"), Some(SpellSchool::Holy));
+    assert_eq!(spell_school("TLC_221"), Some(SpellSchool::Fire));
+    assert_eq!(spell_school("TLC_229"), None, "quests carry no school");
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 23, 23)
+        .add_minion_to_hand(p1, &TLC_817)
+        .add_minion_to_hand(p1, &TLC_816) // Holy — 4
+        .add_minion_to_hand(p1, &TLC_221) // Fire — 6
+        .add_minion_to_hand(p1, &TLC_816)
+        .add_minion_to_hand(p1, &TLC_816)
+        .add_minion_to_hand(p1, &TLC_816);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_817");
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1); // Holy
+    assert_eq!(state.world().quest(quest).unwrap().progress, 1);
+    play_front_card(&mut state, &engine, p1); // Fire — no progress
+    assert_eq!(
+        state.world().quest(quest).unwrap().progress,
+        1,
+        "a Fire spell does not progress the Holy quest"
+    );
+    play_front_card(&mut state, &engine, p1); // Holy
+    play_front_card(&mut state, &engine, p1); // Holy
+    play_front_card(&mut state, &engine, p1); // Holy → 4 casts
+    assert_eq!(
+        state.world().zone(quest),
+        Some(Zone::Graveyard),
+        "four Holy casts complete the quest"
+    );
+    let minions = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| {
+            state.world().card_type(e) == Some(orange_stone::core::component::CardType::Minion)
+        })
+        .count();
+    assert_eq!(minions, 0, "the reward no-ops: no TLC_817t3 token");
+}
+
+/// TLC_W1-6 — the exact-damage condition fires only on exact 2 damage to
+/// an enemy on the quest owner's turn: a 2-attack hit progresses it, a
+/// 3-attack hit does not, and a second exact-2 hit progresses again.
+#[test]
+fn tlc_w1_exact_damage_progress() {
+    use orange_stone::cards::classic_neutral::{BLUEGILL_WARRIOR, WISP};
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::generated::TLC_631;
+    use orange_stone::core::action::Action;
+    use orange_stone::core::component::AttacksUsed;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 1, 1)
+        .add_minion_to_hand(p1, &TLC_631)
+        .add_minion_to_board(p1, &BLUEGILL_WARRIOR) // 2/1 attacker
+        .add_minion_to_board(p1, &BLUEGILL_WARRIOR) // second 2/1 attacker
+        .add_minion_to_board(p1, &BLOODFEN_RAPTOR) // 3/2 attacker
+        .add_minion_to_board(PlayerId2(), &WISP) // enemy 1/1
+        .add_minion_to_board(PlayerId2(), &BLOODFEN_RAPTOR); // enemy 3/2
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_631");
+    play_front_card(&mut state, &engine, p1);
+    let bluegill = find_entity(&state, p1, "CLASSIC_002");
+    let raptor = find_entity(&state, p1, "CLASSIC_001");
+    let enemy_wisp = find_entity(&state, PlayerId2(), "NEUTRAL_T01");
+    let enemy_raptor = find_entity(&state, PlayerId2(), "CLASSIC_001");
+    // 2 damage to an enemy minion → progress
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: bluegill,
+                defender: enemy_wisp,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().quest(quest).unwrap().progress, 1);
+    // 3 damage to an enemy minion → no progress (only exact 2)
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: raptor,
+                defender: enemy_raptor,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().quest(quest).unwrap().progress,
+        1,
+        "3 damage does not progress"
+    );
+    // A second exact-2 hit progresses again (fresh attacks via builder)
+    let bluegill2 = find_entity(&state, p1, "CLASSIC_002");
+    state
+        .world_mut()
+        .set_attacks_used(bluegill2, AttacksUsed(0));
+    let enemy_hero = state.player(PlayerId2()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: bluegill2,
+                defender: enemy_hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().quest(quest).unwrap().progress, 2);
+}
+
+/// TLC_W1-7 — the full-board condition fires once per turn: seven plays
+/// that fill the board progress TLC_239 by 1 with the game turn counter
+/// as the dedup marker.
+#[test]
+fn tlc_w1_fill_board_turns_progress() {
+    use orange_stone::cards::classic_neutral::WISP;
+    use orange_stone::cards::generated::TLC_239;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder.set_mana(p1, 1, 1).add_minion_to_hand(p1, &TLC_239);
+    for _ in 0..7 {
+        builder.add_minion_to_hand(p1, &WISP);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "TLC_239");
+    play_front_card(&mut state, &engine, p1);
+    for _ in 0..7 {
+        play_front_card(&mut state, &engine, p1);
+    }
+    let q = state.world().quest(quest).unwrap();
+    assert_eq!(q.progress, 1, "the full-board turn counts once");
+    assert_eq!(
+        q.markers,
+        vec![state.turn()],
+        "the turn counter is the marker"
+    );
+}

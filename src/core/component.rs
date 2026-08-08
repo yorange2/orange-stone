@@ -781,6 +781,24 @@ pub struct Immune;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Overload(pub i32);
 
+/// Quest progress (2025–2026 expansions M2-W1) — runtime state of a quest
+/// card sitting in the player's `Zone::Quest` slot.
+///
+/// Static quest data (condition, target, reward) lives in the `cards::quest`
+/// registry, keyed by card id; this component tracks the mutable half.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct Quest {
+    /// Progress toward the quest's target (0..=target).
+    pub progress: u32,
+    /// The quest's completion target (mirrors `QuestDef::target`).
+    pub target: u32,
+    /// Repeatable quests reset to 0 on completion and stay in the slot.
+    pub repeatable: bool,
+    /// Per-condition tracked values (unique races / distinct turns / attack
+    /// values for set-based conditions); progress skips values already seen.
+    pub markers: Vec<u32>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
