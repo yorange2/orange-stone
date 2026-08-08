@@ -37,9 +37,14 @@ registration; simplifications get ledger rows.
   (M0.1–M0.5); inventory backfilled; the per-set dump fidelity test
   (`the_lost_city_dump_fidelity`, TLC_ + DINO_ prefixes, 183 cards) landed
   with the generated baseline.
-- **W1 — Quest zone (Q1):** `Zone::Quest` + quest component + progress event
-  plumbing + reward resolution; engine-level quest smoke scenarios before any
-  quest card lands.
+- [x] **W1 — Quest zone (Q1)** (PR #144): `Zone::Quest` per-player quest slot
+  + `Quest` component + `cards::quest` registry (SpellSchool, QuestCondition,
+  `quest_def` for all 11 quests) + `engine::quest` progress dispatch with
+  marker dedup and reward resolution (repeatable quests reset and stay);
+  play path diverts quest cards to the slot (one quest per player — new quest
+  destroys the old); call sites for minion plays/summons/damage/turn-end/
+  spell-cast/corpse-spend/discover; 7 engine-level `tlc_w1_*` smoke scenarios
+  landed before any quest card.
 - **W2 — Quest cards:** the set's quest cards on top of W1 (one per class +
   neutral where applicable); F5 scenarios pin progress→reward sequencing and
   the one-quest-per-player rule.
