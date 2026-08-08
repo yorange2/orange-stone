@@ -1,0 +1,3795 @@
+[
+ {
+  "artist": "Todd Harris",
+  "attack": 0,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 118490,
+  "flavor": "Baby longnecks are unfortunately not called shortnecks.",
+  "health": 2,
+  "id": "DINO_130",
+  "isMiniSet": true,
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Longneck Egg",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Deathrattle:</b> Summon a 3/3 Beast. Give your minions +1/+1.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 2,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 118494,
+  "flavor": "I don’t know what came over me. I started drawing dinosaurs and I couldn't stop!",
+  "health": 2,
+  "id": "DINO_131",
+  "isMiniSet": true,
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Possessed Animancer",
+  "rarity": "RARE",
+  "referencedTags": [
+   "LIFESTEAL"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Deathrattle:</b> Summon a\nrandom Beast from your\ndeck. Give it <b>Lifesteal</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mike Sass",
+  "attack": 6,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 118497,
+  "flavor": "Surgeon Tortollan's Warning: Avoid Asphyxiodon at all costs.",
+  "health": 12,
+  "id": "DINO_132",
+  "isMiniSet": true,
+  "mechanics": [
+   "TAUNT",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Asphyxiodon",
+  "race": "BEAST",
+  "races": [
+   "DEMON",
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Taunt</b>. At the end of your\nturn, deal 5 damage to a\nrandom enemy minion.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 118503,
+  "flavor": "Good flavor text is a rare medium well done.",
+  "id": "DINO_136",
+  "isMiniSet": true,
+  "mechanics": [
+   "OUTCAST"
+  ],
+  "name": "Horn of Feasting",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "IMMUNE",
+   "RUSH"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "Summon three\n2/1 Raptors with <b>Rush</b>.\n<b>Outcast:</b> Give them <b>Immune</b>\nwhile attacking this turn.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "attack": 4,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118505,
+  "flavor": "\"Can I ask why this position was vacant?\"",
+  "health": 2,
+  "id": "DINO_137",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Skittish Saucier",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Battlecry:</b> Reduce the Cost of adjacent cards in\nyour hand by (1).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Max Grecke",
+  "attack": 6,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 118507,
+  "flavor": "It's got a BIG HEAD... and little arms.",
+  "health": 5,
+  "id": "DINO_138",
+  "isMiniSet": true,
+  "name": "Diabolus Rex",
+  "race": "BEAST",
+  "races": [
+   "DEMON",
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Kindred:</b> Deal 6 damage to your opponent's left and right-most minions.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Bima Kusuma",
+  "attack": 4,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118403,
+  "flavor": "She's aggressively affectionate.",
+  "health": 3,
+  "id": "DINO_400",
+  "isMiniSet": true,
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Barricade Basher",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]Whenever you gain Armor,\n gain +2/+2 and attack a\nrandom enemy minion.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mike Sass",
+  "attack": 5,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 118404,
+  "elite": true,
+  "flavor": "You were so preoccupied with whether or not you could, you didn't stop to think if you should.",
+  "hasDiamondSkin": true,
+  "health": 12,
+  "id": "DINO_401",
+  "isMiniSet": true,
+  "mechanics": [
+   "RUSH",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "The Great Dracorex",
+  "race": "BEAST",
+  "races": [
+   "BEAST",
+   "DRAGON"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Rush</b>\nAfter this attacks an enemy\nminion, it damages ALL\nother enemy minions.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Slawomir Maniak",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 118406,
+  "flavor": "LURE'S EFFECT WORE OFF.",
+  "id": "DINO_402",
+  "isMiniSet": true,
+  "name": "Bat Mask",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "Set a friendly minion's stats to 1/1. Fill your board with copies of it.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Matt Dixon",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 118408,
+  "flavor": "\"Let's see who's under this mask… SNOWFLIPPER PENGUIN?!?!\"",
+  "id": "DINO_403",
+  "isMiniSet": true,
+  "name": "Devilsaur Mask",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "CHARGE"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "Set a minion's stats to 8/8. Give it <b>Charge</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Felideus Bubastis",
+  "attack": 3,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 118410,
+  "flavor": "Can breathe air, water, or completely ablaze.",
+  "health": 2,
+  "id": "DINO_404",
+  "isMiniSet": true,
+  "name": "Firegill",
+  "race": "MURLOC",
+  "races": [
+   "ELEMENTAL",
+   "MURLOC"
+  ],
+  "rarity": "COMMON",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "<b>Kindred:</b> Give your other minions <b>Rush</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Felideus Bubastis",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118413,
+  "flavor": "Don't count your dinos before they ha- Ok...now you can count them.",
+  "id": "DINO_405",
+  "isMiniSet": true,
+  "name": "Hatching Ceremony",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "At the end of your next turn, give your minions +2/+2.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Brian Adriel",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118480,
+  "flavor": "\"…let’s sit in the back row for this performance.\"",
+  "id": "DINO_406",
+  "isMiniSet": true,
+  "name": "Fire Breath",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "spellSchool": "FIRE",
+  "text": "Deal $4 damage.\nGive your Elementals +1/+1.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ivo Campelo da Silva",
+  "attack": 3,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118481,
+  "elite": true,
+  "flavor": "Every hatching ceremony, Mirrex emerges from its cavern. If the light doesn't shine upon its reflective scales, it means there will be 6 more weeks of volcanic eruptions.",
+  "health": 4,
+  "id": "DINO_407",
+  "isMiniSet": true,
+  "name": "Mirrex, the Crystalline",
+  "race": "BEAST",
+  "races": [
+   "ELEMENTAL",
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "[x]While in your hand, this is a\n3/4 copy of the last minion\nyour opponent played.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Studio Hive",
+  "attack": 2,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 118484,
+  "durability": 0,
+  "flavor": "I stopped watching after the third film. You said this one's about aliens?",
+  "health": 2,
+  "id": "DINO_408",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE"
+  ],
+  "name": "Crystal Tusk",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Shuffle the left-\nmost card in your hand into\nyour deck. <b>Deathrattle:</b>\nDraw 2 cards.",
+  "type": "WEAPON"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 3,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 118485,
+  "flavor": "The field of dino prosthetics was nearly extinct before the Tortollans came around.",
+  "health": 6,
+  "id": "DINO_409",
+  "isMiniSet": true,
+  "mechanics": [
+   "TAUNT"
+  ],
+  "name": "Techysaurus",
+  "race": "BEAST",
+  "races": [
+   "MECHANICAL",
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Taunt</b>. Costs (1) less for\neach card you played this\ngame that didn't start\nin your deck.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vlad Botos",
+  "attack": 0,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118487,
+  "elite": true,
+  "flavor": "Thousands upon thousands of years Khelos has been waiting to hatch. Hopefully you won't have to wait that long.",
+  "health": 3,
+  "id": "DINO_410",
+  "isMiniSet": true,
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "The Egg of Khelos",
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Deathrattle:</b> Summon a\nslightly cracked Egg. <i>(Break\n5 times to hatch a 20/20\nBeast with <b>Taunt</b>!)</i>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Bima Kusuma",
+  "attack": 1,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 118496,
+  "flavor": "If this goes poorly, there's always a job as the Holy Breakfast Chef!",
+  "health": 2,
+  "id": "DINO_411",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Holy Eggbearer",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Battlecry:</b> Draw a\n0-Attack minion.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Studio Hive",
+  "attack": 0,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 118500,
+  "flavor": "If you tip it over, you're cursed with 7 years of bad luck.",
+  "health": 3,
+  "id": "DINO_412",
+  "isMiniSet": true,
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Tortotem",
+  "race": "TOTEM",
+  "races": [
+   "TOTEM"
+  ],
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]At the end of your turn,\nget a random minion with\nmultiple minion types.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Luca Zontini",
+  "attack": 3,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 118501,
+  "flavor": "I'm freezin' my tail off over here!",
+  "health": 4,
+  "id": "DINO_413",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Chillspine Stegodon",
+  "race": "BEAST",
+  "races": [
+   "ELEMENTAL",
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "referencedTags": [
+   "FREEZE"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Deal 2 damage to\ntwo random enemy minions.\n <b>Kindred:</b> And <b>Freeze</b> them.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vika Yarova",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 118554,
+  "flavor": "This is just a tribute.",
+  "id": "DINO_414",
+  "isMiniSet": true,
+  "name": "Tribute Dance",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]Choose a minion.\nChoose a different minion\nto transform it into.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Vika Yarova",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 118555,
+  "flavor": "\"She tried to tell people about our secret city, so we kicked her out of our secret city. That'll show her!\"",
+  "id": "DINO_415",
+  "isMiniSet": true,
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Story of Umbra",
+  "rarity": "RARE",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Discover</b> a <b>Deathrattle</b>\nminion that costs (5) or\nmore. Summon it and\ntrigger its <b>Deathrattle</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "attack": 5,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 118558,
+  "flavor": "I'm alive! I'm dead! I'm watching tv.",
+  "health": 4,
+  "id": "DINO_416",
+  "isMiniSet": true,
+  "mechanics": [
+   "RUSH",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Hollow Direhorn",
+  "race": "BEAST",
+  "races": [
+   "UNDEAD",
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "referencedTags": [
+   "REBORN"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "<b>Rush</b>\nAfter a friendly minion dies, spend 3 <b>Corpses</b> to gain <b>Reborn</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Daniil Kudriavtsev",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 118559,
+  "flavor": "When you're looking for lethal, you might have to break a few eggs.",
+  "id": "DINO_417",
+  "isMiniSet": true,
+  "name": "Soulrest Ceremony",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "THE_LOST_CITY",
+  "spellSchool": "SHADOW",
+  "text": "[x]Give your minions\n+1 Attack and <b>Rush</b>. They\ndie at the end of your turn.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Patrik Bjorkstrom",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118563,
+  "flavor": "\"Your afternoon is completely booked. I'm going to have to reschedule your leaf chomping to make space for your mandatory meandering.\"",
+  "health": 2,
+  "id": "DINO_419",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Herbivore Assistant",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "THE_LOST_CITY",
+  "targetingArrowText": "Give a Beast +2/+2 and <b>Rush</b>.",
+  "text": "<b>Battlecry:</b> Give a friendly Beast +2/+2 and <b>Rush</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Todd Harris",
+  "attack": 9,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 118617,
+  "flavor": "\"Let your heart guide you. It whispers, so listen closely.\"",
+  "health": 9,
+  "id": "DINO_421",
+  "isMiniSet": true,
+  "mechanics": [
+   "DEATHRATTLE",
+   "ELUSIVE",
+   "TAUNT"
+  ],
+  "name": "Seismopod",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Taunt</b>, <b>Elusive</b>\n<b>Deathrattle:</b> Give all minions in your hand\nand deck +3/+3.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Gabor Szikszai",
+  "attack": 7,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 118620,
+  "flavor": "Babies are known as \"Break-Your-Ankles-O-Don\"",
+  "health": 5,
+  "id": "DINO_422",
+  "isMiniSet": true,
+  "mechanics": [
+   "DEATHRATTLE",
+   "TAUNT"
+  ],
+  "name": "Ankylodon",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b><b>Taunt</b>. Deathrattle:</b> Summon\ntwo random 3-Cost Beasts.\n They attack random enemies. ",
+  "type": "MINION"
+ },
+ {
+  "artist": "Topdog Entertainment",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 118625,
+  "flavor": "After Umbra's defeat, Loh had finally fulfilled his lifelong dream and was ready for a peaceful retirement in Latorvia.",
+  "id": "DINO_424",
+  "isMiniSet": true,
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Hero's Welcome",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Discover</b> a <b>Legendary</b> minion to summon. Set its stats to 10/10.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tee Fuyuan",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 118628,
+  "flavor": "Naaaaaants ingonyama bagithi baba!",
+  "id": "DINO_426",
+  "isMiniSet": true,
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Ritual of Life",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "spellSchool": "HOLY",
+  "text": "<b>Discover</b> a 3-Cost minion. Summon a 2/3 copy of it.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "BOSi Studio",
+  "attack": 2,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118632,
+  "flavor": "Every fall, this tortollan rents out the abandoned shellshop.",
+  "health": 4,
+  "id": "DINO_427",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY",
+   "COMBO"
+  ],
+  "name": "Costume Merchant",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Get a random\nMask from another class.\n <b>Combo:</b> It costs (2) less.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 118649,
+  "flavor": "\"How many little fish does it take to change a light bulb?\"\n\"I don't know, they keep vanishing.\"",
+  "id": "DINO_428",
+  "isMiniSet": true,
+  "name": "Behemoth Mask",
+  "rarity": "RARE",
+  "referencedTags": [
+   "LIFESTEAL"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]Set a minion's stats to\n8/10 and give it <b>Lifesteal</b>.\nForce a random enemy\nminion to attack it.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Adam Byrne",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 118651,
+  "flavor": "Baa, Baa, Bomb Sheep",
+  "id": "DINO_429",
+  "isMiniSet": true,
+  "name": "Sheep Mask",
+  "rarity": "RARE",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "Set a minion's stats to 1/1 and give it \"<b>Deathrattle:</b> Deal 2 damage to all minions.\"",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 118653,
+  "elite": true,
+  "flavor": "Each year, Beast Speaker Taka kicks off the Day of Rebirth festivities, heralding the start of the dinosaur hatching season. It is a time to mourn those we have lost, and to celebrate the joy of new life in the Crater.",
+  "hasDiamondSkin": true,
+  "health": 2,
+  "id": "DINO_430",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE",
+   "DISCOVER"
+  ],
+  "name": "Beast Speaker Taka",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> <b>Discover</b> a\n   <b>Legendary</b> Beast from any   \n class to gain its stats.\n  <b>Deathrattle:</b> Summon it.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "attack": 5,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 118656,
+  "flavor": "He's got the weight of the world on his shoulders.",
+  "health": 10,
+  "id": "DINO_431",
+  "isMiniSet": true,
+  "mechanics": [
+   "DEATHRATTLE",
+   "TAUNT"
+  ],
+  "name": "Atlasaurus",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Taunt</b>. <b>Deathrattle:</b> Summon a random <b>Taunt</b> minion that costs (5) or more.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ivan Fomin",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 118712,
+  "flavor": "Every minion wants to be a cat.",
+  "id": "DINO_432",
+  "isMiniSet": true,
+  "name": "Panther Mask",
+  "rarity": "RARE",
+  "referencedTags": [
+   "STEALTH"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "Set a minion's stats to\n5/4 and give it <b>Stealth</b>. Draw 2 cards.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Sergey Tsvelykh",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 118730,
+  "flavor": "\"My cousin's out fighting dragons and what do I get? Guard duty.\"",
+  "id": "DINO_433",
+  "isMiniSet": true,
+  "name": "Guard Duty",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "Summon a random\n6, 4, and 2-Cost\n<b>Taunt</b> minion.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Miki Neves",
+  "attack": 1,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 118766,
+  "flavor": "Spectacular, give me 14 of them right now.",
+  "health": 1,
+  "id": "DINO_434",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE"
+  ],
+  "name": "Raptor-Nest Nurse",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Get a random\n1-Cost minion.\n<b><b>Deathrattle:</b> </b>Get a random\n1-Cost spell.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 119695,
+  "flavor": "Finally, a dinosaur designed by committee.",
+  "health": 4,
+  "id": "DINO_435",
+  "isMiniSet": true,
+  "name": "Crater Experiment",
+  "race": "ALL",
+  "races": [
+   "ALL"
+  ],
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Kindred:</b> Summon a\ncopy of this.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Tee Fuyuan",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117762,
+  "elite": true,
+  "flavor": "\"I've seen that stump before. We must be getting close!\"",
+  "hasDiamondSkin": true,
+  "health": 5,
+  "id": "TLC_100",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Elise the Navigator",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Battlecry:</b> If your deck started with 10 cards of different Costs, craft a custom location.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 119781,
+  "flavor": "Don't be suspicious, don't be suspicious.",
+  "health": 3,
+  "id": "TLC_101",
+  "mechanics": [
+   "ENRAGED",
+   "REBORN",
+   "TAUNT"
+  ],
+  "name": "Undercover Cultist",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Taunt</b>, <b>Reborn</b>\nHas +3 Attack while damaged.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117848,
+  "elite": true,
+  "flavor": "Torga was killed, eaten, used to summon the undead and then used as a loudspeaker for spirits. But at least he's got a hell of a story to tell.",
+  "health": 7,
+  "id": "TLC_102",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Torga",
+  "race": "BEAST",
+  "races": [
+   "UNDEAD",
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Battlecry:</b> Draw a <b>Kindred</b> card and another card that activates it.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 6,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 117877,
+  "elite": true,
+  "flavor": "After many years of exile, Umbra is so close to returning to her city. When she arrives, she will make sure the Tortollans get what they deserve...",
+  "hasDiamondSkin": true,
+  "health": 6,
+  "howToEarn": "Earnable after opening a <i>The Lost City of Un'Goro</i> card pack.",
+  "howToEarnGolden": "Earnable after purchasing the <i>The Lost City of Un'Goro</i> Tavern Pass.",
+  "id": "TLC_106",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Endbringer Umbra",
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Trigger the\n<b>Deathrattles</b> of 5\nfriendly minions that\ndied this game.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 117885,
+  "flavor": "It was a dark and stormy Elemental...",
+  "health": 6,
+  "howToEarnGolden": "Earnable on <i>The Lost City of Un'Goro</i> Reward Track.",
+  "id": "TLC_107",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Stormbrewer",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "EPIC",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "Whenever this attacks,\ndeal 3 damage to\nthe target first.\n<b>Kindred:</b> Gain <b>Rush</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117889,
+  "flavor": "\"I struck gold! NOOOOOOOO!\"",
+  "health": 3,
+  "id": "TLC_109",
+  "mechanics": [
+   "BATTLECRY",
+   "DISCOVER"
+  ],
+  "name": "Relic Miner",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Destroy the top\ncard of your deck. <b>Discover</b> a\ncard of the same Rarity.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "attack": 5,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 121026,
+  "elite": true,
+  "flavor": "\"Let me esho you around!\"",
+  "health": 7,
+  "howToEarn": "Earnable on <i>The Lost City of Un'Goro</i> Reward Track.",
+  "howToEarnGolden": "Earnable after purchasing the <i>The Lost City of Un'Goro</i> Tavern Pass.",
+  "id": "TLC_110",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "City Chief Esho",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> If every minion in\nyour deck shares a minion type,\ngive your other minions +2/+2\n<i>(wherever they are)</i>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Drew Hill",
+  "attack": 4,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117531,
+  "flavor": "This story will blow you away.",
+  "health": 5,
+  "id": "TLC_220",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Windswept Pageturner",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]After you summon an\nElemental, deal 3 damage\nto a random enemy.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Alex Stone",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 117532,
+  "flavor": "Can someone open a window? It's a little swarm in here!",
+  "id": "TLC_221",
+  "name": "Sizzling Swarm",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "spellSchool": "FIRE",
+  "text": "Deal $3 damage.\nSummon that many 2/1 Sizzling Cinders.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Grafit Studio",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117606,
+  "flavor": "Also the name of a famous Tortollan orchestral arrangement.",
+  "id": "TLC_222",
+  "name": "Flight of the Firehawk",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "spellSchool": "FIRE",
+  "text": "Draw two minions of different minion types. Give them +1/+1.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Stefano Spagnuolo",
+  "attack": 2,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117533,
+  "flavor": "Very friendly, but be careful when it asks to play fetch.",
+  "health": 3,
+  "id": "TLC_223",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Volcanic Thrasher",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL",
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "referencedTags": [
+   "SPELLPOWER"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "<b>Battlecry:</b> Draw a Fire spell. <b>Kindred:</b> Give it <b>Spell Damage +2</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Felideus Bubastis",
+  "attack": 2,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117534,
+  "flavor": "Its volcanic strength powers its mechanical arm... and also its normal arm.",
+  "health": 5,
+  "id": "TLC_224",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Mechanized Magma",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL",
+   "MECHANICAL"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "Whenever you play a\nFire spell, gain stats\nequal to its Cost.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Melvin Chan",
+  "attack": 1,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117612,
+  "flavor": "\"Don't play with fire.\"\n\"But they're my friends!\"",
+  "health": 2,
+  "id": "TLC_225",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Cinderfin",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL",
+   "MURLOC"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Deathrattle:</b> Summon a 2/1 Sizzling Cinder.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Drew Hill",
+  "attack": 2,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117535,
+  "flavor": "In charge of cleaning up after the Library Rager.",
+  "health": 2,
+  "id": "TLC_226",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Conjured Bookkeeper",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Deathrattle:</b> Draw a spell. <b>Kindred:</b> Summon a copy of this.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Stefan Bogdasarov",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117536,
+  "flavor": "The lava must flow.",
+  "id": "TLC_227",
+  "mechanics": [
+   "OVERLOAD"
+  ],
+  "name": "Lava Flow",
+  "overload": 1,
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "spellSchool": "FIRE",
+  "text": "Deal $2 damage to the lowest Health enemy, three times. <b>Overload:</b> (1)",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ivan Fomin",
+  "attack": 1,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117617,
+  "elite": true,
+  "flavor": "She makes a mean molten lava cake.",
+  "health": 5,
+  "id": "TLC_228",
+  "mechanics": [
+   "AURA"
+  ],
+  "name": "Bralma Searstone",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "Your Elementals deal\n1 extra damage.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Dmitry Bolotov",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117538,
+  "elite": true,
+  "flavor": "Day 10. A Tortollan named Bralma took Niri, Elise, and I deep into the mountain. She showed us how the Tortollans move lava up from the base of the volcano through a system of “lavaqueducts.” I was shocked to find a pack of Volcanosaurs living there!",
+  "id": "TLC_229",
+  "mechanics": [
+   "QUEST"
+  ],
+  "name": "Spirit of the Mountain",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Quest:</b> Play 6 minions\nof unique types.\n<b>Reward:</b> Ashalon.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Patrik Bjorkstrom",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 117646,
+  "flavor": "Photo synth THIS, fool!",
+  "id": "TLC_230",
+  "name": "TREEEES!!!",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "spellSchool": "NATURE",
+  "text": "Choose a minion. Summon four 2/2 Treants that attack it.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Matt Dixon",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117648,
+  "flavor": "\"Once there was a giant dinosaur. He was so giant that everyone died. The end.\"",
+  "id": "TLC_231",
+  "name": "Story of Barnabus",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "Draw a minion.\nIf it has 5 or more Attack, give it +5 Health and gain 5 Armor.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Guillaume Beauchêne",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117650,
+  "flavor": "It's a flock of screamgulls!",
+  "id": "TLC_232",
+  "name": "Ravenous Flock",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "At the start of your next turn, summon three 2/1 Hatchlings.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Eva Widermann",
+  "attack": 2,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117652,
+  "flavor": "Yeah, painting patterns on the eggs is SUPER helpful J'an.",
+  "health": 3,
+  "id": "TLC_233",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Hatchery Helper",
+  "rarity": "RARE",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Give your\nother minions with 2 or less\nAttack +1/+1 and <b>Taunt</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Gabriel Lopes",
+  "attack": 5,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117653,
+  "flavor": "The crab grass of Un'Goro.",
+  "health": 1,
+  "id": "TLC_234",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Eternal Bloodpetal",
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Deathrattle:</b> Summon a 0/1 Eternal Seedling.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mooncolony",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117655,
+  "flavor": "It's the cyyyyyycle of liiiiiife.",
+  "id": "TLC_235",
+  "name": "Life Cycle",
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "spellSchool": "NATURE",
+  "text": "Destroy a minion. Summon a random minion of the same\nCost to replace it.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Stefan Bogdasarov",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 117656,
+  "flavor": "You take the blue flower -- the story ends, you wake up in the inn and believe whatever you want to believe. You take the red flower -- you stay in Un'Goro, and I show you how deep the Gorishi tunnel goes.",
+  "id": "TLC_236",
+  "name": "Hybridization",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "spellSchool": "NATURE",
+  "text": "Draw a 1, 2, 3, and 4-Cost minion. <b>Kindred:</b> They cost (1) less.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ivo Campelo da Silva",
+  "attack": 0,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117657,
+  "flavor": "Aaaaaaaaaaahmlette",
+  "health": 2,
+  "id": "TLC_237",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Skyscreamer Eggs",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Deathrattle:</b> Summon four 2/1 Hatchlings.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Daniil Kudriavtsev",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117661,
+  "elite": true,
+  "flavor": "Day 3. We happened upon a clearing filled with dangerous Bloodpetals. As I was noting our findings, the world went dark. My vision is perfect of course, but it appeared as though a large flying shape was blocking out the sun! Confounding indeed.",
+  "id": "TLC_239",
+  "mechanics": [
+   "QUEST"
+  ],
+  "name": "Restore the Wild",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Quest:</b> Fill your board\non 3 of your turns.\n<b>Reward:</b> The Everbloom.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tanamaes Leejierasaes",
+  "attack": 6,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 117949,
+  "flavor": "There's something fishy about that dinosaur...",
+  "health": 3,
+  "id": "TLC_240",
+  "mechanics": [
+   "DEATHRATTLE",
+   "RUSH"
+  ],
+  "name": "Tyrannogill",
+  "race": "BEAST",
+  "races": [
+   "MURLOC",
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Rush</b>\n<b>Deathrattle:</b> Summon three\n2/1 Murlocs. Give them each\na random <b>Bonus Effect</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 2,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117951,
+  "elite": true,
+  "flavor": "Ido, therefore I am.",
+  "health": 7,
+  "id": "TLC_241",
+  "mechanics": [
+   "AURA"
+  ],
+  "name": "Ido of the Threshfleet",
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "DIVINE_SHIELD"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]While this is alive,\nyou get a 2-Cost Holy spell\nthat gives a minion +2/+2\nand <b>Divine Shield</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Gabor Szikszai",
+  "attack": 1,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118220,
+  "flavor": "I'm 30 years old.",
+  "health": 5,
+  "id": "TLC_242",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Ancient Stegodon",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "referencedTags": [
+   "POISONOUS",
+   "TAUNT"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "<b>Battlecry:</b> Choose to\ngain <b>Taunt</b>, <b>Poisonous</b>,\nor +1/+1.",
+  "type": "MINION"
+ },
+ {
+  "artist": "BOSi Studio",
+  "attack": 8,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 118221,
+  "flavor": "Summons storms. Breathes fire. But first, does a sick loop-de-loop.",
+  "health": 8,
+  "id": "TLC_243",
+  "mechanics": [
+   "RUSH",
+   "WINDFURY"
+  ],
+  "name": "Whirling Stormdrake",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL",
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "referencedTags": [
+   "IMMUNE"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "<b>Rush</b>, <b>Windfury</b>\n<b>Kindred:</b> Gain <b>Immune</b>\nthis turn.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Sergey Tsvelykh",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 118223,
+  "flavor": "\"Wow, this flower's mouth is perfectly head-shaped.\"",
+  "health": 5,
+  "id": "TLC_244",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Curious Explorer",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Deathrattle:</b> Reduce the\nCost of a minion in your\n opponent's hand by (2).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 118224,
+  "flavor": "It prefers \"Experienced.\"",
+  "health": 1,
+  "id": "TLC_245",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Ancient Raptor",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "EPIC",
+  "referencedTags": [
+   "DEATHRATTLE",
+   "DIVINE_SHIELD"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Choose to gain\n+3 Attack, <b>Divine Shield</b>,\nor \"<b>Deathrattle:</b> Summon\ntwo 1/1 Plants.\"",
+  "type": "MINION"
+ },
+ {
+  "artist": "Jaemin Kim",
+  "attack": 4,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 118232,
+  "flavor": "What's that sound? He's a terrible conductor.",
+  "health": 4,
+  "id": "TLC_246",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Ancient Pterrordax",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "referencedTags": [
+   "ELUSIVE",
+   "STEALTH",
+   "WINDFURY"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Choose to gain\n<b>Stealth</b> until your next turn,\n<b>Elusive</b>, or <b>Windfury</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Alex Horley Orlandelli",
+  "attack": 5,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 118235,
+  "flavor": "100 dino birds versus 1 sabretooth. Who would win?",
+  "health": 3,
+  "id": "TLC_247",
+  "mechanics": [
+   "STEALTH",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Primal Sabretooth",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Stealth</b>\nAfter this attacks and kills a\nminion, get a copy of it.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 14,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 11,
+  "dbfId": 118238,
+  "flavor": "Ultrasaur for scale.",
+  "health": 28,
+  "id": "TLC_248",
+  "name": "Ultragigasaur",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vika Yarova",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 118222,
+  "flavor": "\"Hey, I'm sizzlin' here!\"",
+  "health": 1,
+  "id": "TLC_249",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Sizzling Cinder",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Deathrattle:</b> Deal 2 damage randomly split among all enemies.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Gabor Szikszai",
+  "attack": 5,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 118247,
+  "flavor": "See ya later Crater Gator!",
+  "health": 4,
+  "id": "TLC_250",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Crater Gator",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Until the start of\nyour next turn, the enemy\nhero can't be healed.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mauricio Herrera",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118251,
+  "flavor": "\"MURGRGLGLLGLLRRRG!!!!!!\"\n<i>There were no survivors.</i>",
+  "health": 2,
+  "howToEarnGolden": "Earnable on <i>The Lost City of Un'Goro</i> Reward Track.",
+  "id": "TLC_251",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Primalfin Challenger",
+  "race": "MURLOC",
+  "races": [
+   "MURLOC"
+  ],
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Battlecry:</b> Your next <b>Kindred</b> triggers twice.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ivan Fomin",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118252,
+  "flavor": "Ooze\nOoz\nOo\nO",
+  "health": 3,
+  "howToEarn": "Earnable after opening a <i>The Lost City of Un'Goro</i> card pack.",
+  "howToEarnGolden": "Earnable after opening a golden <i>The Lost City of Un'Goro</i> card pack.",
+  "id": "TLC_252",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Dissolving Ooze",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "targetingArrowText": "Destroy a friendly minion.",
+  "text": "[x]<b>Battlecry:</b> Destroy a\nfriendly minion. Spit out\nthe Bones of its Attack and\nHealth into your hand.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Luca Zontini",
+  "attack": 5,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118254,
+  "flavor": "First, he was afraid...",
+  "health": 5,
+  "id": "TLC_253",
+  "name": "Petrified Ogre",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]Starts <b>Dormant. </b>While\n<b>Dormant</b>, gain +2/+2 at the\nstart of your turn. <i>(50% chance\nto awaken instead.)</i>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Max Grecke",
+  "attack": 1,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 118257,
+  "flavor": "\"And then a turtle made it to the water!\"",
+  "health": 2,
+  "id": "TLC_254",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Tortollan Storyteller",
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "text": "[x]At the end of your turn,\ngive +1/+1 to each friendly\nminion of a different type.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 118259,
+  "flavor": "\"Hands off my tendies!\"",
+  "health": 2,
+  "id": "TLC_255",
+  "mechanics": [
+   "BATTLECRY",
+   "TRADEABLE"
+  ],
+  "name": "Crystal Tender",
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Tradeable</b>\n<b>Battlecry:</b> Gain empty Mana\nCrystals until both players\nhave the same Mana.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118260,
+  "flavor": "\"Just remember, when we pose for pictures, look very shadowy and grainy.\"",
+  "health": 3,
+  "id": "TLC_256",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Marshland Thresher",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "referencedTags": [
+   "DIVINE_SHIELD"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "After you cast a spell,\ngain <b>Divine Shield</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Max Grecke",
+  "attack": 5,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 118575,
+  "elite": true,
+  "flavor": "Pretty spry for a 4217 year old.",
+  "hasDiamondSkin": true,
+  "health": 5,
+  "id": "TLC_257",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Loh, the Living Legend",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Battlecry:</b> Your minions cost (5) this game.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Jakub Kasper",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 118616,
+  "flavor": "\"Whoa, found a big plate!\"",
+  "id": "TLC_334",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Relic of Kings",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Discover</b> a spell from any class that costs (8) or more. It costs (1).",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Jason Kang",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 118265,
+  "flavor": "\"...and then a lot of people got mad.\"",
+  "id": "TLC_364",
+  "name": "Story of the Waygate",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]Reduce the Cost of cards\nin your hand that didn't\nstart in your deck by (1).",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Mooncolony",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118266,
+  "flavor": "Flip and file!\nMix and shuffle!\nSort and swap!\nDo the Storage Scuffle!",
+  "id": "TLC_365",
+  "name": "Storage Scuffle",
+  "rarity": "RARE",
+  "referencedTags": [
+   "DISCOVER"
+  ],
+  "set": "THE_LOST_CITY",
+  "spellSchool": "ARCANE",
+  "text": "Deal $3 damage\nto a minion. Costs (0)\nif you've <b>Discovered</b>\nthis turn.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Alex Stone",
+  "attack": 7,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 118269,
+  "flavor": "Turns out most things are skyscreamers if you drop them from high enough.",
+  "health": 5,
+  "id": "TLC_366",
+  "mechanics": [
+   "RUSH"
+  ],
+  "name": "Pterrorwing Ravager",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Rush</b>\n<b>Kindred:</b> Costs (2) less.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Grafit Studio",
+  "attack": 6,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 116376,
+  "flavor": "Cold blooded. Bad to the bone. Needs a sweater.",
+  "health": 3,
+  "id": "TLC_401",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Bonechill Stegodon",
+  "race": "UNDEAD",
+  "races": [
+   "UNDEAD",
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "runeCost": {
+   "blood": 0,
+   "frost": 2,
+   "unholy": 0
+  },
+  "set": "THE_LOST_CITY",
+  "text": "<b>Deathrattle:</b> Deal\n6 damage to three\nrandom enemies.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117341,
+  "elite": true,
+  "flavor": "Day 5. Elise had a hunch that the Lost City may be hidden deep beneath the Golakka Hot Springs. Niri swam down and discovered a beautiful cavern! The Murlocs may not be hiding an entrance to the city, but it seems they do have a few secrets.",
+  "id": "TLC_426",
+  "mechanics": [
+   "QUEST",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Dive the Golakka Depths",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Repeatable Quest:</b> Summon 6 Murlocs.\n<b>Reward:</b> Murlocs you summon gain +1/+1.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ivan Fomin",
+  "attack": 1,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117381,
+  "flavor": "Don't step on a stream or you'll break your mama's spleen.",
+  "health": 3,
+  "id": "TLC_427",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Rockskipper",
+  "race": "MURLOC",
+  "races": [
+   "MURLOC"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Battlecry:</b> Get a 1-Cost\nRock that deals $3 damage.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Patrik Bjorkstrom",
+  "attack": 2,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117382,
+  "flavor": "It's an important survival instinct to keep a low profile in Un'Goro Crater. Gargl will not survive long.",
+  "health": 4,
+  "id": "TLC_428",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Hot Spring Glider",
+  "race": "MURLOC",
+  "races": [
+   "MURLOC"
+  ],
+  "rarity": "COMMON",
+  "referencedTags": [
+   "DIVINE_SHIELD"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "<b>Battlecry:</b> Your next\nMurloc costs (1) less.\n<b>Kindred:</b> And gains <b>Divine Shield</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 4,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117383,
+  "flavor": "Dial M for Murlocs.",
+  "health": 3,
+  "howToEarnGolden": "Earnable on <i>The Lost City of Un'Goro</i> Reward Track.",
+  "id": "TLC_429",
+  "name": "Steamfin Thief",
+  "race": "MURLOC",
+  "races": [
+   "MURLOC"
+  ],
+  "rarity": "COMMON",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "<b>Kindred:</b> Summon two\n1/1 Murlocs with <b>Rush</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Jakub Kasper",
+  "attack": 2,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117384,
+  "flavor": "Really likes being read to.",
+  "health": 5,
+  "id": "TLC_430",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Creature of the Sacred Cave",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "text": "[x]At the end of your turn,\nrecast a random Holy spell\nyou cast this turn <i>(targets\nthis if possible)</i>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 3,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117423,
+  "flavor": "\"I AM THE CLAW!\"",
+  "health": 4,
+  "id": "TLC_432",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Dread Raptor",
+  "race": "UNDEAD",
+  "races": [
+   "UNDEAD",
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "runeCost": {
+   "blood": 0,
+   "frost": 1,
+   "unholy": 1
+  },
+  "set": "THE_LOST_CITY",
+  "text": "<b>Battlecry:</b> Draw a <b>Deathrattle</b> minion that costs (3) or less. <b>Kindred:</b> It costs (0).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Grafit Studio",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117427,
+  "elite": true,
+  "flavor": "Day 11. We’ve been betrayed! Umbra has been meeting secretly with the Cult of the Damned to plan a coup. She and High Cultist Herenn used shadow magic to raise an undead dinosaur army! Tortolla preserve us, the fate of the Lost City rests in our hands.",
+  "id": "TLC_433",
+  "mechanics": [
+   "QUEST"
+  ],
+  "name": "Reanimate the Terror",
+  "rarity": "LEGENDARY",
+  "runeCost": {
+   "blood": 1,
+   "frost": 0,
+   "unholy": 1
+  },
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Quest:</b> Spend 15 <b>Corpses</b>.\n<b>Reward:</b> Tyrax, Bone Terror.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Jason Kang",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117430,
+  "flavor": "Death finds a way.",
+  "id": "TLC_434",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Paleomancy",
+  "rarity": "RARE",
+  "runeCost": {
+   "blood": 0,
+   "frost": 0,
+   "unholy": 1
+  },
+  "set": "THE_LOST_CITY",
+  "spellSchool": "SHADOW",
+  "text": "<b>Discover</b> an Undead. Spend 5 <b>Corpses</b> to keep all 3 instead.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Grafit Studio",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117431,
+  "flavor": "Solving a maze is easy. Just hug the left wall and don't get eaten by dinosaurs!",
+  "id": "TLC_435",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Crypt Map",
+  "rarity": "COMMON",
+  "runeCost": {
+   "blood": 0,
+   "frost": 2,
+   "unholy": 0
+  },
+  "set": "THE_LOST_CITY",
+  "text": "<b>Discover</b> a Frost Rune card. If you play it this turn, also pick one\nof the others.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Slawomir Maniak",
+  "attack": 4,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 117434,
+  "flavor": "Ptruly pterrifying.",
+  "health": 3,
+  "id": "TLC_436",
+  "mechanics": [
+   "LIFESTEAL",
+   "RUSH"
+  ],
+  "name": "Reanimated Pterrordax",
+  "race": "UNDEAD",
+  "races": [
+   "UNDEAD",
+   "BEAST"
+  ],
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "text": "<b><b>Rush</b>, Lifesteal</b>\nCosts <b>Corpses</b> instead\nof Mana.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Patrik Bjorkstrom",
+  "attack": 1,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117562,
+  "flavor": "His brother Violent was banned from the colony.",
+  "health": 2,
+  "id": "TLC_438",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Violet Treasuregill",
+  "race": "MURLOC",
+  "races": [
+   "MURLOC"
+  ],
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Cast a random\nspell from your deck that\ncosts (2) or less <i>(targets\nthis if possible)</i>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117604,
+  "flavor": "\"Watch out for my WAVE OF TAR!!! Just... stand still for a minute.\"",
+  "id": "TLC_439",
+  "name": "Wave of Tar",
+  "rarity": "EPIC",
+  "runeCost": {
+   "blood": 0,
+   "frost": 1,
+   "unholy": 1
+  },
+  "set": "THE_LOST_CITY",
+  "text": "Deal $2 damage to all enemy minions. Enemy minions cost\n(2) more next turn.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Grafit Studio",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117622,
+  "flavor": "You mad? Cryobout it.",
+  "id": "TLC_440",
+  "name": "Cryosleep",
+  "rarity": "RARE",
+  "runeCost": {
+   "blood": 0,
+   "frost": 2,
+   "unholy": 0
+  },
+  "set": "THE_LOST_CITY",
+  "spellSchool": "FROST",
+  "text": "Deal $4 damage\nand draw a card.\n<b>Kindred: </b>Draw another.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117664,
+  "flavor": "The Fleet is on fleek.",
+  "id": "TLC_441",
+  "name": "Ready the Fleet",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "Give +1/+2 to a friendly minion and your other minions that share a type with it.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Melvin Chan",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117665,
+  "flavor": "Sure, it leads straight to Latorvia. How long can you hold your breath?",
+  "id": "TLC_442",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Submerged Map",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Discover</b> a Murloc.\nIf you play it this turn, also\npick one of the others.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "attack": 1,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117666,
+  "flavor": "\"It's not that I never wanted a pet. I didn't want THIS pet.\"",
+  "health": 1,
+  "id": "TLC_443",
+  "mechanics": [
+   "DEATHRATTLE",
+   "REBORN"
+  ],
+  "name": "Reluctant Wrangler",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Reborn</b>\n<b>Deathrattle:</b> Summon a 2/2\nUndead Beast with <b>Taunt</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117679,
+  "flavor": "\"...so I gave him +12 Attack and <b>Windfury</b> -- and you won't believe this -- he LIVED.\"",
+  "id": "TLC_444",
+  "name": "Story of Galvadon",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "Give a minion three random <b>Bonus Effects</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117827,
+  "elite": true,
+  "flavor": "Day 7. A terrible day! The ground opened beneath us, and we fell head over shell into an accursed rift! Fel choked my keen senses, and demonic beasts emerged from the fog. Thank goodness Umbra was able to use her magic to ward them off while we escaped.",
+  "id": "TLC_446",
+  "mechanics": [
+   "QUEST"
+  ],
+  "name": "Escape the Underfel",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Quest:</b> Play 6 <b>Temporary</b> cards. <b>Reward:</b> Underfel Rift.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Grafit Studio",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117830,
+  "flavor": "If the fumes don't get them, the fumes might.",
+  "id": "TLC_447",
+  "name": "Caustic Fumes",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "spellSchool": "FEL",
+  "text": "Destroy an enemy minion. <b>Kindred:</b> Deal $2 damage to all minions.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "BOSi Studio",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117837,
+  "flavor": "The rash doesn't FEEL temporary.",
+  "health": 2,
+  "id": "TLC_449",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Bloodpetal Biome",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Discover</b> a <b>Temporary</b> 1-Cost minion.",
+  "type": "LOCATION"
+ },
+ {
+  "artist": "Mike Sass",
+  "attack": 2,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117890,
+  "flavor": "Echo... echo... repeatable this turn...",
+  "health": 3,
+  "id": "TLC_450",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Spelunker",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Battlecry:</b> Your next <b>Temporary</b> card costs\n(2) less.",
+  "type": "MINION"
+ },
+ {
+  "artist": "BOSi Studio",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 0,
+  "dbfId": 117892,
+  "flavor": "The minion is now permanently cursed. Temporarily.",
+  "id": "TLC_451",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Cursed Catacombs",
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "spellSchool": "FEL",
+  "text": "<b>Discover</b> another\ncard from your deck. Make it <b>Temporary</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Mooncolony",
+  "attack": 6,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 117956,
+  "elite": true,
+  "flavor": "Look at this Titangraph.",
+  "hasDiamondSkin": true,
+  "health": 6,
+  "id": "TLC_452",
+  "name": "Titanographer Osk",
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "TITAN"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "Gains a random <b>Titan</b> ability in your hand that changes each turn.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 118182,
+  "flavor": "Little Eeep and his pal Stomp are off to see the wonders of Un'Goro. First stop, Underfel!",
+  "health": 6,
+  "id": "TLC_454",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Scalehide Kodo",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Destroy the\nlowest Attack enemy minion.\n<b>Kindred:</b> The highest\nAttack instead.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mooncolony",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 118183,
+  "elite": true,
+  "flavor": "Day 9. We were not welcomed with open arms, but with spears! Fortunately, Chief Esho took pity on us and called off the guards. Learning of Elise's expertise, a Titanographer whisked her away to the library. Umbra disappeared in the twisting streets...",
+  "id": "TLC_460",
+  "mechanics": [
+   "QUEST"
+  ],
+  "name": "The Forbidden Sequence",
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "DISCOVER"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Quest:</b> <b>Discover</b> 7 cards.\n<b>Reward:</b> The Origin Stone.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Topdog Entertainment",
+  "attack": 1,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 118192,
+  "flavor": "\"One second, I'm stashing this Ultragigasaur in my little satchel.\"",
+  "health": 1,
+  "id": "TLC_461",
+  "mechanics": [
+   "BATTLECRY",
+   "DISCOVER"
+  ],
+  "name": "Scrappy Scavenger",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> <b>Discover</b> a\ncard with Cost equal to your\nremaining Mana Crystals.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Jakub Kasper",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 118199,
+  "flavor": "The Tortollans live so long they're unearthing their OWN artifacts!",
+  "id": "TLC_462",
+  "name": "Unearthed Artifacts",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "DISCOVER"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]Summon a random 2-Cost\nminion. If you've <b><b>Discover</b>ed</b>\nthis turn, summon a random\n4-Cost minion instead.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Juan Calle",
+  "attack": 7,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 118210,
+  "elite": true,
+  "flavor": "Be prepaaaaaaaaared! <i>(by playing a Demon or Beast the previous turn.)</i>",
+  "hasDiamondSkin": true,
+  "health": 7,
+  "id": "TLC_463",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Razidir",
+  "race": "DEMON",
+  "races": [
+   "DEMON",
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Discard a random\ncard from your hand.\n<b>Kindred:</b> Your opponent's\nhand instead.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vika Yarova",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 118225,
+  "flavor": "See that part at the top? That's the top.",
+  "id": "TLC_464",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Mountain Map",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Discover</b> a minion with\na type you haven't played.\nIf you play it this turn, also\npick one of the others.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Melvin Chan",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118241,
+  "flavor": "\"Wow, this human's head is perfectly mouth-shaped.\"",
+  "health": 2,
+  "howToEarnGolden": "Earnable on <i>The Lost City of Un'Goro</i> Reward Track.",
+  "id": "TLC_465",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Stranglevine",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Deathrattle:</b> Give a random\nfriendly minion a random\n<b>Bonus Effect</b> and this <b>Deathrattle</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 118243,
+  "flavor": "Wow, the Tortollans really embellish these stories.",
+  "id": "TLC_466",
+  "name": "Story of Lakkari",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]At the end of your turn,\ndiscard a card and fill\nyour board with 3/2 Imps.\nLasts 3 turns.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "attack": 0,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 118277,
+  "flavor": "shhhhhh..._____________________________________________________________________________________________",
+  "health": 8,
+  "id": "TLC_467",
+  "mechanics": [
+   "DEATHRATTLE",
+   "TAUNT"
+  ],
+  "name": "Whispering Stone",
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Taunt</b>\n<b>Deathrattle:</b> Get 2 random\nFel spells. They cost Health\ninstead of Mana.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Dmitry Bolotov",
+  "attack": 4,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 118279,
+  "flavor": "A tar is born.",
+  "health": 4,
+  "howToEarn": "Earnable after opening a <i>The Lost City of Un'Goro</i> card pack.",
+  "howToEarnGolden": "Earnable after opening a golden <i>The Lost City of Un'Goro</i> card pack.",
+  "id": "TLC_468",
+  "mechanics": [
+   "DEATHRATTLE",
+   "POISONOUS",
+   "TAUNT"
+  ],
+  "name": "Blob of Tar",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Poisonous</b>, <b>Taunt</b>\n<b>Deathrattle:</b> Summon a 2/2\nBlob with <b>Poisonous</b> and a\n2/2 Blob with <b>Taunt</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ian Ameling",
+  "attack": 4,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118282,
+  "flavor": "And a tiny soul patch to match.",
+  "health": 3,
+  "id": "TLC_469",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Tunnel Terror",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Deathrattle:</b> Get two random <b>Temporary</b>\n2-Cost minions.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Danny Beck",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 119587,
+  "flavor": "#Blessed",
+  "id": "TLC_477",
+  "name": "Threshrider's Blessing",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "set": "THE_LOST_CITY",
+  "spellSchool": "HOLY",
+  "text": "Give a friendly minion +4/+4 and \"<b>Deathrattle:</b> Summon a random 4-Cost minion.\"",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Vlad Botos",
+  "attack": 2,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 119637,
+  "durability": 0,
+  "flavor": "...and the axe of the beforefathers before the forefathers before him.",
+  "health": 2,
+  "id": "TLC_478",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Axe of the Forefathers",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "After your hero attacks, deal 1 damage to all minions.",
+  "type": "WEAPON"
+ },
+ {
+  "artist": "Vlad Botos",
+  "attack": 2,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 119789,
+  "flavor": "Oh, don't worry, Deathy doesn't bite.",
+  "health": 8,
+  "id": "TLC_479",
+  "mechanics": [
+   "DEATHRATTLE",
+   "TAUNT"
+  ],
+  "name": "Deathrot Maw",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Taunt</b>\n<b>Deathrattle:</b> Summon a random Fel Beast.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 8,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 119809,
+  "elite": true,
+  "flavor": "Who died and made him King of anything?",
+  "health": 7,
+  "id": "TLC_480",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Krog, Crater King",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "[x]At the end of your turn,\nset the Attack and Health of\nall enemy minions to 1.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "attack": 3,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 120344,
+  "flavor": "You can't just have the sizzle, you gotta have the cinders.",
+  "health": 4,
+  "id": "TLC_482",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Slagclaw",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL",
+   "DRAGON"
+  ],
+  "rarity": "EPIC",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Summon two\n2/1 Sizzling Cinders.\n<b>Kindred:</b> Trigger your Sizzling\nCinders' <b>Deathrattles.</b>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "attack": 2,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 120582,
+  "flavor": "I've already told him 3 times to PUSH.",
+  "health": 4,
+  "id": "TLC_483",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Vault Breaker",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "DISCOVER"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "After you <b>Discover</b> a card, reduce its Cost by (1).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Alex Stone",
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117222,
+  "elite": true,
+  "flavor": "Day 2. Our first night in the Crater was a tad rough on this old shell. I can’t shake the feeling that we’re being watched. I swear I saw a glint of shining silver in the dark. I was going to ask Umbra about it at breakfast, but she never turned up.",
+  "id": "TLC_513",
+  "mechanics": [
+   "QUEST"
+  ],
+  "name": "Lie in Wait",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Quest:</b> Shuffle cards\ninto your deck, 5 times.\n<b>Reward: </b>Master Dusk.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 1,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117691,
+  "flavor": "\"Tortollan has knives if you have coin.\"",
+  "health": 2,
+  "id": "TLC_514",
+  "mechanics": [
+   "BATTLECRY",
+   "DISCOVER"
+  ],
+  "name": "Merchant of Legend",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Battlecry:</b> <b>Discover</b>\na <b>Legendary</b> minion.\nShuffle the other two into your deck.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Daniil Kudriavtsev",
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117697,
+  "flavor": "Are the Shrouded Shells actually great trackers, or are the Cult of the Damned just REALLY bad about leaving secret maps lying around?",
+  "id": "TLC_515",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Cultist Map",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "spellSchool": "SHADOW",
+  "text": "<b>Discover</b> a card from your deck. If you play it this turn, also pick one of the others.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Luca Zontini",
+  "attack": 5,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117698,
+  "flavor": "Neferset your drink on the table without a coaster.",
+  "health": 4,
+  "id": "TLC_516",
+  "mechanics": [
+   "BATTLECRY",
+   "COMBO"
+  ],
+  "name": "Neferset Weaponsmith",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Get a random\nweapon from another class.\n<b>Combo:</b> Give it +2 Attack.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117699,
+  "flavor": "Every day he's scufflin'",
+  "id": "TLC_517",
+  "name": "Knockback",
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "text": "[x]Deal $1 damage to\na minion <i>(improved for\neach time you've shuffled\ncards into your deck)</i>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117700,
+  "flavor": "\"Spill the tea or I'll end your entire career, sis.\"",
+  "id": "TLC_518",
+  "name": "Interrogation",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "STEALTH"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "Shuffle three 3/3 Ninjas with <b>Stealth</b> into your deck that are <b>Summoned When Drawn</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Gabor Szikszai",
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 118580,
+  "flavor": "Ah, no wonder YOU'RE extinct.",
+  "id": "TLC_519",
+  "name": "Ambush Predators",
+  "rarity": "RARE",
+  "referencedTags": [
+   "POISONOUS",
+   "STEALTH"
+  ],
+  "set": "THE_LOST_CITY",
+  "spellSchool": "SHADOW",
+  "text": "Summon a 1/1 Spitter with <b>Stealth</b>\nand <b>Poisonous</b>.\n<b>Kindred:</b> Do it again.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Luca Zontini",
+  "attack": 5,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 117702,
+  "flavor": "An expert at tracking the elusive Adaptive Amalgam.",
+  "health": 5,
+  "id": "TLC_520",
+  "mechanics": [
+   "RUSH"
+  ],
+  "name": "Underbrush Tracker",
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Rush</b>\nCosts (1) less for each\ntime you've shuffled cards\ninto your deck.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Danny Beck",
+  "attack": 2,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117703,
+  "flavor": "\"I got eyes on Umbra's unstoppable undead army. I'll uh... stay wayyy up here.\"",
+  "health": 3,
+  "id": "TLC_521",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Eyes in the Sky",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Look at 3\ncards in your enemy's deck.\nPick one to put on top.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "attack": 6,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 119532,
+  "elite": true,
+  "flavor": "This is allegedly what Opu looks like. We will confirm if we ever see him.",
+  "health": 4,
+  "id": "TLC_522",
+  "mechanics": [
+   "BATTLECRY",
+   "COMBO",
+   "DEATHRATTLE",
+   "STEALTH"
+  ],
+  "name": "Opu the Unseen",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "<b><b>Stealth</b>.</b> <b>Battlecry, Combo,\nand Deathrattle:</b> Cast\n'Fan of Knives'.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ivo Campelo da Silva",
+  "attack": 6,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 117714,
+  "flavor": "He's so anxious. Always winds up in knots.",
+  "health": 6,
+  "id": "TLC_600",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Windpeak Wyrm",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "targetingArrowText": "Deal 5 damage.",
+  "text": "[x]<b>Battlecry:</b> Deal 5 damage\nand gain 5 Armor.\n<b>Kindred:</b> Costs (3) less.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Grafit Studio",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117715,
+  "flavor": "Spin to win!",
+  "id": "TLC_601",
+  "name": "Shellnado",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "Spend up to 5 Armor. For each spent, deal $1 damage to all minions.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117716,
+  "elite": true,
+  "flavor": "Day 8. We’ve done it! As night fell, we came upon a brilliantly glowing tunnel guarded by two slumbering Tol’vir. With silent footsteps, we walked through and emerged into the heart of the Lost City! I’m sure my people will welcome us with open arms.",
+  "id": "TLC_602",
+  "mechanics": [
+   "QUEST",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Enter the Lost City",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Quest:</b> Survive 10 turns.\n<b>Reward: </b>Latorvius, Gaze\nof the City.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Adam Byrne",
+  "attack": 1,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117719,
+  "flavor": "\"Yup yup yup!\"",
+  "health": 2,
+  "howToEarnGolden": "Earnable on <i>The Lost City of Un'Goro</i> Reward Track.",
+  "id": "TLC_603",
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE"
+  ],
+  "name": "Platysaur",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Battlecry:</b> Draw a card. <b>Deathrattle:</b> Discard it.",
+  "type": "MINION"
+ },
+ {
+  "artist": "A. J. Nazzaro",
+  "attack": 1,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 117733,
+  "flavor": "Why would they put a waterfall here if there wasn't something cool behind it?",
+  "health": 12,
+  "id": "TLC_605",
+  "mechanics": [
+   "LIFESTEAL",
+   "TAUNT"
+  ],
+  "name": "Tar Tyrant",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Taunt</b>, <b>Lifesteal</b>\nHas +6 Attack during your\nopponent's turn.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 3,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117771,
+  "flavor": "All it needs now is a nice coat of blue paint!",
+  "health": 3,
+  "id": "TLC_606",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Latorvian Armorer",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "targetingArrowText": "Deal 2 damage to an enemy minion.",
+  "text": "<b>Battlecry:</b> Deal 2 damage to an enemy minion. If it dies, gain 5 Armor.",
+  "type": "MINION"
+ },
+ {
+  "artist": "BOSi Studio",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117835,
+  "flavor": "With vitamins and minerals!",
+  "id": "TLC_620",
+  "mechanics": [
+   "AFFECTED_BY_SPELL_POWER"
+  ],
+  "name": "Fortify",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]Gain 3 Armor.\nDeal damage equal\nto your Armor to an\nenemy minion.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 4,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117916,
+  "flavor": "I still don't know why he has a sword. Despite being in many battles, he really just watches.",
+  "health": 7,
+  "id": "TLC_621",
+  "mechanics": [
+   "DEATHRATTLE",
+   "TAUNT"
+  ],
+  "name": "Willful Watcher",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Taunt</b>\n<b>Deathrattle:</b> Destroy the\n top 3 cards of your deck.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117917,
+  "flavor": "These 0/6 <b>Taunts</b> have kept invaders out for centuries.",
+  "id": "TLC_622",
+  "name": "City Defenses",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "Summon two 0/6 Security with <b>Taunt</b>.\nThey gain +1 Attack\nwhen damaged.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Stefano Spagnuolo",
+  "attack": 1,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117918,
+  "flavor": "*clink*\n*clink*\n*clink*\n*\"D'oh!\"",
+  "health": 4,
+  "id": "TLC_623",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Stonecarver",
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "text": "At the end of your turn, give another friendly damaged minion +2/+2.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mooncolony",
+  "attack": 5,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 117919,
+  "elite": true,
+  "flavor": "Of course the Titans trust the Tortollans to take care of Un'Goro Crater. Nablya is just there as <i>insurance.</i>",
+  "health": 7,
+  "id": "TLC_624",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Nablya, the Watcher",
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Summon copies\n of your damaged minions.\nGive the copies <b>Rush</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vlad Botos",
+  "attack": 2,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 117869,
+  "flavor": "This card is the wasp's elbows!",
+  "health": 7,
+  "id": "TLC_630",
+  "mechanics": [
+   "RUSH",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Gorishi Wasp",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Rush</b>. Whenever this takes damage, get a 1-Cost Gorishi Stinger.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Felideus Bubastis",
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117871,
+  "elite": true,
+  "flavor": "Day 4. I am dismayed to report that we thought we'd found a hidden entrance to the Lost City, but in fact it was a Silithid Hive! We high-tailed it out of there faster than a goblin wearing rocket boots. I am not terribly fond of bugs.",
+  "id": "TLC_631",
+  "mechanics": [
+   "QUEST",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Unleash the Colossus",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Quest:</b> Deal exactly 2 damage to an enemy\non your turn, 12 times.\n<b>Reward:</b> Gorishi Colossus.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ivan Fomin",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 117874,
+  "flavor": "\"...and there were seven minions on board, and it STILL hit the enemy hero!\"",
+  "id": "TLC_632",
+  "name": "Story of Sulfuras",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "spellSchool": "FIRE",
+  "text": "[x]Swap your Hero Power\nto \"Deal 8 damage\nto a random enemy.\"\nAfter 2 uses, swap back.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tanamaes Leejierasaes",
+  "attack": 5,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117950,
+  "flavor": "The Tortollans would be nothing without their QA department.",
+  "health": 3,
+  "id": "TLC_633",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Bugsquasher",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "targetingArrowText": "Deal 6 damage to an enemy with a minion type.",
+  "text": "<b>Battlecry:</b> Deal 6 damage to an enemy minion with a minion type.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Grafit Studio",
+  "attack": 8,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 117231,
+  "elite": true,
+  "flavor": "\"Hello.\" - Cultist Herenn",
+  "hasDiamondSkin": true,
+  "health": 6,
+  "id": "TLC_810",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "High Cultist Herenn",
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Summon two\n<b>Deathrattle</b> minions from\nyour deck. They fight!",
+  "type": "MINION"
+ },
+ {
+  "artist": "Brian Despain",
+  "attack": 1,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117232,
+  "elite": true,
+  "flavor": "She's a health influencer.",
+  "health": 6,
+  "id": "TLC_811",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Archaios",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "[x]Whenever another\nfriendly minion attacks,\nset its Health equal to\nthis minion's Health.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Sergey Tsvelykh",
+  "attack": 3,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117312,
+  "flavor": "The Gravedawn Glade is FULL of indecisive Priests.",
+  "health": 4,
+  "id": "TLC_814",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Twilight Mender",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Deathrattle:</b> Get a random Holy and Shadow spell.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Studio Hive",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117316,
+  "flavor": "How many Gravedawns does it take to screw in a Voidbulb?",
+  "id": "TLC_815",
+  "name": "Gravedawn Voidbulb",
+  "rarity": "RARE",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "THE_LOST_CITY",
+  "spellSchool": "SHADOW",
+  "text": "Summon a random 4-Cost minion and\ngive it <b>Taunt</b>.\n<b>Kindred:</b> Do it again.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Studio Hive",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117317,
+  "flavor": "So holy it photosynthesizes itself!",
+  "id": "TLC_816",
+  "name": "Gravedawn Sunbloom",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "spellSchool": "HOLY",
+  "text": "Draw 2 cards. <b>Kindred:</b> This costs (2) less.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "BOSi Studio",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117544,
+  "elite": true,
+  "flavor": "Day 6. Today we found ourselves in a glade tormented by conflicting Holy and Shadow magic. At its center were two enormous Elementals, like opposite sides of the same coin. I hope one day we'll return here to see this broken place restored to peace.",
+  "id": "TLC_817",
+  "mechanics": [
+   "QUEST"
+  ],
+  "name": "Reach Equilibrium",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Quest:</b> Cast 4 Holy spells\n<b>Reward:</b> Life's Breath.\n<b>Quest:</b> Cast 4 Shadow spells.\n<b>Reward:</b> Death's Touch.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Felideus Bubastis",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 117557,
+  "flavor": "This mud bath really does make you feel reborn.",
+  "id": "TLC_818",
+  "name": "Resuscitate",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "REBORN"
+  ],
+  "set": "THE_LOST_CITY",
+  "spellSchool": "SHADOW",
+  "text": "Resurrect a 1, 2,\nand 3-Cost minion.\nGive them <b>Reborn</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tee Fuyuan",
+  "attack": 4,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 117563,
+  "flavor": "When she shifts into minor key she really throws the void-holy balance out of whack.",
+  "health": 7,
+  "id": "TLC_819",
+  "mechanics": [
+   "LIFESTEAL"
+  ],
+  "name": "Gladesong Siren",
+  "race": "NAGA",
+  "races": [
+   "NAGA"
+  ],
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Lifesteal</b>\nCosts (1) if you've\ncast a Holy and Shadow spell this turn.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ursula Dorada",
+  "attack": 2,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117565,
+  "flavor": "The dude minored in Underfel Biology. Now that's a renaissance Tortollan!",
+  "health": 1,
+  "id": "TLC_820",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Glade Ecologist",
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Deathrattle:</b> Get a 1-Cost\nHoly spell that gives a\nminion +2 or -2 Health.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Patrik Bjorkstrom",
+  "attack": 6,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 117566,
+  "flavor": "The shadow shall burn you!",
+  "health": 7,
+  "id": "TLC_821",
+  "mechanics": [
+   "LIFESTEAL",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Wilted Shadow",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Lifesteal</b>\nWhenever you heal an\nenemy, this attacks it.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 2,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117574,
+  "flavor": "\"You aren't leaving this log until you finish your greens.\"",
+  "health": 3,
+  "id": "TLC_822",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Dinositter",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]At the end of your\nturn, reduce the Cost\nof a random Beast in\nyour hand by (1).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mauricio Herrera",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117580,
+  "flavor": "Mother Duck's fourth duckling got lost in Un'Goro Crater.",
+  "id": "TLC_823",
+  "name": "Cower in Fear",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "Deal $3 damage\nto a minion. The next\nBeast you play this\nturn costs (2) less.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117596,
+  "flavor": "I don't EVEN know where this goes!",
+  "id": "TLC_824",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Odd Map",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Discover</b> an odd-Attack\nBeast. If you play it this\nturn, also pick one of\nthe others.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Brian Despain",
+  "attack": 5,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 117598,
+  "flavor": "The female Ravasaur is 30% larger than the male. And 100% more aggressive.",
+  "health": 4,
+  "id": "TLC_825",
+  "name": "Ravasaur Matriarch",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "targetingArrowText": "Deal damage equal to this minion's Attack.",
+  "text": "[x]<b>Kindred:</b> Deal damage to\nan enemy minion equal to\nthis minion's Attack.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Topdog Entertainment",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117599,
+  "flavor": "\"... and ALL TEN Raptors were at the top of the deck!\"",
+  "id": "TLC_826",
+  "name": "Story of Carnassa",
+  "rarity": "RARE",
+  "referencedTags": [
+   "BATTLECRY"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "Shuffle ten 1-Cost 3/2 Raptors into your deck with \"<b>Battlecry:</b> Draw a card.\"",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tanamaes Leejierasaes",
+  "attack": 0,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117600,
+  "flavor": "He's a growing boy. :)",
+  "health": 5,
+  "id": "TLC_827",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Grazing Stegodon",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "At the end of your turn, gain +1 Attack <i>(even while in hand or deck)</i>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 117602,
+  "flavor": "Not anyone can be a great dinomancer. But a great dinomancer can come from anywhere.",
+  "id": "TLC_828",
+  "name": "Supreme Dinomancy",
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "text": "Give +2/+2 to all Beasts in your hand, deck, and battlefield.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "L. Lullabi & I. Campelo da Silva",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 117610,
+  "flavor": "You're not you when you're ravenous.",
+  "health": 3,
+  "howToEarnGolden": "Earnable after purchasing the <i>The Lost City of Un'Goro</i> Tavern Pass.",
+  "id": "TLC_829",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Ravenous Devilsaur",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "targetingArrowText": "Destroy a minion.",
+  "text": "[x]<b>Battlecry:</b> Destroy a minion.\n<b>Kindred:</b> Gain its stats.",
+  "type": "MINION"
+ },
+ {
+  "artist": "L. Lullabi & T. Shevtsov",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117672,
+  "elite": true,
+  "flavor": "Day 1. The search begins! I joined Elise Starseeker at the outskirts of the Crater, as well as a Tortollan named Umbra and a most curious gnome named Niri. Embarking into the jungle, we stumbled upon the largest tracks I’ve ever laid eyes on!",
+  "id": "TLC_830",
+  "mechanics": [
+   "QUEST"
+  ],
+  "name": "The Food Chain",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Quest:</b> Play a 1, 3, 5, and 7-Attack Beast.\n<b>Reward:</b> Shokk.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Vika Yarova",
+  "attack": 0,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117674,
+  "flavor": "When you crack this egg, it cracks you right back.",
+  "health": 3,
+  "howToEarnGolden": "Earnable on <i>The Lost City of Un'Goro</i> Reward Track.",
+  "id": "TLC_831",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Pterrordax Egg",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Deathrattle:</b> Summon\na 3/3 Pterrordax that\nsteals 1 Health from\nall other minions.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Studio Hive",
+  "attack": 2,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117813,
+  "durability": 0,
+  "flavor": "Get your grubby claws off me!",
+  "health": 2,
+  "id": "TLC_833",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Insect Claw",
+  "rarity": "RARE",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "After your hero attacks, summon a 2/1 Grub with <b>Rush</b>.",
+  "type": "WEAPON"
+ },
+ {
+  "artist": "Stefano Spagnuolo",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 10,
+  "dbfId": 120593,
+  "flavor": "\"Once upon a time... ok how about we just skip to the end?\"",
+  "id": "TLC_835",
+  "name": "Story of Amara",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "Set your hero's\nHealth to 40.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Anzka Nguyen",
+  "attack": 2,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 121029,
+  "elite": true,
+  "flavor": "Niri, Niri, Niri of the Crater, strong as they can be! HAAAAAEEHOOOOHEHOOOEAAAAAAAA!!!! Watch out for that tree!",
+  "hasDiamondSkin": true,
+  "health": 5,
+  "id": "TLC_836",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Niri of the Crater",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "[x]Whenever you play a 1-Cost\nminion, double its stats.\nWhenever you cast a 1-Cost\nspell, cast it twice.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Juan Calle",
+  "attack": 2,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 119754,
+  "flavor": "\"This card is really boring.\"\n\"Nah, I really dig this card.\"",
+  "health": 4,
+  "id": "TLC_840",
+  "mechanics": [
+   "STEALTH",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Gorishi Tunneler",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Stealth</b>\nAfter this attacks,\ndeal 2 damage to the\nenemy hero.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Sergey Tsvelykh",
+  "attack": 7,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 119755,
+  "elite": true,
+  "flavor": "The lid. The lid. The lid. The lid. The lid. The lid.",
+  "health": 7,
+  "id": "TLC_841",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Entomologist Toru",
+  "rarity": "LEGENDARY",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Put each minion\n in your hand into 0/1 Jars\n that cost (1). Break them\n  to release the minions!",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 122318,
+  "flavor": "Cloudy with a chance of Quest Rewards.",
+  "health": 3,
+  "howToEarnGolden": "Earnable on <i>The Lost City of Un'Goro</i> Reward Track.",
+  "id": "TLC_888",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Cloud Serpent",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL",
+   "DRAGON"
+  ],
+  "rarity": "RARE",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Battlecry:</b> Get a copy\nof another Elemental or\nDragon in your hand.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Sergey Tsvelykh",
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 117684,
+  "flavor": "The perfect map of where to never ever ever ever ever go.",
+  "id": "TLC_900",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Hive Map",
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "[x]<b>Discover</b> a Fel spell.\nIf you play it this turn, also\npick one of the others.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Sergey Tsvelykh",
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117685,
+  "flavor": "Stink bomb go!",
+  "id": "TLC_901",
+  "name": "Fumigate",
+  "rarity": "EPIC",
+  "set": "THE_LOST_CITY",
+  "spellSchool": "FEL",
+  "text": "Deal $3 damage to a minion and all others of the same minion type.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tanamaes Leejierasaes",
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117686,
+  "flavor": "NOT THE WASPS!",
+  "id": "TLC_902",
+  "name": "Infestation",
+  "rarity": "RARE",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "THE_LOST_CITY",
+  "text": "[x]Get two 1-Cost Gorishi\nStingers. Each one deals\n$2 damage and summons\na 2/1 Grub with <b>Rush</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Brian Despain",
+  "attack": 5,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 117687,
+  "flavor": "Yaaaaaaass Silithid Queen, stiiiing.",
+  "health": 2,
+  "id": "TLC_903",
+  "mechanics": [
+   "RUSH"
+  ],
+  "name": "Silithid Queen",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "THE_LOST_CITY",
+  "text": "<b>Rush</b>\n<b>Kindred</b>: Give your hero\n+5 Attack this turn.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Stefano Spagnuolo",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 118177,
+  "flavor": "Forget the Quest. Our new Quest is to make sure no harm ever comes to him.",
+  "health": 2,
+  "id": "TLC_987",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Questing Assistant",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "QUEST"
+  ],
+  "set": "THE_LOST_CITY",
+  "targetingArrowText": "Deal 3 damage to an enemy minion.",
+  "text": "[x]<b>Battlecry:</b> If you played\na <b>Quest</b> this game,\ndeal 3 damage to an\nenemy minion.",
+  "type": "MINION"
+ }
+]

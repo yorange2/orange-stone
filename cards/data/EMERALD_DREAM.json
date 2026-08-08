@@ -1,0 +1,3879 @@
+[
+ {
+  "artist": "Mooncolony",
+  "attack": 4,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 113321,
+  "elite": true,
+  "flavor": "She was previously Yuhsera, with a ‘yuh’.",
+  "hasDiamondSkin": true,
+  "health": 12,
+  "howToEarn": "Earnable after opening a <i>Into the Emerald Dream</i> card pack.",
+  "id": "EDR_000",
+  "mechanics": [
+   "BATTLECRY",
+   "START_OF_GAME_KEYWORD"
+  ],
+  "name": "Ysera, Emerald Aspect",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Start of Game:</b> Increase both\nplayers'maximum Mana by 5.\n<b>Battlecry:</b> Gain 3\nMana Crystals.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 113328,
+  "flavor": "\"I hope this dragon doesn't eat me when it grows up.\"",
+  "health": 3,
+  "id": "EDR_001",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Hopeful Dryad",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> Get a random Dream card.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Jason Kang",
+  "attack": 4,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 113371,
+  "flavor": "Hey, at least the card frame is verdant.",
+  "health": 7,
+  "id": "EDR_014",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Verdant Dreamsaber",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> If this costs (3)\nor less, attack two random enemy minions.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Alex Stone",
+  "attack": 5,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 113434,
+  "elite": true,
+  "flavor": "Revered by the tauren and centaur, Ohn’ahra’s power over wind remains an inspiration to many.",
+  "health": 11,
+  "id": "EDR_031",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Ohn'ahra",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "At the end of your turn, play the top 3 cards from your deck.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 110889,
+  "flavor": "Rock solid defense.",
+  "id": "EDR_060",
+  "name": "Ward of Earth",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "EMERALD_DREAM",
+  "spellSchool": "NATURE",
+  "text": "Gain 5 Armor. Summon a random 5-Cost minion and give it <b>Taunt</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Allan Arello",
+  "attack": 5,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 113822,
+  "flavor": "He's so mean, he leaves you on red.",
+  "health": 4,
+  "howToEarnGolden": "Earnable on the <i>Into the Emerald Dream</i> Reward Track.",
+  "id": "EDR_102",
+  "mechanics": [
+   "BATTLECRY",
+   "DISCOVER"
+  ],
+  "name": "Treacherous Tormentor",
+  "race": "DEMON",
+  "races": [
+   "DEMON"
+  ],
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> <b>Discover</b> a <b>Legendary</b> minion\nwith a <b>Dark Gift</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ian Ameling",
+  "attack": 1,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 113973,
+  "flavor": "So THIS is madness!",
+  "health": 1,
+  "howToEarn": "Earnable after opening a <i>Into the Emerald Dream</i> card pack.",
+  "howToEarnGolden": "Earnable after opening a golden <i>Into the Emerald Dream</i> card pack.",
+  "id": "EDR_105",
+  "mechanics": [
+   "BATTLECRY",
+   "DISCOVER"
+  ],
+  "name": "Creature of Madness",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> <b>Discover</b> a\n3-Cost minion with a <b>Dark Gift.</b>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 1,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 115652,
+  "flavor": "The overbite of a century.",
+  "health": 5,
+  "howToEarnGolden": "Earnable on the <i>Into the Emerald Dream</i> Reward Track.",
+  "id": "EDR_110",
+  "mechanics": [
+   "DEATHRATTLE",
+   "POISONOUS"
+  ],
+  "name": "Sporegnasher",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Poisonous</b>\n<b>Deathrattle:</b> Deal 1\ndamage to a random\nenemy minion.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 5,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 10,
+  "dbfId": 113588,
+  "elite": true,
+  "flavor": "He handpicked Malfurion, and not Illidan, to become the first druid, therefore ensuring an endless cycle of sibling rivalry.",
+  "health": 8,
+  "id": "EDR_209",
+  "name": "Forest Lord Cenarius",
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Choose Thrice -</b> Give your\nother minions +1/+3; or\nSummon a 5/5 Ancient\nwith <b>Taunt</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ivan Fomin",
+  "attack": 2,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114018,
+  "flavor": "\"Hi lil guy! Have a bite of Green, it's good for you!\"",
+  "health": 2,
+  "id": "EDR_226",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Exotic Houndmaster",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> Draw a Beast. <b>Imbue</b> your Hero Power.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Patrik Bjorkstrom",
+  "attack": 5,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 114020,
+  "flavor": "Umbraclaws of a feather hibernate together.",
+  "health": 2,
+  "id": "EDR_227",
+  "mechanics": [
+   "DEATHRATTLE",
+   "RUSH"
+  ],
+  "name": "Umbraclaw",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "<b>Rush</b>\n<b>Deathrattle:</b> <b>Imbue</b> your Hero Power.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "attack": 4,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 114280,
+  "flavor": "I know a guy who might be able to handle this for us. He's kind of a specialist.",
+  "health": 4,
+  "id": "EDR_230",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Beanstalk Brute",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> Give +4/+4 to the top 3 minions in your deck.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mooncolony",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114367,
+  "flavor": "For when you really need a hug. Or to Imbue your Hero Power.",
+  "id": "EDR_231",
+  "name": "Aspect's Embrace",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]Restore #4 Health.\nDraw a card.\n<b>Imbue</b> your Hero Power.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Juan Calle",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 10,
+  "dbfId": 114357,
+  "flavor": "I gotta go Julia, we got satyrs.",
+  "id": "EDR_232",
+  "name": "Typhoon",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "NATURE",
+  "text": "Each minion gets shuffled into a random player's deck.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "BOSi Studio",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 114369,
+  "flavor": "...or sixteen cows.",
+  "id": "EDR_233",
+  "mechanics": [
+   "CHOOSE_ONE"
+  ],
+  "name": "Spirits of the Forest",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "TAUNT",
+   "WINDFURY"
+  ],
+  "set": "EMERALD_DREAM",
+  "spellSchool": "NATURE",
+  "text": "<b>Choose One -</b> Summon three 2/3 Wolves with <b>Taunt</b>; or Summon two 4/3 Falcons with <b>Windfury</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Mike Sass",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114281,
+  "flavor": "<b>Overgrowd: </b>(2)",
+  "id": "EDR_234",
+  "name": "Emerald Bounty",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "Draw 2 cards.\nYou can't play them\nfor 2 turns.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 4,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 114284,
+  "elite": true,
+  "flavor": "The green dragon flight was always a Merithracracy.",
+  "health": 4,
+  "id": "EDR_238",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Merithra",
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> Resurrect all\ndifferent friendly minions\nthat cost (8) or more.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Gabriel Lopes",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 114511,
+  "flavor": "Why are dragons so good in the late game? 'Cause they scale!!!!",
+  "id": "EDR_251",
+  "name": "Dragonscale Armaments",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "HOLY",
+  "text": "Draw a spell that started in your deck and one that didn't.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Gabriel Lopes",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114630,
+  "flavor": "Marko! Ursol!",
+  "id": "EDR_252",
+  "name": "Mark of Ursol",
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "[x]Choose a minion. If it's\nan enemy, set its stats\nto 1/1. If it's friendly, set\nits stats to 3/3 instead.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Studio Hive",
+  "attack": 4,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 114632,
+  "durability": 0,
+  "flavor": "Buy all the bears at the Ursine Mall!",
+  "health": 2,
+  "id": "EDR_253",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Ursine Maul",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "After your hero attacks, draw a card.",
+  "type": "WEAPON"
+ },
+ {
+  "artist": "Drew Hill",
+  "attack": 1,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 114533,
+  "flavor": "Your spells are sure to make a splash!",
+  "health": 4,
+  "id": "EDR_254",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Animated Moonwell",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "After you cast a spell, gain Attack equal to its Cost.",
+  "type": "MINION"
+ },
+ {
+  "artist": "L. Lullabi & I. Campelo da Silva",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 114543,
+  "flavor": "I AM THE PHOENIX KING!!!",
+  "id": "EDR_255",
+  "mechanics": [
+   "LIFESTEAL"
+  ],
+  "name": "Renewing Flames",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "NATURE",
+  "text": "<b>Lifesteal</b>. Deal $5 damage to the lowest Health enemy, twice.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "L. Lullabi & I. Campelo da Silva",
+  "attack": 3,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 116674,
+  "flavor": "This is advanced dreamcatching.",
+  "health": 4,
+  "id": "EDR_256",
+  "mechanics": [
+   "BATTLECRY",
+   "TAUNT"
+  ],
+  "name": "Dreamwarden",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Taunt</b>. <b>Battlecry:</b> If there\nis a card in your deck that\ndidn't start there, draw it\nand gain +2/+2.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 3,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 116667,
+  "flavor": "How many lightmenders does it take to mend a lightorb?",
+  "health": 3,
+  "id": "EDR_257",
+  "mechanics": [
+   "CHOOSE_ONE",
+   "TAUNT"
+  ],
+  "name": "Lightmender",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "DIVINE_SHIELD",
+   "LIFESTEAL"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b><b>Taunt</b>.</b> <b>Choose One -</b>\n+3 Attack and <b>Divine Shield</b>;\n or +3 Health and <b>Lifesteal</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Nicola Saviori",
+  "attack": 3,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 114544,
+  "elite": true,
+  "flavor": "Toreth took Bubble Hearth extra seriously.",
+  "health": 4,
+  "id": "EDR_258",
+  "mechanics": [
+   "AURA",
+   "DIVINE_SHIELD",
+   "TAUNT"
+  ],
+  "name": "Toreth the Unbreaking",
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Divine Shield</b>, <b>Taunt</b>\nYour <b><b>Divine Shield</b>s</b> take\nthree hits to break.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 9,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 114868,
+  "elite": true,
+  "flavor": "Twin of Ursoc, they were inseparable until death drove Ursoc’s spirit to corruption, while Ursol’s remained at peace.",
+  "health": 7,
+  "id": "EDR_259",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Ursol",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> Cast the highest\nCost spell from your hand as\n an Aura that lasts 3 turns.",
+  "type": "MINION"
+ },
+ {
+  "artist": "BOSi Studio",
+  "attack": 4,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 114884,
+  "flavor": "\"MORE LIKE, A LOSER-Y GREENWING! MUAHAHA!\" - Nightmare Lord Xavius",
+  "health": 5,
+  "howToEarnGolden": "Earnable on the <i>Into the Emerald Dream</i> Reward Track.",
+  "id": "EDR_260",
+  "mechanics": [
+   "DEATHRATTLE",
+   "TAUNT"
+  ],
+  "name": "Illusory Greenwing",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Taunt</b>. <b>Deathrattle:</b>\nShuffle two 4/5 Dragons with\n<b>Taunt</b> into your deck. They're\n   <b>Summoned When Drawn</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Danny Beck",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 115052,
+  "flavor": "Look before you leap.",
+  "id": "EDR_261",
+  "name": "Amphibian's Spirit",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "set": "EMERALD_DREAM",
+  "spellSchool": "NATURE",
+  "text": "[x]Give a minion +2/+2\nand \"<b>Deathrattle:</b> Give a\nfriendly minion +2/+2\nand this <b>Deathrattle</b>.\"",
+  "type": "SPELL"
+ },
+ {
+  "artist": "L. Lullabi & T. Shevtsov",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 115055,
+  "flavor": "The name's Bond. Spirit Bond.",
+  "id": "EDR_262",
+  "name": "Spirit Bond",
+  "rarity": "RARE",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "EMERALD_DREAM",
+  "spellSchool": "NATURE",
+  "text": "Deal $3 damage to a minion. If it dies, summon a 3/2 Wolf with <b>Rush</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Vika Yarova",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 115058,
+  "flavor": "LOOK WHAT I CAN DO!!!!",
+  "id": "EDR_263",
+  "mechanics": [
+   "CHOOSE_ONE"
+  ],
+  "name": "Grace of the Greatwolf",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Choose One -</b> Deal $4\ndamage to the enemy\nhero; or Summon two\n3/2 Wolves with <b>Rush</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Mooncolony",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 116675,
+  "flavor": "\"Try scooching together! The arrows are getting through!\"",
+  "id": "EDR_264",
+  "name": "Aegis of Light",
+  "rarity": "RARE",
+  "referencedTags": [
+   "TAUNT",
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "spellSchool": "HOLY",
+  "text": "Summon a random\n2-Cost minion and\ngive it <b>Taunt</b>. <b>Imbue</b>\nyour Hero Power.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Drew Hill",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115080,
+  "flavor": "Don't be silly, there's never been a cornucopia in the art.",
+  "id": "EDR_270",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Horn of Plenty",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "NATURE",
+  "text": "[x]<b>Discover</b> a Nature spell.\nIt costs (2) less.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tee Fuyuan",
+  "attack": 3,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 115809,
+  "flavor": "Infinite Nature spell glitch.",
+  "health": 6,
+  "id": "EDR_271",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Grove Shaper",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]After you cast a Nature spell,\nsummon a 2/2 Treant with\n\"<b>Deathrattle:</b> Get a copy\nof that spell.\"",
+  "type": "MINION"
+ },
+ {
+  "artist": "Alex Stone",
+  "attack": 6,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 115873,
+  "flavor": "Nevergreen Stag has Enrage, Overkill, and Honorable Kill.",
+  "health": 7,
+  "id": "EDR_272",
+  "mechanics": [
+   "ELUSIVE",
+   "LIFESTEAL",
+   "TAUNT"
+  ],
+  "name": "Evergreen Stag",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Elusive</b>\n<b>Lifesteal</b>\n<b>Taunt</b>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 115876,
+  "flavor": "It's the circle of life.",
+  "id": "EDR_273",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Symbiosis",
+  "rarity": "RARE",
+  "referencedTags": [
+   "CHOOSE_ONE"
+  ],
+  "set": "EMERALD_DREAM",
+  "spellSchool": "NATURE",
+  "text": "[x]<b>Discover</b> a <b>Choose One</b>\ncard from another class.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tanamaes Leejierasaes",
+  "attack": 3,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 113568,
+  "durability": 0,
+  "flavor": "Beloved weapon of Little Bo-Sleep.",
+  "health": 2,
+  "id": "EDR_416",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Shepherd's Crook",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "After your hero attacks, summon a 3/3 Sheep that's <b>Dormant</b> for 2 turns.",
+  "type": "WEAPON"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 6,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 10,
+  "dbfId": 113606,
+  "elite": true,
+  "flavor": "His tremendous wisdom could not survive the foul influence of the demons’ fel magic during the War of the Ancients. But his blessing from Elune did.",
+  "health": 12,
+  "id": "EDR_421",
+  "mechanics": [
+   "DEATHRATTLE",
+   "RUSH",
+   "WINDFURY"
+  ],
+  "name": "Omen",
+  "race": "BEAST",
+  "races": [
+   "DEMON",
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Rush</b>, <b>Windfury</b>\n<b>Deathrattle:</b> Deal 1 damage\nto all enemies. <i>(Improves\nafter this attacks!)</i>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Jakub Kasper",
+  "attack": 6,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "collectionText": "[x]<b>Battlecry:</b> If 20 friendly\nminions have died this game,\ndeal 20 damage split among\nall enemies.",
+  "cost": 8,
+  "dbfId": 113700,
+  "elite": true,
+  "flavor": "The Mother Wisp is a mysterious figure to most mortals, but to Ysera, she is a dear friend and companion.",
+  "health": 8,
+  "id": "EDR_430",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Aessina",
+  "race": "UNDEAD",
+  "races": [
+   "UNDEAD"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> If 20 friendly\nminions have died this game,\ndeal 20 damage split among\nall enemies.@ <i>({0} left!)</i>@ <i>(Ready!)</i>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Daniil Kudriavtsev",
+  "attack": 3,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114080,
+  "flavor": "Back in my day this is how we got friend requests.",
+  "health": 2,
+  "id": "EDR_449",
+  "mechanics": [
+   "BATTLECRY",
+   "LIFESTEAL"
+  ],
+  "name": "Lunarwing Messenger",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "<b>Lifesteal</b>\n<b>Battlecry:</b> <b>Imbue</b> your Hero Power.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 3,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 114081,
+  "flavor": "All that glitters is gold... Petal. Drake.",
+  "health": 4,
+  "id": "EDR_451",
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE"
+  ],
+  "name": "Goldpetal Drake",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry and Deathrattle:</b>\n<b>Imbue</b> your Hero Power.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vlad Botos",
+  "attack": 12,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 10,
+  "dbfId": 114213,
+  "flavor": "Stop briarspawn-camping!",
+  "health": 7,
+  "id": "EDR_453",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Briarspawn Drake",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "[x]At the end of your turn,\nattack a random enemy\nminion <i>(excess damage\nhits the enemy hero)</i>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Grafit Studio",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114215,
+  "flavor": "These eggs are no yolk!",
+  "health": 2,
+  "id": "EDR_454",
+  "name": "Clutch of Corruption",
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "[x]Choose a friendly Dragon.\nSummon a 0/2 Egg that\nhatches into a copy of it.",
+  "type": "LOCATION"
+ },
+ {
+  "artist": "L. Lullabi & I. Campelo da Silva",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 114217,
+  "flavor": "u mad bro?",
+  "id": "EDR_455",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Succumb to Madness",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Discover</b> a friendly Dragon that died this game. Resummon it.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ivo Campelo da Silva",
+  "attack": 1,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 114218,
+  "flavor": "Before the corruption spread to the Emerald Dream, he was known only by this: Rider.",
+  "health": 1,
+  "id": "EDR_456",
+  "mechanics": [
+   "BATTLECRY",
+   "DISCOVER"
+  ],
+  "name": "Darkrider",
+  "race": "DEMON",
+  "races": [
+   "DEMON"
+  ],
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> If you're holding\na Dragon, <b>Discover</b> a Dragon\nwith a <b>Dark Gift</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "attack": 2,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114219,
+  "flavor": "Mess with the brood, and you get the dude!",
+  "health": 3,
+  "id": "EDR_457",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Brood Keeper",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> If you're holding a\nDragon, equip a 2/2 Sword.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Stefan Bogdasarov",
+  "attack": 6,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 114243,
+  "flavor": "No pain, no... pain!",
+  "health": 6,
+  "id": "EDR_459",
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE"
+  ],
+  "name": "Afflicted Devastator",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> Deal 3 damage\nto all other friendly minions.\n<b>Deathrattle:</b> Deal 3 damage\nto all enemy minions.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 114299,
+  "flavor": "Because wishing upon a star was soooo last expansion.",
+  "id": "EDR_460",
+  "name": "Wish of the New Moon",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "LIFESTEAL"
+  ],
+  "set": "EMERALD_DREAM",
+  "spellSchool": "ARCANE",
+  "text": "Deal $6 damage to a minion. <i>(Cast 3 spells to gain <b>Lifesteal</b>.)</i>",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Patrik Bjorkstrom",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 114300,
+  "flavor": "This ritual does nothing, but they do it anyway for the social connection.",
+  "id": "EDR_461",
+  "name": "Ritual of the New Moon",
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "ARCANE",
+  "text": "[x]Summon two\nrandom 3-Cost minions.\n<i>(Cast 3 spells to summon\n6-Cost minions instead.)</i>",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "attack": 3,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 114308,
+  "flavor": "Shouldn't this have like, a thousand times more attack?",
+  "health": 6,
+  "id": "EDR_462",
+  "mechanics": [
+   "ELUSIVE",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Selenic Drake",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Elusive</b>\nAt the end of your turn,\nget a random Dragon.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ivan Fomin",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114310,
+  "flavor": "\"M-must... read... y-young adult... vampire novels...\"",
+  "id": "EDR_463",
+  "mechanics": [
+   "CHOOSE_ONE"
+  ],
+  "name": "Twilight Influence",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "SHADOW",
+  "text": "<b>Choose One -</b> Destroy a minion with 3 or less Attack; or Summon a random 2-Cost minion.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Mooncolony",
+  "attack": 5,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 114326,
+  "elite": true,
+  "flavor": "High Priestess of the Moon Goddess, Tyrande has journeyed into the Emerald Dream to find Malfurion. Discovering Xavius’s nightmarish influence, she is determined to thwart those seeking to corrupt it.",
+  "hasDiamondSkin": true,
+  "health": 7,
+  "id": "EDR_464",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Tyrande",
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> The next 3 spells you play cast twice.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Alex Horley Orlandelli",
+  "attack": 8,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 114340,
+  "elite": true,
+  "flavor": "Because sondre!",
+  "health": 5,
+  "id": "EDR_465",
+  "mechanics": [
+   "DEATHRATTLE",
+   "TAUNT"
+  ],
+  "name": "Ysondre",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Taunt</b>. <b>Deathrattle:</b> Summon\na random Dragon for each\ntime Ysondre has died\nthis game.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ian Ameling",
+  "attack": 3,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 116293,
+  "flavor": "We could do this the over-easy way or the over-hard way.",
+  "health": 5,
+  "id": "EDR_468",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Eggbasher",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "targetingArrowText": "Deal 1 damage and grant +4 Attack.",
+  "text": "<b>Battlecry:</b> Deal 1 damage to a minion and give it\n+4 Attack.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Felideus Bubastis",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 114344,
+  "flavor": "Careful, sometimes he punches and screams when he wakes up.",
+  "health": 3,
+  "howToEarnGolden": "Earnable on the <i>Into the Emerald Dream</i> Reward Track.",
+  "id": "EDR_469",
+  "name": "Slumbering Sprite",
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "[x]Starts <b>Dormant</b>.\nAfter you use your Hero\nPower, this awakens.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kleston Marques",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114346,
+  "flavor": "His bite is worse than his bark.",
+  "health": 2,
+  "id": "EDR_470",
+  "mechanics": [
+   "TAUNT",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Barkshield Sentinel",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Taunt</b>\nAfter you use your Hero\nPower, gain +2 Health.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 1,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 10,
+  "dbfId": 114353,
+  "elite": true,
+  "flavor": "Tortolla survived the Burning Legion’s invasion unscathed, but the Nightmare’s corruption really got under his shell.",
+  "health": 30,
+  "id": "EDR_471",
+  "mechanics": [
+   "ELUSIVE",
+   "TAUNT",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Tortolla",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Taunt</b>, <b>Elusive</b>\nAfter this takes damage,\ngain 1 Armor and give\nthis minion +1 Attack.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Daniil Kudriavtsev",
+  "attack": 3,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 114373,
+  "flavor": "A terror at spin class.",
+  "health": 3,
+  "id": "EDR_472",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Weaver of the Cycle",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "targetingArrowText": "Deal 3 damage.",
+  "text": "<b>Battlecry:</b> If you're holding a spell that costs (5) or more, deal 3 damage.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Tanamaes Leejierasaes",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 114627,
+  "flavor": "Everyone always asks what the moonwell is but how come no one ever asks how well the moon is?",
+  "id": "EDR_476",
+  "name": "Moonwell",
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "Deal $4 damage to all enemy characters. Restore #4 Health to all friendly characters.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Stefan Bogdasarov",
+  "attack": 6,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 114920,
+  "flavor": "You'd think this is a creation of the Emerald Nightmare, but you would be wrong.",
+  "health": 6,
+  "id": "EDR_477",
+  "mechanics": [
+   "TAUNT"
+  ],
+  "name": "Glowroot Lure",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Taunt</b>. Costs (1) less for\neach time you used your\nHero Power this game.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Eva Widermann",
+  "attack": 9,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 114254,
+  "elite": true,
+  "flavor": "His relentless ferocity has made him well known among many peoples and by many names, including Lo’Gosh and the Great Wolf.",
+  "health": 9,
+  "id": "EDR_480",
+  "mechanics": [
+   "AURA",
+   "RUSH"
+  ],
+  "name": "Goldrinn",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Rush</b>\nFriendly Beasts deal\ndouble damage.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "attack": 3,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 114298,
+  "flavor": "The eyes have it: that's a Runebear.",
+  "health": 4,
+  "id": "EDR_481",
+  "mechanics": [
+   "BATTLECRY",
+   "TAUNT"
+  ],
+  "name": "Mythical Runebear",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Taunt</b>. <b>Battlecry:</b> If this has 4 or more Attack, summon a copy of this.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vlad Botos",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115025,
+  "flavor": "The rotten apple doesn't fall far from the corrupted world tree.",
+  "id": "EDR_482",
+  "name": "Rotten Apple",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "Restore #12 Health to your hero. For the\nnext 2 turns, deal $3 damage to your hero.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Guillaume Beauchêne",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115033,
+  "flavor": "Look what Warlocks need just to mimic a fraction of our power!",
+  "id": "EDR_483",
+  "name": "Fractured Power",
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "Destroy one of your Mana Crystals.\nIn 2 turns, gain two.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Brian Despain",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 115037,
+  "flavor": "Feed me, Seymour!",
+  "health": 7,
+  "id": "EDR_484",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Scavenging Flytrap",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "After a minion dies,\ngain its Attack.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "attack": 1,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 115039,
+  "flavor": "Rot through the heart and Xavius is to blame!",
+  "health": 1,
+  "id": "EDR_485",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Rotheart Dryad",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Deathrattle:</b> Draw a minion that costs (7) or more.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Stefano Spagnuolo",
+  "attack": 7,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 115041,
+  "flavor": "We get it, you're mad that you only have one eye. But that's no excuse to burn down the entire Emerald Dream.",
+  "health": 9,
+  "id": "EDR_486",
+  "mechanics": [
+   "LIFESTEAL",
+   "RUSH"
+  ],
+  "name": "Scorching Observer",
+  "race": "DEMON",
+  "races": [
+   "DEMON"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Rush</b>\n<b>Lifesteal</b>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Tanamaes Leejierasaes",
+  "attack": 6,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 115044,
+  "elite": true,
+  "flavor": "Their hairdo is anything BUT wretched.",
+  "hasDiamondSkin": true,
+  "health": 6,
+  "id": "EDR_487",
+  "name": "Wallow, the Wretched",
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "While this is in your hand\nor deck, it gains a copy of every <b>Dark Gift</b> given to your minions.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mike Sass",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115086,
+  "flavor": "Normal gardening is so passé.",
+  "id": "EDR_488",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Avant-Gardening",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Discover</b> a <b>Deathrattle</b>\nminion with a <b>Dark Gift</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Alex Horley Orlandelli",
+  "attack": 8,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 10,
+  "dbfId": 115203,
+  "elite": true,
+  "flavor": "Though he fell during the War of the Ancients, his legacy on Azeroth can be seen in the flourishing quilboar tribes who still worship him.",
+  "health": 9,
+  "id": "EDR_489",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Agamaggan",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> The next card you\nplay costs your OPPONENT'S\nHealth instead of Mana\n<i>(up to 10)</i>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Patrik Bjorkstrom",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 115215,
+  "flavor": "The wild SPRITE is paralyzed! It can't sleep!",
+  "id": "EDR_490",
+  "mechanics": [
+   "CHOOSE_ONE"
+  ],
+  "name": "Sleep Paralysis",
+  "rarity": "RARE",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "EMERALD_DREAM",
+  "spellSchool": "SHADOW",
+  "text": "[x]<b>Choose One - </b>Summon\ntwo 3/6 Demons with\n<b>Taunt</b> that can't attack; or\nDestroy an enemy minion.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "attack": 3,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115307,
+  "flavor": "He EARNED that \"arch\" gosh dangit!",
+  "health": 2,
+  "id": "EDR_491",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Archdruid of Thorns",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> Gain the\n<b>Deathrattles</b> of your minions\nthat died this turn.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ursula Dorada",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 115365,
+  "flavor": "Also summons a 0/0 Ugly Duckling.",
+  "health": 3,
+  "id": "EDR_492",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Mother Duck",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> Summon three 1/1 Ducklings with <b>Rush</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Jakub Kasper",
+  "attack": 5,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 115928,
+  "elite": true,
+  "flavor": "It's a bird! It's a plane! It's a bear! It's a felstalker! It's a doomguard! It's an imp!",
+  "hasDiamondSkin": true,
+  "health": 5,
+  "id": "EDR_493",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Alara'shi",
+  "race": "BEAST",
+  "races": [
+   "DEMON",
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> Transform minions\nin your hand into random\nDemons. <i>(They keep their\n  original stats and Cost.)</I>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Brian Despain",
+  "attack": 6,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 117498,
+  "flavor": "This guy puts the horror in horrorticulture.",
+  "health": 7,
+  "id": "EDR_494",
+  "mechanics": [
+   "DEATHRATTLE",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Hungering Ancient",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "[x]At the end of your turn, eat\na minion in your deck and\ngain its stats. <b>Deathrattle:</b>\n      Add them to your hand.     ",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mauricio Herrera",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115027,
+  "flavor": "You twist me right round baby right round like a treant baby right round round round",
+  "health": 2,
+  "id": "EDR_495",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Twisted Treant",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Deathrattle:</b> Give a random minion in each player's hand -2 Attack.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Grafit Studio",
+  "attack": 3,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 114287,
+  "elite": true,
+  "flavor": "\"Where did Sarge go? Anyone seen Sarge?\" - Harth",
+  "hasDiamondSkin": true,
+  "health": 4,
+  "id": "EDR_517",
+  "mechanics": [
+   "BATTLECRY",
+   "DISCOVER"
+  ],
+  "name": "Q'onzu",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> <b>Discover</b> a spell. Choose to keep it or\nput it on top of your opponent's deck.",
+  "type": "MINION"
+ },
+ {
+  "artist": "L. Lullabi & R. Kamen",
+  "attack": 2,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 114289,
+  "flavor": "Prairies, horizons, gardens, what's next??",
+  "health": 4,
+  "id": "EDR_518",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Living Garden",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "RARE",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> <b>Imbue</b> your Hero\nPower. Reduce the Cost of a\n minion in your hand by (1).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ivan Fomin",
+  "attack": 4,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 114292,
+  "flavor": "\"I surf dead people.\"",
+  "health": 4,
+  "id": "EDR_519",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Wisprider",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> <b>Imbue</b> your Hero Power, then trigger it.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mooncolony",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 114293,
+  "flavor": "Telling me not to use something just makes me want to use it more.",
+  "health": 3,
+  "id": "EDR_520",
+  "name": "Forbidden Shrine",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "[x]Spend all your Mana.\nCast a random spell\nthat costs that much.",
+  "type": "LOCATION"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "attack": 4,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 114505,
+  "flavor": "Silly Satyr, tricks are for whelps!",
+  "health": 3,
+  "id": "EDR_521",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Tricky Satyr",
+  "race": "DEMON",
+  "races": [
+   "DEMON"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> Get a copy of the lowest Cost card in your opponent's hand.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 114508,
+  "flavor": "\"Stop copying me!\"\n\"sToP cOpyInG mEE!\"",
+  "id": "EDR_522",
+  "name": "Mimicry",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "Your opponent\ndraws 2 cards. You get copies of them.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Sergey Tsvelykh",
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114510,
+  "flavor": "You sit on a web of LIES!",
+  "id": "EDR_523",
+  "name": "Web of Deception",
+  "rarity": "RARE",
+  "referencedTags": [
+   "STEALTH"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "Return a friendly minion to your hand to summon a 4/4 Spider with <b>Stealth</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Caroline Gariba",
+  "attack": 3,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 114514,
+  "flavor": "\"Got any Finjas?\"\n\"Go fish.\"",
+  "health": 5,
+  "id": "EDR_524",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Shadowcloaked Assailant",
+  "race": "DEMON",
+  "races": [
+   "DEMON"
+  ],
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> If you're holding\none of the same cards as\nyour opponent, shuffle\ntheirs into their deck.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Stefan Bogdasarov",
+  "attack": 1,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 114517,
+  "durability": 0,
+  "flavor": "Comes with a pack of bandages.",
+  "health": 3,
+  "id": "EDR_525",
+  "mechanics": [
+   "CHOOSE_ONE"
+  ],
+  "name": "Barbed Thorn",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "DEATHRATTLE",
+   "POISONOUS"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Choose One -</b> Gain\n<b>Poisonous</b> this turn; or Gain\n\"<b>Deathrattle:</b> Deal 2 damage\nto all enemies.\"",
+  "type": "WEAPON"
+ },
+ {
+  "artist": "Grafit Studio",
+  "attack": 3,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 114518,
+  "elite": true,
+  "flavor": "Go web go!",
+  "hasDiamondSkin": true,
+  "health": 3,
+  "id": "EDR_526",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Renferal, the Malignant",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> Trap 1 random card\nin your opponent's hand for a\nturn. <i>(Improved for each time\nyou've played this.)</i>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Max Grecke",
+  "attack": 7,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 114527,
+  "elite": true,
+  "flavor": "In ancient times, Ashamane sacrificed herself to save night elves from the Legion’s wrath. Her name is still honored among their descendants.",
+  "health": 7,
+  "id": "EDR_527",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Ashamane",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> Fill your hand\nwith copies of cards from\nyour opponent's deck.\nThey cost (3) less.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ivan Fomin",
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 115088,
+  "flavor": "Every instance of \"but not less than (1)\" has been replaced with \"but not more than (1).\"",
+  "id": "EDR_528",
+  "mechanics": [
+   "COMBO",
+   "DISCOVER"
+  ],
+  "name": "Nightmare Fuel",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Discover</b> a copy\nof a minion in your opponent's deck. <b>Combo:</b> With a <b>Dark Gift</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 1,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 115295,
+  "flavor": "\"When I grow up I wanna be a Deathwing!\"",
+  "health": 2,
+  "id": "EDR_529",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Plucky Podling",
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "[x]If this would transform into\na minion, it transforms into\none that costs (2) more.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Melvin Chan",
+  "attack": 0,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115364,
+  "flavor": "Pixie perfect.",
+  "health": 4,
+  "id": "EDR_530",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Daydreaming Pixie",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "At the end of your turn,\nget a random Nature spell.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Slawomir Maniak",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 116684,
+  "flavor": "No thanks. This one's all yours, bud.",
+  "id": "EDR_531",
+  "name": "Siphoning Growth",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "Destroy a friendly\nminion to gain 8 Armor.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ivo Campelo da Silva",
+  "attack": 2,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115612,
+  "flavor": "This spider is so evil that it catches things in its web and EATS them!",
+  "health": 3,
+  "id": "EDR_540",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Twisted Webweaver",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "[x]Whenever you play another\nminion you've already\nplayed, draw a card.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Jakub Kasper",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 116660,
+  "flavor": "Everyone keeps talking about nightmares, but I don't see any horses?",
+  "id": "EDR_570",
+  "mechanics": [
+   "CHOOSE_ONE"
+  ],
+  "name": "Ominous Nightmares",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "SHADOW",
+  "text": "[x]<b>Choose One - </b>Deal $1\ndamage to all minions;\nor Give a damaged\nminion +2/+2.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ivo Campelo da Silva",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 116672,
+  "flavor": "Muahaha they'll never see this spell that costs (5) or more coming!!",
+  "health": 4,
+  "howToEarnGolden": "Earnable on the <i>Into the Emerald Dream</i> Reward Track.",
+  "id": "EDR_571",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Fae Trickster",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Deathrattle:</b> Draw a spell that costs (5) or more.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Juan Calle",
+  "attack": 5,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 116673,
+  "flavor": "People say you can't see clearly through corruption, but you have more eyes than ever!",
+  "health": 5,
+  "howToEarnGolden": "Earnable on the <i>Into the Emerald Dream</i> Reward Track.",
+  "id": "EDR_572",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Tormented Dreadwing",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Deathrattle:</b> Draw 2 Dragons. Reduce their Costs by (1).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Stefano Spagnuolo",
+  "attack": 5,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 117420,
+  "flavor": "\"Just try and ping me now!\"",
+  "health": 1,
+  "id": "EDR_598",
+  "mechanics": [
+   "ELUSIVE"
+  ],
+  "name": "Dream Rager",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Elusive</b>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 3,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 118250,
+  "flavor": "Fetch me the garden shears. The BIG shears.",
+  "health": 5,
+  "id": "EDR_654",
+  "mechanics": [
+   "BATTLECRY",
+   "TAUNT"
+  ],
+  "name": "Overgrown Horror",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Taunt</b>\n<b>Battlecry:</b> Reduce the Cost\nof minions in your hand\nwith <b>Dark Gifts</b> by (2).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Gabor Szikszai",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 115174,
+  "flavor": "Some people have imaginary friends. He has an imaginary twin.",
+  "health": 4,
+  "id": "EDR_780",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Bloodthistle Illusionist",
+  "race": "DEMON",
+  "races": [
+   "DEMON"
+  ],
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> Summon a copy\nof this. One secretly dies\nwhen it takes damage.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Drew Hill",
+  "attack": 2,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 115176,
+  "flavor": "The more pretentious the name, the eviler the character.",
+  "health": 3,
+  "id": "EDR_781",
+  "name": "Harbinger of the Blighted",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "[x]Whenever this enters your\nhand from the battlefield,\nsummon two random\n2-Cost minions.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "attack": 4,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 114006,
+  "flavor": "Flutterwing in the skyyyyy, I can go twice as highhhhhh",
+  "health": 4,
+  "id": "EDR_800",
+  "mechanics": [
+   "BATTLECRY",
+   "DIVINE_SHIELD",
+   "TAUNT"
+  ],
+  "name": "Flutterwing Guardian",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "<b><b>Taunt</b>, Divine Shield</b>\n<b>Battlecry:</b> <b>Imbue</b> your Hero Power.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Grace Liu",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114012,
+  "flavor": "Stop! It's already dead!",
+  "id": "EDR_804",
+  "name": "Divination",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "ARCANE",
+  "targetingArrowText": "Destroy a Wisp.",
+  "text": "Destroy a friendly Wisp to draw 3 cards.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Brian Despain",
+  "attack": 3,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 114301,
+  "flavor": "This is what's known as a zombiotic relationship.",
+  "health": 5,
+  "id": "EDR_810",
+  "mechanics": [
+   "AURA",
+   "BATTLECRY"
+  ],
+  "name": "Hideous Husk",
+  "race": "UNDEAD",
+  "races": [
+   "UNDEAD",
+   "BEAST"
+  ],
+  "rarity": "EPIC",
+  "runeCost": {
+   "blood": 1,
+   "frost": 0,
+   "unholy": 0
+  },
+  "set": "EMERALD_DREAM",
+  "text": "[x]Your Leeches steal 1 more\nHealth from their victims.\n<b>Battlecry:</b> Summon two\n0/2 Leeches.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ivo Campelo da Silva",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 114303,
+  "flavor": "Turns out 2 Atrocities do make a Rite!",
+  "id": "EDR_811",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Rite of Atrocity",
+  "rarity": "COMMON",
+  "runeCost": {
+   "blood": 0,
+   "frost": 0,
+   "unholy": 1
+  },
+  "set": "EMERALD_DREAM",
+  "text": "<b>Discover</b> an Undead. Spend 2 <b>Corpses</b> to give it a <b>Dark Gift</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Vlad Botos",
+  "attack": 2,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114304,
+  "durability": 0,
+  "flavor": "Frost confirmed to be the least gross rune.",
+  "health": 2,
+  "id": "EDR_812",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Grotesque Runeblade",
+  "rarity": "EPIC",
+  "runeCost": {
+   "blood": 1,
+   "frost": 0,
+   "unholy": 1
+  },
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> If the last card you\nplayed had an Unholy rune,\ngain +1 Attack. Repeat for\n    Blood and +1 Durability.",
+  "type": "WEAPON"
+ },
+ {
+  "artist": "Grafit Studio",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 114967,
+  "flavor": "Death Knights are masters of death who use shadow magic to control swarms of... ants?",
+  "id": "EDR_813",
+  "mechanics": [
+   "CHOOSE_ONE"
+  ],
+  "name": "Morbid Swarm",
+  "rarity": "RARE",
+  "runeCost": {
+   "blood": 1,
+   "frost": 0,
+   "unholy": 1
+  },
+  "set": "EMERALD_DREAM",
+  "text": "<b>Choose One -</b> Summon two 1/1 Ants; or Spend 2 <b>Corpses</b> to deal $4 damage to a minion.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114305,
+  "flavor": "Remember to brush your tongue as well as your teeth.",
+  "id": "EDR_814",
+  "name": "Infested Breath",
+  "rarity": "COMMON",
+  "runeCost": {
+   "blood": 1,
+   "frost": 0,
+   "unholy": 0
+  },
+  "set": "EMERALD_DREAM",
+  "text": "Deal $2 damage. Summon a 0/2 Leech.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Slawomir Maniak",
+  "attack": 0,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 114306,
+  "flavor": "Sometimes it's better not to stop and smell the flowers.",
+  "health": 5,
+  "id": "EDR_815",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Corpse Flower",
+  "race": "UNDEAD",
+  "races": [
+   "UNDEAD"
+  ],
+  "rarity": "RARE",
+  "runeCost": {
+   "blood": 0,
+   "frost": 0,
+   "unholy": 2
+  },
+  "set": "EMERALD_DREAM",
+  "text": "After your opponent summons a minion,\nspend 2 <b>Corpses</b> to deal 3 damage to it.",
+  "type": "MINION"
+ },
+ {
+  "artist": "A. J. Nazzaro",
+  "attack": 1,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 116296,
+  "flavor": "I know every creature is valuable in the ecosystem of life. But these guys SUCK.",
+  "health": 2,
+  "id": "EDR_816",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Monstrous Mosquito",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "At the end of your turn, give your other minions +1 Attack.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Jaemin Kim",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 114966,
+  "flavor": "Don't worry, they're <i>prescribed</i> leeches!",
+  "id": "EDR_817",
+  "name": "Sanguine Infestation",
+  "rarity": "RARE",
+  "runeCost": {
+   "blood": 2,
+   "frost": 0,
+   "unholy": 0
+  },
+  "set": "EMERALD_DREAM",
+  "text": "Draw 2 cards.\nSummon two 0/2 Leeches.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 7,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 114307,
+  "elite": true,
+  "flavor": "Bug Report: Minion split into 1/1 Beetles and then reformed at the start of next turn.",
+  "health": 7,
+  "id": "EDR_818",
+  "mechanics": [
+   "DEATHRATTLE",
+   "TAUNT"
+  ],
+  "name": "Nythendra",
+  "race": "UNDEAD",
+  "races": [
+   "UNDEAD",
+   "DRAGON"
+  ],
+  "rarity": "LEGENDARY",
+  "runeCost": {
+   "blood": 0,
+   "frost": 0,
+   "unholy": 2
+  },
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Taunt</b>. <b>Deathrattle:</b> Split\ninto 1/1 Beetles. At the\nstart of your turn, reform\nwith any remaining.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Juan Calle",
+  "attack": 6,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 116018,
+  "elite": true,
+  "flavor": "The great bear lord was so mighty that the Nightmare could only corrupt his spirit, not his strength.",
+  "health": 14,
+  "id": "EDR_819",
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE"
+  ],
+  "name": "Ursoc",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> Attack ALL\nother minions.\n<b>Deathrattle:</b> Resurrect any this killed.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Sergey Tsvelykh",
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 115198,
+  "flavor": "But watch, as soon as you try to go to sleep it'll be running all around the house making a bunch of noise.",
+  "id": "EDR_820",
+  "mechanics": [
+   "CHOOSE_ONE"
+  ],
+  "name": "Wyvern's Slumber",
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Choose One -</b> Summon two <b>Dormant</b> Dreadseeds; or Deal $2 damage to all minions.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Jason Kang",
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114654,
+  "flavor": "\"Muahaha… This year's harvest was quite <i>grim</i>… just how I like it! Because I'm EVIL!\"",
+  "id": "EDR_840",
+  "name": "Grim Harvest",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "Draw a card.\nSummon a random <b>Dormant</b> Dreadseed.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Max Grecke",
+  "attack": 4,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 114663,
+  "flavor": "Believe it or not, Dreadsouls aren't already corrupted.",
+  "health": 4,
+  "id": "EDR_841",
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE"
+  ],
+  "name": "Dreadsoul Corrupter",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry and Deathrattle:</b>\nSummon a random\n<b>Dormant</b> Dreadseed.",
+  "type": "MINION"
+ },
+ {
+  "artist": "BOSi Studio",
+  "attack": 2,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 114844,
+  "durability": 0,
+  "flavor": "TOGETHAAA",
+  "health": 3,
+  "id": "EDR_842",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Defiled Spear",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "[x]After your hero attacks an\n enemy, deal your hero's\nAttack damage to another\nrandom enemy.",
+  "type": "WEAPON"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114848,
+  "flavor": "¿Porque no los dos?",
+  "id": "EDR_843",
+  "mechanics": [
+   "CHOOSE_ONE"
+  ],
+  "name": "Reforestation",
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "NATURE",
+  "text": "[x]<b>Choose One -</b> Draw a\nspell; or Draw a minion.\n<i>(Hold this for 3 turns\nto do both!)</i>",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tee Fuyuan",
+  "attack": 7,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 114849,
+  "elite": true,
+  "flavor": "Naptime is officially OVER!",
+  "hasDiamondSkin": true,
+  "health": 7,
+  "howToEarn": "Earnable on the <i>Into the Emerald Dream</i> Reward Track.",
+  "howToEarnGolden": "Earnable on the <i>Into the Emerald Dream</i> Reward Track.",
+  "id": "EDR_844",
+  "mechanics": [
+   "AURA"
+  ],
+  "name": "Naralex, Herald of the Flights",
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "Your first Dragon\neach turn costs (1).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Nicola Saviori",
+  "attack": 5,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 114858,
+  "elite": true,
+  "flavor": "Rune (Death Knight) + Totem (Shaman) = Druid??",
+  "health": 6,
+  "id": "EDR_845",
+  "mechanics": [
+   "START_OF_GAME_KEYWORD"
+  ],
+  "name": "Hamuul Runetotem",
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Start of Game:</b> If each spell\nin your deck is Nature, <b>Imbue</b>\nyour Hero Power. Repeat this\n every 3 spells you cast.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 115090,
+  "elite": true,
+  "flavor": "Wow, that Nightmare-B-Gone spray really works! Too bad we didn't have enough for the whole tree.",
+  "id": "EDR_846",
+  "name": "Shaladrassil",
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "NATURE",
+  "text": "[x]Get all 5 Dream cards.\nIf you've played a higher\nCost card while holding\nthis, corrupt them!",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 3,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 114912,
+  "flavor": "I'm not taking a nap, I'm just doing some extra studying about the Dream!",
+  "health": 3,
+  "id": "EDR_847",
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE"
+  ],
+  "name": "Dreambound Disciple",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry and Deathrattle:</b> Your next Hero Power costs (0).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Drew Hill",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 114914,
+  "flavor": "Nothing beats some time relaxing in the sun with a pile of good mulch.",
+  "id": "EDR_848",
+  "name": "Photosynthesis",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "NATURE",
+  "text": "Restore #6 Health. Get 3 random Druid spells.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 114933,
+  "flavor": "Dream, dream, dream, dream, dream, dreeeeeeeeam.",
+  "health": 1,
+  "howToEarnGolden": "Earnable on the <i>Into the Emerald Dream</i> Reward Track.",
+  "id": "EDR_849",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Dreambound Raptor",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "After you play a minion, give it a random\n<b>Bonus Effect</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Stefano Spagnuolo",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114935,
+  "flavor": "Every rose has its thorn, beard, and shield.",
+  "health": 3,
+  "id": "EDR_852",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Bitterbloom Knight",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> <b>Imbue</b> your\nHero Power.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Luca Zontini",
+  "attack": 3,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 114857,
+  "elite": true,
+  "flavor": "That's just how he Brolls.",
+  "hasDiamondSkin": true,
+  "health": 5,
+  "id": "EDR_853",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Broll Bearmantle",
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "After you cast a spell, summon a random\nAnimal Companion.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Jerry Mascho",
+  "attack": 4,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 115139,
+  "elite": true,
+  "flavor": "Xavius will also be replacing Illidan as the Demon Hunter hero in an upcoming patch.",
+  "health": 4,
+  "howToEarnGolden": "Earnable on the <i>Into the Emerald Dream</i> Reward Track.",
+  "id": "EDR_856",
+  "mechanics": [
+   "BATTLECRY",
+   "DISCOVER"
+  ],
+  "name": "Nightmare Lord Xavius",
+  "race": "DEMON",
+  "races": [
+   "DEMON"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> <b>Discover</b> a minion from your deck. Give it a <b>Dark Gift</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Luca Zontini",
+  "attack": 4,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 114076,
+  "flavor": "Have you ever had a dream that that you um you had you'd you would you could you'd do you wi you wants you you could do so you you'd do you could you you want so much you could do anything?",
+  "health": 4,
+  "id": "EDR_860",
+  "mechanics": [
+   "BATTLECRY",
+   "LIFESTEAL"
+  ],
+  "name": "Resplendent Dreamweaver",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "targetingArrowText": "Deal 4 damage to a minion.",
+  "text": "[x]<b>Lifesteal</b>\n<b>Battlecry:</b> If you've <b>Imbued</b>\nyour Hero Power twice, deal\n4 damage to a minion.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mauricio Herrera",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 116292,
+  "flavor": "\"Cut down my trunk and make a Mana Crystal,\" said the tree. \"Then you can ramp away... and be happy.\"",
+  "health": 2,
+  "id": "EDR_861",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Tranquil Treant",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Deathrattle:</b> Both\nplayers gain an empty Mana Crystal.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mike Sass",
+  "attack": 2,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 116462,
+  "flavor": "They call him the Wisp Whisperer.",
+  "health": 1,
+  "id": "EDR_871",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Spirit Gatherer",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> Get a Wisp. <b>Imbue</b> your Hero Power.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mauricio Herrera",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 116977,
+  "flavor": "Just don't spark that life too close to the World Tree.",
+  "id": "EDR_872",
+  "mechanics": [
+   "CHOOSE_ONE",
+   "DISCOVER"
+  ],
+  "name": "Spark of Life",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Choose One - </b><b>Discover</b> a Mage spell; or <b>Discover</b> a Druid spell.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 116495,
+  "flavor": "Announce Gladeness.",
+  "health": 6,
+  "howToEarnGolden": "Earnable on the <i>Into the Emerald Dream</i> Reward Track.",
+  "id": "EDR_873",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Envoy of the Glade",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> Transform all\nNeutral cards in your deck\n into random Druid ones.",
+  "type": "MINION"
+ },
+ {
+  "artist": "L. Lullabi & R. Kamen",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 116980,
+  "flavor": "Famously, Moonfire and Starfire are about equal in power.",
+  "id": "EDR_874",
+  "name": "Stellar Balance",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "SPELLPOWER"
+  ],
+  "set": "EMERALD_DREAM",
+  "spellSchool": "ARCANE",
+  "text": "Get a Moonfire and\na Starfire. Give them <b>Spell Damage +1</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Felideus Bubastis",
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 114337,
+  "flavor": "Might need a pair of [Druidic Pants of Water Resistance] after this one.",
+  "id": "EDR_882",
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Jumpscare!",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Discover</b> a Demon that costs (5) or more with a <b>Dark Gift</b>. Shuffle the other two into your deck.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 8,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 115186,
+  "elite": true,
+  "flavor": "A figure of legend and myth, Malorne is one of the oldest of the Wild Gods and father to Cenarius himself.",
+  "health": 6,
+  "id": "EDR_888",
+  "mechanics": [
+   "BATTLECRY",
+   "DISCOVER"
+  ],
+  "name": "Malorne the Waywatcher",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> <b>Discover</b> a <b>Legendary</b>\nWild God. If you've <b>Imbued</b>\nyour Hero Power 4 times,\nset its Cost to (1).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Eva Widermann",
+  "attack": 1,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115191,
+  "flavor": "The Emerald Nightmare might actually be a good thing for her business.",
+  "health": 4,
+  "id": "EDR_889",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Petal Peddler",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "[x]At the end of your turn,\ngive another random\n friendly Dragon +1/+1.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ian Ameling",
+  "attack": 4,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 114496,
+  "flavor": "But what if I'm left-handed??",
+  "health": 2,
+  "id": "EDR_890",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Nightmare Dragonkin",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Deathrattle:</b> Reduce the\nCost of the right-most card in your hand by (2).",
+  "type": "MINION"
+ },
+ {
+  "artist": "BOSi Studio",
+  "attack": 5,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 114497,
+  "flavor": "Loves soul food.",
+  "health": 3,
+  "id": "EDR_891",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Ravenous Felhunter",
+  "race": "DEMON",
+  "races": [
+   "DEMON"
+  ],
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Deathrattle:</b> Resurrect a friendly <b>Deathrattle</b> minion that costs (4) or less. Summon a copy of it.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Guillaume Beauchêne",
+  "attack": 7,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 114498,
+  "flavor": "A tree in the hand is worth two in the Nightmare.",
+  "health": 5,
+  "id": "EDR_892",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Ferocious Felbat",
+  "race": "DEMON",
+  "races": [
+   "DEMON"
+  ],
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Deathrattle:</b> Resurrect a\ndifferent friendly <b>Deathrattle</b>\nminion that costs (5) or more.\nSummon a copy of it.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 7,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 115264,
+  "elite": true,
+  "flavor": "The Mistress of Birds takes a special interest in all creatures of the sky, as well as those who have wings but have yet to fly.",
+  "health": 11,
+  "id": "EDR_895",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Aviana, Elune's Chosen",
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> Start a three\nturn lunar cycle. When the\nFull Moon rises, your cards\ncost (1) this game.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 3,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 115805,
+  "flavor": "Merry Wispmas!",
+  "health": 6,
+  "id": "EDR_940",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Merry Moonkin",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "[x]At the end of your turn,\ngain 1 Armor. <i>(Improved\nby Wisps you control!)</i>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Patrik Bjorkstrom",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 115866,
+  "flavor": "\"The stars urge you to DIE.\"",
+  "id": "EDR_941",
+  "name": "Starsurge",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "ARCANE",
+  "text": "Deal $1 damage to a minion. <i>(Improved by each friendly minion that died this game.)</i>",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 115867,
+  "flavor": "Hole in one!",
+  "health": 5,
+  "id": "EDR_942",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Curious Cumulus",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "COMMON",
+  "referencedTags": [
+   "DIVINE_SHIELD"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]At the end of your turn,\ngive your hero <b>Divine Shield</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mooncolony",
+  "attack": 3,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 115461,
+  "flavor": "Elune, I implore you... bless my game with good rng, so that I may achieve Legend with a 100% winrate.",
+  "health": 3,
+  "id": "EDR_970",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Kaldorei Priestess",
+  "rarity": "RARE",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> Give all enemy\nminions -2 Attack until\nyour next turn. <b>Imbue</b>\nyour Hero Power.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Caroline Gariba & Rafael Zanchetin",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 115938,
+  "flavor": "She teaches all her critters two things: heel and heal.",
+  "health": 2,
+  "id": "EDR_971",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Critter Caretaker",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "At the end of your turn, restore #3 Health to both heroes.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "attack": 6,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 117511,
+  "flavor": "Pwease stop meadowing in my affaiws.",
+  "health": 11,
+  "id": "EDR_978",
+  "mechanics": [
+   "DEATHRATTLE",
+   "TAUNT"
+  ],
+  "name": "Meadowstrider",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Taunt</b>. <b>Deathrattle:</b> Put\na Meadowstrider on the bottom of your deck. It costs (1).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Stefan Bogdasarov",
+  "attack": 5,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 117302,
+  "flavor": "Ancient of my what?",
+  "health": 5,
+  "id": "EDR_979",
+  "name": "Ancient of Yore",
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Dormant</b> for 2 turns.\nWhile <b>Dormant</b>, gain 3\nArmor and draw a card at\nthe end of your turn.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 1,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 116256,
+  "flavor": "\"Are you eating bark again!?\"\n\"Gnawwwww....\"",
+  "health": 1,
+  "id": "EDR_999",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Gnawing Greenfin",
+  "race": "MURLOC",
+  "races": [
+   "MURLOC"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> Get a\nrandom Murloc.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ursula Dorada",
+  "attack": 1,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 117292,
+  "flavor": "We brought magic to this world, but destruction may take it away.",
+  "health": 3,
+  "id": "FIR_777",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY",
+   "LIFESTEAL",
+   "TAUNT"
+  ],
+  "name": "Spirit of the Kaldorei",
+  "race": "UNDEAD",
+  "races": [
+   "UNDEAD"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Taunt</b>, <b>Lifesteal</b>\n<b>Battlecry:</b> If you used\nyour Hero Power this\nturn, gain +3/+3.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Dmitry Bolotov",
+  "attack": 9,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 117294,
+  "flavor": "Master of all ONE element!",
+  "health": 9,
+  "id": "FIR_778",
+  "isMiniSet": true,
+  "mechanics": [
+   "DEATHRATTLE",
+   "TAUNT"
+  ],
+  "name": "Avatar of Destruction",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Taunt</b>\n<b>Deathrattle:</b> Deal 9 damage\nto all enemy minions.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kleston Marques",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 115624,
+  "flavor": "Cleanup on grave plot 4.",
+  "id": "FIR_900",
+  "isMiniSet": true,
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Cremate",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "FIRE",
+  "text": "<b>Discover</b> a minion\nwith a <b>Dark Gift</b>.\nIt costs (2) less.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Alex Stone",
+  "attack": 4,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 115625,
+  "flavor": "Her frostburn is worse than her frostbite.",
+  "health": 4,
+  "id": "FIR_901",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Frostburn Matriarch",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "RARE",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> If you're holding\na minion with a <b>Dark Gift</b>, summon two 4/4 Dragons with <b>Taunt</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Sergey Tsvelykh",
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115626,
+  "flavor": "It's the emblem of fire season.",
+  "id": "FIR_902",
+  "isMiniSet": true,
+  "mechanics": [
+   "ImmuneToSpellpower"
+  ],
+  "name": "Sigil of Cinder",
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "FEL",
+  "text": "[x]At the start of your next\nturn, deal $6 damage\nrandomly split among\nall enemies.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Alex Stone",
+  "attack": 2,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115628,
+  "flavor": "Like fire, felfire, this fire in my skin.",
+  "health": 3,
+  "id": "FIR_904",
+  "isMiniSet": true,
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Felfire Blaze",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "[x]After you cast a Fel spell,\ndestroy this and deal 2\ndamage to all enemies.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 115630,
+  "flavor": "\"Did you bring water?\"\n\"I THOUGHT YOU WERE BRINGING THE WATER!\"",
+  "id": "FIR_906",
+  "isMiniSet": true,
+  "name": "Overheat",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "FIRE",
+  "text": "Give your minions +1/+1. Discard a random Nature spell to give them +1/+1 more.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Grace Liu",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 115631,
+  "elite": true,
+  "flavor": "The spirits burned at Teldrassil shall not be forgotten. They live on within a new world tree, the Crown of Harmony.",
+  "health": 3,
+  "id": "FIR_907",
+  "isMiniSet": true,
+  "name": "Amirdrassil",
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]Summon a 1-Cost minion.\nGain 1 Armor. Draw 1 card.\nRefresh 1 Mana |4(Crystal, Crystals).\n<i>(Improves each use!)</i>",
+  "type": "LOCATION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 1,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 115632,
+  "flavor": "Charma, charma, charma, charma, charma chameleon\nYou combust and glow, you combust and glow...",
+  "health": 2,
+  "id": "FIR_908",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Charred Chameleon",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "EMERALD_DREAM",
+  "targetingArrowText": "Give +1/+2 and <b>Rush</b>.",
+  "text": "<b>Battlecry:</b> If you've used\nyour Hero Power this turn,\ngive a friendly minion\n+1/+2 and <b>Rush</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115633,
+  "flavor": "And I fired! And I missed. And I fired again! And I missed again. This went on for several hours.",
+  "id": "FIR_909",
+  "isMiniSet": true,
+  "name": "Bursting Shot",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "FIRE",
+  "text": "Deal $2 damage to\nthree random enemies.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "A. J. Nazzaro",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 115634,
+  "flavor": "It's like the old saying goes: where there's smoke, there's often fire... and where there's fire, there's often more fire.",
+  "id": "FIR_910",
+  "isMiniSet": true,
+  "name": "Scorching Winds",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "FIRE",
+  "text": "Deal $3 damage. Discard a random Fire spell to deal $3 more.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115635,
+  "flavor": "To be clear, the grove is not SUPPOSED to be smoldering.",
+  "id": "FIR_911",
+  "isMiniSet": true,
+  "name": "Smoldering Grove",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "FIRE",
+  "text": "Draw {0} card.\n<i>(Upgrades each turn,\nbut discards after {1}!)</i>1Draw {0} cards.\n<i>(Discards this turn!)</i>",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Edward Frayna",
+  "attack": 3,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 115637,
+  "flavor": "Poor Inferno Herald, why so blue?",
+  "health": 6,
+  "id": "FIR_913",
+  "isMiniSet": true,
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Inferno Herald",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "[x]After you cast a Fire spell,\nget a random Elemental and\nreduce its Cost by (3).",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 115638,
+  "flavor": "You'll get it when you're smolder.",
+  "id": "FIR_914",
+  "isMiniSet": true,
+  "name": "Smoldering Strength",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "FIRE",
+  "text": "Give a friendly minion +{0}/+{0}.\n<i>(Upgrades each turn,\nbut discards after {1}!)</i>1Give a friendly\nminion +{0}/+{0}.\n<i>(Discards this turn!)</i>",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Edward Frayna",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115640,
+  "flavor": "We all know what happens when you fly too close to the sun. But THIS is what happens when you fly straight into it.",
+  "id": "FIR_916",
+  "isMiniSet": true,
+  "name": "Smoldering Ascent",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "FIRE",
+  "text": "Deal ${0} damage to all enemy minions. <i>(Upgrades each turn,\nbut discards after {1}!)</i>1Deal ${0} damage to all enemy minions.\n<i>(Discards this turn!)</i>",
+  "type": "SPELL"
+ },
+ {
+  "artist": "BOSi Studio",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 115642,
+  "flavor": "UM ACTUALLY THAT’S A WANING CRESCENT",
+  "id": "FIR_918",
+  "isMiniSet": true,
+  "name": "Light of the New Moon",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "ARCANE",
+  "text": "[x]Give a minion +3/+3.\n<i>(Cast 3 spells to return this\nto your hand when played.)</i>",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tanamaes Leejierasaes",
+  "attack": 3,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 115646,
+  "flavor": "You'd be making that face too if you just got played for the sixteenth time.",
+  "health": 2,
+  "id": "FIR_919",
+  "isMiniSet": true,
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Everburning Phoenix",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL",
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "[x]Costs (1) less for each card\nyou've played this turn.\n<b>Deathrattle: </b>At end of turn,\nget another Phoenix.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Studio Hive",
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115647,
+  "flavor": "Wow, this blew up.",
+  "id": "FIR_920",
+  "isMiniSet": true,
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Smoke Bomb",
+  "rarity": "RARE",
+  "referencedTags": [
+   "BATTLECRY",
+   "COMBO",
+   "STEALTH"
+  ],
+  "set": "EMERALD_DREAM",
+  "spellSchool": "FIRE",
+  "text": "<b>Discover</b> a <b>Combo</b>, <b>Battlecry</b>, or <b>Stealth</b> minion with a <b>Dark Gift</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ursula Dorada",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 115648,
+  "flavor": "She loves me... she loves me not...",
+  "health": 3,
+  "id": "FIR_921",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Petal Picker",
+  "race": "DRAENEI",
+  "races": [
+   "DRAENEI"
+  ],
+  "rarity": "RARE",
+  "referencedTags": [
+   "IMBUE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> If you've <b>Imbued</b>\nyour Hero Power twice,\ndraw 2 cards.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Studio Hive",
+  "attack": 1,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 115649,
+  "durability": 0,
+  "flavor": "Where did I put de metals? It cindersword.",
+  "health": 2,
+  "id": "FIR_922",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Cindersword",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> If you're holding a minion with\na <b>Dark Gift</b>, gain +3 Attack.",
+  "type": "WEAPON"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115650,
+  "flavor": "The Firelord has been banned from chat for flaming.",
+  "id": "FIR_923",
+  "isMiniSet": true,
+  "name": "Flames of the Firelord",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "FIRE",
+  "text": "[x]Deal $4 damage to a random\nenemy minion. If you're\nholding a card that costs\n(8) or more, deal $8 instead.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ivo Campelo da Silva",
+  "attack": 4,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 115651,
+  "flavor": "The purple means it's stealthy. It's stealthy fire.",
+  "health": 3,
+  "id": "FIR_924",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY",
+   "DISCOVER"
+  ],
+  "name": "Shadowflame Stalker",
+  "race": "BEAST",
+  "races": [
+   "ELEMENTAL",
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> <b>Discover</b> a Demon with a <b>Dark Gift</b>. Get a copy of it.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 3,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 115656,
+  "flavor": "I LOVE YOU NOT!",
+  "health": 2,
+  "id": "FIR_927",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY",
+   "DISCOVER"
+  ],
+  "name": "Emberscarred Whelp",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> <b>Discover</b> a\n5-Cost card. Gain 1 Mana\nCrystal next turn only.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 5,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 115653,
+  "flavor": "\"I keep it right here. Inside my hooves.\"",
+  "health": 5,
+  "id": "FIR_928",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Keeper of Flame",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> Give all minions\nin your hand +3/+3. They\nare destroyed in 3 turns.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Brian Despain",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115655,
+  "flavor": "\"Get a load of this guy.\"",
+  "health": 2,
+  "id": "FIR_929",
+  "isMiniSet": true,
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Living Flame",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Deathrattle:</b> Draw a\nFire spell.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Daniil Kudriavtsev",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115688,
+  "flavor": "One Fire and Shadow swirl, please!",
+  "id": "FIR_939",
+  "isMiniSet": true,
+  "mechanics": [
+   "DISCOVER"
+  ],
+  "name": "Shadowflame Suffusion",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "FIRE",
+  "text": "[x]Deal $2 damage.\n<b>Discover</b> a Warrior\nminion with a <b>Dark Gift</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Mike Sass",
+  "attack": 4,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 115654,
+  "flavor": "What's the difference between a pyromancer and a flamemancer? One knows their Greek roots, the other BURNS THEM DOWN!",
+  "health": 4,
+  "id": "FIR_940",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Zaqali Flamemancer",
+  "rarity": "EPIC",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> If every card in your hand is of a different Cost, reduce their Costs by (2).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Lea Faske",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 115776,
+  "flavor": "You never would've guessed it, but Ancients love doing the Hot Embers Challenge.",
+  "id": "FIR_941",
+  "isMiniSet": true,
+  "name": "Searing Reflection",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "DIVINE_SHIELD"
+  ],
+  "set": "EMERALD_DREAM",
+  "spellSchool": "FIRE",
+  "text": "Draw a minion. Summon an 8/8 copy of it with <b>Divine Shield</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Alex Horley Orlandelli",
+  "attack": 5,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 115748,
+  "elite": true,
+  "flavor": "Unholy, so hot right now.",
+  "health": 5,
+  "id": "FIR_951",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY",
+   "RUSH",
+   "TAUNT"
+  ],
+  "name": "Volcoross",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL",
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "runeCost": {
+   "blood": 0,
+   "frost": 0,
+   "unholy": 2
+  },
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Rush, Taunt</b>\n<b>Battlecry:</b> Choose to spend\n10, 20, or 30 <b>Corpses</b> to\ngain that many stats.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Slawomir Maniak",
+  "attack": 4,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 115749,
+  "flavor": "Fel from grace about 10,000 years ago.",
+  "health": 4,
+  "id": "FIR_952",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY",
+   "DISCOVER"
+  ],
+  "name": "Scorchreaver",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> <b>Discover</b> a Fel\nspell. Reduce the Cost\nof Fel spells in your\nhand by (1).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Juan Calle",
+  "attack": 5,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 115751,
+  "flavor": "Don't say T.R.E.A.T. or he'll drool lava everywhere.",
+  "health": 8,
+  "id": "FIR_953",
+  "isMiniSet": true,
+  "mechanics": [
+   "RUSH",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Magma Hound",
+  "race": "BEAST",
+  "races": [
+   "ELEMENTAL",
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Rush</b>. After this attacks a\nminion and survives, deal this\nminion's Attack damage split\namong all enemies.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vlad Botos",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 115753,
+  "flavor": "From the ashes, a new card is drawn.",
+  "id": "FIR_954",
+  "isMiniSet": true,
+  "name": "Conflagrate",
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "spellSchool": "FIRE",
+  "text": "Deal $5 damage to a minion. Its owner draws a card.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Luca Zontini",
+  "attack": 3,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 115754,
+  "flavor": "Under Fyrakk's assault, even those with the purest devotion to nature shall burn.",
+  "health": 3,
+  "id": "FIR_955",
+  "isMiniSet": true,
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Emberroot Destroyer",
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "[x]Whenever your hero takes\ndamage on your turn,\ndeal 3 damage to a random\nenemy minion.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Gabor Szikszai",
+  "attack": 3,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 115755,
+  "flavor": "If you thought evil turtles that live in lava are cool, this one's also a DRAGON!",
+  "health": 6,
+  "id": "FIR_956",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Dragon Turtle",
+  "race": "BEAST",
+  "races": [
+   "BEAST",
+   "DRAGON"
+  ],
+  "rarity": "RARE",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Battlecry:</b> If you're holding\na minion with a <b>Dark Gift</b>,\ngive your hero +3 Attack this\nturn and 6 Armor.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 4,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 115759,
+  "elite": true,
+  "flavor": "He'll have you burning red.",
+  "health": 3,
+  "id": "FIR_958",
+  "isMiniSet": true,
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Tindral Sageswift",
+  "rarity": "LEGENDARY",
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Deathrattle:</b> Deal 1 damage\nto all enemies. If it's your\nopponent's turn, deal\n4 damage instead.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "attack": 7,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 10,
+  "dbfId": 115756,
+  "elite": true,
+  "flavor": "Originally devoted to snuffing out the Titans' influence, Shadowflame has twisted Fyrakk's mind into an abyss of malice. His Dreamrender now only hungers for a world of embers.",
+  "hasDiamondSkin": true,
+  "health": 7,
+  "id": "FIR_959",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Fyrakk the Blazing",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "IMMUNE"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "[x]<b>Immune</b> to Fire spells.\n<b>Battlecry:</b> Cast 15 Mana\nworth of Fire spells at\nrandom enemies.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "attack": 5,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 115960,
+  "faction": "HORDE",
+  "flavor": "Dogs are a dragon's best friend.",
+  "health": 4,
+  "id": "FIR_960",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Tending Dragonkin",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> Copy the lowest Cost Beast in your hand.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Felideus Bubastis",
+  "attack": 3,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 115972,
+  "flavor": "Why don't you make like a burning world tree and ashleave???",
+  "health": 2,
+  "id": "FIR_961",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Ashleaf Pixie",
+  "rarity": "RARE",
+  "referencedTags": [
+   "DIVINE_SHIELD",
+   "LIFESTEAL"
+  ],
+  "set": "EMERALD_DREAM",
+  "text": "<b>Battlecry:</b> If you're holding a spell that costs (5) or more, gain <b>Divine Shield</b> and <b>Lifesteal</b>.",
+  "type": "MINION"
+ }
+]

@@ -1,0 +1,3408 @@
+[
+ {
+  "artist": "Sergey Tsvelykh",
+  "attack": 4,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 122500,
+  "flavor": "I'm purple da brood ee da brood iee",
+  "health": 3,
+  "howToEarnGolden": "Earnable on <i>CATACLYSM</i> Reward Track.",
+  "id": "CATA_111",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Darkscale Broodmother",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "<b>Battlecry:</b> If you're\nholding a Dragon, refresh\n2 Mana Crystals.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vika Yarova",
+  "attack": 1,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 122966,
+  "flavor": "It's important to learn good spending habits when you're young.",
+  "health": 1,
+  "id": "CATA_130",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Crystalspine Cub",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "Whenever you spend your last Mana Crystal,\ngain +1/+1.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Stefan Bogdasarov",
+  "attack": 2,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "collectionText": "[x]<b>Battlecry:</b> Gain a temporary\nMana Crystal. If you spent 4\nMana while holding this, it's\n   permanent. <i>({0} left!)</i>",
+  "cost": 2,
+  "dbfId": 122967,
+  "flavor": "A Mana spent is a Mana earned.",
+  "health": 2,
+  "id": "CATA_131",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Felwood Treant",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Gain a temporary\nMana Crystal. If you spent 4\nMana while holding this, it's\n   permanent. <i>({0} left!)</i>@[x]<b>Battlecry:</b> Gain a temporary\nMana Crystal. If you spent 4\nMana while holding this, it's\n   permanent. <i>(Ready!)</i>@[x]<b>Battlecry:</b> Gain a temporary\nMana Crystal. If you spent\n4 Mana while holding this,\nit's permanent.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Jakub Kasper",
+  "attack": 4,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "collectionText": "[x]<b>Battlecry:</b> Get two 3/3\nWhelps with <b>Taunt</b>. If you spent\n8 Mana while holding this,\nsummon them. <i>({0} left!)</i>",
+  "cost": 4,
+  "dbfId": 122968,
+  "flavor": "A watched brood never hatches!",
+  "health": 5,
+  "id": "CATA_132",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Broodwatcher",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "EPIC",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Get two 3/3\nWhelps with <b>Taunt</b>. If you spent\n8 Mana while holding this,\nsummon them. <i>({0} left!)</i>@[x]<b>Battlecry:</b> Get two 3/3\nWhelps with <b>Taunt</b>. If you spent\n8 Mana while holding this,\nsummon them. <i>(Ready!)</i>@[x]<b>Battlecry:</b> Get two 3/3\nWhelps with <b>Taunt</b>. If you\nspent 8 Mana while holding\nthis, summon them.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kati Sarin",
+  "attack": 4,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 122970,
+  "flavor": "FoOoOllow the Flitterwings!",
+  "health": 5,
+  "id": "CATA_133",
+  "mechanics": [
+   "ELUSIVE",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Iridescent Flitterwing",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "<b>Elusive</b>\nAt the end of your\nturn, give your other\nminions +1/+1.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Bima Kusuma",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "collectionText": "[x]Summon two 2/2\nTreants. Give your\nminions \"<b>Deathrattle:</b>\n  Summon a 2/2 Treant.\"",
+  "cost": 4,
+  "dbfId": 122971,
+  "flavor": "Let's circle back after we've played more cards.",
+  "howToEarnGolden": "Earnable on <i>CATACLYSM</i> Reward Track.",
+  "id": "CATA_134",
+  "name": "Wildwood Circle",
+  "rarity": "RARE",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "set": "CATACLYSM",
+  "spellSchool": "NATURE",
+  "text": "[x]<b>Shatter</b>. Summon two\n 2/2 Treants. Give your\nminions \"<b>Deathrattle:</b>\n Summon a 2/2 Treant.\"",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Brian Adriel",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123023,
+  "flavor": "You got mossed!",
+  "id": "CATA_135",
+  "name": "Mossbinding",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "spellSchool": "NATURE",
+  "text": "[x]Summon two 1/2 Golems.\nSpend all your Mana to\ngive them +1/+1 for\neach Mana spent.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tee Fuyuan",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 122975,
+  "flavor": "Just when she thought victory was in reach, the Ocean Lord found herself facing a foe she never thought to prepare for – the hero she could have become if she cared more for her people.",
+  "id": "CATA_136",
+  "name": "Azshara's Triumph",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "spellSchool": "ARCANE",
+  "text": "Shuffle 5 random minions into your deck\nthat cost (8) or more.\nDouble their stats.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Milica Celikovic",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 122988,
+  "flavor": "The druids learned how to do this from a vile library.",
+  "id": "CATA_138",
+  "name": "Forest's Gift",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "spellSchool": "NATURE",
+  "text": "Give a friendly minion +1/+1 for each minion you control.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Todd Harris",
+  "attack": 0,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 122976,
+  "elite": true,
+  "flavor": "In their time of need, Merithra of the Dream led the Timbermaw furbolgs in a ritual that animated the Felwood's oldest tree.",
+  "health": 5,
+  "id": "CATA_139",
+  "mechanics": [
+   "COLOSSAL",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Wickerfang",
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "<b>Colossal +4</b>\nAfter one of Wickerfang's Legs gains stats, this gains them too.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vika Yarova",
+  "attack": 4,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "collectionText": "[x]<b>Battlecry:</b> Fill your hand with\nrandom Dragons. If you spent\n25 Mana while holding this,\nthey cost (1). <i>({0} left!)</i>",
+  "cost": 8,
+  "dbfId": 122978,
+  "elite": true,
+  "flavor": "I've spent more Mana in one turn than you've ever dreamed of!",
+  "health": 12,
+  "id": "CATA_140",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Merithra of the Dream",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Fill your hand with\nrandom Dragons. If you spent\n25 Mana while holding this,\nthey cost (1). <i>({0} left!)</i>@[x]<b>Battlecry:</b> Fill your hand with\nrandom Dragons. If you spent\n25 Mana while holding this,\nthey cost (1). <i>(Ready!)</i>@[x]<b>Battlecry:</b> Fill your hand with\nrandom Dragons. If you spent\n25 Mana while holding\nthis, they cost (1).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Alex Horley Orlandelli",
+  "attack": 8,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 124110,
+  "elite": true,
+  "flavor": "The Lord of Flame was all too ready to throw in his lot with Deathwing if it meant the chance to watch all Azeroth burn.",
+  "health": 8,
+  "id": "CATA_150",
+  "mechanics": [
+   "COLOSSAL",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Ragnaros, the Great Fire",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "set": "CATACLYSM",
+  "text": "[x]<b>Colossal +2</b>\nAt the end of your turn, trigger\n   your minions' <b>Deathrattles</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 8,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 124116,
+  "elite": true,
+  "flavor": "Azshara has never been one to acknowledge any higher power than herself – not even Deathwing. But she's not averse to making deals.",
+  "health": 8,
+  "id": "CATA_151",
+  "mechanics": [
+   "AURA",
+   "COLOSSAL"
+  ],
+  "name": "Azshara, Ocean Lord",
+  "race": "NAGA",
+  "races": [
+   "NAGA"
+  ],
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "WINDFURY"
+  ],
+  "set": "CATACLYSM",
+  "text": "<b>Colossal +2</b>\nYour hero has <b>Windfury</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Slawomir Maniak",
+  "attack": 2,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 125442,
+  "elite": true,
+  "flavor": "Seduced by Deathwing's promises of freedom and power, the Windlord summoned massive storms over Uldum as he led his forces to assault the Titans' strongholds.",
+  "health": 8,
+  "id": "CATA_153",
+  "mechanics": [
+   "BATTLECRY",
+   "COLOSSAL",
+   "RUSH",
+   "WINDFURY"
+  ],
+  "name": "Al'Akir, Lord of Storms",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Colossal +2, <b>Rush</b>, Windfury</b>\n<b>Battlecry:</b> Get 2 minions with\nCost equal to this minion's\nAttack. They cost (1).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Alex Stone",
+  "attack": 5,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 125450,
+  "elite": true,
+  "flavor": "Though she holds no love for her former spouse, Sinestra is willing to work with him if it means her Twilight brood can finally inherit what remains of Azeroth.",
+  "health": 5,
+  "id": "CATA_154",
+  "mechanics": [
+   "AURA",
+   "COLOSSAL"
+  ],
+  "name": "Sinestra",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "<b>Colossal +2</b>\nYour spells from other classes cast twice.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "attack": 3,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 124138,
+  "elite": true,
+  "flavor": "Onyxia's dear brother has raised her from the grave. Don't expect her to be grateful.",
+  "health": 6,
+  "id": "CATA_155",
+  "mechanics": [
+   "COLOSSAL",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Arisen Onyxia",
+  "race": "DRAGON",
+  "races": [
+   "UNDEAD",
+   "DRAGON"
+  ],
+  "rarity": "LEGENDARY",
+  "runeCost": {
+   "blood": 2,
+   "frost": 0,
+   "unholy": 0
+  },
+  "set": "CATACLYSM",
+  "text": "[x]<b>Colossal +2</b>. When your\nhero would lose Health on\nyour turn, gain that much\nmax Health instead.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Grafit Studio",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 123546,
+  "flavor": "What if we tried 23 frames per second to make it look <i>really</i> weird?",
+  "id": "CATA_156",
+  "name": "Experimental Animation",
+  "rarity": "COMMON",
+  "runeCost": {
+   "blood": 2,
+   "frost": 0,
+   "unholy": 0
+  },
+  "set": "CATACLYSM",
+  "spellSchool": "SHADOW",
+  "text": "<b>Herald</b> {0}.\nDeal $4 damage to all enemy minions.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "A. J. Nazzaro",
+  "attack": 4,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123549,
+  "flavor": "The person 2ft behind you with the 10,000 Watt headlights.",
+  "health": 1,
+  "id": "CATA_158",
+  "mechanics": [
+   "DEATHRATTLE",
+   "STEALTH"
+  ],
+  "name": "Maniacal Follower",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "<b>Stealth</b>\n<b>Deathrattle:</b> <b>Herald</b> {0}.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 4,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 123552,
+  "flavor": "I'd be scorching too if I were standing in lava.",
+  "health": 3,
+  "id": "CATA_160",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Scorching Ravager",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "RARE",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "CATACLYSM",
+  "text": "<b>Battlecry:</b> <b>Herald</b> {0}. Give the Soldier <b>Rush</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Luca Zontini",
+  "attack": 3,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123547,
+  "flavor": "Faces only a broodmother could love.",
+  "health": 3,
+  "id": "CATA_161",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Gruesome Nightmare",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "targetingArrowText": "Choose a minion in your hand or battlefield.",
+  "text": "<b>Battlecry:</b> Give a minion in your hand or battlefield Attack equal to this minion's Attack.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Max Grecke",
+  "attack": 1,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123675,
+  "flavor": "Your mrrggl shall be mine!!!!!!!",
+  "health": 1,
+  "id": "CATA_180",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "War'loc",
+  "race": "MURLOC",
+  "races": [
+   "MURLOC"
+  ],
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Your next Murloc\nthat costs (3) or less costs\n Health instead of Mana.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123779,
+  "flavor": "I am thou, thou art I...",
+  "health": 3,
+  "id": "CATA_185",
+  "mechanics": [
+   "DEATHRATTLE",
+   "ELUSIVE"
+  ],
+  "name": "Faceless Replicator",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "targetingArrowText": "Transform an enemy minion.",
+  "text": "[x]<b>Elusive\nDeathrattle:</b> Transform the\nminion that killed this into\n a Faceless Replicator.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 4,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 123783,
+  "flavor": "Her over-attachment to her work proved fatal.",
+  "health": 4,
+  "id": "CATA_186",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Stickybomb Saboteur",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Give your\nopponent a 2-Cost\nSabotage. Cards next\nto it cost (1) more.",
+  "type": "MINION"
+ },
+ {
+  "armor": 12,
+  "artist": "Alex Horley Orlandelli",
+  "classes": [
+   "DEATHKNIGHT",
+   "ROGUE",
+   "SHAMAN",
+   "WARLOCK",
+   "WARRIOR",
+   "DEMONHUNTER"
+  ],
+  "collectible": true,
+  "collectionText": "[x]<b>Battlecry:</b> Choose {0}\n|4(Cataclysm,Cataclysms) to unleash!\n<i><b>Herald</b> twice to upgrade.</i>",
+  "cost": 10,
+  "dbfId": 125467,
+  "elite": true,
+  "flavor": "Having destroyed Azeroth in his own timeline, Deathwing plans to do the same to our world, and the next, until nothing is left.",
+  "health": 30,
+  "heroPowerDbfId": 125466,
+  "id": "CATA_190h",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Deathwing, Worldbreaker",
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Choose {0}\nCataclysm to unleash!\n<i><b>Herald</b> twice to upgrade.</i>@[x]<b>Battlecry:</b> Choose {0}\n|4(Cataclysm,Cataclysms) to unleash!\n<i><b>Herald</b> once to upgrade.</i>@[x]<b>Battlecry:</b> Choose {0}\n|4(Cataclysm,Cataclysms) to unleash!",
+  "type": "HERO"
+ },
+ {
+  "artist": "Vlad Botos",
+  "attack": 2,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 123060,
+  "flavor": "Can I offer you an eye in this trying time?",
+  "health": 1,
+  "id": "CATA_200",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Agent of the Old Ones",
+  "race": "DEMON",
+  "races": [
+   "DEMON"
+  ],
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "targetingArrowText": "Choose a card in hand.",
+  "text": "[x]<b>Battlecry:</b> Choose a\ncard in your hand to\n transform into a Coin.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Guillaume Beauchêne",
+  "attack": 4,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 123072,
+  "flavor": "I was always more Team Edwin myself.",
+  "health": 12,
+  "id": "CATA_201",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Twilight Mistress",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "<b>Battlecry:</b> Return all\nenemy minions to their owner's hand.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Patrik Bjorkstrom",
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123074,
+  "flavor": "Your powers are mine!",
+  "id": "CATA_202",
+  "name": "Stolen Power",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "spellSchool": "SHADOW",
+  "text": "Get a random <b>Shatter</b> card from another class. <i>(It's already combined).</i>",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123077,
+  "flavor": "Busy anticipating a betrayal by Deathwing, Sinestra never saw Garona coming.",
+  "id": "CATA_203",
+  "mechanics": [
+   "TRADEABLE"
+  ],
+  "name": "Garona's Last Stand",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Tradeable</b>\nDestroy a <b>Legendary</b>\nminion.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Trent Kaniuga",
+  "attack": 6,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 123119,
+  "flavor": "When one head gets food poisoning, so does the other.",
+  "health": 5,
+  "id": "CATA_206",
+  "mechanics": [
+   "ELUSIVE",
+   "TAUNT"
+  ],
+  "name": "Twisted Monstrosity",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]<b>{0}, {1}</b>\nEach turn this is in your\nhand, swap between two\n random <b>Bonus Effects</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Max Grecke",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123122,
+  "flavor": "\"I'm the humblest person you will ever meet.\"",
+  "health": 6,
+  "id": "CATA_208",
+  "mechanics": [
+   "TAUNT"
+  ],
+  "name": "Selfless Protector",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Taunt</b>\nTakes one extra damage\nfrom all sources.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123124,
+  "flavor": "Call your shot; manifest it into destruction.",
+  "health": 4,
+  "howToEarnGolden": "Earnable on <i>CATACLYSM</i> Reward Track.",
+  "id": "CATA_209",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Battlefield Blaster",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "SPELLPOWER"
+  ],
+  "set": "CATACLYSM",
+  "targetingArrowText": "Choose a spell in your hand.",
+  "text": "[x]<b>Battlecry:</b> Choose a\nspell in your hand to\ngive <b>Spell Damage +1</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Felideus Bubastis",
+  "attack": 0,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 123126,
+  "flavor": "Whelp, I wonder what's in this one?",
+  "health": 2,
+  "howToEarnGolden": "Earnable on <i>CATACLYSM</i> Reward Track.",
+  "id": "CATA_210",
+  "mechanics": [
+   "DEATHRATTLE",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Twilight Egg",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Deathrattle:</b> Summon a\n{0}/{1} Whelp. <i>(Gains +1/+1\n  at the start of your turns!)  </i>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "attack": 6,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 123151,
+  "elite": true,
+  "flavor": "\"What killed the devilsaurs? The ice age!\"",
+  "hasDiamondSkin": true,
+  "health": 6,
+  "id": "CATA_213",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Vyranoth",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> If the total Cost\nof your starting minions was\n100, split 100 stats among\nminions in your deck.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123315,
+  "flavor": "Weaks.",
+  "id": "CATA_215",
+  "name": "Daze",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "spellSchool": "SHADOW",
+  "text": "[x]Return an enemy\n minion to its owner's\nhand. They can't play\nit next turn.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ursula Dorada",
+  "attack": 4,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 123426,
+  "flavor": "Ah yes. Your \"healing\" effects. Sure thing.",
+  "health": 5,
+  "id": "CATA_216",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Cleansing Cleric",
+  "race": "DRAENEI",
+  "races": [
+   "DRAENEI"
+  ],
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "<b>Battlecry:</b> Your healing effects restore 2 more Health this game.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vladimir Kafanov",
+  "attack": 5,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 122755,
+  "elite": true,
+  "flavor": "As cunning as she is hateful, Sinestra summoned the Black Blood from deep within the earth to mutate and empower her forces.",
+  "health": 9,
+  "id": "CATA_300",
+  "mechanics": [
+   "COLOSSAL",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "The Black Blood",
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Colossal +3. </b>\nAfter you restore Health\nto a character, attack a\nrandom enemy minion.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Bima Kusuma",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 122757,
+  "flavor": "There's no place like home!",
+  "health": 3,
+  "id": "CATA_301",
+  "name": "Ruby Sanctum",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]Your next Healing\neffect this turn deals\ndamage instead.",
+  "type": "LOCATION"
+ },
+ {
+  "artist": "Ivan Fomin",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 122779,
+  "flavor": "You're fine, you're fine, don't tell mom.",
+  "id": "CATA_302",
+  "name": "Mend",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "spellSchool": "HOLY",
+  "text": "[x]Restore a minion\nto full Health.\nDraw a card.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Bima Kusuma",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 122774,
+  "flavor": "An innocent bystander was tragically healed in the crossfire.",
+  "id": "CATA_303",
+  "name": "Purifying Breath",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "spellSchool": "FIRE",
+  "text": "[x]Deal $5 damage\nto a minion. If it dies,\nrestore #5 Health to\nthe enemy hero.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Brian Despain",
+  "attack": 3,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 122881,
+  "flavor": "It's just a flesh heal.",
+  "health": 8,
+  "id": "CATA_304",
+  "mechanics": [
+   "BATTLECRY",
+   "LIFESTEAL"
+  ],
+  "name": "Injured Attendant",
+  "race": "UNDEAD",
+  "races": [
+   "UNDEAD"
+  ],
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "<b><b>Lifesteal</b>\nBattlecry:</b> Deal 4 damage to this minion.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Luke Mancini",
+  "attack": 3,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 122878,
+  "flavor": "Smells fantastic!",
+  "health": 3,
+  "id": "CATA_305",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Incensed Matriarch",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "At the end of your turn,\nif this is at full Health,\ngain +3 Health.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Grafit Studio",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "collectionText": "Give a friendly minion\n+2/+3 and <b>Elusive</b>.\nSummon a copy of it.",
+  "cost": 4,
+  "dbfId": 122874,
+  "flavor": "I know the card halves fit\n'cause I watched them break apart",
+  "id": "CATA_306",
+  "name": "Schism",
+  "rarity": "RARE",
+  "referencedTags": [
+   "ELUSIVE"
+  ],
+  "set": "CATACLYSM",
+  "spellSchool": "SHADOW",
+  "targetingArrowText": "Select a friendly minion.",
+  "text": "[x]<b>Shatter</b>\nGive a friendly minion\n+2/+3 and <b>Elusive</b>.\nSummon a copy of it.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "attack": 8,
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 123146,
+  "elite": true,
+  "flavor": "\"I brought life into this world, and I can take it back out!\"",
+  "hasDiamondSkin": true,
+  "health": 8,
+  "id": "CATA_307",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Alexstrasza, Guardian of Life",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Set your remaining\nHealth to 15. When you reach\nfull Health, deal 15 damage\nto your opponent.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vika Yarova",
+  "cardClass": "PRIEST",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 123570,
+  "flavor": "His long struggle against Sargeras' temptations taught this Medivh an understanding of true darkness – but along with that came an unprecedented mastery of the Light.",
+  "howToEarnGolden": "Earnable after purchasing the <i>CATACLYSM</i> Tavern Pass.",
+  "id": "CATA_308",
+  "name": "Medivh's Triumph",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "spellSchool": "HOLY",
+  "text": "Deal $4 damage\nto all minions.\nCosts (1) if you control\na <b>Legendary</b> card.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "attack": 8,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 122401,
+  "elite": true,
+  "flavor": "In our timeline, Nefarius never achieved his dream of combining the power of all five dragonflights into a single ultimate dragon. But Murozond found the timeline where he did.",
+  "health": 8,
+  "id": "CATA_432",
+  "mechanics": [
+   "COLOSSAL",
+   "DIVINE_SHIELD",
+   "ELUSIVE",
+   "LIFESTEAL",
+   "TAUNT"
+  ],
+  "name": "Chromatus",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "<b>Colossal +4</b>\n<b>Taunt</b>, <b>Lifesteal</b>, <b>Elusive</b>, <b>Divine Shield</b>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ivo Campelo da Silva",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 10,
+  "dbfId": 122454,
+  "flavor": "Oh you think you're sooOOOOooo smart? *pyroblasts them*",
+  "id": "CATA_452",
+  "name": "Spellweaver's Brilliance",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "spellSchool": "ARCANE",
+  "text": "[x]Summon a 6/6 Dragon.\nCosts (1) less for\neach damage you dealt\nwith spells this turn.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Sergey Tsvelykh",
+  "attack": 4,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 122632,
+  "elite": true,
+  "flavor": "Kalec comes, Kalec goes.",
+  "hasDiamondSkin": true,
+  "health": 4,
+  "id": "CATA_458",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Archmage Kalec",
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "SPELLPOWER"
+  ],
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Give all spells\nin your hand and deck\n<b>Spell Damage +1.</b>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Patrik Bjorkstrom",
+  "attack": 3,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 122759,
+  "flavor": "How it feels to breathe frost breath. Frost breath: Freeze your senses!",
+  "health": 1,
+  "id": "CATA_464",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Blackwing Experiment",
+  "race": "DRAGON",
+  "races": [
+   "UNDEAD",
+   "DRAGON"
+  ],
+  "rarity": "RARE",
+  "runeCost": {
+   "blood": 0,
+   "frost": 1,
+   "unholy": 0
+  },
+  "set": "CATACLYSM",
+  "text": "[x]<b>Deathrattle:</b> Get a\n2-Cost spell that deals\nthis minion's Attack\ndamage.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 122760,
+  "flavor": "Oh look! Another <i>seasoned</i> adventurer...",
+  "id": "CATA_465",
+  "name": "Chow Down",
+  "rarity": "RARE",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "runeCost": {
+   "blood": 0,
+   "frost": 0,
+   "unholy": 2
+  },
+  "set": "CATACLYSM",
+  "text": "[x]Summon five 5/4 Undead\nDrakes. Spend 8 <b>Corpses</b>\nto give them <b>Rush</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Studio Hive",
+  "attack": 2,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 122766,
+  "durability": 0,
+  "flavor": "Cmd + Claw + Delete",
+  "health": 2,
+  "id": "CATA_467",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Command Claw",
+  "rarity": "COMMON",
+  "runeCost": {
+   "blood": 0,
+   "frost": 0,
+   "unholy": 1
+  },
+  "set": "CATACLYSM",
+  "text": "[x]After your hero attacks,\ngive a random friendly\nminion +2 Attack.",
+  "type": "WEAPON"
+ },
+ {
+  "artist": "Alex Stone",
+  "attack": 2,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 122771,
+  "flavor": "Bring ALL your Resist armor.",
+  "health": 5,
+  "id": "CATA_469",
+  "mechanics": [
+   "RUSH",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Chromatic Broodmother",
+  "race": "DRAGON",
+  "races": [
+   "UNDEAD",
+   "DRAGON"
+  ],
+  "rarity": "EPIC",
+  "runeCost": {
+   "blood": 0,
+   "frost": 1,
+   "unholy": 1
+  },
+  "set": "CATACLYSM",
+  "text": "[x]<b>Rush</b>\n  Whenever this attacks,\nrefresh Mana Crystals equal\n   to this minion's Attack.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "attack": 4,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 122778,
+  "elite": true,
+  "flavor": "Umm, actually, the undead dragon is Victor Nefarius's MONSTER, the SCIENTIST is Victor Nefarius.",
+  "hasDiamondSkin": true,
+  "health": 4,
+  "id": "CATA_470",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Victor Nefarius",
+  "race": "UNDEAD",
+  "races": [
+   "UNDEAD"
+  ],
+  "rarity": "LEGENDARY",
+  "runeCost": {
+   "blood": 0,
+   "frost": 0,
+   "unholy": 1
+  },
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Craft a custom\nUndead Dragon. If you're\n holding a Dragon, reduce the\nCreation's Cost by (3).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 122879,
+  "flavor": "Talanji's relationship with Bwonsamdi was never easy or uncomplicated. But when the time came to lead Zandalar against Deathwing's forces, the two fought side by side.",
+  "id": "CATA_471",
+  "name": "Talanji's Last Stand",
+  "rarity": "RARE",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "runeCost": {
+   "blood": 0,
+   "frost": 0,
+   "unholy": 2
+  },
+  "set": "CATACLYSM",
+  "text": "[x]Give your minions\n\"<b>Deathrattle:</b> Summon a\nrandom 4-Cost minion.\"",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tanamaes Leejierasaes",
+  "attack": 2,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123106,
+  "durability": 0,
+  "flavor": "Whenever I look at this maul, I feel so inspired! To hit people.",
+  "health": 2,
+  "id": "CATA_472",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Inspiring Maul",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "<b>Deathrattle:</b> Trigger a random friendly minion's end of turn effect.",
+  "type": "WEAPON"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 4,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 123109,
+  "elite": true,
+  "flavor": "Nozdormu, I've come to bargain!",
+  "health": 4,
+  "id": "CATA_473",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Nozdormu, Bronze Aspect",
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "DIVINE_SHIELD"
+  ],
+  "set": "CATACLYSM",
+  "text": "[x]At the end of your turn, give\nyour minions <b>Divine Shield</b>.\nAny that already had one\n  gain +3/+3 instead.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Jason Kang",
+  "attack": 3,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 123112,
+  "flavor": "\"I'm all better now, I got the spear out.\"",
+  "health": 4,
+  "id": "CATA_474",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Spearheart Sentry",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]At the end of your turn,\nget a random Holy spell.\nReduce its Cost by (3).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 3,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 123114,
+  "faction": "HORDE",
+  "flavor": "HOLD THE DOOR",
+  "health": 6,
+  "id": "CATA_475",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Scalebreaker Bulwark",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "[x]At the end of your\nturn, deal 2 damage\nto all enemies.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Sergey Tsvelykh",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 8,
+  "dbfId": 123115,
+  "flavor": "I am the Bronze Keeper, Keeper of the Bronze. Nozdormu quivers before him!",
+  "health": 7,
+  "id": "CATA_476",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Bronze Keeper",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "referencedTags": [
+   "DIVINE_SHIELD"
+  ],
+  "set": "CATACLYSM",
+  "text": "[x]At the end of your\nturn, summon a 6/6\nElemental Dragon with\n<b>Divine Shield</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "BOSi Studio",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123117,
+  "flavor": "Always keep one in the chamber.",
+  "health": 2,
+  "id": "CATA_477",
+  "name": "Chamber of Aspects",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "targetingArrowText": "Choose a minion in your hand.",
+  "text": "Choose a minion\nin your hand.\nGive it +2/+2.",
+  "type": "LOCATION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 3,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 123123,
+  "flavor": "Paladins use only the highest quality bronzer.",
+  "health": 3,
+  "id": "CATA_478",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Bronze Redeemer",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "At the end of your\nturn, summon a Dragon\nwith stats equal to this minion's.",
+  "type": "MINION"
+ },
+ {
+  "artist": "BOSi Studio",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "collectionText": "Summon two 4/2 Drakes. Give your minions +1 Attack and <b>Divine Shield</b>.",
+  "cost": 4,
+  "dbfId": 123139,
+  "flavor": "First, we're going to board zones A through C, then take off, loop around the airport just for fun, come back down, then Economy can board.",
+  "id": "CATA_479",
+  "name": "Flight Maneuvers",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "DIVINE_SHIELD"
+  ],
+  "set": "CATACLYSM",
+  "spellSchool": "HOLY",
+  "text": "[x]<b>Shatter</b>. Summon\ntwo 4/2 Drakes. Give\nyour minions +1 Attack\nand <b>Divine Shield</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tee Fuyuan",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123691,
+  "flavor": "Sand always messes up the flow of time when it gets stuck in my watch.",
+  "id": "CATA_480",
+  "name": "Sandfury Aura",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "spellSchool": "HOLY",
+  "text": "Your minions' end of turn effects trigger twice. Lasts 3 turns.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Alex Horley Orlandelli",
+  "attack": 5,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 123332,
+  "elite": true,
+  "flavor": "\"Are you going to finish that?\"",
+  "health": 3,
+  "id": "CATA_481",
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE"
+  ],
+  "name": "Iso'rath",
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Devour 2 random\ncards from the opponent's hand,\nthen go <b>Dormant</b> for 2 turns.\n<b>Deathrattle:</b> Return them.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mauricio Herrera",
+  "attack": 2,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 123351,
+  "flavor": "1, 2, 3, 4, I declare a spell war.",
+  "health": 5,
+  "id": "CATA_483",
+  "mechanics": [
+   "BATTLECRY",
+   "SPELLPOWER"
+  ],
+  "name": "Unstable Spellcaster",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "spellDamage": 1,
+  "text": "[x]<b>Spell Damage +1</b>\n<b>Battlecry:</b> If you dealt\ndamage with a spell this turn,\n summon a copy of this.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 1,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 123398,
+  "flavor": "It's important to explore other classes while learning to spread your wings!",
+  "health": 2,
+  "id": "CATA_484",
+  "mechanics": [
+   "BATTLECRY",
+   "DISCOVER"
+  ],
+  "name": "Winterspring Whelp",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "<b>Battlecry:</b> <b>Discover</b> a\n1-Cost spell from any class.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Gabriel Lopes",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 123410,
+  "flavor": "Pocket snow!",
+  "id": "CATA_485",
+  "name": "Sleet Storm",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "spellSchool": "FROST",
+  "text": "[x]Deal $2 damage.\n Deal $1 damage to a\n random enemy minion.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tanamaes Leejierasaes",
+  "attack": 1,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123419,
+  "flavor": "I bless the rains down in Nazjatar...",
+  "health": 4,
+  "id": "CATA_487",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Raincaller",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "The first time you deal damage with a spell each turn, gain +2 Attack.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 4,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 123665,
+  "elite": true,
+  "flavor": "Determined to see Azeroth aflame, Ragnaros awakened a living volcano to send rivers of lava across the Barrens.",
+  "health": 8,
+  "id": "CATA_488",
+  "mechanics": [
+   "COLOSSAL",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Vulcanos",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Colossal +2</b>\nAt the end of your turn,\ndeal 2 damage to all\nother minions.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Tee Fuyuan",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "collectionText": "[x]Deal $4 damage.\n Deal $2 damage to\n all enemies.",
+  "cost": 4,
+  "dbfId": 123692,
+  "flavor": "Super excited to combo this with ERROR_MISPLACED_CARD",
+  "id": "CATA_489",
+  "name": "Arcane Flow",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "spellSchool": "ARCANE",
+  "text": "[x]<b>Shatter</b>\nDeal $4 damage.\n Deal $2 damage to\n all enemies.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 3,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 122710,
+  "flavor": "Which looks better to discard: Number 1? Or number 2? Back to number 1? And number 2.",
+  "health": 6,
+  "id": "CATA_490",
+  "mechanics": [
+   "BATTLECRY",
+   "TAUNT"
+  ],
+  "name": "Ocular Occultist",
+  "race": "DEMON",
+  "races": [
+   "DEMON"
+  ],
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "targetingArrowText": "Choose a card to discard.",
+  "text": "[x]<b>Taunt</b>\n<b>Battlecry:</b> Choose a card in\nyour hand to discard.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Juan Calle",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 122711,
+  "flavor": "How many tickles does it take to make an Old God laugh? Just three, they're weirdly ticklish.",
+  "id": "CATA_491",
+  "mechanics": [
+   "ImmuneToSpellpower"
+  ],
+  "name": "Eldritch Tentacles",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "spellSchool": "SHADOW",
+  "text": "Deal $3 damage to all minions. Repeat this with 1 less damage.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "BOSi Studio",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 122712,
+  "flavor": "This is where Cho'gall puts all his Old God merch.",
+  "health": 2,
+  "id": "CATA_492",
+  "name": "Shrine of Twilight",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "<b>Herald</b> {0}.\nDraw a card.",
+  "type": "LOCATION"
+ },
+ {
+  "artist": "Mike Sass",
+  "attack": 2,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 122713,
+  "flavor": "Oh come on, we can't ALL have the Duke.",
+  "health": 2,
+  "id": "CATA_493",
+  "mechanics": [
+   "RUSH"
+  ],
+  "name": "Duke of Below",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Rush</b>\nHas +2/+2 for each\ncard you've discarded\nthis game.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 7,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 122714,
+  "elite": true,
+  "flavor": "Two pumps blue raspberry. Two pumps cherry. Two pumps necrotic ooze.",
+  "hasDiamondSkin": true,
+  "health": 7,
+  "id": "CATA_494",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Maloriak",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "After you discard\na minion, summon\na copy of it.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 122720,
+  "flavor": "If you Renounce Darkness this becomes Blursed Chains.",
+  "id": "CATA_496",
+  "name": "Cursed Chains",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "spellSchool": "SHADOW",
+  "text": "[x]Take control of an\nenemy minion until\nthe end of their turn.\n It can't attack this turn.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Mooncolony",
+  "attack": 6,
+  "classes": [
+   "DEATHKNIGHT",
+   "ROGUE",
+   "SHAMAN",
+   "WARLOCK",
+   "WARRIOR",
+   "DEMONHUNTER"
+  ],
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 122832,
+  "elite": true,
+  "flavor": "In a few years he'll be going by Ultragigaxion.",
+  "hasDiamondSkin": true,
+  "health": 7,
+  "id": "CATA_497",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Ultraxion",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> <b>Herald</b> {0}.\nReduce Deathwing's\nCost by ({1}).\n <i>(<b>Herald</b> to improve!)</i>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mooncolony",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 122829,
+  "flavor": "No one upstages Rafaam, not even a self-proclaimed god.",
+  "id": "CATA_498",
+  "name": "Rafaams' Last Stand",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "Deal $2 damage to two\n random enemy minions.\n<i>(Upgrades each turn!)</i>",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 122831,
+  "flavor": "Did we learn NOTHING from the Diablo IV opening cinematic??",
+  "id": "CATA_499",
+  "mechanics": [
+   "InvisibleDeathrattle"
+  ],
+  "name": "Disposable Acolytes",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "spellSchool": "SHADOW",
+  "text": "[x]When you play\nor discard this,\nsummon two random\n1-Cost minions.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ian Ameling",
+  "attack": 3,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 122765,
+  "flavor": "Dear Kaz'jan, \nI am writing to tell you that the Cataclysm is going swimmingly! I am counting the days 'till my return. \nAll my love, \nVij'ar.",
+  "health": 1,
+  "id": "CATA_525",
+  "mechanics": [
+   "BATTLECRY",
+   "RUSH"
+  ],
+  "name": "Armored Bloodletter",
+  "race": "NAGA",
+  "races": [
+   "NAGA"
+  ],
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "<b>Rush</b>\n<b>Battlecry:</b> <b>Herald</b> {0}.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 122770,
+  "flavor": "Azshara thought she'd have no trouble overwhelming Darkshore's defenders. But last stands are a specialty of Broxigar's in any timeline.",
+  "id": "CATA_526",
+  "name": "Broxigar's Last Stand",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]Deal $1 damage to all\nminions. Draw a card\nfor each that died.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Todd Harris",
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 122772,
+  "elite": true,
+  "flavor": "Real fans know it as Nespirah, En-Go'el-ed.",
+  "health": 5,
+  "id": "CATA_527",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Nespirah, Enthralled",
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]Deal 1 damage. After you\ncast a Fel spell, reopen.\n<b>Deathrattle:</b> Summon\nNespirah, Unshackled.",
+  "type": "LOCATION"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 122773,
+  "flavor": "If your opponent has lethal, you're Naganna make it.",
+  "id": "CATA_528",
+  "name": "Sigil of the Seas",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "spellSchool": "FEL",
+  "text": "At the start of your\nnext turn, summon a 3/3 Naga with <b>Taunt</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Stefan Bogdasarov",
+  "attack": 5,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 122775,
+  "flavor": "Greeting sir/madam. I am a Zin'Azshari prince who has fallen into hard times, with a need to transfer a sum of 50,000,000 gold out of Zin'Azshari into a secure account in Thousand Needles for perfectly legal reasons. Should you be able to lend assistance you would be generously awarded.",
+  "health": 5,
+  "id": "CATA_529",
+  "name": "Ravenous Felfisher",
+  "race": "NAGA",
+  "races": [
+   "NAGA"
+  ],
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]Costs (1) less for\neach Fel spell you've\ncast this game.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vladimir Kafanov",
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 122848,
+  "flavor": "I can't stand all these new, fancy hipster restaurants.",
+  "id": "CATA_530",
+  "name": "Fel Infusion",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "LIFESTEAL"
+  ],
+  "set": "CATACLYSM",
+  "spellSchool": "FEL",
+  "text": "<b>Herald</b> {0}.\nYour hero has \n<b>Lifesteal</b> this turn.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 122995,
+  "flavor": "BEEEEEP! BEEEEEP! BEEEEEP!\nCATACLYSMIC WEATHER ALERT IN YOUR AREA!",
+  "id": "CATA_533",
+  "mechanics": [
+   "OUTCAST"
+  ],
+  "name": "Flash Flood",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "spellSchool": "FEL",
+  "text": "[x]Deal $5 damage to\nyour opponent's left\n and right-most minions.\n<b>Outcast:</b> Do it again.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Luca Zontini",
+  "attack": 2,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "collectionText": "<b>Colossal +99</b>\nSummon any leftover appendages when there is room. <i>({0} left!)</i>",
+  "cost": 7,
+  "dbfId": 122865,
+  "elite": true,
+  "flavor": "Nefarius never cared much for his pet, but he saw there was room for improvements.",
+  "health": 12,
+  "id": "CATA_550",
+  "mechanics": [
+   "COLOSSAL",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Magmaw",
+  "race": "BEAST",
+  "races": [
+   "MECHANICAL",
+   "BEAST"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "<b>Colossal +99</b>\nSummon any leftover appendages when there is room.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Eric Kenji",
+  "attack": 3,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 122867,
+  "flavor": "Are there any other secret Dragons I should know about!?",
+  "health": 3,
+  "id": "CATA_551",
+  "mechanics": [
+   "TAUNT"
+  ],
+  "name": "Stonetalon Striker",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Taunt</b>\n<i>(While in hand, play\na Dragon to become\na 6/6 Dragon!)</i>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Grafit Studio",
+  "attack": 4,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 122869,
+  "flavor": "I spy with my dragon eye... dinner.",
+  "health": 4,
+  "id": "CATA_552",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Ebonscale Scout",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "targetingArrowText": "Deal damage equal to this minion's Attack.",
+  "text": "[x]<b>Battlecry:</b> Deal damage\nequal to this minion's Attack.\n<i>(While in hand, play a Dragon to\n become an 8/8 Dragon!)</i>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "attack": 6,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 122871,
+  "elite": true,
+  "flavor": "What's my name? Oh, uh, it's... Eb...onhorn. Yeah. Ebonhorn.",
+  "health": 6,
+  "id": "CATA_553",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Ebyssian",
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Your Dragons\nhave <b>Rush</b> this game.\n<i>(While in hand, play a Dragon to\nbecome a 12/12 Dragon!)</i>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Trent Kaniuga",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 122883,
+  "flavor": "\"ROCKS!!!!!!!\"",
+  "id": "CATA_554",
+  "name": "Earthen Roar",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]Set an enemy\nminion's Health to 1.\nIf you're holding a\nDragon, pick another.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Tanamaes Leejierasaes",
+  "attack": 1,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 122933,
+  "flavor": "So that's where baby dragons come from...",
+  "health": 2,
+  "howToEarnGolden": "Earnable on <i>CATACLYSM</i> Reward Track.",
+  "id": "CATA_556",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Carrier Whelp",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "<b>Battlecry:</b> Get a random\nDragon that costs\n(3) or less.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Sergey Tsvelykh",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 122932,
+  "flavor": "What lies in her future is still unwritten. For now, this version of Sylvanas fights valiantly to defend Azeroth with her sisters at her side.",
+  "id": "CATA_557",
+  "name": "Sylvanas's Triumph",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "[x]Deal $3 damage.\nIf you've played\nanother copy of this,\n hit all enemies instead.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Stefan Bogdasarov",
+  "attack": 2,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 122937,
+  "flavor": "Wait a minute, this isn't Battlegrounds!",
+  "health": 2,
+  "id": "CATA_558",
+  "mechanics": [
+   "ELUSIVE"
+  ],
+  "name": "Reinforcement Rallier",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "<b>Elusive</b>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Luca Zontini",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 122939,
+  "flavor": "You better be careful or else I'll unleash my tiny army!",
+  "howToEarnGolden": "Earnable on <i>CATACLYSM</i> Reward Track.",
+  "id": "CATA_560",
+  "name": "Confront the Tol'vir",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "[x]Replay each 1-Cost\ncard you've played\nthis game <i>(targeting\nenemies if possible.)</i>",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Patrik Bjorkstrom",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 122947,
+  "flavor": "Just ONCE I'd like someone to do a Ritual of Friendship.",
+  "id": "CATA_561",
+  "name": "Ritual of Power",
+  "rarity": "RARE",
+  "referencedTags": [
+   "RUSH"
+  ],
+  "set": "CATACLYSM",
+  "spellSchool": "NATURE",
+  "text": "[x]<b>Herald</b> {0}.\nGet two 1/1 Elementals\nwith <b>Rush</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Daniil Kudriavtsev",
+  "attack": 4,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 122950,
+  "flavor": "Stride, crackle, and Prepare to get popped.",
+  "health": 3,
+  "id": "CATA_563",
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE"
+  ],
+  "name": "Crackling Cloudstrider",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "targetingArrowText": "Choose a spell in hand.",
+  "text": "[x]<b>Battlecry:</b> Choose a spell\nin your hand that costs\n(4) or less to absorb. \n<b>Deathrattle:</b> Cast it.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 5,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 122952,
+  "flavor": "You called down the thunder, now reap the <b>Mega-Windfury</b>.",
+  "health": 5,
+  "id": "CATA_564",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Air Support",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "targetingArrowText": "Choose a friendly minion.",
+  "text": "[x]<b>Battlecry:</b> Give a friendly\nminion <b>Mega-Windfury</b>.\nIt can't attack heroes.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Stefano Spagnuolo",
+  "attack": 0,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 122953,
+  "flavor": "I had no idea Al'Akir's first name was Herald.",
+  "health": 2,
+  "id": "CATA_565",
+  "mechanics": [
+   "BATTLECRY",
+   "TAUNT"
+  ],
+  "name": "Skywall Sentinel",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "<b>Taunt</b>\n<b>Battlecry:</b> <b>Herald</b> {0}.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 3,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 122961,
+  "flavor": "We aren't cutting corners! Okay... we're cutting some corners.",
+  "health": 2,
+  "id": "CATA_566",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Tol'vir Carver",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "targetingArrowText": "Choose a card in hand.",
+  "text": "[x]<b>Battlecry:</b> Choose a\n card in your hand.\n At the start of your turns,\n reduce its Cost by (1).",
+  "type": "MINION"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 122963,
+  "flavor": "Tune in at 9pm Azeroth Standard Time for Ascen-dancing with the Storms!",
+  "id": "CATA_567",
+  "name": "Ascendance",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "spellSchool": "NATURE",
+  "text": "[x]Transform all friendly\nminions into ones that cost\n(1) more. They summon\nthe originals when they die.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Timur Shevtsov",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 122999,
+  "flavor": "In the end, Muradin showed Al'Akir's elementals who commands the storm.",
+  "id": "CATA_568",
+  "name": "Muradin's Last Stand",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "spellSchool": "NATURE",
+  "text": "Draw 2 cards. Costs (1) less for each time a friendly character attacked this game.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Patrik Bjorkstrom",
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 123001,
+  "flavor": "The only ceremony that matters.",
+  "id": "CATA_569",
+  "mechanics": [
+   "OVERLOAD"
+  ],
+  "name": "Ceremonial Clash",
+  "overload": 1,
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "[x]Summon a random 3, 2,\nand 1-Cost minion.\n<b>Overload:</b> (1)",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Mooncolony",
+  "attack": 10,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 10,
+  "dbfId": 123006,
+  "elite": true,
+  "flavor": "Less talk, more chok.",
+  "health": 10,
+  "id": "CATA_570",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Morchok",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Draw a card\nand reduce its Cost by (10).\nRepeat this with excess\nCost reduction.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Studio Hive",
+  "attack": 3,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123055,
+  "durability": 0,
+  "flavor": "Almost too hot to handle.",
+  "health": 2,
+  "id": "CATA_580",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Cataclysmic War Axe",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "<b>Battlecry:</b> <b>Herald</b> {0}.",
+  "type": "WEAPON"
+ },
+ {
+  "artist": "Dmitry Bolotov",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 123056,
+  "flavor": "10 times as bad as Centi-mation.",
+  "id": "CATA_581",
+  "name": "Decimation",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "spellSchool": "FIRE",
+  "text": "[x]Deal $1 damage\nto all minions.\n<i>(Improved for each minion\non the battlefield.)</i>",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Grafit Studio",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123157,
+  "flavor": "ON TIME! YOU HAVE AWOKEN ME ON TIME, EXECUTUS!",
+  "id": "CATA_582",
+  "name": "Searing Fissure",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "spellSchool": "FIRE",
+  "text": "Deal $1 damage to all minions. Give your hero +3 Attack this turn.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Mooncolony",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123163,
+  "flavor": "Too Close Watch Post",
+  "health": 3,
+  "id": "CATA_584",
+  "name": "Erupting Volcano",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]Deal 3 damage randomly\nsplit among enemies.\nIf you've played a Fire spell\nthis turn, deal 3 more.",
+  "type": "LOCATION"
+ },
+ {
+  "artist": "Jason Kang",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 123164,
+  "flavor": "Make sure you always wear your iron gauntlets before handling your cooked veggies.",
+  "howToEarnGolden": "Earnable on <i>CATACLYSM</i> Reward Track.",
+  "id": "CATA_585",
+  "mechanics": [
+   "ImmuneToSpellpower"
+  ],
+  "name": "Torch",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "spellSchool": "FIRE",
+  "text": "[x]Deal $8 damage\nto a damaged minion.\nReturn this to hand with\nany excess damage.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Bima Kusuma",
+  "attack": 3,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 123166,
+  "flavor": "You are required to kill a couple of these to reach the End.",
+  "health": 3,
+  "id": "CATA_586",
+  "mechanics": [
+   "DEATHRATTLE",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Destructive Blaze",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "[x]After this survives damage,\nsummon a Destructive Blaze.\n<b>Deathrattle:</b> Deal 2 damage\nto a random enemy.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ivan Fomin",
+  "attack": 7,
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 123321,
+  "elite": true,
+  "flavor": "TWO THIRDS WILL BURN!!",
+  "health": 7,
+  "id": "CATA_591",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Commander Geddon",
+  "race": "ELEMENTAL",
+  "races": [
+   "ELEMENTAL"
+  ],
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "DISCOVER"
+  ],
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Instead of drawing\neach turn, <b>Discover</b> a card\nfrom your deck. It costs (3)\n  less. Destroy the others.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Dmitry Bolotov",
+  "cardClass": "WARRIOR",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 123382,
+  "flavor": "As the Cataclysm loomed, Lo'Gosh and his friends fought side by side for the fate of Azeroth as valiantly as they once fought to entertain the crowds in the Crimson Ring.",
+  "id": "CATA_610",
+  "name": "Lo'Gosh's Last Stand",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "DEATHRATTLE"
+  ],
+  "set": "CATACLYSM",
+  "text": "[x]Give a minion\n\"<b>Deathrattle:</b> Summon\na random minion from\nyour hand.\"",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 5,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123383,
+  "flavor": "'\"I'll g-g-g-g-get r-r-r-r-right on it!\"",
+  "health": 3,
+  "id": "CATA_612",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Frostbitten Imp",
+  "race": "DEMON",
+  "races": [
+   "DEMON"
+  ],
+  "rarity": "COMMON",
+  "referencedTags": [
+   "FREEZE"
+  ],
+  "set": "CATACLYSM",
+  "text": "<b>Battlecry:</b> <b>Freeze</b> this.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Dmitry Bolotov",
+  "attack": 6,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 123384,
+  "flavor": "\"Go - save yourself and your ranking!\"",
+  "health": 6,
+  "id": "CATA_613",
+  "mechanics": [
+   "AURA"
+  ],
+  "name": "Survivalist",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "IMMUNE"
+  ],
+  "set": "CATACLYSM",
+  "text": "[x]Has <b>Immune</b> while you\ncontrol no other minions.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Gabor Szikszai",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "collectionText": "[x]<b>Battlecry:</b> <b>Discover</b> a\n{0} spell.\n<i>    (Swaps class each turn!)</i>  ",
+  "cost": 2,
+  "dbfId": 123385,
+  "flavor": "\"Gathered some intel... our opponent is playing Mage! No - Rogue! No - Priest!\"",
+  "health": 2,
+  "id": "CATA_614",
+  "mechanics": [
+   "BATTLECRY",
+   "DISCOVER"
+  ],
+  "name": "Shadowed Informant",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> <b>Discover</b> a spell\nfrom your class. <i>(Swaps\nclass each turn!)</i>",
+  "type": "MINION"
+ },
+ {
+  "artist": "Leroy Steinmann",
+  "attack": 5,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 123396,
+  "elite": true,
+  "flavor": "\"My tenure as the King of Gilneas has been a transformative experience.\"",
+  "health": 4,
+  "howToEarn": "Earnable on <i>CATACLYSM</i> Reward Track.",
+  "howToEarnGolden": "Earnable after purchasing the <i>CATACLYSM</i> Tavern Pass.",
+  "id": "CATA_615",
+  "name": "Genn, Cursed King",
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]While holding this, if the\nrest of your hand is all even\nor all odd, transform into\nthe 6/5 Worgen King.",
+  "type": "MINION"
+ },
+ {
+  "artist": "James Ryman",
+  "attack": 8,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 123440,
+  "flavor": "This card has really gronn on me.",
+  "health": 8,
+  "id": "CATA_616",
+  "name": "Gronn Giant",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "[x]This minion's Cost is\nreduced by the Cost of the\nlast card you played.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Max Grecke",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 123403,
+  "flavor": "Lord Victor Nefarius fancied himself Azeroth's greatest inventor, but Gelbin showed him what true innovation can do!",
+  "id": "CATA_621",
+  "name": "Gelbin's Triumph",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "Get a random Paladin Aura. It lasts an additional turn.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Konstantin Turovec",
+  "attack": 3,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123604,
+  "flavor": "No more mister nice naguy.",
+  "health": 4,
+  "id": "CATA_697",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Malevolent Mutant",
+  "race": "NAGA",
+  "races": [
+   "NAGA"
+  ],
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "targetingArrowText": "Choose a Fel spell in hand",
+  "text": "[x]<b>Battlecry:</b> Choose a Fel\nspell in your hand.\nGet a copy of it.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mike Sass",
+  "attack": 9,
+  "cardClass": "DEMONHUNTER",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 123539,
+  "flavor": "But Leviathans are traditionally so unthreatening!",
+  "health": 6,
+  "id": "CATA_699",
+  "mechanics": [
+   "BATTLECRY",
+   "TAUNT"
+  ],
+  "name": "Dread Leviathan",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "targetingArrowText": "Steal Health from an enemy minion.",
+  "text": "[x]<b>Taunt</b>. <b>Battlecry:</b> Choose\nan enemy minion to steal 3\n Health from, three times.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "attack": 6,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 122635,
+  "elite": true,
+  "flavor": "The brave warrior who finally defeats Warmaster Blackhorn, once and for all, will be bestowed with the most prestigious title in the land: Cowtipper.",
+  "health": 6,
+  "howToEarn": "Earnable after opening a <i>CATACLYSM</i> card pack.",
+  "howToEarnGolden": "Earnable after purchasing the <i>CATACLYSM</i> Tavern Pass.",
+  "id": "CATA_720",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Warmaster Blackhorn",
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "<b>Battlecry:</b> Destroy all cards that cost (2) or less in both players' decks.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 2,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 122637,
+  "flavor": "\"Go! You'll be safe in the deck!\"\n\"NO MORE TICKETS!\"",
+  "health": 3,
+  "id": "CATA_721",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Sheltered Survivor",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "targetingArrowText": "Choose a card in hand.",
+  "text": "[x]<b>Battlecry:</b> Choose a\ncard in your hand to\nshuffle into your deck.\nDraw a card.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Jason Kang",
+  "attack": 5,
+  "classes": [
+   "DEATHKNIGHT",
+   "ROGUE",
+   "SHAMAN",
+   "WARLOCK",
+   "WARRIOR",
+   "DEMONHUNTER"
+  ],
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 122639,
+  "flavor": "The Aspects tried so hard and got so far. But in the end, it didn't even matter.",
+  "health": 4,
+  "id": "CATA_722",
+  "mechanics": [
+   "BATTLECRY",
+   "TAUNT"
+  ],
+  "name": "Envoy of the End",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "<b>Taunt</b>\n <b>Battlecry:</b> <b>Herald</b> {0}.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Trent Kaniuga",
+  "attack": 8,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 122641,
+  "flavor": "One head always tells the truth, the other always fries.",
+  "health": 6,
+  "id": "CATA_723",
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "name": "Drakeadon Mongrel",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "<b>Deathrattle:</b> Summon two random 4-Cost minions.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 7,
+  "cardClass": "SHAMAN",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 122642,
+  "flavor": "Random Orc looking out at rain: \"Well, you can't change the weather.\"\nStormbinder: \"Hold my totem.\"",
+  "health": 7,
+  "id": "CATA_724",
+  "mechanics": [
+   "DEATHRATTLE",
+   "OVERLOAD"
+  ],
+  "name": "Stormbinder",
+  "overload": 3,
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Deathrattle:</b> Unlock your\n<b>Overloaded</b> Mana Crystals.\n<b>Overload:</b> (3)",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ian Ameling",
+  "attack": 2,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 122643,
+  "flavor": "By the void! That's a coin in the swear chalice.",
+  "health": 1,
+  "id": "CATA_725",
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE"
+  ],
+  "name": "Shadowsworn Disciple",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "<b><b>Battlecry:</b> Herald</b> {0}.\n<b>Deathrattle:</b> Restore #3 Health to your hero.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Leroy Steinmann",
+  "attack": 6,
+  "cardClass": "WARLOCK",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 125432,
+  "elite": true,
+  "flavor": "Once a servant of the Old Gods, Cho'gall believes he has become a god, worthy to stand beside them.",
+  "health": 6,
+  "id": "CATA_726",
+  "mechanics": [
+   "AURA",
+   "COLOSSAL"
+  ],
+  "name": "Cho'gall, Mastermind",
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Colossal +2</b>\nYour Arms and Soldiers\ndestroy minions in the\n enemy's deck instead.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 3,
+  "cardClass": "DEATHKNIGHT",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 123600,
+  "flavor": "If I just run every tech card there's no way I'll lose!",
+  "health": 5,
+  "id": "CATA_780",
+  "mechanics": [
+   "BATTLECRY",
+   "LIFESTEAL"
+  ],
+  "name": "Obsessive Technician",
+  "rarity": "COMMON",
+  "runeCost": {
+   "blood": 2,
+   "frost": 0,
+   "unholy": 0
+  },
+  "set": "CATACLYSM",
+  "text": "<b>Lifesteal</b>\n<b>Battlecry:</b> <b>Herald</b> {0}.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Max Grecke",
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123605,
+  "flavor": "Two rites definitely make a wrong.",
+  "id": "CATA_785",
+  "mechanics": [
+   "COMBO"
+  ],
+  "name": "Rite of Twilight",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "spellSchool": "SHADOW",
+  "text": "<b>Herald</b> {0}.\n<b>Combo:</b> Deal $3 damage.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "attack": 3,
+  "cardClass": "ROGUE",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 123606,
+  "flavor": "Witness him on one knee, begging RNG to work in his favor.",
+  "health": 5,
+  "id": "CATA_786",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Chaos Supplicant",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]After you cast a spell, cast a\nrandom spell of the same\nCost from another class.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mooncolony",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "collectionText": "Draw 3 minions.\nGive minions in your\nhand +2/+2.",
+  "cost": 4,
+  "dbfId": 121757,
+  "flavor": "DrakeDash was key in delivering victory against Al'Akir.",
+  "id": "CATA_820",
+  "name": "Supply Run",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "<b>Shatter</b>\nDraw 3 minions.\nGive minions in your\nhand +2/+2.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Mauricio Herrera",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123660,
+  "flavor": "Two gems per day wasn't enough.",
+  "health": 4,
+  "id": "CATA_897",
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE"
+  ],
+  "name": "Gemstone Hoarder",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "targetingArrowText": "Choose a card in hand.",
+  "text": "[x]<b>Battlecry:</b> Choose a card in\nyour hand to discard.\n<b>Deathrattle:</b> Get it back.\nIt costs (1) less.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Mike Sass",
+  "attack": 6,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 123655,
+  "flavor": "And when everyone has <b>Taunt</b>... nobody does.",
+  "health": 6,
+  "id": "CATA_898",
+  "mechanics": [
+   "AURA"
+  ],
+  "name": "Scaled Lancer",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "COMMON",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "CATACLYSM",
+  "text": "All enemy minions\nhave <b>Taunt</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Tanamaes Leejierasaes",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 123847,
+  "flavor": "When Sindragosa and her beloved fight side by side, nothing can stand in their way.",
+  "id": "CATA_978",
+  "mechanics": [
+   "ImmuneToSpellpower"
+  ],
+  "name": "Sindragosa's Triumph",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "spellSchool": "ARCANE",
+  "text": "[x]Deal $8 damage to a\nminion. Reduce the Cost\nof a random card in your\nhand by the excess damage.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Gabor Szikszai",
+  "attack": 3,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123848,
+  "flavor": "Specialist is a very polite way of saying she only knows one spell.",
+  "health": 4,
+  "id": "CATA_979",
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Conjuration Specialist",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "targetingArrowText": "Choose a spell in hand.",
+  "text": "<b>Battlecry:</b> Choose a spell\nin your hand. Split it into\ntwo random spells of the same Cost.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Alex Stone",
+  "attack": 4,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 128058,
+  "flavor": "According to all known laws of aviation, there is no way a rock should be able to fly.",
+  "health": 4,
+  "id": "CATA_999",
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Earthen Drake",
+  "race": "DRAGON",
+  "races": [
+   "ELEMENTAL",
+   "DRAGON"
+  ],
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "At the end of your turn, deal 4 damage to the enemy hero.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Jaemin Kim",
+  "attack": 6,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 123472,
+  "flavor": "Would you still love me if I were an Ash Worm?",
+  "health": 6,
+  "id": "MEND_040",
+  "isMiniSet": true,
+  "name": "Ash Worm",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "[x]Starts <b>Dormant</b>.\nWhen your board is\nfull, awaken.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Eva Widermann",
+  "attack": 3,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 123478,
+  "flavor": "He's not old, he's \"Wizened\".",
+  "health": 7,
+  "id": "MEND_041",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY",
+   "TAUNT"
+  ],
+  "name": "Wizened Wildspeaker",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Taunt</b>\n<b>Battlecry:</b> If you didn't play\na minion last turn, refresh\n3 Mana Crystals.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Diego Gil",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 9,
+  "dbfId": 123485,
+  "flavor": "It's the 'bolg necessities.",
+  "id": "MEND_042",
+  "isMiniSet": true,
+  "name": "Lifebloom",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "spellSchool": "NATURE",
+  "text": "[x]Restore #8 Health to\nall friendly characters.\nSummon two random\n8-Cost minions.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Daniil Kudriavtsev",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123481,
+  "flavor": "Heartrootstone: Heroes of Woodcraft",
+  "id": "MEND_043",
+  "isMiniSet": true,
+  "name": "Heartroot Stones",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "spellSchool": "NATURE",
+  "text": "Draw a card and gain 3 Armor. If you didn't play a minion\nlast turn, do it again.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Grace Liu",
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123483,
+  "flavor": "A great spot to reflect on your journey to becoming the best.",
+  "health": 2,
+  "id": "MEND_044",
+  "isMiniSet": true,
+  "name": "Tranquil Clearing",
+  "rarity": "EPIC",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "CATACLYSM",
+  "text": "[x]Give a minion +2\nHealth and <b>Taunt</b>.\nIt falls asleep until the\nend of your next turn.",
+  "type": "LOCATION"
+ },
+ {
+  "artist": "Tanamaes Leejierasaes",
+  "attack": 4,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 123482,
+  "flavor": "Seeding support for a future \"Unicorn Druid\".",
+  "health": 4,
+  "id": "MEND_045",
+  "isMiniSet": true,
+  "mechanics": [
+   "DEATHRATTLE",
+   "TAUNT"
+  ],
+  "name": "Seeding Dragon",
+  "race": "DRAGON",
+  "races": [
+   "DRAGON"
+  ],
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Taunt</b>\n<b>Deathrattle:</b> Get a random\n  Dragon. It costs (2) less.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vika Yarova",
+  "attack": 4,
+  "cardClass": "DRUID",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 123493,
+  "elite": true,
+  "flavor": "\"Who carved their name into my totems and RUNED them?!\"",
+  "health": 4,
+  "id": "MEND_046",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Bashana Runetotem",
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Get three\n2/2 Treants. Carve 12\nMana worth of Nature\nspells into them.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Melvin Chan",
+  "attack": 3,
+  "cardClass": "NEUTRAL",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123849,
+  "flavor": "Specializes in cultivating cranberries.",
+  "health": 3,
+  "id": "MEND_100",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Cultivating Sprite",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Get a 3-Cost\nBulb that casts three\n random 1-Cost spells.\n It upgrades each turn.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Vika Yarova",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 1,
+  "dbfId": 123486,
+  "flavor": "Finally, it's never Huffer.",
+  "id": "MEND_300",
+  "isMiniSet": true,
+  "name": "Tame Pet",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "[x]Replace your future\nAnimal Companions with\nrandom Beasts that cost\n(1) more. Draw a card.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 2,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 123488,
+  "flavor": "\"What did the spirit say?\"\n\"Caaaw!\"",
+  "health": 2,
+  "id": "MEND_301",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Spiritspeaker",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "<b>Battlecry:</b> Choose an Animal Companion to summon.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Brian Adriel",
+  "attack": 3,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 123490,
+  "flavor": "Slimy yet satisfying.",
+  "health": 3,
+  "id": "MEND_302",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Wasteland Vanguard",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Deal 3 damage\nsplit among all enemies.\nIf any die, deal 3 more.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kleston Marques",
+  "attack": 2,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123491,
+  "flavor": "Great herds of these travel across the plains every few expansions, signifying the return of the hunter meta.",
+  "health": 3,
+  "id": "MEND_303",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Migrating Elekk",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "RARE",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "CATACLYSM",
+  "text": "[x]<b>Taunt. Battlecry:</b> Replace your\nfuture Animal Companions\nwith random Beasts that\ncost (1) more.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Caroline Gariba",
+  "attack": 4,
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 123492,
+  "elite": true,
+  "flavor": "She's a cat lady... and an Elekk lady... and an Ultrasaur lady.",
+  "health": 6,
+  "id": "MEND_304",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Talya Earthstrider",
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Your cards\nthat summon Animal\nCompanions summon\n1 more this game.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Brian Despain",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123510,
+  "flavor": "Which got buffed first, the chicken or the egg?",
+  "id": "MEND_305",
+  "isMiniSet": true,
+  "name": "Nurturing Nature",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "spellSchool": "NATURE",
+  "targetingArrowText": "Give a Beast +2/+2.",
+  "text": "[x]Give a friendly\nBeast +2/+2.\nGive a random Beast\nin your hand +2/+2.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Edgar Hidalgo",
+  "cardClass": "HUNTER",
+  "collectible": true,
+  "cost": 7,
+  "dbfId": 123513,
+  "flavor": "I want... to... Roam Free!",
+  "id": "MEND_307",
+  "isMiniSet": true,
+  "name": "Roam Free",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "[x]Replace your future Animal\nCompanions with random\nBeasts that cost (2) more.\nChoose one to summon.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "BOSi Studio",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "collectionText": "[x]Deal ${0} damage to a\nrandom enemy minion,\n{1} times. Excess damage\nhits the enemy hero.",
+  "cost": 4,
+  "dbfId": 123495,
+  "flavor": "When you gotta go, you gotta go.",
+  "id": "MEND_500",
+  "isMiniSet": true,
+  "mechanics": [
+   "ImmuneToSpellpower"
+  ],
+  "name": "Bursting Leyline",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "spellSchool": "ARCANE",
+  "text": "[x]Deal ${0} damage to a\nrandom enemy minion.\nExcess damage hits\nthe enemy hero.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Kati Sarin",
+  "attack": 4,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123496,
+  "flavor": "Ley! I'm walkin' here!",
+  "health": 2,
+  "id": "MEND_501",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE"
+  ],
+  "name": "Ley Walker",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Your Leylines\ncost (1) less this game.\n<b>Deathrattle:</b> Get a\nrandom Leyline.",
+  "type": "MINION"
+ },
+ {
+  "artist": "BOSi Studio",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "collectionText": "Summon a random\n{0}-Cost minion,\n{1} times.",
+  "cost": 5,
+  "dbfId": 123504,
+  "flavor": "This crystal has healing properties.... and this crystal summons an army of minions.",
+  "id": "MEND_502",
+  "isMiniSet": true,
+  "name": "Crystallized Leyline",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "spellSchool": "ARCANE",
+  "text": "[x]Summon a random\n{0}-Cost minion.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "BOSi Studio",
+  "attack": 3,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 123507,
+  "flavor": "Scalpel... Tweezers... Surge Needle... I said Surge Needle!",
+  "health": 5,
+  "id": "MEND_503",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Surge Needle",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Your Leylines\ntrigger an additional\ntime this game.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Kevin Sidharta",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "collectionText": "[x]Draw {1} cards.\nThey cost ({0}) less.",
+  "cost": 2,
+  "dbfId": 123508,
+  "flavor": "Sometimes I just paint purple lines on the ground and call it a Leyline.",
+  "id": "MEND_504",
+  "isMiniSet": true,
+  "name": "Leyline Nexus",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "spellSchool": "ARCANE",
+  "text": "[x]Draw a card.\nIt costs ({0}) less.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Studio Hive",
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 6,
+  "dbfId": 123514,
+  "elite": true,
+  "flavor": "Pondering my Orb.",
+  "id": "MEND_505",
+  "isMiniSet": true,
+  "name": "The Arcanomicon",
+  "rarity": "LEGENDARY",
+  "set": "CATACLYSM",
+  "spellSchool": "ARCANE",
+  "text": "Get all 3 Leylines.\nChoose an upgrade\nfor your Leylines.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Gabor Szikszai",
+  "attack": 2,
+  "cardClass": "MAGE",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123515,
+  "flavor": "And the cat came back, the very next ley.",
+  "health": 3,
+  "id": "MEND_506",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY",
+   "ELUSIVE"
+  ],
+  "name": "Mystic Runesaber",
+  "race": "BEAST",
+  "races": [
+   "BEAST"
+  ],
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Elusive</b>\n<b>Battlecry:</b> Increase the\neffects of your Leylines\nby 1 this game.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Matt Dixon",
+  "attack": 2,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123620,
+  "flavor": "Bold and brash, his enemies belong in the trash.",
+  "health": 1,
+  "id": "MEND_800",
+  "isMiniSet": true,
+  "mechanics": [
+   "DEATHRATTLE",
+   "RUSH"
+  ],
+  "name": "Brash Battlemaster",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Rush</b>\n <b>Deathrattle:</b> Give your\nSilver Hand Recruits\n+1 Attack this game.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Milica Celikovic",
+  "attack": 3,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123621,
+  "flavor": "Congratulations you're being rescued! Please do not resist.",
+  "health": 1,
+  "id": "MEND_801",
+  "isMiniSet": true,
+  "mechanics": [
+   "DIVINE_SHIELD",
+   "TRIGGER_VISUAL"
+  ],
+  "name": "Resilient Savior",
+  "race": "DRAENEI",
+  "races": [
+   "DRAENEI"
+  ],
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Divine Shield</b>\nAfter this loses <b>Divine Shield</b>,\ngive your Silver Hand Recruits\n+1 Health this game.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Ramzy Kamen",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 2,
+  "dbfId": 123622,
+  "flavor": "Get WELL MET soon!",
+  "id": "MEND_802",
+  "isMiniSet": true,
+  "name": "Convalescence",
+  "rarity": "COMMON",
+  "referencedTags": [
+   "DIVINE_SHIELD"
+  ],
+  "set": "CATACLYSM",
+  "spellSchool": "HOLY",
+  "text": "Summon two {0} Silver Hand Recruits with <b>Divine Shield</b>.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Vlad Botos",
+  "attack": 3,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 123623,
+  "durability": 0,
+  "flavor": "<b>Blade</b>",
+  "health": 2,
+  "id": "MEND_803",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Emboldening Blade",
+  "rarity": "COMMON",
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Give your\nSilver Hand Recruits\n+1/+1 this game.",
+  "type": "WEAPON"
+ },
+ {
+  "artist": "Zoltan Boros",
+  "attack": 5,
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 5,
+  "dbfId": 123624,
+  "elite": true,
+  "flavor": "What an upbeat guy! I'm sure nothing will ever change that.",
+  "health": 6,
+  "id": "MEND_804",
+  "isMiniSet": true,
+  "mechanics": [
+   "BATTLECRY"
+  ],
+  "name": "Arator the Redeemer",
+  "rarity": "LEGENDARY",
+  "referencedTags": [
+   "TAUNT"
+  ],
+  "set": "CATACLYSM",
+  "text": "[x]<b>Battlecry:</b> Double the\nstats of all friendly\nSilver Hand Recruits\nand give them <b>Taunt</b>.",
+  "type": "MINION"
+ },
+ {
+  "artist": "Bima Kusuma",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 3,
+  "dbfId": 123625,
+  "flavor": "I am donating these minions... to myself!",
+  "id": "MEND_805",
+  "isMiniSet": true,
+  "name": "Charity",
+  "rarity": "EPIC",
+  "set": "CATACLYSM",
+  "text": "Get copies of all friendly minions that died this turn. Give them +3/+3.",
+  "type": "SPELL"
+ },
+ {
+  "artist": "Ivo Campelo da Silva",
+  "cardClass": "PALADIN",
+  "collectible": true,
+  "cost": 4,
+  "dbfId": 127427,
+  "flavor": "Uh, yeah, I sure hope it does.",
+  "id": "MEND_900",
+  "isMiniSet": true,
+  "name": "Teamwork",
+  "rarity": "RARE",
+  "set": "CATACLYSM",
+  "text": "[x]Summon and get\nfour {0} Silver\nHand Recruits.",
+  "type": "SPELL"
+ }
+]
