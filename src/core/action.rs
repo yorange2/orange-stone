@@ -35,6 +35,15 @@ pub enum Action {
     },
     /// End the current player's turn.
     EndTurn,
+    /// Activate a friendly Location (Core Set W8): consumes one durability
+    /// charge and resolves the location's effect with the chosen target.
+    ActivateLocation {
+        /// The location entity to activate
+        location: Entity,
+        /// Explicit effect target (the location effect's target set), else
+        /// the engine chooses randomly
+        target: Option<Entity>,
+    },
     /// Use the hero power.
     HeroPower {
         /// The hero entity using the power

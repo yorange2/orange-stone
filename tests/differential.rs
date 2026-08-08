@@ -1739,6 +1739,8 @@ fn w1_race_pools_are_field_driven() {
             "CORE_CATA_001", // Tichondrius (W4b)
             "CORE_EX1_310",  // Doomguard (W4b)
             "CORE_EX1_319",  // Flame Imp (W4b)
+            "CORE_EX1_323t", // Infernal (W8 token)
+            "CORE_GIL_191t", // Imp (W8 token)
             "CORE_LOOT_013", // Vulgar Homunculus (W4a)
             "CORE_LOOT_368", // Voidlord (W5)
             "CORE_SW_068",   // Mo'arg Forgefiend (W5)
@@ -13971,4 +13973,259 @@ fn w7_bloodhoof_brave_enrage() {
         Some(Health(4)),
         "6 - 2 damage"
     );
+}
+
+// ============================================================
+// Core Set W8 (core-set-roadmap W8) — special types: hero
+// replacement, locations, enchantment tokens.
+// ============================================================
+
+/// W8-1 Lord Jaraxxus — playing the hero card replaces the hero: 15
+/// health, armor lost, Blood Fury 3/8 equipped, INFERNO! hero power
+/// (2 mana: summon a 6/6 Infernal).
+#[test]
+fn w8_lord_jaraxxus_replaces_hero() {
+    use orange_stone::cards::def::CORE_LORD_JARAXXUS;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_LORD_JARAXXUS);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let old_hero = state.player(PlayerId1()).hero;
+    // Armor to be wiped
+    let inner = state.make_mut();
+    inner.players[0].armor = 5;
+    let engine = GameEngine::new();
+    let jaraxxus = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("jaraxxus in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: jaraxxus,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId1()).hero,
+        jaraxxus,
+        "the played card became the hero"
+    );
+    assert_eq!(
+        state.world().effective_health(jaraxxus),
+        Some(Health(15)),
+        "the Jaraxxus hero has 15 health"
+    );
+    assert_eq!(state.player(PlayerId1()).armor, 0, "armor is lost");
+    assert_eq!(
+        state.world().zone(old_hero),
+        Some(Zone::Graveyard),
+        "the old hero left play"
+    );
+    // Blood Fury 3/8 equipped
+    let weapon = state
+        .player(PlayerId1())
+        .weapon
+        .expect("blood fury equipped");
+    assert_eq!(
+        state.world().card_id(weapon).map(|c| c.0),
+        Some("WARLOCK_010t")
+    );
+    assert_eq!(state.world().effective_attack(weapon), Some(Attack(3)));
+    assert_eq!(state.world().durability(weapon).map(|d| d.0), Some(8));
+    // INFERNO! hero power: 2 mana, summon a 6/6 Infernal
+    let hp = state.world().hero_power(jaraxxus).expect("hero power set");
+    assert_eq!(hp.cost, 2);
+    assert_eq!(state.player(PlayerId1()).current_mana, 2, "8 mana spent");
+    engine
+        .apply(
+            &mut state,
+            Action::HeroPower {
+                hero: jaraxxus,
+                target: None,
+            },
+        )
+        .unwrap();
+    let infernals: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_EX1_323t")
+        })
+        .collect();
+    assert_eq!(infernals.len(), 1, "INFERNO! summoned a 6/6 Infernal");
+    assert_eq!(
+        state.world().effective_attack(infernals[0]),
+        Some(Attack(6))
+    );
+    assert_eq!(
+        state.world().effective_health(infernals[0]),
+        Some(Health(6))
+    );
+}
+
+/// W8-2 Sanguine Depths — the location plays to the board with 3
+/// durability and a one-turn cooldown; each activation deals 1 damage
+/// and grants +2 Attack to a minion; it leaves play when the charges run
+/// out.
+#[test]
+fn w8_sanguine_depths_location_activation() {
+    use orange_stone::cards::def::CORE_SANGUINE_DEPTHS;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_SANGUINE_DEPTHS);
+    let enemy = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let depths = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("sanguine depths in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: depths,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(PlayerId1()).location,
+        Some(depths),
+        "the location sits on the board"
+    );
+    assert_eq!(
+        state.world().durability(depths).map(|d| d.0),
+        Some(3),
+        "3 durability charges"
+    );
+    // Cooldown: cannot activate the turn it was played
+    assert!(
+        engine
+            .apply(
+                &mut state,
+                Action::ActivateLocation {
+                    location: depths,
+                    target: Some(enemy),
+                },
+            )
+            .is_err(),
+        "a location cannot be activated the turn it was played"
+    );
+    // Next turn: activation deals 1 and grants +2 Attack
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::ActivateLocation {
+                location: depths,
+                target: Some(enemy),
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy),
+        Some(Health(2)),
+        "1 damage"
+    );
+    assert_eq!(
+        state.world().effective_attack(enemy),
+        Some(Attack(5)),
+        "+2 Attack"
+    );
+    assert_eq!(
+        state.world().durability(depths).map(|d| d.0),
+        Some(2),
+        "one charge spent"
+    );
+    // One activation per turn
+    assert!(
+        engine
+            .apply(
+                &mut state,
+                Action::ActivateLocation {
+                    location: depths,
+                    target: Some(enemy),
+                },
+            )
+            .is_err(),
+        "a location activates once per turn"
+    );
+    // Two more turns exhaust the charges: the location leaves the board
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::ActivateLocation {
+                location: depths,
+                target: Some(enemy),
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::ActivateLocation {
+                location: depths,
+                target: Some(enemy),
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(PlayerId1()).location, None, "charges spent");
+    assert_eq!(
+        state.world().zone(depths),
+        Some(Zone::Graveyard),
+        "the location left play"
+    );
+}
+
+/// W8-3 ENCHANTMENT tokens — defined but never playable (the engine
+/// models buffs as components, not cards).
+#[test]
+fn w8_enchantment_tokens_are_not_playable() {
+    use orange_stone::cards::def::{CORE_DEATHLY_POISON, CORE_THORNSPEAKERS_SPIRIT};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &CORE_THORNSPEAKERS_SPIRIT);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_DEATHLY_POISON);
+    builder.set_mana(PlayerId1(), 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    for _ in 0..2 {
+        let card = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId1())
+            .next()
+            .expect("enchantment in hand");
+        assert!(
+            engine
+                .apply(
+                    &mut state,
+                    Action::PlayCard {
+                        card,
+                        target: None,
+                        position: None,
+                    },
+                )
+                .is_err(),
+            "an ENCHANTMENT card is not playable"
+        );
+    }
 }

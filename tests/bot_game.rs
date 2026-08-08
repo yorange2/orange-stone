@@ -246,6 +246,7 @@ fn two_bots_battle() {
                 }
                 Action::EndTurn => "结束回合".to_string(),
                 Action::HeroPower { .. } => "使用英雄技能".to_string(),
+                Action::ActivateLocation { .. } => "激活地点".to_string(),
                 Action::Choose { .. } => "抉择".to_string(),
                 Action::TradeCard { .. } => "交易".to_string(),
             };
@@ -259,6 +260,7 @@ fn two_bots_battle() {
                             orange_stone::core::event::Event::TurnStarted { player } => {
                                 format!("  ↪ 回合开始: {}", player_name(*player))
                             }
+                            Event::LocationActivated { .. } => "LocationActivated".to_string(),
                             orange_stone::core::event::Event::TurnEnded { player } => {
                                 format!("  ↪ 回合结束: {}", player_name(*player))
                             }
@@ -501,6 +503,7 @@ fn two_smart_bots_battle() {
                 }
                 Action::EndTurn => "结束回合".to_string(),
                 Action::HeroPower { .. } => "使用英雄技能".to_string(),
+                Action::ActivateLocation { .. } => "激活地点".to_string(),
                 Action::Choose { .. } => "抉择".to_string(),
                 Action::TradeCard { .. } => "交易".to_string(),
             };
@@ -514,6 +517,7 @@ fn two_smart_bots_battle() {
                             orange_stone::core::event::Event::TurnStarted { player } => {
                                 format!("  ↪ 回合开始: {}", player_name(*player))
                             }
+                            Event::LocationActivated { .. } => "LocationActivated".to_string(),
                             orange_stone::core::event::Event::TurnEnded { player } => {
                                 format!("  ↪ 回合结束: {}", player_name(*player))
                             }

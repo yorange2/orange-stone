@@ -339,6 +339,41 @@ pub fn legal_action_infos(state: &GameState) -> Vec<ActionInfo> {
             target_id: -1,
         });
     }
+    // Location activation (Core Set W8): activate the friendly location
+    // (past its play cooldown, charges left) with its effect's targets
+    if let Some(location) = state.player(player).location {
+        let ready = state.player(player).location_played_turn < state.turn()
+            && world.attacks_used(location).is_none_or(|u| u.0 == 0)
+            && world.durability(location).is_some_and(|d| d.0 > 0);
+        if ready {
+            let targets = play_targets(state, location);
+            if targets.is_empty() {
+                candidates.push(ActionInfo {
+                    action: Action::ActivateLocation {
+                        location,
+                        target: None,
+                    },
+                    kind: "activate_location",
+                    card_index: -1,
+                    entity_id: location.index as i32,
+                    target_id: -1,
+                });
+            } else {
+                for t in targets {
+                    candidates.push(ActionInfo {
+                        action: Action::ActivateLocation {
+                            location,
+                            target: Some(t),
+                        },
+                        kind: "activate_location",
+                        card_index: -1,
+                        entity_id: location.index as i32,
+                        target_id: t.index as i32,
+                    });
+                }
+            }
+        }
+    }
     // Tradeable trades (Core Set W2): one per Tradeable hand card
     for (hand_idx, card) in world.zones().iter(Zone::Hand, player).enumerate() {
         if world.tradeable(card).is_some() {
@@ -468,6 +503,7 @@ fn play_targets(
         CardEffect::DamageAndAddRandomSpell { target, .. } => target,
         CardEffect::FreezeAndSummonElementals => EffectTarget::AnyEnemy,
         CardEffect::DamageAndFreeze { target, .. } => target,
+        CardEffect::DamageAndGainAttack { target, .. } => target,
         _ => return Vec::new(),
     };
     let owner = state

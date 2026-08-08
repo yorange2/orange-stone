@@ -124,6 +124,15 @@ pub enum Event {
         /// The spell entity
         spell: Entity,
     },
+    /// A location is activated (Core Set W8)
+    LocationActivated {
+        /// The player who activated the location
+        player: PlayerId,
+        /// The location entity
+        location: Entity,
+        /// Explicit effect target; `None` = engine random
+        target: Option<Entity>,
+    },
     /// A hero power is activated
     HeroPowerActivated {
         /// The player who used the power

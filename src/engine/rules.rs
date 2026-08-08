@@ -79,9 +79,44 @@ pub fn validate(state: &GameState, action: Action) -> Result<(), EngineError> {
         Action::Attack { attacker, defender } => validate_attack(state, attacker, defender),
         Action::EndTurn => validate_end_turn(state),
         Action::HeroPower { hero, target: _ } => validate_hero_power(state, hero),
+        Action::ActivateLocation { location, .. } => validate_activate_location(state, location),
         Action::Choose { choice_id, option } => validate_choose(state, choice_id, option),
         Action::TradeCard { card } => validate_trade_card(state, card),
     }
+}
+
+/// Validates a location activation (Core Set W8): the entity must be a
+/// friendly Location on the board, past its play cooldown, not yet
+/// activated this turn, and still holding durability charges.
+fn validate_activate_location(state: &GameState, location: Entity) -> Result<(), EngineError> {
+    let world = state.world();
+    let active = state.active_player();
+    check_entity(world, location)?;
+    if world.card_type(location) != Some(CardType::Location) {
+        return Err(EngineError::InvalidTarget);
+    }
+    let owner = world
+        .player(location)
+        .ok_or(EngineError::EntityGone(location))?;
+    if owner != active {
+        return Err(EngineError::NotYourTurn);
+    }
+    if state.player(active).location != Some(location) {
+        return Err(EngineError::InvalidTarget);
+    }
+    // Cooldown: a location cannot be activated the turn it was played
+    if state.player(active).location_played_turn >= state.turn() {
+        return Err(EngineError::InvalidTarget);
+    }
+    // One activation per turn (attacks_used doubles as the used marker —
+    // it resets for all Play entities at the owner's turn start)
+    if world.attacks_used(location).is_some_and(|u| u.0 > 0) {
+        return Err(EngineError::InvalidTarget);
+    }
+    if world.durability(location).is_none_or(|d| d.0 == 0) {
+        return Err(EngineError::InvalidTarget);
+    }
+    Ok(())
 }
 
 /// Validates a Tradeable trade (Core Set W2): the card must be a Tradeable
@@ -132,11 +167,14 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
         return Err(EngineError::NotYourCard);
     }
 
-    // Must be a minion, weapon, or spell
+    // Must be a minion, weapon, spell, hero (Core Set W8), or location
+    // (Core Set W8). ENCHANTMENT tokens are never playable.
     let card_type = world.card_type(card).ok_or(EngineError::NotPlayable)?;
     if card_type != CardType::Minion
         && card_type != CardType::Weapon
         && card_type != CardType::Spell
+        && card_type != CardType::Hero
+        && card_type != CardType::Location
     {
         return Err(EngineError::NotPlayable);
     }
@@ -482,6 +520,14 @@ pub fn enqueue(
             queue.push(Event::HeroPowerActivated {
                 player: active,
                 hero,
+                target,
+            });
+        }
+        Action::ActivateLocation { location, target } => {
+            let active = state.active_player();
+            queue.push(Event::LocationActivated {
+                player: active,
+                location,
                 target,
             });
         }
@@ -971,6 +1017,78 @@ pub fn apply_event(
                 if let Some(effect) = weapon_effect {
                     trigger::resolve_effect(state, queue, card, player, effect, None, None);
                 }
+            } else if card_type == Some(CardType::Location) {
+                // Location card (Core Set W8): replace the current location
+                // (one per side), enter the board, start the play cooldown.
+                let old = state.player(player).location;
+                if let Some(old_loc) = old {
+                    let inner = state.make_mut();
+                    inner.players[player.index()].location = None;
+                    let _ = state.world_mut().move_to_zone(old_loc, Zone::Graveyard);
+                }
+                state
+                    .world_mut()
+                    .move_to_zone(card, Zone::Play)
+                    .map_err(|_| EngineError::EntityGone(card))?;
+                let turn = state.turn();
+                let inner = state.make_mut();
+                inner.players[player.index()].location = Some(card);
+                inner.players[player.index()].location_played_turn = turn;
+                // Card-played triggers fire in the shared section below
+                // (same as every other card type).
+            } else if card_type == Some(CardType::Hero) {
+                // Hero card (Core Set W8 — Lord Jaraxxus): replace the
+                // hero. The played entity becomes the new hero: its card id
+                // stays, its health is set to the def's health (15), the
+                // armor is lost, Blood Fury is equipped, and the hero power
+                // is replaced (INFERNO!).
+                let old_hero = state.player(player).hero;
+                state
+                    .world_mut()
+                    .move_to_zone(old_hero, Zone::Graveyard)
+                    .map_err(|_| EngineError::EntityGone(old_hero))?;
+                {
+                    let new_health = state
+                        .world()
+                        .card_id(card)
+                        .and_then(|cid| crate::cards::def::card_by_id(cid.0))
+                        .map(|d| d.health)
+                        .unwrap_or(15);
+                    let world = state.world_mut();
+                    world.set_health(card, Health(new_health));
+                    world.remove_damage(card);
+                    world.set_attack(card, Attack(0));
+                    world.set_attacks_used(card, AttacksUsed(0));
+                    world.set_hero_power_used(card, crate::core::component::HeroPowerUsed(false));
+                    world.set_hero_power(
+                        card,
+                        crate::core::component::HeroPowerDef {
+                            cost: 2,
+                            effect: crate::core::effect::CardEffect::SummonMinion {
+                                card_id: "CORE_EX1_323t",
+                            },
+                        },
+                    );
+                    world.set_zone(card, Zone::Play);
+                    world.zones_mut().insert(Zone::Play, player, card);
+                }
+                {
+                    let inner = state.make_mut();
+                    inner.players[player.index()].hero = card;
+                    inner.players[player.index()].armor = 0;
+                }
+                // Equip Blood Fury (replaces the current weapon)
+                trigger::resolve_effect(
+                    state,
+                    queue,
+                    card,
+                    player,
+                    crate::core::effect::CardEffect::EquipWeapon {
+                        card_id: "WARLOCK_010t",
+                    },
+                    None,
+                    None,
+                );
             } else {
                 // Move the card from hand to the battlefield (summon position,
                 // roadmap G6 — 0 = leftmost)
@@ -1615,6 +1733,37 @@ pub fn apply_event(
                 .insert_at(Zone::Deck, active, card, position);
             // draw_card pushes its own CardDrawn event for the drawn card
             trigger::draw_card(state, queue, active);
+        }
+        Event::LocationActivated {
+            player,
+            location,
+            target,
+        } => {
+            // Resolve the location's effect (stored in the battlecry slot,
+            // the secret convention), consume one durability charge, and
+            // mark it used this turn (attacks_used, reset at turn start).
+            let effect = state.world().battlecry(location).map(|b| b.0);
+            if let Some(effect) = effect {
+                trigger::resolve_effect(state, queue, location, player, effect, target, None);
+            }
+            if let Some(d) = state.world().durability(location) {
+                if d.0 > 1 {
+                    state
+                        .world_mut()
+                        .set_durability(location, Durability(d.0 - 1));
+                } else {
+                    // Last charge spent: the location leaves the board
+                    state.world_mut().set_durability(location, Durability(0));
+                    let inner = state.make_mut();
+                    if inner.players[player.index()].location == Some(location) {
+                        inner.players[player.index()].location = None;
+                    }
+                    let _ = state.world_mut().move_to_zone(location, Zone::Graveyard);
+                }
+            }
+            state
+                .world_mut()
+                .set_attacks_used(location, crate::core::component::AttacksUsed(1));
         }
         Event::HeroPowerActivated {
             player,
