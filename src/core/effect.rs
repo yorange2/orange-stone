@@ -764,6 +764,96 @@ pub enum CardEffect {
         /// Target selection
         target: EffectTarget,
     },
+    // ----------------------------------------------------------------
+    // Core Set W3a effects (core-set-roadmap W3a) — faithful versions of
+    // Classic cards the Classic pool simplified: Holy Nova's heal half,
+    // Slam's survive-conditioned draw, Shield Block's draw, Mortal Coil's
+    // kill-conditioned draw, plus Bash's damage+armor and Hex's real
+    // transform.
+    // ----------------------------------------------------------------
+    /// Deal `damage` to all enemy minions and restore `heal` to all
+    /// friendly characters, hero included (Holy Nova — Core Set W3a)
+    AoeDamageAndHealFriendly {
+        /// Damage to all enemy minions
+        damage: i32,
+        /// Heal to all friendly characters
+        heal: i32,
+    },
+    /// Deal damage; when the target SURVIVES, draw a card (Slam — Core
+    /// Set W3a; the Classic pool's unconditional draw is a simplification)
+    DamageAndDrawIfSurvives {
+        /// Damage amount
+        damage: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Gain armor and draw cards (Shield Block — Core Set W3a; the
+    /// Classic pool's armor-only version is a simplification)
+    GainArmorAndDraw {
+        /// Armor gained
+        armor: i32,
+        /// Cards drawn
+        draw: u32,
+    },
+    /// Deal damage; when the target DIES, draw a card (Mortal Coil —
+    /// Core Set W3a; the Classic pool's damage-only version is a
+    /// simplification)
+    DamageAndDrawIfKilled {
+        /// Damage amount
+        damage: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Deal damage and gain armor (Bash — Core Set W3a)
+    DamageAndGainArmor {
+        /// Damage amount
+        damage: i32,
+        /// Armor gained by the friendly hero
+        armor: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Give a friendly Undead minion Poisonous (Poison Breath — Core Set
+    /// W3a)
+    GainPoisonousToFriendlyUndead,
+    /// Transform a minion into the given card (Hex — Core Set W3a; the
+    /// Classic pool's Polymorph-as-destroy is a simplification — a real
+    /// transform clears effects and does not trigger deathrattles)
+    TransformToMinion {
+        /// Card ID of the transform target (the 0/1 Frog)
+        card_id: &'static str,
+    },
+    /// Give the target minion "Deathrattle: summon the given card"
+    /// (Spikeridged Steed — Core Set W3a, a single-target version of
+    /// GrantDeathrattleAll)
+    GrantDeathrattleToTarget {
+        /// Card ID summoned on deathrattle
+        card_id: &'static str,
+    },
+    /// Destroy all minions with at least this Attack (Shadow Word: Ruin —
+    /// Core Set W3a; both sides)
+    DestroyAllMinionsAttackGE {
+        /// Minimum attack of destroyed minions
+        attack: i32,
+    },
+    /// Deal damage to all enemy minions and draw cards (Fan of Knives —
+    /// Core Set W3a)
+    AoeDamageAndDraw {
+        /// Damage to all enemy minions
+        damage: i32,
+        /// Cards drawn
+        draw: u32,
+    },
+    /// Give the target +attack/+health, Taunt, and "Deathrattle: summon
+    /// the given card" (Spikeridged Steed — Core Set W3a)
+    GainStatsTauntAndDeathrattle {
+        /// Attack gained
+        attack: i32,
+        /// Health gained
+        health: i32,
+        /// Card ID summoned on deathrattle
+        card_id: &'static str,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -1031,6 +1121,46 @@ enum CardEffectDe {
     DamageAndDrawIfHandEmpty {
         damage: i32,
         target: EffectTarget,
+    },
+    AoeDamageAndHealFriendly {
+        damage: i32,
+        heal: i32,
+    },
+    DamageAndDrawIfSurvives {
+        damage: i32,
+        target: EffectTarget,
+    },
+    GainArmorAndDraw {
+        armor: i32,
+        draw: u32,
+    },
+    DamageAndDrawIfKilled {
+        damage: i32,
+        target: EffectTarget,
+    },
+    DamageAndGainArmor {
+        damage: i32,
+        armor: i32,
+        target: EffectTarget,
+    },
+    GainPoisonousToFriendlyUndead,
+    TransformToMinion {
+        card_id: String,
+    },
+    GrantDeathrattleToTarget {
+        card_id: String,
+    },
+    DestroyAllMinionsAttackGE {
+        attack: i32,
+    },
+    AoeDamageAndDraw {
+        damage: i32,
+        draw: u32,
+    },
+    GainStatsTauntAndDeathrattle {
+        attack: i32,
+        health: i32,
+        card_id: String,
     },
     DestroyAndGainStats {
         attack: i32,
@@ -1388,6 +1518,53 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::DamageAndDrawIfHandEmpty { damage, target } => {
                 CardEffect::DamageAndDrawIfHandEmpty { damage, target }
             }
+            CardEffectDe::AoeDamageAndHealFriendly { damage, heal } => {
+                CardEffect::AoeDamageAndHealFriendly { damage, heal }
+            }
+            CardEffectDe::DamageAndDrawIfSurvives { damage, target } => {
+                CardEffect::DamageAndDrawIfSurvives { damage, target }
+            }
+            CardEffectDe::GainArmorAndDraw { armor, draw } => {
+                CardEffect::GainArmorAndDraw { armor, draw }
+            }
+            CardEffectDe::DamageAndDrawIfKilled { damage, target } => {
+                CardEffect::DamageAndDrawIfKilled { damage, target }
+            }
+            CardEffectDe::DamageAndGainArmor {
+                damage,
+                armor,
+                target,
+            } => CardEffect::DamageAndGainArmor {
+                damage,
+                armor,
+                target,
+            },
+            CardEffectDe::GainPoisonousToFriendlyUndead => {
+                CardEffect::GainPoisonousToFriendlyUndead
+            }
+            CardEffectDe::TransformToMinion { card_id } => CardEffect::TransformToMinion {
+                card_id: intern(card_id)?,
+            },
+            CardEffectDe::GrantDeathrattleToTarget { card_id } => {
+                CardEffect::GrantDeathrattleToTarget {
+                    card_id: intern(card_id)?,
+                }
+            }
+            CardEffectDe::DestroyAllMinionsAttackGE { attack } => {
+                CardEffect::DestroyAllMinionsAttackGE { attack }
+            }
+            CardEffectDe::AoeDamageAndDraw { damage, draw } => {
+                CardEffect::AoeDamageAndDraw { damage, draw }
+            }
+            CardEffectDe::GainStatsTauntAndDeathrattle {
+                attack,
+                health,
+                card_id,
+            } => CardEffect::GainStatsTauntAndDeathrattle {
+                attack,
+                health,
+                card_id: intern(card_id)?,
+            },
             CardEffectDe::DestroyAndGainStats {
                 attack,
                 health,

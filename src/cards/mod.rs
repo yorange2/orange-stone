@@ -17,6 +17,7 @@ pub mod classic_warlock;
 pub mod classic_warrior;
 pub mod core_w1;
 pub mod core_w2;
+pub mod core_w3a;
 pub mod def;
 pub mod generated;
 pub mod pool;
@@ -66,6 +67,7 @@ mod lookup_tests {
 /// in): the sets.rs closure test treats these IDs as pool-open as well.
 pub(crate) const POOL_OPEN_KEYWORD_IDS: &[&str] = &[
     "LEGENDARY_024", // Lorewalker Cho — AnySpellCast copy trigger
+    "CORE_EX1_100",  // Lorewalker Cho (Core Set W3a) — same trigger
 ];
 
 pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &CardDef) {
@@ -117,6 +119,57 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "CORE_SW_429" // Best in Shell
     ) {
         world.set_tradeable(entity, Tradeable);
+    }
+    // Core Set W3a triggers — Acolyte of Pain (draw on damage), Murloc
+    // Tidecaller (attack on friendly Murloc summon), Frothing Berserker
+    // (attack on friendly minion damage), Archmage Antonidas (Fireball on
+    // friendly spell cast — declared via spell_trigger, no hook needed).
+    if card_def.id == "CORE_EX1_007" {
+        // Acolyte of Pain — whenever this minion takes damage, draw a card
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::ThisMinionDamaged,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::DrawCard { count: 1 },
+            },
+        );
+    }
+    if card_def.id == "CORE_EX1_509" {
+        // Murloc Tidecaller — whenever you summon a Murloc, gain +1 Attack
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionSummoned,
+                timing: TriggerTiming::Whenever,
+                race: Some(crate::core::component::Race::Murloc),
+                max_attack: None,
+                effect: CardEffect::GainStats {
+                    attack: 1,
+                    health: 0,
+                    target: EffectTarget::Self_,
+                },
+            },
+        );
+    }
+    if card_def.id == "CORE_EX1_604" {
+        // Frothing Berserker — whenever a friendly minion takes damage, +1 Attack
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionDamaged,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::GainStats {
+                    attack: 1,
+                    health: 0,
+                    target: EffectTarget::Self_,
+                },
+            },
+        );
     }
     // Shaman cards with Overload — the amount locks mana on the owner's next
     // turn (roadmap F1): Lightning Bolt 1, Lightning Storm 2, Feral Spirit 2,

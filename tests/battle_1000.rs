@@ -215,6 +215,7 @@ fn run_1000_battles() {
                 !e.error.contains("HeroPowerAlreadyUsed")
                     && !e.error.contains("NotEnoughMana")
                     && !e.error.contains("BoardFull")
+                    && !e.error.contains("场上随从数量超限") // BoardFull 的中文 Display
                     && !e.error.contains("AttacksExhausted")
                     && !e.error.contains("MustAttackTaunt")
                     && !e.error.contains("InvalidTarget")

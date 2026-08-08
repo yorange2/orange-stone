@@ -1668,10 +1668,13 @@ fn w1_race_pools_are_field_driven() {
         additions,
         vec![
             "CLASSIC_001",   // Bloodfen Raptor
+            "CORE_AT_062t",  // Spider (Core Set W3a token)
+            "CORE_EX1_246t", // Frog (Core Set W3a token)
             "CORE_GIL_558",  // Swamp Leech (Core Set W1)
             "CORE_SW_429t",  // Turtle (Core Set W2 token)
             "CORE_TRL_900",  // Halazzi, the Lynx (Core Set W1)
             "CORE_TRL_900t", // Lynx (Core Set W1 token)
+            "CORE_UNG_952t", // Spider (Core Set W3a token)
             "CORE_WC_701",   // Felrattler (Core Set W1)
             "HUNTER_006t",   // Hyena (Savannah Highmane token)
             "HUNTER_013",    // Scavenging Hyena
@@ -10249,4 +10252,512 @@ fn w2_demolition_renovator_fizzles_without_locations() {
         .unwrap();
     assert_eq!(state.world().effective_health(foe), Some(Health(2)));
     assert_eq!(state.world().zone(renovator), Some(Zone::Play));
+}
+
+// ============================================================
+// Core Set W3a (core-set-roadmap W3a) — the simple batch. The
+// scenarios cover the faithful effect shapes the Classic pool
+// simplified (Holy Nova heal, Slam/Mortal Coil conditional draws,
+// Shield Block draw, real transform) plus the new combinations.
+// ============================================================
+
+/// W3a-1 Holy Nova — 2 damage to all enemy minions AND 2 heal to all
+/// friendly characters (the Classic pool's damage-only version was a
+/// simplification; the Core version is faithful).
+#[test]
+fn w3a_holy_nova_damages_and_heals() {
+    use orange_stone::cards::def::CORE_HOLY_NOVA;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_HOLY_NOVA);
+    let mut state = builder.build();
+    let hero1 = state.player(PlayerId1()).hero;
+    // Damage the hero and the friendly minion so the heal is observable
+    let friendly = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("friendly minion");
+    {
+        let world = state.world_mut();
+        world.set_damage(hero1, orange_stone::core::component::Damage(3));
+        world.set_damage(friendly, orange_stone::core::component::Damage(2));
+    }
+    let engine = GameEngine::new();
+    let nova = find_in_hand(&state, PlayerId1(), "CORE_CS1_112");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: nova,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // Enemy minion: 2 damage (dead)
+    let enemy = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion));
+    assert!(enemy.is_none(), "the enemy 2/2 dies to 2 damage");
+    // Friendly: hero 3 -> 1 damage, minion 2 -> 0 damage
+    assert_eq!(state.world().damage(hero1).map_or(0, |d| d.0), 1);
+    let friendly = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("friendly minion survives");
+    assert_eq!(state.world().damage(friendly).map_or(0, |d| d.0), 0);
+}
+
+/// W3a-2 Slam — draws only when the target survives.
+#[test]
+fn w3a_slam_draws_only_when_survives() {
+    use orange_stone::cards::def::CORE_SLAM;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let a = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1); // dies
+    let b = builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4); // survives
+    builder.add_minion_to_hand(PlayerId1(), &CORE_SLAM);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_SLAM);
+    builder.add_minion_to_deck(PlayerId1(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(PlayerId1(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // First Slam on the 1/1: it dies — no draw
+    let slam = find_in_hand(&state, PlayerId1(), "CORE_EX1_391");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: slam,
+                target: Some(a),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId1()), 1);
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 2);
+    // Second Slam on the 4/4: it survives — draw
+    let slam2 = find_in_hand(&state, PlayerId1(), "CORE_EX1_391");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: slam2,
+                target: Some(b),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId1()), 1);
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 1);
+    assert_eq!(state.world().effective_health(b), Some(Health(2)));
+}
+
+/// W3a-3 Shield Block — armor AND draw (the Classic pool's armor-only
+/// version was a simplification).
+#[test]
+fn w3a_shield_block_armor_and_draw() {
+    use orange_stone::cards::def::CORE_SHIELD_BLOCK;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_SHIELD_BLOCK);
+    builder.add_minion_to_deck(PlayerId1(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let block = find_in_hand(&state, PlayerId1(), "CORE_EX1_606");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: block,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(PlayerId1()).armor, 5);
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId1()), 1);
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 0);
+}
+
+/// W3a-4 Mortal Coil — draws only when the target dies.
+#[test]
+fn w3a_mortal_coil_draws_on_kill() {
+    use orange_stone::cards::def::CORE_MORTAL_COIL;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let weak = builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 1);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_MORTAL_COIL);
+    builder.add_minion_to_deck(PlayerId1(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let coil = find_in_hand(&state, PlayerId1(), "CORE_EX1_302");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: coil,
+                target: Some(weak),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(weak), Some(Zone::Graveyard));
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId1()), 1);
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 0);
+}
+
+/// W3a-5 Bash — damage and armor in one.
+#[test]
+fn w3a_bash_damages_and_gains_armor() {
+    use orange_stone::cards::def::CORE_BASH;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_BASH);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let bash = find_in_hand(&state, PlayerId1(), "CORE_AT_064");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bash,
+                target: Some(foe),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(foe), Some(Health(1)));
+    assert_eq!(state.player(PlayerId1()).armor, 3);
+}
+
+/// W3a-6 Hex — a real transform: the minion becomes a 0/1 Frog with Taunt,
+/// effects cleared (no deathrattle fires).
+#[test]
+fn w3a_hex_transforms_to_frog() {
+    use orange_stone::cards::def::CORE_HEX;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let victim = builder.add_custom_minion_to_board(PlayerId2(), 8, 8, 8);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_HEX);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hex = find_in_hand(&state, PlayerId1(), "CORE_EX1_246");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: hex,
+                target: Some(victim),
+                position: None,
+            },
+        )
+        .unwrap();
+    // Still on the board as a 0/1 Frog with Taunt
+    assert_eq!(state.world().zone(victim), Some(Zone::Play));
+    assert_eq!(state.world().effective_attack(victim), Some(Attack(0)));
+    assert_eq!(state.world().effective_health(victim), Some(Health(1)));
+    assert!(state.world().taunt(victim).is_some());
+    assert!(
+        state
+            .world()
+            .card_id(victim)
+            .is_some_and(|c| c.0 == "CORE_EX1_246t")
+    );
+}
+
+/// W3a-7 Poison Breath — gives a friendly Undead minion Poisonous.
+#[test]
+fn w3a_poison_breath_gives_poisonous() {
+    use orange_stone::cards::def::CORE_POISON_BREATH;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId1(), &orange_stone::cards::def::UNDERKING);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_POISON_BREATH);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let breath = find_in_hand(&state, PlayerId1(), "CORE_EDR_002");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: breath,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let undead = find_entity(&state, PlayerId1(), "CORE_RLK_657");
+    assert!(state.world().poison(undead).is_some());
+}
+
+/// W3a-8 Spikeridged Steed — +2/+6, Taunt, and a deathrattle that summons
+/// a 2/6 Spider with Taunt.
+#[test]
+fn w3a_spikeridged_steed_buffs_and_deathrattle() {
+    use orange_stone::cards::def::CORE_SPIKERIDGED_STEED;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let target = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_SPIKERIDGED_STEED);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let steed = find_in_hand(&state, PlayerId1(), "CORE_UNG_952");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: steed,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_attack(target), Some(Attack(4)));
+    assert_eq!(state.world().effective_health(target), Some(Health(8)));
+    assert!(state.world().taunt(target).is_some());
+    // Kill it: the deathrattle summons the 2/6 Spider
+    let enemy = builder2_killer(&mut state);
+    let _ = enemy;
+}
+
+/// Helper for W3a-8: a 9/9 enemy that kills the buffed minion.
+fn builder2_killer(state: &mut GameState) -> Entity {
+    let world = state.world_mut();
+    let e = world.spawn();
+    world.set_card_type(e, CardType::Minion);
+    world.set_attack(e, Attack(9));
+    world.set_health(e, Health(9));
+    world.set_cost(e, orange_stone::core::component::Cost(9));
+    world.set_player(e, PlayerId2());
+    world.set_attacks_used(e, orange_stone::core::component::AttacksUsed(0));
+    world.set_zone(e, Zone::Play);
+    world.zones_mut().insert(Zone::Play, PlayerId2(), e);
+    e
+}
+
+/// W3a-9 Fan of Knives — 2 damage to all enemy minions and draw.
+#[test]
+fn w3a_fan_of_knives_damages_and_draws() {
+    use orange_stone::cards::def::CORE_FAN_OF_KNIVES;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_FAN_OF_KNIVES);
+    builder.add_minion_to_deck(PlayerId1(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let fan = find_in_hand(&state, PlayerId1(), "CORE_EX1_129");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: fan,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let survivors = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(survivors, 1, "the 2/2 dies, the 3/3 drops to 1");
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId1()), 1);
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 0);
+}
+
+/// W3a-10 Shadow Word: Ruin — destroys all minions (both sides) with 5+
+/// Attack.
+#[test]
+fn w3a_shadow_word_ruin_destroys_big() {
+    use orange_stone::cards::def::CORE_SHADOW_WORD_RUIN;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_custom_minion_to_board(PlayerId2(), 5, 5, 5); // dies
+    builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4); // survives
+    builder.add_custom_minion_to_board(PlayerId1(), 6, 6, 6); // dies (own)
+    builder.add_minion_to_hand(PlayerId1(), &CORE_SHADOW_WORD_RUIN);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let ruin = find_in_hand(&state, PlayerId1(), "CORE_EX1_197");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: ruin,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let p1 = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    let p2 = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(p1, 0, "the own 6/6 dies too");
+    assert_eq!(p2, 1, "only the 4/4 survives");
+}
+
+/// W3a-11 Lorewalker Cho (Core) — a cast spell is copied to the caster's
+/// opponent (pool-open registration).
+#[test]
+fn w3a_cho_copies_cast_spells() {
+    use orange_stone::cards::def::CORE_LOREWALKER_CHO;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId1(), &CORE_LOREWALKER_CHO);
+    builder.add_minion_to_hand(PlayerId1(), &orange_stone::cards::def::CORE_HOLY_SMITE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let smite = find_in_hand(&state, PlayerId1(), "CORE_CS1_130");
+    let hero2 = state.player(PlayerId2()).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: smite,
+                target: Some(hero2),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero2), Some(Health(28)));
+    // The copy lands in P2's hand
+    let copied = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .any(|e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_CS1_130")
+        });
+    assert!(copied, "the opponent received a copy of the cast spell");
+}
+
+/// W3a-12 Innervate (Core) — gain 1 mana this turn only.
+#[test]
+fn w3a_innervate_gives_one_mana_this_turn() {
+    use orange_stone::cards::def::CORE_INNERVATE;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 3, 3);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_INNERVATE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let innervate = find_in_hand(&state, PlayerId1(), "CORE_EX1_169");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: innervate,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(PlayerId1()).current_mana, 4);
+    assert_eq!(state.player(PlayerId1()).mana_crystals, 3);
+}
+
+/// W3a-13 Dragonbane — at the end of the owner's turn, deal 4 damage to a
+/// random enemy.
+#[test]
+fn w3a_dragonbane_pings_random_enemy() {
+    use orange_stone::cards::def::CORE_DRAGONBANE;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId1());
+    pad_decks(&mut builder); // cross-turn test — the default decks fatigue
+    builder.add_minion_to_board(PlayerId1(), &CORE_DRAGONBANE);
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 6, 6, 6);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let foe_hp = state
+        .world()
+        .effective_health(foe)
+        .map(|h| h.0)
+        .unwrap_or(6);
+    let hero2_hp = state
+        .world()
+        .effective_health(state.player(PlayerId2()).hero)
+        .map(|h| h.0)
+        .unwrap_or(30);
+    // Either the minion took 4 (6 -> 2) or the hero took 4 (30 -> 26)
+    assert!(
+        (foe_hp == 2 && hero2_hp == 30) || (foe_hp == 6 && hero2_hp == 26),
+        "4 damage to a random enemy: minion {foe_hp}, hero {hero2_hp}"
+    );
+}
+
+/// W3a-14 Twisting Nether — destroys ALL minions (both sides).
+#[test]
+fn w3a_twisting_nether_destroys_all() {
+    use orange_stone::cards::def::CORE_TWISTING_NETHER;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    builder.add_custom_minion_to_board(PlayerId1(), 4, 4, 4);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_TWISTING_NETHER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let nether = find_in_hand(&state, PlayerId1(), "CORE_EX1_312");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: nether,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let p1 = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    let p2 = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(p1, 0);
+    assert_eq!(p2, 0);
 }

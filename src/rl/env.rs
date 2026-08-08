@@ -447,6 +447,12 @@ fn play_targets(
         CardEffect::SwapAttackAndHealth { target } => target,
         CardEffect::GrantDivineShield { target } => target,
         CardEffect::OutcastDamage { target, .. } => target,
+        CardEffect::DamageAndDrawIfSurvives { target, .. } => target,
+        CardEffect::DamageAndDrawIfKilled { target, .. } => target,
+        CardEffect::DamageAndGainArmor { target, .. } => target,
+        CardEffect::TransformToMinion { .. } => EffectTarget::AnyMinion,
+        CardEffect::GrantDeathrattleToTarget { .. } => EffectTarget::AnyMinion,
+        CardEffect::GainStatsTauntAndDeathrattle { .. } => EffectTarget::AnyMinion,
         _ => return Vec::new(),
     };
     let owner = state
