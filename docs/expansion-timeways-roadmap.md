@@ -31,8 +31,10 @@ mechanics (2026-08-08, 34.0 patch notes):
 One PR per wave; every card lands with an F5 differential scenario; `sets.rs`
 registration; simplifications get ledger rows.
 
-- **W0 — wiring + data:** M0 data for this set; inventory backfilled; fidelity
-  tests.
+- [x] **W0 — wiring + data** (PR #150): M0 data for this set landed
+  (M0.1–M0.5); inventory backfilled; the per-set dump fidelity test
+  (`across_the_timeways_dump_fidelity`, TIME_ + END_ prefixes, 183 cards)
+  landed with the generated baseline.
 - **W1 — Rewind (R1):** last-card history component + replay resolution; F5
   scenarios pin replay ordering (replay happens after the triggering play
   resolves), x2/x3 stacking, and interplay with death phases.
