@@ -28,6 +28,7 @@ pub mod core_w6;
 pub mod core_w7;
 pub mod core_w8;
 pub mod def;
+pub mod exp_edr_w1;
 pub mod generated;
 pub mod pool;
 pub mod sets;
@@ -43,7 +44,10 @@ use crate::core::world::World;
 use def::CardDef;
 
 /// Looks up a card by its ID (first match in `ALL_CARDS`, which deduplicates
-/// IDs; falls back to the 2025–2026 expansion baselines `EXPANSION_CARDS`).
+/// IDs; then the handwritten expansion cards `HANDWRITTEN_EXPANSION_CARDS`
+/// — the M1+ effect waves' handwritten implementations override the
+/// generated baselines; finally the 2025–2026 expansion baselines
+/// `EXPANSION_CARDS`).
 ///
 /// Used by the RL environment and Python bindings to build explicit decks
 /// (roadmap M1-G2); `None` for unknown IDs.
@@ -52,6 +56,11 @@ pub fn card_by_id(id: &str) -> Option<&'static CardDef> {
     sets::ALL_CARDS
         .iter()
         .find(|c| c.id == id)
+        .or_else(|| {
+            sets::HANDWRITTEN_EXPANSION_CARDS
+                .iter()
+                .find(|c| c.id == id)
+        })
         .or_else(|| sets::EXPANSION_CARDS.iter().find(|c| c.id == id))
 }
 
@@ -104,6 +113,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "CORE_ULD_178" // Siamat (W4b — simplified to Rush+Taunt)
         | "CORE_BOT_451t" // Spark (W6 token)
         | "CORE_TSC_650t4" // Otter (W6 token — Flipper Friends)
+        | "EDR_227" // Umbraclaw (M1-W1 — the Emerald Dream imbue wave)
     ) {
         world.set_rush(entity, Rush);
     }
@@ -118,6 +128,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "CORE_ICC_214" // Obsidian Statue
         | "CORE_SW_442"  // Void Shard (spell)
         | "CORE_TTN_866" // Mythical Terror
+        | "EDR_449"     // Lunarwing Messenger (M1-W1)
+        | "EDR_860" // Resplendent Dreamweaver (M1-W1)
     ) {
         world.set_lifesteal(entity, Lifesteal);
     }
@@ -1317,12 +1329,17 @@ mod generated_tests {
     }
 
     /// The gate itself: enumerate the generated expansion baselines, compare
-    /// any handwritten counterpart field by field.
+    /// any handwritten counterpart (a member of the handwritten pool or of
+    /// `HANDWRITTEN_EXPANSION_CARDS` — the M1+ effect waves) field by field.
     #[test]
     fn expansion_differential_gate() {
         let mut hand_written = 0;
         for card in sets::EXPANSION_CARDS {
-            let Some(handwritten) = sets::ALL_CARDS.iter().find(|c| c.id == card.id) else {
+            let Some(handwritten) = sets::ALL_CARDS
+                .iter()
+                .chain(sets::HANDWRITTEN_EXPANSION_CARDS.iter())
+                .find(|c| c.id == card.id)
+            else {
                 continue; // generated baseline in effect — nothing to compare
             };
             hand_written += 1;
@@ -1354,12 +1371,20 @@ mod generated_tests {
                 );
             }
         }
-        // M0: no handwritten expansion cards yet — the gate's comparisons
-        // become active with the first M1+ effect wave (which must update
-        // this count as the gate's tripwire).
+        // M1-W1 tripwire: EVERY handwritten expansion card with a generated
+        // baseline must have been compared above (a handwritten card missing
+        // from the generated list would silently sit outside the gate — and
+        // one whose fields diverged without a documented rebalance would
+        // have tripped the field asserts). Handwritten-only tokens (the
+        // M1-W1 EDR_847pt2 / EDR_851t / EDR_445pt3) have no baseline and are
+        // excluded from the expectation.
+        let with_baseline = sets::HANDWRITTEN_EXPANSION_CARDS
+            .iter()
+            .filter(|hw| sets::EXPANSION_CARDS.iter().any(|g| g.id == hw.id))
+            .count();
         assert_eq!(
-            hand_written, 0,
-            "M0 baseline: no handwritten expansion cards (update this gate when the first wave lands)"
+            hand_written, with_baseline,
+            "every handwritten expansion card must be compared against its generated baseline"
         );
     }
 }

@@ -4,6 +4,8 @@
 //! Effects are stored as `Copy` enum constants in `CardDef` and the `Battlecry`/`Deathrattle` components.
 use serde::{Deserialize, Serialize};
 
+use crate::core::component::ImbueClass;
+
 /// Effect target selector.
 ///
 /// When an effect is executed, the engine selects target entities based on this enum.
@@ -1291,6 +1293,74 @@ pub enum CardEffect {
     /// cost (1) less (Illidari Studies — Discover simplified to random
     /// generation)
     AddRandomOutcastCardNextCheaper,
+    // ----------------------------------------------------------------
+    // 2025–2026 expansions M1-W1 effects (exp_edr_w1) — the Emerald Dream
+    // imbue mechanic: an imbue card increments the player's imbue count;
+    // the first imbue replaces the hero power with the class's imbued form
+    // (cost 2), later imbues scale the imbued powers' numbers (level =
+    // imbue count, read at resolution time — the count is the single source
+    // of truth). Imbued hero powers are spell-powered like any hero power
+    // (the source is the hero entity, CardType::Hero).
+    // ----------------------------------------------------------------
+    /// Imbue: the player's imbue count +1; on the first imbue, a hero of one
+    /// of the six imbuing classes gets its imbued hero power (cost 2)
+    /// instead of the base one (EDR_226, EDR_227, EDR_449, EDR_451, EDR_800,
+    /// EDR_845, EDR_852, EDR_970)
+    ImbueHeroPower,
+    /// The imbued hero power of the given class — resolved at level L = the
+    /// owner's current imbue count (the six EDR_*p hero powers)
+    ImbuedHeroPower {
+        /// The hero power's class
+        class: ImbueClass,
+    },
+    /// Free resolution of the owner's current hero power effect — no mana
+    /// spent, the hero power is not marked used (Wisprider's "trigger it")
+    UseHeroPower,
+    /// Draw a Beast, then imbue (Exotic Houndmaster)
+    DrawBeastAndImbue,
+    /// Restore health to the friendly hero, draw a card, then imbue
+    /// (Aspect's Embrace)
+    RestoreAndDrawAndImbue {
+        /// Health restored
+        amount: i32,
+    },
+    /// Summon a random 2-Cost minion, give it Taunt, then imbue (Aegis of
+    /// Light)
+    SummonRandomTwoCostTauntAndImbue,
+    /// Imbue, then reduce the cost of a random minion in hand by (1)
+    /// (Living Garden)
+    ImbueAndReduceHandCost,
+    /// Imbue, then trigger the (possibly just-replaced) hero power once
+    /// (Wisprider)
+    ImbueAndTriggerHeroPower,
+    /// Imbue, then add a Wisp token to hand (Spirit Gatherer)
+    ImbueAndGetWisp,
+    /// Give all enemy minions -attack until your next turn, then imbue
+    /// (Kaldorei Priestess — the TempDebuff precedent)
+    ImbueAndDebuffEnemies {
+        /// Attack reduction
+        attack_reduction: i32,
+    },
+    /// If the player has imbued at least twice, deal damage to a minion
+    /// (Resplendent Dreamweaver)
+    DealDamageIfImbuedTwice {
+        /// Damage amount
+        damage: i32,
+    },
+    /// Add a random Wild God to hand; if the player has imbued at least 4
+    /// times, set its Cost to (1) (Malorne the Waywatcher — Discover
+    /// simplified to a random pick over the fixed WILD_GOD_POOL)
+    DiscoverWildGodIfImbued4,
+    /// Hamuul Runetotem: count friendly spells cast while in play; every
+    /// third cast imbues again
+    ImbueEveryThirdSpell,
+    /// Summon a random minion of the given cost with the Dragon race (the
+    /// Emerald Portal token — Casts-When-Drawn simplified to a playable
+    /// spell that summons a random 1-Cost Dragon)
+    SummonRandomDragonOfCost {
+        /// Cost of the summoned dragon
+        cost: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -1884,6 +1954,30 @@ enum CardEffectDe {
     },
     SwapWithHandMinion,
     ResurrectDiedMinion,
+    ImbueHeroPower,
+    ImbuedHeroPower {
+        class: ImbueClass,
+    },
+    UseHeroPower,
+    DrawBeastAndImbue,
+    RestoreAndDrawAndImbue {
+        amount: i32,
+    },
+    SummonRandomTwoCostTauntAndImbue,
+    ImbueAndReduceHandCost,
+    ImbueAndTriggerHeroPower,
+    ImbueAndGetWisp,
+    ImbueAndDebuffEnemies {
+        attack_reduction: i32,
+    },
+    DealDamageIfImbuedTwice {
+        damage: i32,
+    },
+    DiscoverWildGodIfImbued4,
+    ImbueEveryThirdSpell,
+    SummonRandomDragonOfCost {
+        cost: i32,
+    },
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -2500,7 +2594,70 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             }
             CardEffectDe::SwapWithHandMinion => CardEffect::SwapWithHandMinion,
             CardEffectDe::ResurrectDiedMinion => CardEffect::ResurrectDiedMinion,
+            CardEffectDe::ImbueHeroPower => CardEffect::ImbueHeroPower,
+            CardEffectDe::ImbuedHeroPower { class } => CardEffect::ImbuedHeroPower { class },
+            CardEffectDe::UseHeroPower => CardEffect::UseHeroPower,
+            CardEffectDe::DrawBeastAndImbue => CardEffect::DrawBeastAndImbue,
+            CardEffectDe::RestoreAndDrawAndImbue { amount } => {
+                CardEffect::RestoreAndDrawAndImbue { amount }
+            }
+            CardEffectDe::SummonRandomTwoCostTauntAndImbue => {
+                CardEffect::SummonRandomTwoCostTauntAndImbue
+            }
+            CardEffectDe::ImbueAndReduceHandCost => CardEffect::ImbueAndReduceHandCost,
+            CardEffectDe::ImbueAndTriggerHeroPower => CardEffect::ImbueAndTriggerHeroPower,
+            CardEffectDe::ImbueAndGetWisp => CardEffect::ImbueAndGetWisp,
+            CardEffectDe::ImbueAndDebuffEnemies { attack_reduction } => {
+                CardEffect::ImbueAndDebuffEnemies { attack_reduction }
+            }
+            CardEffectDe::DealDamageIfImbuedTwice { damage } => {
+                CardEffect::DealDamageIfImbuedTwice { damage }
+            }
+            CardEffectDe::DiscoverWildGodIfImbued4 => CardEffect::DiscoverWildGodIfImbued4,
+            CardEffectDe::ImbueEveryThirdSpell => CardEffect::ImbueEveryThirdSpell,
+            CardEffectDe::SummonRandomDragonOfCost { cost } => {
+                CardEffect::SummonRandomDragonOfCost { cost }
+            }
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::component::ImbueClass;
+
+    /// Every new 2025–2026 expansions M1-W1 variant survives the bincode
+    /// roundtrip (CardEffectDe → CardEffect via the interned card ids).
+    #[test]
+    fn imbue_effects_serialize_roundtrip() {
+        for effect in [
+            CardEffect::ImbueHeroPower,
+            CardEffect::ImbuedHeroPower {
+                class: ImbueClass::Druid,
+            },
+            CardEffect::ImbuedHeroPower {
+                class: ImbueClass::Shaman,
+            },
+            CardEffect::UseHeroPower,
+            CardEffect::DrawBeastAndImbue,
+            CardEffect::RestoreAndDrawAndImbue { amount: 4 },
+            CardEffect::SummonRandomTwoCostTauntAndImbue,
+            CardEffect::ImbueAndReduceHandCost,
+            CardEffect::ImbueAndTriggerHeroPower,
+            CardEffect::ImbueAndGetWisp,
+            CardEffect::ImbueAndDebuffEnemies {
+                attack_reduction: 2,
+            },
+            CardEffect::DealDamageIfImbuedTwice { damage: 4 },
+            CardEffect::DiscoverWildGodIfImbued4,
+            CardEffect::ImbueEveryThirdSpell,
+            CardEffect::SummonRandomDragonOfCost { cost: 1 },
+        ] {
+            let bytes = bincode::serialize(&effect).expect("serialize");
+            let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
+            assert_eq!(back, effect);
+        }
     }
 }
 
@@ -2533,4 +2690,8 @@ pub enum RandomPool {
     Mechanical,
     /// A random spell (Core Set W4a — generic spell discovery simplification)
     Spell,
+    /// A random Priest class minion or spell (Blessing of the Moon —
+    /// 2025–2026 expansions M1-W1; the real card lets the player choose,
+    /// simplified to random)
+    PriestCard,
 }

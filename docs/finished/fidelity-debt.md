@@ -1,7 +1,11 @@
 # Fidelity Debt — Simplified Cards (F4/F5 Audit Ledger)
 
-> **Status: the ledger is EMPTY — `src/cards/` carries no `(simplified: …)` markers
-> and the RL pool is the full 392 (415 card ids − 22 derivatives − coin).**
+> **Status: the classic-side ledger is EMPTY — `src/cards/` carries no
+> `(simplified: …)` markers on classic cards and the RL pool is the full 392
+> (415 card ids − 22 derivatives − coin).** The only non-empty section is
+> **§14 (2025–2026 expansions)**: the four M1-W1 Emerald Dream simplifications
+> registered there are the first entries since §13; they cover the new
+> handwritten expansion cards, which are not part of the RL pool.
 >
 > How it got here: the original 67 fidelity-debt cards were cleared in W0–W7
 > (W0 wiring PR #79 cleared 13; W1 race PR #80 cleared 11; W2 triggers PR #81 cleared 8;
@@ -312,6 +316,42 @@ F5 coverage: `w8_amani_berserker_enrage`, `enrage_does_not_stack_and_ends_at_ful
 `cargo clippy --all-targets` clean; `cargo bench` shows no change on the touched
 paths (`effective_stats/aura_board_14_minions`, `effect_resolution/*`, all
 p > 0.05).
+
+### 14. 2025–2026 expansions M1-W1 — the Emerald Dream imbue wave (5 cards) 🔓 registered
+
+The four registered simplifications of the M1-W1 wave (15 cards + 3 tokens in
+`src/cards/exp_edr_w1.rs`, 2025-2026-expansions-roadmap M1). These handwritten
+expansion cards are not part of the RL pool (classic + core 668/659), so the
+rows are informational: they keep the code's `(simplified: …)` markers
+traceable to the ledger. Each row stays open until its mechanism lands in a
+later wave (W3 brings the real choice/discover pipeline).
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| EDR_845 | Hamuul Runetotem | Nature school check skipped (every friendly spell qualifies); the Start-of-Game part fires on play (the engine has no StartOfGame event) and the every-3-spells trigger fires only while Hamuul is in play (the per-player counter survives him leaving play) | a StartOfGame event + a school check on the spell entity |
+| EDR_449p | Blessing of the Moon (Priest skill) | "Choose a playable Priest minion or spell" → a random pick over the PriestCard pool | the real choice mechanism (W3) |
+| EDR_445pt3 | Emerald Portal (Paladin skill token) | "Casts When Drawn" not modeled → a playable 0-cost spell that summons a random 1-Cost Dragon when played; the dragon pool spans the expansion baselines (END_022 / CATA_484 / CATA_556) because the active Classic/Core window has no 1-Cost dragons | a cast-when-drawn pipeline |
+| EDR_888 | Malorne the Waywatcher | Discover → the existing random simplification over the fixed WILD_GOD_POOL (the 8 EDR Wild Gods) | the real Discover pipeline (W3) |
+| EDR_970 | Kaldorei Priestess | "until your next turn" → the TempDebuff UntilEndOfTurn expiry (established engine precedent — Scarlet Subjugator); the debuff expires at the active turn's wrap-up | a next-turn expiry variant |
+
+中文小结（同四行）：Hamuul 的 Nature 学派检查跳过（所有友方法术合格），且
+"开局"部分改为打出时触发、每三张法术的触发仅在 Hamuul 在场时生效；牧师
+英雄技能"选择一张可用的牧师随从或法术"简化为从 PriestCard 池随机取一张；
+圣骑士的翡翠传送门未建模 Casts When Drawn，改为可打出的 0 费法术（打出时
+召唤随机 1 费龙，龙池跨扩展基线——当前经典/核心窗口内没有 1 费龙）；
+Malorne 的发现沿用既有随机简化（固定 WILD_GOD_POOL 八位荒野之神）；
+Kaldorei 祭司的"直到你的下回合"沿用既有 TempDebuff 先例（本回合结束移除，
+与 Scarlet Subjugator 一致）。
+
+F5 coverage: `edr_w1_imbue_threshold_sequence`,
+`edr_w1_druid_golem_scales_with_level`, `edr_w1_mage_wisp_damage_scales_with_level`,
+`edr_w1_paladin_portals_shuffled_into_deck`, `edr_w1_emerald_portal_playable_summons_dragon`,
+`edr_w1_priest_moon_random_priest_card_reduced`, `edr_w1_shaman_wind_transforms_to_cost_plus_level`,
+`edr_w1_wisprider_imbues_then_triggers`, `edr_w1_dreamweaver_requires_two_imbues`,
+`edr_w1_malorne_wild_god_cost_threshold`, `edr_w1_warrior_counts_without_replacement`,
+`edr_w1_hamuul_imbues_every_third_spell`, `edr_w1_kaldorei_priestess_debuffs_enemy_attack`
+(13 scenarios in `tests/differential.rs`). Full `cargo test` green; `cargo clippy
+--all-targets` clean.
 
 ## Findings from the 2026-08-06 audit pass (all resolved in PR #77 / PR #31)
 

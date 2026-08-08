@@ -1660,6 +1660,37 @@ pub const ALL_CARDS: &[CardDef] = &[
     CORE_INFERNAL,
 ];
 
+/// Handwritten 2025–2026 expansion cards (2025-2026-expansions-roadmap
+/// M0.3/M1-W1) — the effect waves' handwritten implementations of members of
+/// `EXPANSION_CARDS`. They never enter `ALL_CARDS` (the sampling pools stay
+/// closed until the single cut-over, decision D3) but are reachable through
+/// the `card_by_id` chain (ALL_CARDS → HANDWRITTEN_EXPANSION_CARDS →
+/// EXPANSION_CARDS), where they override the generated baselines, and are
+/// compared field-by-field against those baselines by the
+/// `expansion_differential_gate` test (M0.4).
+pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
+    // M1-W1 — the Emerald Dream imbue wave (src/cards/exp_edr_w1.rs)
+    super::exp_edr_w1::EXOTIC_HOUNDMASTER,
+    super::exp_edr_w1::UMBRACLAW,
+    super::exp_edr_w1::ASPECTS_EMBRACE,
+    super::exp_edr_w1::AEGIS_OF_LIGHT,
+    super::exp_edr_w1::LUNARWING_MESSENGER,
+    super::exp_edr_w1::GOLDPETAL_DRAKE,
+    super::exp_edr_w1::LIVING_GARDEN,
+    super::exp_edr_w1::WISPRIDER,
+    super::exp_edr_w1::FLUTTERWING_GUARDIAN,
+    super::exp_edr_w1::HAMUUL_RUNETOTEM,
+    super::exp_edr_w1::BITTERBLOOM_KNIGHT,
+    super::exp_edr_w1::RESPLENDENT_DREAMWEAVER,
+    super::exp_edr_w1::SPIRIT_GATHERER,
+    super::exp_edr_w1::MALORNE_THE_WAYWATCHER,
+    super::exp_edr_w1::KALDOREI_PRIESTESS,
+    // M1-W1 tokens (handwritten only — no generated baselines)
+    super::exp_edr_w1::PLANT_GOLEM,
+    super::exp_edr_w1::WISP_TOKEN,
+    super::exp_edr_w1::EMERALD_PORTAL,
+];
+
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated
 /// baselines, engine-available via `card_by_id` (deck building) but **not**
 /// part of `ALL_CARDS`: the sampling pools keep the current training window

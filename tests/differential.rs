@@ -14321,3 +14321,800 @@ fn w8_enchantment_tokens_are_not_playable() {
         );
     }
 }
+
+// ============================================================
+// Wave edr_w1 — the Emerald Dream imbue mechanic
+// (2025-2026 expansions M1-W1): playing an imbue card bumps the
+// player's imbue counter; the first imbue replaces the hero power
+// with the class's imbued form (level = imbue count), later imbues
+// only raise the level. Class detection reads the hero's CardId
+// (HERO_02/04/05/06/08/09); heroes without a class id still count
+// but keep their hero power (design brief's default).
+// ============================================================
+
+/// Sets the hero's CardId so the imbue mechanic can detect the class.
+fn set_hero_class(
+    builder: &mut GameBuilder,
+    player: orange_stone::core::player::PlayerId,
+    id: &'static str,
+) {
+    use orange_stone::core::component::CardId;
+    let state = builder.state_mut();
+    let hero = state.player(player).hero;
+    state.world_mut().set_card_id(hero, CardId(id));
+}
+
+/// Gives the player `mana` crystals and current mana mid-game.
+fn give_mana(state: &mut GameState, player: orange_stone::core::player::PlayerId, mana: i32) {
+    let inner = state.make_mut();
+    let p = &mut inner.players[player.index()];
+    p.mana_crystals = mana;
+    p.current_mana = mana;
+}
+
+/// Plays the card at the front of the given player's hand.
+fn play_front_card(
+    state: &mut GameState,
+    engine: &GameEngine,
+    player: orange_stone::core::player::PlayerId,
+) {
+    let card = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, player)
+        .next()
+        .expect("a card in hand");
+    engine
+        .apply(
+            state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+}
+
+/// F5-EDR1 — the imbue threshold sequence: the first imbue replaces the
+/// hero power, the second only raises its level. Hunter: Exotic Houndmaster
+/// draws a Beast and imbues; the imbued hero power buffs a random Beast in
+/// hand (+L Attack, (L) cheaper).
+#[test]
+fn edr_w1_imbue_threshold_sequence() {
+    use orange_stone::cards::def::{BITTERBLOOM_KNIGHT, BLOODFEN_RAPTOR, EXOTIC_HOUNDMASTER};
+    use orange_stone::core::component::ImbueClass;
+    use orange_stone::core::effect::CardEffect;
+    let mut builder = GameBuilder::new();
+    set_hero_class(&mut builder, PlayerId1(), "HERO_05");
+    builder.add_minion_to_hand(PlayerId1(), &EXOTIC_HOUNDMASTER);
+    // The second imbue comes from Bitterbloom Knight on turn 3.
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    // One Beast in the deck for the Houndmaster's draw; deliberately no
+    // `pad_decks` here — its Beast pads would pollute the random-beast
+    // hero-power pool (fatigue is fine; no hero-health assertions).
+    builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 4, 4);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // First imbue: play the Houndmaster (draws the Raptor, imbues to 1)
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(state.player(PlayerId1()).imbue_count, 1, "first imbue");
+    let hero = state.player(PlayerId1()).hero;
+    let hp = state
+        .world()
+        .hero_power(hero)
+        .expect("the imbued hero power was equipped");
+    assert_eq!(hp.cost, 2, "the imbued power costs 2");
+    assert!(
+        matches!(
+            hp.effect,
+            CardEffect::ImbuedHeroPower {
+                class: ImbueClass::Hunter
+            }
+        ),
+        "Hunter's imbued form"
+    );
+    // Level 1: the hero power buffs the hand Beast (3/2 base) to 4 Attack
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    let raptor = find_in_hand(&state, PlayerId1(), "CLASSIC_001");
+    assert_eq!(
+        state.world().effective_attack(raptor),
+        Some(Attack(4)),
+        "level 1: +1 Attack"
+    );
+    assert_eq!(
+        state.world().effective_cost(raptor),
+        Some(Cost(1)),
+        "level 1: one cheaper"
+    );
+    // Second imbue: count rises to 2, the hero power is NOT replaced
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    give_mana(&mut state, PlayerId1(), 4);
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(state.player(PlayerId1()).imbue_count, 2, "second imbue");
+    let hp = state
+        .world()
+        .hero_power(hero)
+        .expect("hero power still equipped");
+    assert_eq!(hp.cost, 2, "still costs 2");
+    assert!(
+        matches!(
+            hp.effect,
+            CardEffect::ImbuedHeroPower {
+                class: ImbueClass::Hunter
+            }
+        ),
+        "no replacement on the second imbue"
+    );
+    // Level 2: +2 Attack, two cheaper
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    let raptor = find_in_hand(&state, PlayerId1(), "CLASSIC_001");
+    assert_eq!(
+        state.world().effective_attack(raptor),
+        Some(Attack(6)),
+        "level 2: +2 Attack (on top of the level-1 buff)"
+    );
+    assert_eq!(
+        state.world().effective_cost(raptor),
+        Some(Cost(0)),
+        "level 2: two cheaper"
+    );
+}
+
+/// F5-EDR2 — Druid's Blessing of the Golem scales with the imbue level:
+/// the first use summons a 1/1 plant golem, a later use at level 2 a 2/2.
+#[test]
+fn edr_w1_druid_golem_scales_with_level() {
+    use orange_stone::cards::def::BITTERBLOOM_KNIGHT;
+    use orange_stone::core::component::ImbueClass;
+    use orange_stone::core::effect::CardEffect;
+    let mut builder = GameBuilder::new();
+    set_hero_class(&mut builder, PlayerId1(), "HERO_06");
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    builder.set_mana(PlayerId1(), 4, 4);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // First imbue (level 1) — hero power summons a 1/1 golem
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(state.player(PlayerId1()).imbue_count, 1);
+    let hero = state.player(PlayerId1()).hero;
+    let hp = state.world().hero_power(hero).expect("hero power");
+    assert!(
+        matches!(
+            hp.effect,
+            CardEffect::ImbuedHeroPower {
+                class: ImbueClass::Druid
+            }
+        ),
+        "Druid's imbued form"
+    );
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    let golems: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "EDR_847pt2")
+        })
+        .collect();
+    assert_eq!(golems.len(), 1, "one golem at level 1");
+    assert_eq!(state.world().effective_attack(golems[0]), Some(Attack(1)));
+    assert_eq!(state.world().effective_health(golems[0]), Some(Health(1)));
+    // Second imbue (level 2) — the power now summons a 2/2
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    give_mana(&mut state, PlayerId1(), 4);
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(state.player(PlayerId1()).imbue_count, 2);
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    let golems: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "EDR_847pt2")
+        })
+        .collect();
+    assert_eq!(golems.len(), 2, "a second golem at level 2");
+    let mut stats: Vec<(i32, i32)> = golems
+        .iter()
+        .map(|&g| {
+            (
+                state.world().effective_attack(g).unwrap_or(Attack(0)).0,
+                state.world().effective_health(g).unwrap_or(Health(0)).0,
+            )
+        })
+        .collect();
+    stats.sort();
+    assert_eq!(stats, vec![(1, 1), (2, 2)], "1/1 and 2/2 golems");
+}
+
+/// F5-EDR2 — Mage's Blessing of the Wisp: L Wisps and L damage randomly
+/// split among all enemies, both scaling with the imbue level.
+#[test]
+fn edr_w1_mage_wisp_damage_scales_with_level() {
+    use orange_stone::cards::def::{BITTERBLOOM_KNIGHT, CHILLWIND_YETI};
+    use orange_stone::core::component::ImbueClass;
+    use orange_stone::core::effect::CardEffect;
+    let mut builder = GameBuilder::new();
+    set_hero_class(&mut builder, PlayerId1(), "HERO_08");
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    builder.add_minion_to_board(PlayerId2(), &CHILLWIND_YETI);
+    builder.set_mana(PlayerId1(), 4, 4);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let yeti = find_entity(&state, PlayerId2(), "NEUTRAL_T08");
+    // Level 1: one Wisp, one damage
+    play_front_card(&mut state, &engine, PlayerId1());
+    let hero = state.player(PlayerId1()).hero;
+    let hp = state.world().hero_power(hero).expect("hero power");
+    assert!(
+        matches!(
+            hp.effect,
+            CardEffect::ImbuedHeroPower {
+                class: ImbueClass::Mage
+            }
+        ),
+        "Mage's imbued form"
+    );
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    let wisps: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_851t"))
+        .collect();
+    assert_eq!(wisps.len(), 1, "one Wisp at level 1");
+    assert_eq!(
+        state.world().effective_health(yeti),
+        Some(Health(4)),
+        "one ping"
+    );
+    // Level 2: two Wisps, two damage (the yeti is the only enemy)
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    give_mana(&mut state, PlayerId1(), 4);
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(state.player(PlayerId1()).imbue_count, 2);
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    let wisps: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_851t"))
+        .collect();
+    assert_eq!(wisps.len(), 3, "three Wisps total");
+    assert_eq!(
+        state.world().effective_health(yeti),
+        Some(Health(2)),
+        "two more pings"
+    );
+}
+
+/// F5-EDR2 — Paladin's Blessing of the Dragon shuffles two Emerald Portals
+/// into the deck.
+#[test]
+fn edr_w1_paladin_portals_shuffled_into_deck() {
+    use orange_stone::cards::def::{BITTERBLOOM_KNIGHT, CHILLWIND_YETI};
+    use orange_stone::core::component::ImbueClass;
+    use orange_stone::core::effect::CardEffect;
+    let mut builder = GameBuilder::new();
+    set_hero_class(&mut builder, PlayerId1(), "HERO_04");
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    for _ in 0..3 {
+        builder.add_minion_to_deck(PlayerId1(), &CHILLWIND_YETI);
+    }
+    builder.set_mana(PlayerId1(), 4, 4);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(state.player(PlayerId1()).imbue_count, 1);
+    let hero = state.player(PlayerId1()).hero;
+    let hp = state.world().hero_power(hero).expect("hero power");
+    assert_eq!(hp.cost, 2);
+    assert!(
+        matches!(
+            hp.effect,
+            CardEffect::ImbuedHeroPower {
+                class: ImbueClass::Paladin
+            }
+        ),
+        "Paladin's imbued form"
+    );
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 3);
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, PlayerId1()),
+        5,
+        "two portals shuffled in"
+    );
+    let portals = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "EDR_445pt3")
+        })
+        .count();
+    assert_eq!(portals, 2, "both portals are in the deck");
+}
+
+/// F5-EDR2 — the Emerald Portal token is playable and summons a random
+/// 1-Cost Dragon (the window has no 1-Cost dragons, so the pool spans the
+/// expansion baselines — registered in fidelity-debt §14).
+#[test]
+fn edr_w1_emerald_portal_playable_summons_dragon() {
+    use orange_stone::cards::def::EMERALD_PORTAL;
+    use orange_stone::core::component::Race;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &EMERALD_PORTAL);
+    builder.set_mana(PlayerId1(), 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    let dragons: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state.world().card_id(e).is_some_and(|c| {
+                orange_stone::cards::def::card_by_id(c.0)
+                    .is_some_and(|d| d.race == Some(Race::Dragon))
+            })
+        })
+        .collect();
+    assert_eq!(dragons.len(), 1, "one Dragon summoned");
+    let id = state
+        .world()
+        .card_id(dragons[0])
+        .expect("summoned from a def")
+        .0;
+    let def = orange_stone::cards::def::card_by_id(id).expect("dragon def");
+    assert_eq!(def.cost, 1, "a 1-Cost Dragon");
+    assert_eq!(
+        state.world().effective_attack(dragons[0]),
+        Some(Attack(def.attack)),
+        "generated vanilla stats"
+    );
+    assert_eq!(
+        state.world().effective_health(dragons[0]),
+        Some(Health(def.health)),
+        "generated vanilla stats"
+    );
+}
+
+/// F5-EDR2 — Priest's Blessing of the Moon (simplified to a random pick):
+/// a random Priest minion or spell to hand, costing (L) less.
+#[test]
+fn edr_w1_priest_moon_random_priest_card_reduced() {
+    use orange_stone::cards::def::{BITTERBLOOM_KNIGHT, card_by_id};
+    use orange_stone::core::component::ImbueClass;
+    use orange_stone::core::effect::CardEffect;
+    let mut builder = GameBuilder::new();
+    set_hero_class(&mut builder, PlayerId1(), "HERO_09");
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    builder.set_mana(PlayerId1(), 4, 4);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(state.player(PlayerId1()).imbue_count, 1);
+    let hero = state.player(PlayerId1()).hero;
+    let hp = state.world().hero_power(hero).expect("hero power");
+    assert!(
+        matches!(
+            hp.effect,
+            CardEffect::ImbuedHeroPower {
+                class: ImbueClass::Priest
+            }
+        ),
+        "Priest's imbued form"
+    );
+    let hand_before = state.world().zones().len(Zone::Hand, PlayerId1());
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        hand_before + 1,
+        "a Priest card was added"
+    );
+    let added = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 != "EDR_852"))
+        .expect("the added Priest card");
+    let id = state.world().card_id(added).expect("card id").0;
+    assert!(
+        orange_stone::cards::sets::PRIEST_CLASSIC
+            .iter()
+            .any(|p| p.id == id),
+        "{id} is a Priest class card"
+    );
+    let def = card_by_id(id).expect("def");
+    assert!(
+        matches!(def.card_type, CardType::Minion | CardType::Spell),
+        "a minion or a spell"
+    );
+    assert_eq!(
+        state.world().effective_cost(added),
+        Some(Cost(def.cost - 1)),
+        "level 1: one cheaper"
+    );
+}
+
+/// F5-EDR2 — Shaman's Blessing of the Wind transforms a random friendly
+/// minion into a random minion costing (L) more. The Aspect's Embrace spell
+/// is the imbue source so the transform target stays unique.
+#[test]
+fn edr_w1_shaman_wind_transforms_to_cost_plus_level() {
+    use orange_stone::cards::def::{ASPECTS_EMBRACE, card_by_id};
+    use orange_stone::core::component::ImbueClass;
+    use orange_stone::core::effect::CardEffect;
+    let mut builder = GameBuilder::new();
+    set_hero_class(&mut builder, PlayerId1(), "HERO_02");
+    let victim = builder.add_custom_minion_to_board(PlayerId1(), 2, 3, 2);
+    builder.add_minion_to_hand(PlayerId1(), &ASPECTS_EMBRACE);
+    builder.set_mana(PlayerId1(), 4, 4);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(state.player(PlayerId1()).imbue_count, 1);
+    let hero = state.player(PlayerId1()).hero;
+    let hp = state.world().hero_power(hero).expect("hero power");
+    assert!(
+        matches!(
+            hp.effect,
+            CardEffect::ImbuedHeroPower {
+                class: ImbueClass::Shaman
+            }
+        ),
+        "Shaman's imbued form"
+    );
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    // The only friendly minion was transformed into a 3-Cost minion (2+1)
+    let id = state
+        .world()
+        .card_id(victim)
+        .expect("the transformed minion has a card id")
+        .0;
+    let def = card_by_id(id).expect("transform target def");
+    assert_eq!(def.cost, 3, "costs (L) more than the 2-Cost original");
+    assert_eq!(
+        state.world().effective_attack(victim),
+        Some(Attack(def.attack)),
+        "stats reset to the new minion"
+    );
+    assert_eq!(
+        state.world().effective_health(victim),
+        Some(Health(def.health)),
+        "stats reset to the new minion"
+    );
+}
+
+/// F5-EDR3 — Wisprider imbues FIRST, then triggers the just-replaced hero
+/// power once, free of charge (a manual hero power use still works the same
+/// turn).
+#[test]
+fn edr_w1_wisprider_imbues_then_triggers() {
+    use orange_stone::cards::def::{CHILLWIND_YETI, WISPRIDER};
+    use orange_stone::core::component::ImbueClass;
+    use orange_stone::core::effect::CardEffect;
+    let mut builder = GameBuilder::new();
+    set_hero_class(&mut builder, PlayerId1(), "HERO_08");
+    builder.add_minion_to_hand(PlayerId1(), &WISPRIDER);
+    builder.add_minion_to_board(PlayerId2(), &CHILLWIND_YETI);
+    builder.set_mana(PlayerId1(), 7, 7);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let yeti = find_entity(&state, PlayerId2(), "NEUTRAL_T08");
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(state.player(PlayerId1()).imbue_count, 1, "imbued first");
+    let hero = state.player(PlayerId1()).hero;
+    let hp = state.world().hero_power(hero).expect("hero power");
+    assert!(
+        matches!(
+            hp.effect,
+            CardEffect::ImbuedHeroPower {
+                class: ImbueClass::Mage
+            }
+        ),
+        "the hero power was replaced before triggering"
+    );
+    let wisps: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_851t"))
+        .collect();
+    assert_eq!(wisps.len(), 1, "the triggered power summoned a Wisp");
+    assert_eq!(
+        state.world().effective_health(yeti),
+        Some(Health(4)),
+        "the triggered power pinged the enemy"
+    );
+    // The trigger did not mark the power used — a manual use still works
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    let wisps: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_851t"))
+        .collect();
+    assert_eq!(wisps.len(), 2, "a manual use summons a second Wisp");
+    assert_eq!(
+        state.world().effective_health(yeti),
+        Some(Health(3)),
+        "the manual use pinged again"
+    );
+}
+
+/// F5-EDR4 — Resplendent Dreamweaver only deals its 4 damage once the owner
+/// has imbued at least twice.
+#[test]
+fn edr_w1_dreamweaver_requires_two_imbues() {
+    use orange_stone::cards::def::{BITTERBLOOM_KNIGHT, CHILLWIND_YETI, RESPLENDENT_DREAMWEAVER};
+    let mut builder = GameBuilder::new();
+    // Front-to-back order: Dreamweaver, two Knights, Dreamweaver
+    builder.add_minion_to_hand(PlayerId1(), &RESPLENDENT_DREAMWEAVER);
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    builder.add_minion_to_hand(PlayerId1(), &RESPLENDENT_DREAMWEAVER);
+    builder.add_minion_to_board(PlayerId2(), &CHILLWIND_YETI);
+    builder.set_mana(PlayerId1(), 8, 8);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let yeti = find_entity(&state, PlayerId2(), "NEUTRAL_T08");
+    // First Dreamweaver at imbue count 0: no damage
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(state.player(PlayerId1()).imbue_count, 0);
+    assert_eq!(
+        state.world().effective_health(yeti),
+        Some(Health(5)),
+        "no damage below two imbues"
+    );
+    // Two imbues push the counter to 2
+    play_front_card(&mut state, &engine, PlayerId1());
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(state.player(PlayerId1()).imbue_count, 2);
+    // Second Dreamweaver: now the 4 damage fires
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    give_mana(&mut state, PlayerId1(), 4);
+    let dreamweaver = find_in_hand(&state, PlayerId1(), "EDR_860");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: dreamweaver,
+                target: Some(yeti),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(yeti),
+        Some(Health(1)),
+        "4 damage after two imbues"
+    );
+}
+
+/// F5-EDR4 — Malorne's Wild God costs (1) only once the owner has imbued at
+/// least four times; otherwise it keeps its printed cost.
+#[test]
+fn edr_w1_malorne_wild_god_cost_threshold() {
+    use orange_stone::cards::def::{BITTERBLOOM_KNIGHT, MALORNE_THE_WAYWATCHER, card_by_id};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    builder.add_minion_to_hand(PlayerId1(), &MALORNE_THE_WAYWATCHER);
+    builder.add_minion_to_hand(PlayerId1(), &MALORNE_THE_WAYWATCHER);
+    builder.set_mana(PlayerId1(), 6, 6);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let wild_gods = |state: &GameState| -> Vec<Entity> {
+        state
+            .world()
+            .zones()
+            .iter(Zone::Hand, PlayerId1())
+            .filter(|&e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .is_some_and(|c| orange_stone::cards::pool::WILD_GOD_POOL.contains(&c.0))
+            })
+            .collect()
+    };
+    // Turn 1: three imbues (counter 3)
+    play_front_card(&mut state, &engine, PlayerId1());
+    play_front_card(&mut state, &engine, PlayerId1());
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(state.player(PlayerId1()).imbue_count, 3);
+    // Turn 3: Malorne at counter 3 — the Wild God keeps its printed cost
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    give_mana(&mut state, PlayerId1(), 8);
+    let malorne = find_in_hand(&state, PlayerId1(), "EDR_888");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: malorne,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let gods = wild_gods(&state);
+    assert_eq!(gods.len(), 1, "one Wild God discovered");
+    let first_id = state.world().card_id(gods[0]).expect("card id").0;
+    let first_def = card_by_id(first_id).expect("def");
+    assert_eq!(
+        state.world().effective_cost(gods[0]),
+        Some(Cost(first_def.cost)),
+        "below four imbues: printed cost"
+    );
+    // Turn 5: a fourth imbue, then Malorne again — the new Wild God costs 1
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    give_mana(&mut state, PlayerId1(), 10);
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(state.player(PlayerId1()).imbue_count, 4);
+    let malorne = find_in_hand(&state, PlayerId1(), "EDR_888");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: malorne,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let gods = wild_gods(&state);
+    assert_eq!(gods.len(), 2, "a second Wild God discovered");
+    let reduced = gods
+        .iter()
+        .filter(|&&g| state.world().effective_cost(g) == Some(Cost(1)))
+        .count();
+    assert_eq!(reduced, 1, "exactly one Wild God costs (1)");
+    let kept = gods
+        .iter()
+        .filter(|&&g| state.world().effective_cost(g) != Some(Cost(1)))
+        .count();
+    assert_eq!(kept, 1, "the first Wild God keeps its printed cost");
+}
+
+/// F5-EDR5 — a non-imbue class (Warrior) still counts imbues but never
+/// replaces the hero power.
+#[test]
+fn edr_w1_warrior_counts_without_replacement() {
+    use orange_stone::cards::def::BITTERBLOOM_KNIGHT;
+    let mut builder = GameBuilder::new();
+    set_hero_class(&mut builder, PlayerId1(), "HERO_01");
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    builder.set_mana(PlayerId1(), 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(
+        state.player(PlayerId1()).imbue_count,
+        1,
+        "the counter rises"
+    );
+    let hero = state.player(PlayerId1()).hero;
+    assert!(
+        state.world().hero_power(hero).is_none(),
+        "no hero power for a non-imbue class"
+    );
+}
+
+/// F5-EDR6 — Hamuul Runetotem re-imbues on every third friendly spell cast
+/// while he is in play (the Start-of-Game part fires on play; Nature school
+/// check skipped — fidelity-debt §14).
+#[test]
+fn edr_w1_hamuul_imbues_every_third_spell() {
+    use orange_stone::cards::def::HAMUUL_RUNETOTEM;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &HAMUUL_RUNETOTEM);
+    builder.set_mana(PlayerId1(), 5, 5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Hamuul's own battlecry is the first imbue
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(state.player(PlayerId1()).imbue_count, 1);
+    // Three no-op spells: the third one re-imbues
+    for expected in [1, 1, 2] {
+        let spell = {
+            let world = state.world_mut();
+            let e = world.spawn();
+            world.set_card_type(e, CardType::Spell);
+            world.set_cost(e, Cost(0));
+            world.set_player(e, PlayerId1());
+            world.set_zone(e, Zone::Hand);
+            world.zones_mut().insert(Zone::Hand, PlayerId1(), e);
+            e
+        };
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: spell,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            state.player(PlayerId1()).imbue_count,
+            expected,
+            "every third spell re-imbues"
+        );
+    }
+    assert_eq!(state.player(PlayerId1()).hamuul_spells_cast, 3);
+}
+
+/// F5-EDR6 — Kaldorei Priestess debuffs all enemy minions by -2 Attack
+/// (until the turn-end wrap-up, the TempDebuff precedent) and imbues.
+#[test]
+fn edr_w1_kaldorei_priestess_debuffs_enemy_attack() {
+    use orange_stone::cards::def::{CHILLWIND_YETI, KALDOREI_PRIESTESS};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &KALDOREI_PRIESTESS);
+    builder.add_minion_to_board(PlayerId2(), &CHILLWIND_YETI);
+    builder.set_mana(PlayerId1(), 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let yeti = find_entity(&state, PlayerId2(), "NEUTRAL_T08");
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(
+        state.player(PlayerId1()).imbue_count,
+        1,
+        "the battlecry imbues"
+    );
+    assert_eq!(
+        state.world().effective_attack(yeti),
+        Some(Attack(2)),
+        "enemy minions lose 2 Attack"
+    );
+    // The debuff expires at the active player's turn-end wrap-up
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_attack(yeti),
+        Some(Attack(4)),
+        "the debuff expires at turn end"
+    );
+}

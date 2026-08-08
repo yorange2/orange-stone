@@ -148,13 +148,21 @@ pub use super::core_w5::*;
 pub use super::core_w6::*;
 pub use super::core_w7::*;
 pub use super::core_w8::*;
+pub use super::exp_edr_w1::*;
 
 /// Look up a card definition by card ID — the handwritten pool first, then
-/// the 2025–2026 expansion baselines (2025-2026-expansions-roadmap M0.3).
+/// the handwritten 2025–2026 expansion cards (the M1+ effect waves override
+/// the generated baselines), then the generated 2025–2026 expansion
+/// baselines (2025-2026-expansions-roadmap M0.3).
 pub fn card_by_id(id: &str) -> Option<&'static CardDef> {
     ALL_CARDS
         .iter()
         .find(|c| c.id == id)
+        .or_else(|| {
+            super::sets::HANDWRITTEN_EXPANSION_CARDS
+                .iter()
+                .find(|c| c.id == id)
+        })
         .or_else(|| super::sets::EXPANSION_CARDS.iter().find(|c| c.id == id))
 }
 

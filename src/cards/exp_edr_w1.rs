@@ -1,0 +1,675 @@
+//! 2025–2026 expansions M1-W1 cards (exp_edr_w1) — the Emerald Dream (EDR)
+//! imbue wave: 15 imbue cards + 3 tokens.
+//!
+//! The imbue mechanic (see `trigger.rs` `resolve_imbue`): playing an imbue
+//! card increments the player's imbue count; the first imbue replaces the
+//! hero power with the class's imbued form (cost 2) for the six imbuing
+//! classes (Druid/Hunter/Mage/Paladin/Priest/Shaman — detected via the
+//! hero's card ID, `ImbueClass::from_hero_card_id`); later imbues scale the
+//! imbued powers' numbers (level = imbue count). The imbued hero powers
+//! (EDR_847p / EDR_850p / EDR_851p / EDR_445p / EDR_449p / EDR_448p) are not
+//! cards — they are `CardEffect::ImbuedHeroPower { class }` on the hero.
+//!
+//! These consts are handwritten effect-wave implementations of the generated
+//! expansion baselines: they never enter `ALL_CARDS` (the sampling pools
+//! stay closed, decision D3) but are reachable through the `card_by_id`
+//! chain (ALL_CARDS → HANDWRITTEN_EXPANSION_CARDS → EXPANSION_CARDS) and are
+//! compared field-by-field against the generated baseline by the
+//! `expansion_differential_gate` test (M0.4). Simplifications registered in
+//! `docs/finished/fidelity-debt.md` §14 (2025–2026 expansions).
+//!
+//! Card data: `cards/cards.json` (EDR_* ids); card texts verified against
+//! the official Emerald Dream set (2026-08-08).
+
+use crate::cards::def::CardDef;
+use crate::core::component::CardType;
+use crate::core::component::Race;
+use crate::core::effect::CardEffect;
+
+/// EDR_226 Exotic Houndmaster — 2/2/2 Hunter. Battlecry: Draw a Beast. Imbue.
+pub const EXOTIC_HOUNDMASTER: CardDef = CardDef {
+    id: "EDR_226",
+    name: "Exotic Houndmaster",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 2,
+    durability: 0,
+    battlecry: Some(CardEffect::DrawBeastAndImbue),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_227 Umbraclaw — 4/5/2 Beast. Rush. Deathrattle: Imbue.
+/// (Rush is applied by `apply_card_keywords`.)
+pub const UMBRACLAW: CardDef = CardDef {
+    id: "EDR_227",
+    name: "Umbraclaw",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 5,
+    health: 2,
+    durability: 0,
+    battlecry: None,
+    deathrattle: Some(CardEffect::ImbueHeroPower),
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: Some(Race::Beast),
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_231 Aspect's Embrace — 2-mana Shaman spell.
+/// Restore 4 Health. Draw a card. Imbue.
+pub const ASPECTS_EMBRACE: CardDef = CardDef {
+    id: "EDR_231",
+    name: "Aspect's Embrace",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: Some(CardEffect::RestoreAndDrawAndImbue { amount: 4 }),
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_264 Aegis of Light — 2-mana Paladin spell.
+/// Summon a random 2-Cost minion and give it Taunt. Imbue.
+pub const AEGIS_OF_LIGHT: CardDef = CardDef {
+    id: "EDR_264",
+    name: "Aegis of Light",
+    card_type: CardType::Spell,
+    cost: 2,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: Some(CardEffect::SummonRandomTwoCostTauntAndImbue),
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_449 Lunarwing Messenger — 2/3/2 Beast. Lifesteal. Battlecry: Imbue.
+/// (Lifesteal is applied by `apply_card_keywords`.)
+pub const LUNARWING_MESSENGER: CardDef = CardDef {
+    id: "EDR_449",
+    name: "Lunarwing Messenger",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 3,
+    health: 2,
+    durability: 0,
+    battlecry: Some(CardEffect::ImbueHeroPower),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: Some(Race::Beast),
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_451 Goldpetal Drake — 3/3/4 Dragon. Battlecry and Deathrattle: Imbue.
+pub const GOLDPETAL_DRAKE: CardDef = CardDef {
+    id: "EDR_451",
+    name: "Goldpetal Drake",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::ImbueHeroPower),
+    deathrattle: Some(CardEffect::ImbueHeroPower),
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: Some(Race::Dragon),
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_518 Living Garden — 3/2/4 Elemental. Battlecry: Imbue. Reduce the
+/// Cost of a minion in your hand by (1). (The engine has no hand-targeting
+/// action space — the target minion is a random pick.)
+pub const LIVING_GARDEN: CardDef = CardDef {
+    id: "EDR_518",
+    name: "Living Garden",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 2,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::ImbueAndReduceHandCost),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: Some(Race::Elemental),
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_519 Wisprider — 5/4/4. Battlecry: Imbue, then trigger it (the
+/// current hero power resolves once, free of charge — the just-replaced
+/// imbued form when this is the first imbue).
+pub const WISPRIDER: CardDef = CardDef {
+    id: "EDR_519",
+    name: "Wisprider",
+    card_type: CardType::Minion,
+    cost: 5,
+    attack: 4,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::ImbueAndTriggerHeroPower),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_800 Flutterwing Guardian — 4/4/4. Taunt, Divine Shield.
+/// Battlecry: Imbue.
+pub const FLUTTERWING_GUARDIAN: CardDef = CardDef {
+    id: "EDR_800",
+    name: "Flutterwing Guardian",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 4,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::ImbueHeroPower),
+    deathrattle: None,
+    taunt: true,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: true,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_845 Hamuul Runetotem — 5/5/6. Start of Game: If each spell in your
+/// deck is Nature, Imbue. Repeat this every 3 spells you cast.
+/// (simplified: the Nature spell-school check is skipped — all spells
+/// qualify; the Start-of-Game part fires when Hamuul is played (the engine
+/// has no start-of-game event), and the every-3-spells part is a
+/// FriendlySpellCast trigger that fires only while Hamuul is in play —
+/// fidelity-debt §14.)
+pub const HAMUUL_RUNETOTEM: CardDef = CardDef {
+    id: "EDR_845",
+    name: "Hamuul Runetotem",
+    card_type: CardType::Minion,
+    cost: 5,
+    attack: 5,
+    health: 6,
+    durability: 0,
+    battlecry: Some(CardEffect::ImbueHeroPower),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: Some(CardEffect::ImbueEveryThirdSpell),
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_852 Bitterbloom Knight — 2/2/3. Battlecry: Imbue.
+pub const BITTERBLOOM_KNIGHT: CardDef = CardDef {
+    id: "EDR_852",
+    name: "Bitterbloom Knight",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::ImbueHeroPower),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_860 Resplendent Dreamweaver — 4/4/4. Lifesteal. Battlecry: If you've
+/// Imbued your Hero Power twice, deal 4 damage to a minion.
+/// (Lifesteal is applied by `apply_card_keywords`.)
+pub const RESPLENDENT_DREAMWEAVER: CardDef = CardDef {
+    id: "EDR_860",
+    name: "Resplendent Dreamweaver",
+    card_type: CardType::Minion,
+    cost: 4,
+    attack: 4,
+    health: 4,
+    durability: 0,
+    battlecry: Some(CardEffect::DealDamageIfImbuedTwice { damage: 4 }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_871 Spirit Gatherer — 2/2/1. Battlecry: Get a Wisp. Imbue. (The Wisp
+/// is the EDR_851t 1/1 token.)
+pub const SPIRIT_GATHERER: CardDef = CardDef {
+    id: "EDR_871",
+    name: "Spirit Gatherer",
+    card_type: CardType::Minion,
+    cost: 2,
+    attack: 2,
+    health: 1,
+    durability: 0,
+    battlecry: Some(CardEffect::ImbueAndGetWisp),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_888 Malorne the Waywatcher — 8/8/6 Beast. Battlecry: Discover a
+/// Legendary Wild God. If you've Imbued your Hero Power 4 times, set its
+/// Cost to (1). (simplified: Discover is a random pick over the fixed
+/// WILD_GOD_POOL table — fidelity-debt §14.)
+pub const MALORNE_THE_WAYWATCHER: CardDef = CardDef {
+    id: "EDR_888",
+    name: "Malorne the Waywatcher",
+    card_type: CardType::Minion,
+    cost: 8,
+    attack: 8,
+    health: 6,
+    durability: 0,
+    battlecry: Some(CardEffect::DiscoverWildGodIfImbued4),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: Some(Race::Beast),
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_970 Kaldorei Priestess — 3/3/3. Battlecry: Give all enemy minions
+/// -2 Attack until your next turn. Imbue. (The TempDebuff precedent —
+/// "until your next turn" is the UntilEndOfTurn expiry, see fidelity-debt
+/// §14.)
+pub const KALDOREI_PRIESTESS: CardDef = CardDef {
+    id: "EDR_970",
+    name: "Kaldorei Priestess",
+    card_type: CardType::Minion,
+    cost: 3,
+    attack: 3,
+    health: 3,
+    durability: 0,
+    battlecry: Some(CardEffect::ImbueAndDebuffEnemies {
+        attack_reduction: 2,
+    }),
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+// ============================================================
+// Tokens (handwritten only — not in the generated expansion baselines)
+// ============================================================
+
+/// EDR_847pt2 Plant Golem — the Druid imbued hero power's token (1/1 base;
+/// the power summons it at L/L).
+pub const PLANT_GOLEM: CardDef = CardDef {
+    id: "EDR_847pt2",
+    name: "Plant Golem",
+    card_type: CardType::Minion,
+    cost: 1,
+    attack: 1,
+    health: 1,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_851t Wisp — the Mage imbued hero power's token (1/1; also the Wisp
+/// Spirit Gatherer adds to hand). Named WISP_TOKEN to avoid colliding with
+/// the classic Wisp (NEUTRAL_T01) in the glob re-exports.
+pub const WISP_TOKEN: CardDef = CardDef {
+    id: "EDR_851t",
+    name: "Wisp",
+    card_type: CardType::Minion,
+    cost: 0,
+    attack: 1,
+    health: 1,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: None,
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
+
+/// EDR_445pt3 Emerald Portal — the Paladin imbued hero power's token.
+/// (simplified: the real portal Casts-When-Drawn; the engine has no
+/// cast-when-drawn pipeline, so it is a playable 0-cost spell that summons
+/// a random 1-Cost Dragon — fidelity-debt §14.)
+pub const EMERALD_PORTAL: CardDef = CardDef {
+    id: "EDR_445pt3",
+    name: "Emerald Portal",
+    card_type: CardType::Spell,
+    cost: 0,
+    attack: 0,
+    health: 0,
+    durability: 0,
+    battlecry: None,
+    deathrattle: None,
+    taunt: false,
+    stealth: false,
+    elusive: false,
+    race: None,
+    hero_power: None,
+    aura: None,
+    secret: None,
+    divine_shield: false,
+    windfury: false,
+    charge: false,
+    spell_damage: 0,
+    cant_attack: false,
+    end_turn_effect: None,
+    start_turn_effect: None,
+    spell_effect: Some(CardEffect::SummonRandomDragonOfCost { cost: 1 }),
+    spell_trigger: None,
+    death_trigger: None,
+    summon_trigger: None,
+    choose_one_effect: None,
+    combo_effect: None,
+    attack_equals_health: false,
+};
