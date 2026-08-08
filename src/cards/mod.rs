@@ -929,6 +929,7 @@ pub(crate) fn spawn_card_from_def(world: &mut World, player: PlayerId, card: &Ca
 #[cfg(test)]
 mod generated_tests {
     use crate::cards::generated;
+    use crate::cards::sets;
     use crate::cards::sets::ALL_CARDS;
 
     /// Cards whose official (post-rebalance) static attributes intentionally
@@ -1282,5 +1283,83 @@ mod generated_tests {
                 cards.iter().find(|c| pool::is_expansion(c)).map(|c| c.id)
             );
         }
+    }
+
+    /// 2025–2026 expansions M0.4 — ID uniqueness: the generated registry has
+    /// no duplicate IDs (two IDs mapping to one const name would silently
+    /// misbehave), and the expansion IDs are disjoint from the handwritten
+    /// pool (the `card_by_id` union must be unambiguous).
+    #[test]
+    fn expansion_ids_unique() {
+        let mut seen = std::collections::HashSet::new();
+        for id in generated::GENERATED_IDS {
+            assert!(seen.insert(*id), "duplicate generated ID: {id}");
+        }
+        for card in sets::EXPANSION_CARDS {
+            assert!(
+                !sets::ALL_CARDS.iter().any(|c| c.id == card.id),
+                "ID clash between expansion and handwritten pool: {}",
+                card.id
+            );
+        }
+    }
+
+    /// 2025–2026 expansions M0.4 — differential gate: every expansion card is
+    /// either hand-written (a member of the handwritten pool) or exactly
+    /// matches its generated baseline. M1+ effect waves that hand-write an
+    /// expansion card must keep this invariant — the handwritten const must
+    /// agree with the generated baseline on every statically representable
+    /// field, or the divergence must be documented in
+    /// `expansion_differential_rebalanced`.
+    fn expansion_differential_rebalanced(_id: &str, _field: &str) -> bool {
+        // Documented divergences land here (known_rebalanced style).
+        false
+    }
+
+    /// The gate itself: enumerate the generated expansion baselines, compare
+    /// any handwritten counterpart field by field.
+    #[test]
+    fn expansion_differential_gate() {
+        let mut hand_written = 0;
+        for card in sets::EXPANSION_CARDS {
+            let Some(handwritten) = sets::ALL_CARDS.iter().find(|c| c.id == card.id) else {
+                continue; // generated baseline in effect — nothing to compare
+            };
+            hand_written += 1;
+            for (field, equal) in [
+                ("card_type", handwritten.card_type == card.card_type),
+                ("cost", handwritten.cost == card.cost),
+                ("attack", handwritten.attack == card.attack),
+                ("health", handwritten.health == card.health),
+                ("durability", handwritten.durability == card.durability),
+                ("taunt", handwritten.taunt == card.taunt),
+                (
+                    "divine_shield",
+                    handwritten.divine_shield == card.divine_shield,
+                ),
+                ("windfury", handwritten.windfury == card.windfury),
+                ("charge", handwritten.charge == card.charge),
+                (
+                    "spell_damage",
+                    handwritten.spell_damage == card.spell_damage,
+                ),
+            ] {
+                if equal {
+                    continue;
+                }
+                assert!(
+                    expansion_differential_rebalanced(card.id, field),
+                    "{field} mismatch: {} (handwritten vs generated baseline, not documented)",
+                    card.id
+                );
+            }
+        }
+        // M0: no handwritten expansion cards yet — the gate's comparisons
+        // become active with the first M1+ effect wave (which must update
+        // this count as the gate's tripwire).
+        assert_eq!(
+            hand_written, 0,
+            "M0 baseline: no handwritten expansion cards (update this gate when the first wave lands)"
+        );
     }
 }
