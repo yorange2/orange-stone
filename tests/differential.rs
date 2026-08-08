@@ -16680,3 +16680,3523 @@ fn edr_w3_pending_choice_gate_and_auto_resolve() {
         "exactly one branch resolved (hero hit: {hero_hit}, wolves: {wolves})"
     );
 }
+
+// =====================================================================
+// 2025–2026 expansions M1-W4a — the 86 non-elite Emerald Dream cards
+// (the 23 elite Wild Gods are W4b; the miniset is W5). Every card lands
+// in at least one scenario, batched by effect family.
+// =====================================================================
+
+/// Deck-top buffs and deck scans — Beanstalk Brute (EDR_230), Hungering
+/// Ancient (EDR_494), Rotheart Dryad (EDR_485), Fae Trickster (EDR_571),
+/// Tormented Dreadwing (EDR_572), Dragonscale Armaments (EDR_251).
+#[test]
+fn edr_w4a_deck_top_buffs_and_scans() {
+    use orange_stone::cards::def::{
+        BEANSTALK_BRUTE, BLOODFEN_RAPTOR, DRAGONSCALE_ARMAMENTS, FAE_TRICKSTER, HUNGERING_ANCIENT,
+        MEADOWSTRIDER, MOONWELL, MURLOC_TIDEHUNTER, NIGHTMARE_DRAGONKIN, ROTHEART_DRYAD,
+        TORMENTED_DREADWING,
+    };
+    use orange_stone::core::component::{Attack, Cost, Health};
+    let engine = GameEngine::new();
+    let p1 = PlayerId1();
+
+    // Beanstalk Brute — the top N minions of the (ordered) deck are buffed.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_deck(p1, &MURLOC_TIDEHUNTER)
+        .add_minion_to_hand(p1, &BEANSTALK_BRUTE);
+    let mut state = builder.build();
+    let brute = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: brute,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, p1).collect();
+    assert_eq!(deck.len(), 2);
+    assert!(
+        state
+            .world()
+            .card_id(deck[0])
+            .is_some_and(|c| c.0 == "CLASSIC_001"),
+        "the Raptor is on top of the deck"
+    );
+    assert_eq!(state.world().effective_attack(deck[0]), Some(Attack(7)));
+    assert_eq!(state.world().effective_health(deck[0]), Some(Health(6)));
+    assert_eq!(state.world().effective_attack(deck[1]), Some(Attack(6)));
+    assert_eq!(state.world().effective_health(deck[1]), Some(Health(5)));
+
+    // Hungering Ancient — eats the first deck minion at end of turn; the
+    // deathrattle adds a random deck minion to the hand.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &HUNGERING_ANCIENT)
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_deck(p1, &MURLOC_TIDEHUNTER)
+        .add_custom_minion_to_board(PlayerId2(), 12, 12, 0);
+    let mut state = builder.build();
+    let ancient = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: ancient,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let ancient = find_entity(&state, p1, "EDR_494");
+    assert_eq!(state.world().effective_attack(ancient), Some(Attack(9)));
+    assert_eq!(state.world().effective_health(ancient), Some(Health(9)));
+    let big = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: big,
+                defender: ancient,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, p1),
+        0,
+        "the other minion left the deck"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "the deathrattle added it to the hand"
+    );
+
+    // Rotheart Dryad — deathrattle: draw the first minion costing 7+.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_deck(p1, &MEADOWSTRIDER)
+        .add_minion_to_hand(p1, &ROTHEART_DRYAD)
+        .add_custom_minion_to_board(PlayerId2(), 2, 2, 0);
+    let mut state = builder.build();
+    let dryad = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: dryad,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let dryad = find_entity(&state, p1, "EDR_485");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: dryad,
+            },
+        )
+        .unwrap();
+    assert!(
+        hand_ids(&state, p1).iter().any(|id| id == "EDR_978"),
+        "the 8-cost Meadowstrider is drawn"
+    );
+
+    // Fae Trickster — deathrattle: draw the first spell costing 5+.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_deck(p1, &MOONWELL)
+        .add_minion_to_hand(p1, &FAE_TRICKSTER)
+        .add_custom_minion_to_board(PlayerId2(), 5, 5, 0);
+    let mut state = builder.build();
+    let fae = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: fae,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let fae = find_entity(&state, p1, "EDR_571");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: fae,
+            },
+        )
+        .unwrap();
+    assert!(
+        hand_ids(&state, p1).iter().any(|id| id == "EDR_476"),
+        "Moonwell is drawn"
+    );
+
+    // Tormented Dreadwing — deathrattle: draw two Dragons at -1 Cost.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_deck(p1, &NIGHTMARE_DRAGONKIN)
+        .add_minion_to_deck(p1, &NIGHTMARE_DRAGONKIN)
+        .add_minion_to_hand(p1, &TORMENTED_DREADWING)
+        .add_custom_minion_to_board(PlayerId2(), 6, 6, 0);
+    let mut state = builder.build();
+    let wing = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: wing,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let wing = find_entity(&state, p1, "EDR_572");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: wing,
+            },
+        )
+        .unwrap();
+    let ragers: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_890"))
+        .collect();
+    assert_eq!(ragers.len(), 2, "both Dragons are drawn");
+    for rager in ragers {
+        assert_eq!(
+            state.world().effective_cost(rager),
+            Some(Cost(2)),
+            "3 - 1 reduction"
+        );
+    }
+
+    // Dragonscale Armaments — draw a deck spell, add a random spell.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_deck(p1, &MOONWELL)
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &DRAGONSCALE_ARMAMENTS);
+    let mut state = builder.build();
+    let card = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 2, "Moonwell + a random spell");
+    assert!(
+        hand.iter()
+            .any(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_476"))
+    );
+}
+
+/// Death records — Succumb to Madness (EDR_455), Starsurge (EDR_941),
+/// Archdruid of Thorns (EDR_491), Ravenous Felhunter (EDR_891), Ferocious
+/// Felbat (EDR_892), Meadowstrider (EDR_978).
+#[test]
+fn edr_w4a_death_records() {
+    use orange_stone::cards::def::{
+        ARCHDRUID_OF_THORNS, BLOODFEN_RAPTOR, FAE_TRICKSTER, FEROCIOUS_FELBAT, MEADOWSTRIDER,
+        MOONWELL, NIGHTMARE_DRAGONKIN, RAVENOUS_FELHUNTER, STAR_SURGE, SUCCUMB_TO_MADNESS,
+        TORMENTED_DREADWING, TWISTED_TREANT,
+    };
+    use orange_stone::core::component::{Attack, Cost, Health};
+    let engine = GameEngine::new();
+    let p1 = PlayerId1();
+
+    // Succumb to Madness — the graveyard IS the death record: the fallen
+    // Fae Trickster (the only friendly Dragon) is resummoned.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &FAE_TRICKSTER)
+        .add_minion_to_hand(p1, &SUCCUMB_TO_MADNESS)
+        .add_custom_minion_to_board(PlayerId2(), 6, 6, 0);
+    let mut state = builder.build();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let rager = find_entity(&state, p1, "EDR_571");
+    let attacker = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: rager,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let card = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_count(&state, p1, "EDR_571"),
+        1,
+        "the fallen Dragon returns"
+    );
+
+    // Starsurge — +1 damage per friendly minion that died this game.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &STAR_SURGE)
+        .add_custom_minion_to_board(PlayerId2(), 7, 7, 0);
+    let mut state = builder.build();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let raptor = find_entity(&state, p1, "CLASSIC_001");
+    let attacker = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: raptor,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let card = first_hand_card(&state, p1);
+    let enemy = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: Some(enemy),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy),
+        Some(Health(2)),
+        "3 retaliation from the dying Raptor + 2 spell damage (1 base + 1 fallen)"
+    );
+
+    // Archdruid of Thorns — copies the deathrattle of the minion that died
+    // this turn (Fae's draw-a-spell deathrattle, then the copy fires on the
+    // Archdruid's own death against an empty deck).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_deck(p1, &MOONWELL)
+        .add_minion_to_hand(p1, &FAE_TRICKSTER)
+        .add_minion_to_hand(p1, &ARCHDRUID_OF_THORNS)
+        .add_custom_minion_to_board(PlayerId2(), 5, 5, 0);
+    let mut state = builder.build();
+    let fae = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: fae,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let fae = find_entity(&state, p1, "EDR_571");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: fae,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let druid = find_in_hand(&state, p1, "EDR_491");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: druid,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let druid = find_entity(&state, p1, "EDR_491");
+    assert!(
+        state.world().deathrattle(druid).is_some(),
+        "the Archdruid copies the deathrattle of the minion that died this turn"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: druid,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_count(&state, p1, "EDR_491"),
+        0,
+        "the copied deathrattle fires safely"
+    );
+
+    // Ravenous Felhunter — resurrects a Deathrattle minion costing 4 or less.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &RAVENOUS_FELHUNTER)
+        .add_minion_to_hand(p1, &TWISTED_TREANT)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(PlayerId2(), &BLOODFEN_RAPTOR)
+        .add_custom_minion_to_board(PlayerId2(), 12, 12, 0);
+    let mut state = builder.build();
+    let felhunter = find_in_hand(&state, p1, "EDR_891");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: felhunter,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let treant = find_in_hand(&state, p1, "EDR_495");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: treant,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let treant = find_entity(&state, p1, "EDR_495");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: treant,
+            },
+        )
+        .unwrap();
+    // the Treant's deathrattle debuffed the only hand minion in each hand
+    // (a 3/2 Raptor takes -2/-2 → 1/0)
+    let p1_raptor = find_in_hand(&state, p1, "CLASSIC_001");
+    let p2_raptor = find_in_hand(&state, PlayerId2(), "CLASSIC_001");
+    assert_eq!(
+        state.world().effective_attack(p1_raptor),
+        Some(Attack(1)),
+        "-2/-2 on P1's hand"
+    );
+    assert_eq!(state.world().effective_health(p1_raptor), Some(Health(0)));
+    assert_eq!(
+        state.world().effective_attack(p2_raptor),
+        Some(Attack(1)),
+        "-2/-2 on P2's hand"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let felhunter = find_entity(&state, p1, "EDR_891");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: felhunter,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_count(&state, p1, "EDR_495"),
+        1,
+        "the Treant is resurrected"
+    );
+
+    // Ferocious Felbat — resurrects a Deathrattle minion costing 5+.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 12, 12)
+        .add_minion_to_deck(p1, &NIGHTMARE_DRAGONKIN)
+        .add_minion_to_deck(p1, &NIGHTMARE_DRAGONKIN)
+        .add_minion_to_hand(p1, &FEROCIOUS_FELBAT)
+        .add_minion_to_hand(p1, &TORMENTED_DREADWING)
+        .add_custom_minion_to_board(PlayerId2(), 12, 12, 0);
+    let mut state = builder.build();
+    let felbat = find_in_hand(&state, p1, "EDR_892");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: felbat,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let wing = find_in_hand(&state, p1, "EDR_572");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: wing,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let wing = find_entity(&state, p1, "EDR_572");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: wing,
+            },
+        )
+        .unwrap();
+    let ragers: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_890"))
+        .collect();
+    assert_eq!(ragers.len(), 2);
+    for rager in &ragers {
+        assert_eq!(state.world().effective_cost(*rager), Some(Cost(2)));
+    }
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let felbat = find_entity(&state, p1, "EDR_892");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: felbat,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_count(&state, p1, "EDR_572"),
+        1,
+        "the Dreadwing is resurrected"
+    );
+
+    // Meadowstrider — the copy goes to the bottom of the deck costing (1).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &MEADOWSTRIDER)
+        .add_custom_minion_to_board(PlayerId2(), 12, 12, 0);
+    let mut state = builder.build();
+    let strider = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: strider,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let strider = find_entity(&state, p1, "EDR_978");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: strider,
+            },
+        )
+        .unwrap();
+    let deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, p1).collect();
+    assert_eq!(deck.len(), 1);
+    assert!(
+        state
+            .world()
+            .card_id(deck[0])
+            .is_some_and(|c| c.0 == "EDR_978")
+    );
+    assert_eq!(
+        state.world().effective_cost(deck[0]),
+        Some(Cost(1)),
+        "costs (1) in the deck"
+    );
+}
+
+/// The played-minion log — Twisted Webweaver (EDR_540) draws on the second
+/// play of the same card; Dreambound Raptor (EDR_849) grants a random Bonus
+/// Effect keyword when a minion is played.
+#[test]
+fn edr_w4a_played_minion_logs() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, DREAMBOUND_RAPTOR, TWISTED_WEBWEAVER};
+    let engine = GameEngine::new();
+    let p1 = PlayerId1();
+
+    // Webweaver — the first Raptor is a new play (no draw), the second is a
+    // repeat (draw 1).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TWISTED_WEBWEAVER)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let webweaver = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: webweaver,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let raptor = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: raptor,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "the first Raptor is not a repeat (no draw)"
+    );
+    let raptor = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: raptor,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "the repeat draws one"
+    );
+    let drawn = first_hand_card(&state, p1);
+    assert!(
+        state
+            .world()
+            .card_id(drawn)
+            .is_some_and(|c| c.0 == "CLASSIC_001")
+    );
+
+    // Dreambound Raptor — the just-played minion gets one keyword from the
+    // approximated Bonus Effect pool.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &DREAMBOUND_RAPTOR)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let raptor_card = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: raptor_card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let follower = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: follower,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let follower = board_minions(&state, p1)
+        .into_iter()
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CLASSIC_001")
+        })
+        .expect("the Raptor is on the board");
+    let world = state.world();
+    assert!(
+        world.taunt(follower).is_some()
+            || world.divine_shield(follower).is_some()
+            || world.poison(follower).is_some()
+            || world.windfury(follower).is_some()
+            || world.elusive(follower).is_some()
+            || world.stealth(follower).is_some(),
+        "the Raptor received a Bonus Effect keyword"
+    );
+}
+
+/// Spell tracking — Animated Moonwell (EDR_254) gains Attack equal to the
+/// cast spell's Cost; Grove Shaper (EDR_271) summons a Treant when a spell
+/// is cast; the New Moon pair (EDR_460/EDR_461) upgrade after 3 spells;
+/// Weaver of the Cycle (EDR_472) and Moonwell (EDR_476).
+#[test]
+fn edr_w4a_spell_tracking() {
+    use orange_stone::cards::def::{
+        ANIMATED_MOONWELL, EMERALD_BOUNTY, GROVE_SHAPER, MOONWELL, RITUAL_OF_THE_NEW_MOON,
+        WEAVER_OF_THE_CYCLE, WISH_OF_THE_NEW_MOON,
+    };
+    use orange_stone::core::component::{Attack, CardType, Health};
+    let engine = GameEngine::new();
+    let p1 = PlayerId1();
+
+    // Wish of the New Moon — spell 2 has no Lifesteal, spell 4 does; Moonwell
+    // proves the heal side (hero 24 → 28).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &EMERALD_BOUNTY)
+        .add_minion_to_hand(p1, &WISH_OF_THE_NEW_MOON)
+        .add_minion_to_hand(p1, &MOONWELL)
+        .add_minion_to_hand(p1, &WISH_OF_THE_NEW_MOON)
+        .add_custom_minion_to_board(PlayerId2(), 6, 12, 0);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let e1 = board_minions(&state, PlayerId2())[0];
+    let hero1 = state.player(p1).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: e1,
+                defender: hero1,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(hero1),
+        Some(Health(24)),
+        "E1 chips the hero"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let bounty = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bounty,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let wish = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: wish,
+                target: Some(e1),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(e1),
+        Some(Health(6)),
+        "the first Wish deals 6 (no Lifesteal yet)"
+    );
+    assert_eq!(
+        state.world().effective_health(hero1),
+        Some(Health(24)),
+        "no Lifesteal below 3 spells"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let moonwell = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: moonwell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(e1),
+        Some(Health(2)),
+        "Moonwell chips E1"
+    );
+    assert_eq!(
+        state.world().effective_health(hero1),
+        Some(Health(28)),
+        "Moonwell heals the hero (the heal side)"
+    );
+    let wish = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: wish,
+                target: Some(e1),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        board_minions(&state, PlayerId2()).is_empty(),
+        "the fourth spell (Lifesteal) kills E1"
+    );
+    assert_eq!(
+        state.world().effective_health(hero1),
+        Some(Health(30)),
+        "spell 4 gains Lifesteal and heals to full"
+    );
+
+    // Ritual of the New Moon — 3-Cost minions below 3 spells, 6-Cost at 3+.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &RITUAL_OF_THE_NEW_MOON);
+    let mut state = builder.build();
+    let ritual = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: ritual,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let summoned = board_minions(&state, p1);
+    assert_eq!(summoned.len(), 2, "two minions at the base cost");
+    for m in summoned {
+        assert_eq!(
+            state.world().effective_cost(m),
+            Some(orange_stone::core::component::Cost(3))
+        );
+    }
+
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &EMERALD_BOUNTY)
+        .add_minion_to_hand(p1, &EMERALD_BOUNTY)
+        .add_minion_to_hand(p1, &RITUAL_OF_THE_NEW_MOON);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    for _ in 0..2 {
+        let bounty = first_hand_card(&state, p1);
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card: bounty,
+                    target: None,
+                    position: None,
+                },
+            )
+            .unwrap();
+    }
+    let ritual = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: ritual,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let summoned = board_minions(&state, p1);
+    assert_eq!(summoned.len(), 2);
+    for m in summoned {
+        assert_eq!(
+            state.world().effective_cost(m),
+            Some(orange_stone::core::component::Cost(6))
+        );
+    }
+
+    // Weaver of the Cycle — holding a 5+ spell deals 3 to the enemy hero.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &WEAVER_OF_THE_CYCLE)
+        .add_minion_to_hand(p1, &MOONWELL);
+    let mut state = builder.build();
+    let weaver = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: weaver,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let enemy_hero = state.player(PlayerId2()).hero;
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(27)),
+        "holding Moonwell deals 3"
+    );
+
+    // Animated Moonwell — gains Attack equal to the cast spell's Cost.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ANIMATED_MOONWELL)
+        .add_minion_to_hand(p1, &MOONWELL);
+    let mut state = builder.build();
+    let moon = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: moon,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let spell = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let moon = find_entity(&state, p1, "EDR_254");
+    assert_eq!(
+        state.world().effective_attack(moon),
+        Some(Attack(7)),
+        "1 + the 6-Cost spell's Cost"
+    );
+
+    // Grove Shaper — a friendly spell summons the 2/2 Treant whose deathrattle
+    // adds a random spell.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &GROVE_SHAPER)
+        .add_minion_to_hand(p1, &WISH_OF_THE_NEW_MOON);
+    builder.add_custom_minion_to_board(PlayerId2(), 12, 12, 0);
+    let mut state = builder.build();
+    let shaper = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: shaper,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let spell = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(board_count(&state, p1, "EDR_271t"), 1, "the Treant appears");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let treant = find_entity(&state, p1, "EDR_271t");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: treant,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1, "the Treant's deathrattle adds a spell");
+    assert_eq!(
+        state.world().card_type(hand[0]),
+        Some(CardType::Spell),
+        "a random spell"
+    );
+}
+
+/// Locations — Clutch of Corruption (EDR_454) summons the hatching Egg; the
+/// play cooldown blocks same-turn activation; Forbidden Shrine (EDR_520)
+/// spends all Mana on a random spell.
+#[test]
+fn edr_w4a_locations() {
+    use orange_stone::cards::def::{CLUTCH_OF_CORRUPTION, FORBIDDEN_SHRINE, NIGHTMARE_DRAGONKIN};
+    use orange_stone::core::component::Durability;
+    use orange_stone::engine::rules::EngineError;
+    let engine = GameEngine::new();
+    let p1 = PlayerId1();
+
+    // Clutch of Corruption — activate on the following turn (cooldown), the
+    // Egg hatches a copy of a friendly Dragon when destroyed.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &NIGHTMARE_DRAGONKIN)
+        .add_minion_to_hand(p1, &CLUTCH_OF_CORRUPTION)
+        .add_custom_minion_to_board(PlayerId2(), 2, 2, 0);
+    let mut state = builder.build();
+    let clutch = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: clutch,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let location = state
+        .player(p1)
+        .location
+        .expect("the location is on the board");
+    assert!(
+        matches!(
+            engine.apply(
+                &mut state,
+                Action::ActivateLocation {
+                    location,
+                    target: None,
+                }
+            ),
+            Err(EngineError::InvalidTarget)
+        ),
+        "the play cooldown blocks a same-turn activation"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let location = state.player(p1).location.expect("the location persists");
+    let rager = find_entity(&state, p1, "EDR_890");
+    engine
+        .apply(
+            &mut state,
+            Action::ActivateLocation {
+                location,
+                target: Some(rager),
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_count(&state, p1, "EDR_454t"),
+        1,
+        "the Egg is summoned"
+    );
+    assert_eq!(
+        state.world().durability(location),
+        Some(Durability(1)),
+        "one charge spent"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let egg = find_entity(&state, p1, "EDR_454t");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: egg,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_count(&state, p1, "EDR_890"),
+        2,
+        "the Egg hatches a copy of the Dragon"
+    );
+
+    // Forbidden Shrine — spend all Mana (6) on a random 6-Cost spell.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 6, 6)
+        .add_minion_to_hand(p1, &FORBIDDEN_SHRINE);
+    let mut state = builder.build();
+    let shrine = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: shrine,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let location = state.player(p1).location.expect("the shrine persists");
+    assert_eq!(
+        state.player(p1).current_mana,
+        7,
+        "the mana refilled (6 crystals grow to 7)"
+    );
+    engine
+        .apply(
+            &mut state,
+            Action::ActivateLocation {
+                location,
+                target: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(p1).current_mana, 0, "all Mana spent");
+    assert_eq!(
+        state.world().durability(location),
+        Some(Durability(2)),
+        "3 durability minus one charge"
+    );
+}
+
+/// Weapons — Ursine Maul (EDR_253) draws on hero attacks, Shepherd's Crook
+/// (EDR_416) summons the never-waking Sheep, Defiled Spear (EDR_842) splashes
+/// the hero's Attack to another enemy, Brood Keeper (EDR_457) equips the 2/2
+/// Sword while holding a Dragon.
+#[test]
+fn edr_w4a_weapons() {
+    use orange_stone::cards::def::{
+        BROOD_KEEPER, DEFILED_SPEAR, NIGHTMARE_DRAGONKIN, SHEPHERDS_CROOK, URSINE_MAUL,
+    };
+    use orange_stone::core::component::{Attack, Health};
+    let engine = GameEngine::new();
+    let p1 = PlayerId1();
+
+    // Ursine Maul — hero attack draws a card.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &URSINE_MAUL)
+        .add_custom_minion_to_board(PlayerId2(), 5, 5, 0);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let maul = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: maul,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero = state.player(p1).hero;
+    let enemy = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: enemy,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy),
+        Some(Health(1)),
+        "4 weapon damage"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "the hero attack drew a card"
+    );
+
+    // Shepherd's Crook — hero attack summons the 3/3 never-waking Sheep.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SHEPHERDS_CROOK)
+        .add_custom_minion_to_board(PlayerId2(), 5, 5, 0);
+    let mut state = builder.build();
+    let crook = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: crook,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero = state.player(p1).hero;
+    let enemy = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: enemy,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_count(&state, p1, "EDR_416t"),
+        1,
+        "the Sheep is summoned"
+    );
+    let sheep = find_entity(&state, p1, "EDR_416t");
+    assert!(
+        state.world().cant_attack(sheep).is_some(),
+        "the Dormant Sheep never wakes"
+    );
+
+    // Defiled Spear — the splash hits another enemy (the attacked minion is
+    // excluded, so the only candidate is the enemy hero).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &DEFILED_SPEAR)
+        .add_custom_minion_to_board(PlayerId2(), 3, 3, 0);
+    let mut state = builder.build();
+    let spear = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spear,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero = state.player(p1).hero;
+    let enemy = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: enemy,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy),
+        Some(Health(1)),
+        "2 weapon damage"
+    );
+    let enemy_hero = state.player(PlayerId2()).hero;
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(28)),
+        "the splash excludes the attacked minion and hits the hero"
+    );
+
+    // Brood Keeper — holding a Dragon equips the 2/2 Sword.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BROOD_KEEPER)
+        .add_minion_to_hand(p1, &NIGHTMARE_DRAGONKIN);
+    let mut state = builder.build();
+    let keeper = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: keeper,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let sword = state.player(p1).weapon.expect("the Sword is equipped");
+    assert_eq!(state.world().effective_attack(sword), Some(Attack(2)));
+    assert!(
+        state
+            .world()
+            .card_id(sword)
+            .is_some_and(|c| c.0 == "EDR_457t"),
+        "the equipped Sword is the token"
+    );
+}
+
+/// Rogue hand reads — Tricky Satyr (EDR_521) copies the opponent's lowest
+/// Cost card, Mimicry (EDR_522) copies the opponent's draws, Web of
+/// Deception (EDR_523) bounces a friendly minion for the Stealth Spider,
+/// Shadowcloaked Assailant (EDR_524) shuffles a matching enemy card away.
+#[test]
+fn edr_w4a_rogue_hand_reads() {
+    use orange_stone::cards::def::{
+        BLOODFEN_RAPTOR, MIMICRY, MOONWELL, SHADOWCLOAKED_ASSAILANT, TRICKY_SATYR, WEB_OF_DECEPTION,
+    };
+    let engine = GameEngine::new();
+    let p1 = PlayerId1();
+
+    // Tricky Satyr — copies the 2-Cost Raptor (cheaper than the 6-Cost
+    // Moonwell).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TRICKY_SATYR)
+        .add_minion_to_hand(PlayerId2(), &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(PlayerId2(), &MOONWELL);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let satyr = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: satyr,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1, "the copy joins the hand");
+    assert!(
+        state
+            .world()
+            .card_id(hand[0])
+            .is_some_and(|c| c.0 == "CLASSIC_001"),
+        "the lowest Cost card is the Raptor"
+    );
+
+    // Mimicry — the opponent draws 2, the player gets copies.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &MIMICRY)
+        .add_minion_to_hand(PlayerId2(), &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(PlayerId2(), &MOONWELL);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let mimicry = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: mimicry,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let p2_hand: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId2())
+        .collect();
+    assert_eq!(p2_hand.len(), 4, "the opponent drew two");
+    let p1_hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(p1_hand.len(), 2, "the player got the copies");
+    assert!(
+        p1_hand.iter().all(|&e| state
+            .world()
+            .card_id(e)
+            .is_some_and(|c| c.0 == "CLASSIC_001")),
+        "the pad deck was two Raptors"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, PlayerId2()),
+        3,
+        "the opponent's deck lost two"
+    );
+
+    // Web of Deception — bounce a friendly minion, summon the Stealth
+    // Spider.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &WEB_OF_DECEPTION);
+    let mut state = builder.build();
+    let web = first_hand_card(&state, p1);
+    let raptor = board_minions(&state, p1)[0];
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: web,
+                target: Some(raptor),
+                position: None,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1, "the bounced Raptor returns to hand");
+    assert!(
+        state
+            .world()
+            .card_id(hand[0])
+            .is_some_and(|c| c.0 == "CLASSIC_001"),
+        "the bounced minion is the Raptor"
+    );
+    let spider = find_entity(&state, p1, "EDR_523t");
+    assert!(
+        state.world().stealth(spider).is_some(),
+        "the Spider has Stealth"
+    );
+
+    // Shadowcloaked Assailant — a matching enemy hand card is shuffled into
+    // their (empty) deck.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SHADOWCLOAKED_ASSAILANT)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(PlayerId2(), &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let assailant = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: assailant,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId2()),
+        0,
+        "the matching card left the opponent's hand"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, PlayerId2()),
+        1,
+        "it was shuffled into their deck"
+    );
+}
+
+/// Warlock end-of-turn timers — Rotten Apple (EDR_482) heals then ticks
+/// self-damage; Fractured Power (EDR_483) destroys a crystal and regains it
+/// later; Siphoning Growth (EDR_531) destroys a minion for Armor; Tranquil
+/// Treant (EDR_861) grants both players a Mana Crystal on death.
+#[test]
+fn edr_w4a_warlock_timers() {
+    use orange_stone::cards::def::{
+        BLOODFEN_RAPTOR, FRACTURED_POWER, ROTTEN_APPLE, SIPHONING_GROWTH, TRANQUIL_TREANT,
+        URSINE_MAUL,
+    };
+    use orange_stone::core::component::Health;
+    let engine = GameEngine::new();
+    let p1 = PlayerId1();
+
+    // Rotten Apple — heal 12, then 3 self-damage at the end of the next two
+    // of the player's own turns (tick 1 and tick 2).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 3, 3)
+        .equip_weapon(p1, &URSINE_MAUL)
+        .add_minion_to_hand(p1, &ROTTEN_APPLE)
+        .add_custom_minion_to_board(PlayerId2(), 20, 20, 0);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    // Damage the hero through combat (heals only remove Damage) — the armed
+    // hero takes 20 retaliation, dropping to 10.
+    let hero = state.player(p1).hero;
+    let enemy = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: enemy,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero), Some(Health(10)));
+    let apple = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: apple,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero = state.player(p1).hero;
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(22)),
+        "heal 12"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(19)),
+        "tick 1"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(16)),
+        "tick 2"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(16)),
+        "the timer expired"
+    );
+
+    // Fractured Power — 4 crystals → 3, then +2 at each of the next two own
+    // turn-ends (3 → 5 → 8), with the regular +1 turn-start growth in
+    // between (5 → 6, 8 → 9), and the mana refills to the new total.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &FRACTURED_POWER);
+    let mut state = builder.build();
+    let fractured = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: fractured,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(p1).mana_crystals, 3, "one crystal destroyed");
+    assert_eq!(state.player(p1).current_mana, 2, "the spell cost 2");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.player(p1).mana_crystals, 5, "tick 1 gains two");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.player(p1).mana_crystals, 6, "the +1 growth landed");
+    assert_eq!(state.player(p1).current_mana, 6, "the mana refills to 6");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.player(p1).mana_crystals, 8, "tick 2 gains two");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.player(p1).mana_crystals, 9, "the +1 growth landed");
+    assert_eq!(state.player(p1).current_mana, 9, "the mana refills to 9");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.player(p1).mana_crystals, 9, "the timer expired");
+
+    // Siphoning Growth — destroy a friendly minion for a flat 8 Armor.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 3, 3)
+        .add_minion_to_board(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &SIPHONING_GROWTH);
+    let mut state = builder.build();
+    let siphon = first_hand_card(&state, p1);
+    let raptor = board_minions(&state, p1)[0];
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: siphon,
+                target: Some(raptor),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        board_minions(&state, p1).is_empty(),
+        "the Raptor was destroyed"
+    );
+    assert_eq!(state.player(p1).armor, 8, "the flat 8 Armor");
+
+    // Tranquil Treant — dying grants an empty crystal to BOTH players
+    // (P1 1 → 2, P2 0 → 1).
+    let mut builder = GameBuilder::new();
+    builder
+        .add_minion_to_board(p1, &TRANQUIL_TREANT)
+        .add_custom_minion_to_board(PlayerId2(), 3, 3, 0);
+    let mut state = builder.build();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let treant = board_minions(&state, p1)[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: treant,
+            },
+        )
+        .unwrap();
+    assert!(board_minions(&state, p1).is_empty(), "the Treant died");
+    assert_eq!(state.player(p1).mana_crystals, 2, "the player gains one");
+    assert_eq!(
+        state.player(PlayerId2()).mana_crystals,
+        2,
+        "the opponent gains one too (the turn-start growth already refilled him)"
+    );
+}
+
+/// Dormant-simplified and vanilla cards — the never-waking Slumbering Sprite
+/// (EDR_469), Plucky Podling (EDR_529), Harbinger of the Blighted (EDR_781),
+/// Grotesque Runeblade (EDR_812), Corpse Flower (EDR_815) and the Ancient of
+/// Yore (EDR_979) end-of-turn armor + draw.
+#[test]
+fn edr_w4a_dormant_and_vanilla() {
+    use orange_stone::cards::def::{
+        ANCIENT_OF_YORE, CORPSE_FLOWER, GROTESQUE_RUNEBLADE, HARBINGER_OF_THE_BLIGHTED,
+        PLUCKY_PODLING, SLUMBERING_SPRITE,
+    };
+    use orange_stone::core::component::{Attack, Durability, Health};
+    let engine = GameEngine::new();
+    let p1 = PlayerId1();
+
+    // Slumbering Sprite — the never-waking 3/3.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &SLUMBERING_SPRITE);
+    let mut state = builder.build();
+    let sprite = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: sprite,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let sprite = find_entity(&state, p1, "EDR_469");
+    assert!(
+        state.world().cant_attack(sprite).is_some(),
+        "the Sprite never wakes"
+    );
+    assert_eq!(state.world().effective_attack(sprite), Some(Attack(3)));
+    assert_eq!(state.world().effective_health(sprite), Some(Health(3)));
+
+    // Plucky Podling — the plain 1/2.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &PLUCKY_PODLING);
+    let mut state = builder.build();
+    let podling = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: podling,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let podling = find_entity(&state, p1, "EDR_529");
+    assert_eq!(state.world().effective_attack(podling), Some(Attack(1)));
+    assert_eq!(state.world().effective_health(podling), Some(Health(2)));
+
+    // Harbinger of the Blighted — the plain 2/3.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &HARBINGER_OF_THE_BLIGHTED);
+    let mut state = builder.build();
+    let harbinger = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: harbinger,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let harbinger = find_entity(&state, p1, "EDR_781");
+    assert_eq!(state.world().effective_attack(harbinger), Some(Attack(2)));
+    assert_eq!(state.world().effective_health(harbinger), Some(Health(3)));
+
+    // Grotesque Runeblade — the plain 2/2 weapon.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &GROTESQUE_RUNEBLADE);
+    let mut state = builder.build();
+    let blade = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: blade,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let weapon = state.player(p1).weapon.expect("the Runeblade is equipped");
+    assert_eq!(state.world().effective_attack(weapon), Some(Attack(2)));
+    assert_eq!(state.world().durability(weapon), Some(Durability(2)));
+
+    // Corpse Flower — the plain 0/5.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &CORPSE_FLOWER);
+    let mut state = builder.build();
+    let flower = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: flower,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let flower = find_entity(&state, p1, "EDR_815");
+    assert_eq!(state.world().effective_attack(flower), Some(Attack(0)));
+    assert_eq!(state.world().effective_health(flower), Some(Health(5)));
+
+    // Ancient of Yore — never wakes, and the end-of-turn 3 Armor + draw
+    // keeps running while it is in play.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 6, 6)
+        .add_minion_to_hand(p1, &ANCIENT_OF_YORE);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let ancient = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: ancient,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let ancient = find_entity(&state, p1, "EDR_979");
+    assert!(
+        state.world().cant_attack(ancient).is_some(),
+        "the Ancient never wakes"
+    );
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), 5);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.player(p1).armor, 3, "the end-of-turn Armor");
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, p1),
+        4,
+        "the end-of-turn draw"
+    );
+}
+
+/// Battlecry pools — Hopeful Dryad (EDR_001) discovers from the Dream pool,
+/// Creature of Madness (EDR_105) finds a 3-Cost Dark Gift minion, Ward of
+/// Earth (EDR_060) summons a 5-Cost Taunt, Horn of Plenty (EDR_270) finds a
+/// spell costing 2 less, Gnawing Greenfin (EDR_999) finds a Murloc.
+#[test]
+fn edr_w4a_battlecry_pools() {
+    use orange_stone::cards::def::{
+        CREATURE_OF_MADNESS, GNAWING_GREENFIN, HOPEFUL_DRYAD, HORN_OF_PLENTY, WARD_OF_EARTH,
+        card_by_id,
+    };
+    use orange_stone::core::component::{CardType, Cost, Race};
+    let engine = GameEngine::new();
+    let p1 = PlayerId1();
+
+    // Hopeful Dryad — option 0 resolves the first Dream-pool card
+    // (NEUTRAL_T21a, the DREAM_POOL head).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &HOPEFUL_DRYAD);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let dryad = first_hand_card(&state, p1);
+    play_choose_option(&mut state, &engine, dryad, 0);
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1, "the Discover lands in hand");
+    assert!(
+        state
+            .world()
+            .card_id(hand[0])
+            .is_some_and(|c| c.0 == "NEUTRAL_T21a"),
+        "option 0 is the first Dream-pool card"
+    );
+
+    // Creature of Madness — a 3-Cost minion carrying a Dark Gift.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &CREATURE_OF_MADNESS);
+    let mut state = builder.build();
+    let creature = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: creature,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1, "the gift minion joins the hand");
+    let gifted = hand[0];
+    assert_eq!(
+        state.world().effective_cost(gifted),
+        Some(Cost(3)),
+        "3-Cost"
+    );
+    assert!(
+        state
+            .world()
+            .dark_gifts(gifted)
+            .is_some_and(|g| !g.is_empty()),
+        "it carries a Dark Gift"
+    );
+
+    // Ward of Earth — 5 Armor plus a 5-Cost Taunt minion.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 6, 6)
+        .add_minion_to_hand(p1, &WARD_OF_EARTH);
+    let mut state = builder.build();
+    let ward = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: ward,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(p1).armor, 5);
+    let summoned = board_minions(&state, p1);
+    assert_eq!(summoned.len(), 1, "a 5-Cost minion is summoned");
+    assert_eq!(state.world().effective_cost(summoned[0]), Some(Cost(5)));
+    assert!(state.world().taunt(summoned[0]).is_some(), "it has Taunt");
+
+    // Horn of Plenty — a random spell costing 2 less.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &HORN_OF_PLENTY);
+    let mut state = builder.build();
+    let horn = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: horn,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1);
+    let spell = hand[0];
+    assert_eq!(
+        state.world().card_type(spell),
+        Some(CardType::Spell),
+        "a spell"
+    );
+    let def_cost = state
+        .world()
+        .card_id(spell)
+        .and_then(|c| card_by_id(c.0))
+        .map(|d| d.cost)
+        .unwrap_or(0);
+    assert_eq!(
+        state.world().effective_cost(spell),
+        Some(Cost(def_cost.saturating_sub(2))),
+        "costs 2 less"
+    );
+
+    // Gnawing Greenfin — a Murloc joins the hand.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &GNAWING_GREENFIN);
+    let mut state = builder.build();
+    let greenfin = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: greenfin,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1);
+    assert!(
+        state.world().has_race(hand[0], Race::Murloc),
+        "a Murloc joins the hand"
+    );
+}
+
+/// Spell pools — Selenic Drake (EDR_462) and Daydreaming Pixie (EDR_530)
+/// gather at the end of the turn, Photosynthesis (EDR_848) heals and gathers
+/// Druid spells, Stellar Balance (EDR_874) grants a Spell Damage +1 Moonfire
+/// and Starfire.
+#[test]
+fn edr_w4a_spell_pools() {
+    use orange_stone::cards::def::{
+        DAYDREAMING_PIXIE, PHOTOSYNTHESIS, SELENIC_DRAKE, SHEPHERDS_CROOK, STELLAR_BALANCE,
+    };
+    use orange_stone::cards::sets::DRUID_CLASSIC;
+    use orange_stone::core::component::{CardType, Health, Race, SpellDamage};
+    let engine = GameEngine::new();
+    let p1 = PlayerId1();
+
+    // Selenic Drake — the end of the turn gathers a random Dragon.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &SELENIC_DRAKE);
+    let mut state = builder.build();
+    let drake = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: drake,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1, "a Dragon joins the hand");
+    assert!(state.world().has_race(hand[0], Race::Dragon));
+
+    // Daydreaming Pixie — the end of the turn gathers a random spell.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &DAYDREAMING_PIXIE);
+    let mut state = builder.build();
+    let pixie = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: pixie,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1, "a spell joins the hand");
+    assert_eq!(state.world().card_type(hand[0]), Some(CardType::Spell));
+
+    // Photosynthesis — heal 6 and gather 3 Druid spells.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 4, 4)
+        .equip_weapon(p1, &SHEPHERDS_CROOK)
+        .add_minion_to_hand(p1, &PHOTOSYNTHESIS)
+        .add_custom_minion_to_board(PlayerId2(), 10, 10, 0);
+    let mut state = builder.build();
+    // Damage the hero through combat (heals only remove Damage, they cannot
+    // raise health above max) — the armed hero takes 10 retaliation.
+    let hero = state.player(p1).hero;
+    let enemy = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: enemy,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero), Some(Health(20)));
+    let photo = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: photo,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero = state.player(p1).hero;
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(26)),
+        "heal 6"
+    );
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 3, "three Druid spells");
+    for e in hand {
+        assert_eq!(state.world().card_type(e), Some(CardType::Spell));
+        let id = state.world().card_id(e).map(|c| c.0).unwrap();
+        assert!(
+            DRUID_CLASSIC.iter().any(|d| d.id == id),
+            "{id} is a Druid spell"
+        );
+    }
+
+    // Stellar Balance — the gifted Moonfire and Starfire carry Spell Damage
+    // +1 and hit for 2 and 6.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &STELLAR_BALANCE);
+    builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 0);
+    builder.add_custom_minion_to_board(PlayerId2(), 6, 6, 0);
+    let mut state = builder.build();
+    let balance = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: balance,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 2);
+    assert_eq!(
+        state.world().card_id(hand[0]).map(|c| c.0),
+        Some("DRUID_011"),
+        "the classic db Moonfire (the CORE_EX1_277 rename predates it)"
+    );
+    assert_eq!(
+        state.world().card_id(hand[1]).map(|c| c.0),
+        Some("DRUID_006")
+    );
+    assert_eq!(state.world().spell_damage(hand[0]), Some(SpellDamage(1)));
+    assert_eq!(state.world().spell_damage(hand[1]), Some(SpellDamage(1)));
+    let moonfire = hand[0];
+    let starfire = hand[1];
+    let small = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: moonfire,
+                target: Some(small),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(small),
+        Some(Health(2)),
+        "Moonfire hits for 1 + 1"
+    );
+    let big = board_minions(&state, PlayerId2())
+        .into_iter()
+        .find(|&e| state.world().effective_health(e) == Some(Health(6)))
+        .expect("the 6/6");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: starfire,
+                target: Some(big),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_minions(&state, PlayerId2()).len(),
+        1,
+        "Starfire kills the 6/6"
+    );
+    assert_eq!(
+        state.world().effective_health(small),
+        Some(Health(2)),
+        "the 4/4 survives"
+    );
+}
+
+/// Keyword and end-of-turn cards (batch A) — Evergreen Stag (EDR_272),
+/// Scorching Observer (EDR_486), Dream Rager (EDR_598), Monstrous Mosquito
+/// (EDR_816), Briarspawn Drake (EDR_453), Barkshield Sentinel (EDR_470),
+/// Glowroot Lure (EDR_477), Dreambound Disciple (EDR_847), Petal Peddler
+/// (EDR_889), Merry Moonkin (EDR_940), Curious Cumulus (EDR_942) and Critter
+/// Caretaker (EDR_971).
+#[test]
+fn edr_w4a_midrange_keywords_and_end_of_turn_a() {
+    use orange_stone::cards::def::{
+        BARKSHELD_SENTINEL, BLOODFEN_RAPTOR, BRIARSPAWN_DRAKE, CRITTER_CARETAKER, CURIOUS_CUMULUS,
+        DREAM_RAGER, DREAMBOUND_DISCIPLE, EVERGREEN_STAG, GLOWROOT_LURE, MERRY_MOONKIN,
+        MONSTROUS_MOSQUITO, NIGHTMARE_DRAGONKIN, PETAL_PEDDLER, SCORCHING_OBSERVER,
+        SHEPHERDS_CROOK, WISP_TOKEN,
+    };
+    use orange_stone::core::component::{Attack, Health};
+    use orange_stone::core::effect::{CardEffect, EffectTarget};
+    use orange_stone::engine::cost::play_cost;
+    let engine = GameEngine::new();
+    let p1 = PlayerId1();
+
+    // Evergreen Stag — Taunt, Elusive and Lifesteal.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 7, 7)
+        .add_minion_to_hand(p1, &EVERGREEN_STAG);
+    let mut state = builder.build();
+    let stag = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: stag,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let stag = find_entity(&state, p1, "EDR_272");
+    assert!(state.world().taunt(stag).is_some());
+    assert!(state.world().elusive(stag).is_some());
+    assert!(state.world().lifesteal(stag).is_some());
+
+    // Scorching Observer — Rush and Lifesteal.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SCORCHING_OBSERVER);
+    let mut state = builder.build();
+    let observer = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: observer,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let observer = find_entity(&state, p1, "EDR_486");
+    assert!(state.world().rush(observer).is_some());
+    assert!(state.world().lifesteal(observer).is_some());
+
+    // Dream Rager — Elusive.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &DREAM_RAGER);
+    let mut state = builder.build();
+    let rager = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: rager,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let rager = find_entity(&state, p1, "EDR_598");
+    assert!(state.world().elusive(rager).is_some());
+
+    // Monstrous Mosquito — the other friendly minion gains +1 Attack at the
+    // end of the turn, the Mosquito itself does not.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &MONSTROUS_MOSQUITO)
+        .add_minion_to_board(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let mosquito = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: mosquito,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let raptor = find_entity(&state, p1, "CLASSIC_001");
+    assert_eq!(
+        state.world().effective_attack(raptor),
+        Some(Attack(4)),
+        "3 + 1"
+    );
+    assert_eq!(state.world().effective_health(raptor), Some(Health(2)));
+    let mosquito = find_entity(&state, p1, "EDR_816");
+    assert_eq!(
+        state.world().effective_attack(mosquito),
+        Some(Attack(1)),
+        "not the Mosquito"
+    );
+
+    // Briarspawn Drake — 12 damage kills the 5/5, the excess 7 hits the
+    // enemy hero.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BRIARSPAWN_DRAKE)
+        .add_custom_minion_to_board(PlayerId2(), 5, 5, 0);
+    let mut state = builder.build();
+    let drake = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: drake,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert!(
+        board_minions(&state, PlayerId2()).is_empty(),
+        "the 5/5 dies"
+    );
+    let enemy_hero = state.player(PlayerId2()).hero;
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(22)),
+        "the excess 7 spills onto the hero, then the empty-deck draw costs 1 fatigue"
+    );
+
+    // Barkshield Sentinel — +2 Health at the end of a turn where the hero
+    // power was used.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 5, 5)
+        .set_hero_power(
+            p1,
+            2,
+            CardEffect::GainArmor {
+                amount: 1,
+                target: EffectTarget::FriendlyHero,
+            },
+        )
+        .add_minion_to_hand(p1, &BARKSHELD_SENTINEL);
+    let mut state = builder.build();
+    let sentinel = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: sentinel,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero = state.player(p1).hero;
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let sentinel = find_entity(&state, p1, "EDR_470");
+    assert_eq!(
+        state.world().effective_health(sentinel),
+        Some(Health(4)),
+        "2 + 2"
+    );
+
+    // ... and no buff when the hero power was not used.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &BARKSHELD_SENTINEL);
+    let mut state = builder.build();
+    let sentinel = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: sentinel,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let sentinel = find_entity(&state, p1, "EDR_470");
+    assert_eq!(state.world().effective_health(sentinel), Some(Health(2)));
+
+    // Glowroot Lure — costs (1) less per hero power use this game: 6 − 2.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 5, 5)
+        .set_hero_power(
+            p1,
+            2,
+            CardEffect::GainArmor {
+                amount: 1,
+                target: EffectTarget::FriendlyHero,
+            },
+        )
+        .add_minion_to_hand(p1, &GLOWROOT_LURE);
+    let mut state = builder.build();
+    let hero = state.player(p1).hero;
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    let lure = first_hand_card(&state, p1);
+    assert_eq!(
+        play_cost(&state, lure, p1),
+        orange_stone::core::component::Cost(4),
+        "6 − 2"
+    );
+    assert_eq!(state.player(p1).hero_power_uses, 2);
+
+    // Dreambound Disciple — the next Hero Power costs (0); the free use at
+    // 0 mana leaves the mana untouched.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 3, 3)
+        .set_hero_power(
+            p1,
+            2,
+            CardEffect::GainArmor {
+                amount: 1,
+                target: EffectTarget::FriendlyHero,
+            },
+        )
+        .add_minion_to_hand(p1, &DREAMBOUND_DISCIPLE);
+    let mut state = builder.build();
+    let disciple = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: disciple,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero = state.player(p1).hero;
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    assert_eq!(state.player(p1).current_mana, 0, "the free Hero Power");
+    assert_eq!(state.player(p1).armor, 1);
+
+    // Petal Peddler — another random friendly Dragon gains +1/+1 at the end
+    // of the turn.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &PETAL_PEDDLER)
+        .add_minion_to_board(p1, &NIGHTMARE_DRAGONKIN);
+    let mut state = builder.build();
+    let peddler = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: peddler,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let rager = find_entity(&state, p1, "EDR_890");
+    assert_eq!(
+        state.world().effective_attack(rager),
+        Some(Attack(5)),
+        "4 + 1"
+    );
+    assert_eq!(
+        state.world().effective_health(rager),
+        Some(Health(3)),
+        "2 + 1"
+    );
+
+    // Merry Moonkin — 1 Armor plus one per friendly Wisp.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &MERRY_MOONKIN)
+        .add_minion_to_board(p1, &WISP_TOKEN);
+    let mut state = builder.build();
+    let moonkin = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: moonkin,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.player(p1).armor, 2, "1 base + 1 Wisp");
+
+    // Curious Cumulus — the hero gains Divine Shield at the end of the turn.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &CURIOUS_CUMULUS);
+    let mut state = builder.build();
+    let cumulus = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: cumulus,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let hero = state.player(p1).hero;
+    assert!(
+        state.world().divine_shield(hero).is_some(),
+        "the hero gains Divine Shield"
+    );
+
+    // Critter Caretaker — both heroes restore 3 at the end of the turn
+    // (heals only remove Damage, so both heroes are damaged through combat
+    // first: the P1 hero eats 6 retaliation, the Raptor chips P2's hero for 3).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 3, 3)
+        .equip_weapon(p1, &SHEPHERDS_CROOK)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &CRITTER_CARETAKER)
+        .add_custom_minion_to_board(PlayerId2(), 6, 6, 0);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let raptor = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: raptor,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The Raptor cannot attack on the turn it was summoned — pass the turn.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let hero1 = state.player(p1).hero;
+    let enemy = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero1,
+                defender: enemy,
+            },
+        )
+        .unwrap();
+    let hero2 = state.player(PlayerId2()).hero;
+    let raptor = find_entity(&state, p1, "CLASSIC_001");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: raptor,
+                defender: hero2,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero1), Some(Health(24)));
+    assert_eq!(state.world().effective_health(hero2), Some(Health(27)));
+    let caretaker = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: caretaker,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let hero1 = state.player(p1).hero;
+    let hero2 = state.player(PlayerId2()).hero;
+    assert_eq!(state.world().effective_health(hero1), Some(Health(27)));
+    assert_eq!(state.world().effective_health(hero2), Some(Health(30)));
+}
+
+/// Midrange cards (batch B) — Verdant Dreamsaber (EDR_014) with Nightmare
+/// Dragonkin (EDR_890), Mythical Runebear (EDR_481), Scavenging Flytrap
+/// (EDR_484), Envoy of the Glade (EDR_873), Afflicted Devastator (EDR_459)
+/// and Eggbasher (EDR_468).
+#[test]
+fn edr_w4a_midrange_b() {
+    use orange_stone::cards::def::{
+        AFFLICTED_DEVASTATOR, BEANSTALK_BRUTE, BLOODFEN_RAPTOR, DREAM_RAGER, EGGBASHER,
+        EMERALD_BOUNTY, ENVOY_OF_THE_GLADE, MYTHICAL_RUNEBEAR, NIGHTMARE_DRAGONKIN,
+        SCAVENGING_FLYTRAP, VERDANT_DREAMSABER,
+    };
+    use orange_stone::cards::sets::DRUID_CLASSIC;
+    use orange_stone::core::component::{Attack, Health};
+    use orange_stone::engine::cost::play_cost;
+    let engine = GameEngine::new();
+    let p1 = PlayerId1();
+
+    // Verdant Dreamsaber — without the cost reduction the battlecry stays
+    // off; after the Dragonkin's deathrattle the (3) Dreamsaber attacks both
+    // enemy minions for 4.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(PlayerId2(), 5, 5)
+        .add_minion_to_hand(PlayerId2(), &VERDANT_DREAMSABER);
+    builder.add_custom_minion_to_board(p1, 5, 5, 0);
+    builder.add_custom_minion_to_board(p1, 5, 5, 0);
+    let mut state = builder.build();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let dreamsaber = first_hand_card(&state, PlayerId2());
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: dreamsaber,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let p1_board = board_minions(&state, p1);
+    assert_eq!(p1_board.len(), 2, "cost 5 > 3 — no attack");
+    for m in p1_board {
+        assert_eq!(state.world().effective_health(m), Some(Health(5)));
+    }
+
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(PlayerId2(), 3, 3)
+        .add_minion_to_board(PlayerId2(), &NIGHTMARE_DRAGONKIN)
+        .add_minion_to_hand(PlayerId2(), &VERDANT_DREAMSABER);
+    builder.add_custom_minion_to_board(p1, 5, 5, 0);
+    builder.add_custom_minion_to_board(p1, 5, 5, 0);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let attacker = board_minions(&state, p1)[0];
+    let dragonkin = find_entity(&state, PlayerId2(), "EDR_890");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: dragonkin,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(attacker),
+        Some(Health(1)),
+        "the retaliation costs the attacker 4"
+    );
+    let dreamsaber = first_hand_card(&state, PlayerId2());
+    assert_eq!(
+        play_cost(&state, dreamsaber, PlayerId2()),
+        orange_stone::core::component::Cost(3)
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: dreamsaber,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let p1_board = board_minions(&state, p1);
+    assert_eq!(p1_board.len(), 1, "the battered 5/1 dies to the second hit");
+    assert_eq!(state.world().effective_attack(p1_board[0]), Some(Attack(5)));
+    assert_eq!(state.world().effective_health(p1_board[0]), Some(Health(1)));
+
+    // Mythical Runebear — Beanstalk Brute's deck buff pushes the Runebear to
+    // 7/8, so its battlecry summons a fresh (unbuffed) copy.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 6, 6)
+        .add_minion_to_hand(p1, &BEANSTALK_BRUTE)
+        .add_minion_to_hand(p1, &EMERALD_BOUNTY)
+        .add_minion_to_deck(p1, &MYTHICAL_RUNEBEAR);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let beanstalk = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: beanstalk,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let bounty = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bounty,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The build() shuffle scrambles the deck, so the Runebear's position is
+    // seed-dependent — locate it in the hand rather than assuming the top.
+    let runebear = find_in_hand(&state, p1, "EDR_481");
+    assert_eq!(
+        state.world().card_id(runebear).map(|c| c.0),
+        Some("EDR_481")
+    );
+    assert_eq!(
+        state.world().effective_attack(runebear),
+        Some(Attack(7)),
+        "buffed in the deck"
+    );
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: runebear,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let bears = board_minions(&state, p1);
+    assert_eq!(bears.len(), 3, "Beanstalk + the Runebear + the copy");
+    let mut stats: Vec<(i32, i32)> = bears
+        .iter()
+        .map(|&e| {
+            (
+                state.world().effective_attack(e).map_or(0, |a| a.0),
+                state.world().effective_health(e).map_or(0, |h| h.0),
+            )
+        })
+        .collect();
+    stats.sort();
+    assert_eq!(
+        stats,
+        vec![(3, 4), (4, 4), (7, 8)],
+        "the copy is a fresh 3/4 next to the 4/4 Beanstalk"
+    );
+
+    // Scavenging Flytrap — a dying Raptor grants its base Attack.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 9, 9)
+        .add_minion_to_hand(p1, &SCAVENGING_FLYTRAP)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_custom_minion_to_board(PlayerId2(), 3, 3, 0);
+    let mut state = builder.build();
+    let flytrap = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: flytrap,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let raptor = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: raptor,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let raptor = find_entity(&state, p1, "CLASSIC_001");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: raptor,
+            },
+        )
+        .unwrap();
+    let flytrap = find_entity(&state, p1, "EDR_484");
+    assert_eq!(
+        state.world().effective_attack(flytrap),
+        Some(Attack(8)),
+        "2 base + 3 (the Raptor) + 3 (the enemy 3/3 dies to the retaliation)"
+    );
+    assert_eq!(state.world().effective_health(flytrap), Some(Health(7)));
+
+    // Envoy of the Glade — every Neutral deck card becomes a Druid one.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &ENVOY_OF_THE_GLADE)
+        .add_minion_to_deck(p1, &DREAM_RAGER);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let envoy = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: envoy,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, p1).collect();
+    assert_eq!(deck.len(), 6);
+    for e in deck {
+        let id = state.world().card_id(e).map(|c| c.0).unwrap();
+        assert!(
+            DRUID_CLASSIC.iter().any(|d| d.id == id),
+            "{id} is a Druid card"
+        );
+    }
+
+    // Afflicted Devastator — the battlecry clips the friendly minions, the
+    // deathrattle clips the enemy ones.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &AFFLICTED_DEVASTATOR);
+    builder.add_custom_minion_to_board(p1, 5, 5, 0);
+    builder.add_custom_minion_to_board(p1, 4, 4, 0);
+    builder.add_custom_minion_to_board(PlayerId2(), 8, 8, 0);
+    builder.add_custom_minion_to_board(PlayerId2(), 7, 7, 0);
+    builder.add_custom_minion_to_board(PlayerId2(), 12, 12, 0);
+    let mut state = builder.build();
+    let devastator = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: devastator,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let friends = board_minions(&state, p1);
+    let (mut a, mut b) = (0, 0);
+    for m in friends {
+        if m == devastator {
+            continue; // the source escapes its own battlecry
+        }
+        let hp = state.world().effective_health(m).map_or(0, |h| h.0);
+        let atk = state.world().effective_attack(m).map_or(0, |a| a.0);
+        if atk == 5 {
+            assert_eq!(hp, 2, "the 5/5 takes 3");
+            a += 1;
+        } else {
+            assert_eq!(hp, 1, "the 4/4 takes 3");
+            b += 1;
+        }
+    }
+    assert_eq!((a, b), (1, 1));
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())
+        .into_iter()
+        .find(|&e| state.world().effective_attack(e) == Some(Attack(12)))
+        .expect("the 12/12");
+    let devastator = find_entity(&state, p1, "EDR_459");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: devastator,
+            },
+        )
+        .unwrap();
+    let enemies = board_minions(&state, PlayerId2());
+    let mut seen = [false; 2];
+    for m in enemies {
+        let atk = state.world().effective_attack(m).map_or(0, |a| a.0);
+        let hp = state.world().effective_health(m).map_or(0, |h| h.0);
+        if atk == 8 {
+            assert_eq!(hp, 5, "the 8/8 takes 3");
+            seen[0] = true;
+        } else if atk == 7 {
+            assert_eq!(hp, 4, "the 7/7 takes 3");
+            seen[1] = true;
+        }
+    }
+    assert!(seen[0] && seen[1], "both enemy minions were clipped");
+
+    // Eggbasher — damage 1 and +4 Attack on a 5/5 → 9/4.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &EGGBASHER)
+        .add_custom_minion_to_board(PlayerId2(), 5, 5, 0);
+    let mut state = builder.build();
+    let eggbasher = first_hand_card(&state, p1);
+    let victim = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: eggbasher,
+                target: Some(victim),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(victim),
+        Some(Attack(9)),
+        "5 + 4"
+    );
+    assert_eq!(
+        state.world().effective_health(victim),
+        Some(Health(4)),
+        "5 - 1"
+    );
+}
+
+/// Misc spells and battlecries — Sporegnasher (EDR_110), Typhoon (EDR_232),
+/// Emerald Bounty (EDR_234), Dragonscale Armaments (EDR_251), Mark of Ursol
+/// (EDR_252), Renewing Flames (EDR_255), Dreamwarden (EDR_256), Illusory
+/// Greenwing (EDR_260), Amphibian's Spirit (EDR_261), Spirit Bond (EDR_262),
+/// Mother Duck (EDR_492), Bloodthistle Illusionist (EDR_780), Divination
+/// (EDR_804), Hideous Husk (EDR_810), Infested Breath (EDR_814), Sanguine
+/// Infestation (EDR_817), Grim Harvest (EDR_840) and Dreadsoul Corrupter
+/// (EDR_841).
+#[test]
+fn edr_w4a_misc_spells_and_battlecries() {
+    use orange_stone::cards::def::{
+        AMPHIBIANS_SPIRIT, BLOODTHISTLE_ILLUSIONIST, DIVINATION, DRAGONSCALE_ARMAMENTS,
+        DREADSOUL_CORRUPTER, DREAMWARDEN, EMERALD_BOUNTY, GRIM_HARVEST, HIDEOUS_HUSK,
+        ILLUSORY_GREENWING, INFESTED_BREATH, MARK_OF_URSOL, MOTHER_DUCK, RENEWING_FLAMES,
+        SANGUINE_INFESTATION, SPIRIT_BOND, SPOREGNASHER, STAR_SURGE, TYPHOON, WISP_TOKEN,
+    };
+    use orange_stone::core::component::{Attack, CardType, Health};
+    let engine = GameEngine::new();
+    let p1 = PlayerId1();
+
+    // Sporegnasher — the Poison retaliation kills the attacker, the
+    // deathrattle clips the remaining enemy minion for 1.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &SPOREGNASHER);
+    builder.add_custom_minion_to_board(PlayerId2(), 5, 5, 0);
+    builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 0);
+    let mut state = builder.build();
+    let sporegnasher = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: sporegnasher,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let sporegnasher = find_entity(&state, p1, "EDR_110");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: sporegnasher,
+            },
+        )
+        .unwrap();
+    assert!(board_minions(&state, p1).is_empty(), "Sporegnasher dies");
+    assert!(
+        board_minions(&state, PlayerId2()).is_empty(),
+        "Poison destroys the attacker, and the poisoned deathrattle destroys the 3/3 too"
+    );
+
+    // Typhoon — every minion is shuffled into a random deck.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TYPHOON);
+    builder.add_custom_minion_to_board(p1, 5, 5, 0);
+    builder.add_custom_minion_to_board(p1, 4, 4, 0);
+    builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 0);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 0);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let typhoon = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: typhoon,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(board_minions(&state, p1).is_empty());
+    assert!(board_minions(&state, PlayerId2()).is_empty());
+    let d1 = state.world().zones().len(Zone::Deck, p1);
+    let d2 = state.world().zones().len(Zone::Deck, PlayerId2());
+    assert_eq!(d1 + d2, 14, "5 + 5 + the 4 shuffled minions");
+    assert!(
+        d1 >= 5 && d2 >= 5,
+        "both decks keep at least their own cards"
+    );
+
+    // Emerald Bounty — draw 2 (the play-lock half is simplified away).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &EMERALD_BOUNTY);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let bounty = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bounty,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), 3);
+    assert_eq!(state.world().zones().len(Zone::Hand, p1), 2);
+
+    // Dragonscale Armaments — the first deck spell is drawn, a random spell
+    // joins the hand (the "didn't start there" half, §14.3).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &DRAGONSCALE_ARMAMENTS)
+        .add_minion_to_deck(p1, &STAR_SURGE);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let armaments = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: armaments,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, p1),
+        5,
+        "Starsurge drawn"
+    );
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 2);
+    assert!(
+        hand.iter()
+            .all(|&e| state.world().card_type(e) == Some(CardType::Spell))
+    );
+    assert!(
+        hand.iter()
+            .any(|&e| state.world().card_id(e).map(|c| c.0) == Some("EDR_941")),
+        "the drawn card is the deck's Starsurge"
+    );
+
+    // Mark of Ursol — an enemy target is set to 1/1, a friendly one to 3/3.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &MARK_OF_URSOL)
+        .add_custom_minion_to_board(PlayerId2(), 5, 5, 0);
+    let mut state = builder.build();
+    let ursol = first_hand_card(&state, p1);
+    let enemy = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: ursol,
+                target: Some(enemy),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(enemy),
+        Some(Attack(1)),
+        "set to 1/1"
+    );
+    assert_eq!(state.world().effective_health(enemy), Some(Health(1)));
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &MARK_OF_URSOL)
+        .add_custom_minion_to_board(p1, 2, 2, 0);
+    let mut state = builder.build();
+    let ursol = first_hand_card(&state, p1);
+    let friend = board_minions(&state, p1)[0];
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: ursol,
+                target: Some(friend),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(friend),
+        Some(Attack(3)),
+        "set to 3/3"
+    );
+    assert_eq!(state.world().effective_health(friend), Some(Health(3)));
+
+    // Renewing Flames — 5 damage twice to the lowest-Health enemy (re-picked
+    // per hit); the first hit kills the 3/5 and its Lifesteal heals 5, the
+    // second hit re-picks while the dying 3/5 is still on the board (hp 0)
+    // and falls on it again — only the heal lands.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 7, 7)
+        .add_minion_to_hand(p1, &RENEWING_FLAMES);
+    builder.add_custom_minion_to_board(PlayerId2(), 3, 5, 0);
+    builder.add_custom_minion_to_board(PlayerId2(), 12, 12, 0);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    // the 12/12 chips the hero down to 18 (real damage — the heal pipeline
+    // only restores Damage, it cannot raise the base Health)
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let chunky = board_minions(&state, PlayerId2())
+        .into_iter()
+        .find(|&e| state.world().effective_attack(e) == Some(Attack(12)))
+        .expect("the 12/12");
+    let hero_entity = state.player(p1).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: chunky,
+                defender: hero_entity,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let flames = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: flames,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero = state.player(p1).hero;
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(28)),
+        "chipped to 18, then two Lifesteal heals of 5"
+    );
+    let survivors = board_minions(&state, PlayerId2());
+    assert_eq!(survivors.len(), 1, "the 3/5 dies");
+    assert_eq!(
+        state.world().effective_health(survivors[0]),
+        Some(Health(12)),
+        "the re-picked second hit falls on the dying 3/5, not the 12/12"
+    );
+
+    // Dreamwarden — draw the top card and gain +2/+2.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &DREAMWARDEN);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let warden = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: warden,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let warden = find_entity(&state, p1, "EDR_256");
+    assert_eq!(
+        state.world().effective_attack(warden),
+        Some(Attack(5)),
+        "3 + 2"
+    );
+    assert_eq!(
+        state.world().effective_health(warden),
+        Some(Health(6)),
+        "4 + 2"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "one card drawn"
+    );
+
+    // Illusory Greenwing — the deathrattle shuffles two 4/5 Dragons into the
+    // deck (the Summoned-When-Drawn half is simplified away).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &ILLUSORY_GREENWING)
+        .add_custom_minion_to_board(PlayerId2(), 12, 12, 0);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let greenwing = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: greenwing,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let greenwing = find_entity(&state, p1, "EDR_260");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: greenwing,
+            },
+        )
+        .unwrap();
+    let deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, p1).collect();
+    assert_eq!(deck.len(), 7, "5 + the 2 shuffled Dragons");
+    let dragons = deck
+        .iter()
+        .filter(|&&e| state.world().card_id(e).map(|c| c.0) == Some("EDR_260t"))
+        .count();
+    assert_eq!(dragons, 2);
+
+    // Amphibian's Spirit — the buffed 4/4 trades with the attacker and the
+    // recursive deathrattle buffs the other friendly minion.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &AMPHIBIANS_SPIRIT);
+    builder.add_custom_minion_to_board(p1, 2, 2, 0);
+    builder.add_custom_minion_to_board(p1, 2, 2, 0);
+    builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 0);
+    let mut state = builder.build();
+    let spirit = first_hand_card(&state, p1);
+    let target = board_minions(&state, p1)[0];
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spirit,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(target),
+        Some(Attack(4)),
+        "2 + 2"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: target,
+            },
+        )
+        .unwrap();
+    assert!(board_minions(&state, PlayerId2()).is_empty(), "both die");
+    let friends = board_minions(&state, p1);
+    assert_eq!(friends.len(), 1);
+    assert_eq!(
+        state.world().effective_attack(friends[0]),
+        Some(Attack(4)),
+        "2 + 2"
+    );
+    assert_eq!(state.world().effective_health(friends[0]), Some(Health(4)));
+
+    // Spirit Bond — 3 damage kills the 2/2 and summons the 3/2 Wolf with
+    // Rush.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &SPIRIT_BOND)
+        .add_custom_minion_to_board(PlayerId2(), 2, 2, 0);
+    let mut state = builder.build();
+    let bond = first_hand_card(&state, p1);
+    let victim = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bond,
+                target: Some(victim),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(board_minions(&state, PlayerId2()).is_empty());
+    let wolf = find_entity(&state, p1, "EDR_262t");
+    assert_eq!(state.world().effective_attack(wolf), Some(Attack(3)));
+    assert_eq!(state.world().effective_health(wolf), Some(Health(2)));
+    assert!(state.world().rush(wolf).is_some(), "the Wolf has Rush");
+
+    // Mother Duck — three 1/1 Ducklings with Rush.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &MOTHER_DUCK);
+    let mut state = builder.build();
+    let duck = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: duck,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let ducks: Vec<Entity> = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).map(|c| c.0) == Some("EDR_492t"))
+        .collect();
+    assert_eq!(ducks.len(), 3);
+    for d in ducks {
+        assert_eq!(state.world().effective_attack(d), Some(Attack(1)));
+        assert_eq!(state.world().effective_health(d), Some(Health(1)));
+        assert!(state.world().rush(d).is_some());
+    }
+
+    // Bloodthistle Illusionist — a plain copy of itself joins the board.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 3, 3)
+        .add_minion_to_hand(p1, &BLOODTHISTLE_ILLUSIONIST);
+    let mut state = builder.build();
+    let illusionist = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: illusionist,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let board = board_minions(&state, p1);
+    assert_eq!(board.len(), 2);
+    assert!(
+        board
+            .iter()
+            .all(|&e| state.world().effective_attack(e) == Some(Attack(2)))
+    );
+    assert!(
+        board
+            .iter()
+            .all(|&e| state.world().effective_health(e) == Some(Health(4)))
+    );
+
+    // Divination — destroy a friendly Wisp and draw 3.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &DIVINATION)
+        .add_minion_to_board(p1, &WISP_TOKEN);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let divination = first_hand_card(&state, p1);
+    let wisp = find_entity(&state, p1, "EDR_851t");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: divination,
+                target: Some(wisp),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        board_minions(&state, p1).is_empty(),
+        "the Wisp is destroyed"
+    );
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), 2, "5 - 3 drawn");
+    assert_eq!(state.world().zones().len(Zone::Hand, p1), 3);
+
+    // Hideous Husk — two 0/2 Leeches are summoned.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 6, 6)
+        .add_minion_to_hand(p1, &HIDEOUS_HUSK);
+    let mut state = builder.build();
+    let husk = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: husk,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let leeches: Vec<Entity> = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).map(|c| c.0) == Some("EDR_810t"))
+        .collect();
+    assert_eq!(leeches.len(), 2);
+    for l in leeches {
+        assert_eq!(state.world().effective_attack(l), Some(Attack(0)));
+        assert_eq!(state.world().effective_health(l), Some(Health(2)));
+    }
+
+    // Infested Breath — 2 damage and a Leech.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &INFESTED_BREATH)
+        .add_custom_minion_to_board(PlayerId2(), 4, 4, 0);
+    let mut state = builder.build();
+    let breath = first_hand_card(&state, p1);
+    let victim = board_minions(&state, PlayerId2())[0];
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: breath,
+                target: Some(victim),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(victim),
+        Some(Health(2)),
+        "4 - 2"
+    );
+    let leeches: Vec<Entity> = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).map(|c| c.0) == Some("EDR_810t"))
+        .collect();
+    assert_eq!(leeches.len(), 1);
+
+    // Sanguine Infestation — draw 2 and summon two Leeches.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &SANGUINE_INFESTATION);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let infestation = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: infestation,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), 3, "5 - 2 drawn");
+    let leeches: Vec<Entity> = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).map(|c| c.0) == Some("EDR_810t"))
+        .collect();
+    assert_eq!(leeches.len(), 2);
+
+    // Grim Harvest — draw 1 and summon the can't-attack Dreadseed.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 2, 2)
+        .add_minion_to_hand(p1, &GRIM_HARVEST);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let harvest = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: harvest,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), 4, "5 - 1 drawn");
+    let seed = find_entity(&state, p1, "EDR_820t");
+    assert!(
+        state.world().cant_attack(seed).is_some(),
+        "the Dreadseed can't attack"
+    );
+
+    // Dreadsoul Corrupter — the battlecry and the deathrattle each summon a
+    // Dreadseed.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 4, 4)
+        .add_minion_to_hand(p1, &DREADSOUL_CORRUPTER)
+        .add_custom_minion_to_board(PlayerId2(), 12, 12, 0);
+    let mut state = builder.build();
+    let corrupter = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: corrupter,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let attacker = board_minions(&state, PlayerId2())[0];
+    let corrupter = find_entity(&state, p1, "EDR_841");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: corrupter,
+            },
+        )
+        .unwrap();
+    let seeds: Vec<Entity> = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).map(|c| c.0) == Some("EDR_820t"))
+        .collect();
+    assert_eq!(seeds.len(), 2, "battlecry + deathrattle");
+}

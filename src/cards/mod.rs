@@ -31,6 +31,7 @@ pub mod def;
 pub mod exp_edr_w1;
 pub mod exp_edr_w2;
 pub mod exp_edr_w3;
+pub mod exp_edr_w4a;
 pub mod generated;
 pub mod pool;
 pub mod sets;
@@ -117,6 +118,9 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "CORE_TSC_650t4" // Otter (W6 token — Flipper Friends)
         | "EDR_227" // Umbraclaw (M1-W1 — the Emerald Dream imbue wave)
         | "EDR_263t" // Greatwolf (M1-W3 — Grace of the Greatwolf token)
+        | "EDR_486" // Scorching Observer (M1-W4a)
+        | "EDR_492t" // Duckling (M1-W4a — Mother Duck token)
+        | "EDR_262t" // Wolf (M1-W4a — Spirit Bond token)
     ) {
         world.set_rush(entity, Rush);
     }
@@ -133,6 +137,9 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "CORE_TTN_866" // Mythical Terror
         | "EDR_449"     // Lunarwing Messenger (M1-W1)
         | "EDR_860" // Resplendent Dreamweaver (M1-W1)
+        | "EDR_255" // Renewing Flames (M1-W4a — spell)
+        | "EDR_272" // Evergreen Stag (M1-W4a)
+        | "EDR_486" // Scorching Observer (M1-W4a)
     ) {
         world.set_lifesteal(entity, Lifesteal);
     }
@@ -567,6 +574,10 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // Emperor Cobra — Poison
         world.set_poison(entity, Poison);
     }
+    if card_def.id == "EDR_110" {
+        // Sporegnasher (M1-W4a) — Poisonous
+        world.set_poison(entity, Poison);
+    }
     if matches!(card_def.id, "LEGENDARY_024" | "CORE_EX1_100") {
         // Lorewalker Cho — whenever a player casts a spell, put a copy into
         // the other player's hand. Pool-open (reads the cast spell — it can
@@ -752,6 +763,93 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 },
                 race: None,
                 max_attack: None,
+            },
+        );
+    }
+    // M1-W4a (2025–2026 expansions) — weapon triggers (the trigger rides the
+    // weapon entity, like the W9 Truesilver/Gorehowl pattern):
+    // Ursine Maul — after your hero attacks, draw a card
+    // Shepherd's Crook — after your hero attacks, summon a 3/3 Sheep
+    // Defiled Spear — after your hero attacks an enemy minion, splash
+    //   (dealt as direct damage; the "another" exclusion is implemented —
+    //   the splashed target excludes the minion that was just attacked)
+    if card_def.id == "EDR_253" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::Attacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::DrawCard { count: 1 },
+            },
+        );
+    }
+    if card_def.id == "EDR_416" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::Attacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::SummonMinion {
+                    card_id: "EDR_416t",
+                },
+            },
+        );
+    }
+    if card_def.id == "EDR_842" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::HeroAttackedMinion,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::SplashHeroAttackToRandomEnemy,
+            },
+        );
+    }
+    // Scavenging Flytrap — after ANY minion dies, gain its Attack (the
+    // graveyard wipe means the base Attack is what is gained, §14.3)
+    if card_def.id == "EDR_484" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::MinionDied,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::GainDeadMinionAttack,
+            },
+        );
+    }
+    // Twisted Webweaver — whenever you play a minion you've already played
+    // this game, draw a card (the played-minion log lives on the Player)
+    if card_def.id == "EDR_540" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::CardPlayed,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::DrawIfMinionPlayedBefore,
+            },
+        );
+    }
+    // Dreambound Raptor — after you play a minion, give it a random Bonus
+    // Effect (the official pool approximated by a fixed keyword pool, §14.3)
+    if card_def.id == "EDR_849" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::CardPlayed,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::GrantRandomBonusEffect,
             },
         );
     }
@@ -1372,9 +1470,20 @@ mod generated_tests {
     /// agree with the generated baseline on every statically representable
     /// field, or the divergence must be documented in
     /// `expansion_differential_rebalanced`.
-    fn expansion_differential_rebalanced(_id: &str, _field: &str) -> bool {
+    fn expansion_differential_rebalanced(id: &str, field: &str) -> bool {
         // Documented divergences land here (known_rebalanced style).
-        false
+        //
+        // The two EDR Locations (M1-W4a) — EDR_454 Clutch of Corruption and
+        // EDR_520 Forbidden Shrine — diverge from their generated baselines
+        // because the generator predates the Location CardType (added in the
+        // Core Set W8 work): cards.json marks them `type: LOCATION` with the
+        // durability in the "health" field, which the generated code maps to
+        // a vanilla Minion (0/2 resp. 0/3, durability 0). The handwritten
+        // cards use the faithful location representation (CardType::Location,
+        // health 0, durability from the official data) — the same convention
+        // as the Core Set W8 locations.
+        (id == "EDR_454" || id == "EDR_520")
+            && matches!(field, "card_type" | "health" | "durability")
     }
 
     /// The gate itself: enumerate the generated expansion baselines, compare

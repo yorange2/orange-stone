@@ -1483,6 +1483,348 @@ pub enum CardEffect {
     /// the real Discover lets the player choose, simplified to a random
     /// pick over the fixed OTHER_CLASS_CHOOSE_ONE_POOL, see §14.2)
     AddRandomOtherClassChooseOneCard,
+    /// Attack two random enemy minions if this card costs (n) or less
+    /// (Verdant Dreamsaber — the attack is modeled as direct damage, like
+    /// the "excess damage" family; the cost condition reads the played card)
+    AttackTwoRandomEnemyMinionsIfCostLE {
+        /// The cost threshold
+        cost: u8,
+    },
+    /// Gain Armor and summon a random minion of the given cost, giving it
+    /// Taunt (Ward of Earth)
+    GainArmorSummonCostTaunt {
+        /// Armor gained
+        armor: i32,
+        /// Cost of the summoned minion
+        cost: u8,
+    },
+    /// Add a random minion of the given cost with a Dark Gift to hand
+    /// (Creature of Madness — the real Discover lets the player choose,
+    /// simplified to random)
+    AddRandomCostMinionWithDarkGift {
+        /// The minion's cost
+        cost: u8,
+    },
+    /// Give the given stats to the top n minions in the player's deck
+    /// (Beanstalk Brute — the deck is ordered, so the "top minions" are the
+    /// first ones in deck order; enchantments persist deck → hand → play)
+    BuffTopDeckMinions {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+        /// Number of top minions
+        count: u8,
+    },
+    /// Shuffle each minion into a random player's deck (Typhoon)
+    ShuffleAllMinionsIntoDecks,
+    /// Draw a spell from the player's deck and add a random spell to hand
+    /// (Dragonscale Armaments — the engine does not track card origins, so
+    /// the "one that didn't start there" half is a random spell, see §14.3)
+    DrawDeckSpellAndAddRandomSpell,
+    /// Set a minion's stats depending on who owns it (Mark of Ursol — enemy
+    /// targets become the enemy stat block, friendly ones the friendly one)
+    SetStatsByFriendlyTarget {
+        /// Enemy target attack
+        enemy_attack: i32,
+        /// Enemy target health
+        enemy_health: i32,
+        /// Friendly target attack
+        friendly_attack: i32,
+        /// Friendly target health
+        friendly_health: i32,
+    },
+    /// Gain Attack equal to the Cost of a friendly spell just cast
+    /// (Animated Moonwell)
+    GainAttackEqualSpellCost,
+    /// Deal damage to the lowest-Health enemy, twice (Renewing Flames)
+    DamageLowestHealthEnemyTwice {
+        /// Damage per hit
+        amount: i32,
+    },
+    /// Draw the top card and gain the given stats (Dreamwarden — the real
+    /// card's "didn't start there" condition is dropped, see §14.3)
+    DrawAndGainStats {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// Shuffle the given number of copies of a card into the player's deck
+    /// (Illusory Greenwing)
+    ShuffleCardIntoDeck {
+        /// Card to shuffle
+        card_id: &'static str,
+        /// Number of copies
+        count: u8,
+    },
+    /// Give a minion stats and "Deathrattle: give a friendly minion stats
+    /// and this Deathrattle" (Amphibian's Spirit — the engine stores one
+    /// Deathrattle per entity, so an existing one is replaced, see §14.3)
+    AmphibianSpiritBuff {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// Deal damage to a minion; if it dies, summon a Wolf token (Spirit Bond)
+    DamageAndSummonWolfIfKilled {
+        /// Damage dealt
+        damage: i32,
+    },
+    /// Add a random spell to hand, reduced by the given amount (Horn of
+    /// Plenty — the Nature school is not modeled, so the pool is any spell,
+    /// and Discover is random, see §14.3)
+    AddRandomSpellCostsLess {
+        /// Cost reduction
+        reduction: u8,
+    },
+    /// Summon a Treant token whose deathrattle adds a random spell to hand
+    /// (Grove Shaper — the Nature school is not modeled, so the trigger
+    /// fires on any friendly spell; the treant cannot remember the cast
+    /// spell, see §14.3)
+    SummonTreantCopyingSpell,
+    /// Summon an Egg token that hatches a copy of a random friendly Dragon
+    /// when it dies (Clutch of Corruption — the egg cannot remember which
+    /// Dragon was chosen, see §14.3)
+    SummonEggHatchingDragon,
+    /// Resurrect a random friendly Dragon from the graveyard (Succumb to
+    /// Madness — the real Discover lets the player choose, simplified to
+    /// random over the death record)
+    ResurrectRandomFallenDragon,
+    /// Equip a Sword token if holding a Dragon (Brood Keeper)
+    EquipSwordIfHoldingDragon,
+    /// Deal damage to all other friendly minions (Afflicted Devastator)
+    DamageAllOtherFriendlyMinions {
+        /// Damage dealt
+        damage: i32,
+    },
+    /// Deal damage to a minion, gaining Lifesteal if the player has cast 3
+    /// or more spells this game (Wish of the New Moon — the per-card New
+    /// Moon counter is approximated by the player's total spells cast,
+    /// see §14.3)
+    DamageMinionWithMoonLifesteal {
+        /// Damage dealt
+        amount: i32,
+    },
+    /// Summon two random minions of the given cost, upgraded after 3 spells
+    /// cast (Ritual of the New Moon — see the Wish of the New Moon note)
+    SummonTwoRandomCostMinions {
+        /// Base summoned cost
+        base_cost: u8,
+        /// Upgraded summoned cost
+        upgraded_cost: u8,
+    },
+    /// Deal damage to the enemy hero if holding a spell that costs (5) or
+    /// more (Weaver of the Cycle)
+    DamageIfHoldingSpell5Plus {
+        /// Damage dealt
+        amount: i32,
+    },
+    /// Summon a copy of the player's own minion if its Attack is at least
+    /// the threshold (Mythical Runebear)
+    SummonCopyIfAttackGE {
+        /// Attack threshold
+        attack: i32,
+    },
+    /// Restore Health to the hero and queue self-damage for the next n of
+    /// the player's turns (Rotten Apple — the damage ticks at the END of
+    /// each of the next turns, see §14.3)
+    RestoreHealthAndPendingSelfDamage {
+        /// Health restored
+        heal: i32,
+        /// Self damage per turn
+        damage: i32,
+        /// Number of affected turns
+        turns: u8,
+    },
+    /// Destroy a Mana Crystal and gain some after n of the player's turns
+    /// (Fractured Power — the gain lands at the END of the nth turn, see
+    /// §14.3)
+    DestroyCrystalGainCrystalsLater {
+        /// Crystals gained later
+        gain: i32,
+        /// Number of affected turns
+        turns: u8,
+    },
+    /// Draw a minion that costs (n) or more from the deck (Rotheart Dryad)
+    DrawMinionCostGE {
+        /// Minimum cost
+        cost: u8,
+    },
+    /// Gain the Deathrattle of a friendly minion that died this turn
+    /// (Archdruid of Thorns — the engine stores one Deathrattle per entity,
+    /// so the most recently died minion's is used, see §14.3)
+    GainDeathrattleOfDiedThisTurn,
+    /// Add a random minion from the deck to hand (Hungering Ancient's
+    /// deathrattle — the eaten minion's identity cannot be stored per
+    /// instance, see §14.3)
+    AddRandomDeckMinionToHand,
+    /// Eat the first minion in the deck and gain its stats (Hungering
+    /// Ancient's end-of-turn effect)
+    EatDeckMinionGainStats,
+    /// Reduce a random minion's Attack in each player's hand (Twisted
+    /// Treant — the debuff enchantment persists from hand into play)
+    DebuffRandomHandMinionBoth {
+        /// Attack reduction
+        attack_reduction: i32,
+    },
+    /// Spend all Mana to cast a random spell of that cost (Forbidden Shrine
+    /// — "cast" is a direct effect resolution, see §14.3)
+    SpendAllManaCastRandomSpell,
+    /// Get a copy of the lowest-Cost card in the opponent's hand (Tricky
+    /// Satyr)
+    CopyLowestCostEnemyHandCard,
+    /// The opponent draws two cards; the player gets copies of them
+    /// (Mimicry)
+    OpponentDrawsTwoAndCopies,
+    /// Return a friendly minion to hand and summon a Spider token
+    /// (Web of Deception)
+    ReturnFriendlyMinionSummonSpider,
+    /// Shuffle a card the player holds that the opponent also holds into
+    /// the opponent's deck (Shadowcloaked Assailant — when several match,
+    /// one random one is shuffled, see §14.3)
+    ShuffleMatchingEnemyHandCardIntoDeck,
+    /// Destroy a friendly minion to gain Armor (Siphoning Growth)
+    DestroyFriendlyMinionGainArmor {
+        /// Armor gained
+        armor: i32,
+    },
+    /// Draw a spell that costs (n) or more from the deck (Fae Trickster)
+    DrawSpellCostGE {
+        /// Minimum cost
+        cost: u8,
+    },
+    /// Draw the given number of Dragons, reducing their Cost (Tormented
+    /// Dreadwing)
+    DrawDragonsReduced {
+        /// Cards drawn
+        count: u8,
+        /// Cost reduction
+        reduction: u8,
+    },
+    /// Summon a copy of the player's own minion (Bloodthistle Illusionist)
+    SummonCopyOfSelf,
+    /// Destroy a friendly Wisp to draw the given number of cards
+    /// (Divination — the engine's Wisp is the EDR_851t token)
+    DestroyFriendlyWispDraw {
+        /// Cards drawn
+        count: u8,
+    },
+    /// Draw the given number of cards and summon that many Leeches
+    /// (Sanguine Infestation)
+    DrawAndSummonLeeches {
+        /// Cards drawn
+        draw: u8,
+    },
+    /// Draw the given number of cards and summon a Dreadseed token (Grim
+    /// Harvest — Dormant is not modeled, the Dreadseed is the W3
+    /// can't-attack token, see §14.3)
+    DrawAndSummonDreadseed {
+        /// Cards drawn
+        draw: u8,
+    },
+    /// Make the player's next Hero Power cost (0) (Dreambound Disciple —
+    /// the flag is consumed at the hero-power activation)
+    NextHeroPowerCostsZero,
+    /// Restore Health to the hero and add random Druid spells to hand
+    /// (Photosynthesis)
+    RestoreHealthAndGetDruidSpells {
+        /// Health restored
+        amount: i32,
+        /// Spells added
+        count: u8,
+    },
+    /// Both players gain the given number of empty Mana Crystals (Tranquil
+    /// Treant)
+    GainManaCrystalBoth {
+        /// Crystals gained
+        count: i32,
+    },
+    /// Transform all Neutral cards in the deck into random Druid ones
+    /// (Envoy of the Glade)
+    TransformNeutralDeckToDruid,
+    /// Add a Moonfire and a Starfire to hand, both with Spell Damage +1
+    /// (Stellar Balance — the spell entity's own Spell Damage applies to
+    /// itself when cast)
+    AddMoonfireAndStarfireWithSpellDamage,
+    /// Give stats to another random friendly Dragon (Petal Peddler)
+    BuffAnotherRandomFriendlyDragon {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// Reduce the Cost of the right-most card in hand (Nightmare Dragonkin)
+    ReduceRightmostHandCardCost {
+        /// Cost reduction
+        reduction: u8,
+    },
+    /// Resurrect a friendly Deathrattle minion that costs (n) or less and
+    /// summon a copy of it (Ravenous Felhunter — the death record reads the
+    /// graveyard, like Calia Menethil)
+    ResurrectDeathrattleMinionCostLE {
+        /// Maximum cost
+        cost: u8,
+    },
+    /// Resurrect a friendly Deathrattle minion that costs (n) or more and
+    /// summon a copy of it, excluding the dying minion itself (Ferocious
+    /// Felbat)
+    ResurrectDeathrattleMinionCostGE {
+        /// Minimum cost
+        cost: u8,
+    },
+    /// Gain Armor, plus more per friendly Wisp (Merry Moonkin — the
+    /// engine's Wisp is the EDR_851t token)
+    GainArmorPerWisp {
+        /// Base armor
+        base: i32,
+    },
+    /// Deal damage to a minion, plus more per friendly minion that died
+    /// this game (Starsurge — the fallen count reads the graveyard)
+    DamageMinionScaledByFallen {
+        /// Base damage
+        base: i32,
+    },
+    /// Give the hero Divine Shield (Curious Cumulus)
+    GrantHeroDivineShield,
+    /// Restore Health to both heroes (Critter Caretaker)
+    RestoreBothHeroes {
+        /// Health restored
+        amount: i32,
+    },
+    /// Put a copy of the player's own card on the bottom of the deck at a
+    /// reduced Cost (Meadowstrider — the deck's bottom is the end of the
+    /// deck zone order)
+    AddSelfToDeckBottomCost {
+        /// Reduced cost
+        cost: u8,
+    },
+    /// Summon a copy of a random friendly Dragon (the Clutch of Corruption
+    /// Egg's hatch, see §14.3)
+    SummonCopyOfRandomFriendlyDragon,
+    /// Gain Health if the hero power was used this turn (Barkshield
+    /// Sentinel — there is no hero-power-use trigger event, so the buff
+    /// fires at the end of the turn instead, see §14.3)
+    GainHealthIfHeroPowerUsed {
+        /// Health gained
+        amount: i32,
+    },
+    /// Attack a random enemy minion, dealing excess damage to the enemy
+    /// hero (Briarspawn Drake — the attack is modeled as direct damage)
+    AttackRandomEnemyMinionExcess,
+    /// Deal the attacking hero's Attack as damage to a random enemy minion
+    /// (Defiled Spear — the "another enemy" exclusion is dropped, §14.3)
+    SplashHeroAttackToRandomEnemy,
+    /// Gain the Attack of the minion that just died (Scavenging Flytrap —
+    /// the graveyard wipe means the base Attack is gained, §14.3)
+    GainDeadMinionAttack,
+    /// Draw a card if the played minion was already played earlier this game
+    /// (Twisted Webweaver — the played-minion log lives on the Player)
+    DrawIfMinionPlayedBefore,
+    /// Give the just-played minion a random Bonus Effect (Dreambound Raptor
+    /// — the official pool is approximated by a fixed keyword pool, §14.3)
+    GrantRandomBonusEffect,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -2142,6 +2484,159 @@ enum CardEffectDe {
     },
     AddRandomDruidSpell,
     AddRandomOtherClassChooseOneCard,
+    AttackTwoRandomEnemyMinionsIfCostLE {
+        cost: u8,
+    },
+    GainArmorSummonCostTaunt {
+        armor: i32,
+        cost: u8,
+    },
+    AddRandomCostMinionWithDarkGift {
+        cost: u8,
+    },
+    BuffTopDeckMinions {
+        attack: i32,
+        health: i32,
+        count: u8,
+    },
+    ShuffleAllMinionsIntoDecks,
+    DrawDeckSpellAndAddRandomSpell,
+    SetStatsByFriendlyTarget {
+        enemy_attack: i32,
+        enemy_health: i32,
+        friendly_attack: i32,
+        friendly_health: i32,
+    },
+    GainAttackEqualSpellCost,
+    DamageLowestHealthEnemyTwice {
+        amount: i32,
+    },
+    DrawAndGainStats {
+        attack: i32,
+        health: i32,
+    },
+    ShuffleCardIntoDeck {
+        card_id: String,
+        count: u8,
+    },
+    AmphibianSpiritBuff {
+        attack: i32,
+        health: i32,
+    },
+    DamageAndSummonWolfIfKilled {
+        damage: i32,
+    },
+    AddRandomSpellCostsLess {
+        reduction: u8,
+    },
+    SummonTreantCopyingSpell,
+    SummonEggHatchingDragon,
+    ResurrectRandomFallenDragon,
+    EquipSwordIfHoldingDragon,
+    DamageAllOtherFriendlyMinions {
+        damage: i32,
+    },
+    DamageMinionWithMoonLifesteal {
+        amount: i32,
+    },
+    SummonTwoRandomCostMinions {
+        base_cost: u8,
+        upgraded_cost: u8,
+    },
+    DamageIfHoldingSpell5Plus {
+        amount: i32,
+    },
+    SummonCopyIfAttackGE {
+        attack: i32,
+    },
+    RestoreHealthAndPendingSelfDamage {
+        heal: i32,
+        damage: i32,
+        turns: u8,
+    },
+    DestroyCrystalGainCrystalsLater {
+        gain: i32,
+        turns: u8,
+    },
+    DrawMinionCostGE {
+        cost: u8,
+    },
+    GainDeathrattleOfDiedThisTurn,
+    AddRandomDeckMinionToHand,
+    EatDeckMinionGainStats,
+    DebuffRandomHandMinionBoth {
+        attack_reduction: i32,
+    },
+    SpendAllManaCastRandomSpell,
+    CopyLowestCostEnemyHandCard,
+    OpponentDrawsTwoAndCopies,
+    ReturnFriendlyMinionSummonSpider,
+    ShuffleMatchingEnemyHandCardIntoDeck,
+    DestroyFriendlyMinionGainArmor {
+        armor: i32,
+    },
+    DrawSpellCostGE {
+        cost: u8,
+    },
+    DrawDragonsReduced {
+        count: u8,
+        reduction: u8,
+    },
+    SummonCopyOfSelf,
+    DestroyFriendlyWispDraw {
+        count: u8,
+    },
+    DrawAndSummonLeeches {
+        draw: u8,
+    },
+    DrawAndSummonDreadseed {
+        draw: u8,
+    },
+    NextHeroPowerCostsZero,
+    RestoreHealthAndGetDruidSpells {
+        amount: i32,
+        count: u8,
+    },
+    GainManaCrystalBoth {
+        count: i32,
+    },
+    TransformNeutralDeckToDruid,
+    AddMoonfireAndStarfireWithSpellDamage,
+    BuffAnotherRandomFriendlyDragon {
+        attack: i32,
+        health: i32,
+    },
+    ReduceRightmostHandCardCost {
+        reduction: u8,
+    },
+    ResurrectDeathrattleMinionCostLE {
+        cost: u8,
+    },
+    ResurrectDeathrattleMinionCostGE {
+        cost: u8,
+    },
+    GainArmorPerWisp {
+        base: i32,
+    },
+    DamageMinionScaledByFallen {
+        base: i32,
+    },
+    GrantHeroDivineShield,
+    RestoreBothHeroes {
+        amount: i32,
+    },
+    AddSelfToDeckBottomCost {
+        cost: u8,
+    },
+    SummonCopyOfRandomFriendlyDragon,
+    GainHealthIfHeroPowerUsed {
+        amount: i32,
+    },
+    AttackRandomEnemyMinionExcess,
+    SplashHeroAttackToRandomEnemy,
+    GainDeadMinionAttack,
+    DrawIfMinionPlayedBefore,
+    GrantRandomBonusEffect,
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -2830,6 +3325,178 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::AddRandomOtherClassChooseOneCard => {
                 CardEffect::AddRandomOtherClassChooseOneCard
             }
+            CardEffectDe::AttackTwoRandomEnemyMinionsIfCostLE { cost } => {
+                CardEffect::AttackTwoRandomEnemyMinionsIfCostLE { cost }
+            }
+            CardEffectDe::GainArmorSummonCostTaunt { armor, cost } => {
+                CardEffect::GainArmorSummonCostTaunt { armor, cost }
+            }
+            CardEffectDe::AddRandomCostMinionWithDarkGift { cost } => {
+                CardEffect::AddRandomCostMinionWithDarkGift { cost }
+            }
+            CardEffectDe::BuffTopDeckMinions {
+                attack,
+                health,
+                count,
+            } => CardEffect::BuffTopDeckMinions {
+                attack,
+                health,
+                count,
+            },
+            CardEffectDe::ShuffleAllMinionsIntoDecks => CardEffect::ShuffleAllMinionsIntoDecks,
+            CardEffectDe::DrawDeckSpellAndAddRandomSpell => {
+                CardEffect::DrawDeckSpellAndAddRandomSpell
+            }
+            CardEffectDe::SetStatsByFriendlyTarget {
+                enemy_attack,
+                enemy_health,
+                friendly_attack,
+                friendly_health,
+            } => CardEffect::SetStatsByFriendlyTarget {
+                enemy_attack,
+                enemy_health,
+                friendly_attack,
+                friendly_health,
+            },
+            CardEffectDe::GainAttackEqualSpellCost => CardEffect::GainAttackEqualSpellCost,
+            CardEffectDe::DamageLowestHealthEnemyTwice { amount } => {
+                CardEffect::DamageLowestHealthEnemyTwice { amount }
+            }
+            CardEffectDe::DrawAndGainStats { attack, health } => {
+                CardEffect::DrawAndGainStats { attack, health }
+            }
+            CardEffectDe::ShuffleCardIntoDeck { card_id, count } => {
+                CardEffect::ShuffleCardIntoDeck {
+                    card_id: intern(card_id)?,
+                    count,
+                }
+            }
+            CardEffectDe::AmphibianSpiritBuff { attack, health } => {
+                CardEffect::AmphibianSpiritBuff { attack, health }
+            }
+            CardEffectDe::DamageAndSummonWolfIfKilled { damage } => {
+                CardEffect::DamageAndSummonWolfIfKilled { damage }
+            }
+            CardEffectDe::AddRandomSpellCostsLess { reduction } => {
+                CardEffect::AddRandomSpellCostsLess { reduction }
+            }
+            CardEffectDe::SummonTreantCopyingSpell => CardEffect::SummonTreantCopyingSpell,
+            CardEffectDe::SummonEggHatchingDragon => CardEffect::SummonEggHatchingDragon,
+            CardEffectDe::ResurrectRandomFallenDragon => CardEffect::ResurrectRandomFallenDragon,
+            CardEffectDe::EquipSwordIfHoldingDragon => CardEffect::EquipSwordIfHoldingDragon,
+            CardEffectDe::DamageAllOtherFriendlyMinions { damage } => {
+                CardEffect::DamageAllOtherFriendlyMinions { damage }
+            }
+            CardEffectDe::DamageMinionWithMoonLifesteal { amount } => {
+                CardEffect::DamageMinionWithMoonLifesteal { amount }
+            }
+            CardEffectDe::SummonTwoRandomCostMinions {
+                base_cost,
+                upgraded_cost,
+            } => CardEffect::SummonTwoRandomCostMinions {
+                base_cost,
+                upgraded_cost,
+            },
+            CardEffectDe::DamageIfHoldingSpell5Plus { amount } => {
+                CardEffect::DamageIfHoldingSpell5Plus { amount }
+            }
+            CardEffectDe::SummonCopyIfAttackGE { attack } => {
+                CardEffect::SummonCopyIfAttackGE { attack }
+            }
+            CardEffectDe::RestoreHealthAndPendingSelfDamage {
+                heal,
+                damage,
+                turns,
+            } => CardEffect::RestoreHealthAndPendingSelfDamage {
+                heal,
+                damage,
+                turns,
+            },
+            CardEffectDe::DestroyCrystalGainCrystalsLater { gain, turns } => {
+                CardEffect::DestroyCrystalGainCrystalsLater { gain, turns }
+            }
+            CardEffectDe::DrawMinionCostGE { cost } => CardEffect::DrawMinionCostGE { cost },
+            CardEffectDe::GainDeathrattleOfDiedThisTurn => {
+                CardEffect::GainDeathrattleOfDiedThisTurn
+            }
+            CardEffectDe::AddRandomDeckMinionToHand => CardEffect::AddRandomDeckMinionToHand,
+            CardEffectDe::EatDeckMinionGainStats => CardEffect::EatDeckMinionGainStats,
+            CardEffectDe::DebuffRandomHandMinionBoth { attack_reduction } => {
+                CardEffect::DebuffRandomHandMinionBoth { attack_reduction }
+            }
+            CardEffectDe::SpendAllManaCastRandomSpell => CardEffect::SpendAllManaCastRandomSpell,
+            CardEffectDe::CopyLowestCostEnemyHandCard => CardEffect::CopyLowestCostEnemyHandCard,
+            CardEffectDe::OpponentDrawsTwoAndCopies => CardEffect::OpponentDrawsTwoAndCopies,
+            CardEffectDe::ReturnFriendlyMinionSummonSpider => {
+                CardEffect::ReturnFriendlyMinionSummonSpider
+            }
+            CardEffectDe::ShuffleMatchingEnemyHandCardIntoDeck => {
+                CardEffect::ShuffleMatchingEnemyHandCardIntoDeck
+            }
+            CardEffectDe::DestroyFriendlyMinionGainArmor { armor } => {
+                CardEffect::DestroyFriendlyMinionGainArmor { armor }
+            }
+            CardEffectDe::DrawSpellCostGE { cost } => CardEffect::DrawSpellCostGE { cost },
+            CardEffectDe::DrawDragonsReduced { count, reduction } => {
+                CardEffect::DrawDragonsReduced { count, reduction }
+            }
+            CardEffectDe::SummonCopyOfSelf => CardEffect::SummonCopyOfSelf,
+            CardEffectDe::DestroyFriendlyWispDraw { count } => {
+                CardEffect::DestroyFriendlyWispDraw { count }
+            }
+            CardEffectDe::DrawAndSummonLeeches { draw } => {
+                CardEffect::DrawAndSummonLeeches { draw }
+            }
+            CardEffectDe::DrawAndSummonDreadseed { draw } => {
+                CardEffect::DrawAndSummonDreadseed { draw }
+            }
+            CardEffectDe::NextHeroPowerCostsZero => CardEffect::NextHeroPowerCostsZero,
+            CardEffectDe::RestoreHealthAndGetDruidSpells { amount, count } => {
+                CardEffect::RestoreHealthAndGetDruidSpells { amount, count }
+            }
+            CardEffectDe::GainManaCrystalBoth { count } => {
+                CardEffect::GainManaCrystalBoth { count }
+            }
+            CardEffectDe::TransformNeutralDeckToDruid => CardEffect::TransformNeutralDeckToDruid,
+            CardEffectDe::AddMoonfireAndStarfireWithSpellDamage => {
+                CardEffect::AddMoonfireAndStarfireWithSpellDamage
+            }
+            CardEffectDe::BuffAnotherRandomFriendlyDragon { attack, health } => {
+                CardEffect::BuffAnotherRandomFriendlyDragon { attack, health }
+            }
+            CardEffectDe::ReduceRightmostHandCardCost { reduction } => {
+                CardEffect::ReduceRightmostHandCardCost { reduction }
+            }
+            CardEffectDe::ResurrectDeathrattleMinionCostLE { cost } => {
+                CardEffect::ResurrectDeathrattleMinionCostLE { cost }
+            }
+            CardEffectDe::ResurrectDeathrattleMinionCostGE { cost } => {
+                CardEffect::ResurrectDeathrattleMinionCostGE { cost }
+            }
+            CardEffectDe::GainArmorPerWisp { base } => CardEffect::GainArmorPerWisp { base },
+            CardEffectDe::DamageMinionScaledByFallen { base } => {
+                CardEffect::DamageMinionScaledByFallen { base }
+            }
+            CardEffectDe::GrantHeroDivineShield => CardEffect::GrantHeroDivineShield,
+            CardEffectDe::RestoreBothHeroes { amount } => CardEffect::RestoreBothHeroes { amount },
+            CardEffectDe::AddSelfToDeckBottomCost { cost } => {
+                CardEffect::AddSelfToDeckBottomCost { cost }
+            }
+            CardEffectDe::SummonCopyOfRandomFriendlyDragon => {
+                CardEffect::SummonCopyOfRandomFriendlyDragon
+            }
+            CardEffectDe::GainHealthIfHeroPowerUsed { amount } => {
+                CardEffect::GainHealthIfHeroPowerUsed { amount }
+            }
+            CardEffectDe::AttackRandomEnemyMinionExcess => {
+                CardEffect::AttackRandomEnemyMinionExcess
+            }
+            CardEffectDe::SplashHeroAttackToRandomEnemy => {
+                CardEffect::SplashHeroAttackToRandomEnemy
+            }
+            CardEffectDe::GainDeadMinionAttack => CardEffect::GainDeadMinionAttack,
+            CardEffectDe::DrawIfMinionPlayedBefore => CardEffect::DrawIfMinionPlayedBefore,
+            CardEffectDe::GrantRandomBonusEffect => CardEffect::GrantRandomBonusEffect,
         })
     }
 }
@@ -2939,6 +3606,117 @@ mod tests {
             assert_eq!(back, effect);
         }
     }
+
+    /// Every new 2025–2026 expansions M1-W4a variant survives the bincode
+    /// roundtrip (CardEffectDe → CardEffect via the interned card ids).
+    #[test]
+    fn w4a_effects_serialize_roundtrip() {
+        for effect in [
+            CardEffect::AttackTwoRandomEnemyMinionsIfCostLE { cost: 3 },
+            CardEffect::GainArmorSummonCostTaunt { armor: 5, cost: 5 },
+            CardEffect::AddRandomCostMinionWithDarkGift { cost: 3 },
+            CardEffect::BuffTopDeckMinions {
+                attack: 4,
+                health: 4,
+                count: 3,
+            },
+            CardEffect::ShuffleAllMinionsIntoDecks,
+            CardEffect::DrawDeckSpellAndAddRandomSpell,
+            CardEffect::SetStatsByFriendlyTarget {
+                enemy_attack: 1,
+                enemy_health: 1,
+                friendly_attack: 3,
+                friendly_health: 3,
+            },
+            CardEffect::GainAttackEqualSpellCost,
+            CardEffect::DamageLowestHealthEnemyTwice { amount: 5 },
+            CardEffect::DrawAndGainStats {
+                attack: 2,
+                health: 2,
+            },
+            CardEffect::ShuffleCardIntoDeck {
+                card_id: "EDR_260t",
+                count: 2,
+            },
+            CardEffect::AmphibianSpiritBuff {
+                attack: 2,
+                health: 2,
+            },
+            CardEffect::DamageAndSummonWolfIfKilled { damage: 3 },
+            CardEffect::AddRandomSpellCostsLess { reduction: 2 },
+            CardEffect::SummonTreantCopyingSpell,
+            CardEffect::SummonEggHatchingDragon,
+            CardEffect::ResurrectRandomFallenDragon,
+            CardEffect::EquipSwordIfHoldingDragon,
+            CardEffect::DamageAllOtherFriendlyMinions { damage: 3 },
+            CardEffect::DamageMinionWithMoonLifesteal { amount: 6 },
+            CardEffect::SummonTwoRandomCostMinions {
+                base_cost: 3,
+                upgraded_cost: 6,
+            },
+            CardEffect::DamageIfHoldingSpell5Plus { amount: 3 },
+            CardEffect::SummonCopyIfAttackGE { attack: 4 },
+            CardEffect::RestoreHealthAndPendingSelfDamage {
+                heal: 12,
+                damage: 3,
+                turns: 2,
+            },
+            CardEffect::DestroyCrystalGainCrystalsLater { gain: 2, turns: 2 },
+            CardEffect::DrawMinionCostGE { cost: 7 },
+            CardEffect::GainDeathrattleOfDiedThisTurn,
+            CardEffect::AddRandomDeckMinionToHand,
+            CardEffect::EatDeckMinionGainStats,
+            CardEffect::DebuffRandomHandMinionBoth {
+                attack_reduction: 2,
+            },
+            CardEffect::SpendAllManaCastRandomSpell,
+            CardEffect::CopyLowestCostEnemyHandCard,
+            CardEffect::OpponentDrawsTwoAndCopies,
+            CardEffect::ReturnFriendlyMinionSummonSpider,
+            CardEffect::ShuffleMatchingEnemyHandCardIntoDeck,
+            CardEffect::DestroyFriendlyMinionGainArmor { armor: 8 },
+            CardEffect::DrawSpellCostGE { cost: 5 },
+            CardEffect::DrawDragonsReduced {
+                count: 2,
+                reduction: 1,
+            },
+            CardEffect::SummonCopyOfSelf,
+            CardEffect::DestroyFriendlyWispDraw { count: 3 },
+            CardEffect::DrawAndSummonLeeches { draw: 2 },
+            CardEffect::DrawAndSummonDreadseed { draw: 1 },
+            CardEffect::NextHeroPowerCostsZero,
+            CardEffect::RestoreHealthAndGetDruidSpells {
+                amount: 6,
+                count: 3,
+            },
+            CardEffect::GainManaCrystalBoth { count: 1 },
+            CardEffect::TransformNeutralDeckToDruid,
+            CardEffect::AddMoonfireAndStarfireWithSpellDamage,
+            CardEffect::BuffAnotherRandomFriendlyDragon {
+                attack: 1,
+                health: 1,
+            },
+            CardEffect::ReduceRightmostHandCardCost { reduction: 2 },
+            CardEffect::ResurrectDeathrattleMinionCostLE { cost: 4 },
+            CardEffect::ResurrectDeathrattleMinionCostGE { cost: 5 },
+            CardEffect::GainArmorPerWisp { base: 1 },
+            CardEffect::DamageMinionScaledByFallen { base: 1 },
+            CardEffect::GrantHeroDivineShield,
+            CardEffect::RestoreBothHeroes { amount: 3 },
+            CardEffect::AddSelfToDeckBottomCost { cost: 1 },
+            CardEffect::SummonCopyOfRandomFriendlyDragon,
+            CardEffect::GainHealthIfHeroPowerUsed { amount: 2 },
+            CardEffect::AttackRandomEnemyMinionExcess,
+            CardEffect::SplashHeroAttackToRandomEnemy,
+            CardEffect::GainDeadMinionAttack,
+            CardEffect::DrawIfMinionPlayedBefore,
+            CardEffect::GrantRandomBonusEffect,
+        ] {
+            let bytes = bincode::serialize(&effect).expect("serialize");
+            let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
+            assert_eq!(back, effect);
+        }
+    }
 }
 
 /// Random pool type — Tier 3 random generation.
@@ -2989,4 +3767,6 @@ pub enum RandomPool {
     /// `OTHER_CLASS_CHOOSE_ONE_POOL` table, the real Discover simplified to
     /// random, see §14.2)
     OtherClassChooseOne,
+    /// A random Murloc (Gnawing Greenfin — 2025–2026 expansions M1-W4a)
+    Murloc,
 }

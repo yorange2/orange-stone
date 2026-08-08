@@ -394,10 +394,11 @@ fn validate_hero_power(state: &GameState, hero: Entity) -> Result<(), EngineErro
         return Err(EngineError::HeroPowerAlreadyUsed);
     }
 
-    // Check mana
+    // Check mana (Dreambound Disciple — M1-W4a: the next Hero Power costs
+    // (0), so the affordability check is skipped when the flag is set)
     let hero_power = world.hero_power(hero);
     let cost = hero_power.map(|hp| hp.cost).unwrap_or(2);
-    if cost > state.player(active).current_mana {
+    if !state.player(active).next_hero_power_free && cost > state.player(active).current_mana {
         return Err(EngineError::NotEnoughMana);
     }
 
@@ -749,6 +750,44 @@ pub fn apply_event(
                     amount: ongoing,
                 });
             }
+            // 2025–2026 expansions M1-W4a pending end-of-turn timers: Rotten
+            // Apple's self-damage and Fractured Power's delayed Mana Crystals
+            // tick at the END of each of the player's own turns (registered
+            // simplification — the real timing is "for the next 2 turns" from
+            // cast, see §14.3).
+            let hero = state.player(player).hero;
+            let (self_dmg, self_ticks) = {
+                let p = state.player(player);
+                (p.self_damage_pending, p.self_damage_turns)
+            };
+            if self_ticks > 0 {
+                {
+                    let p = &mut state.make_mut().players[player.index()];
+                    p.self_damage_turns -= 1;
+                    if p.self_damage_turns == 0 {
+                        p.self_damage_pending = 0;
+                    }
+                }
+                queue.push(Event::DamageDealt {
+                    source: hero,
+                    target: hero,
+                    amount: self_dmg,
+                });
+            }
+            let (crystal_gain, crystal_ticks) = {
+                let p = state.player(player);
+                (p.crystal_gain_pending, p.crystal_gain_turns)
+            };
+            if crystal_ticks > 0 {
+                {
+                    let p = &mut state.make_mut().players[player.index()];
+                    p.crystal_gain_turns -= 1;
+                    if p.crystal_gain_turns == 0 {
+                        p.crystal_gain_pending = 0;
+                    }
+                    p.mana_crystals = (p.mana_crystals + crystal_gain).min(10);
+                }
+            }
         }
         Event::CardPlayed {
             player,
@@ -762,6 +801,14 @@ pub fn apply_event(
             let cost = crate::engine::cost::play_cost(state, card, player);
             let card_type = state.world().card_type(card);
             let is_minion = state.world().card_type(card) == Some(CardType::Minion);
+            // Twisted Webweaver (M1-W4a): the played-minion log — every
+            // minion play is recorded so a later play of the same card ID can
+            // be detected ("another minion you've already played")
+            let played_minion_id = if is_minion {
+                state.world().card_id(card).map(|c| c.0)
+            } else {
+                None
+            };
             let pay_health = state.player(player).healed_this_turn
                 && state
                     .world()
@@ -788,6 +835,9 @@ pub fn apply_event(
                 p.next_combo_discount = 0;
                 if is_minion {
                     p.minions_played_this_turn += 1;
+                    if let Some(id) = played_minion_id {
+                        p.played_minion_ids.push(id.to_string());
+                    }
                 }
                 // Preparation (W11): the discount is one-time — the first
                 // spell played consumes it (its cost already included it)
@@ -1409,6 +1459,22 @@ pub fn apply_event(
                     Some(attacker),
                     None,
                 );
+                // HeroAttackedMinion — the defender is the subject, so
+                // splash effects can exclude the attacked minion (Defiled
+                // Spear, M1-W4a)
+                if state.world().card_type(attacker) == Some(CardType::Hero) {
+                    fire_triggers(
+                        state,
+                        queue,
+                        TriggerEvent::HeroAttackedMinion,
+                        state
+                            .world()
+                            .player(attacker)
+                            .unwrap_or(state.active_player()),
+                        Some(defender),
+                        None,
+                    );
+                }
             }
 
             // Read attacker type and weapon info first (read-only borrow)
@@ -1854,16 +1920,23 @@ pub fn apply_event(
             target,
         } => {
             // Deduct mana (Blowtorch Saboteur — Core Set W4b: the opponent's
-            // next Hero Power costs more)
+            // next Hero Power costs more; Dreambound Disciple — M1-W4a: the
+            // next Hero Power costs (0), one-time, consumed here)
             let cost = state
                 .world()
                 .hero_power(hero)
                 .map(|hp| hp.cost + state.player(player).hero_power_cost_more)
                 .unwrap_or(2 + state.player(player).hero_power_cost_more);
+            let free = state.player(player).next_hero_power_free;
             {
                 let inner = state.make_mut();
                 let p = &mut inner.players[player.index()];
-                p.current_mana = (p.current_mana - cost).max(0);
+                if free {
+                    p.next_hero_power_free = false;
+                }
+                p.current_mana = (p.current_mana - if free { 0 } else { cost }).max(0);
+                // Glowroot Lure (M1-W4a): the hero-power-use counter
+                p.hero_power_uses += 1;
             }
             // Mark as used
             state
@@ -1908,13 +1981,22 @@ pub fn apply_event(
                 queue.push_with_priority(Event::SpellCast { player, spell }, Priority::Lowest);
                 return Ok(());
             }
-            // Spell triggers: registered FriendlySpellCast triggers fire in play order
+            // New Moon upgrade counter (M1-W4a): one per cast spell — AFTER
+            // the deferral branch so a re-pushed SpellCast event only counts
+            // once (the Wish/Ritual upgrade condition, §14.3).
+            state.make_mut().players[player.index()].spells_cast_total += 1;
+            // Spell triggers: registered FriendlySpellCast triggers fire in
+            // play order. The cast spell rides as the subject — behaviour-
+            // neutral for the existing triggers (none of them read it; the
+            // `po_spellcast_subject_is_behaviour_neutral` scenario pins the
+            // values) and needed by Animated Moonwell (M1-W4a — gain Attack
+            // equal to the spell's Cost).
             fire_triggers(
                 state,
                 queue,
                 TriggerEvent::FriendlySpellCast,
                 player,
-                None,
+                Some(spell),
                 None,
             );
             // Global spell trigger (pool-open M1 — Lorewalker Cho): fires for
@@ -2254,6 +2336,16 @@ fn trigger_applies(
                             .and_then(|pid| state.player(pid).weapon)
                             == Some(entity)
                 });
+            if !pinned {
+                return false;
+            }
+        }
+        // HeroAttackedMinion — the defender is the subject, pinned to the
+        // defender itself or the attacking hero's equipped weapon (Defiled
+        // Spear's splash rides the weapon entity)
+        TriggerEvent::HeroAttackedMinion => {
+            let pinned =
+                Some(entity) == subject || state.player(event_owner).weapon == Some(entity);
             if !pinned {
                 return false;
             }

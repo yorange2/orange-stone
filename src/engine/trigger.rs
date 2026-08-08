@@ -3424,7 +3424,1244 @@ pub fn resolve_effect(
                 add_card_to_hand(state, owner, def);
             }
         }
+        CardEffect::AttackTwoRandomEnemyMinionsIfCostLE { cost } => {
+            // Verdant Dreamsaber (M1-W4a) — when the played card's Cost is at
+            // most the threshold, the minion "attacks" two random enemy
+            // minions (the attack modeled as direct damage, like the
+            // excess-damage family). The cost read is the composed play cost
+            // of the entity.
+            if state
+                .world()
+                .effective_cost(source)
+                .is_some_and(|c| c.0 > cost as i32)
+            {
+                return;
+            }
+            let atk = state.world().effective_attack(source).map_or(0, |a| a.0);
+            let mut enemies = collect_enemy_minions(state, owner, Some(source));
+            for _ in 0..2 {
+                if enemies.is_empty() {
+                    return;
+                }
+                let idx = state.rng_mut().next_usize(enemies.len());
+                let target = enemies.remove(idx);
+                queue.push(Event::DamageDealt {
+                    source,
+                    target,
+                    amount: atk,
+                });
+            }
+        }
+        CardEffect::GainArmorSummonCostTaunt { armor, cost } => {
+            // Ward of Earth (M1-W4a) — armor to the hero, then a random
+            // minion of the Cost with Taunt
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].armor += armor;
+            }
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Minion && c.cost == cost as i32)
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            if let Some(minion) = resolve_summon(state, queue, source, owner, candidates[idx].id) {
+                state.world_mut().set_taunt(minion, Taunt);
+            }
+        }
+        CardEffect::AddRandomCostMinionWithDarkGift { cost } => {
+            // Creature of Madness (M1-W4a) — a random minion of the Cost with
+            // a Dark Gift (the real Discover simplified to random, §14.3).
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Minion && c.cost == cost as i32)
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            let gift = random_dark_gift(state.rng_mut());
+            if let Some(added) = add_random_minion_to_hand(state, owner, candidates[idx]) {
+                apply_dark_gift(state, added, gift, owner);
+            }
+        }
+        CardEffect::BuffTopDeckMinions {
+            attack,
+            health,
+            count,
+        } => {
+            // Beanstalk Brute (M1-W4a) — the deck is ordered, so the "top n
+            // minions" are the first n minions in deck order; enchantments
+            // persist deck → hand → play (G4), so the buff lands when the
+            // cards are drawn.
+            let buff = Enchantment {
+                attack,
+                health,
+                cost: 0,
+                expiry: EnchantmentExpiry::Permanent,
+            };
+            let world = state.world();
+            let top: SmallList<Entity> = world
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| world.card_type(e) == Some(CardType::Minion))
+                .take(count as usize)
+                .collect();
+            for minion in &top {
+                state.world_mut().add_enchantment(*minion, buff);
+            }
+        }
+        CardEffect::ShuffleAllMinionsIntoDecks => {
+            // Typhoon (M1-W4a) — every minion (both sides) goes into a random
+            // player's deck at a random position (the Tradeable shuffle
+            // pattern); leaving the battlefield strips enchantments and
+            // damage (G4).
+            let mut all: SmallList<Entity> = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            for minion in all {
+                let old_owner = state.world().player(minion);
+                let dest = if state.rng_mut().next_usize(2) == 0 {
+                    owner
+                } else {
+                    owner.opponent()
+                };
+                let deck_count = state.world().zones().len(Zone::Deck, dest);
+                let position = if deck_count > 0 {
+                    state.rng_mut().next_usize(deck_count + 1)
+                } else {
+                    0
+                };
+                if let Some(old_owner) = old_owner {
+                    let world = state.world_mut();
+                    world.remove_enchantments(minion);
+                    world.remove_damage(minion);
+                    world.zones_mut().remove(Zone::Play, old_owner, minion);
+                    world.set_player(minion, dest);
+                    world.set_zone(minion, Zone::Deck);
+                    world
+                        .zones_mut()
+                        .insert_at(Zone::Deck, dest, minion, position);
+                }
+            }
+        }
+        CardEffect::DrawDeckSpellAndAddRandomSpell => {
+            // Dragonscale Armaments (M1-W4a) — draw a spell that started in
+            // the deck; the "one that didn't start there" half is a random
+            // spell added to hand (no origin tracking, §14.3).
+            let matches: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Spell))
+                .take(1)
+                .collect();
+            for card in matches {
+                if state.world_mut().move_to_zone(card, Zone::Hand).is_ok() {
+                    queue.push(Event::CardDrawn {
+                        player: owner,
+                        card,
+                    });
+                }
+            }
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Spell)
+                    .collect();
+            if !spells.is_empty() {
+                let idx = state.rng_mut().next_usize(spells.len());
+                add_card_to_hand(state, owner, spells[idx]);
+            }
+        }
+        CardEffect::SetStatsByFriendlyTarget {
+            enemy_attack,
+            enemy_health,
+            friendly_attack,
+            friendly_health,
+        } => {
+            // Mark of Ursol (M1-W4a) — the stat block depends on which side
+            // owns the target; setting health also clears accumulated damage
+            // (set semantics).
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            let Some(t) = select_target(explicit_target, &all, state.rng_mut()) else {
+                return;
+            };
+            let friendly = state.world().player(t) == Some(owner);
+            let (atk, hp) = if friendly {
+                (friendly_attack, friendly_health)
+            } else {
+                (enemy_attack, enemy_health)
+            };
+            let world = state.world_mut();
+            world.set_attack(t, Attack(atk));
+            world.set_health(t, Health(hp));
+            world.remove_damage(t);
+        }
+        CardEffect::GainAttackEqualSpellCost => {
+            // Animated Moonwell (M1-W4a) — the just-cast friendly spell rides
+            // as the trigger subject; gain Attack equal to its Cost.
+            if let Some(spell) = event_subject {
+                if let Some(c) = state.world().cost(spell) {
+                    state.world_mut().add_enchantment(
+                        source,
+                        Enchantment {
+                            attack: c.0,
+                            health: 0,
+                            cost: 0,
+                            expiry: EnchantmentExpiry::Permanent,
+                        },
+                    );
+                }
+            }
+        }
+        CardEffect::DamageLowestHealthEnemyTwice { amount } => {
+            // Renewing Flames (M1-W4a) — the lowest-Health enemy is re-picked
+            // per hit (Lifesteal rides the source spell via apply_card_keywords).
+            for _ in 0..2 {
+                let enemies = collect_enemy_characters(state, owner, Some(source));
+                let Some(&target) = enemies
+                    .iter()
+                    .min_by_key(|&&e| state.world().effective_health(e).map_or(i32::MAX, |h| h.0))
+                else {
+                    return;
+                };
+                queue.push(Event::DamageDealt {
+                    source,
+                    target,
+                    amount,
+                });
+            }
+        }
+        CardEffect::DrawAndGainStats { attack, health } => {
+            // Dreamwarden (M1-W4a) — draw the top card and buff self (the
+            // real "didn't start there" condition is dropped, §14.3).
+            draw_card(state, queue, owner);
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack,
+                    health,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::ShuffleCardIntoDeck { card_id, count } => {
+            // Illusory Greenwing (M1-W4a) — copies go into the deck at random
+            // positions (the Tradeable shuffle pattern).
+            let Some(def) = crate::cards::def::card_by_id(card_id) else {
+                return;
+            };
+            for _ in 0..count {
+                let deck_count = state.world().zones().len(Zone::Deck, owner);
+                let position = if deck_count > 0 {
+                    state.rng_mut().next_usize(deck_count + 1)
+                } else {
+                    0
+                };
+                let world = state.world_mut();
+                let e = crate::cards::spawn_card_from_def(world, owner, def);
+                world.set_zone(e, Zone::Deck);
+                world.zones_mut().insert_at(Zone::Deck, owner, e, position);
+            }
+        }
+        CardEffect::AmphibianSpiritBuff { attack, health } => {
+            // Amphibian's Spirit (M1-W4a) — the buff and the recursive
+            // deathrattle chain; the battlecry targets the explicit minion,
+            // the deathrattle picks a random friendly minion. The engine
+            // stores one Deathrattle per entity, so an existing one is
+            // replaced (registered simplification, §14.3).
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            let Some(t) = select_target(explicit_target, &all, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().add_enchantment(
+                t,
+                Enchantment {
+                    attack,
+                    health,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+            state.world_mut().set_deathrattle(
+                t,
+                Deathrattle(CardEffect::AmphibianSpiritBuff { attack, health }),
+            );
+        }
+        CardEffect::DamageAndSummonWolfIfKilled { damage } => {
+            // Spirit Bond (M1-W4a) — damage a minion; a kill summons the
+            // 3/2 Wolf with Rush (the "if it dies" prediction, like
+            // DamageAndSummonCopyIfKilled).
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            let Some(t) = select_target(explicit_target, &all, state.rng_mut()) else {
+                return;
+            };
+            queue.push(Event::DamageDealt {
+                source,
+                target: t,
+                amount: damage,
+            });
+            let dies = state.world().divine_shield(t).is_none()
+                && state
+                    .world()
+                    .effective_health(t)
+                    .is_some_and(|h| h.0 - damage <= 0);
+            if dies {
+                let _ = resolve_summon(state, queue, source, owner, "EDR_262t");
+            }
+        }
+        CardEffect::AddRandomSpellCostsLess { reduction } => {
+            // Horn of Plenty (M1-W4a) — a random spell (Nature school not
+            // modeled, §14.3) costing less; the reduction rides a Permanent
+            // cost enchantment (the draw_card_with_reduction pattern).
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Spell)
+                    .collect();
+            if spells.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(spells.len());
+            if let Some(added) = add_random_minion_to_hand(state, owner, spells[idx]) {
+                let world = state.world_mut();
+                let cur = world.effective_cost(added).unwrap_or(Cost(0));
+                world.set_cost(added, Cost((cur.0 - reduction as i32).max(0)));
+            }
+        }
+        CardEffect::SummonTreantCopyingSpell => {
+            // Grove Shaper (M1-W4a) — the treant's deathrattle cannot
+            // remember the triggering spell, so it adds a random spell
+            // instead (the simplification lives on the token, §14.3).
+            let _ = resolve_summon(state, queue, source, owner, "EDR_271t");
+        }
+        CardEffect::SummonEggHatchingDragon => {
+            // Clutch of Corruption (M1-W4a) — the 0/2 Egg whose deathrattle
+            // hatches a copy of a random friendly Dragon (see §14.3).
+            let _ = resolve_summon(state, queue, source, owner, "EDR_454t");
+        }
+        CardEffect::ResurrectRandomFallenDragon => {
+            // Succumb to Madness (M1-W4a) — the graveyard IS the death
+            // record: a random friendly Dragon that died this game is
+            // resummoned (Discover simplified to random, §14.3).
+            let fallen: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Graveyard, owner)
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Minion)
+                        && state
+                            .world()
+                            .has_race(e, crate::core::component::Race::Dragon)
+                })
+                .collect();
+            if fallen.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(fallen.len());
+            if let Some(def) = state
+                .world()
+                .card_id(fallen[idx])
+                .and_then(|c| crate::cards::def::card_by_id(c.0))
+            {
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+        }
+        CardEffect::EquipSwordIfHoldingDragon => {
+            // Brood Keeper (M1-W4a) — holding a Dragon equips the 2/2 Sword
+            let holding = state.world().zones().iter(Zone::Hand, owner).any(|e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                    .is_some_and(|d| d.race == Some(crate::core::component::Race::Dragon))
+            });
+            if holding {
+                resolve_equip_weapon(state, queue, owner, "EDR_457t");
+            }
+        }
+        CardEffect::DamageAllOtherFriendlyMinions { damage } => {
+            // Afflicted Devastator (M1-W4a) battlecry — all friendly minions
+            // except the source take the damage
+            for minion in collect_friendly_minions(state, owner) {
+                if minion != source {
+                    queue.push(Event::DamageDealt {
+                        source,
+                        target: minion,
+                        amount: damage,
+                    });
+                }
+            }
+        }
+        CardEffect::DamageMinionWithMoonLifesteal { amount } => {
+            // Wish of the New Moon (M1-W4a) — after 3 spells cast the spell
+            // gains Lifesteal (the spell entity carries it, so the damage
+            // heals through the lifesteal pipeline); the per-card New Moon
+            // counter is approximated by the player's spell total (§14.3).
+            // The current cast counts: the official counter increments at
+            // play time, before the effect — `spells_cast_total` is only
+            // bumped by the after-cast SpellCast event.
+            if state.player(owner).spells_cast_total + 1 >= 3 {
+                state.world_mut().set_lifesteal(source, Lifesteal);
+            }
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            if let Some(t) = select_target(explicit_target, &all, state.rng_mut()) {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: t,
+                    amount,
+                });
+            }
+        }
+        CardEffect::SummonTwoRandomCostMinions {
+            base_cost,
+            upgraded_cost,
+        } => {
+            // Ritual of the New Moon (M1-W4a) — the summon cost upgrades
+            // after 3 spells cast (same approximation as Wish, §14.3 —
+            // the current cast counts)
+            let cost = if state.player(owner).spells_cast_total + 1 >= 3 {
+                upgraded_cost as i32
+            } else {
+                base_cost as i32
+            };
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Minion && c.cost == cost)
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            for _ in 0..2 {
+                let idx = state.rng_mut().next_usize(candidates.len());
+                let _ = resolve_summon(state, queue, source, owner, candidates[idx].id);
+            }
+        }
+        CardEffect::DamageIfHoldingSpell5Plus { amount } => {
+            // Weaver of the Cycle (M1-W4a) — holding a spell costing (5) or
+            // more deals the damage to the enemy hero
+            let holding = state.world().zones().iter(Zone::Hand, owner).any(|e| {
+                state.world().card_type(e) == Some(CardType::Spell)
+                    && state.world().effective_cost(e).is_some_and(|c| c.0 >= 5)
+            });
+            if holding {
+                let hero = state.player(owner.opponent()).hero;
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: hero,
+                    amount,
+                });
+            }
+        }
+        CardEffect::SummonCopyIfAttackGE { attack } => {
+            // Mythical Runebear (M1-W4a) — summon a copy when the Attack
+            // threshold is met (reads the source's effective Attack)
+            if state
+                .world()
+                .effective_attack(source)
+                .is_some_and(|a| a.0 >= attack)
+            {
+                if let Some(def) = state
+                    .world()
+                    .card_id(source)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+            }
+        }
+        CardEffect::RestoreHealthAndPendingSelfDamage {
+            heal,
+            damage,
+            turns,
+        } => {
+            // Rotten Apple (M1-W4a) — heal the hero, then queue self-damage
+            // that ticks at the END of the next turns (the TurnEnded timer
+            // in rules.rs; timing simplification, §14.3).
+            resolve_restore_health(state, queue, owner, heal, EffectTarget::FriendlyHero, None);
+            {
+                let p = &mut state.make_mut().players[owner.index()];
+                p.self_damage_pending = damage;
+                p.self_damage_turns = turns;
+            }
+        }
+        CardEffect::DestroyCrystalGainCrystalsLater { gain, turns } => {
+            // Fractured Power (M1-W4a) — destroy one crystal now, gain the
+            // crystals at the END of the next turns (the TurnEnded timer in
+            // rules.rs; timing simplification, §14.3).
+            {
+                let p = &mut state.make_mut().players[owner.index()];
+                p.mana_crystals = (p.mana_crystals - 1).max(0);
+                p.current_mana = p.current_mana.min(p.mana_crystals);
+            }
+            {
+                let p = &mut state.make_mut().players[owner.index()];
+                p.crystal_gain_pending = gain;
+                p.crystal_gain_turns = turns;
+            }
+        }
+        CardEffect::DrawMinionCostGE { cost } => {
+            // Rotheart Dryad (M1-W4a) — the deck is scanned for the first
+            // minion costing at least the threshold (no fatigue — a scan
+            // draws what exists, the resolve_draw_by_race pattern).
+            let matches: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Minion)
+                        && state
+                            .world()
+                            .effective_cost(e)
+                            .is_some_and(|c| c.0 >= cost as i32)
+                })
+                .take(1)
+                .collect();
+            for card in matches {
+                if state.world_mut().move_to_zone(card, Zone::Hand).is_ok() {
+                    queue.push(Event::CardDrawn {
+                        player: owner,
+                        card,
+                    });
+                }
+            }
+        }
+        CardEffect::GainDeathrattleOfDiedThisTurn => {
+            // Archdruid of Thorns (M1-W4a) — gain the deathrattle of the
+            // most recently died friendly minion this turn (one Deathrattle
+            // slot per entity, §14.3).
+            if let Some(&last) = state.player(owner).died_this_turn.last() {
+                if let Some(def) = state
+                    .world()
+                    .card_id(last)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    if let Some(dr) = def.deathrattle {
+                        state.world_mut().set_deathrattle(source, Deathrattle(dr));
+                    }
+                }
+            }
+        }
+        CardEffect::AddRandomDeckMinionToHand => {
+            // Hungering Ancient (M1-W4a) deathrattle — a random minion from
+            // the deck joins the hand (the eaten identity cannot be stored
+            // per instance, §14.3).
+            let minions: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if minions.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(minions.len());
+            let card = minions[idx];
+            if state.world_mut().move_to_zone(card, Zone::Hand).is_ok() {
+                queue.push(Event::CardDrawn {
+                    player: owner,
+                    card,
+                });
+            }
+        }
+        CardEffect::EatDeckMinionGainStats => {
+            // Hungering Ancient (M1-W4a) end of turn — eat the first minion
+            // in deck order and gain its stats (read before the move).
+            let minion = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .find(|&e| state.world().card_type(e) == Some(CardType::Minion));
+            let Some(minion) = minion else {
+                return;
+            };
+            let atk = state.world().effective_attack(minion).map_or(0, |a| a.0);
+            let hp = state.world().effective_health(minion).map_or(0, |h| h.0);
+            let _ = state.world_mut().move_to_zone(minion, Zone::Graveyard);
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack: atk,
+                    health: hp,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::DebuffRandomHandMinionBoth { attack_reduction } => {
+            // Twisted Treant (M1-W4a) — one random minion in EACH player's
+            // hand loses -2/-2; the debuff enchantment persists from hand
+            // into play (G4 keeps deck/hand enchantments).
+            for p in [owner, owner.opponent()] {
+                let minions: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Hand, p)
+                    .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                    .collect();
+                if minions.is_empty() {
+                    continue;
+                }
+                let idx = state.rng_mut().next_usize(minions.len());
+                state.world_mut().add_enchantment(
+                    minions[idx],
+                    Enchantment {
+                        attack: -attack_reduction,
+                        health: -attack_reduction,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::SpendAllManaCastRandomSpell => {
+            // Forbidden Shrine (M1-W4a) — spend all mana, then cast a random
+            // spell of exactly that cost ("cast" = direct effect resolution —
+            // no spell entity or SpellCast event, §14.3).
+            let spent = state.player(owner).current_mana;
+            state.make_mut().players[owner.index()].current_mana = 0;
+            if spent <= 0 {
+                return;
+            }
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Spell && c.cost == spent)
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            if let Some(effect) = candidates[idx].battlecry {
+                resolve_effect(state, queue, source, owner, effect, None, None);
+            }
+        }
+        CardEffect::CopyLowestCostEnemyHandCard => {
+            // Tricky Satyr (M1-W4a) — a copy of the lowest-Cost card in the
+            // opponent's hand (pool-open — registered in POOL_OPEN_CARDS)
+            let enemy_hand: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner.opponent())
+                .collect();
+            if enemy_hand.is_empty() {
+                return;
+            }
+            let lowest = enemy_hand
+                .iter()
+                .min_by_key(|&&e| state.world().effective_cost(e).map_or(0, |c| c.0));
+            if let Some(&lowest) = lowest {
+                copy_card_to_hand(state, lowest, owner);
+            }
+        }
+        CardEffect::OpponentDrawsTwoAndCopies => {
+            // Mimicry (M1-W4a) — the opponent draws two; the player gets
+            // copies of the drawn cards (pool-open — POOL_OPEN_CARDS).
+            let enemy = owner.opponent();
+            for _ in 0..2 {
+                if let Some(drawn) = draw_card_no_queue(state, queue, enemy) {
+                    copy_card_to_hand(state, drawn, owner);
+                }
+            }
+        }
+        CardEffect::ReturnFriendlyMinionSummonSpider => {
+            // Web of Deception (M1-W4a) — bounce a friendly minion to hand
+            // (enchantments wiped by the move, G4) to summon the 4/4 Spider
+            let minions = collect_friendly_minions(state, owner);
+            let Some(t) = select_target(explicit_target, &minions, state.rng_mut()) else {
+                return;
+            };
+            let _ = state.world_mut().move_to_zone(t, Zone::Hand);
+            let _ = resolve_summon(state, queue, source, owner, "EDR_523t");
+        }
+        CardEffect::ShuffleMatchingEnemyHandCardIntoDeck => {
+            // Shadowcloaked Assailant (M1-W4a) — when holding a card the
+            // opponent also holds, shuffle one random matching enemy card
+            // into their deck (pool-open — POOL_OPEN_CARDS; several matches
+            // pick one randomly, §14.3).
+            let enemy = owner.opponent();
+            let own_ids: Vec<&'static str> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter_map(|e| state.world().card_id(e).map(|c| c.0))
+                .collect();
+            let matches: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, enemy)
+                .filter(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .is_some_and(|c| own_ids.contains(&c.0))
+                })
+                .collect();
+            if matches.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(matches.len());
+            let card = matches[idx];
+            let deck_count = state.world().zones().len(Zone::Deck, enemy);
+            let position = if deck_count > 0 {
+                state.rng_mut().next_usize(deck_count + 1)
+            } else {
+                0
+            };
+            {
+                let world = state.world_mut();
+                world.zones_mut().remove(Zone::Hand, enemy, card);
+                world.set_zone(card, Zone::Deck);
+                world
+                    .zones_mut()
+                    .insert_at(Zone::Deck, enemy, card, position);
+            }
+        }
+        CardEffect::DestroyFriendlyMinionGainArmor { armor } => {
+            // Siphoning Growth (M1-W4a) — destroy a friendly minion to gain
+            // the Armor
+            let minions = collect_friendly_minions(state, owner);
+            let Some(t) = select_target(explicit_target, &minions, state.rng_mut()) else {
+                return;
+            };
+            resolve_destroy_minion(
+                state,
+                queue,
+                owner,
+                source,
+                EffectTarget::FriendlyMinion,
+                Some(t),
+            );
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].armor += armor;
+            }
+        }
+        CardEffect::DrawSpellCostGE { cost } => {
+            // Fae Trickster (M1-W4a) — scan for the first spell costing at
+            // least the threshold (no fatigue, the scan pattern)
+            let matches: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Spell)
+                        && state
+                            .world()
+                            .effective_cost(e)
+                            .is_some_and(|c| c.0 >= cost as i32)
+                })
+                .take(1)
+                .collect();
+            for card in matches {
+                if state.world_mut().move_to_zone(card, Zone::Hand).is_ok() {
+                    queue.push(Event::CardDrawn {
+                        player: owner,
+                        card,
+                    });
+                }
+            }
+        }
+        CardEffect::DrawDragonsReduced { count, reduction } => {
+            // Tormented Dreadwing (M1-W4a) — scan for Dragons, reducing each
+            // drawn one (the draw_card_with_reduction pattern)
+            let matches: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| {
+                    state
+                        .world()
+                        .has_race(e, crate::core::component::Race::Dragon)
+                })
+                .take(count as usize)
+                .collect();
+            for card in matches {
+                if state.world_mut().move_to_zone(card, Zone::Hand).is_ok() {
+                    if reduction > 0 {
+                        let world = state.world_mut();
+                        let cur = world.effective_cost(card).unwrap_or(Cost(0));
+                        world.set_cost(card, Cost((cur.0 - reduction as i32).max(0)));
+                    }
+                    queue.push(Event::CardDrawn {
+                        player: owner,
+                        card,
+                    });
+                }
+            }
+        }
+        CardEffect::SummonCopyOfSelf => {
+            // Bloodthistle Illusionist (M1-W4a) — a plain copy of the source
+            // (the shared-secret-death clause is unmodeled, §14.3). The
+            // copy's own battlecry is stripped: a summoned copy must not
+            // re-fire the summoning battlecry (real HS — summons never fire
+            // battlecries), or the Illusionist would recurse to a full board
+            // through the MinionSummoned dispatch.
+            if let Some(def) = state
+                .world()
+                .card_id(source)
+                .and_then(|c| crate::cards::def::card_by_id(c.0))
+            {
+                if let Some(copy) = resolve_summon(state, queue, source, owner, def.id) {
+                    state.world_mut().remove_battlecry(copy);
+                }
+            }
+        }
+        CardEffect::DestroyFriendlyWispDraw { count } => {
+            // Divination (M1-W4a) — destroy a friendly Wisp (the EDR_851t
+            // token — the engine's only Wisp) to draw
+            let wisps: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_851t"))
+                .collect();
+            if wisps.is_empty() {
+                return;
+            }
+            let t = select_target(explicit_target, &wisps, state.rng_mut()).unwrap_or(wisps[0]);
+            resolve_destroy_minion(
+                state,
+                queue,
+                owner,
+                source,
+                EffectTarget::FriendlyMinion,
+                Some(t),
+            );
+            for _ in 0..count {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::DrawAndSummonLeeches { draw } => {
+            // Sanguine Infestation (M1-W4a) — draw, then summon the Leeches
+            for _ in 0..draw {
+                draw_card(state, queue, owner);
+            }
+            for _ in 0..draw {
+                let _ = resolve_summon(state, queue, source, owner, "EDR_810t");
+            }
+        }
+        CardEffect::DrawAndSummonDreadseed { draw } => {
+            // Grim Harvest (M1-W4a) — draw, then summon the Dreadseed token
+            // (Dormant simplified to the can't-attack token, §14.3)
+            for _ in 0..draw {
+                draw_card(state, queue, owner);
+            }
+            let _ = resolve_summon(state, queue, source, owner, "EDR_820t");
+        }
+        CardEffect::NextHeroPowerCostsZero => {
+            // Dreambound Disciple (M1-W4a) — the flag is consumed at the
+            // next hero-power activation (rules.rs)
+            state.make_mut().players[owner.index()].next_hero_power_free = true;
+        }
+        CardEffect::RestoreHealthAndGetDruidSpells { amount, count } => {
+            // Photosynthesis (M1-W4a) — heal the hero and gather Druid spells
+            resolve_restore_health(
+                state,
+                queue,
+                owner,
+                amount,
+                EffectTarget::FriendlyHero,
+                None,
+            );
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::DRUID_CLASSIC
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Spell)
+                    .collect();
+            if spells.is_empty() {
+                return;
+            }
+            for _ in 0..count {
+                let idx = state.rng_mut().next_usize(spells.len());
+                add_card_to_hand(state, owner, spells[idx]);
+            }
+        }
+        CardEffect::GainManaCrystalBoth { count } => {
+            // Tranquil Treant (M1-W4a) — both players gain an empty crystal
+            for p in [owner, owner.opponent()] {
+                let inner = state.make_mut();
+                inner.players[p.index()].mana_crystals =
+                    (inner.players[p.index()].mana_crystals + count).min(10);
+            }
+        }
+        CardEffect::TransformNeutralDeckToDruid => {
+            // Envoy of the Glade (M1-W4a) — Neutral (not a class card) deck
+            // cards become random Druid ones (the Druid class list is the
+            // replacement pool; per-card positions are kept).
+            let druids: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::DRUID_CLASSIC
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Minion || c.card_type == CardType::Spell)
+                    .collect();
+            if druids.is_empty() {
+                return;
+            }
+            let deck: SmallList<Entity> = state.world().zones().iter(Zone::Deck, owner).collect();
+            for card in deck {
+                let is_neutral = state
+                    .world()
+                    .card_id(card)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                    .is_some_and(is_neutral_def);
+                if is_neutral {
+                    let idx = state.rng_mut().next_usize(druids.len());
+                    let def = druids[idx];
+                    let world = state.world_mut();
+                    world.set_card_id(card, CardId(def.id));
+                    world.set_attack(card, Attack(def.attack));
+                    world.set_health(card, Health(def.health));
+                    world.set_cost(card, Cost(def.cost));
+                }
+            }
+        }
+        CardEffect::AddMoonfireAndStarfireWithSpellDamage => {
+            // Stellar Balance (M1-W4a) — Moonfire + Starfire with Spell
+            // Damage +1 on each (the spell entity's own Spell Damage applies
+            // when it is later cast)
+            // The db's classic Moonfire (DRUID_011) / Starfire (DRUID_006)
+            // predate the CORE_EX1_* rename — they are the same cards.
+            for id in ["DRUID_011", "DRUID_006"] {
+                if let Some(def) = crate::cards::def::card_by_id(id) {
+                    if let Some(added) = add_random_minion_to_hand(state, owner, def) {
+                        state
+                            .world_mut()
+                            .set_spell_damage(added, crate::core::component::SpellDamage(1));
+                    }
+                }
+            }
+        }
+        CardEffect::BuffAnotherRandomFriendlyDragon { attack, health } => {
+            // Petal Peddler (M1-W4a) — another random friendly Dragon
+            let dragons: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| {
+                    e != source
+                        && state
+                            .world()
+                            .has_race(e, crate::core::component::Race::Dragon)
+                })
+                .collect();
+            if let Some(t) = select_target(None, &dragons, state.rng_mut()) {
+                state.world_mut().add_enchantment(
+                    t,
+                    Enchantment {
+                        attack,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::ReduceRightmostHandCardCost { reduction } => {
+            // Nightmare Dragonkin (M1-W4a) — the right-most hand card (the
+            // last in hand zone order) costs less
+            if let Some(card) = state.world().zones().iter(Zone::Hand, owner).last() {
+                let world = state.world_mut();
+                let cur = world.effective_cost(card).unwrap_or(Cost(0));
+                world.set_cost(card, Cost((cur.0 - reduction as i32).max(0)));
+            }
+        }
+        CardEffect::ResurrectDeathrattleMinionCostLE { cost } => {
+            // Ravenous Felhunter (M1-W4a) — a random friendly Deathrattle
+            // minion that costs at most the threshold comes back as a copy
+            let fallen: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Graveyard, owner)
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Minion)
+                        && state.world().cost(e).is_some_and(|c| c.0 <= cost as i32)
+                        && has_deathrattle_def(state, e)
+                })
+                .collect();
+            if let Some(fallen) = select_target(None, &fallen, state.rng_mut()) {
+                if let Some(def) = state
+                    .world()
+                    .card_id(fallen)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+            }
+        }
+        CardEffect::ResurrectDeathrattleMinionCostGE { cost } => {
+            // Ferocious Felbat (M1-W4a) — like the Felhunter but costing at
+            // least the threshold and excluding the dying minion itself
+            // ("a different friendly Deathrattle minion")
+            let fallen: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Graveyard, owner)
+                .filter(|&e| {
+                    e != source
+                        && state.world().card_type(e) == Some(CardType::Minion)
+                        && state.world().cost(e).is_some_and(|c| c.0 >= cost as i32)
+                        && has_deathrattle_def(state, e)
+                })
+                .collect();
+            if let Some(fallen) = select_target(None, &fallen, state.rng_mut()) {
+                if let Some(def) = state
+                    .world()
+                    .card_id(fallen)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+            }
+        }
+        CardEffect::GainArmorPerWisp { base } => {
+            // Merry Moonkin (M1-W4a) — armor plus one per friendly Wisp (the
+            // EDR_851t token)
+            let wisps = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_851t"))
+                .count();
+            let inner = state.make_mut();
+            inner.players[owner.index()].armor += base + wisps as i32;
+        }
+        CardEffect::DamageMinionScaledByFallen { base } => {
+            // Starsurge (M1-W4a) — plus one per friendly minion that died
+            // this game (the graveyard IS the death record)
+            let fallen = state
+                .world()
+                .zones()
+                .iter(Zone::Graveyard, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .count() as i32;
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            if let Some(t) = select_target(explicit_target, &all, state.rng_mut()) {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: t,
+                    amount: base + fallen,
+                });
+            }
+        }
+        CardEffect::GrantHeroDivineShield => {
+            // Curious Cumulus (M1-W4a) — the hero gains Divine Shield
+            let hero = state.player(owner).hero;
+            state.world_mut().set_divine_shield(hero, DivineShield);
+        }
+        CardEffect::RestoreBothHeroes { amount } => {
+            // Critter Caretaker (M1-W4a) — both heroes heal
+            for p in [owner, owner.opponent()] {
+                let hero = state.player(p).hero;
+                heal_char(state.world_mut(), hero, amount);
+            }
+        }
+        CardEffect::AddSelfToDeckBottomCost { cost } => {
+            // Meadowstrider (M1-W4a) — a copy goes to the deck's bottom (the
+            // end of the draw order) costing (1)
+            if let Some(def) = state
+                .world()
+                .card_id(source)
+                .and_then(|c| crate::cards::def::card_by_id(c.0))
+            {
+                let world = state.world_mut();
+                let e = crate::cards::spawn_card_from_def(world, owner, def);
+                world.set_cost(e, Cost(cost as i32));
+                world.set_zone(e, Zone::Deck);
+                world.zones_mut().insert(Zone::Deck, owner, e);
+            }
+        }
+        CardEffect::SummonCopyOfRandomFriendlyDragon => {
+            // The Clutch of Corruption Egg's hatch (M1-W4a) — a copy of a
+            // random friendly Dragon (the chosen identity is not remembered,
+            // §14.3)
+            let dragons: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| {
+                    state
+                        .world()
+                        .has_race(e, crate::core::component::Race::Dragon)
+                })
+                .collect();
+            if let Some(dragon) = select_target(None, &dragons, state.rng_mut()) {
+                if let Some(def) = state
+                    .world()
+                    .card_id(dragon)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+            }
+        }
+        CardEffect::GainHealthIfHeroPowerUsed { amount } => {
+            // Barkshield Sentinel (M1-W4a) — the hero-power check runs at
+            // the end of the turn instead of at the hero-power use (no
+            // hero-power trigger event, §14.3)
+            let hero = state.player(owner).hero;
+            if state.world().hero_power_used(hero).is_some_and(|u| u.0) {
+                state.world_mut().add_enchantment(
+                    source,
+                    Enchantment {
+                        attack: 0,
+                        health: amount,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::AttackRandomEnemyMinionExcess => {
+            // Briarspawn Drake (M1-W4a) — attack a random enemy minion; a
+            // kill carries the excess damage to the enemy hero (direct
+            // damage model, like the excess-damage family)
+            let enemies = collect_enemy_minions(state, owner, Some(source));
+            if enemies.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(enemies.len());
+            let target = enemies[idx];
+            let atk = state.world().effective_attack(source).map_or(0, |a| a.0);
+            queue.push(Event::DamageDealt {
+                source,
+                target,
+                amount: atk,
+            });
+            let dies = state.world().divine_shield(target).is_none()
+                && state
+                    .world()
+                    .effective_health(target)
+                    .is_some_and(|h| h.0 - atk <= 0);
+            if dies {
+                let hp = state.world().effective_health(target).map_or(0, |h| h.0);
+                let excess = (atk - hp).max(0);
+                if excess > 0 {
+                    let hero = state.player(owner.opponent()).hero;
+                    queue.push(Event::DamageDealt {
+                        source,
+                        target: hero,
+                        amount: excess,
+                    });
+                }
+            }
+        }
+        CardEffect::SplashHeroAttackToRandomEnemy => {
+            // Defiled Spear (M1-W4a) — the hero's Attack splashes onto a
+            // random enemy other than the attacked minion
+            let hero = state.player(owner).hero;
+            // The hero's Attack includes the equipped weapon's (like the
+            // swing itself) — effective_attack on the hero reads the base
+            // Attack component, which is 0 for a hero with a weapon.
+            let atk = crate::engine::rules::compute_attacker_damage(state, hero);
+            let candidates: SmallList<Entity> = collect_enemy_characters(state, owner, None)
+                .into_iter()
+                .filter(|&e| Some(e) != event_subject)
+                .collect();
+            if let Some(t) = select_target(None, &candidates, state.rng_mut()) {
+                queue.push(Event::DamageDealt {
+                    source: hero,
+                    target: t,
+                    amount: atk,
+                });
+            }
+        }
+        CardEffect::GainDeadMinionAttack => {
+            // Scavenging Flytrap (M1-W4a) — gain the just-died minion's
+            // Attack (the graveyard move wiped enchantments, so this is the
+            // base Attack — §14.3)
+            if let Some(subject) = event_subject {
+                let atk = state.world().effective_attack(subject).map_or(0, |a| a.0);
+                state.world_mut().add_enchantment(
+                    source,
+                    Enchantment {
+                        attack: atk,
+                        health: 0,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::DrawIfMinionPlayedBefore => {
+            // Twisted Webweaver (M1-W4a) — the just-played minion was played
+            // earlier this game (the log is pushed before the CardPlayed
+            // triggers fire, so a count of 2+ means a repeat)
+            if let Some(subject) = event_subject {
+                let is_minion = state.world().card_type(subject) == Some(CardType::Minion);
+                let repeats = state
+                    .world()
+                    .card_id(subject)
+                    .map(|c| {
+                        state
+                            .player(owner)
+                            .played_minion_ids
+                            .iter()
+                            .filter(|id| id.as_str() == c.0)
+                            .count()
+                    })
+                    .unwrap_or(0);
+                if is_minion && repeats >= 2 {
+                    draw_card(state, queue, owner);
+                }
+            }
+        }
+        CardEffect::GrantRandomBonusEffect => {
+            // Dreambound Raptor (M1-W4a) — a random keyword from the
+            // approximated Bonus Effect pool (Taunt / Divine Shield /
+            // Poisonous / Windfury / Elusive / Stealth — §14.3)
+            if let Some(subject) = event_subject {
+                if state.world().card_type(subject) != Some(CardType::Minion) {
+                    return;
+                }
+                let pick = state.rng_mut().next_usize(6);
+                let world = state.world_mut();
+                match pick {
+                    0 => world.set_taunt(subject, Taunt),
+                    1 => world.set_divine_shield(subject, DivineShield),
+                    2 => world.set_poison(subject, Poison),
+                    3 => world.set_windfury(subject, Windfury),
+                    4 => world.set_elusive(subject, Elusive),
+                    _ => world.set_stealth(subject, Stealth),
+                }
+            }
+        }
     }
+}
+
+/// True when the card definition belongs to no class (Neutral — Envoy of
+/// the Glade's transformation predicate, M1-W4a).
+fn is_neutral_def(def: &crate::cards::def::CardDef) -> bool {
+    use crate::cards::sets::{
+        DRUID_CLASSIC, HUNTER_CLASSIC, LEGENDARY_CLASSIC, MAGE_CLASSIC, PALADIN_CLASSIC,
+        PRIEST_CLASSIC, ROGUE_CLASSIC, SHAMAN_CLASSIC, WARLOCK_CLASSIC, WARRIOR_CLASSIC,
+    };
+    ![
+        DRUID_CLASSIC,
+        HUNTER_CLASSIC,
+        MAGE_CLASSIC,
+        PALADIN_CLASSIC,
+        PRIEST_CLASSIC,
+        ROGUE_CLASSIC,
+        SHAMAN_CLASSIC,
+        WARLOCK_CLASSIC,
+        WARRIOR_CLASSIC,
+        LEGENDARY_CLASSIC,
+    ]
+    .iter()
+    .any(|list| list.iter().any(|c| c.id == def.id))
+}
+
+/// True when the entity's card definition carries a Deathrattle (the
+/// Felhunter/Felbat resurrection predicate, M1-W4a).
+fn has_deathrattle_def(state: &GameState, entity: Entity) -> bool {
+    state
+        .world()
+        .card_id(entity)
+        .and_then(|c| crate::cards::def::card_by_id(c.0))
+        .is_some_and(|d| d.deathrattle.is_some() || d.death_trigger.is_some())
 }
 
 /// Picks a random dark gift from the fixed ten-gift pool
@@ -4055,6 +5292,15 @@ fn resolve_summon_doubled(
         }
         if card_def.taunt {
             world.set_taunt(e, crate::core::component::Taunt);
+        }
+        // Stealth / Elusive (M5 CardDef fields — mirrored here so
+        // effect-summoned tokens like the Web of Deception Spider keep the
+        // keywords; the play path applies them via spawn_card_from_def)
+        if card_def.stealth {
+            world.set_stealth(e, crate::core::component::Stealth);
+        }
+        if card_def.elusive {
+            world.set_elusive(e, crate::core::component::Elusive);
         }
         // Race / tribe (fidelity-debt W1)
         if let Some(race) = card_def.race {
@@ -5041,6 +6287,9 @@ fn resolve_destroy_minion(
     explicit: Option<Entity>,
 ) {
     let minions: SmallList<Entity> = match target {
+        // FriendlyMinion (M1-W4a — Siphoning Growth, Divination): destroy a
+        // friendly minion (the explicit play target, or a random one)
+        EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner, Some(source)),
         EffectTarget::AnyRace(race) => {
             // Any minion of the race on either side (Hungry Crab — destroy a Murloc)

@@ -686,3 +686,114 @@ F5 coverage: `edr_w3_spirits_of_the_forest_both_branches`,
 `edr_w3_spark_of_life_discover_class_spells`, `edr_w3_pending_choice_gate_and_auto_resolve`
 (14 scenarios in `tests/differential.rs`). Full `cargo test` green; `cargo clippy
 --all-targets` clean.
+
+### 14.3 2025–2026 expansions M1-W4a — the Emerald Dream non-legendary wave (86 cards) 🔓 registered
+
+The registered simplifications of the M1-W4a wave (`src/cards/exp_edr_w4a.rs`,
+95 consts = the 86 non-legendary EDR cards of the W4 "remaining cards" list
+plus 9 tokens; the 23 elite Wild Gods are M1-W4b, the FIR_* miniset M1-W5).
+New mechanism facilities this wave: a per-player spell-cast counter
+(`Player::spells_cast_total`, the New Moon upgrade condition — the official
+per-card tracking is approximated per-player, and the current cast counts:
+the counter only bumps in the after-cast `SpellCast` handler, so the effect
+tests `spells_cast_total + 1`); a per-player hero-power-use counter
+(`Player::hero_power_uses`) plus a one-time free-hero-power flag (Dreambound
+Disciple) and a `HeroPowerDef` on players; per-player pending end-of-turn
+timers (`Player::self_damage_pending`/`self_damage_turns` for Rotten Apple,
+`crystal_gain_pending`/`crystal_gain_turns` for Fractured Power — the official
+"at the end of the next 2 turns" lands at the end of those turns); the
+played-minion log (`Player::played_minion_ids`, Twisted Webweaver); a
+`HeroAttackedMinion` event feeding the three weapon triggers (Shepherd's
+Crook, Emerald Haze, Defiled Spear); and `RandomPool::Murloc`. Two engine
+fixes landed during this wave and are worth recording: `resolve_destroy_minion`
+previously no-op'd on `EffectTarget::Self_` (a latent bug that made Siphoning
+Growth and Divination destroy nothing — a new `EffectTarget::FriendlyMinion`
+arm fixes both), and `SummonCopyOfSelf` now strips the copy's battlecry
+(Bloodthistle Illusionist's copy used to recurse through the
+`MinionSummoned` battlecry dispatch to a full board). Stellar Balance's
+faithful spell add resolves to the db's classic `DRUID_011` Moonfire /
+`DRUID_006` Starfire — the modern `CORE_EX1_*` ids do not exist in this db,
+so `card_by_id` would silently no-op; they are the same cards, pre-rename.
+Renewing Flames (EDR_255) re-picks its target per hit over effective health,
+so the second 5-damage hit can land on a different enemy than the first —
+that is faithful engine behavior, not a simplification. As with §14–§14.2,
+these handwritten expansion cards are not in the RL pool (classic + core
+668/659), so the rows are informational: they keep the code's
+`(simplified: …)` markers traceable to the ledger. Each row stays open until
+its mechanism lands.
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| EDR_105 | Creature of Madness | Dark Gift Discover → a random 3-cost minion with a Dark Gift (the fixed Discover simplification) | a real Discover pipeline over the Dark Gift pool |
+| EDR_234 | Emerald Bounty | The "can't play them for 2 turns" restriction is dropped — it would need per-card play locks | a play-lock mechanism |
+| EDR_251 | Dragonscale Armaments | The engine does not track card origins, so the "didn't start there" half becomes a random spell | card-origin tracking |
+| EDR_256 | Dreamwarden | The "card in your deck that didn't start there" condition is dropped — always draws the top card and gains +2/+2 | card-origin tracking |
+| EDR_260 | Illusory Greenwing | The "Summoned When Drawn" half is dropped — the shuffled 4/5 Dragons enter the hand normally | a summon-when-drawn pipeline |
+| EDR_261 | Amphibian's Spirit | The engine stores one Deathrattle per entity, so a target that already has one gets it replaced | multi-deathrattle support |
+| EDR_270 | Horn of Plenty | The Nature spell school is not modeled → the pool is any spell; Discover → random | spell schools + Discover |
+| EDR_271 | Grove Shaper | The Nature trigger fires on any friendly spell; the treant's deathrattle adds a random spell instead of a copy of the triggering one | spell schools + per-instance memory |
+| EDR_416 | Shepherd's Crook | Dormant is not modeled — the summoned Sheep is a 3/3 that never wakes (Dreadseed precedent) | a Dormant pipeline |
+| EDR_454 | Clutch of Corruption | The egg cannot remember the chosen Dragon — it hatches a copy of a random friendly Dragon | per-instance card memory |
+| EDR_455 | Succumb to Madness | Discover → a random friendly Dragon from the graveyard (the fixed Discover simplification; the death record itself reads the graveyard zone, like Calia Menethil) | a real Discover pipeline |
+| EDR_460 | Wish of the New Moon | The per-card New Moon counter is approximated by the player's total spells cast (the current cast counts) | per-card counters |
+| EDR_461 | Ritual of the New Moon | Same New Moon approximation (summons 6-cost minions after 3 spells cast) | per-card counters |
+| EDR_469 | Slumbering Sprite | Dormant is not modeled — the Sprite is a 3/3 that never wakes; no hero-power-use trigger event exists | Dormant + hero-power events |
+| EDR_470 | Barkshield Sentinel | No hero-power-use trigger — the buff fires at end of turn, but only when the hero power was used that turn | a hero-power-use trigger |
+| EDR_482 | Rotten Apple | The 2 turns of self-damage tick at the END of each of the next 2 of your turns (`Player::self_damage_pending`) | exact timing per turn-start semantics |
+| EDR_483 | Fractured Power | The delayed crystals land at the END of the 2nd of your turns (`Player::crystal_gain_pending`) | exact timing per turn-start semantics |
+| EDR_484 | Scavenging Flytrap | The dead minion's enchantments are wiped on the graveyard move, so the Flytrap gains its base Attack | persist final attack into the death event |
+| EDR_491 | Archdruid of Thorns | One Deathrattle per entity — gains the deathrattle of the most recently died friendly minion this turn | multi-deathrattle support |
+| EDR_494 | Hungering Ancient | The eaten minion's identity cannot be stored per instance — the deathrattle adds a random deck minion to hand | per-instance card memory |
+| EDR_520 | Forbidden Shrine | "Cast" is a direct effect resolution — no spell entity or SpellCast event is produced | a cast pipeline for random spells |
+| EDR_524 | Shadowcloaked Assailant | When several enemy cards match, one random matching card is shuffled (reads the opponent's hand — registered in `POOL_OPEN_CARDS`) | shuffle-all-matching semantics |
+| EDR_529 | Plucky Podling | Transform interception is unmodeled — a plain 1/2 | a transform interception hook |
+| EDR_530 | Daydreaming Pixie | The Nature spell school is not modeled → the pool is any spell | spell schools |
+| EDR_780 | Bloodthistle Illusionist | The shared-secret-death clause is unmodeled — a plain copy (its battlecry is stripped on the copy to stop summon recursion) | shared-death tracking |
+| EDR_781 | Harbinger of the Blighted | No zone-change trigger event — the bounce-to-hand clause is unmodeled (inert 2/3) | a zone-change trigger |
+| EDR_810 | Hideous Husk | The leech-steal aura is unmodeled — the Leeches are plain 0/2 tokens | the leech aura |
+| EDR_812 | Grotesque Runeblade | Rune tracking is unmodeled — a plain 2/2 weapon | rune tracking |
+| EDR_815 | Corpse Flower | No enemy-summons trigger event — the clause is unmodeled (inert 0/5) | an opponent-summons trigger |
+| EDR_840 | Grim Harvest | The Dormant Dreadseed is the W3 can't-attack token EDR_820t, which never wakes | a Dormant pipeline |
+| EDR_841 | Dreadsoul Corrupter | Same Dreadseed token for both battlecry and deathrattle | a Dormant pipeline |
+| EDR_849 | Dreambound Raptor | The official Bonus Effect pool is approximated by a fixed keyword pool — Taunt / Divine Shield / Poisonous / Windfury / Elusive / Stealth | the Bonus Effect list |
+| EDR_979 | Ancient of Yore | Dormant is not modeled — the Ancient never wakes; the end-of-turn armor + draw keeps running while it is in play | a Dormant pipeline |
+| EDR_271t | Treant (token) | The deathrattle adds a random spell — the triggering spell cannot be remembered per instance | per-instance card memory |
+| EDR_416t | Sheep (token) | Dormant is not modeled — a 3/3 that never wakes (handwritten const only, no official data row) | a Dormant pipeline / official token data |
+| EDR_454t | Egg (token) | Hatches a copy of a random friendly Dragon instead of the chosen one | per-instance card memory / official token data |
+
+中文小结（同上）：M1-W4a 波（86 张非传说卡 + 9 张衍生物）的新机制设施：
+每玩家法术计数（`spells_cast_total`，新月光辉升级条件——官方按牌计数的
+近似，当前施放的法术计入阈值：计数器只在施放后的 `SpellCast` 事件里 +1，
+效果判定用 `spells_cast_total + 1`）、每玩家英雄技能使用计数与一次性免费
+英雄技能（Dreambound Disciple）、回合末定时器（Rotten Apple 的自伤与
+Fractured Power 的延迟水晶，均在"之后的第 2 个回合结束时"落地）、已打
+随从日志（Twisted Webweaver）、`HeroAttackedMinion` 事件（三把武器触发）
+与 `RandomPool::Murloc`。本波登记的两处引擎修复：`resolve_destroy_minion`
+此前对 `EffectTarget::Self_` 直接 no-op（潜伏 bug 令 Siphoning Growth 与
+Divination 的摧毁效果失效，新增 `FriendlyMinion` 分支一并修复）；
+`SummonCopyOfSelf` 现在剥除复制体的战吼（否则 Bloodthistle Illusionist
+的复制体会经 `MinionSummoned` 战吼派发递归铺满全场）。Stellar Balance
+忠实落地为 db 内的经典 `DRUID_011` 月火术 / `DRUID_006` 星火术（现代
+`CORE_EX1_*` id 在本 db 不存在，按原 id 查询会静默无效——它们是改名前的
+同一张卡）。Renewing Flames（EDR_255）每次命中按有效生命重新选目标，
+第二段 5 点伤害可能落在不同的敌人身上——这是忠实引擎行为而非简化。本波
+简化与既往一致：发现 → 随机（EDR_105/EDR_455 按固定发现简化）；自然法术
+学派 → 任意法术（EDR_270/EDR_271/EDR_530）；Dormant → 永不苏醒的不可
+攻击白板（EDR_416/EDR_469/EDR_979/EDR_840/EDR_841/EDR_416t，沿用 W3
+的 EDR_820t 先例）；"非起始于卡组的牌"条件取消（EDR_251/EDR_256）；
+"抽到时召唤"取消（EDR_260）；单亡语槽 → 覆盖/取最近死亡者
+（EDR_261/EDR_491）；实例身份无法记忆 → 固定/随机替代
+（EDR_454/EDR_494/EDR_271t/EDR_454t）；对手召唤/回手触发未建模（惰性
+白板 EDR_781/EDR_815）；符文追踪与吸血偷取光环取消（EDR_812/EDR_810）；
+"2 回合内不能打出"限制取消（EDR_234）；3 张衍生物为手写 const（官方数据
+无此行，与既有扩展衍生物登记一致）。扩展手写卡均不在 RL 池（经典 + 核心
+668/659），本表仅作登记追踪，各行在机制落地前保持开放。
+
+F5 coverage: `edr_w4a_deck_top_buffs_and_scans`, `edr_w4a_death_records`,
+`edr_w4a_played_minion_logs`, `edr_w4a_spell_tracking`, `edr_w4a_locations`,
+`edr_w4a_weapons`, `edr_w4a_rogue_hand_reads`, `edr_w4a_warlock_timers`,
+`edr_w4a_dormant_and_vanilla`, `edr_w4a_battlecry_pools`,
+`edr_w4a_spell_pools`, `edr_w4a_midrange_keywords_and_end_of_turn_a`,
+`edr_w4a_midrange_b`, `edr_w4a_misc_spells_and_battlecries`
+(14 scenarios in `tests/differential.rs`). Full `cargo test` green; `cargo
+clippy --all-targets` clean.
