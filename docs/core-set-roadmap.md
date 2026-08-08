@@ -90,7 +90,7 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_CATA_004` Rehgar Earthfury — 5 费随从 3/5
 - [ ] `CORE_CATA_005` Lord Thorval — 3 费随从 2/4 — ⛔ official placeholder (never released, no card text), not implemented (decision 2026-08-08)
 - [x] `CORE_CATA_006` Ulfar — 6 费随从 4/3
-- [ ] `CORE_CATA_006e` Thornspeakers' Spirit — 附魔衍生物（0 费）
+- [x] `CORE_CATA_006e` Thornspeakers' Spirit — 附魔衍生物（0 费）
 - [x] `CORE_CATA_007` Consumption — 4 费 法术
 - [ ] `CORE_CATA_008` Guardian Gargoyle — 3 费随从 2/4 — ⛔ official placeholder (never released, no card text), not implemented (decision 2026-08-08)
 - [x] `CORE_CATA_009` Death's Advance — 2 费 法术
@@ -126,7 +126,7 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_CS2_028` Blizzard — 6 费 法术
 - [x] `CORE_CS2_029` Fireball — 4 费 法术
 - [x] `CORE_CS2_032` Flamestrike — 7 费 法术
-- [ ] `CORE_CS2_039e` Windfury — 附魔衍生物（0 费）
+- [x] `CORE_CS2_039e` Windfury — 附魔衍生物（0 费）
 - [x] `CORE_CS2_042` Fire Elemental — 6 费随从 6/5
 - [x] `CORE_CS2_053` Far Sight — 3 费 法术
 - [x] `CORE_CS2_062` Hellfire — 3 费 法术
@@ -169,7 +169,7 @@ inventory is confirmed — every card is a checkbox.
 
 - [x] `CORE_EDR_001` Babbling Bookcase — 3 费随从 2/4
 - [x] `CORE_EDR_002` Poison Breath — 2 费 法术
-- [ ] `CORE_EDR_002e` Deathly Poison — 附魔衍生物（0 费）
+- [x] `CORE_EDR_002e` Deathly Poison — 附魔衍生物（0 费）
 - [x] `CORE_EDR_003` Falric — 3 费随从 2/4
 - [x] `CORE_EDR_004` Raptor Herald — 3 费随从 4/2
 - [x] `CORE_EDR_004_2026` Raptor Herald — 3 费随从 4/2 (与 `CORE_EDR_004` 同一张卡的另一版本 ID，不单独实现)
@@ -221,7 +221,7 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_EX1_310` Doomguard — 5 费随从 5/7
 - [x] `CORE_EX1_312` Twisting Nether — 8 费 法术
 - [x] `CORE_EX1_319` Flame Imp — 1 费随从 3/2
-- [ ] `CORE_EX1_323` Lord Jaraxxus — 英雄（8 费）
+- [x] `CORE_EX1_323` Lord Jaraxxus — 英雄（8 费）
 - [x] `CORE_EX1_362` Argent Protector — 2 费随从 3/2
 - [x] `CORE_EX1_383` Tirion Fordring — 8 费随从 8/8
 - [x] `CORE_EX1_391` Slam — 1 费 法术
@@ -239,7 +239,7 @@ inventory is confirmed — every card is a checkbox.
 
 ### CORE_GIL_* — 女巫森林（8 张）
 
-- [ ] `CORE_GIL_191t` Imp — 1 费随从 1/1
+- [x] `CORE_GIL_191t` Imp — 1 费随从 1/1
 - [x] `CORE_GIL_531` Witch's Apprentice — 0 费随从 0/1
 - [x] `CORE_GIL_534` Hench-Clan Thug — 3 费随从 3/3
 - [x] `CORE_GIL_558` Swamp Leech — 1 费随从 2/1
@@ -320,7 +320,7 @@ inventory is confirmed — every card is a checkbox.
 - [x] `CORE_REV_023` Demolition Renovator — 3 费随从 3/3
 - [x] `CORE_REV_308` Maze Guide — 2 费随从 1/1
 - [x] `CORE_REV_946` Steamcleaner — 5 费随从 5/5
-- [ ] `CORE_REV_990` Sanguine Depths — 地点（1 费）
+- [x] `CORE_REV_990` Sanguine Depths — 地点（1 费）
 
 ### CORE_RLK_* — 巫妖王的进军（17 张）
 
@@ -597,7 +597,7 @@ the same card under two IDs (re-check during W4a).
   CORE_EX1_259 CORE_GIL_836 CORE_OG_047 CORE_ONY_018 CORE_TSC_650
   CORE_WON_350 CORE_YOP_001`
 - **W7 — enrage finish (2 + F5) ✅ (PR #127, 2026-08-08):** Grommash Hellscream (8/4/9, Charge, Enrage +6) and Bloodhoof Brave (4/2/6, Taunt, Enrage +3) — both ride the read-based Enrage component (fidelity-debt §13). `CORE_EX1_414 CORE_OG_218`
-- **W8 — special types (6 + F5):** the deferred HERO (CORE_EX1_323 Lord
+- **W8 — special types (6 + F5) ✅ (PR #128, 2026-08-08):** Lord Jaraxxus (`CardType::Hero` + hero-replacement primitive: 15 health, armor lost, Blood Fury 3/8, INFERNO! hero power summoning a 6/6 Infernal), Sanguine Depths (`CardType::Location`: one per side, one-turn play cooldown, one activation per turn, durability charges), the 3 ENCHANTMENT tokens (`CardType::Enchantment`, never playable) and the Imp token. the deferred HERO (CORE_EX1_323 Lord
   Jaraxxus — hero replacement primitive), LOCATION (CORE_REV_990 Sanguine
   Depths — `CardType::Location` primitive), ENCHANTMENT cards (CORE_CATA_006e
   CORE_CS2_039e CORE_EDR_002e) and the Imp token (CORE_GIL_191t).

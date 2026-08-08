@@ -85,7 +85,7 @@
 - [x] `CORE_CATA_004` Rehgar Earthfury — 5 费随从 3/5
 - [ ] `CORE_CATA_005` Lord Thorval — 3 费随从 2/4 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
 - [x] `CORE_CATA_006` Ulfar — 6 费随从 4/3
-- [ ] `CORE_CATA_006e` Thornspeakers' Spirit — 附魔衍生物（0 费）
+- [x] `CORE_CATA_006e` Thornspeakers' Spirit — 附魔衍生物（0 费）
 - [x] `CORE_CATA_007` Consumption — 4 费 法术
 - [ ] `CORE_CATA_008` Guardian Gargoyle — 3 费随从 2/4 — ⛔ 官方占位符（未发布，无效果文本），不实现（2026-08-08 决策）
 - [x] `CORE_CATA_009` Death's Advance — 2 费 法术
@@ -121,7 +121,7 @@
 - [x] `CORE_CS2_028` Blizzard — 6 费 法术
 - [x] `CORE_CS2_029` Fireball — 4 费 法术
 - [x] `CORE_CS2_032` Flamestrike — 7 费 法术
-- [ ] `CORE_CS2_039e` Windfury — 附魔衍生物（0 费）
+- [x] `CORE_CS2_039e` Windfury — 附魔衍生物（0 费）
 - [x] `CORE_CS2_042` Fire Elemental — 6 费随从 6/5
 - [x] `CORE_CS2_053` Far Sight — 3 费 法术
 - [x] `CORE_CS2_062` Hellfire — 3 费 法术
@@ -164,7 +164,7 @@
 
 - [x] `CORE_EDR_001` Babbling Bookcase — 3 费随从 2/4
 - [x] `CORE_EDR_002` Poison Breath — 2 费 法术
-- [ ] `CORE_EDR_002e` Deathly Poison — 附魔衍生物（0 费）
+- [x] `CORE_EDR_002e` Deathly Poison — 附魔衍生物（0 费）
 - [x] `CORE_EDR_003` Falric — 3 费随从 2/4
 - [x] `CORE_EDR_004` Raptor Herald — 3 费随从 4/2
 - [x] `CORE_EDR_004_2026` Raptor Herald — 3 费随从 4/2 (与 `CORE_EDR_004` 同一张卡的另一版本 ID，不单独实现)
@@ -216,7 +216,7 @@
 - [x] `CORE_EX1_310` Doomguard — 5 费随从 5/7
 - [x] `CORE_EX1_312` Twisting Nether — 8 费 法术
 - [x] `CORE_EX1_319` Flame Imp — 1 费随从 3/2
-- [ ] `CORE_EX1_323` Lord Jaraxxus — 英雄（8 费）
+- [x] `CORE_EX1_323` Lord Jaraxxus — 英雄（8 费）
 - [x] `CORE_EX1_362` Argent Protector — 2 费随从 3/2
 - [x] `CORE_EX1_383` Tirion Fordring — 8 费随从 8/8
 - [x] `CORE_EX1_391` Slam — 1 费 法术
@@ -234,7 +234,7 @@
 
 ### CORE_GIL_* — 女巫森林（8 张）
 
-- [ ] `CORE_GIL_191t` Imp — 1 费随从 1/1
+- [x] `CORE_GIL_191t` Imp — 1 费随从 1/1
 - [x] `CORE_GIL_531` Witch's Apprentice — 0 费随从 0/1
 - [x] `CORE_GIL_534` Hench-Clan Thug — 3 费随从 3/3
 - [x] `CORE_GIL_558` Swamp Leech — 1 费随从 2/1
@@ -315,7 +315,7 @@
 - [x] `CORE_REV_023` Demolition Renovator — 3 费随从 3/3
 - [x] `CORE_REV_308` Maze Guide — 2 费随从 1/1
 - [x] `CORE_REV_946` Steamcleaner — 5 费随从 5/5
-- [ ] `CORE_REV_990` Sanguine Depths — 地点（1 费）
+- [x] `CORE_REV_990` Sanguine Depths — 地点（1 费）
 
 ### CORE_RLK_* — 巫妖王的进军（17 张）
 
@@ -540,7 +540,7 @@ CORE 卡生成静态 const，引擎缺失 RUSH/LIFESTEAL/TRADEABLE/OUTCAST/REBOR
   CORE_EX1_238 CORE_EX1_250 CORE_EX1_259 CORE_GIL_836 CORE_OG_047 CORE_ONY_018
   CORE_TSC_650 CORE_WON_350 CORE_YOP_001`
 - **W7 — 激怒收尾（2 张 + F5）✅（PR #127，2026-08-08）：** 格罗玛什·地狱咆哮（8 费 4/9，冲锋，激怒 +6——沿用 §13 的读取式 Enrage，治愈失效）与血蹄勇士（4 费 2/6，嘲讽，激怒 +3）。 `CORE_EX1_414 CORE_OG_218`
-- **W8 — 特殊类型（6 张 + F5）：** 推迟的英雄卡（CORE_EX1_323 贾拉克瑟斯——英雄
+- **W8 — 特殊类型（6 张 + F5）✅（PR #128，2026-08-08）：** 贾拉克瑟斯（`CardType::Hero` + 英雄替换原语：15 血、清护甲、装备血怒 3/8、英雄技能 INFERNO! 召唤 6/6 地狱火）、猩红之渊（`CardType::Location`：每侧一张、一回合冷却、每回合激活一次、耐久消耗）、3 张 ENCHANTMENT 令牌（`CardType::Enchantment`，不可打出）与 Imp 衍生物。 推迟的英雄卡（CORE_EX1_323 贾拉克瑟斯——英雄
   替换原语）、地点卡（CORE_REV_990 猩红之渊——`CardType::Location` 原语）、
   ENCHANTMENT 卡（CORE_CATA_006e CORE_CS2_039e CORE_EDR_002e）与 Imp 衍生物
   （CORE_GIL_191t）。
