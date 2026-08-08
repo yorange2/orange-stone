@@ -56,8 +56,9 @@
   + W4b（PR #141——23 张精英野神传说：三选抉择、保留/置顶抉择、每玩家攻击/双施/
   费用标志、Ursoc 击杀记录复活；23 个 F5 场景、13 项 D2 简化登记 §14.4、2 张
   衍生物；Ashamane 登记 `POOL_OPEN_CARDS`）。主系列 145 张全部完成。
-- **W5 —— 世界之树的余烬迷你：** 迷你 38 张卡（既有原语：黑暗赠礼补充 7 张等）；
-  F5 场景；迷你注册。
+- [x] **W5 —— 世界之树的余烬迷你**（PR #142）：38 张迷你卡 + 1 衍生物全部落地
+  （既有原语：黑暗赠礼 7、发现 6、战吼 16、灌注条件、尸体；30 个新效果变体）；
+  38 个 F5 场景覆盖每张卡；25 项 D2 简化登记 §14.5。**M1 全部完成（145 + 38）**。
 
 ## 卡清单
 
@@ -218,44 +219,44 @@
 - [x] EDR_999 Gnawing Greenfin
 
 ### W5 —— 世界之树的余烬迷你
-- [ ] FIR_777 Spirit of the Kaldorei
-- [ ] FIR_778 Avatar of Destruction
-- [ ] FIR_900 Cremate
-- [ ] FIR_901 Frostburn Matriarch
-- [ ] FIR_902 Sigil of Cinder
-- [ ] FIR_904 Felfire Blaze
-- [ ] FIR_906 Overheat
-- [ ] FIR_907 Amirdrassil
-- [ ] FIR_908 Charred Chameleon
-- [ ] FIR_909 Bursting Shot
-- [ ] FIR_910 Scorching Winds
-- [ ] FIR_911 Smoldering Grove
-- [ ] FIR_913 Inferno Herald
-- [ ] FIR_914 Smoldering Strength
-- [ ] FIR_916 Smoldering Ascent
-- [ ] FIR_918 Light of the New Moon
-- [ ] FIR_919 Everburning Phoenix
-- [ ] FIR_920 Smoke Bomb
-- [ ] FIR_921 Petal Picker
-- [ ] FIR_922 Cindersword
-- [ ] FIR_923 Flames of the Firelord
-- [ ] FIR_924 Shadowflame Stalker
-- [ ] FIR_927 Emberscarred Whelp
-- [ ] FIR_928 Keeper of Flame
-- [ ] FIR_929 Living Flame
-- [ ] FIR_939 Shadowflame Suffusion
-- [ ] FIR_940 Zaqali Flamemancer
-- [ ] FIR_941 Searing Reflection
-- [ ] FIR_951 Volcoross
-- [ ] FIR_952 Scorchreaver
-- [ ] FIR_953 Magma Hound
-- [ ] FIR_954 Conflagrate
-- [ ] FIR_955 Emberroot Destroyer
-- [ ] FIR_956 Dragon Turtle
-- [ ] FIR_958 Tindral Sageswift
-- [ ] FIR_959 Fyrakk the Blazing
-- [ ] FIR_960 Tending Dragonkin
-- [ ] FIR_961 Ashleaf Pixie
+- [x] FIR_777 Spirit of the Kaldorei
+- [x] FIR_778 Avatar of Destruction
+- [x] FIR_900 Cremate
+- [x] FIR_901 Frostburn Matriarch
+- [x] FIR_902 Sigil of Cinder
+- [x] FIR_904 Felfire Blaze
+- [x] FIR_906 Overheat
+- [x] FIR_907 Amirdrassil
+- [x] FIR_908 Charred Chameleon
+- [x] FIR_909 Bursting Shot
+- [x] FIR_910 Scorching Winds
+- [x] FIR_911 Smoldering Grove
+- [x] FIR_913 Inferno Herald
+- [x] FIR_914 Smoldering Strength
+- [x] FIR_916 Smoldering Ascent
+- [x] FIR_918 Light of the New Moon
+- [x] FIR_919 Everburning Phoenix
+- [x] FIR_920 Smoke Bomb
+- [x] FIR_921 Petal Picker
+- [x] FIR_922 Cindersword
+- [x] FIR_923 Flames of the Firelord
+- [x] FIR_924 Shadowflame Stalker
+- [x] FIR_927 Emberscarred Whelp
+- [x] FIR_928 Keeper of Flame
+- [x] FIR_929 Living Flame
+- [x] FIR_939 Shadowflame Suffusion
+- [x] FIR_940 Zaqali Flamemancer
+- [x] FIR_941 Searing Reflection
+- [x] FIR_951 Volcoross
+- [x] FIR_952 Scorchreaver
+- [x] FIR_953 Magma Hound
+- [x] FIR_954 Conflagrate
+- [x] FIR_955 Emberroot Destroyer
+- [x] FIR_956 Dragon Turtle
+- [x] FIR_958 Tindral Sageswift
+- [x] FIR_959 Fyrakk the Blazing
+- [x] FIR_960 Tending Dragonkin
+- [x] FIR_961 Ashleaf Pixie
 > note: miniset cards also reuse Imbue/Dark Gift: FIR_900, FIR_901, FIR_920, FIR_921, FIR_922, FIR_924, FIR_939, FIR_956
 
 ## 完成定义

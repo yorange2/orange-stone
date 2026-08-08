@@ -154,7 +154,13 @@ closing wave (tokens, legendary finishing touches, ledger sweep).
   schema extension, set registration, window-filtered pools and the validation
   gate all landed; all five sub-roadmap inventories backfilled from the dump
   (M0.5, reproducible via `tools/backfill_roadmap_checklists.py`).
-- **M1** — Emerald Dream + mini complete (Imbue / Dark Gifts / real Choose One).
+- **M1** ✅ complete (2026-08-08, PR #136–#142) — Emerald Dream + miniset:
+  Imbue (first-imbue power swap, per-imbue number upgrades), Dark Gifts
+  (10-gift pool + card-level markers), real Choose One (choice surface in
+  `legal_actions`/bindings — the auto-random debt paid), the remaining cards,
+  the Wild God legendaries and the miniset all landed (all 183 cards with F5
+  scenarios or registered simplifications); ledger §14–§14.5; W0–W5 checked
+  off.
 - **M2** — Un'Goro + mini complete (Quest zone, Kindred).
 - **M3** — Timeways + mini complete (Rewind).
 - **M4** — Cataclysm complete (Colossal / Herald / Shatter / Deathwing).
