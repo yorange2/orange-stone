@@ -2737,6 +2737,245 @@ pub enum CardEffect {
     /// its Health to this minion's Health"; the set clears damage and
     /// permanent enchantments so the effective Health matches the source)
     SetEventSubjectHealthToSource,
+    /// Deal damage to the opponent's left- and right-most minions — the
+    /// two board edge positions (M2-W4c — Diabolus Rex's Kindred OnPlay; a
+    /// one-minion board is both edges and is hit once)
+    DealDamageToLeftRightEnemyMinions {
+        /// Damage amount
+        amount: i32,
+    },
+    /// Give the owner's OTHER minions Rush (M2-W4c — Firegill's Kindred
+    /// OnPlay; the source — the Kindred card itself — is excluded)
+    GiveOtherFriendlyMinionsRush,
+    /// Deal damage to two random enemy minions and Freeze them (M2-W4c —
+    /// Chillspine Stegodon's Kindred battlecry modifier, replace: true, so
+    /// the freeze lands on the SAME two minions the damage hit)
+    DealDamageToTwoAndFreeze {
+        /// Damage amount
+        amount: i32,
+    },
+    /// Set a friendly minion's stats to fixed values and fill the board
+    /// with copies of it (M2-W4c — Bat Mask; the set writes the base
+    /// stats, clears damage and strips permanent enchantments — the W4b
+    /// set semantics — and each copy is itself set to the same stats)
+    SetStatsAndFillBoardWithCopies {
+        /// Attack value
+        attack: i32,
+        /// Health value
+        health: i32,
+    },
+    /// Set a minion's stats to fixed values and give it Charge (M2-W4c —
+    /// Devilsaur Mask; either side's minions can be chosen)
+    SetStatsAndGrantCharge {
+        /// Attack value
+        attack: i32,
+        /// Health value
+        health: i32,
+        /// The target set (any minion on either side)
+        target: EffectTarget,
+    },
+    /// Set a minion's stats to fixed values, give it Lifesteal, and force
+    /// a random enemy minion that can attack to attack it (M2-W4c —
+    /// Behemoth Mask; the forced attack runs through the normal attack
+    /// pipeline, the Mythical Terror convention)
+    SetStatsGrantLifestealForceAttack {
+        /// Attack value
+        attack: i32,
+        /// Health value
+        health: i32,
+        /// The target set (any minion on either side)
+        target: EffectTarget,
+    },
+    /// Set a minion's stats to fixed values and attach the deathrattle
+    /// "deal 2 damage to all minions" (M2-W4c — Sheep Mask)
+    SetStatsAttachDamageAllDeathrattle {
+        /// Attack value
+        attack: i32,
+        /// Health value
+        health: i32,
+        /// The target set (any minion on either side)
+        target: EffectTarget,
+    },
+    /// Set a minion's stats to fixed values, give it Stealth, and draw
+    /// cards (M2-W4c — Panther Mask)
+    SetStatsGrantStealthAndDraw {
+        /// Attack value
+        attack: i32,
+        /// Health value
+        health: i32,
+        /// Cards drawn
+        draw: i32,
+        /// The target set (any minion on either side)
+        target: EffectTarget,
+    },
+    /// Summon a minion and give the owner's minions (the new one
+    /// included) a stat buff (M2-W4c — Longneck Egg's deathrattle: summon
+    /// a 3/3 Beast, give your minions +1/+1)
+    SummonMinionAndBuffFriendlyMinions {
+        /// The summoned card
+        card_id: &'static str,
+        /// Attack bonus for the friendly minions
+        attack: i32,
+        /// Health bonus for the friendly minions
+        health: i32,
+    },
+    /// Summon a random Beast from the owner's deck as a fresh copy and
+    /// give it Lifesteal (M2-W4c — Possessed Animancer's deathrattle; the
+    /// deck-untouched copy-summon is the Herenn §18 convention)
+    SummonRandomDeckBeastGiveLifesteal,
+    /// Summon raptor tokens; when the spell was Outcast, give them Immune
+    /// for the rest of the turn (M2-W4c — Horn of Feasting; the official
+    /// "Immune while attacking" is the Immune-until-end-of-turn shape)
+    SummonRaptorsOutcast {
+        /// Raptor count
+        count: i32,
+    },
+    /// Reduce the Cost of the adjacent hand cards — the cards at the
+    /// played card's hand positions minus one and plus one at play time —
+    /// by a fixed amount (M2-W4c — Skittish Saucier's battlecry; the play
+    /// path records the played card's hand index on the player)
+    ReduceAdjacentHandCardCost {
+        /// Discount amount
+        amount: i32,
+    },
+    /// The Great Dracorex's after-attack splash (M2-W4c): the source
+    /// deals its Attack damage to every enemy minion except the attacked
+    /// one (the attack-declaration trigger fires with the defender as the
+    /// event subject, so the splash can exclude it)
+    DracorexSplash,
+    /// Set the owner's `hatching_pending` flag — the +2/+2 to the owner's
+    /// minions fires at the end of the owner's NEXT turn (M2-W4c —
+    /// Hatching Ceremony; the flock_pending turn-start flag precedent)
+    SetHatchingPending,
+    /// Deal damage to a target and give the owner's Elementals a stat
+    /// buff (M2-W4c — Fire Breath)
+    DealDamageAndBuffFriendlyElementals {
+        /// Damage amount (spell-power scaled)
+        damage: i32,
+        /// Attack bonus for the friendly Elementals
+        attack: i32,
+        /// Health bonus for the friendly Elementals
+        health: i32,
+    },
+    /// Shuffle the left-most card in the owner's hand into their deck at
+    /// a random position (M2-W4c — Crystal Tusk's battlecry; the
+    /// Tradeable shuffle pattern)
+    ShuffleLeftmostHandCardIntoDeck,
+    /// Draw the first 0-Attack minion in the owner's deck (M2-W4c — Holy
+    /// Eggbearer's battlecry; a scan draw, the Sense Demons pattern — a
+    /// deck with no 0-Attack minion draws nothing)
+    DrawZeroAttackMinion,
+    /// Transform a random minion into a random minion (M2-W4c — Tribute
+    /// Dance, registered simplification §19: the official two-choice
+    /// transform resolves as two random picks)
+    TransformRandomMinionIntoRandomMinion,
+    /// Summon a random Deathrattle minion costing at least `min_cost` and
+    /// trigger its Deathrattle (M2-W4c — Story of Umbra; the D2 random
+    /// Discover simplification, §19)
+    SummonRandomDeathrattleMinionCostGEAndTrigger {
+        /// Minimum cost
+        min_cost: i32,
+    },
+    /// Spend Corpses to gain Reborn on the source (M2-W4c — Hollow
+    /// Direhorn's after-a-friendly-minion-dies trigger; does nothing with
+    /// fewer Corpses, the SpendCorpsesSummonCopy pattern)
+    SpendCorpsesGainReborn {
+        /// Corpses spent
+        amount: i32,
+    },
+    /// Give the owner's minions +1 Attack and Rush, marking them to die
+    /// at the end of the owner's turn (M2-W4c — Soulrest Ceremony; the
+    /// turn-end sweep kills the marked minions through the normal death
+    /// path so deathrattles fire)
+    SoulrestMarkAndBuff,
+    /// Give a target minion a stat buff and Rush (M2-W4c — Herbivore
+    /// Assistant's battlecry, a friendly Beast)
+    GainStatsAndGrantRush {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+        /// The target set (a friendly Beast)
+        target: EffectTarget,
+    },
+    /// Give all minions in the owner's hand and deck a stat buff (M2-W4c —
+    /// Seismopod's deathrattle; the wherever-buff machinery from W4b's
+    /// Esho — base stat writes, the Grimestreet convention)
+    BuffHandAndDeckMinions {
+        /// Attack bonus
+        attack: i32,
+        /// Health bonus
+        health: i32,
+    },
+    /// Summon two random Beasts of the given Cost; each attacks a random
+    /// enemy character through the normal attack pipeline (M2-W4c —
+    /// Ankylodon's deathrattle)
+    SummonTwoRandomCostBeastsAttackRandomEnemies {
+        /// The exact Cost of the summoned Beasts
+        cost: i32,
+    },
+    /// Summon a random Legendary minion and set its stats to fixed values
+    /// (M2-W4c — Hero's Welcome; the D2 random Discover simplification,
+    /// §19 — the set is the W4b set semantics)
+    SummonRandomLegendaryMinionSetStats {
+        /// Attack value
+        attack: i32,
+        /// Health value
+        health: i32,
+    },
+    /// Summon a random minion of the given Cost and set its stats to
+    /// fixed values (M2-W4c — Ritual of Life; the D2 random Discover
+    /// simplification, §19)
+    SummonRandomCostMinionSetStats {
+        /// The exact Cost of the summoned minion
+        cost: i32,
+        /// Attack value
+        attack: i32,
+        /// Health value
+        health: i32,
+    },
+    /// Get a random Mask from another class; the Combo discount reduces
+    /// the added Mask's Cost (M2-W4c — Costume Merchant; all five Masks
+    /// are non-Rogue, so the fixed MASK_POOL is the full mask set)
+    AddRandomMaskCombo {
+        /// Cost reduction applied to the added Mask
+        reduction: i32,
+    },
+    /// Gain the stats of a random Legendary Beast (M2-W4c — Beast Speaker
+    /// Taka's battlecry, registered simplification §19: the official
+    /// Discover is a random pick)
+    GainStatsOfRandomLegendaryBeast,
+    /// Summon a random Legendary Beast (M2-W4c — Beast Speaker Taka's
+    /// deathrattle, registered simplification §19: the official summons
+    /// the exact discovered Beast — an independent random pick)
+    SummonRandomLegendaryBeast,
+    /// Summon a random Taunt minion costing at least `min_cost` (M2-W4c —
+    /// Atlasaurus's deathrattle; the D2 random Discover simplification,
+    /// §19)
+    SummonRandomTauntMinionCostGE {
+        /// Minimum cost
+        min_cost: i32,
+    },
+    /// Summon a random Taunt minion of each of three exact Costs (M2-W4c —
+    /// Guard Duty's 6/4/2-Cost Taunts; the D2 random simplification, §19)
+    SummonRandomTauntMinionsOfCosts {
+        /// Highest Cost
+        a: i32,
+        /// Middle Cost
+        b: i32,
+        /// Lowest Cost
+        c: i32,
+    },
+    /// Get a random 1-Cost minion (M2-W4c — Raptor-Nest Nurse's battlecry;
+    /// the D2 random simplification, §19)
+    AddRandomOneCostMinion,
+    /// Get a random 1-Cost spell (M2-W4c — Raptor-Nest Nurse's deathrattle;
+    /// the D2 random simplification, §19)
+    AddRandomOneCostSpell,
+    /// Get a random minion with multiple minion types (M2-W4c —
+    /// Tortotem's end-of-turn effect; the fixed MULTI_TRIBE_MINION_POOL is
+    /// the D2 simplification, §19)
+    AddRandomMultiTribeMinion,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -3906,6 +4145,104 @@ enum CardEffectDe {
     EliseCraftLocation,
     NiriOfTheCrater,
     SetEventSubjectHealthToSource,
+    DealDamageToLeftRightEnemyMinions {
+        amount: i32,
+    },
+    GiveOtherFriendlyMinionsRush,
+    DealDamageToTwoAndFreeze {
+        amount: i32,
+    },
+    SetStatsAndFillBoardWithCopies {
+        attack: i32,
+        health: i32,
+    },
+    SetStatsAndGrantCharge {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+    },
+    SetStatsGrantLifestealForceAttack {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+    },
+    SetStatsAttachDamageAllDeathrattle {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+    },
+    SetStatsGrantStealthAndDraw {
+        attack: i32,
+        health: i32,
+        draw: i32,
+        target: EffectTarget,
+    },
+    SummonMinionAndBuffFriendlyMinions {
+        card_id: String,
+        attack: i32,
+        health: i32,
+    },
+    SummonRandomDeckBeastGiveLifesteal,
+    SummonRaptorsOutcast {
+        count: i32,
+    },
+    ReduceAdjacentHandCardCost {
+        amount: i32,
+    },
+    DracorexSplash,
+    SetHatchingPending,
+    DealDamageAndBuffFriendlyElementals {
+        damage: i32,
+        attack: i32,
+        health: i32,
+    },
+    ShuffleLeftmostHandCardIntoDeck,
+    DrawZeroAttackMinion,
+    TransformRandomMinionIntoRandomMinion,
+    SummonRandomDeathrattleMinionCostGEAndTrigger {
+        min_cost: i32,
+    },
+    SpendCorpsesGainReborn {
+        amount: i32,
+    },
+    SoulrestMarkAndBuff,
+    GainStatsAndGrantRush {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+    },
+    BuffHandAndDeckMinions {
+        attack: i32,
+        health: i32,
+    },
+    SummonTwoRandomCostBeastsAttackRandomEnemies {
+        cost: i32,
+    },
+    SummonRandomLegendaryMinionSetStats {
+        attack: i32,
+        health: i32,
+    },
+    SummonRandomCostMinionSetStats {
+        cost: i32,
+        attack: i32,
+        health: i32,
+    },
+    AddRandomMaskCombo {
+        reduction: i32,
+    },
+    GainStatsOfRandomLegendaryBeast,
+    SummonRandomLegendaryBeast,
+    SummonRandomTauntMinionCostGE {
+        min_cost: i32,
+    },
+    SummonRandomTauntMinionsOfCosts {
+        a: i32,
+        b: i32,
+        c: i32,
+    },
+    AddRandomOneCostMinion,
+    AddRandomOneCostSpell,
+    AddRandomMultiTribeMinion,
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -5166,6 +5503,140 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::SetEventSubjectHealthToSource => {
                 CardEffect::SetEventSubjectHealthToSource
             }
+            CardEffectDe::DealDamageToLeftRightEnemyMinions { amount } => {
+                CardEffect::DealDamageToLeftRightEnemyMinions { amount }
+            }
+            CardEffectDe::GiveOtherFriendlyMinionsRush => CardEffect::GiveOtherFriendlyMinionsRush,
+            CardEffectDe::DealDamageToTwoAndFreeze { amount } => {
+                CardEffect::DealDamageToTwoAndFreeze { amount }
+            }
+            CardEffectDe::SetStatsAndFillBoardWithCopies { attack, health } => {
+                CardEffect::SetStatsAndFillBoardWithCopies { attack, health }
+            }
+            CardEffectDe::SetStatsAndGrantCharge {
+                attack,
+                health,
+                target,
+            } => CardEffect::SetStatsAndGrantCharge {
+                attack,
+                health,
+                target,
+            },
+            CardEffectDe::SetStatsGrantLifestealForceAttack {
+                attack,
+                health,
+                target,
+            } => CardEffect::SetStatsGrantLifestealForceAttack {
+                attack,
+                health,
+                target,
+            },
+            CardEffectDe::SetStatsAttachDamageAllDeathrattle {
+                attack,
+                health,
+                target,
+            } => CardEffect::SetStatsAttachDamageAllDeathrattle {
+                attack,
+                health,
+                target,
+            },
+            CardEffectDe::SetStatsGrantStealthAndDraw {
+                attack,
+                health,
+                draw,
+                target,
+            } => CardEffect::SetStatsGrantStealthAndDraw {
+                attack,
+                health,
+                draw,
+                target,
+            },
+            CardEffectDe::SummonMinionAndBuffFriendlyMinions {
+                card_id,
+                attack,
+                health,
+            } => CardEffect::SummonMinionAndBuffFriendlyMinions {
+                card_id: intern(card_id)?,
+                attack,
+                health,
+            },
+            CardEffectDe::SummonRandomDeckBeastGiveLifesteal => {
+                CardEffect::SummonRandomDeckBeastGiveLifesteal
+            }
+            CardEffectDe::SummonRaptorsOutcast { count } => {
+                CardEffect::SummonRaptorsOutcast { count }
+            }
+            CardEffectDe::ReduceAdjacentHandCardCost { amount } => {
+                CardEffect::ReduceAdjacentHandCardCost { amount }
+            }
+            CardEffectDe::DracorexSplash => CardEffect::DracorexSplash,
+            CardEffectDe::SetHatchingPending => CardEffect::SetHatchingPending,
+            CardEffectDe::DealDamageAndBuffFriendlyElementals {
+                damage,
+                attack,
+                health,
+            } => CardEffect::DealDamageAndBuffFriendlyElementals {
+                damage,
+                attack,
+                health,
+            },
+            CardEffectDe::ShuffleLeftmostHandCardIntoDeck => {
+                CardEffect::ShuffleLeftmostHandCardIntoDeck
+            }
+            CardEffectDe::DrawZeroAttackMinion => CardEffect::DrawZeroAttackMinion,
+            CardEffectDe::TransformRandomMinionIntoRandomMinion => {
+                CardEffect::TransformRandomMinionIntoRandomMinion
+            }
+            CardEffectDe::SummonRandomDeathrattleMinionCostGEAndTrigger { min_cost } => {
+                CardEffect::SummonRandomDeathrattleMinionCostGEAndTrigger { min_cost }
+            }
+            CardEffectDe::SpendCorpsesGainReborn { amount } => {
+                CardEffect::SpendCorpsesGainReborn { amount }
+            }
+            CardEffectDe::SoulrestMarkAndBuff => CardEffect::SoulrestMarkAndBuff,
+            CardEffectDe::GainStatsAndGrantRush {
+                attack,
+                health,
+                target,
+            } => CardEffect::GainStatsAndGrantRush {
+                attack,
+                health,
+                target,
+            },
+            CardEffectDe::BuffHandAndDeckMinions { attack, health } => {
+                CardEffect::BuffHandAndDeckMinions { attack, health }
+            }
+            CardEffectDe::SummonTwoRandomCostBeastsAttackRandomEnemies { cost } => {
+                CardEffect::SummonTwoRandomCostBeastsAttackRandomEnemies { cost }
+            }
+            CardEffectDe::SummonRandomLegendaryMinionSetStats { attack, health } => {
+                CardEffect::SummonRandomLegendaryMinionSetStats { attack, health }
+            }
+            CardEffectDe::SummonRandomCostMinionSetStats {
+                cost,
+                attack,
+                health,
+            } => CardEffect::SummonRandomCostMinionSetStats {
+                cost,
+                attack,
+                health,
+            },
+            CardEffectDe::AddRandomMaskCombo { reduction } => {
+                CardEffect::AddRandomMaskCombo { reduction }
+            }
+            CardEffectDe::GainStatsOfRandomLegendaryBeast => {
+                CardEffect::GainStatsOfRandomLegendaryBeast
+            }
+            CardEffectDe::SummonRandomLegendaryBeast => CardEffect::SummonRandomLegendaryBeast,
+            CardEffectDe::SummonRandomTauntMinionCostGE { min_cost } => {
+                CardEffect::SummonRandomTauntMinionCostGE { min_cost }
+            }
+            CardEffectDe::SummonRandomTauntMinionsOfCosts { a, b, c } => {
+                CardEffect::SummonRandomTauntMinionsOfCosts { a, b, c }
+            }
+            CardEffectDe::AddRandomOneCostMinion => CardEffect::AddRandomOneCostMinion,
+            CardEffectDe::AddRandomOneCostSpell => CardEffect::AddRandomOneCostSpell,
+            CardEffectDe::AddRandomMultiTribeMinion => CardEffect::AddRandomMultiTribeMinion,
         })
     }
 }
@@ -5596,6 +6067,82 @@ mod tests {
             CardEffect::EliseCraftLocation,
             CardEffect::NiriOfTheCrater,
             CardEffect::SetEventSubjectHealthToSource,
+            CardEffect::DealDamageToLeftRightEnemyMinions { amount: 6 },
+            CardEffect::GiveOtherFriendlyMinionsRush,
+            CardEffect::DealDamageToTwoAndFreeze { amount: 2 },
+            CardEffect::SetStatsAndFillBoardWithCopies {
+                attack: 1,
+                health: 1,
+            },
+            CardEffect::SetStatsAndGrantCharge {
+                attack: 8,
+                health: 8,
+                target: EffectTarget::AnyMinion,
+            },
+            CardEffect::SetStatsGrantLifestealForceAttack {
+                attack: 8,
+                health: 10,
+                target: EffectTarget::AnyMinion,
+            },
+            CardEffect::SetStatsAttachDamageAllDeathrattle {
+                attack: 1,
+                health: 1,
+                target: EffectTarget::AnyMinion,
+            },
+            CardEffect::SetStatsGrantStealthAndDraw {
+                attack: 5,
+                health: 4,
+                draw: 2,
+                target: EffectTarget::AnyMinion,
+            },
+            CardEffect::SummonMinionAndBuffFriendlyMinions {
+                card_id: "DINO_130t",
+                attack: 1,
+                health: 1,
+            },
+            CardEffect::SummonRandomDeckBeastGiveLifesteal,
+            CardEffect::SummonRaptorsOutcast { count: 3 },
+            CardEffect::ReduceAdjacentHandCardCost { amount: 1 },
+            CardEffect::DracorexSplash,
+            CardEffect::SetHatchingPending,
+            CardEffect::DealDamageAndBuffFriendlyElementals {
+                damage: 4,
+                attack: 1,
+                health: 1,
+            },
+            CardEffect::ShuffleLeftmostHandCardIntoDeck,
+            CardEffect::DrawZeroAttackMinion,
+            CardEffect::TransformRandomMinionIntoRandomMinion,
+            CardEffect::SummonRandomDeathrattleMinionCostGEAndTrigger { min_cost: 5 },
+            CardEffect::SpendCorpsesGainReborn { amount: 3 },
+            CardEffect::SoulrestMarkAndBuff,
+            CardEffect::GainStatsAndGrantRush {
+                attack: 2,
+                health: 2,
+                target: EffectTarget::FriendlyRace(crate::core::component::Race::Beast),
+            },
+            CardEffect::BuffHandAndDeckMinions {
+                attack: 3,
+                health: 3,
+            },
+            CardEffect::SummonTwoRandomCostBeastsAttackRandomEnemies { cost: 3 },
+            CardEffect::SummonRandomLegendaryMinionSetStats {
+                attack: 10,
+                health: 10,
+            },
+            CardEffect::SummonRandomCostMinionSetStats {
+                cost: 3,
+                attack: 2,
+                health: 3,
+            },
+            CardEffect::AddRandomMaskCombo { reduction: 2 },
+            CardEffect::GainStatsOfRandomLegendaryBeast,
+            CardEffect::SummonRandomLegendaryBeast,
+            CardEffect::SummonRandomTauntMinionCostGE { min_cost: 5 },
+            CardEffect::SummonRandomTauntMinionsOfCosts { a: 6, b: 4, c: 2 },
+            CardEffect::AddRandomOneCostMinion,
+            CardEffect::AddRandomOneCostSpell,
+            CardEffect::AddRandomMultiTribeMinion,
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");

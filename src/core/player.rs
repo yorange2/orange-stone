@@ -279,6 +279,25 @@ pub struct Player {
     /// a random card and fill the board with 3/2 Imps; decremented after
     /// each activation ("Lasts 3 turns").
     pub lakkari_ticks: u8,
+    /// Hatching Ceremony's pending buff (2025–2026 expansions M2-W4c):
+    /// armed at 2 by the spell's cast, decremented at each of the owner's
+    /// turn ends; the +2/+2 to the owner's minions lands when it reaches 0
+    /// — the end of the owner's NEXT turn after the cast (a one-shot armed
+    /// at 1 would fire at the end of the cast's own turn, a full turn
+    /// early).
+    pub hatching_pending: u8,
+    /// Soulrest Ceremony's marked minions (2025–2026 expansions M2-W4c):
+    /// the friendly minions buffed by the spell ("they die at the end of
+    /// your turn"); the TurnEnded handler damages each marked minion
+    /// through the normal death path (deathrattles fire) and clears the
+    /// list.
+    pub soulrest_marked: Vec<crate::core::entity::Entity>,
+    /// The hand position of the card the player most recently played
+    /// (2025–2026 expansions M2-W4c — Skittish Saucier's battlecry reads
+    /// it to reduce the Cost of the adjacent hand cards). Recorded at
+    /// CardPlayed before the card leaves the hand; the battlecry resolves
+    /// within the same play burst, so no later play can stale it.
+    pub last_played_hand_index: Option<usize>,
     /// Story of Sulfuras (2025–2026 expansions M2-W4a): how many times the
     /// swapped "Deal 8 damage to a random enemy" hero power has been used;
     /// after 2 uses the original hero power is restored.
@@ -380,6 +399,9 @@ impl Player {
             enemy_hero_cant_be_healed: false,
             flock_pending: false,
             lakkari_ticks: 0,
+            hatching_pending: 0,
+            soulrest_marked: Vec::new(),
+            last_played_hand_index: None,
             sulfuras_uses: 0,
             sulfuras_original: None,
             platysaur_drawn: Vec::new(),

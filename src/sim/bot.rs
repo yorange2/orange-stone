@@ -1820,6 +1820,51 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::EliseCraftLocation => 1.0,
         CardEffect::NiriOfTheCrater => 3.0,
         CardEffect::SetEventSubjectHealthToSource => 2.0,
+        // M2-W4c (Festival of the Devilsaur) scoring arms
+        CardEffect::DealDamageToLeftRightEnemyMinions { amount } => amount as f64 * 0.8 * 2.0,
+        CardEffect::GiveOtherFriendlyMinionsRush => 3.0,
+        CardEffect::DealDamageToTwoAndFreeze { amount } => amount as f64 * 0.8 * 2.0,
+        CardEffect::SetStatsAndFillBoardWithCopies { .. } => 5.0,
+        CardEffect::SetStatsAndGrantCharge { attack, health, .. } => {
+            (attack + health) as f64 * 0.8 + 3.0
+        }
+        CardEffect::SetStatsGrantLifestealForceAttack { .. } => 5.0,
+        CardEffect::SetStatsAttachDamageAllDeathrattle { .. } => 4.0,
+        CardEffect::SetStatsGrantStealthAndDraw { draw, .. } => draw as f64 * 2.0 + 3.0,
+        CardEffect::SummonMinionAndBuffFriendlyMinions { attack, health, .. } => {
+            (attack + health) as f64 + 4.0
+        }
+        CardEffect::SummonRandomDeckBeastGiveLifesteal => 5.0,
+        CardEffect::SummonRaptorsOutcast { count } => count as f64 * 2.0 + 1.0,
+        CardEffect::ReduceAdjacentHandCardCost { amount } => amount as f64 * 0.5 + 1.0,
+        CardEffect::DracorexSplash => 4.0,
+        CardEffect::SetHatchingPending => 3.0,
+        CardEffect::DealDamageAndBuffFriendlyElementals {
+            damage,
+            attack,
+            health,
+        } => damage as f64 * 0.8 + (attack + health) as f64 * 0.8,
+        CardEffect::ShuffleLeftmostHandCardIntoDeck => 1.0,
+        CardEffect::DrawZeroAttackMinion => 2.0,
+        CardEffect::TransformRandomMinionIntoRandomMinion => 4.0,
+        CardEffect::SummonRandomDeathrattleMinionCostGEAndTrigger { .. } => 6.0,
+        CardEffect::SpendCorpsesGainReborn { amount } => 3.0 + amount as f64 * 0.5,
+        CardEffect::SoulrestMarkAndBuff => 4.0,
+        CardEffect::GainStatsAndGrantRush { attack, health, .. } => {
+            (attack + health) as f64 * 0.8 + 2.0
+        }
+        CardEffect::BuffHandAndDeckMinions { attack, health } => (attack + health) as f64 * 1.5,
+        CardEffect::SummonTwoRandomCostBeastsAttackRandomEnemies { .. } => 5.0,
+        CardEffect::SummonRandomLegendaryMinionSetStats { .. } => 6.0,
+        CardEffect::SummonRandomCostMinionSetStats { .. } => 4.0,
+        CardEffect::AddRandomMaskCombo { reduction } => 3.0 + reduction as f64 * 0.5,
+        CardEffect::GainStatsOfRandomLegendaryBeast => 4.0,
+        CardEffect::SummonRandomLegendaryBeast => 5.0,
+        CardEffect::SummonRandomTauntMinionCostGE { .. } => 4.0,
+        CardEffect::SummonRandomTauntMinionsOfCosts { .. } => 5.0,
+        CardEffect::AddRandomOneCostMinion => 2.0,
+        CardEffect::AddRandomOneCostSpell => 2.0,
+        CardEffect::AddRandomMultiTribeMinion => 2.0,
     }
 }
 

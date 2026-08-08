@@ -1,17 +1,20 @@
 //! Kindred definitions (2025–2026 expansions M2-W3 — the Un'Goro Kindred
-//! mechanic): the static half of the 23 Kindred cards, keyed by card id.
+//! mechanic): the static half of the 27 Kindred cards, keyed by card id.
 //!
 //! "Kindred: X" — X activates when the player played a card of the SAME
-//! TYPE earlier THIS TURN. The type is the tribe for minions (all 23
-//! Kindred minions have tribes: Beast/Elemental/Murloc/Undead/Demon/Dragon)
-//! and the card type (SPELL) for spells. The Kindred card itself never
-//! counts ("another card of the same type").
+//! TYPE earlier THIS TURN. The type is the tribe for minions (all 27
+//! Kindred minions have tribes: Beast/Elemental/Murloc/Undead/Demon/Dragon
+//! — the W4c DINO_435 Crater Experiment's official ALL tribe lands as
+//! Beast, the §19 approximation) and the card type (SPELL) for spells. The
+//! Kindred card itself never counts ("another card of the same type").
 //!
 //! The registry is the id-keyed analogue of `CardDef` fields — the kindred
 //! data (type, effect shape) deliberately does NOT live in the ~800
 //! `CardDef` literals; the play path looks it up via `kindred_type` /
 //! `kindred_effect` instead (mirror of `cards::quest`, `apply_card_keywords`,
-//! imbue). The 23 Kindred cards are the W3 wave.
+//! imbue). The 23 W3 Kindred cards plus the 4 W4c DINO Kindred cards
+//! (Diabolus Rex, Firegill, Chillspine Stegodon, Crater Experiment) are
+//! the registry.
 
 use serde::{Deserialize, Serialize};
 
@@ -61,13 +64,15 @@ pub enum KindredEffect {
     },
 }
 
-/// All Kindred card ids (2025–2026 expansions M2-W3) — the 23 cards with a
-/// `kindred_type` entry. Torga's battlecry (TLC_102) scans the deck for the
-/// first of these, then draws a same-type card to activate it.
+/// All Kindred card ids (2025–2026 expansions M2-W3 + M2-W4c) — the 27
+/// cards with a `kindred_type` entry (the 23 W3 cards plus the 4 W4c DINO
+/// cards). Torga's battlecry (TLC_102) scans the deck for the first of
+/// these, then draws a same-type card to activate it.
 pub const KINDRED_CARD_IDS: &[&str] = &[
     "TLC_102", "TLC_107", "TLC_223", "TLC_226", "TLC_236", "TLC_243", "TLC_251", "TLC_366",
     "TLC_428", "TLC_429", "TLC_432", "TLC_440", "TLC_447", "TLC_454", "TLC_463", "TLC_482",
-    "TLC_519", "TLC_600", "TLC_815", "TLC_816", "TLC_825", "TLC_829", "TLC_903",
+    "TLC_519", "TLC_600", "TLC_815", "TLC_816", "TLC_825", "TLC_829", "TLC_903", "DINO_138",
+    "DINO_404", "DINO_413", "DINO_435",
 ];
 
 /// The Kindred type of a card definition — spells count as `Spell`, minions
@@ -87,11 +92,12 @@ pub fn played_type_of(def: &crate::cards::def::CardDef) -> Option<KindredType> {
 /// Kindred type of a card, from the official card dump (extracted
 /// 2026-08-09); `None` for every other card.
 ///
-/// The 23 collectible Kindred cards of the W3 wave. For the six multi-race
-/// cards (TLC_102/223/243/432/463/482) the dump lists two tribes; the
+/// The 23 collectible Kindred cards of the W3 wave plus the 4 W4c DINO
+/// Kindred cards. For the multi-race cards the dump lists two tribes; the
 /// engine's CardDef models one (the primary race — the one the Kindred
 /// text keys on; the second tribe lands via `apply_card_keywords`, the
-/// Mythical Terror precedent).
+/// Mythical Terror precedent). DINO_435's ALL tribe lands as Beast (the
+/// §19 approximation).
 #[must_use]
 pub fn kindred_type(card_id: &str) -> Option<KindredType> {
     match card_id {
@@ -118,6 +124,12 @@ pub fn kindred_type(card_id: &str) -> Option<KindredType> {
         "TLC_825" => Some(KindredType::Minion(Race::Beast)), // Ravasaur Matriarch
         "TLC_829" => Some(KindredType::Minion(Race::Beast)), // Ravenous Devilsaur
         "TLC_903" => Some(KindredType::Minion(Race::Beast)), // Silithid Queen
+        // M2-W4c — the Festival of the Devilsaur Kindred cards (the
+        // primary race of the multi-race cards, matching the CardDef race)
+        "DINO_138" => Some(KindredType::Minion(Race::Demon)), // Diabolus Rex
+        "DINO_404" => Some(KindredType::Minion(Race::Elemental)), // Firegill
+        "DINO_413" => Some(KindredType::Minion(Race::Elemental)), // Chillspine Stegodon
+        "DINO_435" => Some(KindredType::Minion(Race::Beast)), // Crater Experiment
         _ => None,
     }
 }
@@ -197,6 +209,27 @@ pub fn kindred_effect(card_id: &str) -> Option<&'static KindredEffect> {
                 attack: 5,
                 armor: 0,
             },
+        }),
+        // M2-W4c — the Festival of the Devilsaur Kindred effects:
+        // - Diabolus Rex (DINO_138): deal 6 to the left- and right-most
+        //   enemy minions;
+        // - Firegill (DINO_404): give the owner's OTHER minions Rush;
+        // - Chillspine Stegodon (DINO_413): the Kindred and Freeze REPLACES
+        //   the damage-only battlecry — the freeze lands on the SAME two
+        //   minions the damage hit;
+        // - Crater Experiment (DINO_435): summon a copy of this.
+        "DINO_138" => Some(&KindredEffect::OnPlay {
+            effect: CardEffect::DealDamageToLeftRightEnemyMinions { amount: 6 },
+        }),
+        "DINO_404" => Some(&KindredEffect::OnPlay {
+            effect: CardEffect::GiveOtherFriendlyMinionsRush,
+        }),
+        "DINO_413" => Some(&KindredEffect::BattlecryModifier {
+            effect: CardEffect::DealDamageToTwoAndFreeze { amount: 2 },
+            replace: true,
+        }),
+        "DINO_435" => Some(&KindredEffect::OnPlay {
+            effect: CardEffect::SummonCopyOfSelf,
         }),
         _ => None,
     }
@@ -327,15 +360,15 @@ mod tests {
     use super::*;
     use crate::cards::def::card_by_id;
 
-    /// The 23 W3 Kindred cards (from the official card dump) — every card
-    /// with Kindred text has a `kindred_type` entry, and the registry
-    /// count matches `KINDRED_CARD_IDS`.
+    /// The 27 Kindred cards (23 W3 + 4 W4c DINO, from the official card
+    /// dump) — every card with Kindred text has a `kindred_type` entry,
+    /// and the registry count matches `KINDRED_CARD_IDS`.
     #[test]
     fn kindred_type_table_is_complete() {
         for id in KINDRED_CARD_IDS {
             assert!(kindred_type(id).is_some(), "missing kindred_type for {id}");
         }
-        assert_eq!(KINDRED_CARD_IDS.len(), 23);
+        assert_eq!(KINDRED_CARD_IDS.len(), 27);
     }
 
     /// The registry's type agrees with the CardDef the play path pushes
@@ -356,14 +389,15 @@ mod tests {
     /// `kindred_effect` covers every Kindred card except the five whose
     /// effect is folded into a dedicated battlecry variant or a player
     /// flag (TLC_102 special battlecry, TLC_223/236/432 drawn-card
-    /// modifiers, TLC_251 flag).
+    /// modifiers, TLC_251 flag) — 22 of the 27 cards carry a registry
+    /// effect.
     #[test]
     fn kindred_effect_table_is_complete() {
         let registered = KINDRED_CARD_IDS
             .iter()
             .filter(|id| kindred_effect(id).is_some())
             .count();
-        assert_eq!(registered, 18, "18 of the 23 cards carry a registry effect");
+        assert_eq!(registered, 22, "22 of the 27 cards carry a registry effect");
         for id in ["TLC_102", "TLC_223", "TLC_236", "TLC_251", "TLC_432"] {
             assert!(kindred_effect(id).is_none(), "{id} has a registry entry");
         }

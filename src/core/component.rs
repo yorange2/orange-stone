@@ -570,6 +570,11 @@ pub enum TriggerEvent {
     /// the attacker as the subject — unlike `Attacked`/`AttackedMinion`
     /// this is not pinned to the attacker, so the trigger rides Archaios)
     FriendlyMinionAttacked,
+    /// A friendly MINION attacked a MINION, with the DEFENDER as the
+    /// subject (The Great Dracorex — M2-W4c: the splash must exclude the
+    /// attacked minion, so the trigger carries the defender; friendly
+    /// scope, not pinned — the trigger rides the attacking Dracorex)
+    AttackedEnemyMinion,
 }
 
 /// Trigger timing — Hearthstone's "whenever" / "after" classification.

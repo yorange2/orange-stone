@@ -1316,3 +1316,94 @@ fight with the untouched deck, the starting-deck cost check, and the two
 simplified smoke pins). Full `cargo test` fully green (all suites, incl.
 every `tlc_w1_*`/`tlc_w2_*`/`tlc_w3_*`/`tlc_w4a_*` scenario — 847 passed,
 1 ignored), `cargo fmt` clean, `cargo clippy --all-targets` zero warnings.
+
+### 19. 2025–2026 expansions M2-W4c — the Un'Goro miniset, Festival of the Devilsaur (38 cards + 3 tokens) 🔓 registered
+
+The registered simplifications of the M2-W4c wave (`src/cards/exp_tlc_w4c.rs`):
+the 38 Un'Goro miniset cards (DINO_130/131/132/136/137/138/400/401/402/403/
+404/405/406/407/408/409/410/411/412/413/414/415/416/417/419/421/422/424/426/
+427/428/429/430/431/432/433/434/435) plus the three tokens (DINO_130t Little
+Longneck, DINO_136t Ravenous Raptor, DINO_410t Khelos). Most of the wave is
+faithful: the four Kindred cards extend the W3 tables (Diabolus Rex's edge
+minion splash, Firegill's give-others-Rush, Chillspine's damage-plus-freeze
+BattlecryModifier, Crater Experiment's summon-a-copy); the five Masks
+introduce the `SetStats` family (Bat Mask fills the board with 1/1 copies,
+Devilsaur Mask grants Charge, Behemoth Mask forces a random enemy minion to
+attack through the normal attack pipeline, Sheep Mask attaches a real
+DamageAllMinions deathrattle, Panther Mask grants Stealth and draws);
+Hatching Ceremony's "end of your NEXT turn" is a two-tick per-player
+countdown (armed at 2, decremented at each owner turn end, buff at 0);
+Soulrest Ceremony's turn-end die is a marked-entities sweep with real
+DamageDealt events (Corruption pattern, so deathrattles fire); Barricade
+Basher's armor hook is wired at a `grant_armor` chokepoint (all 16 armor
+gain sites route through it); The Great Dracorex fires a new
+`AttackedEnemyMinion` trigger (the defender is the subject, so the splash
+excludes the attacked minion); Seismopod reuses the W4b wherever-buff;
+Skittish Saucier's adjacent-hand discount reads the recorded
+`last_played_hand_index`. As with §14–§18, these handwritten expansion
+cards are not in the RL pool (classic + core 668/659), so the rows are
+informational: they keep the code's simplifications traceable to the
+ledger. Each row stays open until its mechanism lands.
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| DINO_407 | Mirrex the Crystalline | "While in hand, this is a 3/4 copy of the last minion your opponent played" is a static 3/4 in hand and in play — no hand-dynamic copy mechanic exists | the official hand transform |
+| DINO_409 | Techysaurus | The "costs (1) less per card played this game that didn't start in your deck" discount is not implemented (no card-origin tracking) — the card always costs 7 | official origin tracking |
+| DINO_410 | The Egg of Khelos | The crack chain is skipped: the deathrattle summons the final 20/20 Taunt Beast (DINO_410t Khelos) directly — no egg tokens, no 5-break countdown | the official egg chain |
+| DINO_414 | Tribute Dance | The two-choice transform is a random transform: one random in-window minion transforms into a random in-window minion (the TransformToMinion set semantics — stats, cost, card id, attack usage reset, static keywords) | the official two-choice pick |
+| DINO_430 | Beast Speaker Taka | The battlecry/discover-to-deathrattle card link is dropped: the battlecry gains the stats of a random Legendary Beast and the deathrattle summons a random Legendary Beast — independent picks, no stored card | the official stored-card link |
+| DINO_435 | Crater Experiment | The ALL-tribe Kindred check is approximated to Beast (the primary-race convention — a card with every tribe counts as its dump-listed first race) | an all-tribes kindred check |
+| DINO_131 | Possessed Animancer | The summoned Beast is a copy — the deck is untouched (the Herenn §18 copy-summon convention) | a deck pull |
+| DINO_427 | Costume Merchant | "Get a random Mask from another class" is a D2 random draw over the fixed 5-Mask pool (Bat/Devilsaur/Behemoth/Sheep/Panther — all neutral here, so no class filter is lost) | a full-card random |
+| DINO_434 | Raptor-Nest Nurse | The 1-Cost random minion / 1-Cost random spell are D2 draws over the in-window one-Cost pools | the official Discover-less random |
+| DINO_412 | Tortotem | "Get a random minion with multiple minion types" is a D2 draw over a fixed pool of the in-window multi-tribe minions (CORE_TTN_866 Mythical Terror — the only one, so the draw is deterministic) | the full multi-tribe filter |
+| DINO_415 | Story of Umbra | The "discover a Deathrattle minion of cost 5 or more, summon and trigger it" is a D2 random over the in-window Deathrattle minions of cost ≥5 (the summoned minion's deathrattle fires immediately) | the official Discover |
+| DINO_424 | Hero's Welcome | The legendary discovery is a D2 random over the in-window legendary minions (the classic LEGENDARY_CLASSIC membership), set to 10/10 | the official Discover |
+| DINO_426 | Ritual of Life | The 3-Cost discovery is a D2 random over the in-window 3-Cost minions, summoned as a 2/3 copy | the official Discover |
+| DINO_431 | Atlasaurus | The "random Taunt minion of cost 5 or more" is a D2 random over the in-window Taunt minions | a full-card random |
+| DINO_433 | Guard Duty | The 6/4/2-Cost Taunt trio is three independent D2 random summons | three full-card randoms |
+
+中文小结（同上）：M2-W4c 波（失落之城迷你系列"魔鬼龙嘉年华"，38 张 +
+3 衍生物）本波大多忠实：四张亲和卡扩展 W3 表（迪亚波罗王撕裂边缘随从、
+火鳃给其他随从突袭、寒脊剑龙伤害+冻结的 BattlecryModifier、火山实验
+召唤自身复制）；五张面具引入 SetStats 家族（蝙蝠面具填满 1/1 复制、
+恶魔龙面具给冲锋、巨兽面具强制随机敌方随从走正常攻击管线打它、绵羊
+面具附加真实的"对所有随从造成 2 点伤害"亡语、黑豹面具给潜行并抽 2）；
+孵化仪式"你下个回合结束时"是每人两跳计数器（施放置 2、每个己方回合
+结束减 1、到 0 生效）；安魂典礼的回合结束死亡是标记实体清扫 + 真实
+DamageDealt 事件（Corruption 模式，亡语正常触发）；路障拳手护甲钩子
+接在 grant_armor 咽喉点（全部 16 处护甲获得都走它）；大德雷克龙用新
+AttackedEnemyMinion 触发事件（以防御者为主题，溅射排除被攻击的随从）；
+震地龙复用 W4b 的"任意位置"增益；害羞盘碟商的相邻手牌减费读取记录的
+last_played_hand_index。已登记简化：Mirrex（手牌动态复制退化为静态
+3/4）；Techysaurus（非起始卡牌来源追踪不存在，固定 7 费无折扣）；
+基洛之卵（裂壳链跳过，亡语直接召唤 20/20 嘲讽野兽）；贡舞（二选一变形
+退化为随机变形，走 TransformToMinion 置数值语义）；野兽语者塔卡（战吼
+/亡语的发现关联丢弃——战吼随机传奇野兽的身材、亡语随机召唤传奇野兽，
+两次独立选取）；外加代理登记的近似：火山实验 ALL 种族按主种族约定
+近似为野兽；被附身的亡灵巫师召唤的是牌库复制（牌库不动）；化装商人
+D2 固定 5 面具池（皆中立，无职业过滤损失）；巢穴护士 D2 一费池；
+图腾 D2 多重种族池（窗口内仅 CORE_TTN_866 神话恐惧，选取确定）；
+暮光之影故事/英雄欢迎仪式/生命仪式/腕龙/值日哨岗为 D2 随机召唤。
+
+F5 coverage: `tlc_w4c_diabolus_rex_hits_edge_minions`,
+`tlc_w4c_firegill_gives_others_rush`, `tlc_w4c_chillspine_freezes`,
+`tlc_w4c_crater_experiment_copies_self`, `tlc_w4c_bat_mask_sets_and_fills`,
+`tlc_w4c_devilsaur_mask_sets_charge`, `tlc_w4c_behemoth_mask_forces_attack`,
+`tlc_w4c_sheep_mask_deathrattle`, `tlc_w4c_panther_mask_sets_stealth_draws`,
+`tlc_w4c_dracorex_aoe_on_attack`, `tlc_w4c_hatching_ceremony_next_turn_buff`,
+`tlc_w4c_hollow_direhorn_corpse_reborn`, `tlc_w4c_soulrest_turn_end_dies`,
+`tlc_w4c_seismopod_wherever_buff`, `tlc_w4c_saucier_reduces_adjacent`,
+`tlc_w4c_horn_of_feasting_outcast`, `tlc_w4c_basher_armor_trigger`,
+`tlc_w4c_tortotem_multi_tribe_pool` (18 scenarios in `tests/differential.rs`
+— one per Kindred card with its inactive/active split, each of the five
+Masks, the Dracorex splash excluding the attacked minion, the two-tick
+hatching countdown buffing only on the owner's NEXT turn end, the corpse
+spend with the corpse landing after the trigger, the turn-end soulrest
+sweep with deathrattles firing, the wherever-buff touching hand and deck,
+the adjacent-hand discount on edge and middle plays, the Outcast
+immune-only-for-the-turn raptors, the armor-gain +2/+2 and triggered
+attack, and the deterministic multi-tribe pool). Full `cargo test` fully
+green (all suites, incl. every `tlc_w1_*`/`tlc_w2_*`/`tlc_w3_*`/
+`tlc_w4a_*`/`tlc_w4b_*` scenario — 865 passed, 1 ignored), `cargo fmt`
+clean, `cargo clippy --all-targets` zero warnings.

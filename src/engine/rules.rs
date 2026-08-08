@@ -925,6 +925,58 @@ pub fn apply_event(
                     );
                 }
             }
+            // Hatching Ceremony (M2-W4c): the +2/+2 to the owner's minions
+            // lands at the end of the owner's NEXT turn after the cast — a
+            // two-tick countdown armed by the spell's cast (a one-shot
+            // armed at this turn's end would fire a full turn early — the
+            // flag is armed during the caster's own turn, whose end comes
+            // before the opponent's turn).
+            if state.player(player).hatching_pending > 0 {
+                {
+                    let p = &mut state.make_mut().players[player.index()];
+                    p.hatching_pending -= 1;
+                }
+                if state.player(player).hatching_pending == 0 {
+                    let minions: SmallList<Entity> = state
+                        .world()
+                        .zones()
+                        .iter(Zone::Play, player)
+                        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                        .collect();
+                    for e in minions {
+                        state.world_mut().add_enchantment(
+                            e,
+                            crate::core::component::Enchantment {
+                                attack: 2,
+                                health: 2,
+                                cost: 0,
+                                expiry: crate::core::component::EnchantmentExpiry::Permanent,
+                            },
+                        );
+                    }
+                }
+            }
+            // Soulrest Ceremony (M2-W4c): the marked minions ("they die at
+            // the end of your turn") die at the end of the owner's turn —
+            // damaged to death through the normal death path (the
+            // Corruption pattern, so deathrattles fire).
+            {
+                let inner = state.make_mut();
+                let marked = std::mem::take(&mut inner.players[player.index()].soulrest_marked);
+                for entity in marked {
+                    if !state.world().is_alive(entity)
+                        || state.world().card_type(entity) != Some(CardType::Minion)
+                    {
+                        continue;
+                    }
+                    let hp = state.world().health(entity).unwrap_or(Health(1));
+                    queue.push(Event::DamageDealt {
+                        source: entity,
+                        target: entity,
+                        amount: hp.0.max(1),
+                    });
+                }
+            }
             // End-of-turn effects fire in the EndTriggers step — before the
             // wrap-up cleanup — so effects resolve at full strength and deaths
             // they cause are processed before "until end of turn" buffs expire.
@@ -1150,6 +1202,15 @@ pub fn apply_event(
                 state
                     .world_mut()
                     .set_outcast_played(card, crate::core::component::OutcastPlayed);
+            }
+            // M2-W4c Skittish Saucier: the played card's ORIGINAL hand
+            // position is recorded for the battlecry (which reduces the
+            // Cost of the adjacent hand cards — after the card leaves the
+            // hand, the left neighbor sits at k-1 and the right neighbor
+            // slid to k). The battlecry resolves within this same play
+            // burst, so no later play can stale the record.
+            if let Some(k) = hand_index {
+                state.make_mut().players[player.index()].last_played_hand_index = Some(k);
             }
 
             // Detect combo: another card was played this turn (cards_played > 1 because it was just incremented)
@@ -2011,6 +2072,24 @@ pub fn apply_event(
                         state,
                         queue,
                         TriggerEvent::HeroAttackedMinion,
+                        state
+                            .world()
+                            .player(attacker)
+                            .unwrap_or(state.active_player()),
+                        Some(defender),
+                        None,
+                    );
+                }
+                // AttackedEnemyMinion — a friendly MINION attacking a
+                // minion, with the DEFENDER as the subject (The Great
+                // Dracorex, M2-W4c: the splash must exclude the attacked
+                // minion; friendly scope, not pinned — the trigger rides
+                // the attacking Dracorex)
+                if state.world().card_type(attacker) == Some(CardType::Minion) {
+                    fire_triggers(
+                        state,
+                        queue,
+                        TriggerEvent::AttackedEnemyMinion,
                         state
                             .world()
                             .player(attacker)
