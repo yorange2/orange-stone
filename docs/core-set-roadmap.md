@@ -172,7 +172,7 @@ inventory is confirmed — every card is a checkbox.
 - [ ] `CORE_EDR_002e` Deathly Poison — 附魔衍生物（0 费）
 - [x] `CORE_EDR_003` Falric — 3 费随从 2/4
 - [x] `CORE_EDR_004` Raptor Herald — 3 费随从 4/2
-- [x] `CORE_EDR_004_2026` Raptor Herald — 3 费随从 4/2
+- [x] `CORE_EDR_004_2026` Raptor Herald — 3 费随从 4/2 (与 `CORE_EDR_004` 同一张卡的另一版本 ID，不单独实现)
 
 ### CORE_ETC_* — 来源系列名待补（ETC）（2 张）
 
