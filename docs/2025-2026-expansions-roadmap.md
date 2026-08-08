@@ -161,7 +161,15 @@ closing wave (tokens, legendary finishing touches, ledger sweep).
   the Wild God legendaries and the miniset all landed (all 183 cards with F5
   scenarios or registered simplifications); ledger §14–§14.5; W0–W5 checked
   off.
-- **M2** — Un'Goro + mini complete (Quest zone, Kindred).
+- **M2** ✅ complete (2026-08-09, PR #143–#149) — Un'Goro + miniset:
+  the Quest zone (Zone::Quest + Quest component + cards::quest registry +
+  engine::quest dispatch — the biggest primitive of the year), all 11
+  quest cards (TLC_817 dual progress bar, TLC_426 repeatable, the
+  Temporary primitive), the Kindred mechanic (verified from the card
+  texts: same-type-played-this-turn activation, not a counter),
+  the remaining 145 cards + the 38-card Festival of the Devilsaur
+  miniset; ledger §15–§19; W0–W4 checked off (183 cards with F5
+  scenarios or registered simplifications).
 - **M3** — Timeways + mini complete (Rewind).
 - **M4** — Cataclysm complete (Colossal / Herald / Shatter / Deathwing).
 - **M5** — Violet Hold complete (Rulebreakers); all five sub-roadmaps archived
