@@ -703,6 +703,11 @@ mod generated_tests {
     /// verification matches by NAME: every handwritten card with an official
     /// counterpart must agree on the statically representable fields, except
     /// for the documented rebalances (known_rebalanced).
+    ///
+    /// Core Set W0 (decision D2): a `CORE_<P>_<n>` card's counterpart is its
+    /// ID without the `CORE_` prefix (`CORE_EX1_100` ↔ generated `EX1_100`),
+    /// matched by ID first — name matching would collide with the Classic
+    /// reprint of the same card. Classic cards keep matching by name.
     #[test]
     fn generated_cards_match_handwritten() {
         assert!(
@@ -712,7 +717,12 @@ mod generated_tests {
         let mut compared = 0;
         let mut rebalanced = 0;
         for card in ALL_CARDS {
-            let Some(generated) = generated::find_by_name(card.name) else {
+            let generated = card
+                .id
+                .strip_prefix("CORE_")
+                .and_then(generated::find_by_id)
+                .or_else(|| generated::find_by_name(card.name));
+            let Some(generated) = generated else {
                 continue; // no official counterpart (custom tokens)
             };
             compared += 1;
@@ -756,6 +766,72 @@ mod generated_tests {
         assert!(
             compared - rebalanced > compared / 2,
             "too many rebalances documented"
+        );
+    }
+
+    /// Core Set reprint fidelity (decision D2, 2026-08-08): every generated
+    /// `CORE_<P>_<n>` card whose classic-era original `<P>_<n>` exists in the
+    /// generated database must agree with it on the statically representable
+    /// fields — the Core version is a reprint, not a rebalance (verified
+    /// 2026-08-08: all 90 reprint pairs in `cards.json` match exactly).
+    #[test]
+    fn core_reprints_match_originals() {
+        let mut pairs = 0;
+        for id in generated::GENERATED_IDS {
+            let Some(original_id) = id.strip_prefix("CORE_") else {
+                continue; // not a Core Set card
+            };
+            let Some(core_card) = generated::find_by_id(id) else {
+                panic!("generated registry lists {id} but lookup fails");
+            };
+            let Some(original) = generated::find_by_id(original_id) else {
+                continue; // no classic-era original (e.g. CORE_AV_* from newer sets)
+            };
+            pairs += 1;
+            assert_eq!(
+                core_card.card_type, original.card_type,
+                "card_type mismatch: {id} vs {original_id}"
+            );
+            assert_eq!(
+                core_card.cost, original.cost,
+                "cost mismatch: {id} vs {original_id}"
+            );
+            assert_eq!(
+                core_card.attack, original.attack,
+                "attack mismatch: {id} vs {original_id}"
+            );
+            assert_eq!(
+                core_card.health, original.health,
+                "health mismatch: {id} vs {original_id}"
+            );
+            assert_eq!(
+                core_card.durability, original.durability,
+                "durability mismatch: {id} vs {original_id}"
+            );
+            assert_eq!(
+                core_card.taunt, original.taunt,
+                "taunt mismatch: {id} vs {original_id}"
+            );
+            assert_eq!(
+                core_card.divine_shield, original.divine_shield,
+                "divine_shield mismatch: {id} vs {original_id}"
+            );
+            assert_eq!(
+                core_card.windfury, original.windfury,
+                "windfury mismatch: {id} vs {original_id}"
+            );
+            assert_eq!(
+                core_card.charge, original.charge,
+                "charge mismatch: {id} vs {original_id}"
+            );
+            assert_eq!(
+                core_card.spell_damage, original.spell_damage,
+                "spell_damage mismatch: {id} vs {original_id}"
+            );
+        }
+        assert!(
+            pairs > 50,
+            "reprint-pair coverage should cover the Classic reprints (got {pairs})"
         );
     }
 
