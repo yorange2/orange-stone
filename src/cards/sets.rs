@@ -17,6 +17,7 @@ use super::classic_warlock::*;
 use super::classic_warrior::*;
 use super::core_w1::*;
 use super::core_w2::*;
+use super::core_w3a::*;
 // ============================================================
 // Card lists
 // ============================================================
@@ -38,7 +39,11 @@ pub const DEMON_HUNTER_W1: &[CardDef] = &[
 ];
 
 /// Core Set W1 — Death Knight class cards.
-pub const DEATH_KNIGHT_W1: &[CardDef] = &[MALIGNANT_HORROR];
+pub const DEATH_KNIGHT_W1: &[CardDef] = &[
+    MALIGNANT_HORROR,
+    // Core Set W3a — Poison Breath (give a friendly Undead Poisonous)
+    CORE_POISON_BREATH,
+];
 
 // Classic set grouped by class
 pub const NEUTRAL_CLASSIC: &[CardDef] = &[
@@ -214,6 +219,17 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     ROYAL_LIBRARIAN,
     RUSTROT_VIPER,
     TURTLE,
+    // Core Set W3a — neutrals + tokens
+    CORE_ACOLYTE_OF_PAIN,
+    CORE_WORGEN_INFILTRATOR,
+    CORE_STRANGLETHORN_TIGER,
+    CORE_LOREWALKER_CHO,
+    CORE_MURLOC_SCOUT,
+    CORE_MURLOC_TIDECALLER,
+    CORE_TAR_CREEPER,
+    CORE_BALL_SPIDER,
+    CORE_FROG,
+    CORE_STEED_SPIDER,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -281,6 +297,9 @@ pub const DRUID_CLASSIC: &[CardDef] = &[
     UNDERKING,
     // Core Set W2 — Best in Shell (Tradeable, summon two 2/7 Turtles)
     BEST_IN_SHELL,
+    // Core Set W3a
+    CORE_INNERVATE,
+    CORE_SPIKERIDGED_STEED,
 ];
 
 pub const HUNTER_CLASSIC: &[CardDef] = &[
@@ -321,6 +340,10 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     HALAZZI_THE_LYNX,
     // Core Set W2 — Quick Shot (damage, draw on empty hand)
     QUICK_SHOT,
+    // Core Set W3a
+    CORE_ARCANE_SHOT,
+    CORE_BALL_OF_SPIDERS,
+    CORE_DRAGONBANE,
 ];
 
 pub const MAGE_CLASSIC: &[CardDef] = &[
@@ -356,6 +379,8 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     ARCHMAGE_ANTONIDAS,
     // Core Set W2 — Explosive Runes (secret, immune to spell damage)
     EXPLOSIVE_RUNES,
+    // Core Set W3a
+    CORE_ARCHMAGE_ANTONIDAS,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -425,6 +450,12 @@ pub const PRIEST_CLASSIC: &[CardDef] = &[
     DEVOURING_PLAGUE,
     DRAIN_SOUL,
     VOID_SHARD,
+    // Core Set W3a
+    CORE_FLASH_HEAL,
+    CORE_GREATER_HEALING_POTION,
+    CORE_HOLY_NOVA,
+    CORE_HOLY_SMITE,
+    CORE_SHADOW_WORD_RUIN,
 ];
 
 pub const ROGUE_CLASSIC: &[CardDef] = &[
@@ -455,6 +486,10 @@ pub const ROGUE_CLASSIC: &[CardDef] = &[
     MASTER_OF_DISGUISE,
     // Tier 3 additions
     PILFER,
+    // Core Set W3a
+    CORE_PREPARATION,
+    CORE_SHIV,
+    CORE_FAN_OF_KNIVES,
 ];
 
 pub const SHAMAN_CLASSIC: &[CardDef] = &[
@@ -487,6 +522,8 @@ pub const SHAMAN_CLASSIC: &[CardDef] = &[
     UNBOUND_ELEMENTAL,
     // Core Set W2 — Healing Rain (12 health randomly spread)
     HEALING_RAIN,
+    // Core Set W3a
+    CORE_HEX,
 ];
 
 pub const WARLOCK_CLASSIC: &[CardDef] = &[
@@ -519,6 +556,10 @@ pub const WARLOCK_CLASSIC: &[CardDef] = &[
     CALL_OF_THE_VOID,
     BANE_OF_DOOM,
     BLOOD_IMP,
+    // Core Set W3a
+    CORE_MORTAL_COIL,
+    CORE_SIPHON_SOUL,
+    CORE_TWISTING_NETHER,
 ];
 
 pub const WARRIOR_CLASSIC: &[CardDef] = &[
@@ -550,6 +591,11 @@ pub const WARRIOR_CLASSIC: &[CardDef] = &[
     ARCANITE_REAPER,
     // Tier 2 additions
     COMMANDING_SHOUT,
+    // Core Set W3a
+    CORE_BASH,
+    CORE_SLAM,
+    CORE_SHIELD_BLOCK,
+    CORE_FROTHING_BERSERKER,
 ];
 
 pub const ALL_CARDS: &[CardDef] = &[
@@ -1032,6 +1078,43 @@ pub const ALL_CARDS: &[CardDef] = &[
     EXPLOSIVE_RUNES,
     HEALING_RAIN,
     QUICK_SHOT,
+    // Core Set W3a (core-set-roadmap W3a, 2026-08-08) — the simple batch:
+    // vanilla minions, direct-damage/heal/draw spells, keyword minions and
+    // faithful Classic reprints (34 cards incl. 3 tokens).
+    CORE_FLASH_HEAL,
+    CORE_BALL_OF_SPIDERS,
+    CORE_BASH,
+    CORE_GREATER_HEALING_POTION,
+    CORE_HOLY_NOVA,
+    CORE_HOLY_SMITE,
+    CORE_ARCANE_SHOT,
+    CORE_POISON_BREATH,
+    CORE_ACOLYTE_OF_PAIN,
+    CORE_WORGEN_INFILTRATOR,
+    CORE_STRANGLETHORN_TIGER,
+    CORE_LOREWALKER_CHO,
+    CORE_FAN_OF_KNIVES,
+    CORE_PREPARATION,
+    CORE_INNERVATE,
+    CORE_SHADOW_WORD_RUIN,
+    CORE_HEX,
+    CORE_SHIV,
+    CORE_MORTAL_COIL,
+    CORE_SIPHON_SOUL,
+    CORE_TWISTING_NETHER,
+    CORE_SLAM,
+    CORE_MURLOC_SCOUT,
+    CORE_MURLOC_TIDECALLER,
+    CORE_ARCHMAGE_ANTONIDAS,
+    CORE_FROTHING_BERSERKER,
+    CORE_SHIELD_BLOCK,
+    CORE_EQUALITY,
+    CORE_DRAGONBANE,
+    CORE_TAR_CREEPER,
+    CORE_SPIKERIDGED_STEED,
+    CORE_BALL_SPIDER,
+    CORE_FROG,
+    CORE_STEED_SPIDER,
 ];
 
 // ============================================================
@@ -1055,6 +1138,7 @@ pub const POOL_OPEN_CARDS: &[&str] = &[
     "PRIEST_025",    // Thoughtsteal — enemy deck
     "PRIEST_026",    // Mindgames — enemy deck
     "LEGENDARY_024", // Lorewalker Cho — copies a cast spell
+    "CORE_EX1_100",  // Lorewalker Cho (Core Set W3a) — copies a cast spell
 ];
 
 #[cfg(test)]

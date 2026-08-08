@@ -1297,6 +1297,24 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::DestroyEnemyLocation => 0.0,
         CardEffect::DamagePlayedMinionAndExcess { amount } => amount as f64 * 1.2,
         CardEffect::DamageAndDrawIfHandEmpty { damage, .. } => damage as f64 * 1.2 + 3.0,
+        // Core Set W3a
+        CardEffect::AoeDamageAndHealFriendly { damage, heal } => {
+            damage as f64 * 1.2 + heal as f64 * 0.7
+        }
+        CardEffect::DamageAndDrawIfSurvives { damage, .. } => damage as f64 * 1.2 + 3.0,
+        CardEffect::GainArmorAndDraw { armor, draw } => armor as f64 * 0.6 + draw as f64 * 3.0,
+        CardEffect::DamageAndDrawIfKilled { damage, .. } => damage as f64 * 1.2 + 3.0,
+        CardEffect::DamageAndGainArmor { damage, armor, .. } => {
+            damage as f64 * 1.2 + armor as f64 * 0.6
+        }
+        CardEffect::GainPoisonousToFriendlyUndead => 3.0,
+        CardEffect::TransformToMinion { .. } => 4.0,
+        CardEffect::GrantDeathrattleToTarget { .. } => 3.0,
+        CardEffect::DestroyAllMinionsAttackGE { attack } => attack as f64 * 0.8,
+        CardEffect::AoeDamageAndDraw { damage, draw } => damage as f64 * 1.2 + draw as f64 * 3.0,
+        CardEffect::GainStatsTauntAndDeathrattle { attack, health, .. } => {
+            (attack + health) as f64 * 0.8 + 3.0
+        }
     }
 }
 

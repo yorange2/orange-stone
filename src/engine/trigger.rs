@@ -14,8 +14,9 @@
 //! - `AllEnemyMinions` → all enemy minions
 
 use crate::core::component::{
-    Attack, AttacksUsed, CardId, CardType, Cost, Damage, Deathrattle, Durability, Enchantment,
-    EnchantmentExpiry, Freeze, Health, Immune, Stealth, Trigger, TriggerEvent, TriggerTiming,
+    Attack, AttacksUsed, CardId, CardType, Charge, Cost, Damage, Deathrattle, DivineShield,
+    Durability, Enchantment, EnchantmentExpiry, Freeze, Health, Immune, Poison, Stealth, Taunt,
+    Trigger, TriggerEvent, TriggerTiming, Windfury,
 };
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
@@ -1075,6 +1076,232 @@ pub fn resolve_effect(
             let hand_count = state.world().zones().len(Zone::Hand, owner);
             if hand_count == 0 {
                 draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::AoeDamageAndHealFriendly { damage, heal } => {
+            // Holy Nova — damage all enemy minions, heal all friendly
+            // characters (the Classic pool's damage-only version is a
+            // simplification; the Core version is faithful)
+            let enemies = collect_all_enemy_minions(state, owner);
+            for minion in &enemies {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: *minion,
+                    amount: damage,
+                });
+            }
+            let mut healed: SmallList<Entity> = SmallList::new();
+            let hero = state.player(owner).hero;
+            if heal_char(state.world_mut(), hero, heal) {
+                healed.push(hero);
+            }
+            for m in collect_friendly_minions(state, owner) {
+                if heal_char(state.world_mut(), m, heal) {
+                    healed.push(m);
+                }
+            }
+            for entity in healed {
+                fire_healed_trigger(state, queue, entity);
+            }
+        }
+        CardEffect::DamageAndDrawIfSurvives { damage, target } => {
+            // Slam — deal damage; the target SURVIVING draws a card. The
+            // survival is predicted before the damage resolves (same
+            // approach as Bane of Doom): no divine shield and the health
+            // can absorb the damage.
+            if let Some(t) =
+                resolve_deal_damage(state, queue, source, owner, damage, target, explicit_target)
+            {
+                let survives = state.world().divine_shield(t).is_some()
+                    || state
+                        .world()
+                        .effective_health(t)
+                        .is_some_and(|h| h.0 - damage > 0);
+                if survives {
+                    draw_card(state, queue, owner);
+                }
+            }
+        }
+        CardEffect::GainArmorAndDraw { armor, draw } => {
+            // Shield Block — armor + draw (the Classic pool's armor-only
+            // version is a simplification)
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].armor += armor;
+            }
+            for _ in 0..draw {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::DamageAndDrawIfKilled { damage, target } => {
+            // Mortal Coil — deal damage; the target DYING draws a card
+            // (predicted before the damage resolves, same as Bane of Doom)
+            if let Some(t) =
+                resolve_deal_damage(state, queue, source, owner, damage, target, explicit_target)
+            {
+                let dies = state.world().divine_shield(t).is_none()
+                    && state
+                        .world()
+                        .effective_health(t)
+                        .is_some_and(|h| h.0 - damage <= 0);
+                if dies {
+                    draw_card(state, queue, owner);
+                }
+            }
+        }
+        CardEffect::DamageAndGainArmor {
+            damage,
+            armor,
+            target,
+        } => {
+            // Bash — deal damage and gain armor
+            resolve_deal_damage(state, queue, source, owner, damage, target, explicit_target);
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].armor += armor;
+            }
+        }
+        CardEffect::GainPoisonousToFriendlyUndead => {
+            // Poison Breath — give a friendly Undead minion Poisonous
+            let minions: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Minion)
+                        && state
+                            .world()
+                            .has_race(e, crate::core::component::Race::Undead)
+                })
+                .collect();
+            if let Some(target) = select_target(explicit_target, &minions, state.rng_mut()) {
+                state.world_mut().set_poison(target, Poison);
+            }
+        }
+        CardEffect::TransformToMinion { card_id } => {
+            // Hex — transform a minion into the given card (a real
+            // transform: effects cleared, deathrattles do not fire)
+            let minions: SmallList<Entity> = {
+                let mut all = collect_friendly_minions(state, owner);
+                all.extend(collect_enemy_minions(state, owner, None));
+                all
+            };
+            let Some(target) = select_target(explicit_target, &minions, state.rng_mut()) else {
+                return;
+            };
+            let Some(def) = crate::cards::def::card_by_id(card_id) else {
+                return;
+            };
+            let world = state.world_mut();
+            crate::cards::clear_minion_effects(world, target);
+            world.set_attack(target, Attack(def.attack));
+            world.set_health(target, Health(def.health));
+            world.set_cost(target, Cost(def.cost));
+            world.set_card_id(target, CardId(def.id));
+            world.set_attacks_used(target, AttacksUsed(0));
+            // The transform target's static keywords apply (Frog: Taunt)
+            if def.taunt {
+                world.set_taunt(target, Taunt);
+            }
+            if def.stealth {
+                world.set_stealth(target, Stealth);
+            }
+            if def.divine_shield {
+                world.set_divine_shield(target, DivineShield);
+            }
+            if def.windfury {
+                world.set_windfury(target, Windfury);
+            }
+            if def.charge {
+                world.set_charge(target, Charge);
+            }
+        }
+        CardEffect::GrantDeathrattleToTarget { card_id } => {
+            // Spikeridged Steed — single-target deathrattle grant
+            let minions: SmallList<Entity> = {
+                let mut all = collect_friendly_minions(state, owner);
+                all.extend(collect_enemy_minions(state, owner, None));
+                all
+            };
+            let Some(target) = select_target(explicit_target, &minions, state.rng_mut()) else {
+                return;
+            };
+            let dr = Deathrattle(CardEffect::SummonMinion { card_id });
+            state.world_mut().set_deathrattle(target, dr);
+        }
+        CardEffect::AoeDamageAndDraw { damage, draw } => {
+            // Fan of Knives — damage all enemy minions, draw
+            let enemies = collect_all_enemy_minions(state, owner);
+            for minion in &enemies {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: *minion,
+                    amount: damage,
+                });
+            }
+            for _ in 0..draw {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::GainStatsTauntAndDeathrattle {
+            attack,
+            health,
+            card_id,
+        } => {
+            // Spikeridged Steed — buff + Taunt + deathrattle summon
+            let minions: SmallList<Entity> = {
+                let mut all = collect_friendly_minions(state, owner);
+                all.extend(collect_enemy_minions(state, owner, None));
+                all
+            };
+            let Some(target) = select_target(explicit_target, &minions, state.rng_mut()) else {
+                return;
+            };
+            {
+                let world = state.world_mut();
+                let base = world.attack(target).unwrap_or(Attack(0));
+                world.set_attack(target, Attack(base.0 + attack));
+                let base_hp = world.health(target).unwrap_or(Health(1));
+                world.set_health(target, Health(base_hp.0 + health));
+                world.set_taunt(target, Taunt);
+            }
+            let dr = Deathrattle(CardEffect::SummonMinion { card_id });
+            state.world_mut().set_deathrattle(target, dr);
+        }
+        CardEffect::DestroyAllMinionsAttackGE { attack } => {
+            // Shadow Word: Ruin — destroy all minions (both sides) with at
+            // least this Attack
+            let doomed: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Minion)
+                        && state
+                            .world()
+                            .effective_attack(e)
+                            .is_some_and(|a| a.0 >= attack)
+                })
+                .chain(
+                    state
+                        .world()
+                        .zones()
+                        .iter(Zone::Play, owner.opponent())
+                        .filter(|&e| {
+                            state.world().card_type(e) == Some(CardType::Minion)
+                                && state
+                                    .world()
+                                    .effective_attack(e)
+                                    .is_some_and(|a| a.0 >= attack)
+                        }),
+                )
+                .collect();
+            for m in doomed {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: m,
+                    amount: state.world().effective_health(m).map_or(0, |h| h.0),
+                });
             }
         }
         CardEffect::ResurrectDiedMinion => {
@@ -2705,6 +2932,23 @@ fn resolve_restore_health(
     }
 }
 
+/// Heals a character by reducing accumulated damage (the shared heal shape
+/// of `resolve_restore_health` and the W3a combination effects); returns
+/// whether any damage was actually removed.
+fn heal_char(world: &mut crate::core::world::World, entity: Entity, amount: i32) -> bool {
+    let dmg = world.damage(entity).unwrap_or(Damage(0)).0;
+    if dmg <= 0 {
+        return false;
+    }
+    let new_dmg = (dmg - amount).max(0);
+    if new_dmg > 0 {
+        world.set_damage(entity, Damage(new_dmg));
+    } else {
+        world.remove_damage(entity);
+    }
+    true
+}
+
 /// Fires heal triggers for a healed entity: `CharacterHealed` (Lightwarden —
 /// any character healed, hero or minion, either side) and `MinionHealed`
 /// (Northshire Cleric — any minion, either side, heroes excluded).
@@ -3061,6 +3305,8 @@ fn resolve_deal_damage_randomly(
         }
         // Devouring Plague (Core Set W1) — random enemy minions only
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner, Some(source)),
+        // Dragonbane (Core Set W3a) — one random enemy character (hero included)
+        EffectTarget::AnyEnemy => collect_enemy_characters(state, owner, Some(source)),
         _ => return,
     };
     if chars.is_empty() {
