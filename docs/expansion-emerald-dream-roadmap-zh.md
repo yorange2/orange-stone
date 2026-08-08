@@ -51,10 +51,11 @@
   视图/绑定；法术/随从/武器三个 surface 点（武器路径新增）+ 入队事件排序修复；
   12 张 EDR 抉择卡 + 6 衍生物；14 个 F5 场景钉死两分支；4 项 D2 简化登记进
   fidelity-debt.md §14.2。
-- **W4 —— 野神 + 杂项效果（P5）：** **W4a 已完成**（PR #140——86 张非传说剩余卡
-  + 9 衍生物、63 个效果变体、3 个引擎 bug 修复经 F5 钉死、36 项 D2 简化登记
-  §14.3、14 个场景）。**W4b 待做**——23 张精英野神传说；收尾波清扫衍生物/附魔
-  与账本。
+- [x] **W4 —— 野神 + 杂项效果（P5）**：W4a（PR #140——86 张非传说剩余卡 + 9 衍生物、
+  63 个效果变体、3 个引擎 bug 修复经 F5 钉死、36 项 D2 简化登记 §14.3、14 个场景）
+  + W4b（PR #141——23 张精英野神传说：三选抉择、保留/置顶抉择、每玩家攻击/双施/
+  费用标志、Ursoc 击杀记录复活；23 个 F5 场景、13 项 D2 简化登记 §14.4、2 张
+  衍生物；Ashamane 登记 `POOL_OPEN_CARDS`）。主系列 145 张全部完成。
 - **W5 —— 世界之树的余烬迷你：** 迷你 38 张卡（既有原语：黑暗赠礼补充 7 张等）；
   F5 场景；迷你注册。
 
@@ -105,29 +106,29 @@
 - [x] EDR_872 Spark of Life
 
 ### W4 —— 野神 + 其余卡
-- [ ] EDR_000 Ysera, Emerald Aspect
-- [ ] EDR_031 Ohn'ahra
-- [ ] EDR_209 Forest Lord Cenarius
-- [ ] EDR_238 Merithra
-- [ ] EDR_258 Toreth the Unbreaking
-- [ ] EDR_259 Ursol
-- [ ] EDR_421 Omen
-- [ ] EDR_430 Aessina
-- [ ] EDR_464 Tyrande
-- [ ] EDR_465 Ysondre
-- [ ] EDR_471 Tortolla
-- [ ] EDR_480 Goldrinn
-- [ ] EDR_489 Agamaggan
-- [ ] EDR_493 Alara'shi
-- [ ] EDR_517 Q'onzu
-- [ ] EDR_526 Renferal, the Malignant
-- [ ] EDR_527 Ashamane
-- [ ] EDR_818 Nythendra
-- [ ] EDR_819 Ursoc
-- [ ] EDR_844 Naralex, Herald of the Flights
-- [ ] EDR_846 Shaladrassil
-- [ ] EDR_853 Broll Bearmantle
-- [ ] EDR_895 Aviana, Elune's Chosen
+- [x] EDR_000 Ysera, Emerald Aspect
+- [x] EDR_031 Ohn'ahra
+- [x] EDR_209 Forest Lord Cenarius
+- [x] EDR_238 Merithra
+- [x] EDR_258 Toreth the Unbreaking
+- [x] EDR_259 Ursol
+- [x] EDR_421 Omen
+- [x] EDR_430 Aessina
+- [x] EDR_464 Tyrande
+- [x] EDR_465 Ysondre
+- [x] EDR_471 Tortolla
+- [x] EDR_480 Goldrinn
+- [x] EDR_489 Agamaggan
+- [x] EDR_493 Alara'shi
+- [x] EDR_517 Q'onzu
+- [x] EDR_526 Renferal, the Malignant
+- [x] EDR_527 Ashamane
+- [x] EDR_818 Nythendra
+- [x] EDR_819 Ursoc
+- [x] EDR_844 Naralex, Herald of the Flights
+- [x] EDR_846 Shaladrassil
+- [x] EDR_853 Broll Bearmantle
+- [x] EDR_895 Aviana, Elune's Chosen
 > Wild Gods — one per class (elite)
 - [x] EDR_001 Hopeful Dryad
 - [x] EDR_014 Verdant Dreamsaber

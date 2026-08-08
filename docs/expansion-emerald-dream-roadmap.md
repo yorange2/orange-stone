@@ -62,11 +62,13 @@ register in `sets.rs::ALL_CARDS`; simplifications carry `(simplified …)` marke
   three surface sites (spell/minion/weapon, the weapon path added) with
   queued-event ordering fix; 12 EDR choose-one cards + 6 tokens; 14 F5
   scenarios pin both branches; 4 D2 simplifications in fidelity-debt.md §14.2.
-- **W4 — Wild Gods + misc effects (P5):** **W4a done** (PR #140 — the 86
+- [x] **W4 — Wild Gods + misc effects (P5)**: W4a (PR #140 — the 86
   non-legendary remaining cards + 9 tokens, 63 effect variants, 3 engine bug
-  fixes pinned by F5, 36 D2 simplifications in §14.3, 14 scenarios). **W4b
-  pending** — the 23 legendary Wild Gods; closing wave sweeps
-  tokens/enchantments and the ledger.
+  fixes pinned by F5, 36 D2 simplifications in §14.3, 14 scenarios) + W4b
+  (PR #141 — the 23 legendary Wild Gods: choose-thrice, keep-or-top choice,
+  per-player attack/double-cast/cost flags, Ursoc's kill-record resurrection;
+  23 F5 scenarios, 13 D2 simplifications in §14.4, 2 tokens; Ashamane
+  registered in `POOL_OPEN_CARDS`). All 145 main-set cards complete.
 - **W5 — Embers of the World Tree miniset:** the 38 miniset cards (existing
   primitives — 7 more Dark Gifts, Battlecry/Discover, …); F5 scenarios;
   miniset registered.
@@ -119,29 +121,29 @@ register in `sets.rs::ALL_CARDS`; simplifications carry `(simplified …)` marke
 - [x] EDR_872 Spark of Life
 
 ### W4 — Wild Gods + remaining cards
-- [ ] EDR_000 Ysera, Emerald Aspect
-- [ ] EDR_031 Ohn'ahra
-- [ ] EDR_209 Forest Lord Cenarius
-- [ ] EDR_238 Merithra
-- [ ] EDR_258 Toreth the Unbreaking
-- [ ] EDR_259 Ursol
-- [ ] EDR_421 Omen
-- [ ] EDR_430 Aessina
-- [ ] EDR_464 Tyrande
-- [ ] EDR_465 Ysondre
-- [ ] EDR_471 Tortolla
-- [ ] EDR_480 Goldrinn
-- [ ] EDR_489 Agamaggan
-- [ ] EDR_493 Alara'shi
-- [ ] EDR_517 Q'onzu
-- [ ] EDR_526 Renferal, the Malignant
-- [ ] EDR_527 Ashamane
-- [ ] EDR_818 Nythendra
-- [ ] EDR_819 Ursoc
-- [ ] EDR_844 Naralex, Herald of the Flights
-- [ ] EDR_846 Shaladrassil
-- [ ] EDR_853 Broll Bearmantle
-- [ ] EDR_895 Aviana, Elune's Chosen
+- [x] EDR_000 Ysera, Emerald Aspect
+- [x] EDR_031 Ohn'ahra
+- [x] EDR_209 Forest Lord Cenarius
+- [x] EDR_238 Merithra
+- [x] EDR_258 Toreth the Unbreaking
+- [x] EDR_259 Ursol
+- [x] EDR_421 Omen
+- [x] EDR_430 Aessina
+- [x] EDR_464 Tyrande
+- [x] EDR_465 Ysondre
+- [x] EDR_471 Tortolla
+- [x] EDR_480 Goldrinn
+- [x] EDR_489 Agamaggan
+- [x] EDR_493 Alara'shi
+- [x] EDR_517 Q'onzu
+- [x] EDR_526 Renferal, the Malignant
+- [x] EDR_527 Ashamane
+- [x] EDR_818 Nythendra
+- [x] EDR_819 Ursoc
+- [x] EDR_844 Naralex, Herald of the Flights
+- [x] EDR_846 Shaladrassil
+- [x] EDR_853 Broll Bearmantle
+- [x] EDR_895 Aviana, Elune's Chosen
 > Wild Gods — one per class (elite)
 - [x] EDR_001 Hopeful Dryad
 - [x] EDR_014 Verdant Dreamsaber
