@@ -51,13 +51,193 @@ registration; simplifications get ledger rows.
 > Backfilled from the M0 data dump (D1). Placeholder grouped by wave.
 
 ### W1/W2 — Quests
-- [ ] (backfill from data)
+- [ ] TLC_229 Spirit of the Mountain
+- [ ] TLC_239 Restore the Wild
+- [ ] TLC_426 Dive the Golakka Depths
+- [ ] TLC_433 Reanimate the Terror
+- [ ] TLC_446 Escape the Underfel
+- [ ] TLC_460 The Forbidden Sequence
+- [ ] TLC_513 Lie in Wait
+- [ ] TLC_602 Enter the Lost City
+- [ ] TLC_631 Unleash the Colossus
+- [ ] TLC_817 Reach Equilibrium
+- [ ] TLC_830 The Food Chain
 
 ### W3 — Kindred
-- [ ] (backfill from data)
+- [ ] TLC_102 Torga
+- [ ] TLC_107 Stormbrewer
+- [ ] TLC_223 Volcanic Thrasher
+- [ ] TLC_226 Conjured Bookkeeper
+- [ ] TLC_236 Hybridization
+- [ ] TLC_243 Whirling Stormdrake
+- [ ] TLC_251 Primalfin Challenger
+- [ ] TLC_366 Pterrorwing Ravager
+- [ ] TLC_428 Hot Spring Glider
+- [ ] TLC_429 Steamfin Thief
+- [ ] TLC_432 Dread Raptor
+- [ ] TLC_440 Cryosleep
+- [ ] TLC_447 Caustic Fumes
+- [ ] TLC_454 Scalehide Kodo
+- [ ] TLC_463 Razidir
+- [ ] TLC_482 Slagclaw
+- [ ] TLC_519 Ambush Predators
+- [ ] TLC_600 Windpeak Wyrm
+- [ ] TLC_815 Gravedawn Voidbulb
+- [ ] TLC_816 Gravedawn Sunbloom
+- [ ] TLC_825 Ravasaur Matriarch
+- [ ] TLC_829 Ravenous Devilsaur
+- [ ] TLC_903 Silithid Queen
 
 ### W4 — remaining cards + mini
-- [ ] (backfill from data)
+- [ ] TLC_100 Elise the Navigator
+- [ ] TLC_101 Undercover Cultist
+- [ ] TLC_106 Endbringer Umbra
+- [ ] TLC_109 Relic Miner
+- [ ] TLC_110 City Chief Esho
+- [ ] TLC_220 Windswept Pageturner
+- [ ] TLC_221 Sizzling Swarm
+- [ ] TLC_222 Flight of the Firehawk
+- [ ] TLC_224 Mechanized Magma
+- [ ] TLC_225 Cinderfin
+- [ ] TLC_227 Lava Flow
+- [ ] TLC_228 Bralma Searstone
+- [ ] TLC_230 TREEEES!!!
+- [ ] TLC_231 Story of Barnabus
+- [ ] TLC_232 Ravenous Flock
+- [ ] TLC_233 Hatchery Helper
+- [ ] TLC_234 Eternal Bloodpetal
+- [ ] TLC_235 Life Cycle
+- [ ] TLC_237 Skyscreamer Eggs
+- [ ] TLC_240 Tyrannogill
+- [ ] TLC_241 Ido of the Threshfleet
+- [ ] TLC_242 Ancient Stegodon
+- [ ] TLC_244 Curious Explorer
+- [ ] TLC_245 Ancient Raptor
+- [ ] TLC_246 Ancient Pterrordax
+- [ ] TLC_247 Primal Sabretooth
+- [ ] TLC_248 Ultragigasaur
+- [ ] TLC_249 Sizzling Cinder
+- [ ] TLC_250 Crater Gator
+- [ ] TLC_252 Dissolving Ooze
+- [ ] TLC_253 Petrified Ogre
+- [ ] TLC_254 Tortollan Storyteller
+- [ ] TLC_255 Crystal Tender
+- [ ] TLC_256 Marshland Thresher
+- [ ] TLC_257 Loh, the Living Legend
+- [ ] TLC_334 Relic of Kings
+- [ ] TLC_364 Story of the Waygate
+- [ ] TLC_365 Storage Scuffle
+- [ ] TLC_401 Bonechill Stegodon
+- [ ] TLC_427 Rockskipper
+- [ ] TLC_430 Creature of the Sacred Cave
+- [ ] TLC_434 Paleomancy
+- [ ] TLC_435 Crypt Map
+- [ ] TLC_436 Reanimated Pterrordax
+- [ ] TLC_438 Violet Treasuregill
+- [ ] TLC_439 Wave of Tar
+- [ ] TLC_441 Ready the Fleet
+- [ ] TLC_442 Submerged Map
+- [ ] TLC_443 Reluctant Wrangler
+- [ ] TLC_444 Story of Galvadon
+- [ ] TLC_449 Bloodpetal Biome
+- [ ] TLC_450 Spelunker
+- [ ] TLC_451 Cursed Catacombs
+- [ ] TLC_452 Titanographer Osk
+- [ ] TLC_461 Scrappy Scavenger
+- [ ] TLC_462 Unearthed Artifacts
+- [ ] TLC_464 Mountain Map
+- [ ] TLC_465 Stranglevine
+- [ ] TLC_466 Story of Lakkari
+- [ ] TLC_467 Whispering Stone
+- [ ] TLC_468 Blob of Tar
+- [ ] TLC_469 Tunnel Terror
+- [ ] TLC_477 Threshrider's Blessing
+- [ ] TLC_478 Axe of the Forefathers
+- [ ] TLC_479 Deathrot Maw
+- [ ] TLC_480 Krog, Crater King
+- [ ] TLC_483 Vault Breaker
+- [ ] TLC_514 Merchant of Legend
+- [ ] TLC_515 Cultist Map
+- [ ] TLC_516 Neferset Weaponsmith
+- [ ] TLC_517 Knockback
+- [ ] TLC_518 Interrogation
+- [ ] TLC_520 Underbrush Tracker
+- [ ] TLC_521 Eyes in the Sky
+- [ ] TLC_522 Opu the Unseen
+- [ ] TLC_601 Shellnado
+- [ ] TLC_603 Platysaur
+- [ ] TLC_605 Tar Tyrant
+- [ ] TLC_606 Latorvian Armorer
+- [ ] TLC_620 Fortify
+- [ ] TLC_621 Willful Watcher
+- [ ] TLC_622 City Defenses
+- [ ] TLC_623 Stonecarver
+- [ ] TLC_624 Nablya, the Watcher
+- [ ] TLC_630 Gorishi Wasp
+- [ ] TLC_632 Story of Sulfuras
+- [ ] TLC_633 Bugsquasher
+- [ ] TLC_810 High Cultist Herenn
+- [ ] TLC_811 Archaios
+- [ ] TLC_814 Twilight Mender
+- [ ] TLC_818 Resuscitate
+- [ ] TLC_819 Gladesong Siren
+- [ ] TLC_820 Glade Ecologist
+- [ ] TLC_821 Wilted Shadow
+- [ ] TLC_822 Dinositter
+- [ ] TLC_823 Cower in Fear
+- [ ] TLC_824 Odd Map
+- [ ] TLC_826 Story of Carnassa
+- [ ] TLC_827 Grazing Stegodon
+- [ ] TLC_828 Supreme Dinomancy
+- [ ] TLC_831 Pterrordax Egg
+- [ ] TLC_833 Insect Claw
+- [ ] TLC_835 Story of Amara
+- [ ] TLC_836 Niri of the Crater
+- [ ] TLC_840 Gorishi Tunneler
+- [ ] TLC_841 Entomologist Toru
+- [ ] TLC_888 Cloud Serpent
+- [ ] TLC_900 Hive Map
+- [ ] TLC_901 Fumigate
+- [ ] TLC_902 Infestation
+- [ ] TLC_987 Questing Assistant
+- [ ] DINO_130 Longneck Egg
+- [ ] DINO_131 Possessed Animancer
+- [ ] DINO_132 Asphyxiodon
+- [ ] DINO_136 Horn of Feasting
+- [ ] DINO_137 Skittish Saucier
+- [ ] DINO_138 Diabolus Rex
+- [ ] DINO_400 Barricade Basher
+- [ ] DINO_401 The Great Dracorex
+- [ ] DINO_402 Bat Mask
+- [ ] DINO_403 Devilsaur Mask
+- [ ] DINO_404 Firegill
+- [ ] DINO_405 Hatching Ceremony
+- [ ] DINO_406 Fire Breath
+- [ ] DINO_407 Mirrex, the Crystalline
+- [ ] DINO_408 Crystal Tusk
+- [ ] DINO_409 Techysaurus
+- [ ] DINO_410 The Egg of Khelos
+- [ ] DINO_411 Holy Eggbearer
+- [ ] DINO_412 Tortotem
+- [ ] DINO_413 Chillspine Stegodon
+- [ ] DINO_414 Tribute Dance
+- [ ] DINO_415 Story of Umbra
+- [ ] DINO_416 Hollow Direhorn
+- [ ] DINO_417 Soulrest Ceremony
+- [ ] DINO_419 Herbivore Assistant
+- [ ] DINO_421 Seismopod
+- [ ] DINO_422 Ankylodon
+- [ ] DINO_424 Hero's Welcome
+- [ ] DINO_426 Ritual of Life
+- [ ] DINO_427 Costume Merchant
+- [ ] DINO_428 Behemoth Mask
+- [ ] DINO_429 Sheep Mask
+- [ ] DINO_430 Beast Speaker Taka
+- [ ] DINO_431 Atlasaurus
+- [ ] DINO_432 Panther Mask
+- [ ] DINO_433 Guard Duty
+- [ ] DINO_434 Raptor-Nest Nurse
+- [ ] DINO_435 Crater Experiment
 
 ## Definition of done
 

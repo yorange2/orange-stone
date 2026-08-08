@@ -35,7 +35,7 @@ against its inventory.
 | # | Expansion | Release | Cards | Mechanics (new to the engine in **bold**) |
 |---|---|---|---|---|
 | 1 | Into the Emerald Dream | 2025-03-25 (32.0) | 145 | **Imbue** (6 classes), **Dark Gifts** (5 classes), Choose One for every class, Wild Gods |
-| 1m | Embers of the World Tree (mini) | 2025-05-13 | 38 | **Smoldering** |
+| 1m | Embers of the World Tree (mini) | 2025-05-13 | 38 | ~~Smoldering~~ (removed M0.5, data check: no such keyword; existing mechanics) |
 | 2 | The Lost City of Un'Goro | 2025-07-08 (33.0) | 145 | **Quests** (return), **Kindred** |
 | 2m | Festival of the Devilsaur (mini) | 2025-08/09 | 38 | TBD from data |
 | 3 | Across the Timeways | 2025-11-04 (34.0) | 145 | **Rewind**, Fabled legendaries |
@@ -104,7 +104,7 @@ auras, quest-free trigger inventory.
 | Colossal body parts | Cataclysm | Attached part entities summoned with the minion, die with it, occupy/are summoned adjacent — new summon path |
 | Split-card halves (Shatter) | Cataclysm | A drawn card splits into two half-cards that recombine — touches draw, hand, and play resolution |
 | Kindred death-tracking | Un'Goro | "Kindred: X" — per-card counter of triggering events (exact trigger set from card text) |
-| Smoldering re-deathrattle | EDR mini | Deathrattle fires an extra time on a marked minion |
+| ~~Smoldering re-deathrattle~~ | ~~EDR mini~~ | removed (M0.5 data check: no such keyword in the dump) |
 | Rule overrides (Rulebreakers) | Violet Hold | Per-card rule exceptions (duplicate legendaries, extra draws, …) — audit each against the rules engine's hardcoded invariants |
 | Real choose-one resolution | EDR (all classes) | Pay the registered auto-random simplification: choice surfaces in `legal_actions`/Python bindings |
 
@@ -112,7 +112,7 @@ auras, quest-free trigger inventory.
 
 ```
 M0 data pipeline (this file)
- ├─ 01 expansion-emerald-dream-roadmap.md (+zh)   — Imbue, Dark Gifts, Choose One, Smoldering
+ ├─ 01 expansion-emerald-dream-roadmap.md (+zh)   — Imbue, Dark Gifts, Choose One
  ├─ 02 expansion-ungoro-roadmap.md      (+zh)     — Quests, Kindred
  ├─ 03 expansion-timeways-roadmap.md    (+zh)     — Rewind, Fabled
  ├─ 04 expansion-cataclysm-roadmap.md   (+zh)     — Colossal, Herald, Shatter, Deathwing
@@ -147,7 +147,13 @@ closing wave (tokens, legendary finishing touches, ledger sweep).
 
 ## Cross-expansion milestones
 
-- **M0** — data pipeline + validation (D1–D5 recorded). No PR without it.
+- **M0** ✅ complete (2026-08-08, PR #131–#134) — data pipeline + validation
+  (D1–D5 recorded: D1 hearthstonejson dump, D2 simplification registration per
+  the text above, D3 real Standard pool, D4 per-expansion waves, D5 official
+  localization). Data under `cards/data/` (848 cards across 5 sets + SOURCE.md);
+  schema extension, set registration, window-filtered pools and the validation
+  gate all landed; all five sub-roadmap inventories backfilled from the dump
+  (M0.5, reproducible via `tools/backfill_roadmap_checklists.py`).
 - **M1** — Emerald Dream + mini complete (Imbue / Dark Gifts / real Choose One).
 - **M2** — Un'Goro + mini complete (Quest zone, Kindred).
 - **M3** — Timeways + mini complete (Rewind).
