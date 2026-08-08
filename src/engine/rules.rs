@@ -618,6 +618,8 @@ pub fn apply_event(
                 let inner = state.make_mut();
                 inner.players[player.index()].frozen_at_turn_start =
                     frozen_at_start.iter().copied().collect();
+                // Core Set W3a — the healed-this-turn marker expires at turn start
+                inner.players[player.index()].healed_this_turn = false;
             }
             state.set_active_player(player);
             state.set_turn(new_turn);
@@ -640,14 +642,31 @@ pub fn apply_event(
             target,
             position,
         } => {
-            // Deduct mana (single cost composition — roadmap G5)
+            // Deduct mana (single cost composition — roadmap G5). Death
+            // Metal Knight (Core Set W3a) pays Health instead of Mana when
+            // the hero was healed this turn.
             let cost = crate::engine::cost::play_cost(state, card, player);
             let card_type = state.world().card_type(card);
             let is_minion = state.world().card_type(card) == Some(CardType::Minion);
+            let pay_health = state.player(player).healed_this_turn
+                && state
+                    .world()
+                    .card_id(card)
+                    .is_some_and(|c| c.0 == "CORE_ETC_523");
+            if pay_health {
+                let hero = state.player(player).hero;
+                queue.push(Event::DamageDealt {
+                    source: hero,
+                    target: hero,
+                    amount: cost.0,
+                });
+            }
             {
                 let inner = state.make_mut();
                 let p = &mut inner.players[player.index()];
-                p.current_mana -= cost.0;
+                if !pay_health {
+                    p.current_mana -= cost.0;
+                }
                 p.cards_played_this_turn += 1;
                 if is_minion {
                     p.minions_played_this_turn += 1;
@@ -1002,6 +1021,44 @@ pub fn apply_event(
             );
         }
         Event::AttackDeclared { attacker, defender } => {
+            // Mayor Noggenfogger (Core Set W3a): all targets are chosen
+            // randomly — the declared defender is replaced by a random enemy
+            // character (hero or minion) when a Noggenfogger is on the
+            // attacking player's board.
+            let defender = if state
+                .world()
+                .zones()
+                .iter(
+                    Zone::Play,
+                    state
+                        .world()
+                        .player(attacker)
+                        .unwrap_or(state.active_player()),
+                )
+                .any(|e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .is_some_and(|c| c.0 == "CORE_CFM_670")
+                }) {
+                let attacker_player = state
+                    .world()
+                    .player(attacker)
+                    .unwrap_or(state.active_player());
+                let enemies: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, attacker_player.opponent())
+                    .collect();
+                if enemies.is_empty() {
+                    defender
+                } else {
+                    let idx = state.rng_mut().next_usize(enemies.len());
+                    enemies[idx]
+                }
+            } else {
+                defender
+            };
             // Freeze check: frozen characters cannot attack
             if state.world().freeze(attacker).is_some() {
                 return Err(EngineError::InvalidTarget);

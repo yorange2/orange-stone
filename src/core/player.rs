@@ -90,6 +90,9 @@ pub struct Player {
     /// effect spends them). Gained when a friendly minion dies; any player
     /// can hold them, only Death-Knight-style cards spend them.
     pub corpses: u32,
+    /// Whether the hero was healed this turn (Core Set W3a — Death Metal
+    /// Knight pays Health instead of Mana when true); cleared at turn start
+    pub healed_this_turn: bool,
 }
 
 impl Player {
@@ -116,6 +119,7 @@ impl Player {
             minion_min_health: 0,
             frozen_at_turn_start: Vec::new(),
             corpses: 0,
+            healed_this_turn: false,
         }
     }
 }

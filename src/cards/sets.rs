@@ -18,6 +18,7 @@ use super::classic_warrior::*;
 use super::core_w1::*;
 use super::core_w2::*;
 use super::core_w3a::*;
+use super::core_w3b::*;
 // ============================================================
 // Card lists
 // ============================================================
@@ -43,6 +44,8 @@ pub const DEATH_KNIGHT_W1: &[CardDef] = &[
     MALIGNANT_HORROR,
     // Core Set W3a — Poison Breath (give a friendly Undead Poisonous)
     CORE_POISON_BREATH,
+    // Core Set W3a part 2 — Death Metal Knight (health payment)
+    CORE_DEATH_METAL_KNIGHT,
 ];
 
 // Classic set grouped by class
@@ -230,6 +233,15 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     CORE_BALL_SPIDER,
     CORE_FROG,
     CORE_STEED_SPIDER,
+    // Core Set W3a part 2 — complex neutrals + statue tokens
+    CORE_MAYOR_NOGGENFOGGER,
+    CORE_KHADGAR,
+    CORE_FINJA_THE_FLYING_STAR,
+    CORE_SHAKU_THE_COLLECTOR,
+    CORE_MERCH_SELLER,
+    CORE_WORN_STATUE,
+    CORE_LIVING_STATUE,
+    CORE_PRISTINE_STATUE,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -1115,6 +1127,19 @@ pub const ALL_CARDS: &[CardDef] = &[
     CORE_BALL_SPIDER,
     CORE_FROG,
     CORE_STEED_SPIDER,
+    // Core Set W3a part 2 (2026-08-08) — the complex batch: global hooks
+    // and attack triggers (8 cards + 3 statue tokens).
+    CORE_MAYOR_NOGGENFOGGER,
+    CORE_KHADGAR,
+    CORE_FINJA_THE_FLYING_STAR,
+    CORE_SHAKU_THE_COLLECTOR,
+    CORE_DEATH_METAL_KNIGHT,
+    CORE_MERCH_SELLER,
+    CORE_IMMORTALIZED_IN_STONE,
+    CORE_RUNAWAY_BLACKWING,
+    CORE_WORN_STATUE,
+    CORE_LIVING_STATUE,
+    CORE_PRISTINE_STATUE,
 ];
 
 // ============================================================
@@ -1139,6 +1164,7 @@ pub const POOL_OPEN_CARDS: &[&str] = &[
     "PRIEST_026",    // Mindgames — enemy deck
     "LEGENDARY_024", // Lorewalker Cho — copies a cast spell
     "CORE_EX1_100",  // Lorewalker Cho (Core Set W3a) — copies a cast spell
+    "CORE_CFM_781",  // Shaku, the Collector (Core Set W3a) — copies from the enemy deck
 ];
 
 #[cfg(test)]
@@ -1179,6 +1205,7 @@ mod tests {
                     | CardEffect::CopyRandomEnemyDeckCards { .. }
                     | CardEffect::SummonRandomEnemyDeckMinion { .. }
                     | CardEffect::CopyCastSpellToOtherPlayerHand
+                    | CardEffect::CopyEnemyDeckCardOnSelfAttack
             )
         };
         for card in ALL_CARDS {
