@@ -53,7 +53,19 @@
   （TLC_102 Torga 扫描、TLC_223/236/432 抽牌修饰）；23 卡 + 3 token 落
   `exp_tlc_w3.rs`；简化 §16（en+zh）；22 个 `tlc_w3_*` F5 场景；
   顺带修复既有 `resolve_destroy_minion` 缺 AnyMinion 臂的缺口。
-- **W4 —— 恐龙节迷你：** 迷你卡（机制由数据回填）；收尾波清扫衍生物/账本。
+- [x] **W4 —— 恐龙节迷你**（PR #149）：全部 38 张 DINO 可收集卡 + 3 张
+  衍生物落 `exp_tlc_w4c.rs`（W4b 波已落地 TLC 侧；本收尾波清扫迷你
+  系列）：四张迷你亲和卡（迪亚波罗王撕裂左/右边缘随从、火鳃给其他随从
+  突袭、寒脊剑龙伤害+冻结的 BattlecryModifier、火山实验召唤自身复制）
+  把 `cards::kindred` 注册表扩到 27 张；五张面具引入 SetStats 效果家族
+  （填满 1/1 复制、给冲锋、经正常攻击管线强制敌方攻击、附加
+  DamageAllMinions 亡语、给潜行并抽牌）；孵化仪式"你下个回合结束时"
+  增益是每人两跳计数器；安魂典礼的回合结束死亡是标记实体清扫 + 真实
+  伤害事件；路障拳手把全部护甲获得接进 grant_armor 咽喉点；大德雷克龙
+  用新 AttackedEnemyMinion 触发事件（防御者为主题——溅射排除被攻击的
+  随从）；简化发现的替身是 D2 随机池召唤；简化 §19（en+zh）；
+  18 个 `tlc_w4c_*` F5 场景；收尾波清扫剩余衍生物与账本行——W4 卡清单
+  现已全部勾选。
 
 ## 卡清单
 
@@ -209,44 +221,44 @@
 - [x] TLC_901 Fumigate
 - [x] TLC_902 Infestation
 - [x] TLC_987 Questing Assistant
-- [ ] DINO_130 Longneck Egg
-- [ ] DINO_131 Possessed Animancer
-- [ ] DINO_132 Asphyxiodon
-- [ ] DINO_136 Horn of Feasting
-- [ ] DINO_137 Skittish Saucier
-- [ ] DINO_138 Diabolus Rex
-- [ ] DINO_400 Barricade Basher
-- [ ] DINO_401 The Great Dracorex
-- [ ] DINO_402 Bat Mask
-- [ ] DINO_403 Devilsaur Mask
-- [ ] DINO_404 Firegill
-- [ ] DINO_405 Hatching Ceremony
-- [ ] DINO_406 Fire Breath
-- [ ] DINO_407 Mirrex, the Crystalline
-- [ ] DINO_408 Crystal Tusk
-- [ ] DINO_409 Techysaurus
-- [ ] DINO_410 The Egg of Khelos
-- [ ] DINO_411 Holy Eggbearer
-- [ ] DINO_412 Tortotem
-- [ ] DINO_413 Chillspine Stegodon
-- [ ] DINO_414 Tribute Dance
-- [ ] DINO_415 Story of Umbra
-- [ ] DINO_416 Hollow Direhorn
-- [ ] DINO_417 Soulrest Ceremony
-- [ ] DINO_419 Herbivore Assistant
-- [ ] DINO_421 Seismopod
-- [ ] DINO_422 Ankylodon
-- [ ] DINO_424 Hero's Welcome
-- [ ] DINO_426 Ritual of Life
-- [ ] DINO_427 Costume Merchant
-- [ ] DINO_428 Behemoth Mask
-- [ ] DINO_429 Sheep Mask
-- [ ] DINO_430 Beast Speaker Taka
-- [ ] DINO_431 Atlasaurus
-- [ ] DINO_432 Panther Mask
-- [ ] DINO_433 Guard Duty
-- [ ] DINO_434 Raptor-Nest Nurse
-- [ ] DINO_435 Crater Experiment
+- [x] DINO_130 Longneck Egg
+- [x] DINO_131 Possessed Animancer
+- [x] DINO_132 Asphyxiodon
+- [x] DINO_136 Horn of Feasting
+- [x] DINO_137 Skittish Saucier
+- [x] DINO_138 Diabolus Rex
+- [x] DINO_400 Barricade Basher
+- [x] DINO_401 The Great Dracorex
+- [x] DINO_402 Bat Mask
+- [x] DINO_403 Devilsaur Mask
+- [x] DINO_404 Firegill
+- [x] DINO_405 Hatching Ceremony
+- [x] DINO_406 Fire Breath
+- [x] DINO_407 Mirrex, the Crystalline
+- [x] DINO_408 Crystal Tusk
+- [x] DINO_409 Techysaurus
+- [x] DINO_410 The Egg of Khelos
+- [x] DINO_411 Holy Eggbearer
+- [x] DINO_412 Tortotem
+- [x] DINO_413 Chillspine Stegodon
+- [x] DINO_414 Tribute Dance
+- [x] DINO_415 Story of Umbra
+- [x] DINO_416 Hollow Direhorn
+- [x] DINO_417 Soulrest Ceremony
+- [x] DINO_419 Herbivore Assistant
+- [x] DINO_421 Seismopod
+- [x] DINO_422 Ankylodon
+- [x] DINO_424 Hero's Welcome
+- [x] DINO_426 Ritual of Life
+- [x] DINO_427 Costume Merchant
+- [x] DINO_428 Behemoth Mask
+- [x] DINO_429 Sheep Mask
+- [x] DINO_430 Beast Speaker Taka
+- [x] DINO_431 Atlasaurus
+- [x] DINO_432 Panther Mask
+- [x] DINO_433 Guard Duty
+- [x] DINO_434 Raptor-Nest Nurse
+- [x] DINO_435 Crater Experiment
 
 ## 完成定义
 

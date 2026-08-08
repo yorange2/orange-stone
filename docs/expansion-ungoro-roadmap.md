@@ -66,8 +66,25 @@ registration; simplifications get ledger rows.
   `exp_tlc_w3.rs`; simplifications §16 (en+zh); 22 `tlc_w3_*` F5
   scenarios; fixed the pre-existing `resolve_destroy_minion` AnyMinion
   gap.
-- **W4 — Festival of the Devilsaur mini:** miniset cards (mechanics backfilled
-  from data); closing wave sweeps tokens/ledger.
+- [x] **W4 — Festival of the Devilsaur mini** (PR #149): all 38 DINO
+  collectible cards + 3 tokens in `exp_tlc_w4c.rs` (the W4b split landed
+  the TLC side; this closing wave sweeps the miniset): the four Kindred
+  miniset entries (Diabolus Rex's left/right edge splash, Firegill's
+  give-others-Rush, Chillspine's damage+freeze BattlecryModifier,
+  Crater Experiment's summon-a-copy) extend the `cards::kindred` registry
+  to 27 cards; the five Masks introduce the `SetStats` effect family
+  (fill the board with 1/1 copies, grant Charge, force an enemy attack
+  through the normal attack pipeline, attach a DamageAllMinions
+  deathrattle, grant Stealth and draw); Hatching Ceremony's "end of your
+  NEXT turn" buff is a two-tick per-player countdown; Soulrest Ceremony's
+  turn-end die is a marked-entities sweep with real damage events;
+  Barricade Basher hooks every armor gain through a `grant_armor`
+  chokepoint; The Great Dracorex fires the new `AttackedEnemyMinion`
+  trigger (defender subject — the splash excludes the attacked minion);
+  D2 random-pool summons stand in for the simplified discovers;
+  simplifications §19 (en+zh); 18 `tlc_w4c_*` F5 scenarios; closing wave
+  sweeps the remaining tokens and the ledger rows — the whole W4 card
+  inventory is now ticked.
 
 ## Card inventory
 
@@ -223,44 +240,44 @@ registration; simplifications get ledger rows.
 - [x] TLC_901 Fumigate
 - [x] TLC_902 Infestation
 - [x] TLC_987 Questing Assistant
-- [ ] DINO_130 Longneck Egg
-- [ ] DINO_131 Possessed Animancer
-- [ ] DINO_132 Asphyxiodon
-- [ ] DINO_136 Horn of Feasting
-- [ ] DINO_137 Skittish Saucier
-- [ ] DINO_138 Diabolus Rex
-- [ ] DINO_400 Barricade Basher
-- [ ] DINO_401 The Great Dracorex
-- [ ] DINO_402 Bat Mask
-- [ ] DINO_403 Devilsaur Mask
-- [ ] DINO_404 Firegill
-- [ ] DINO_405 Hatching Ceremony
-- [ ] DINO_406 Fire Breath
-- [ ] DINO_407 Mirrex, the Crystalline
-- [ ] DINO_408 Crystal Tusk
-- [ ] DINO_409 Techysaurus
-- [ ] DINO_410 The Egg of Khelos
-- [ ] DINO_411 Holy Eggbearer
-- [ ] DINO_412 Tortotem
-- [ ] DINO_413 Chillspine Stegodon
-- [ ] DINO_414 Tribute Dance
-- [ ] DINO_415 Story of Umbra
-- [ ] DINO_416 Hollow Direhorn
-- [ ] DINO_417 Soulrest Ceremony
-- [ ] DINO_419 Herbivore Assistant
-- [ ] DINO_421 Seismopod
-- [ ] DINO_422 Ankylodon
-- [ ] DINO_424 Hero's Welcome
-- [ ] DINO_426 Ritual of Life
-- [ ] DINO_427 Costume Merchant
-- [ ] DINO_428 Behemoth Mask
-- [ ] DINO_429 Sheep Mask
-- [ ] DINO_430 Beast Speaker Taka
-- [ ] DINO_431 Atlasaurus
-- [ ] DINO_432 Panther Mask
-- [ ] DINO_433 Guard Duty
-- [ ] DINO_434 Raptor-Nest Nurse
-- [ ] DINO_435 Crater Experiment
+- [x] DINO_130 Longneck Egg
+- [x] DINO_131 Possessed Animancer
+- [x] DINO_132 Asphyxiodon
+- [x] DINO_136 Horn of Feasting
+- [x] DINO_137 Skittish Saucier
+- [x] DINO_138 Diabolus Rex
+- [x] DINO_400 Barricade Basher
+- [x] DINO_401 The Great Dracorex
+- [x] DINO_402 Bat Mask
+- [x] DINO_403 Devilsaur Mask
+- [x] DINO_404 Firegill
+- [x] DINO_405 Hatching Ceremony
+- [x] DINO_406 Fire Breath
+- [x] DINO_407 Mirrex, the Crystalline
+- [x] DINO_408 Crystal Tusk
+- [x] DINO_409 Techysaurus
+- [x] DINO_410 The Egg of Khelos
+- [x] DINO_411 Holy Eggbearer
+- [x] DINO_412 Tortotem
+- [x] DINO_413 Chillspine Stegodon
+- [x] DINO_414 Tribute Dance
+- [x] DINO_415 Story of Umbra
+- [x] DINO_416 Hollow Direhorn
+- [x] DINO_417 Soulrest Ceremony
+- [x] DINO_419 Herbivore Assistant
+- [x] DINO_421 Seismopod
+- [x] DINO_422 Ankylodon
+- [x] DINO_424 Hero's Welcome
+- [x] DINO_426 Ritual of Life
+- [x] DINO_427 Costume Merchant
+- [x] DINO_428 Behemoth Mask
+- [x] DINO_429 Sheep Mask
+- [x] DINO_430 Beast Speaker Taka
+- [x] DINO_431 Atlasaurus
+- [x] DINO_432 Panther Mask
+- [x] DINO_433 Guard Duty
+- [x] DINO_434 Raptor-Nest Nurse
+- [x] DINO_435 Crater Experiment
 
 ## Definition of done
 
