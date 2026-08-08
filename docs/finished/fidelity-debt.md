@@ -456,6 +456,19 @@ Cho, Thoughtsteal, Mind Vision, random pools) route through the same two
 functions, so the cap is central. Pinned by `po_*` hand-cap scenarios in
 `tests/differential.rs`.
 
+## F-A12 — Classic Defias Ringleader (ROGUE_011) combo summoned nothing ✅ resolved (2026-08-08)
+
+The Classic-pool `ROGUE_011` combo_effect referenced `"ROGUE_t"`, a token that
+was never defined — `card_by_id` missed and `resolve_summon` silently returned
+None, so the Classic combo was a no-op (found 2026-08-08 while the Core Set W6
+reprint `CORE_EX1_131` was wired, which defined the real token `EX1_131t`).
+
+Fix applied: `ROGUE_011`'s combo now summons the real `EX1_131t` Defias Bandit
+(2/1, 1-cost; already in `ALL_CARDS` via `CORE_DEFIAS_BANDIT`); the stale note
+in `core_w6.rs` updated. Pinned by the `classic_defias_bandit_combo` scenario in
+`tests/differential.rs` (no combo on the first card, Bandit summoned on the
+second). No RL pool impact — no card IDs changed.
+
 ## Mechanism inventory (what the engine has vs. what's missing)
 
 **Exists** (so the corresponding cards are mostly *wiring* work):

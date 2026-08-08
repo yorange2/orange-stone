@@ -405,7 +405,9 @@ pub const DEFIAS_RINGLEADER: CardDef = CardDef {
     death_trigger: None,
     summon_trigger: None,
     choose_one_effect: None,
-    combo_effect: Some(CardEffect::SummonMinion { card_id: "ROGUE_t" }),
+    combo_effect: Some(CardEffect::SummonMinion {
+        card_id: "EX1_131t",
+    }),
     attack_equals_health: false,
 };
 
