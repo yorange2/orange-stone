@@ -1283,6 +1283,11 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         | CardEffect::CopyRandomEnemyDeckCards { .. }
         | CardEffect::SummonRandomEnemyDeckMinion { .. }
         | CardEffect::CopyCastSpellToOtherPlayerHand => 3.0,
+        // Core Set W1: filling the hand is worth ~a card each; the forced
+        // attack and the corpse copy are board-value effects.
+        CardEffect::FillHandWithMinion { .. } => 4.0,
+        CardEffect::ForceEnemyMinionsAttackThis => 3.0,
+        CardEffect::SpendCorpsesSummonCopy { .. } => 3.0,
     }
 }
 

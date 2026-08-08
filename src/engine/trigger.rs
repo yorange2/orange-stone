@@ -928,6 +928,77 @@ pub fn resolve_effect(
                 }
             }
         }
+        CardEffect::FillHandWithMinion { card_id } => {
+            // Halazzi, the Lynx — fill the hand with 1/1 Lynxes (the
+            // hand-size cap in add_card_to_hand stops the fill at 10)
+            let Some(card_def) = crate::cards::def::card_by_id(card_id) else {
+                return;
+            };
+            while state.world().zones().len(Zone::Hand, owner) < MAX_HAND_SIZE {
+                add_card_to_hand(state, owner, card_def);
+            }
+        }
+        CardEffect::ForceEnemyMinionsAttackThis => {
+            // Mythical Terror — end-of-turn: every enemy minion that CAN
+            // attack (not frozen, not exhausted, attack > 0, not
+            // cant-attack) is forced to attack this character. Taunt is
+            // bypassed (a forced attack is not a choice); the attacks run
+            // through the normal AttackDeclared/ResolveAttack pipeline so
+            // attack triggers and retaliation apply.
+            let enemy = owner.opponent();
+            let forced: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, enemy)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .filter(|&e| {
+                    state.world().freeze(e).is_none()
+                        && state.world().cant_attack(e).is_none()
+                        && state.world().effective_attack(e).is_some_and(|a| a.0 > 0)
+                        && !state
+                            .world()
+                            .attacks_used(e)
+                            .is_some_and(|a| a.is_exhausted_with(state.world().max_attacks(e)))
+                })
+                .collect();
+            for minion in forced {
+                let atk = crate::engine::rules::compute_attacker_damage(state, minion);
+                queue.push(Event::AttackDeclared {
+                    attacker: minion,
+                    defender: source,
+                });
+                queue.push(Event::ResolveAttack {
+                    attacker: minion,
+                    defender: source,
+                    attacker_damage: atk,
+                    retaliation_immune: false,
+                });
+            }
+        }
+        CardEffect::SpendCorpsesSummonCopy { cost } => {
+            // Malignant Horror — end-of-turn: spend `cost` corpses to
+            // summon a copy of this minion (does nothing with fewer
+            // corpses; the summoned copy is a fresh card instance with its
+            // own Reborn).
+            let have = state.player(owner).corpses;
+            if have < cost {
+                return;
+            }
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].corpses -= cost;
+            }
+            let card_def = crate::cards::def::card_by_id(
+                state
+                    .world()
+                    .card_id(source)
+                    .expect("source has a card id")
+                    .0,
+            );
+            if let Some(card_def) = card_def {
+                let _ = resolve_summon(state, queue, source, owner, card_def.id);
+            }
+        }
         CardEffect::ResurrectDiedMinion => {
             // Secret-context effect — resolved by the secret system with the
             // death event (Redemption)
@@ -1200,7 +1271,7 @@ fn resolve_draw_by_race(
         .world()
         .zones()
         .iter(Zone::Deck, player)
-        .filter(|&e| state.world().race(e) == Some(race))
+        .filter(|&e| state.world().has_race(e, race))
         .take(count as usize)
         .collect();
     for card in matches {
@@ -1235,7 +1306,9 @@ fn resolve_demonfire(
         return;
     };
     let friendly_demon = state.world().player(target) == Some(owner)
-        && state.world().race(target) == Some(crate::core::component::Race::Demon);
+        && state
+            .world()
+            .has_race(target, crate::core::component::Race::Demon);
     if friendly_demon {
         state.world_mut().add_enchantment(
             target,
@@ -1905,7 +1978,7 @@ fn resolve_gain_stats_and_taunt(
     let minions: SmallList<Entity> = match target {
         EffectTarget::FriendlyRace(race) => collect_friendly_minions(state, owner)
             .into_iter()
-            .filter(|&e| state.world().race(e) == Some(race))
+            .filter(|&e| state.world().has_race(e, race))
             .collect(),
         // Choose One taunt branches (Druid of the Claw, Ancient of War) — the
         // minion itself
@@ -1943,7 +2016,7 @@ fn resolve_destroy_and_gain_stats(
             let mut all = collect_friendly_minions(state, owner);
             all.extend(collect_all_enemy_minions(state, owner));
             all.into_iter()
-                .filter(|&e| state.world().race(e) == Some(race))
+                .filter(|&e| state.world().has_race(e, race))
                 .collect()
         }
         _ => return,
@@ -2052,7 +2125,7 @@ fn resolve_gain_stats(
         EffectTarget::FriendlyRace(race) => {
             let minions: SmallList<Entity> = collect_friendly_minions(state, owner)
                 .into_iter()
-                .filter(|&e| state.world().race(e) == Some(race))
+                .filter(|&e| state.world().has_race(e, race))
                 .collect();
             let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
                 return;
@@ -2088,7 +2161,7 @@ fn resolve_gain_stats(
         EffectTarget::AllOtherFriendlyRace(race) => {
             let minions: SmallList<Entity> = collect_friendly_minions(state, owner)
                 .into_iter()
-                .filter(|&e| e != source && state.world().race(e) == Some(race))
+                .filter(|&e| e != source && state.world().has_race(e, race))
                 .collect();
             let world = state.world_mut();
             for minion in &minions {
@@ -2269,7 +2342,7 @@ fn resolve_destroy_minion(
             let mut all = collect_friendly_minions(state, owner);
             all.extend(collect_all_enemy_minions(state, owner));
             all.into_iter()
-                .filter(|&e| state.world().race(e) == Some(race))
+                .filter(|&e| state.world().has_race(e, race))
                 .collect()
         }
         EffectTarget::EnemyMinionAttackLE(max_atk) => collect_enemy_minions(state, owner, None)
@@ -2897,6 +2970,8 @@ fn resolve_deal_damage_randomly(
             all.extend(collect_all_enemy_characters(state, owner));
             all.into_iter().filter(|&e| e != source).collect()
         }
+        // Devouring Plague (Core Set W1) — random enemy minions only
+        EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner, Some(source)),
         _ => return,
     };
     if chars.is_empty() {
@@ -3257,7 +3332,7 @@ fn resolve_grant_attack_and_immune(
     let minions: SmallList<Entity> = match target {
         EffectTarget::FriendlyRace(race) => collect_friendly_minions(state, owner)
             .into_iter()
-            .filter(|&e| state.world().race(e) == Some(race))
+            .filter(|&e| state.world().has_race(e, race))
             .collect(),
         _ => collect_friendly_minions(state, owner),
     };

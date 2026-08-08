@@ -688,6 +688,28 @@ pub enum CardEffect {
     /// Cho — the subject is the cast spell; the copy goes to the caster's
     /// opponent, whoever that is)
     CopyCastSpellToOtherPlayerHand,
+    // ----------------------------------------------------------------
+    // Core Set W1 effects (core-set-roadmap W1) — attack-pipeline
+    // primitives. RUSH / LIFESTEAL / REBORN themselves are components
+    // applied by `apply_card_keywords`; these are the scripted effects
+    // the W1 cards need.
+    // ----------------------------------------------------------------
+    /// Fill the owner's hand with the given card (Halazzi, the Lynx — 1/1
+    /// Lynxes with Rush; stops at the 10-card hand cap, F-A11)
+    FillHandWithMinion {
+        /// Card ID of the token to fill the hand with
+        card_id: &'static str,
+    },
+    /// Force all enemy minions that can attack to attack this character
+    /// (Mythical Terror — end-of-turn; ignores Taunt, respects Frozen and
+    /// exhausted attackers)
+    ForceEnemyMinionsAttackThis,
+    /// Spend `cost` corpses to summon a copy of this minion (Malignant
+    /// Horror — end-of-turn; does nothing with fewer corpses)
+    SpendCorpsesSummonCopy {
+        /// Corpses to spend
+        cost: u32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -929,6 +951,13 @@ enum CardEffectDe {
         fallback_card_id: String,
     },
     CopyCastSpellToOtherPlayerHand,
+    FillHandWithMinion {
+        card_id: String,
+    },
+    ForceEnemyMinionsAttackThis,
+    SpendCorpsesSummonCopy {
+        cost: u32,
+    },
     DestroyAndGainStats {
         attack: i32,
         health: i32,
@@ -1255,6 +1284,13 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             }
             CardEffectDe::CopyCastSpellToOtherPlayerHand => {
                 CardEffect::CopyCastSpellToOtherPlayerHand
+            }
+            CardEffectDe::FillHandWithMinion { card_id } => CardEffect::FillHandWithMinion {
+                card_id: intern(card_id)?,
+            },
+            CardEffectDe::ForceEnemyMinionsAttackThis => CardEffect::ForceEnemyMinionsAttackThis,
+            CardEffectDe::SpendCorpsesSummonCopy { cost } => {
+                CardEffect::SpendCorpsesSummonCopy { cost }
             }
             CardEffectDe::DestroyAndGainStats {
                 attack,

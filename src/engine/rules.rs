@@ -234,6 +234,17 @@ fn validate_attack(
         _ => return Err(EngineError::InvalidTarget),
     }
 
+    // Rush (Core Set W1): a minion with Rush cannot attack the enemy HERO
+    // on the turn it was summoned (it may attack enemy minions). The
+    // SummonedThisTurn marker is cleared at the start of the next turn.
+    if defender_type == CardType::Hero
+        && attacker_type == CardType::Minion
+        && world.rush(attacker).is_some()
+        && world.summoned_this_turn(attacker).is_some()
+    {
+        return Err(EngineError::InvalidTarget);
+    }
+
     // Taunt check: if the enemy board has taunt minions, a taunt must be attacked
     let enemy = active.opponent();
     let has_taunt = world
@@ -303,7 +314,9 @@ fn validate_hero_power(state: &GameState, hero: Entity) -> Result<(), EngineErro
 }
 
 /// Computes the attacker's total damage (base attack + auras + weapon bonus).
-fn compute_attacker_damage(state: &GameState, attacker: Entity) -> i32 {
+/// `pub(crate)` — the forced-attack effect (Mythical Terror, Core Set W1)
+/// enqueues attacks from the trigger resolver.
+pub(crate) fn compute_attacker_damage(state: &GameState, attacker: Entity) -> i32 {
     let world = state.world();
     let base = world.effective_attack(attacker).unwrap_or(Attack(0));
     // `effective_attack` rather than the raw component so weapon enchantments
@@ -423,6 +436,59 @@ pub fn enqueue(
 // Event application (mutating state)
 // ============================================================
 
+/// Lifesteal (Core Set W1) — a Lifesteal damage source heals its owner's
+/// hero for the damage dealt. Only characters with damage accumulate a heal
+/// (overhealing triggers nothing, matching the heal pipeline); a healed hero
+/// fires `CharacterHealed` triggers (Lightwarden sees lifesteal heals).
+fn resolve_lifesteal_heal(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    amount: i32,
+) {
+    // The source itself carries Lifesteal (minion, spell entity, weapon-hit
+    // source), or the source is a hero whose equipped weapon has it
+    // (Aldrachi Warblades — hero attacks heal; Core Set W1).
+    let source_heals = state.world().lifesteal(source).is_some()
+        || (state.world().card_type(source) == Some(CardType::Hero)
+            && state
+                .world()
+                .player(source)
+                .and_then(|p| state.player(p).weapon)
+                .is_some_and(|w| state.world().lifesteal(w).is_some()));
+    if !source_heals {
+        return;
+    }
+    let Some(owner) = state.world().player(source) else {
+        return;
+    };
+    let hero = state.player(owner).hero;
+    let dmg = state
+        .world()
+        .damage(hero)
+        .unwrap_or(crate::core::component::Damage(0))
+        .0;
+    if dmg <= 0 {
+        return;
+    }
+    let new_dmg = (dmg - amount).max(0);
+    if new_dmg > 0 {
+        state
+            .world_mut()
+            .set_damage(hero, crate::core::component::Damage(new_dmg));
+    } else {
+        state.world_mut().remove_damage(hero);
+    }
+    fire_triggers(
+        state,
+        queue,
+        TriggerEvent::CharacterHealed,
+        owner,
+        Some(hero),
+        None,
+    );
+}
+
 /// Death check — the last step of the damage pipeline (`DamageDealt`).
 ///
 /// When the target's effective health is ≤ 0: heroes enqueue a game-over
@@ -515,6 +581,9 @@ pub fn apply_event(
                     world.set_attacks_used(entity, AttacksUsed(0));
                     // Reset the hero-power-used flag
                     world.set_hero_power_used(entity, HeroPowerUsed(false));
+                    // SummonedThisTurn expires: a Rush minion may attack the
+                    // hero from this turn on (Core Set W1)
+                    world.remove_summoned_this_turn(entity);
                 }
             }
             {
@@ -842,9 +911,18 @@ pub fn apply_event(
             target,
         } => {
             // Summoning sickness: minions without charge cannot attack this
-            // turn (a Charge aura — Tundra Rhino — counts as charge)
+            // turn (a Charge aura — Tundra Rhino — counts as charge). Rush
+            // (Core Set W1) also skips sickness — it can attack enemy MINIONS
+            // the turn it arrives — but is tracked by SummonedThisTurn so the
+            // hero-attack ban (validate_attack) can be enforced until the
+            // next turn.
             if !state.world().effective_charge(minion) {
-                state.world_mut().set_attacks_used(minion, AttacksUsed(1));
+                state
+                    .world_mut()
+                    .set_summoned_this_turn(minion, crate::core::component::SummonedThisTurn);
+                if state.world().rush(minion).is_none() {
+                    state.world_mut().set_attacks_used(minion, AttacksUsed(1));
+                }
             }
             // Check battlecry component (combo-aware). Choose One minions
             // resolve their branch through the choice system (roadmap G6).
@@ -1026,7 +1104,9 @@ pub fn apply_event(
                         let inner = state.make_mut();
                         inner.players[pid.index()].armor -= absorbed;
                         if remaining <= 0 {
-                            // All damage absorbed by armor
+                            // All damage absorbed by armor — the damage was
+                            // dealt, so Lifesteal still heals the full amount
+                            resolve_lifesteal_heal(state, queue, source, amount);
                             return Ok(());
                         }
                         // Remaining damage continues through to health — accumulate
@@ -1089,6 +1169,13 @@ pub fn apply_event(
                 .world_mut()
                 .set_damage(target, crate::core::component::Damage(new_damage));
 
+            // Lifesteal (Core Set W1): damage dealt by a Lifesteal source
+            // heals the source's owner hero for the damage dealt. Weapon,
+            // minion and spell damage all count; the divine-shield/immune
+            // branches returned early (no damage was dealt), and the
+            // fully-armor-absorbed hero branch healed above.
+            resolve_lifesteal_heal(state, queue, source, amount);
+
             // Damage triggers (roadmap G2): "whenever this minion takes damage"
             // (Acolyte of Pain) and "whenever a friendly minion takes damage"
             // (Frothing Berserker, Armorsmith) fire after the damage is applied
@@ -1126,6 +1213,49 @@ pub fn apply_event(
                 return Ok(());
             }
             let owner = state.world().player(minion);
+
+            // Reborn (Core Set W1): the first death resurrects the minion as
+            // a fresh 1/1 instead of dying — all buffs cleared, base stats
+            // 1/1, Reborn spent, summoning sickness applied (a Rush/Charge
+            // minion keeps its attack availability and can attack minions
+            // again). The resurrection counts as a summon: on-summon
+            // triggers fire (Sword of Justice), battlecries do NOT re-fire.
+            if state.world().reborn(minion).is_some() {
+                // A Reborn death still counts as a death for corpse purposes
+                // (Core Set W1 — the Death-Knight corpse resource; the
+                // resurrection itself produces none beyond this one).
+                if let Some(owner) = owner {
+                    let inner = state.make_mut();
+                    inner.players[owner.index()].corpses += 1;
+                }
+                state.world_mut().remove_reborn(minion);
+                {
+                    let world = state.world_mut();
+                    world.remove_enchantments(minion);
+                    world.set_attack(minion, Attack(1));
+                    world.set_health(minion, Health(1));
+                    world.remove_damage(minion);
+                }
+                if !state.world().effective_charge(minion) {
+                    state
+                        .world_mut()
+                        .set_summoned_this_turn(minion, crate::core::component::SummonedThisTurn);
+                    if state.world().rush(minion).is_none() {
+                        state.world_mut().set_attacks_used(minion, AttacksUsed(1));
+                    }
+                }
+                if let Some(owner) = owner {
+                    fire_triggers(
+                        state,
+                        queue,
+                        TriggerEvent::FriendlyMinionSummoned,
+                        owner,
+                        Some(minion),
+                        Some(minion),
+                    );
+                }
+                return Ok(());
+            }
 
             // Move the minion to the graveyard FIRST (entity and components kept
             // for replay and graveyard effects) — death triggers must see the
@@ -1165,10 +1295,13 @@ pub fn apply_event(
                 );
             }
 
-            // Record the death for resurrection effects
+            // Record the death for resurrection effects; the owner also
+            // gains a corpse (Core Set W1 — Malignant Horror's end-of-turn
+            // effect spends them; any friendly death produces one)
             if let Some(owner) = owner {
                 let inner = state.make_mut();
                 inner.players[owner.index()].died_this_turn.push(minion);
+                inner.players[owner.index()].corpses += 1;
             }
         }
         Event::CardDrawn { .. } => {
@@ -1591,7 +1724,7 @@ fn trigger_applies(
     if let Some(race) = trigger.race {
         // The subject must exist and carry the required race (a dead subject
         // keeps its components in the graveyard, so its race is still readable)
-        if !subject.is_some_and(|s| state.world().race(s) == Some(race)) {
+        if !subject.is_some_and(|s| state.world().has_race(s, race)) {
             return false;
         }
     }

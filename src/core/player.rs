@@ -86,6 +86,10 @@ pub struct Player {
     pub corrupted: Vec<crate::core::entity::Entity>,
     /// Minimum minion health this turn (Commanding Shout, 0 means no limit)
     pub minion_min_health: i32,
+    /// Corpses (Core Set W1 — data-driven: Malignant Horror's end-of-turn
+    /// effect spends them). Gained when a friendly minion dies; any player
+    /// can hold them, only Death-Knight-style cards spend them.
+    pub corpses: u32,
 }
 
 impl Player {
@@ -111,6 +115,7 @@ impl Player {
             corrupted: Vec::new(),
             minion_min_health: 0,
             frozen_at_turn_start: Vec::new(),
+            corpses: 0,
         }
     }
 }

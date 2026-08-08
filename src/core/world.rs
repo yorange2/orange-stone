@@ -13,8 +13,8 @@ use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
     Charge, ChooseOneEffect, ComboEffect, Cost, CostModifier, CostModifierKind, Damage,
     Deathrattle, DivineShield, Durability, Elusive, Enchantment, Enrage, Freeze, Health,
-    HeroPowerDef, HeroPowerUsed, Immune, Overload, Poison, Race, Secret, SpellDamage, Stealth,
-    Taunt, Trigger, Windfury,
+    HeroPowerDef, HeroPowerUsed, Immune, Lifesteal, Overload, Poison, Race, Reborn, Rush, Secret,
+    SpellDamage, Stealth, SummonedThisTurn, Taunt, Trigger, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -94,7 +94,10 @@ pub struct World {
     /// CardType component storage
     card_type: SparseSet<CardType>,
     /// Race component storage (fidelity-debt W1)
-    race: SparseSet<Race>,
+    /// Race storage — a minion may carry several tribes (Core Set W1:
+    /// Mythical Terror is Demon + Beast; the classic single-tribe cards
+    /// hold exactly one entry).
+    race: SparseSet<Vec<Race>>,
     /// Zone component storage (the entity's current zone)
     zone_comp: SparseSet<Zone>,
     /// PlayerId component storage
@@ -149,6 +152,14 @@ pub struct World {
     card_id: SparseSet<CardId>,
     /// Poison component storage (poison)
     poison: SparseSet<Poison>,
+    /// Rush component storage (Core Set W1)
+    rush: SparseSet<Rush>,
+    /// Lifesteal component storage (Core Set W1)
+    lifesteal: SparseSet<Lifesteal>,
+    /// Reborn component storage (Core Set W1)
+    reborn: SparseSet<Reborn>,
+    /// SummonedThisTurn component storage (Core Set W1)
+    summoned_this_turn: SparseSet<SummonedThisTurn>,
     /// Enrage component storage — the damaged-only conditional bonus
     enrage: SparseSet<Enrage>,
     /// Stealth component storage (stealth)
@@ -272,6 +283,10 @@ impl World {
             cost_modifier: SparseSet::new(),
             card_id: SparseSet::new(),
             poison: SparseSet::new(),
+            rush: SparseSet::new(),
+            lifesteal: SparseSet::new(),
+            reborn: SparseSet::new(),
+            summoned_this_turn: SparseSet::new(),
             enrage: SparseSet::new(),
             stealth: SparseSet::new(),
             elusive: SparseSet::new(),
@@ -346,6 +361,10 @@ impl World {
         self.cost_modifier.remove(entity);
         self.card_id.remove(entity);
         self.poison.remove(entity);
+        self.rush.remove(entity);
+        self.lifesteal.remove(entity);
+        self.reborn.remove(entity);
+        self.summoned_this_turn.remove(entity);
         self.enrage.remove(entity);
         self.stealth.remove(entity);
         self.elusive.remove(entity);
@@ -773,6 +792,31 @@ impl World {
         remove_poison,
         iter_poison
     );
+    component_accessors!(rush, Rush, rush, set_rush, remove_rush, iter_rush);
+    component_accessors!(
+        lifesteal,
+        Lifesteal,
+        lifesteal,
+        set_lifesteal,
+        remove_lifesteal,
+        iter_lifesteal
+    );
+    component_accessors!(
+        reborn,
+        Reborn,
+        reborn,
+        set_reborn,
+        remove_reborn,
+        iter_reborn
+    );
+    component_accessors!(
+        summoned_this_turn,
+        SummonedThisTurn,
+        summoned_this_turn,
+        set_summoned_this_turn,
+        remove_summoned_this_turn,
+        iter_summoned_this_turn
+    );
     component_accessors!(
         enrage,
         Enrage,
@@ -813,7 +857,50 @@ impl World {
         remove_overload,
         iter_overload
     );
-    component_accessors!(race, Race, race, set_race, remove_race, iter_race);
+    /// Get the tribes of an entity (empty for tribe-less minions).
+    #[must_use]
+    pub fn race(&self, entity: Entity) -> Option<&[Race]> {
+        self.race.get_ref(entity).map(Vec::as_slice)
+    }
+
+    /// Whether the entity carries the given tribe (any of its tribes).
+    #[must_use]
+    pub fn has_race(&self, entity: Entity, race: Race) -> bool {
+        self.race
+            .get_ref(entity)
+            .is_some_and(|tribes| tribes.contains(&race))
+    }
+
+    /// Set the tribes of an entity to exactly one tribe (the primary
+    /// tribe from the card definition).
+    pub fn set_race(&mut self, entity: Entity, race: Race) {
+        self.race.insert(entity, vec![race]);
+    }
+
+    /// Add a secondary tribe to an entity (Core Set W1 — dual-tribe cards
+    /// such as Mythical Terror; no-op when the tribe is already present).
+    pub fn add_race(&mut self, entity: Entity, race: Race) {
+        let has = self
+            .race
+            .get_ref(entity)
+            .is_some_and(|tribes| tribes.contains(&race));
+        if has {
+            return;
+        }
+        let mut tribes = self.race.get(entity).unwrap_or_default();
+        tribes.push(race);
+        self.race.insert(entity, tribes);
+    }
+
+    /// Remove all tribes from an entity.
+    pub fn remove_race(&mut self, entity: Entity) -> Option<Vec<Race>> {
+        self.race.remove(entity)
+    }
+
+    /// Iterate all entities with tribes (entity, tribes).
+    pub fn iter_race(&self) -> impl Iterator<Item = (Entity, &Vec<Race>)> {
+        self.race.iter()
+    }
     /// Whether an entity effectively has Charge — its base Charge component or
     /// an applying Charge aura (Tundra Rhino — your Beasts have Charge).
     #[must_use]
@@ -1078,12 +1165,10 @@ fn aura_applies_to(
         AuraTarget::AllFriendlyMinions => target_player == aura_player,
         AuraTarget::OtherFriendlyMinions => target_player == aura_player && target != aura_source,
         AuraTarget::FriendlyRace(race) => {
-            target_player == aura_player && world.race(target) == Some(race)
+            target_player == aura_player && world.has_race(target, race)
         }
         AuraTarget::OtherFriendlyRace(race) => {
-            target_player == aura_player
-                && target != aura_source
-                && world.race(target) == Some(race)
+            target_player == aura_player && target != aura_source && world.has_race(target, race)
         }
         AuraTarget::AdjacentMinions => {
             if target_player != aura_player || target == aura_source {

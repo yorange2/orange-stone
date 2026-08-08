@@ -15,14 +15,15 @@ pub mod classic_rogue;
 pub mod classic_shaman;
 pub mod classic_warlock;
 pub mod classic_warrior;
+pub mod core_w1;
 pub mod def;
 pub mod generated;
 pub mod pool;
 pub mod sets;
 
 use crate::core::component::{
-    Attack, AttacksUsed, Aura, CardId, Cost, Deathrattle, Durability, Enrage, Health, Overload,
-    Poison, Stealth, Trigger, TriggerEvent, TriggerTiming,
+    Attack, AttacksUsed, Aura, CardId, Cost, Deathrattle, Durability, Enrage, Health, Lifesteal,
+    Overload, Poison, Reborn, Rush, Stealth, Trigger, TriggerEvent, TriggerTiming,
 };
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
@@ -67,6 +68,43 @@ pub(crate) const POOL_OPEN_KEYWORD_IDS: &[&str] = &[
 ];
 
 pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &CardDef) {
+    // Core Set W1 keywords — RUSH / LIFESTEAL / REBORN as components (Core
+    // Set W1 primitives; the `CardDef` struct stays untouched per the
+    // "avoid large struct changes" convention, matching Poison/Overload).
+    if matches!(
+        card_def.id,
+        // Rush (5)
+        "CORE_BT_156"   // Imprisoned Vilefiend
+        | "CORE_DRG_079" // Evasive Wyrm
+        | "CORE_RLK_657" // Underking
+        | "CORE_TRL_900" // Halazzi, the Lynx
+        | "CORE_WC_701" // Felrattler
+    ) {
+        world.set_rush(entity, Rush);
+    }
+    if matches!(
+        card_def.id,
+        // Lifesteal (8)
+        "CORE_BAR_311"   // Devouring Plague (spell)
+        | "CORE_BT_801"  // Eye Beam (spell)
+        | "CORE_BT_921"  // Aldrachi Warblades (weapon)
+        | "CORE_GIL_558" // Swamp Leech
+        | "CORE_ICC_055" // Drain Soul (spell)
+        | "CORE_ICC_214" // Obsidian Statue
+        | "CORE_SW_442"  // Void Shard (spell)
+        | "CORE_TTN_866" // Mythical Terror
+    ) {
+        world.set_lifesteal(entity, Lifesteal);
+    }
+    if matches!(card_def.id, "CORE_RLK_745" | "CORE_ULD_723") {
+        // Reborn (2): Malignant Horror, Murmy
+        world.set_reborn(entity, Reborn);
+    }
+    if card_def.id == "CORE_TTN_866" {
+        // Mythical Terror — dual tribe Demon + Beast (the CardDef carries
+        // the primary Demon; the Beast half lands here, Core Set W1)
+        world.add_race(entity, crate::core::component::Race::Beast);
+    }
     // Shaman cards with Overload — the amount locks mana on the owner's next
     // turn (roadmap F1): Lightning Bolt 1, Lightning Storm 2, Feral Spirit 2,
     // Dust Devil 2, Forked Lightning 2, Lava Burst 2, Stormforged Axe 1,

@@ -95,12 +95,10 @@ fn aura_applies_to_entity(
         AuraTarget::AllFriendlyMinions => target_player == aura_player,
         AuraTarget::OtherFriendlyMinions => target_player == aura_player && target != aura_source,
         AuraTarget::FriendlyRace(race) => {
-            target_player == aura_player && world.race(target) == Some(race)
+            target_player == aura_player && world.has_race(target, race)
         }
         AuraTarget::OtherFriendlyRace(race) => {
-            target_player == aura_player
-                && target != aura_source
-                && world.race(target) == Some(race)
+            target_player == aura_player && target != aura_source && world.has_race(target, race)
         }
         AuraTarget::AdjacentMinions => {
             if target_player != aura_player || target == aura_source {

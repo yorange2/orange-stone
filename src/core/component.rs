@@ -221,6 +221,9 @@ pub enum Race {
     Pirate,
     /// Totem (Core Set W0)
     Totem,
+    /// Undead (Core Set W1 — data-driven: Underking, Malignant Horror and
+    /// the March-of-the-Lich-King reprints carry the tribe)
+    Undead,
 }
 
 /// Aura effect kind.
@@ -598,6 +601,35 @@ pub struct Enrage {
 /// it is removed when the character attacks (this engine simplifies it to permanent Stealth; removal logic is left for later).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Stealth;
+
+/// Rush (Core Set W1) — can attack enemy MINIONS the turn it is summoned
+/// (no summoning sickness), but cannot attack the enemy hero until the next
+/// turn. The summon-turn restriction is tracked by `SummonedThisTurn`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct Rush;
+
+/// Lifesteal (Core Set W1) — damage dealt by this character heals the
+/// owner's hero for the damage dealt. Weapon damage counts; spell damage
+/// counts (the spell entity carries the component); divine-shield and
+/// immune absorptions heal nothing (no damage was dealt).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct Lifesteal;
+
+/// Reborn (Core Set W1) — the first time this minion would die, it is
+/// resurrected on the spot as a fresh 1/1 copy instead: all buffs cleared,
+/// base stats set to 1/1, Reborn spent, and summoning sickness applied
+/// (the resurrection counts as a summon — on-summon triggers fire, the
+/// minion cannot attack until next turn unless it has Rush/Charge, and
+/// battlecries do NOT re-fire).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct Reborn;
+
+/// SummonedThisTurn (Core Set W1) — set on minions when they enter the
+/// battlefield, cleared at the start of each turn. Rush consults it to
+/// forbid hero attacks on the summoning turn; Charge/Rush minions do not
+/// get summoning sickness.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct SummonedThisTurn;
 
 /// Elusive (扰咒) — cannot be targeted by spells or hero powers (M5).
 /// Attacks and battlecries CAN target it; AOE still hits it.
