@@ -329,6 +329,25 @@ pub struct Player {
     /// expansions M2-W4b — registered simplification §18: the starting-deck
     /// check sets this; no custom-location machinery exists yet).
     pub elise_location_crafted: bool,
+    /// The player's rewind history (2025–2026 expansions M3-W1 — the
+    /// Across the Timeways rewind primitive): one entry per card play —
+    /// the played card's id and the effect the play resolved (battlecry /
+    /// spell effect, combo-aware), capped at
+    /// [`crate::cards::rewind::MAX_REWIND_HISTORY`]. Quest, hero, and
+    /// Choose One plays record nothing; plays without an effect record
+    /// `effect: None` but still occupy a slot. See
+    /// `crate::cards::rewind` for the record semantics.
+    pub last_played: Vec<crate::cards::rewind::RewindEntry>,
+    /// The played minion whose play burst is in progress (2025–2026
+    /// expansions M3-W1 — the rewind primitive): set in the CardPlayed
+    /// path when a minion is played, consumed by that minion's
+    /// MinionSummoned event — which is also enqueued for effect-summoned
+    /// minions, so the marker distinguishes a PLAYED minion (records into
+    /// the rewind history) from a summoned one (never records). `None`
+    /// between plays; a stale marker (e.g. a Choose One minion whose play
+    /// records nothing) is inert — the equality check cannot match a
+    /// future summon, and the next play overwrites it.
+    pub rewind_played_minion: Option<crate::core::entity::Entity>,
 }
 
 impl Player {
@@ -410,6 +429,8 @@ impl Player {
             starting_deck: Vec::new(),
             minions_cost_5: false,
             elise_location_crafted: false,
+            last_played: Vec::new(),
+            rewind_played_minion: None,
         }
     }
 }

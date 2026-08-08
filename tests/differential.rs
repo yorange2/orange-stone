@@ -27303,3 +27303,622 @@ fn tlc_w4c_tortotem_multi_tribe_pool() {
         "Mythical Terror — the multi-tribe pool"
     );
 }
+
+// ============================================================
+// TMW1 — the Rewind primitive (2025–2026 expansions M3-W1, the Across the
+// Timeways sub-roadmap W1). Engine machinery only — no TIME cards land this
+// wave. The fixture CardDefs key on the rewind-count table ids (`TIME_000`
+// ×1, `TIME_038` ×3 — `cards::rewind::rewind_count`); the scenarios pin the
+// history push order, the pre-push snapshot replay, the chronological replay
+// order, the no-effect slot semantics, and the death-phase interplay.
+
+use orange_stone::cards::def::CardDef;
+use orange_stone::core::effect::{CardEffect, EffectTarget};
+
+macro_rules! tmw1_def {
+    ($id:expr, $name:expr, $card_type:expr, $attack:expr, $health:expr, $battlecry:expr, $deathrattle:expr, $spell_effect:expr) => {
+        CardDef {
+            id: $id,
+            name: $name,
+            card_type: $card_type,
+            cost: 0,
+            attack: $attack,
+            health: $health,
+            durability: 0,
+            battlecry: $battlecry,
+            deathrattle: $deathrattle,
+            taunt: false,
+            stealth: false,
+            elusive: false,
+            race: None,
+            hero_power: None,
+            aura: None,
+            secret: None,
+            divine_shield: false,
+            windfury: false,
+            charge: false,
+            spell_damage: 0,
+            cant_attack: false,
+            end_turn_effect: None,
+            start_turn_effect: None,
+            spell_effect: $spell_effect,
+            spell_trigger: None,
+            death_trigger: None,
+            summon_trigger: None,
+            choose_one_effect: None,
+            combo_effect: None,
+            attack_equals_health: false,
+        }
+    };
+}
+
+/// Fixture A — a spell dealing 2 to the enemy hero (the "previous card").
+const TMW1_A: CardDef = tmw1_def!(
+    "TMW1_A",
+    "Fixture A",
+    CardType::Spell,
+    0,
+    0,
+    None,
+    None,
+    Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::EnemyHero,
+    })
+);
+
+/// Fixture B — a spell dealing 1 to the enemy hero (distinguishes order).
+const TMW1_B: CardDef = tmw1_def!(
+    "TMW1_B",
+    "Fixture B",
+    CardType::Spell,
+    0,
+    0,
+    None,
+    None,
+    Some(CardEffect::DealDamage {
+        amount: 1,
+        target: EffectTarget::EnemyHero,
+    })
+);
+
+/// Fixture C — a draw spell (its replay is observable via the hand size).
+const TMW1_C: CardDef = tmw1_def!(
+    "TMW1_C",
+    "Fixture C",
+    CardType::Spell,
+    0,
+    0,
+    None,
+    None,
+    Some(CardEffect::DrawCard { count: 1 })
+);
+
+/// Fixture TARGET — a targetable damage spell (the death-phase scenario).
+const TMW1_TARGET: CardDef = tmw1_def!(
+    "TMW1_TARGET",
+    "Fixture Target",
+    CardType::Spell,
+    0,
+    0,
+    None,
+    None,
+    Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::AnyEnemyMinion,
+    })
+);
+
+/// Fixture BC — a battlecry minion (1 to the enemy hero).
+const TMW1_BC: CardDef = tmw1_def!(
+    "TMW1_BC",
+    "Fixture BC",
+    CardType::Minion,
+    2,
+    1,
+    Some(CardEffect::DealDamage {
+        amount: 1,
+        target: EffectTarget::EnemyHero,
+    }),
+    None,
+    None
+);
+
+/// Fixture VN — a battlecry-less vanilla minion (the no-effect slot case).
+const TMW1_VN: CardDef = tmw1_def!(
+    "TMW1_VN",
+    "Fixture VN",
+    CardType::Minion,
+    1,
+    1,
+    None,
+    None,
+    None
+);
+
+/// Fixture DEATH — a 1/3 with a deathrattle dealing 2 to the enemy hero.
+const TMW1_DEATH: CardDef = tmw1_def!(
+    "TMW1_DEATH",
+    "Fixture Death",
+    CardType::Minion,
+    1,
+    3,
+    None,
+    Some(CardEffect::DealDamage {
+        amount: 2,
+        target: EffectTarget::EnemyHero,
+    }),
+    None
+);
+
+/// Fixture REWIND1 — a ×1 Rewind card (id `TIME_000` in the count table)
+/// whose own effect draws a card.
+const TMW1_REWIND1: CardDef = tmw1_def!(
+    "TIME_000",
+    "Semi-Stable Portal",
+    CardType::Spell,
+    0,
+    0,
+    None,
+    None,
+    Some(CardEffect::DrawCard { count: 1 })
+);
+
+/// Fixture REWIND3 — a ×3 Rewind card (id `TIME_038` in the count table)
+/// whose own effect draws a card.
+const TMW1_REWIND3: CardDef = tmw1_def!(
+    "TIME_038",
+    "Mister Clocksworth",
+    CardType::Spell,
+    0,
+    0,
+    None,
+    None,
+    Some(CardEffect::DrawCard { count: 1 })
+);
+
+/// TMW1-1 — a Rewind ×1 spell replays the previous spell's effect: A's 2
+/// damage lands twice, the replay resolves with the REWIND card as source,
+/// and the history records [A, rewind].
+#[test]
+fn tmw1_rewind_replays_previous_spell() {
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TMW1_A)
+        .add_minion_to_hand(p1, &TMW1_REWIND1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p2_hero = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1); // A: 2 to the enemy hero
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(28)));
+    let rewind = find_in_hand(&state, p1, "TIME_000");
+    let log = engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: rewind,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The replay resolved A's effect again — with the rewind card as source.
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(26)));
+    let hits: Vec<&Event> = log
+        .iter()
+        .filter(|e| matches!(e, Event::DamageDealt { target, .. } if *target == p2_hero))
+        .collect();
+    assert_eq!(hits.len(), 1, "A's effect replayed exactly once");
+    assert!(matches!(
+        hits[0],
+        Event::DamageDealt { source, amount: 2, .. } if *source == rewind
+    ));
+    // The rewind's own effect (a draw) resolved once; the replay added none.
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "the own draw only"
+    );
+    let hist = &state.player(p1).last_played;
+    assert_eq!(hist.len(), 2, "[A, rewind] in play order");
+    assert_eq!(hist[0].card_id, "TMW1_A");
+    assert_eq!(hist[1].card_id, "TIME_000");
+}
+
+/// TMW1-2 — a Rewind ×1 card replays the previous MINION's battlecry: the
+/// minion's play recorded its battlecry effect, and the replay resolves it
+/// again with the rewind card as source.
+#[test]
+fn tmw1_rewind_replays_previous_battlecry() {
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TMW1_BC)
+        .add_minion_to_hand(p1, &TMW1_REWIND1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p2_hero = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1); // BC: battlecry 1 to the enemy hero
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(29)));
+    let rewind = find_in_hand(&state, p1, "TIME_000");
+    let log = engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: rewind,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The battlecry resolved again, sourced from the rewind card.
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(28)));
+    assert!(log.iter().any(|e| matches!(
+        e,
+        Event::DamageDealt { source, target, amount: 1 } if *source == rewind && *target == p2_hero
+    )));
+    let bc = find_entity(&state, p1, "TMW1_BC");
+    assert_eq!(
+        state.world().zone(bc),
+        Some(Zone::Play),
+        "BC still on board"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "the own draw only"
+    );
+    assert_eq!(state.player(p1).last_played[0].card_id, "TMW1_BC");
+}
+
+/// TMW1-3 — a ×3 Rewind card replays the three previous plays in
+/// chronological order (A's 2, C's draw, B's 1 — visible in the log order
+/// and the combined outcome).
+#[test]
+fn tmw1_rewind_x3_stacks() {
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TMW1_A)
+        .add_minion_to_hand(p1, &TMW1_C)
+        .add_minion_to_hand(p1, &TMW1_B)
+        .add_minion_to_hand(p1, &TMW1_REWIND3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p2_hero = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1); // A
+    play_front_card(&mut state, &engine, p1); // C
+    play_front_card(&mut state, &engine, p1); // B
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(27)));
+    let rewind = find_in_hand(&state, p1, "TIME_038");
+    let log = engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: rewind,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // All three previous plays replayed: A's 2, C's draw, B's 1.
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(24)));
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        3,
+        "C's replay drew a card (own draw + replayed draw + the last hand card)"
+    );
+    let dmg: Vec<i32> = log
+        .iter()
+        .filter_map(|e| match e {
+            Event::DamageDealt { target, amount, .. } if *target == p2_hero => Some(*amount),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(dmg, vec![2, 1], "chronological order: A before B");
+    let ids: Vec<&str> = state
+        .player(p1)
+        .last_played
+        .iter()
+        .map(|e| e.card_id.as_str())
+        .collect();
+    assert_eq!(ids, vec!["TMW1_A", "TMW1_C", "TMW1_B", "TIME_038"]);
+}
+
+/// TMW1-4 — the rewind card never replays itself: its own effect resolves
+/// exactly once (one draw), the replay covers only earlier entries.
+#[test]
+fn tmw1_rewind_never_replays_itself() {
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TMW1_A)
+        .add_minion_to_hand(p1, &TMW1_REWIND1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p2_hero = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1); // A
+    let rewind = find_in_hand(&state, p1, "TIME_000");
+    let log = engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: rewind,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // A replayed once (hero 26), the own draw once — a self-replay would
+    // have drawn twice and left the hero at 28.
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(26)));
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "exactly one draw — the rewind's own effect"
+    );
+    assert_eq!(
+        log.iter()
+            .filter(|e| matches!(e, Event::CardDrawn { .. }))
+            .count(),
+        1,
+        "the own draw only, no self-replay"
+    );
+    assert_eq!(state.player(p1).last_played.len(), 2);
+}
+
+/// TMW1-5 — the pre-push snapshot: the rewind card's OWN entry is not in
+/// the replayed set; a SECOND rewind card replays the first one's recorded
+/// effect (a draw), not the older A.
+#[test]
+fn tmw1_rewind_snapshot_before_self() {
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TMW1_A)
+        .add_minion_to_hand(p1, &TMW1_REWIND1)
+        .add_minion_to_hand(p1, &TMW1_REWIND1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p2_hero = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1); // A
+    let r1 = find_in_hand(&state, p1, "TIME_000");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: r1,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap(); // R1: own draw + A's replay
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(26)));
+    let r2 = find_in_hand(&state, p1, "TIME_000");
+    let log = engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: r2,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // R2 replayed R1's recorded draw — the hero is untouched, two draws
+    // total (own + replayed). If R2 had replayed A instead, the hero
+    // would be 24 and the hand one card smaller.
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(26)));
+    assert_eq!(
+        log.iter()
+            .filter(|e| matches!(e, Event::CardDrawn { .. }))
+            .count(),
+        2,
+        "own draw + R1's recorded draw"
+    );
+    assert!(
+        !log.iter().any(|e| matches!(e, Event::DamageDealt { .. })),
+        "A's damage is NOT replayed by the second rewind"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        3,
+        "started 3, A played, +1 (R1), +1 (R2), +1 (R1's replay)"
+    );
+    let ids: Vec<&str> = state
+        .player(p1)
+        .last_played
+        .iter()
+        .map(|e| e.card_id.as_str())
+        .collect();
+    assert_eq!(ids, vec!["TMW1_A", "TIME_000", "TIME_000"]);
+}
+
+/// TMW1-6 — history orders by chronology: A then B, ×2 (clamped) replays
+/// A before B — visible in the log order.
+#[test]
+fn tmw1_rewind_history_orders_by_chronology() {
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TMW1_A)
+        .add_minion_to_hand(p1, &TMW1_B)
+        .add_minion_to_hand(p1, &TMW1_REWIND3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p2_hero = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1); // A
+    play_front_card(&mut state, &engine, p1); // B
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(27)));
+    let rewind = find_in_hand(&state, p1, "TIME_038");
+    let log = engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: rewind,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // ×3 clamped to the 2-entry history: A then B in chronological order.
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(24)));
+    let dmg: Vec<i32> = log
+        .iter()
+        .filter_map(|e| match e {
+            Event::DamageDealt { target, amount, .. } if *target == p2_hero => Some(*amount),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(dmg, vec![2, 1], "A (2) replays before B (1)");
+}
+
+/// TMW1-7 — a battlecry-less minion's play occupies a history slot: the
+/// ×3 rewind after [vanilla X, A] clamps to 2 and replays [X (no-op), A]
+/// — the no-effect entry is skipped in the replay but shifts the window.
+#[test]
+fn tmw1_rewind_no_effect_entries_still_slot() {
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TMW1_VN)
+        .add_minion_to_hand(p1, &TMW1_A)
+        .add_minion_to_hand(p1, &TMW1_REWIND3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p2_hero = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1); // X: no effect
+    let x_minion = find_entity(&state, p1, "TMW1_VN");
+    assert_eq!(state.world().zone(x_minion), Some(Zone::Play), "X on board");
+    play_front_card(&mut state, &engine, p1); // A
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(28)));
+    let rewind = find_in_hand(&state, p1, "TIME_038");
+    let log = engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: rewind,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // History [X, A] → clamp ×3 to 2 → replay X (skipped) + A once.
+    // Without X's slot the window would hold only A (hero 27).
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(26)));
+    assert_eq!(
+        log.iter()
+            .filter(|e| matches!(e, Event::DamageDealt { .. }))
+            .count(),
+        1,
+        "only A's replay dealt damage — X's empty entry was skipped"
+    );
+    let hist = &state.player(p1).last_played;
+    assert_eq!(hist.len(), 3, "X's play occupied a slot");
+    assert_eq!(hist[0].card_id, "TMW1_VN");
+    assert!(
+        hist[0].effect.is_none(),
+        "the vanilla play records no effect"
+    );
+    assert_eq!(hist[1].card_id, "TMW1_A");
+    assert_eq!(hist[2].card_id, "TIME_038");
+}
+
+/// TMW1-8 — death-phase interplay: the replayed effect kills a minion and
+/// the death (deathrattle and all) processes through the standard queue
+/// BEFORE the replay's own aftermath — the deathrattle fires in the same
+/// burst, after the killing blow, on the rewind play's log.
+#[test]
+fn tmw1_rewind_death_phase_interplay() {
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TMW1_TARGET)
+        .add_minion_to_hand(p1, &TMW1_REWIND1)
+        .add_minion_to_board(p2, &TMW1_DEATH);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let p1_hero = state.player(p1).hero;
+    let x = find_entity(&state, p2, "TMW1_DEATH");
+    let target = find_in_hand(&state, p1, "TMW1_TARGET");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: target,
+                target: Some(x),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(x),
+        Some(Health(1)),
+        "the targeted 2 leaves the 1/3 at 1 — no death from the play itself"
+    );
+    let rewind = find_in_hand(&state, p1, "TIME_000");
+    let log = engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: rewind,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // The replay's 2 kills X (the only enemy minion — the random pick is
+    // deterministic); the deathrattle then deals 2 to the enemy hero.
+    assert_eq!(
+        state.world().zone(x),
+        Some(Zone::Graveyard),
+        "the replayed damage killed X"
+    );
+    assert_eq!(
+        state.world().effective_health(p1_hero),
+        Some(Health(28)),
+        "the deathrattle fired from the replay-caused death"
+    );
+    let dmg_x = log
+        .iter()
+        .position(|e| matches!(e, Event::DamageDealt { target, .. } if *target == x));
+    let died = log
+        .iter()
+        .position(|e| matches!(e, Event::MinionDied { minion } if *minion == x));
+    let dmg_hero = log
+        .iter()
+        .position(|e| matches!(e, Event::DamageDealt { target, .. } if *target == p1_hero));
+    assert!(
+        dmg_x.is_some() && died.is_some() && dmg_hero.is_some(),
+        "killing blow, death event, and deathrattle damage all in the rewind burst"
+    );
+    assert!(
+        dmg_x < died && died < dmg_hero,
+        "killing blow → death → deathrattle damage (standard queue ordering)"
+    );
+}

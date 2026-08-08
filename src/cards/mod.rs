@@ -43,6 +43,7 @@ pub mod generated;
 pub mod kindred;
 pub mod pool;
 pub mod quest;
+pub mod rewind;
 pub mod sets;
 
 use crate::core::component::{
