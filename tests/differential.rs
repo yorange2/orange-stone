@@ -1714,7 +1714,10 @@ fn w1_race_pools_are_field_driven() {
         extra,
         vec![
             "CORE_BT_156",   // Imprisoned Vilefiend (W1)
+            "CORE_BT_351",   // Battlefiend (W3c)
             "CORE_BT_480",   // Crimson Sigil Runner (W2)
+            "CORE_BT_493",   // Priestess of Fury (W3c)
+            "CORE_BT_510",   // Wrathspike Brute (W3c)
             "CORE_TTN_843",  // Eredar Deceptor (W3b)
             "CORE_TTN_843t", // Invading Felbat (W3b token)
             "CORE_TTN_866",  // Mythical Terror (W1)
@@ -11392,4 +11395,326 @@ fn w3b_initiation_summons_copy_on_kill() {
         .count();
     assert_eq!(minions, 1, "the fresh copy was summoned");
     assert_eq!(state.world().zone(victim), Some(Zone::Graveyard));
+}
+
+// ============================================================
+// Core Set W3c (core-set-roadmap W3c) — 38 cards. Scenarios cover
+// the new effect shapes and engine hooks.
+// ============================================================
+
+/// W3c-1 Backstab — 2 damage to an UNDAMAGED minion; fizzles on a damaged
+/// one (the Classic pool's unconditional version was a simplification).
+#[test]
+fn w3c_backstab_only_undamaged() {
+    use orange_stone::cards::def::CORE_BACKSTAB;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let a = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    let b = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_BACKSTAB);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_BACKSTAB);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Damage `a` first so the second Backstab fizzles on it
+    state.world_mut().set_damage(a, orange_stone::core::component::Damage(1));
+    let stab1 = find_in_hand(&state, PlayerId1(), "CORE_CS2_072");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: stab1,
+                target: Some(a),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().damage(a).map_or(0, |d| d.0),
+        1,
+        "the damaged minion is untouched"
+    );
+    // The undamaged one takes the full 2
+    let stab2 = find_in_hand(&state, PlayerId1(), "CORE_CS2_072");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: stab2,
+                target: Some(b),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(b), Some(Health(1)));
+}
+
+/// W3c-2 Power Word: Shield — +2 health AND draw (the Classic pool's
+/// buff-only version was a simplification).
+#[test]
+fn w3c_power_word_shield_buffs_and_draws() {
+    use orange_stone::cards::def::CORE_POWER_WORD_SHIELD;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let target = builder.add_custom_minion_to_board(PlayerId1(), 1, 1, 1);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_POWER_WORD_SHIELD);
+    builder.add_minion_to_deck(PlayerId1(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let shield = find_in_hand(&state, PlayerId1(), "CORE_CS2_004");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: shield,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(target), Some(Health(3)));
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId1()), 1);
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 0);
+}
+
+/// W3c-3 Bulwark of Azzinoth — hero damage costs weapon durability instead.
+#[test]
+fn w3c_bulwark_absorbs_hero_damage() {
+    use orange_stone::cards::def::CORE_BULWARK_OF_AZZINOTH;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_BULWARK_OF_AZZINOTH);
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 5, 5, 5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let bulwark = find_in_hand(&state, PlayerId1(), "CORE_BT_781");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bulwark,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero1 = state.player(PlayerId1()).hero;
+    // The enemy hits the hero for 5: the weapon takes it instead
+    state.set_active_player(PlayerId2());
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: foe,
+                defender: hero1,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero1), Some(Health(30)));
+    let weapon = state.player(PlayerId1()).weapon.expect("weapon equipped");
+    assert_eq!(state.world().durability(weapon).map(|d| d.0), Some(3));
+}
+
+/// W3c-4 Bladed Gauntlet — Attack equals Armor, and it cannot attack
+/// heroes.
+#[test]
+fn w3c_bladed_gauntlet_attack_equals_armor() {
+    use orange_stone::cards::def::CORE_BLADED_GAUNTLET;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_BLADED_GAUNTLET);
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    let mut state = builder.build();
+    {
+        let inner = state.make_mut();
+        inner.players[PlayerId1().index()].armor = 5;
+    }
+    let engine = GameEngine::new();
+    let gauntlet = find_in_hand(&state, PlayerId1(), "CORE_LOOT_044");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: gauntlet,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero1 = state.player(PlayerId1()).hero;
+    let hero2 = state.player(PlayerId2()).hero;
+    // The hero's swing hits for 5 (the armor value)
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero1,
+                defender: foe,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(foe),
+        Some(Zone::Graveyard),
+        "the 2/2 dies to the 5-damage swing"
+    );
+    // Cannot attack the enemy hero
+    assert!(
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker: hero1,
+                    defender: hero2,
+                },
+            )
+            .is_err(),
+        "Bladed Gauntlet cannot attack heroes"
+    );
+}
+
+/// W3c-5 Small-Time Buccaneer — +2 Attack while the owner has a weapon.
+#[test]
+fn w3c_small_time_buccaneer_weapon_bonus() {
+    use orange_stone::cards::def::{CORE_SMALL_TIME_BUCCANEER, FIERY_WAR_AXE};
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId1(), &CORE_SMALL_TIME_BUCCANEER);
+    builder.add_minion_to_hand(PlayerId1(), &FIERY_WAR_AXE);
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let buccaneer = find_entity(&state, PlayerId1(), "CORE_WON_351");
+    // Equip the axe, then the buccaneer's swing deals 1 + 2 = 3
+    let axe = find_in_hand(&state, PlayerId1(), "WARRIOR_T01");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: axe,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: buccaneer,
+                defender: foe,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(foe),
+        Some(Zone::Graveyard),
+        "the 3/3 dies to the +2-buffed 3-attack swing"
+    );
+}
+
+/// W3c-6 Frostwyrm's Fury — 5 damage, freeze all enemy minions, summon a
+/// 5/5 Frostwyrm.
+#[test]
+fn w3c_frostwyrm_fury_damages_freezes_summons() {
+    use orange_stone::cards::def::CORE_FROSTWYRMS_FURY;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 6, 6, 6);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_FROSTWYRMS_FURY);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let fury = find_in_hand(&state, PlayerId1(), "CORE_RLK_063");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: fury,
+                target: Some(foe),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(foe), Some(Health(1)));
+    assert!(state.world().freeze(foe).is_some(), "the minion is frozen");
+    let wyrm = find_entity(&state, PlayerId1(), "CORE_RLK_063t");
+    assert_eq!(state.world().effective_attack(wyrm), Some(Attack(5)));
+    assert_eq!(state.world().effective_health(wyrm), Some(Health(5)));
+}
+
+/// W3c-7 Tomb Guardians — two 2/2 Taunt Zombies; 4 corpses give them
+/// Reborn.
+#[test]
+fn w3c_tomb_guardians_corpse_reborn() {
+    use orange_stone::cards::def::CORE_TOMB_GUARDIANS;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &CORE_TOMB_GUARDIANS);
+    let mut state = builder.build();
+    {
+        let inner = state.make_mut();
+        inner.players[PlayerId1().index()].corpses = 4;
+    }
+    let engine = GameEngine::new();
+    let tomb = find_in_hand(&state, PlayerId1(), "CORE_RLK_118");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: tomb,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let zombies: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_RLK_118t")
+        })
+        .collect();
+    assert_eq!(zombies.len(), 2);
+    for z in &zombies {
+        assert!(state.world().taunt(*z).is_some());
+        assert!(state.world().reborn(*z).is_some(), "corpses grant Reborn");
+    }
+    assert_eq!(state.player(PlayerId1()).corpses, 0);
+}
+
+/// W3c-8 Wrathspike Brute — being attacked deals 1 damage to all enemies.
+#[test]
+fn w3c_wrathspike_brute_aoe_on_attacked() {
+    use orange_stone::cards::def::CORE_WRATHSPIKE_BRUTE;
+    let mut builder = GameBuilder::new();
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_board(PlayerId2(), &CORE_WRATHSPIKE_BRUTE);
+    let a = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let b = builder.add_custom_minion_to_board(PlayerId1(), 2, 2, 2);
+    let attacker = builder.add_custom_minion_to_board(PlayerId1(), 3, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let brute = find_entity(&state, PlayerId2(), "CORE_BT_510");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: brute,
+            },
+        )
+        .unwrap();
+    // Both enemy minions took 1 (2/2 -> 1/2)
+    assert_eq!(state.world().effective_health(a), Some(Health(1)));
+    assert_eq!(state.world().effective_health(b), Some(Health(1)));
 }

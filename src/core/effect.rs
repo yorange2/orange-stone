@@ -956,6 +956,96 @@ pub enum CardEffect {
         /// Maximum corpses spent
         max: u32,
     },
+    // ----------------------------------------------------------------
+    // Core Set W3c effects (core-set-roadmap W3c) — 38 cards.
+    // ----------------------------------------------------------------
+    /// Give a minion +attack/+health and draw (Power Word: Shield, Hand of
+    /// A'dal — the Classic pool's buff-only versions were simplifications)
+    GainStatsAndDraw {
+        /// Attack gained
+        attack: i32,
+        /// Health gained
+        health: i32,
+        /// Target selection
+        target: EffectTarget,
+        /// Cards drawn
+        draw: u32,
+    },
+    /// Deal damage to an UNDAMAGED minion only (Backstab — the Classic
+    /// pool's unconditional version was a simplification)
+    DamageUndamaged {
+        /// Damage amount
+        damage: i32,
+    },
+    /// Deal damage to a minion AND the caster's hero (Spirit Bomb)
+    DamageMinionAndSelfHero {
+        /// Damage to both
+        damage: i32,
+    },
+    /// Give the hero +attack this turn and draw (Chaos Strike)
+    GainHeroAttackAndDraw {
+        /// Attack this turn
+        attack: i32,
+    },
+    /// Gain armor and summon a random minion costing at most `max_cost`
+    /// from the deck (Oaken Summons)
+    GainArmorAndSummonDeckMinion {
+        /// Armor gained
+        armor: i32,
+        /// Maximum cost of the summoned minion
+        max_cost: i32,
+    },
+    /// Gain armor and draw when the OWNER'S HERO attacks (Hookfist-3000)
+    GainArmorAndDrawOnHeroAttack {
+        /// Armor gained
+        armor: i32,
+    },
+    /// Summon all three Animal Companions (Call of the Wild)
+    SummonAllCompanions,
+    /// Deal damage to a character, freeze all enemy minions and summon a
+    /// 5/5 Frostwyrm (Frostwyrm's Fury)
+    DamageFreezeAllAndSummon {
+        /// Damage to the target
+        damage: i32,
+        /// Token card ID (the Frostwyrm)
+        card_id: &'static str,
+    },
+    /// Destroy the enemy minion with the highest Attack (Asphyxiate; ties
+    /// resolve randomly)
+    DestroyHighestAttackEnemy,
+    /// Summon two 2/2 Zombies with Taunt; spend `corpses` to give them
+    /// Reborn (Tomb Guardians)
+    SummonZombiesWithCorpseReborn {
+        /// Corpses spent for Reborn
+        corpses: u32,
+    },
+    /// Transform this hand card into a copy of the just-cast spell
+    /// (Shadow of Demise)
+    TransformSelfToCastSpell,
+    /// Give all minions in hand +1/+1; spend `corpses` for another +1/+1
+    /// (Blood Tap)
+    BuffHandMinionsWithCorpses {
+        /// Corpses spent for the extra buff
+        corpses: u32,
+    },
+    /// Restore health and draw (Flash of Light)
+    RestoreHealthAndDraw {
+        /// Health restored
+        amount: i32,
+        /// Target selection
+        target: EffectTarget,
+    },
+    /// Draw a card at end of turn when the owner has unspent mana
+    /// (Crystal Merchant)
+    DrawIfUnspentMana,
+    /// Gain armor and summon a random minion of exactly `cost` (Ironforge
+    /// Portal)
+    GainArmorAndSummonRandomCost {
+        /// Armor gained
+        armor: i32,
+        /// Cost of the summoned minion
+        cost: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -1301,6 +1391,50 @@ enum CardEffectDe {
     SummonFelbatOnDraw,
     SpendCorpsesSummonRandomMinion {
         max: u32,
+    },
+    GainStatsAndDraw {
+        attack: i32,
+        health: i32,
+        target: EffectTarget,
+        draw: u32,
+    },
+    DamageUndamaged {
+        damage: i32,
+    },
+    DamageMinionAndSelfHero {
+        damage: i32,
+    },
+    GainHeroAttackAndDraw {
+        attack: i32,
+    },
+    GainArmorAndSummonDeckMinion {
+        armor: i32,
+        max_cost: i32,
+    },
+    GainArmorAndDrawOnHeroAttack {
+        armor: i32,
+    },
+    SummonAllCompanions,
+    DamageFreezeAllAndSummon {
+        damage: i32,
+        card_id: String,
+    },
+    DestroyHighestAttackEnemy,
+    SummonZombiesWithCorpseReborn {
+        corpses: u32,
+    },
+    TransformSelfToCastSpell,
+    BuffHandMinionsWithCorpses {
+        corpses: u32,
+    },
+    RestoreHealthAndDraw {
+        amount: i32,
+        target: EffectTarget,
+    },
+    DrawIfUnspentMana,
+    GainArmorAndSummonRandomCost {
+        armor: i32,
+        cost: i32,
     },
     DestroyAndGainStats {
         attack: i32,
@@ -1750,6 +1884,52 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::SummonFelbatOnDraw => CardEffect::SummonFelbatOnDraw,
             CardEffectDe::SpendCorpsesSummonRandomMinion { max } => {
                 CardEffect::SpendCorpsesSummonRandomMinion { max }
+            }
+            CardEffectDe::GainStatsAndDraw {
+                attack,
+                health,
+                target,
+                draw,
+            } => CardEffect::GainStatsAndDraw {
+                attack,
+                health,
+                target,
+                draw,
+            },
+            CardEffectDe::DamageUndamaged { damage } => CardEffect::DamageUndamaged { damage },
+            CardEffectDe::DamageMinionAndSelfHero { damage } => {
+                CardEffect::DamageMinionAndSelfHero { damage }
+            }
+            CardEffectDe::GainHeroAttackAndDraw { attack } => {
+                CardEffect::GainHeroAttackAndDraw { attack }
+            }
+            CardEffectDe::GainArmorAndSummonDeckMinion { armor, max_cost } => {
+                CardEffect::GainArmorAndSummonDeckMinion { armor, max_cost }
+            }
+            CardEffectDe::GainArmorAndDrawOnHeroAttack { armor } => {
+                CardEffect::GainArmorAndDrawOnHeroAttack { armor }
+            }
+            CardEffectDe::SummonAllCompanions => CardEffect::SummonAllCompanions,
+            CardEffectDe::DamageFreezeAllAndSummon { damage, card_id } => {
+                CardEffect::DamageFreezeAllAndSummon {
+                    damage,
+                    card_id: intern(card_id)?,
+                }
+            }
+            CardEffectDe::DestroyHighestAttackEnemy => CardEffect::DestroyHighestAttackEnemy,
+            CardEffectDe::SummonZombiesWithCorpseReborn { corpses } => {
+                CardEffect::SummonZombiesWithCorpseReborn { corpses }
+            }
+            CardEffectDe::TransformSelfToCastSpell => CardEffect::TransformSelfToCastSpell,
+            CardEffectDe::BuffHandMinionsWithCorpses { corpses } => {
+                CardEffect::BuffHandMinionsWithCorpses { corpses }
+            }
+            CardEffectDe::RestoreHealthAndDraw { amount, target } => {
+                CardEffect::RestoreHealthAndDraw { amount, target }
+            }
+            CardEffectDe::DrawIfUnspentMana => CardEffect::DrawIfUnspentMana,
+            CardEffectDe::GainArmorAndSummonRandomCost { armor, cost } => {
+                CardEffect::GainArmorAndSummonRandomCost { armor, cost }
             }
             CardEffectDe::DestroyAndGainStats {
                 attack,

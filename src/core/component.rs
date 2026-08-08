@@ -447,6 +447,9 @@ pub enum TriggerEvent {
     /// The OWNER'S HERO attacked (Hench-Clan Thug — Core Set W3b; the hero
     /// is the subject, friendly scope)
     HeroAttacked,
+    /// THIS minion was attacked (Wrathspike Brute — Core Set W3c; the
+    /// attacker is the subject, the pinned minion is the defender)
+    ThisMinionAttacked,
     /// The entity attacks a MINION (Gorehowl — the weapon loses 1 Attack
     /// when the hero attacks a minion; pinned to the attacker or the
     /// attacker's equipped weapon)
