@@ -16,6 +16,7 @@ use super::classic_shaman::*;
 use super::classic_warlock::*;
 use super::classic_warrior::*;
 use super::core_w1::*;
+use super::core_w2::*;
 // ============================================================
 // Card lists
 // ============================================================
@@ -27,7 +28,14 @@ use super::core_w1::*;
 // ============================================================
 
 /// Core Set W1 — Demon Hunter class cards.
-pub const DEMON_HUNTER_W1: &[CardDef] = &[EYE_BEAM, ALDRACHI_WARBLADES, MYTHICAL_TERROR];
+pub const DEMON_HUNTER_W1: &[CardDef] = &[
+    EYE_BEAM,
+    ALDRACHI_WARBLADES,
+    MYTHICAL_TERROR,
+    // Core Set W2 — outcast cards
+    CRIMSON_SIGIL_RUNNER,
+    SPECTRAL_SIGHT,
+];
 
 /// Core Set W1 — Death Knight class cards.
 pub const DEATH_KNIGHT_W1: &[CardDef] = &[MALIGNANT_HORROR];
@@ -147,7 +155,7 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     HUNGRY_CRAB,
     DOOMSAYER,
     BLOOD_KNIGHT,
-    BIG_GAME_HUNTER,
+    CORE_BIG_GAME_HUNTER,
     YOUNG_PRIESTESS,
     MANA_WRAITH,
     MASTER_SWORDSMITH,
@@ -199,6 +207,13 @@ pub const NEUTRAL_CLASSIC: &[CardDef] = &[
     OBSIDIAN_STATUE,
     MURMY,
     LYNX,
+    // Core Set W2 — Tradeable neutrals + the Turtle token
+    CORE_THE_BLACK_KNIGHT,
+    CORE_BIG_GAME_HUNTER,
+    DEMOLITION_RENOVATOR,
+    ROYAL_LIBRARIAN,
+    RUSTROT_VIPER,
+    TURTLE,
 ];
 
 pub const LEGENDARY_CLASSIC: &[CardDef] = &[
@@ -222,10 +237,10 @@ pub const LEGENDARY_CLASSIC: &[CardDef] = &[
     CAPTAIN_GREENSKIN,
     HARRISON_JONES,
     HIGH_INQUISITOR_WHITEMANE,
-    THE_BLACK_KNIGHT,
+    CORE_THE_BLACK_KNIGHT,
     MILLHOUSE_MANASTORM,
     NAT_PAGLE,
-    THE_BLACK_KNIGHT,
+    CORE_THE_BLACK_KNIGHT,
     MILLHOUSE_MANASTORM,
     NAT_PAGLE,
     // Pool-open (pool-open-cards-roadmap M3) — copies a cast spell
@@ -264,6 +279,8 @@ pub const DRUID_CLASSIC: &[CardDef] = &[
     SOUL_OF_THE_FOREST,
     // Core Set W1 — Underking (Rush, battlecry/deathrattle armor)
     UNDERKING,
+    // Core Set W2 — Best in Shell (Tradeable, summon two 2/7 Turtles)
+    BEST_IN_SHELL,
 ];
 
 pub const HUNTER_CLASSIC: &[CardDef] = &[
@@ -302,6 +319,8 @@ pub const HUNTER_CLASSIC: &[CardDef] = &[
     MISHA,
     // Core Set W1 — Halazzi, the Lynx (fill hand with 1/1 Lynxes)
     HALAZZI_THE_LYNX,
+    // Core Set W2 — Quick Shot (damage, draw on empty hand)
+    QUICK_SHOT,
 ];
 
 pub const MAGE_CLASSIC: &[CardDef] = &[
@@ -335,6 +354,8 @@ pub const MAGE_CLASSIC: &[CardDef] = &[
     // Tier 3 additions
     TOME_OF_INTELLECT,
     ARCHMAGE_ANTONIDAS,
+    // Core Set W2 — Explosive Runes (secret, immune to spell damage)
+    EXPLOSIVE_RUNES,
 ];
 
 pub const PALADIN_CLASSIC: &[CardDef] = &[
@@ -464,6 +485,8 @@ pub const SHAMAN_CLASSIC: &[CardDef] = &[
     // Tier 2 additions
     FAR_SIGHT,
     UNBOUND_ELEMENTAL,
+    // Core Set W2 — Healing Rain (12 health randomly spread)
+    HEALING_RAIN,
 ];
 
 pub const WARLOCK_CLASSIC: &[CardDef] = &[
@@ -816,7 +839,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     CAPTAIN_GREENSKIN,
     HARRISON_JONES,
     HIGH_INQUISITOR_WHITEMANE,
-    THE_BLACK_KNIGHT,
+    CORE_THE_BLACK_KNIGHT,
     MILLHOUSE_MANASTORM,
     NAT_PAGLE,
     // Incomplete additions
@@ -871,7 +894,7 @@ pub const ALL_CARDS: &[CardDef] = &[
     HUNGRY_CRAB,
     DOOMSAYER,
     BLOOD_KNIGHT,
-    BIG_GAME_HUNTER,
+    CORE_BIG_GAME_HUNTER,
     YOUNG_PRIESTESS,
     MANA_WRAITH,
     MASTER_SWORDSMITH,
@@ -995,6 +1018,20 @@ pub const ALL_CARDS: &[CardDef] = &[
     SWAMP_LEECH,
     OBSIDIAN_STATUE,
     MURMY,
+    // Core Set W2 (core-set-roadmap W2, 2026-08-08) — hand/spell-pipeline
+    // primitives: 11 cards + the Turtle token.
+    CORE_THE_BLACK_KNIGHT,
+    CORE_BIG_GAME_HUNTER,
+    DEMOLITION_RENOVATOR,
+    ROYAL_LIBRARIAN,
+    RUSTROT_VIPER,
+    BEST_IN_SHELL,
+    TURTLE,
+    CRIMSON_SIGIL_RUNNER,
+    SPECTRAL_SIGHT,
+    EXPLOSIVE_RUNES,
+    HEALING_RAIN,
+    QUICK_SHOT,
 ];
 
 // ============================================================

@@ -92,6 +92,12 @@ pub enum Event {
         /// The drawn card entity
         card: Entity,
     },
+    /// A Tradeable card was traded (Core Set W2): spend 1 mana, shuffle the
+    /// card back into the deck, draw a card
+    TradeCardExecuted {
+        /// The traded card entity
+        card: Entity,
+    },
     /// Game over
     GameOver {
         /// The winner

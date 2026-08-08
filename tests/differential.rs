@@ -1669,6 +1669,7 @@ fn w1_race_pools_are_field_driven() {
         vec![
             "CLASSIC_001",   // Bloodfen Raptor
             "CORE_GIL_558",  // Swamp Leech (Core Set W1)
+            "CORE_SW_429t",  // Turtle (Core Set W2 token)
             "CORE_TRL_900",  // Halazzi, the Lynx (Core Set W1)
             "CORE_TRL_900t", // Lynx (Core Set W1 token)
             "CORE_WC_701",   // Felrattler (Core Set W1)
@@ -1701,12 +1702,14 @@ fn w1_race_pools_are_field_driven() {
         .copied()
         .collect::<Vec<_>>();
     extra.sort_unstable();
-    // Blood Imp, Siegebreaker + the Core Set W1 Demons (Imprisoned Vilefiend,
-    // Mythical Terror — its CardDef primary tribe is Demon)
+    // Blood Imp, Siegebreaker + the Core Set Demons (Imprisoned Vilefiend,
+    // Crimson Sigil Runner, Mythical Terror — the last's CardDef primary
+    // tribe is Demon)
     assert_eq!(
         extra,
         vec![
             "CORE_BT_156",  // Imprisoned Vilefiend (W1)
+            "CORE_BT_480",  // Crimson Sigil Runner (W2)
             "CORE_TTN_866", // Mythical Terror (W1)
             "CS2_064",
             "WARLOCK_T01"
@@ -9742,4 +9745,508 @@ fn dbg_w1_corpses() {
         state.world().enchantments(target),
         state.world().health(target)
     );
+}
+
+// ============================================================
+// Core Set W2 (core-set-roadmap W2) — hand/spell-pipeline
+// primitives: TRADEABLE / OUTCAST / spell-power exemption,
+// plus the W2 scripted effects. Verified against the official
+// card texts and SabberStone resolution semantics.
+// ============================================================
+
+/// W2-1 Tradeable — trading a hand card costs 1 mana, shuffles it back into
+/// the deck and draws a card.
+#[test]
+fn w2_tradeable_trades_for_one_mana() {
+    use orange_stone::cards::def::RUSTROT_VIPER;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 5, 5);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &RUSTROT_VIPER);
+    builder.add_minion_to_deck(PlayerId1(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let viper = find_in_hand(&state, PlayerId1(), "CORE_SW_072");
+    assert!(
+        state.world().tradeable(viper).is_some(),
+        "the card is Tradeable"
+    );
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 1);
+    engine
+        .apply(&mut state, Action::TradeCard { card: viper })
+        .unwrap();
+    // 5 -> 4 mana, the viper is back in the deck, a card was drawn
+    assert_eq!(state.player(PlayerId1()).current_mana, 4);
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 1);
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId1()), 1);
+    assert_eq!(state.world().zone(viper), Some(Zone::Deck));
+    let drawn = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("the drawn card");
+    assert!(
+        state
+            .world()
+            .card_id(drawn)
+            .is_some_and(|c| c.0 == "CLASSIC_001")
+    );
+}
+
+/// W2-2 Tradeable — trading without mana is refused.
+#[test]
+fn w2_tradeable_requires_mana() {
+    use orange_stone::cards::def::RUSTROT_VIPER;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 0, 0);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &RUSTROT_VIPER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let viper = find_in_hand(&state, PlayerId1(), "CORE_SW_072");
+    assert!(
+        engine
+            .apply(&mut state, Action::TradeCard { card: viper })
+            .is_err(),
+        "a trade costs 1 mana"
+    );
+}
+
+/// W2-3 Outcast — a spell played from the hand edge draws the outcast
+/// amount (Spectral Sight 1 -> 2).
+#[test]
+fn w2_outcast_draws_from_hand_edge() {
+    use orange_stone::cards::def::SPECTRAL_SIGHT;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    // One blocker first, Spectral Sight last -> it sits at the RIGHT edge
+    builder.add_custom_minion_to_hand(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &SPECTRAL_SIGHT);
+    builder.add_minion_to_deck(PlayerId1(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(PlayerId1(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let sight = find_in_hand(&state, PlayerId1(), "CORE_BT_491");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: sight,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // 2 cards drawn (outcast) + the blocker stays
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId1()), 3);
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 0);
+}
+
+/// W2-4 Outcast — played NOT from the edge, the normal amount applies.
+#[test]
+fn w2_outcast_requires_edge_position() {
+    use orange_stone::cards::def::SPECTRAL_SIGHT;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    // Spectral Sight sandwiched between two blockers — not an edge
+    builder.add_custom_minion_to_hand(PlayerId1(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &SPECTRAL_SIGHT);
+    builder.add_custom_minion_to_hand(PlayerId1(), 3, 3, 3);
+    builder.add_minion_to_deck(PlayerId1(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let sight = find_in_hand(&state, PlayerId1(), "CORE_BT_491");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: sight,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    // 1 card drawn (normal) + the two blockers stay
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId1()), 3);
+    assert_eq!(state.world().zones().len(Zone::Deck, PlayerId1()), 0);
+}
+
+/// W2-5 Outcast damage — Eye Beam deals 6 when played from the edge (and
+/// the W1 Lifesteal still applies).
+#[test]
+fn w2_eye_beam_outcast_doubles_damage() {
+    use orange_stone::cards::def::EYE_BEAM;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let enemy_minion = builder.add_custom_minion_to_board(PlayerId2(), 8, 8, 3);
+    builder.add_minion_to_hand(PlayerId1(), &EYE_BEAM);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero1 = state.player(PlayerId1()).hero;
+    // Damage the hero so the lifesteal heal is observable (30 -> 22, the
+    // enemy is an 8/8)
+    state.set_active_player(PlayerId2());
+    let enemy2 = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId2())
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("the enemy minion");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy2,
+                defender: hero1,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero1), Some(Health(22)));
+    // Single-card hand -> right edge -> Outcast: 6 damage + 6 lifesteal
+    state.set_active_player(PlayerId1());
+    let beam = find_in_hand(&state, PlayerId1(), "CORE_BT_801");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: beam,
+                target: Some(enemy_minion),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy_minion),
+        Some(Health(2))
+    );
+    // 8 damage taken, 6 healed back (22 -> 28)
+    assert_eq!(state.world().effective_health(hero1), Some(Health(28)));
+}
+
+/// W2-6 ImmuneToSpellpower — Devouring Plague is not boosted by Spell
+/// Damage (a normal spell would be).
+#[test]
+fn w2_immune_to_spellpower() {
+    use orange_stone::cards::def::DEVOURING_PLAGUE;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    // A Kobold Geomancer (+1 Spell Damage) on the friendly board
+    builder.add_minion_to_board(PlayerId1(), &orange_stone::cards::def::KOBOLD_GEOMANCER);
+    // One 4/4 enemy minion: 4 pings of 1 = 4 damage kills it — WITHOUT the
+    // spell damage it stays dead; WITH a +1 boost the total would be 8
+    builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4);
+    builder.add_minion_to_hand(PlayerId1(), &DEVOURING_PLAGUE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let plague = find_in_hand(&state, PlayerId1(), "CORE_BAR_311");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: plague,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId2())
+            .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+            .count(),
+        0,
+        "the 4/4 dies to exactly 4 damage — spell power did not boost it"
+    );
+}
+
+/// W2-7 Explosive Runes — the secret deals 6 damage to the played minion,
+/// excess carries to the enemy hero.
+#[test]
+fn w2_explosive_runes_secret() {
+    use orange_stone::cards::def::EXPLOSIVE_RUNES;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &EXPLOSIVE_RUNES);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let runes = find_in_hand(&state, PlayerId1(), "CORE_LOOT_101");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: runes,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero2 = state.player(PlayerId2()).hero;
+    // P2 plays a 3/3: 3 damage kills it, 3 excess hits the P2 hero
+    state.set_active_player(PlayerId2());
+    {
+        let inner = state.make_mut();
+        inner.players[PlayerId2().index()].current_mana = 10;
+    }
+    let played = {
+        use orange_stone::core::component::Cost;
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_card_type(e, CardType::Minion);
+        world.set_attack(e, Attack(3));
+        world.set_health(e, Health(3));
+        world.set_cost(e, Cost(3));
+        world.set_player(e, PlayerId2());
+        world.set_zone(e, Zone::Hand);
+        world.zones_mut().insert(Zone::Hand, PlayerId2(), e);
+        e
+    };
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: played,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(played), Some(Zone::Graveyard));
+    assert_eq!(
+        state.world().effective_health(hero2),
+        Some(Health(27)),
+        "3 excess damage to the hero"
+    );
+    // The secret was one-shot: a second minion plays without protection
+    let played2 = {
+        use orange_stone::core::component::Cost;
+        let world = state.world_mut();
+        let e = world.spawn();
+        world.set_card_type(e, CardType::Minion);
+        world.set_attack(e, Attack(2));
+        world.set_health(e, Health(2));
+        world.set_cost(e, Cost(2));
+        world.set_player(e, PlayerId2());
+        world.set_zone(e, Zone::Hand);
+        world.zones_mut().insert(Zone::Hand, PlayerId2(), e);
+        e
+    };
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: played2,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(played2), Some(Zone::Play));
+}
+
+/// W2-8 Healing Rain — restores 12 health as 1-point pings across all
+/// friendly characters (hero included).
+#[test]
+fn w2_healing_rain_heals_friendly() {
+    use orange_stone::cards::def::HEALING_RAIN;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    // A damaged hero (12 damage) and a damaged minion (12 damage) — the
+    // 12 pings restore 12 total health across the two
+    builder.add_custom_minion_to_board(PlayerId1(), 2, 12, 2);
+    builder.add_minion_to_hand(PlayerId1(), &HEALING_RAIN);
+    let mut state = builder.build();
+    let hero1 = state.player(PlayerId1()).hero;
+    let minion = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("the damaged minion");
+    {
+        let world = state.world_mut();
+        world.set_damage(hero1, orange_stone::core::component::Damage(12));
+        world.set_damage(minion, orange_stone::core::component::Damage(12));
+    }
+    let rain = find_in_hand(&state, PlayerId1(), "CORE_LOOT_373");
+    let engine = GameEngine::new();
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: rain,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let healed = state.world().damage(hero1).map_or(0, |d| d.0)
+        + state
+            .world()
+            .zones()
+            .iter(Zone::Play, PlayerId1())
+            .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+            .map(|e| state.world().damage(e).map_or(0, |d| d.0))
+            .sum::<i32>();
+    assert_eq!(healed, 12, "12 health restored across the friendly side");
+}
+
+/// W2-9 Quick Shot — draws a card when the hand is empty, not otherwise.
+#[test]
+fn w2_quick_shot_draws_on_empty_hand() {
+    use orange_stone::cards::def::QUICK_SHOT;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let enemy_minion = builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4);
+    builder.add_minion_to_hand(PlayerId1(), &QUICK_SHOT);
+    builder.add_minion_to_deck(PlayerId1(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Hand holds only Quick Shot — playing it empties the hand, so the
+    // draw triggers (hand empty AT resolution)
+    let shot = find_in_hand(&state, PlayerId1(), "CORE_BRM_013");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: shot,
+                target: Some(enemy_minion),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy_minion),
+        Some(Health(1))
+    );
+    assert_eq!(state.world().zones().len(Zone::Hand, PlayerId1()), 1);
+    // Now the hand is non-empty: a second Quick Shot does not draw
+    builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let enemy2 = builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 4);
+    builder.add_minion_to_hand(PlayerId1(), &QUICK_SHOT);
+    builder.add_custom_minion_to_hand(PlayerId1(), 2, 2, 2); // non-empty
+    builder.add_minion_to_deck(PlayerId1(), &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let mut state2 = builder.build();
+    let engine2 = GameEngine::new();
+    let shot2 = find_in_hand(&state2, PlayerId1(), "CORE_BRM_013");
+    engine2
+        .apply(
+            &mut state2,
+            Action::PlayCard {
+                card: shot2,
+                target: Some(enemy2),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state2.world().zones().len(Zone::Hand, PlayerId1()), 1);
+    assert_eq!(state2.world().zones().len(Zone::Deck, PlayerId1()), 1);
+}
+
+/// W2-10 Best in Shell — summons two 2/7 Turtles with Taunt.
+#[test]
+fn w2_best_in_shell_summons_turtles() {
+    use orange_stone::cards::def::BEST_IN_SHELL;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    builder.add_minion_to_hand(PlayerId1(), &BEST_IN_SHELL);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let shell = find_in_hand(&state, PlayerId1(), "CORE_SW_429");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: shell,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let turtles: Vec<_> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_SW_429t")
+        })
+        .collect();
+    assert_eq!(turtles.len(), 2);
+    for t in &turtles {
+        assert_eq!(state.world().effective_attack(*t), Some(Attack(2)));
+        assert_eq!(state.world().effective_health(*t), Some(Health(7)));
+        assert!(state.world().taunt(*t).is_some());
+    }
+}
+
+/// W2-11 The Black Knight — Tradeable battlecry destroys an enemy Taunt
+/// minion.
+#[test]
+fn w2_black_knight_destroys_taunt() {
+    use orange_stone::cards::def::CORE_THE_BLACK_KNIGHT;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let taunt = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 3);
+    builder.add_minion_to_hand(PlayerId1(), &CORE_THE_BLACK_KNIGHT);
+    let mut state = builder.build();
+    // mark the enemy minion as Taunt (manual spawn has no component)
+    state
+        .world_mut()
+        .set_taunt(taunt, orange_stone::core::component::Taunt);
+    let engine = GameEngine::new();
+    let knight = find_in_hand(&state, PlayerId1(), "CORE_EX1_002");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: knight,
+                target: Some(taunt),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(taunt), Some(Zone::Graveyard));
+}
+
+/// W2-12 Demolition Renovator — the battlecry targets locations; with no
+/// Location card type in the engine yet the effect fizzles harmlessly.
+#[test]
+fn w2_demolition_renovator_fizzles_without_locations() {
+    use orange_stone::cards::def::DEMOLITION_RENOVATOR;
+    let mut builder = GameBuilder::new();
+    builder.set_mana(PlayerId1(), 10, 10);
+    builder.active_player(PlayerId1());
+    let foe = builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    builder.add_minion_to_hand(PlayerId1(), &DEMOLITION_RENOVATOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let renovator = find_in_hand(&state, PlayerId1(), "CORE_REV_023");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: renovator,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(foe), Some(Health(2)));
+    assert_eq!(state.world().zone(renovator), Some(Zone::Play));
 }

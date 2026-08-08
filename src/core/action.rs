@@ -50,4 +50,10 @@ pub enum Action {
         /// The chosen option index
         option: u8,
     },
+    /// Trade a Tradeable hand card (Core Set W2): spend 1 mana, shuffle the
+    /// card into the deck, draw a card.
+    TradeCard {
+        /// The Tradeable card in hand
+        card: Entity,
+    },
 }

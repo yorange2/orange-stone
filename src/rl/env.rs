@@ -339,6 +339,18 @@ pub fn legal_action_infos(state: &GameState) -> Vec<ActionInfo> {
             target_id: -1,
         });
     }
+    // Tradeable trades (Core Set W2): one per Tradeable hand card
+    for (hand_idx, card) in world.zones().iter(Zone::Hand, player).enumerate() {
+        if world.tradeable(card).is_some() {
+            candidates.push(ActionInfo {
+                action: Action::TradeCard { card },
+                kind: "trade",
+                card_index: hand_idx as i32,
+                entity_id: card.index as i32,
+                target_id: -1,
+            });
+        }
+    }
     // Play cards (with explicit targets)
     for (hand_idx, card) in world.zones().iter(Zone::Hand, player).enumerate() {
         let targets = play_targets(state, card);
@@ -434,6 +446,7 @@ fn play_targets(
         CardEffect::DestroyAndGainStats { target, .. } => target,
         CardEffect::SwapAttackAndHealth { target } => target,
         CardEffect::GrantDivineShield { target } => target,
+        CardEffect::OutcastDamage { target, .. } => target,
         _ => return Vec::new(),
     };
     let owner = state

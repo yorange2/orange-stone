@@ -13,8 +13,8 @@ use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack, CardId, CardType,
     Charge, ChooseOneEffect, ComboEffect, Cost, CostModifier, CostModifierKind, Damage,
     Deathrattle, DivineShield, Durability, Elusive, Enchantment, Enrage, Freeze, Health,
-    HeroPowerDef, HeroPowerUsed, Immune, Lifesteal, Overload, Poison, Race, Reborn, Rush, Secret,
-    SpellDamage, Stealth, SummonedThisTurn, Taunt, Trigger, Windfury,
+    HeroPowerDef, HeroPowerUsed, Immune, Lifesteal, OutcastPlayed, Overload, Poison, Race, Reborn,
+    Rush, Secret, SpellDamage, Stealth, SummonedThisTurn, Taunt, Tradeable, Trigger, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -160,6 +160,10 @@ pub struct World {
     reborn: SparseSet<Reborn>,
     /// SummonedThisTurn component storage (Core Set W1)
     summoned_this_turn: SparseSet<SummonedThisTurn>,
+    /// Tradeable component storage (Core Set W2)
+    tradeable: SparseSet<Tradeable>,
+    /// OutcastPlayed component storage (Core Set W2)
+    outcast_played: SparseSet<OutcastPlayed>,
     /// Enrage component storage — the damaged-only conditional bonus
     enrage: SparseSet<Enrage>,
     /// Stealth component storage (stealth)
@@ -287,6 +291,8 @@ impl World {
             lifesteal: SparseSet::new(),
             reborn: SparseSet::new(),
             summoned_this_turn: SparseSet::new(),
+            tradeable: SparseSet::new(),
+            outcast_played: SparseSet::new(),
             enrage: SparseSet::new(),
             stealth: SparseSet::new(),
             elusive: SparseSet::new(),
@@ -365,6 +371,8 @@ impl World {
         self.lifesteal.remove(entity);
         self.reborn.remove(entity);
         self.summoned_this_turn.remove(entity);
+        self.tradeable.remove(entity);
+        self.outcast_played.remove(entity);
         self.enrage.remove(entity);
         self.stealth.remove(entity);
         self.elusive.remove(entity);
@@ -816,6 +824,22 @@ impl World {
         set_summoned_this_turn,
         remove_summoned_this_turn,
         iter_summoned_this_turn
+    );
+    component_accessors!(
+        tradeable,
+        Tradeable,
+        tradeable,
+        set_tradeable,
+        remove_tradeable,
+        iter_tradeable
+    );
+    component_accessors!(
+        outcast_played,
+        OutcastPlayed,
+        outcast_played,
+        set_outcast_played,
+        remove_outcast_played,
+        iter_outcast_played
     );
     component_accessors!(
         enrage,

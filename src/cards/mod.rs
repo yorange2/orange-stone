@@ -16,6 +16,7 @@ pub mod classic_shaman;
 pub mod classic_warlock;
 pub mod classic_warrior;
 pub mod core_w1;
+pub mod core_w2;
 pub mod def;
 pub mod generated;
 pub mod pool;
@@ -23,7 +24,7 @@ pub mod sets;
 
 use crate::core::component::{
     Attack, AttacksUsed, Aura, CardId, Cost, Deathrattle, Durability, Enrage, Health, Lifesteal,
-    Overload, Poison, Reborn, Rush, Stealth, Trigger, TriggerEvent, TriggerTiming,
+    Overload, Poison, Reborn, Rush, Stealth, Tradeable, Trigger, TriggerEvent, TriggerTiming,
 };
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
@@ -104,6 +105,18 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // Mythical Terror — dual tribe Demon + Beast (the CardDef carries
         // the primary Demon; the Beast half lands here, Core Set W1)
         world.add_race(entity, crate::core::component::Race::Beast);
+    }
+    // Tradeable (Core Set W2) — the 6 Tradeable cards: shuffle-for-1-and-draw
+    if matches!(
+        card_def.id,
+        "CORE_EX1_002"   // The Black Knight
+        | "CORE_EX1_005" // Big Game Hunter
+        | "CORE_REV_023" // Demolition Renovator
+        | "CORE_SW_066"  // Royal Librarian
+        | "CORE_SW_072"  // Rustrot Viper
+        | "CORE_SW_429" // Best in Shell
+    ) {
+        world.set_tradeable(entity, Tradeable);
     }
     // Shaman cards with Overload — the amount locks mana on the owner's next
     // turn (roadmap F1): Lightning Bolt 1, Lightning Storm 2, Feral Spirit 2,
