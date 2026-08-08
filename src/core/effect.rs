@@ -4,7 +4,7 @@
 //! Effects are stored as `Copy` enum constants in `CardDef` and the `Battlecry`/`Deathrattle` components.
 use serde::{Deserialize, Serialize};
 
-use crate::core::component::ImbueClass;
+use crate::core::component::{DarkGiftKind, ImbueClass};
 
 /// Effect target selector.
 ///
@@ -1361,6 +1361,56 @@ pub enum CardEffect {
         /// Cost of the summoned dragon
         cost: i32,
     },
+    // ----------------------------------------------------------------
+    // 2025–2026 expansions M1-W2 effects (exp_edr_w2) — the Emerald Dream
+    // dark-gift mechanic: the dark-gift Discover cards draw a random
+    // qualifying minion and attach one of the ten dark gifts. A gift is a
+    // card-level upgrade that persists across zones (hand / deck / play);
+    // the marker rides the World `dark_gifts` component and the static
+    // effects (enchantments + keyword components) are applied by
+    // `engine::trigger::apply_dark_gift`.
+    // ----------------------------------------------------------------
+    /// Apply a dark gift to the subject (used by the trigger hooks; the
+    /// W2 cards resolve the gift through the dedicated Discover variants
+    /// below)
+    ApplyDarkGift {
+        /// The gift to apply
+        gift: DarkGiftKind,
+    },
+    /// Discover a random minion of the given pool and give it a dark gift
+    /// (Treacherous Tormentor — Legendary pool, Avant-Gardening —
+    /// Deathrattle pool, Jumpscare! — Demons costing 5+ pool; the real
+    /// Discover lets the player choose, simplified to random)
+    DiscoverWithDarkGift {
+        /// The pool the discovered minion is drawn from
+        pool: RandomPool,
+    },
+    /// If the player is holding a Dragon, discover a random Dragon and give
+    /// it a dark gift (Darkrider — the "holding a Dragon" condition gates
+    /// the whole effect)
+    DiscoverDragonWithDarkGift,
+    /// Discover a random Undead; if the player can spend the given corpses,
+    /// give it a dark gift (Rite of Atrocity — spends 2 corpses; without
+    /// the corpses the Undead is added ungifted)
+    DiscoverUndeadWithCorpseGift {
+        /// Corpses spent for the gift
+        corpses: u32,
+    },
+    /// Copy a random minion from the opponent's deck into the player's hand
+    /// (Nightmare Fuel — **pool-open**: reads the enemy deck, registered in
+    /// `sets::POOL_OPEN_CARDS`); with the Combo branch the copy receives a
+    /// dark gift
+    DiscoverEnemyDeckMinionCopy {
+        /// Whether the Combo branch gives the copy a dark gift
+        with_gift: bool,
+    },
+    /// Move a random minion from the player's own deck to hand and give it
+    /// a dark gift (Nightmare Lord Xavius — the player's own deck is
+    /// in-pool, not pool-open)
+    DiscoverDeckMinionWithDarkGift,
+    /// Reduce the Cost of the player's hand minions carrying a dark gift
+    /// by (2) (Overgrown Horror)
+    ReduceHandMinionGiftCost,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -1978,6 +2028,21 @@ enum CardEffectDe {
     SummonRandomDragonOfCost {
         cost: i32,
     },
+    ApplyDarkGift {
+        gift: DarkGiftKind,
+    },
+    DiscoverWithDarkGift {
+        pool: RandomPool,
+    },
+    DiscoverDragonWithDarkGift,
+    DiscoverUndeadWithCorpseGift {
+        corpses: u32,
+    },
+    DiscoverEnemyDeckMinionCopy {
+        with_gift: bool,
+    },
+    DiscoverDeckMinionWithDarkGift,
+    ReduceHandMinionGiftCost,
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -2618,6 +2683,21 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::SummonRandomDragonOfCost { cost } => {
                 CardEffect::SummonRandomDragonOfCost { cost }
             }
+            CardEffectDe::ApplyDarkGift { gift } => CardEffect::ApplyDarkGift { gift },
+            CardEffectDe::DiscoverWithDarkGift { pool } => {
+                CardEffect::DiscoverWithDarkGift { pool }
+            }
+            CardEffectDe::DiscoverDragonWithDarkGift => CardEffect::DiscoverDragonWithDarkGift,
+            CardEffectDe::DiscoverUndeadWithCorpseGift { corpses } => {
+                CardEffect::DiscoverUndeadWithCorpseGift { corpses }
+            }
+            CardEffectDe::DiscoverEnemyDeckMinionCopy { with_gift } => {
+                CardEffect::DiscoverEnemyDeckMinionCopy { with_gift }
+            }
+            CardEffectDe::DiscoverDeckMinionWithDarkGift => {
+                CardEffect::DiscoverDeckMinionWithDarkGift
+            }
+            CardEffectDe::ReduceHandMinionGiftCost => CardEffect::ReduceHandMinionGiftCost,
         })
     }
 }
@@ -2659,6 +2739,37 @@ mod tests {
             assert_eq!(back, effect);
         }
     }
+
+    /// Every new 2025–2026 expansions M1-W2 variant survives the bincode
+    /// roundtrip (CardEffectDe → CardEffect).
+    #[test]
+    fn dark_gift_effects_serialize_roundtrip() {
+        use crate::core::component::DarkGiftKind;
+        for effect in [
+            CardEffect::ApplyDarkGift {
+                gift: DarkGiftKind::Charge,
+            },
+            CardEffect::DiscoverWithDarkGift {
+                pool: RandomPool::DeathrattleMinion,
+            },
+            CardEffect::DiscoverWithDarkGift {
+                pool: RandomPool::UndeadMinion,
+            },
+            CardEffect::DiscoverWithDarkGift {
+                pool: RandomPool::DemonCost5Plus,
+            },
+            CardEffect::DiscoverDragonWithDarkGift,
+            CardEffect::DiscoverUndeadWithCorpseGift { corpses: 2 },
+            CardEffect::DiscoverEnemyDeckMinionCopy { with_gift: true },
+            CardEffect::DiscoverEnemyDeckMinionCopy { with_gift: false },
+            CardEffect::DiscoverDeckMinionWithDarkGift,
+            CardEffect::ReduceHandMinionGiftCost,
+        ] {
+            let bytes = bincode::serialize(&effect).expect("serialize");
+            let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
+            assert_eq!(back, effect);
+        }
+    }
 }
 
 /// Random pool type — Tier 3 random generation.
@@ -2694,4 +2805,14 @@ pub enum RandomPool {
     /// 2025–2026 expansions M1-W1; the real card lets the player choose,
     /// simplified to random)
     PriestCard,
+    /// A random minion with a Deathrattle (Avant-Gardening — 2025–2026
+    /// expansions M1-W2 dark gifts; "Deathrattle" = a Deathrattle effect or
+    /// a death trigger, matching the engine's Deathrattle component model)
+    DeathrattleMinion,
+    /// A random Undead minion (Rite of Atrocity — 2025–2026 expansions
+    /// M1-W2 dark gifts)
+    UndeadMinion,
+    /// A random Demon costing (5) or more (Jumpscare! — 2025–2026
+    /// expansions M1-W2 dark gifts)
+    DemonCost5Plus,
 }

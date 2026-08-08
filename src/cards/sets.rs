@@ -1689,6 +1689,16 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_edr_w1::PLANT_GOLEM,
     super::exp_edr_w1::WISP_TOKEN,
     super::exp_edr_w1::EMERALD_PORTAL,
+    // M1-W2 — the Emerald Dream dark-gift wave (src/cards/exp_edr_w2.rs)
+    super::exp_edr_w2::TREACHEROUS_TORMENTOR,
+    super::exp_edr_w2::DARKRIDER,
+    super::exp_edr_w2::WALLOW_THE_WRETCHED,
+    super::exp_edr_w2::AVANT_GARDENING,
+    super::exp_edr_w2::NIGHTMARE_FUEL,
+    super::exp_edr_w2::OVERGROWN_HORROR,
+    super::exp_edr_w2::RITE_OF_ATROCITY,
+    super::exp_edr_w2::NIGHTMARE_LORD_XAVIUS,
+    super::exp_edr_w2::JUMPSCARE,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated
@@ -1729,6 +1739,8 @@ pub const POOL_OPEN_CARDS: &[&str] = &[
     "CORE_CFM_790",  // Dirty Rat (Core Set W4a) — summons from the enemy hand
     "CORE_ICC_407",  // Gnomeferatu (Core Set W4a) — removes the enemy deck top
     "CORE_EX1_193",  // Psychic Conjurer (Core Set W4b) — copies from the enemy deck
+    // M1-W2 — the Emerald Dream dark-gift wave (src/cards/exp_edr_w2.rs)
+    "EDR_528", // Nightmare Fuel — copies a minion from the opponent's deck
 ];
 
 #[cfg(test)]
@@ -1772,6 +1784,7 @@ mod tests {
                     | CardEffect::CopyEnemyDeckCardOnSelfAttack
                     | CardEffect::SummonRandomEnemyHandMinion
                     | CardEffect::RemoveTopEnemyDeckCard
+                    | CardEffect::DiscoverEnemyDeckMinionCopy { .. }
             )
         };
         for card in ALL_CARDS {

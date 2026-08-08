@@ -9,8 +9,8 @@
 
 use crate::core::action::Action;
 use crate::core::component::{
-    Attack, AttacksUsed, CardType, Durability, EnchantmentExpiry, Health, HeroPowerUsed, Secret,
-    TriggerEvent, TriggerTiming,
+    Attack, AttacksUsed, CardType, DarkGiftKind, Durability, EnchantmentExpiry, Health,
+    HeroPowerUsed, Secret, TriggerEvent, TriggerTiming,
 };
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue, Priority};
@@ -1178,6 +1178,20 @@ pub fn apply_event(
                     // forwarded from Action::PlayCard; re-validation stays G9 —
                     // a target that left the legal candidate set fizzles.
                     trigger::resolve_effect(state, queue, minion, player, effect, target, None);
+                    // Dark gift 6 (BattlecryTwice — 2025–2026 expansions
+                    // M1-W2): "this minion's battlecries trigger twice" — the
+                    // same effect re-resolves once for a minion carrying the
+                    // gift (registered simplification: the official "only if
+                    // it has a battlecry" filter is not applied — fidelity-debt
+                    // §14). The re-resolution reads the pre-captured effect,
+                    // so a battlecry that buffs or kills the minion mid-way
+                    // still replays once, as in Hearthstone.
+                    if state
+                        .world()
+                        .has_dark_gift(minion, DarkGiftKind::BattlecryTwice)
+                    {
+                        trigger::resolve_effect(state, queue, minion, player, effect, target, None);
+                    }
                 }
             }
             // Summon triggers: registered FriendlyMinionSummoned triggers fire in
@@ -1192,6 +1206,28 @@ pub fn apply_event(
                 Some(minion),
                 Some(minion),
             );
+            // Dark gift 5 (SummonCopyOnPlay — 2025–2026 expansions M1-W2):
+            // "when you play this, summon a 2/2 copy of it". The copy is a
+            // fresh entity from the base card definition (it carries no gifts
+            // and no enchantments — a copied card is a plain card), forced to
+            // 2/2 (registered: the engine-convention battlecry of effect
+            // summons fires for the copy too — fidelity-debt §14).
+            if state
+                .world()
+                .has_dark_gift(minion, DarkGiftKind::SummonCopyOnPlay)
+            {
+                if let Some(card_id) = state.world().card_id(minion) {
+                    if let Some(copy) =
+                        trigger::resolve_summon(state, queue, minion, player, card_id.0)
+                    {
+                        let world = state.world_mut();
+                        world.set_attack(copy, Attack(2));
+                        world.set_health(copy, Health(2));
+                        world.remove_enchantments(copy);
+                        world.remove_damage(copy);
+                    }
+                }
+            }
         }
         Event::AttackDeclared { attacker, defender } => {
             // Lake Thresher (Core Set W3b): also damages the minions next
@@ -1625,7 +1661,16 @@ pub fn apply_event(
                     inner.players[owner.index()].corpses += 1;
                 }
                 state.world_mut().remove_reborn(minion);
+                if state
+                    .world()
+                    .has_dark_gift(minion, DarkGiftKind::RebornFull)
                 {
+                    // Dark gift 8 (RebornFull — 2025–2026 expansions M1-W2):
+                    // the reborn minion keeps its enchantments (buffs and
+                    // debuffs alike) and returns at full health — only the
+                    // accumulated damage is cleared, no stat reset.
+                    state.world_mut().remove_damage(minion);
+                } else {
                     let world = state.world_mut();
                     world.remove_enchantments(minion);
                     world.set_attack(minion, Attack(1));

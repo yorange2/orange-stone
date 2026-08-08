@@ -129,6 +129,13 @@ pub struct Player {
     /// (2025–2026 expansions M1-W1): his "Repeat this every 3 spells you
     /// cast" fires an extra imbue when this hits a multiple of 3.
     pub hamuul_spells_cast: i32,
+    /// Dark gifts given to this player's minions (2025–2026 expansions
+    /// M1-W2 — the Emerald Dream dark-gift mechanic): every applied gift is
+    /// logged in application order. Wallow, the Wretched (EDR_487) reads
+    /// this list to copy every gift onto himself while in the hand or deck
+    /// (registered simplification: the log records gift kinds only, not
+    /// targets — fidelity-debt §14).
+    pub dark_gifts_given: Vec<crate::core::component::DarkGiftKind>,
 }
 
 impl Player {
@@ -166,6 +173,7 @@ impl Player {
             enemy_spell_cost_more: 0,
             imbue_count: 0,
             hamuul_spells_cast: 0,
+            dark_gifts_given: Vec::new(),
         }
     }
 }

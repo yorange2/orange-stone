@@ -15118,3 +15118,718 @@ fn edr_w1_kaldorei_priestess_debuffs_enemy_attack() {
         "the debuff expires at turn end"
     );
 }
+
+// ============================================================
+// Wave edr_w2 — the Emerald Dream dark-gift mechanic
+// (2025-2026 expansions M1-W2): the W2 Discover cards add a
+// random qualifying minion and give it one of the ten dark
+// gifts (card-level upgrades persisting across zones). The
+// seeded scenarios pin the exact gift (the second RNG call
+// of the play is the gift pick over the fixed ten-gift pool)
+// and the exact static effects; the behavioral gifts (5/6/8)
+// get marker-driven scenarios. All seeded scenarios use empty
+// or single-card decks so the deck shuffle consumes no RNG.
+// ============================================================
+
+/// F5-EDR1-W2 — Treacherous Tormentor (Legendary pool): a random Legendary
+/// minion to hand with a dark gift; the gift persists when played (hand →
+/// play). Seed 42 pins gift 0 (AttackLifesteal: +3 Attack, Lifesteal).
+#[test]
+fn edr_w2_treacherous_tormentor_legendary_gift_attack_lifesteal() {
+    use orange_stone::cards::def::{TREACHEROUS_TORMENTOR, card_by_id};
+    use orange_stone::core::component::DarkGiftKind;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &TREACHEROUS_TORMENTOR);
+    builder.set_mana(PlayerId1(), 4, 4);
+    builder.with_rng_seed(42);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    // A Legendary minion was added to the hand with gift 0
+    let hand = state.world().zones().iter(Zone::Hand, PlayerId1());
+    assert_eq!(hand.count(), 1, "exactly one Legendary added");
+    let legendary = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("the discovered Legendary");
+    let id = state.world().card_id(legendary).expect("card id").0;
+    assert!(
+        orange_stone::cards::sets::LEGENDARY_CLASSIC
+            .iter()
+            .any(|l| l.id == id),
+        "{id} is a Legendary minion"
+    );
+    let def = card_by_id(id).expect("def");
+    assert_eq!(
+        state.world().effective_attack(legendary),
+        Some(Attack(def.attack + 3)),
+        "gift 0: +3 Attack"
+    );
+    assert!(state.world().lifesteal(legendary).is_some(), "Lifesteal");
+    assert!(
+        state
+            .world()
+            .has_dark_gift(legendary, DarkGiftKind::AttackLifesteal),
+        "the gift marker rides the card"
+    );
+    assert_eq!(
+        state.player(PlayerId1()).dark_gifts_given,
+        vec![DarkGiftKind::AttackLifesteal],
+        "the gift log records the kind"
+    );
+    // Zone persistence: play the gifted Legendary — the buff and the marker
+    // survive the hand → play move
+    give_mana(&mut state, PlayerId1(), 10);
+    let card = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("the Legendary to play");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let on_board = find_entity(&state, PlayerId1(), id);
+    assert_eq!(
+        state.world().effective_attack(on_board),
+        Some(Attack(def.attack + 3)),
+        "the +3 Attack persists on the battlefield"
+    );
+    assert!(
+        state.world().lifesteal(on_board).is_some(),
+        "Lifesteal stays"
+    );
+    assert!(
+        state
+            .world()
+            .has_dark_gift(on_board, DarkGiftKind::AttackLifesteal),
+        "the marker stays"
+    );
+}
+
+/// F5-EDR2-W2 — Avant-Gardening (Deathrattle pool): a random Deathrattle
+/// minion to hand with a dark gift. Seed 3 pins gift 2 (CostDiscount:
+/// cost -2, attack -2; the official "attack stays at least 1" filter is not
+/// applied — registered simplification).
+#[test]
+fn edr_w2_avant_gardening_deathrattle_gift_cost_discount() {
+    use orange_stone::cards::def::{AVANT_GARDENING, card_by_id};
+    use orange_stone::core::component::DarkGiftKind;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &AVANT_GARDENING);
+    builder.set_mana(PlayerId1(), 2, 2);
+    builder.with_rng_seed(3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    let added = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("the discovered Deathrattle minion");
+    let id = state.world().card_id(added).expect("card id").0;
+    let def = card_by_id(id).expect("def");
+    assert_eq!(def.card_type, CardType::Minion, "{id} is a minion");
+    assert!(
+        def.deathrattle.is_some() || def.death_trigger.is_some(),
+        "{id} has a Deathrattle"
+    );
+    assert!(
+        state
+            .world()
+            .has_dark_gift(added, DarkGiftKind::CostDiscount),
+        "gift 2 marker"
+    );
+    assert_eq!(
+        state.world().effective_attack(added),
+        Some(Attack(def.attack - 2)),
+        "gift 2: -2 Attack"
+    );
+    assert_eq!(
+        state.world().effective_cost(added),
+        Some(Cost(def.cost - 2)),
+        "gift 2: (2) less"
+    );
+}
+
+/// F5-EDR3-W2 — Jumpscare! (Demon pool costing 5+): a random expensive Demon
+/// to hand with a dark gift. Seed 2 pins gift 9 (ShieldWindfury: Divine
+/// Shield + Windfury). The "shuffle the other two into your deck" clause is
+/// moot under the random Discover simplification (registered).
+#[test]
+fn edr_w2_jumpscare_demon_gift_shield_windfury() {
+    use orange_stone::cards::def::{JUMPSCARE, card_by_id};
+    use orange_stone::core::component::{DarkGiftKind, Race};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &JUMPSCARE);
+    builder.set_mana(PlayerId1(), 2, 2);
+    builder.with_rng_seed(2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    let added = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("the discovered Demon");
+    let id = state.world().card_id(added).expect("card id").0;
+    let def = card_by_id(id).expect("def");
+    assert_eq!(def.race, Some(Race::Demon), "{id} is a Demon");
+    assert!(def.cost >= 5, "{id} costs (5) or more");
+    assert!(
+        state
+            .world()
+            .has_dark_gift(added, DarkGiftKind::ShieldWindfury),
+        "gift 9 marker"
+    );
+    assert!(
+        state.world().divine_shield(added).is_some(),
+        "Divine Shield"
+    );
+    assert!(state.world().windfury(added).is_some(), "Windfury");
+}
+
+/// F5-EDR4-W2 — Rite of Atrocity with 2 corpses: a random Undead to hand
+/// with a dark gift, the corpses spent. Seed 6 pins gift 3 (Charge).
+#[test]
+fn edr_w2_rite_of_atrocity_corpses_gift_charge() {
+    use orange_stone::cards::def::{RITE_OF_ATROCITY, card_by_id};
+    use orange_stone::core::component::{DarkGiftKind, Race};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &RITE_OF_ATROCITY);
+    builder.set_mana(PlayerId1(), 2, 2);
+    builder.with_rng_seed(6);
+    let mut state = builder.build();
+    state.make_mut().players[PlayerId1().index()].corpses = 2;
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    let added = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("the discovered Undead");
+    let id = state.world().card_id(added).expect("card id").0;
+    let def = card_by_id(id).expect("def");
+    assert_eq!(def.race, Some(Race::Undead), "{id} is Undead");
+    assert!(
+        state.world().has_dark_gift(added, DarkGiftKind::Charge),
+        "gift 3 marker"
+    );
+    assert!(state.world().charge(added).is_some(), "Charge");
+    assert_eq!(
+        state.player(PlayerId1()).corpses,
+        0,
+        "the 2 corpses were spent"
+    );
+}
+
+/// F5-EDR5-W2 — Rite of Atrocity WITHOUT corpses: the Undead is still
+/// discovered, but no gift is given and nothing is spent.
+#[test]
+fn edr_w2_rite_of_atrocity_no_corpses_undead_ungifted() {
+    use orange_stone::cards::def::{RITE_OF_ATROCITY, card_by_id};
+    use orange_stone::core::component::Race;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &RITE_OF_ATROCITY);
+    builder.set_mana(PlayerId1(), 2, 2);
+    let mut state = builder.build();
+    state.make_mut().players[PlayerId1().index()].corpses = 1;
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    let added = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("the discovered Undead");
+    let id = state.world().card_id(added).expect("card id").0;
+    let def = card_by_id(id).expect("def");
+    assert_eq!(def.race, Some(Race::Undead), "{id} is Undead");
+    assert!(
+        state.world().dark_gifts(added).is_none(),
+        "no gift without the corpses"
+    );
+    assert!(
+        state.player(PlayerId1()).dark_gifts_given.is_empty(),
+        "nothing logged"
+    );
+    assert_eq!(state.player(PlayerId1()).corpses, 1, "nothing spent");
+}
+
+/// F5-EDR6-W2 — Nightmare Fuel with Combo (**pool-open**): a copy of a
+/// minion from the opponent's deck goes to hand WITH a dark gift. Seed 8
+/// pins gift 6 (HealthTaunt: +4 Health, Taunt). The enemy deck is not
+/// modified — the copy is indistinguishable from a freshly generated card.
+#[test]
+fn edr_w2_nightmare_fuel_combo_gift_health_taunt() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, NIGHTMARE_FUEL, card_by_id};
+    use orange_stone::core::component::DarkGiftKind;
+    let mut builder = GameBuilder::new();
+    // A vanilla pre-card makes the Fuel the combo card
+    builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.add_minion_to_hand(PlayerId1(), &NIGHTMARE_FUEL);
+    builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 3, 3);
+    builder.with_rng_seed(8);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    play_front_card(&mut state, &engine, PlayerId1());
+    // The copy is the only hand card now
+    let added = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("the copied deck minion");
+    let id = state.world().card_id(added).expect("card id").0;
+    let def = card_by_id(id).expect("def");
+    assert_eq!(id, "CLASSIC_001", "the copied enemy deck minion");
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, PlayerId2()),
+        1,
+        "the enemy deck is untouched (a copy, not a draw)"
+    );
+    assert!(
+        state
+            .world()
+            .has_dark_gift(added, DarkGiftKind::HealthTaunt),
+        "combo: gift 6 marker"
+    );
+    assert!(state.world().taunt(added).is_some(), "Taunt");
+    assert_eq!(
+        state.world().effective_health(added),
+        Some(Health(def.health + 4)),
+        "gift 6: +4 Health"
+    );
+}
+
+/// F5-EDR7-W2 — Nightmare Fuel WITHOUT Combo: the copy is added plain — no
+/// dark gift, nothing logged.
+#[test]
+fn edr_w2_nightmare_fuel_without_combo_copy_ungifted() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, NIGHTMARE_FUEL};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &NIGHTMARE_FUEL);
+    builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 1, 1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    let added = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .next()
+        .expect("the copied deck minion");
+    assert_eq!(
+        state.world().card_id(added).expect("card id").0,
+        "CLASSIC_001"
+    );
+    assert!(
+        state.world().dark_gifts(added).is_none(),
+        "no gift without combo"
+    );
+    assert!(state.player(PlayerId1()).dark_gifts_given.is_empty());
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, PlayerId2()),
+        1,
+        "the enemy deck is untouched"
+    );
+}
+
+/// F5-EDR8-W2 — Darkrider with a Dragon in hand: a random Dragon is added
+/// and given gift 8 (DeckTopBuff: +4/+5, placed on top of the deck). Seed 4
+/// pins gift 8. The buff persists deck → hand → play.
+#[test]
+fn edr_w2_darkrider_holding_dragon_gift_deck_top_buff() {
+    use orange_stone::cards::def::{DARKRIDER, EVASIVE_WYRM, card_by_id};
+    use orange_stone::core::component::DarkGiftKind;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &DARKRIDER);
+    // The holding-check Dragon stays in hand
+    builder.add_minion_to_hand(PlayerId1(), &EVASIVE_WYRM);
+    builder.set_mana(PlayerId1(), 2, 2);
+    builder.with_rng_seed(4);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    // The gifted dragon sits on TOP of the deck with +4/+5
+    let deck: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, PlayerId1())
+        .collect();
+    assert_eq!(deck.len(), 1, "one dragon on top of the deck");
+    let buffed = deck[0];
+    let id = state.world().card_id(buffed).expect("card id").0;
+    let def = card_by_id(id).expect("def");
+    assert_eq!(def.race, Some(orange_stone::core::component::Race::Dragon));
+    assert!(
+        state
+            .world()
+            .has_dark_gift(buffed, DarkGiftKind::DeckTopBuff),
+        "gift 8 marker"
+    );
+    assert_eq!(
+        state.world().effective_attack(buffed),
+        Some(Attack(def.attack + 4)),
+        "gift 8: +4 Attack in the deck"
+    );
+    assert_eq!(
+        state.world().effective_health(buffed),
+        Some(Health(def.health + 5)),
+        "gift 8: +5 Health in the deck"
+    );
+    // The holding-check Dragon is untouched in hand
+    let holding = find_in_hand(&state, PlayerId1(), "CORE_DRG_079");
+    assert!(
+        state.world().dark_gifts(holding).is_none(),
+        "the holding Dragon keeps no gift"
+    );
+    // Draw the buffed dragon back (turn 2) and play it — the buff persists
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let drawn = find_in_hand(&state, PlayerId1(), id);
+    assert_eq!(
+        state.world().effective_attack(drawn),
+        Some(Attack(def.attack + 4)),
+        "the buff persists in hand"
+    );
+    give_mana(&mut state, PlayerId1(), 10);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: drawn,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let on_board = find_entity(&state, PlayerId1(), id);
+    assert_eq!(
+        state.world().effective_attack(on_board),
+        Some(Attack(def.attack + 4)),
+        "the buff persists on the battlefield"
+    );
+    assert_eq!(
+        state.world().effective_health(on_board),
+        Some(Health(def.health + 5))
+    );
+    assert!(
+        state
+            .world()
+            .has_dark_gift(on_board, DarkGiftKind::DeckTopBuff),
+        "the marker persists"
+    );
+}
+
+/// F5-EDR9-W2 — Darkrider WITHOUT a Dragon in hand: the condition fails and
+/// nothing happens — no card added, no gift given.
+#[test]
+fn edr_w2_darkrider_no_dragon_condition_fizzles() {
+    use orange_stone::cards::def::DARKRIDER;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &DARKRIDER);
+    builder.set_mana(PlayerId1(), 1, 1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, PlayerId1()),
+        0,
+        "no Dragon was added"
+    );
+    assert!(state.player(PlayerId1()).dark_gifts_given.is_empty());
+}
+
+/// F5-EDR10-W2 — Wallow, the Wretched: every dark gift given to the owner's
+/// minions is copied onto every friendly Wallow in the hand or deck, with
+/// the same static effects, without re-logging. (The log records kinds
+/// only — registered simplification; the sync is not retroactive.)
+#[test]
+fn edr_w2_wallow_copies_gift_to_hand_and_deck() {
+    use orange_stone::cards::def::{TREACHEROUS_TORMENTOR, WALLOW_THE_WRETCHED};
+    use orange_stone::core::component::DarkGiftKind;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &TREACHEROUS_TORMENTOR);
+    builder.add_minion_to_hand(PlayerId1(), &WALLOW_THE_WRETCHED);
+    builder.add_minion_to_deck(PlayerId1(), &WALLOW_THE_WRETCHED);
+    builder.set_mana(PlayerId1(), 8, 8);
+    builder.with_rng_seed(42);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    // Gift 0 (AttackLifesteal) went to the discovered Legendary
+    assert_eq!(
+        state.player(PlayerId1()).dark_gifts_given,
+        vec![DarkGiftKind::AttackLifesteal],
+        "the log records the single gift"
+    );
+    let legendary = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .find(|&e| !state.world().card_id(e).is_some_and(|c| c.0 == "EDR_487"))
+        .expect("the Legendary");
+    assert!(
+        state
+            .world()
+            .has_dark_gift(legendary, DarkGiftKind::AttackLifesteal),
+        "the Legendary has the gift"
+    );
+    // Both Wallows (hand + deck) carry the same gift with the same buff
+    for wallow in state
+        .world()
+        .zones()
+        .iter(Zone::Hand, PlayerId1())
+        .chain(state.world().zones().iter(Zone::Deck, PlayerId1()))
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "EDR_487"))
+    {
+        assert!(
+            state
+                .world()
+                .has_dark_gift(wallow, DarkGiftKind::AttackLifesteal),
+            "Wallow copies the gift"
+        );
+        assert_eq!(
+            state.world().effective_attack(wallow),
+            Some(Attack(9)),
+            "the copied gift's +3 Attack"
+        );
+        assert!(
+            state.world().lifesteal(wallow).is_some(),
+            "the copied gift's Lifesteal"
+        );
+    }
+}
+
+/// F5-EDR11-W2 — Nightmare Lord Xavius: a random minion from the PLAYER'S
+/// OWN deck moves to the hand and receives a dark gift (own deck = in-pool,
+/// not pool-open). Seed 29 pins gift 1 (StatsElusive: +2/+2, Elusive).
+#[test]
+fn edr_w2_xavius_deck_minion_gift_stats_elusive() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, NIGHTMARE_LORD_XAVIUS};
+    use orange_stone::core::component::DarkGiftKind;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &NIGHTMARE_LORD_XAVIUS);
+    builder.add_minion_to_deck(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 4, 4);
+    builder.with_rng_seed(29);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, PlayerId1()),
+        0,
+        "the deck minion was taken"
+    );
+    let chosen = find_in_hand(&state, PlayerId1(), "CLASSIC_001");
+    assert!(
+        state
+            .world()
+            .has_dark_gift(chosen, DarkGiftKind::StatsElusive),
+        "gift 1 marker"
+    );
+    assert_eq!(
+        state.world().effective_attack(chosen),
+        Some(Attack(5)),
+        "gift 1: +2 Attack (3/2 Raptor)"
+    );
+    assert_eq!(
+        state.world().effective_health(chosen),
+        Some(Health(4)),
+        "gift 1: +2 Health"
+    );
+    assert!(state.world().elusive(chosen).is_some(), "Elusive");
+}
+
+/// F5-EDR12-W2 — Overgrown Horror: hand minions carrying a dark gift cost
+/// (2) less; ungifted hand minions are untouched.
+#[test]
+fn edr_w2_overgrown_horror_reduces_gifted_hand_minions() {
+    use orange_stone::cards::def::OVERGROWN_HORROR;
+    use orange_stone::core::component::DarkGiftKind;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &OVERGROWN_HORROR);
+    let gifted1 = builder.add_custom_minion_to_hand(PlayerId1(), 2, 2, 3);
+    let gifted2 = builder.add_custom_minion_to_hand(PlayerId1(), 2, 2, 4);
+    let plain = builder.add_custom_minion_to_hand(PlayerId1(), 2, 2, 3);
+    builder.set_mana(PlayerId1(), 5, 5);
+    {
+        let world = builder.state_mut().world_mut();
+        world.add_dark_gift(gifted1, DarkGiftKind::Charge);
+        world.add_dark_gift(gifted2, DarkGiftKind::HealthTaunt);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(
+        state.world().effective_cost(gifted1),
+        Some(Cost(1)),
+        "gifted minions cost (2) less"
+    );
+    assert_eq!(
+        state.world().effective_cost(gifted2),
+        Some(Cost(2)),
+        "gifted minions cost (2) less"
+    );
+    assert_eq!(
+        state.world().effective_cost(plain),
+        Some(Cost(3)),
+        "ungifted minions are untouched"
+    );
+}
+
+/// F5-EDR13-W2 — dark gift 5 (SummonCopyOnPlay): playing a gifted minion
+/// summons a plain 2/2 copy of it (no gifts, no buffs; the original keeps
+/// its own stats).
+#[test]
+fn edr_w2_gift_summon_copy_on_play_two_two_copy() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::core::component::DarkGiftKind;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &BLOODFEN_RAPTOR);
+    builder.set_mana(PlayerId1(), 2, 2);
+    let mut state = builder.build();
+    let original = find_in_hand(&state, PlayerId1(), "CLASSIC_001");
+    state
+        .world_mut()
+        .add_dark_gift(original, DarkGiftKind::SummonCopyOnPlay);
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    let board: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, PlayerId1())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CLASSIC_001")
+        })
+        .collect();
+    assert_eq!(board.len(), 2, "the original plus its 2/2 copy");
+    let original = find_entity(&state, PlayerId1(), "CLASSIC_001");
+    assert_eq!(state.world().effective_attack(original), Some(Attack(3)));
+    assert_eq!(state.world().effective_health(original), Some(Health(2)));
+    let copy = board
+        .iter()
+        .copied()
+        .find(|&e| e != original)
+        .expect("the copy");
+    assert_eq!(
+        state.world().effective_attack(copy),
+        Some(Attack(2)),
+        "2/2 copy"
+    );
+    assert_eq!(state.world().effective_health(copy), Some(Health(2)));
+    assert!(
+        state.world().dark_gifts(copy).is_none(),
+        "the copy is a plain card"
+    );
+}
+
+/// F5-EDR14-W2 — dark gift 6 (BattlecryTwice): a gifted minion's battlecry
+/// resolves twice (Bitterbloom Knight imbues twice).
+#[test]
+fn edr_w2_gift_battlecry_triggers_twice() {
+    use orange_stone::cards::def::BITTERBLOOM_KNIGHT;
+    use orange_stone::core::component::DarkGiftKind;
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_hand(PlayerId1(), &BITTERBLOOM_KNIGHT);
+    builder.set_mana(PlayerId1(), 2, 2);
+    let mut state = builder.build();
+    let knight = find_in_hand(&state, PlayerId1(), "EDR_852");
+    state
+        .world_mut()
+        .add_dark_gift(knight, DarkGiftKind::BattlecryTwice);
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, PlayerId1());
+    assert_eq!(
+        state.player(PlayerId1()).imbue_count,
+        2,
+        "the battlecry triggers twice"
+    );
+}
+
+/// F5-EDR15-W2 — dark gift 8 (RebornFull): the reborn minion keeps its
+/// enchantments and returns at FULL health (a standard Reborn would come
+/// back as a fresh 1/1).
+#[test]
+fn edr_w2_gift_reborn_full_keeps_enchantments() {
+    use orange_stone::core::component::{DarkGiftKind, Enchantment, EnchantmentExpiry, Reborn};
+    let mut builder = GameBuilder::new();
+    let gifted = builder.add_custom_minion_to_board(PlayerId1(), 2, 5, 3);
+    let attacker = builder.add_custom_minion_to_board(PlayerId2(), 10, 10, 3);
+    builder.active_player(PlayerId2());
+    {
+        let world = builder.state_mut().world_mut();
+        world.set_reborn(gifted, Reborn);
+        world.add_dark_gift(gifted, DarkGiftKind::RebornFull);
+        world.add_enchantment(
+            gifted,
+            Enchantment {
+                attack: 0,
+                health: 4,
+                cost: 0,
+                expiry: EnchantmentExpiry::Permanent,
+            },
+        );
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: gifted,
+            },
+        )
+        .unwrap();
+    // 9 effective health minus 10 damage = dead → reborn full-health
+    assert_eq!(
+        state.world().zone(gifted),
+        Some(Zone::Play),
+        "reborn keeps the minion in play"
+    );
+    assert_eq!(
+        state.world().effective_health(gifted),
+        Some(Health(9)),
+        "full health with the enchantment kept"
+    );
+    assert_eq!(
+        state.world().effective_attack(gifted),
+        Some(Attack(2)),
+        "attack unchanged (no 1/1 reset)"
+    );
+    assert!(
+        state
+            .world()
+            .dark_gifts(gifted)
+            .is_some_and(|g| g.contains(&DarkGiftKind::RebornFull)),
+        "the gift marker stays"
+    );
+    assert!(
+        state
+            .world()
+            .enchantments(gifted)
+            .is_some_and(|e| !e.is_empty()),
+        "the enchantment survived the reborn"
+    );
+    assert!(state.world().reborn(gifted).is_none(), "Reborn was spent");
+}
