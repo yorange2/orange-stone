@@ -36,7 +36,7 @@
 每波一个 PR；每张卡带 F5 对拍场景；`sets.rs` 注册；简化带账本行。
 
 - [x] **W0 —— 接线 + 数据**（PR #155）：本系列 M0 数据（M0.1–M0.5，含 M0.3 已合并的职业套装 MEND_ 29 张，按路线图延后为跟进波）；清单回填；per-set dump 保真测试（`cataclysm_dump_fidelity`，CATA_ + MEND_ 前缀，164 张）与生成基线落地。
-- **W1 —— 巨像（C1）：** 附属部件组件 + 召唤路径；F5 场景钉死部件占位、部件
+- [x] **W1 —— 巨像（C1）**（PR #156）： 附属部件组件 + 召唤路径；F5 场景钉死部件占位、部件
   死亡规则与本体死亡级联。
 - **W2 —— 先锋（C2）：** 缩放计数 + 巨像士兵池；6 职业先锋卡。
 - **W3 —— 粉碎（C3）：** 分裂/重组管线；F5 场景钉死 抽牌-分裂-重组 时序；若该波
@@ -49,17 +49,17 @@
 > 由 M0 数据转储回填（D1）。按波分组占位。
 
 ### W1 —— 巨像
-- [ ] CATA_139 Wickerfang
-- [ ] CATA_150 Ragnaros, the Great Fire
-- [ ] CATA_151 Azshara, Ocean Lord
-- [ ] CATA_153 Al'Akir, Lord of Storms
-- [ ] CATA_154 Sinestra
-- [ ] CATA_155 Arisen Onyxia
-- [ ] CATA_300 The Black Blood
-- [ ] CATA_432 Chromatus
-- [ ] CATA_488 Vulcanos
-- [ ] CATA_550 Magmaw
-- [ ] CATA_726 Cho'gall, Mastermind
+- [x] CATA_139 Wickerfang
+- [x] CATA_150 Ragnaros, the Great Fire
+- [x] CATA_151 Azshara, Ocean Lord
+- [x] CATA_153 Al'Akir, Lord of Storms
+- [x] CATA_154 Sinestra
+- [x] CATA_155 Arisen Onyxia
+- [x] CATA_300 The Black Blood
+- [x] CATA_432 Chromatus
+- [x] CATA_488 Vulcanos
+- [x] CATA_550 Magmaw
+- [x] CATA_726 Cho'gall, Mastermind
 
 ### W2 —— 先锋
 - [ ] CATA_156 Experimental Animation

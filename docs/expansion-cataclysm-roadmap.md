@@ -42,7 +42,7 @@ registration; simplifications get ledger rows.
 
 - [x] **W0 — wiring + data** (PR #155): M0 data for this set landed (M0.1–M0.5, incl. the MEND_ Class Sets merged at M0.3, deferred as a follow-on wave); inventory backfilled; the per-set dump fidelity test (`cataclysm_dump_fidelity`, CATA_ + MEND_ prefixes, 164 cards) landed with the generated baseline; fidelity
   tests.
-- **W1 — Colossal (C1):** body-part component + summon path; F5 scenarios pin
+- [x] **W1 — Colossal (C1)** (PR #156): body-part component + summon path; F5 scenarios pin
   part positioning, part-death rules and main-death cascades.
 - **W2 — Herald (C2):** scaling counter + Colossal Soldier pool; the 6
   classes' Herald cards.
@@ -57,17 +57,17 @@ registration; simplifications get ledger rows.
 > Backfilled from the M0 data dump (D1). Placeholder grouped by wave.
 
 ### W1 — Colossal
-- [ ] CATA_139 Wickerfang
-- [ ] CATA_150 Ragnaros, the Great Fire
-- [ ] CATA_151 Azshara, Ocean Lord
-- [ ] CATA_153 Al'Akir, Lord of Storms
-- [ ] CATA_154 Sinestra
-- [ ] CATA_155 Arisen Onyxia
-- [ ] CATA_300 The Black Blood
-- [ ] CATA_432 Chromatus
-- [ ] CATA_488 Vulcanos
-- [ ] CATA_550 Magmaw
-- [ ] CATA_726 Cho'gall, Mastermind
+- [x] CATA_139 Wickerfang
+- [x] CATA_150 Ragnaros, the Great Fire
+- [x] CATA_151 Azshara, Ocean Lord
+- [x] CATA_153 Al'Akir, Lord of Storms
+- [x] CATA_154 Sinestra
+- [x] CATA_155 Arisen Onyxia
+- [x] CATA_300 The Black Blood
+- [x] CATA_432 Chromatus
+- [x] CATA_488 Vulcanos
+- [x] CATA_550 Magmaw
+- [x] CATA_726 Cho'gall, Mastermind
 
 ### W2 — Herald
 - [ ] CATA_156 Experimental Animation
