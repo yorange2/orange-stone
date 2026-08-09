@@ -147,7 +147,14 @@ M0 数据管线（本文件）
   为主的 38 张时间的终结迷你（Imbue/Dark Gift/抉择/任务复用，新增
   FillThenEmptyHand 任务条件与 WhenEnemyTurnEnds 奥秘触发）；账本
   §20–§22；W0–W3 全部勾选（183 张卡带 F5 场景或登记简化）。
-- **M4** —— 大灾变完成（巨像 / 先锋 / 粉碎 / 死亡之翼）。
+- **M4** ✅ 完成（2026-08-09，PR #155–#159）——大灾变：Colossal 肢体原语
+  （11 主体 + 31 肢体 token、死亡级联）、Herald 缩放关键字（每玩家计数、
+  ×1/×2/×4 档、13 卡 + 6 Soldier）、Shatter 按路线图授权走 D2 合成形态
+  （无半卡数据锚点）、Deathwing 英雄卡与**英雄替换原语**
+  （`CardEffect::ReplaceHero`——清偿 M2 §15 TLC_513t "when real" 注记）、
+  4 个数据定义的大灾变效果与 Herald 缩放；Ultraxion 的 Deathwing 费用
+  减免；其余 ~100 卡 + 21 token；账本 §23–§26；W0–W4 全部勾选（135 张
+  主系列卡；29 张 MEND_ 职业套装按路线图延后为跟进波并加注记）。
 - **M5** —— 紫罗兰监狱完成（破规者）；五个子路线图与本主文件一并归档至
   `docs/finished/`。
 

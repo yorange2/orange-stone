@@ -180,7 +180,17 @@ closing wave (tokens, legendary finishing touches, ledger sweep).
   Choose One/quest reuses, new FillThenEmptyHand quest condition and
   WhenEnemyTurnEnds secret trigger); ledger §20–§22; W0–W3 checked off
   (183 cards with F5 scenarios or registered simplifications).
-- **M4** — Cataclysm complete (Colossal / Herald / Shatter / Deathwing).
+- **M4** ✅ complete (2026-08-09, PR #155–#159) — Cataclysm: the Colossal
+  body-part primitive (11 mains + 31 appendage tokens, death cascade),
+  the Herald scaling keyword (per-player counter, ×1/×2/×4 tiers, 13
+  cards + 6 Soldiers), Shatter in the roadmap-sanctioned D2 combined
+  form (no half-card data anchor), and the Deathwing hero card with the
+  **hero-replacement primitive** (`CardEffect::ReplaceHero` — pays the
+  M2 §15 TLC_513t "when real" note), 4 data-defined Cataclysms and
+  Herald scaling; Ultraxion's Deathwing cost reduction; the remaining
+  ~100 cards + 21 tokens; ledger §23–§26; W0–W4 checked off (135
+  main-set cards; the 29 MEND_ Class Set cards stay deferred as a
+  follow-on wave with a roadmap note).
 - **M5** — Violet Hold complete (Rulebreakers); all five sub-roadmaps archived
   with this master file to `docs/finished/`.
 
