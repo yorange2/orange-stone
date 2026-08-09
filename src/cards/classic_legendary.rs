@@ -646,9 +646,11 @@ pub const HIGH_INQUISITOR_WHITEMANE: CardDef = CardDef {
     attack_equals_health: false,
 };
 
-/// Onyxia Whelp — the 1/1 Dragon token Onyxia's Battlecry summons
-/// (race None — the engine's tribe set has no Dragon; all dragon cards
-/// are race-less).
+/// Onyxia Whelp — the 1/1 Dragon token Onyxia's Battlecry summons.
+/// (race None — the handwritten classic legendary defs predate the Race
+/// component and are race-less by convention; Dragon-typed checks that
+/// involve classic cards are pinned by card ID instead, see
+/// LEGENDARY_DRAGON_CLASSIC in sets.rs / fidelity-debt.md §26.)
 pub const ONYXIA_WHELP_ID: &str = "EX1_170t";
 
 pub const ONYXIA_WHELP: CardDef = CardDef {

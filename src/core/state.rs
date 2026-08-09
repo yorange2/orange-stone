@@ -68,6 +68,27 @@ pub enum ChoiceKind {
     /// picked card's EXISTING entity moves to hand and the unpicked ones
     /// move to the deck's bottom.
     DiscoverDeckOthersBottom,
+    /// Deathwing's Cataclysm choice (2025–2026 expansions M4-W4 — the C4
+    /// primitive): the pool holds the four data-defined Cataclysm spell
+    /// ids (CATA_190t10–t13); the player picks `repeat` of them, distinct
+    /// — `Player::pending_cataclysms` tracks the picks left and the
+    /// already-picked ids so the ChoiceResolved handler re-surfaces the
+    /// choice with the picked options removed.
+    Cataclysm,
+    /// Choose a card in the player's hand (2025–2026 expansions M4-W4 —
+    /// CATA_200/209/477/490/563/566/697/721/979): the options are the
+    /// hand's card ids (filtered per card — spells only, minions only,
+    /// etc.); `Player::pending_choose_hand` carries the action to apply
+    /// to the picked card.
+    ChooseHandCard,
+    /// Discover a card from the player's deck and destroy the others
+    /// (2025–2026 expansions M4-W4 — CATA_591 Commander Geddon "Instead
+    /// of drawing each turn, Discover a card from your deck. It costs
+    /// (3) less. Destroy the others"): like `DiscoverDeck`, but the
+    /// unpicked pool entries are destroyed (removed from the deck — the
+    /// destroy scope is the unpicked Discover options) and the picked
+    /// card enters the hand with a (3) cost reduction.
+    DiscoverDeckDestroyRest,
 }
 
 /// A choice the engine needs resolved (roadmap G6).

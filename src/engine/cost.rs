@@ -472,5 +472,77 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
     {
         cost = Cost((cost.0 - 3).max(0));
     }
+    // M4-W4 — the Cataclysm closing wave cost arms
+    // (src/cards/exp_cata_w4.rs, §26).
+    // Deathwing, Worldbreaker (CATA_190h): "Costs (1) less for each
+    // Ultraxion Herald" — the flag accumulates Ultraxion's herald-count
+    // reductions (cards/herald.rs keyed CATA_497).
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "CATA_190h")
+    {
+        cost = Cost((cost.0 - state.player(player).deathwing_cost_reduction).max(0));
+    }
+    // Medivh's Triumph (CATA_308): "Costs (1) if you control a Legendary
+    // card" — the engine's legendary pool (LEGENDARY_CLASSIC, the active
+    // window convention) on the friendly board.
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "CATA_308")
+        && state
+            .world()
+            .zones()
+            .iter(crate::core::zone::Zone::Play, player)
+            .any(|e| {
+                state.world().card_id(e).is_some_and(|c| {
+                    crate::cards::sets::LEGENDARY_CLASSIC
+                        .iter()
+                        .any(|d| d.id == c.0)
+                })
+            })
+    {
+        cost = Cost(1);
+    }
+    // Spellweaver's Brilliance (CATA_452): "Costs (1) less for each damage
+    // you dealt with spells this turn" — the per-turn spell-damage counter
+    // (bumped by the damage pipeline when a friendly spell deals damage).
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "CATA_452")
+    {
+        cost = Cost((cost.0 - state.player(player).spell_damage_dealt_this_turn).max(0));
+    }
+    // Ravenous Felfisher (CATA_529): "Costs (1) less for each Fel spell
+    // you've cast this game" — the game-long Fel cast counter (bumped at
+    // the spell-cast school site).
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "CATA_529")
+    {
+        cost = Cost((cost.0 - state.player(player).fel_spells_cast_this_game as i32).max(0));
+    }
+    // Muradin's Last Stand (CATA_568): "Costs (1) less for each time a
+    // friendly character attacked this game" — the game-long friendly
+    // attack counter (bumped by the attack resolution).
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "CATA_568")
+    {
+        cost = Cost((cost.0 - state.player(player).friendly_attacks_this_game as i32).max(0));
+    }
+    // Gronn Giant (CATA_616): "This minion's Cost is reduced by the Cost
+    // of the last card you played" — recorded at the CardPlayed path.
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "CATA_616")
+    {
+        cost = Cost((cost.0 - state.player(player).last_played_card_cost).max(0));
+    }
     cost
 }

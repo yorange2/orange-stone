@@ -1016,7 +1016,7 @@ to the ledger. Each row stays open until its mechanism lands.
 | TLC_433t | Tyrax, Bone Terror | The official "Terror's Grave" location chain (Tyrax transforms into the Grave, which resummons him) is unmodeled — the deathrattle resummons an 8/8 copy directly | a transform/location-deathrattle chain |
 | TLC_446t1 | Underfel Rift | The official "activate" step (pay Health to activate) is unmodeled — a 5-cost 0/1 body only | an activate mechanic |
 | TLC_460t | The Origin Stone | The official "after you Discover a card, this gains +1 Durability" is unmodeled — a 3-cost 0/8 body only | a discover-replay durability gain |
-| TLC_513t | Master Dusk | The official reward replaces the hero with Master Dusk — unmodeled; the reward summons the two Tortollan Ninjas (TLC_513t2) directly | hero replacement |
+| TLC_513t | Master Dusk | The official reward replaces the hero with Master Dusk — unmodeled; the reward summons the two Tortollan Ninjas (TLC_513t2) directly | ~~hero replacement~~ ✅ resolved (M4-W4, PR #159 — the `ReplaceHero` CardEffect primitive pays the "when real" note; the card itself keeps its direct-Ninja-summons shape) |
 | TLC_602t | Latorvius, Gaze of the City | The official Quest-Reward battlecry adds a 4-card reward pool to Discover — unmodeled (no battlecry; the pool lands in W4) | a real Discover pipeline |
 | TLC_817t5 | Sol'etos, Life's Touch | The official "if you control both Sol'etos forms, combine them" step is unmodeled — the t3 and t4 tokens are independent | a combine/twin mechanic |
 | TLC_830t | Shokk, Jungle Tyrant | The official battlecry's attack-filtered Discover pool is unmodeled (no battlecry) | a real Discover pipeline |
@@ -1951,4 +1951,117 @@ deck down to 2, every hand minion 5/4), `cata_w3_stolen_power_pool` (one
 Shatter card from the fixed pool). Full `cargo test` fully green (all
 suites, incl. every `tlc_w*_*`/`tmw1_*`/`tmw2a_*`/`tmw2b_*`/`tmw3_*`/
 `cata_w1_*`/`cata_w2_*` scenario and the 6 `cata_w3_*` — 956 passed, 1
+ignored), `cargo fmt` clean, `cargo clippy --all-targets` zero warnings.
+
+### 26. 2025–2026 expansions M4-W4 — the Cataclysm closing wave: Deathwing + remaining cards (105 cards + 21 tokens, incl. the 4 Cataclysm spells) 🔓 registered
+
+The registered simplifications of the M4-W4 wave (`src/cards/exp_cata_w4.rs`):
+the closing wave of the Cataclysm sub-roadmap — Deathwing, Worldbreaker (C4,
+the hero-choice machinery), Ultraxion, and the ~100 remaining main-set cards,
+plus their 21 tokens and the 4 data-defined Cataclysms. As with §14–§25, these
+handwritten expansion cards are not in the RL pool (classic + core 668/659),
+so the rows are informational: they keep the code's simplifications traceable
+to the ledger. Each row stays open until its mechanism lands.
+
+The wave's headline mechanics are FULL primitives: **hero replacement** (the
+new `CardEffect::ReplaceHero { card_id }` — the old hero moves to the
+graveyard, the played entity becomes the new hero (def health, damage and
+attack cleared, hero power from the cards-side table, equipped weapon
+destroyed, armor per-card), then the hero's battlecry resolves; this pays the
+§15 TLC_513t Master Dusk "when real" note and preserves the Core Set W8
+Jaraxxus flow, Blood Fury equip included); **the choose-a-Cataclysm machinery**
+(`ChoiceKind::Cataclysm` — the four data-defined Cataclysms CATA_190t10
+Dragon's Reign / CATA_190t11 Topple / CATA_190t12 Raze / CATA_190t13 Enthrall,
+each with its own `spell_effect`; the choice re-surfaces with the picked
+removed until the tier's count is met); **the herald-tier scaling** (Deathwing
+"Choose {0} Cataclysm(s) to unleash! Herald twice to upgrade" — count =
+herald_number(1, herald_count): 1 at 0–1, 2 at 2–3, 4 at 4+, distinct picks;
+the Deios doubling does NOT double the battlecry); **the Ruthless hero power**
+(CATA_190p — 2-cost +5 Attack this turn, set by the replacement primitive;
+armor 12 from the official data); and **Ultraxion** (CATA_497 — Herald {0},
+then reduces Deathwing's Cost by {1} — the Herald hook carries the reduction
+into `Player::deathwing_cost_reduction`, consumed by the Deathwing play-cost
+arm; Armored Bloodletter heralds do NOT reduce the cost).
+
+The wave's §26 pins (documented conventions): **Enthrall's LegendaryDragon
+pool** — `sets::LEGENDARY_DRAGON_CLASSIC` (ALEXSTRASZA, MALYGOS, ONYXIA,
+DEATHWING) is pinned by card ID because the handwritten classic legendary defs
+predate the Race component and are race-less by convention (the generated
+baselines have no `LEGENDARY_*` entries, so no gate risk); **Nespirah's Naga
+pool** — `AddRandomNagaCost1` samples `HANDWRITTEN_EXPANSION_CARDS` (the
+closed pools hold no handwritten-expansion cards by decision D3, so the
+race-filtered `ALL_CARDS` scan finds nothing); **Duke of Below's dynamic
+aura** — baked at play/summon with the current discard count and re-baked at
+every friendly discard (`cards/mod.rs::bake_duke_of_below`); **Sandfury
+Aura's double-trigger** — the `DoubleTriggers` aura lasting 3 turns
+(`Player::sandfury_aura_remaining`); **Genn's cost-flag transform** — the
+even/odd-hand check rides the marked card's cost flag; **Twisted
+Monstrosity's data correction** — the official data carries Taunt + Elusive
+(the cards.json `mechanics` list, not the flat fields), the handwritten def
+agrees with the generated baseline; **the four Cataclysm Locations**
+(CATA_301 Ruby Sanctum, CATA_477 Chamber of Aspects, CATA_527 Nespirah,
+Enthralled, CATA_584 Erupting Volcano) — the generator-predates-Location
+divergence documented in `expansion_differential_rebalanced` like CATA_492
+(§24).
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| CATA_190h | Deathwing, Worldbreaker | Full: hero replacement + the four-Cataclysm choice with herald-tier counts (1/2/4 distinct picks) + the Ruthless hero power + armor 12. "Herald twice to upgrade" reads the herald count (CATA_497 Ultraxion and the six Herald classes) | — |
+| CATA_497 | Ultraxion | Full: Herald {0} through the W2 §24 hook, plus {1} Deathwing Cost reduction (accumulates per Herald resolution) | — |
+| CATA_131 | Felwood Treant | "If you spent 4 Mana while holding this" — the spent-while-holding approximation rides the per-turn spent counter | hand-origin tracking |
+| CATA_161 | Gruesome Nightmare | The official hand-or-battlefield target set is approximated by the battlefield side | the official hand-or-board target set |
+| CATA_203 | Garona's Last Stand | The Legendary filter is the pooled legendary list (the §26 convention — no rarity tracking) | a rarity tag |
+| CATA_304 | Injured Attendant | The self-damage battlecry heals the owner for the dealt amount (Lifesteal-while-undamaged equivalence) | the official sequencing |
+| CATA_470 | Victor Nefarius | The custom "crafted" Undead Dragon is fixed to the Nefarian's Creation token CATA_470t1 | a craft pipeline |
+| CATA_978 | Sindragosa's Triumph | The excess is the damage minus the target's remaining Health | the official excess arithmetic |
+| CATA_621 | Gelbin's Triumph | The Paladin Aura pool is fixed to random Paladin spells; the extra turn is unmodeled | an aura card pool + duration |
+| CATA_496 | Cursed Chains | "Until the end of THEIR turn" is approximated by the standard until-end-of-turn convention | the official end-of-opponent-turn expiry |
+| CATA_498 | Rafaam's Last Stand | The (Upgrades each turn!) hand-turn counter rides the marked card | a per-hand-card counter |
+| CATA_699 | Dread Leviathan | Each of the three steals is damage on the target and a matching heal on the source | the official steal arithmetic |
+| CATA_560 | Confront the Tol'vir | Replayed spells resolve against enemy targets; replayed minions are summoned | the official replay targeting |
+| CATA_567 | Ascendance | The transform sampling and the "summon the originals when they die" grant are the D2 approximation | the official transform pool walk |
+| CATA_581 | Decimation | The improvement counts ALL minions on both sides | the official board scope |
+| CATA_585 | Torch | "Return this to hand with any excess damage" is approximated by the die-check | the official return-with-excess |
+| CATA_591 | Commander Geddon | The game-long "instead of drawing" flag is read by the DrawStep hook | the official draw substitution |
+| CATA_610 | Lo'Gosh's Last Stand | The official side-agnostic target is approximated by the friendly scope | the official any-minion target |
+| CATA_180 | War'loc | The one-time "next Murloc costs Health" flag is consumed by the next eligible Murloc play (the CostHealth convention) | the official one-time flag |
+| CATA_185 | Faceless Replicator | The killer-identification is unmodeled — the deathrattle hits a random enemy minion instead | the official killer link |
+| CATA_186 | Stickybomb Saboteur | The hand-adjacency "cost (1) more" aura is unmodeled — the gotten Sabotage CATA_186t is a blank 2-cost spell | the official adjacency aura |
+| CATA_206 | Twisted Monstrosity | The battlecry grants two random Bonus Effects; the in-hand swapping is unmodeled (Taunt + Elusive are real — the official mechanics data) | the official in-hand swap |
+| CATA_213 | Vyranoth | The deck snapshot is approximated by the deck at play time; the 100-stats split is +5/+5 on ten random deck minions | the official starting-minions snapshot |
+| CATA_614 | Shadowed Informant | The (Swaps class each turn!) class-swap is unmodeled | the official per-turn class swap |
+| CATA_721 | Sheltered Survivor | The shuffled-into-deck card is approximated by a fresh copy | the official original-card shuffle |
+| CATA_480 | Sandfury Aura | Full: the DoubleTriggers aura for 3 turns | — |
+| CATA_493 | Duke of Below | Full: the +2/+2-per-discard aura bakes at play and re-bakes at every friendly discard | — |
+| CATA_527t2 | Nespirah, Unshackled | The Naga pool samples `HANDWRITTEN_EXPANSION_CARDS` (the §26 pin — D3 keeps handwritten-expansion cards out of the closed pools) | the full-card pool |
+| CATA_464t | Dragon Breath | The amount is the stashed `dragon_breath_damage` (the source's Attack) | the official cast-time amount |
+| CATA_470t1 | Nefarian's Creation | The fixed "custom Undead Dragon" token, reduced by (3) when holding a Dragon | a craft pipeline |
+| CATA_478t | Bronze Brute | Summoned with stats equal to the source (the copied-stats enchantment) | the official stat copy |
+
+F5 coverage: `cata_w4_*` (16 scenarios in `tests/differential.rs`) —
+`cata_w4_deathwing_replaces_hero` (the hero swap: old hero to the graveyard,
+30 health / armor 12, the Ruthless hero power, the battlecry surfacing the
+Cataclysm choice at herald count 0 — the tier-1 single pick),
+`cata_w4_deathwing_herald_upgrade_two_distinct_picks` (two distinct picks at
+2–3, the four Cataclysms' effects — Dragon's Reign's 12/12 Progeny, Topple's
+highest-Health destroy, Raze's 4-damage sweep),
+`cata_w4_deathwing_herald_tier4_enthrall` (four distinct picks at 4+, Enthrall
+shuffling five (1)-cost Legendary Dragons from the ID-pinned pool),
+`cata_w4_deathwing_topple_destroys_highest_health`,
+`cata_w4_ultraxion_heralds_and_reduces_deathwing_cost` (Herald {0} + the
+accumulated Deathwing Cost reduction consumed by the play-cost arm),
+`cata_w4_mossbinding_golems_scale_with_mana`,
+`cata_w4_sandfury_aura_doubles_end_turn_effects`,
+`cata_w4_stonetalon_striker_transforms_on_dragon`,
+`cata_w4_ruby_sanctum_next_heal_deals_damage`,
+`cata_w4_chamber_of_aspects_location_activate`,
+`cata_w4_duke_of_below_scales_on_discards`,
+`cata_w4_maloriak_summons_discarded_minion`,
+`cata_w4_nespirah_fel_spell_adds_naga_cost_one` (the Naga pool pin),
+`cata_w4_destructive_blaze_survive_summons_and_deathrattle`,
+`cata_w4_earthen_drake_end_turn_damage`,
+`cata_w4_genn_transforms_and_upgrades_hero_power`. Full `cargo test` fully
+green (all suites,
+incl. every `tlc_w*_*`/`tmw1_*`/`tmw2a_*`/`tmw2b_*`/`tmw3_*`/`cata_w1_*`/
+`cata_w2_*`/`cata_w3_*` scenario and the 16 `cata_w4_*` — 976 passed, 1
 ignored), `cargo fmt` clean, `cargo clippy --all-targets` zero warnings.

@@ -492,6 +492,152 @@ pub struct Player {
     /// MinionDied handler when the END_009t Treant dies, read by the
     /// END_009 cost layer. Game-long, never resets.
     pub treants_died_total: u32,
+    /// Deathwing's cost reduction (2025–2026 expansions M4-W4 — CATA_497
+    /// Ultraxion "Reduce Deathwing's Cost by ({1})"): accumulated per
+    /// Ultraxion herald resolution (the herald count at play time); the
+    /// cost pipeline subtracts it from CATA_190h's play cost.
+    pub deathwing_cost_reduction: i32,
+    /// Mana spent this turn (2025–2026 expansions M4-W4 — the "spent X
+    /// Mana while holding this" cards CATA_131/132/140 and CATA_130
+    /// Crystalspine Cub's LastManaCrystalSpent trigger): every mana
+    /// deduction adds the spent amount here; cleared at the owner's turn
+    /// start.
+    pub mana_spent_this_turn: i32,
+    /// Spell damage this player dealt this turn (2025–2026 expansions
+    /// M4-W4 — CATA_452 Spellweaver's Brilliance costs (1) less per,
+    /// CATA_483 Unstable Spellcaster checks it, CATA_487 Raincaller's
+    /// first-damage trigger): incremented by the damage pipeline when a
+    /// friendly spell deals damage; cleared at the owner's turn start.
+    pub spell_damage_dealt_this_turn: i32,
+    /// Whether Raincaller's +2 Attack has been consumed this turn
+    /// (2025–2026 expansions M4-W4 — CATA_487 "The first time you deal
+    /// damage with a spell each turn"): set when the FriendlySpellDealtDamage
+    /// trigger resolves; cleared at the owner's turn start.
+    pub first_spell_damage_gain_used: bool,
+    /// Healing bonus from friendly effects (2025–2026 expansions M4-W4 —
+    /// CATA_216 Cleansing Cleric "Your healing effects restore 2 more
+    /// Health this game"): added to every friendly heal; game-long.
+    pub healing_bonus: i32,
+    /// The next Healing effect this turn deals damage instead (2025–2026
+    /// expansions M4-W4 — CATA_301 Ruby Sanctum): set by the location
+    /// activation, consumed by the first friendly heal, cleared at the
+    /// owner's turn end.
+    pub next_heal_deals_damage: bool,
+    /// The next Murloc that costs (3) or less costs Health instead of
+    /// Mana (2025–2026 expansions M4-W4 — CATA_180 War'loc): consumed by
+    /// the next qualifying Murloc play (the CostHealth convention — the
+    /// play validation still requires the mana, the payment diverts).
+    pub next_murloc_costs_health: bool,
+    /// Cards this player discarded this game (2025–2026 expansions M4-W4 —
+    /// CATA_493 Duke of Below "Has +2/+2 for each card you've discarded
+    /// this game"): incremented by the discard sites; the Duke's aura
+    /// re-bakes on change.
+    pub discarded_this_game: u32,
+    /// Fel spells this player cast this game (2025–2026 expansions M4-W4 —
+    /// CATA_529 Ravenous Felfisher "Costs (1) less for each Fel spell
+    /// you've cast this game"): incremented at the spell-cast site where
+    /// the school is resolved; never resets.
+    pub fel_spells_cast_this_game: u32,
+    /// Times a friendly character attacked this game (2025–2026 expansions
+    /// M4-W4 — CATA_568 Muradin's Last Stand "Costs (1) less for each
+    /// time a friendly character attacked this game"): incremented by the
+    /// attack resolution; never resets.
+    pub friendly_attacks_this_game: u32,
+    /// Whether the player played a Fire spell this turn (2025–2026
+    /// expansions M4-W4 — CATA_584 Erupting Volcano "If you've played a
+    /// Fire spell this turn, deal 3 more"): set at the spell-cast site;
+    /// cleared at the owner's turn start.
+    pub fire_spell_played_this_turn: bool,
+    /// Whether the player's Dragons have Rush this game (2025–2026
+    /// expansions M4-W4 — CATA_553 Ebyssian "Your Dragons have Rush this
+    /// game"): consulted by the effective-Rush helper; game-long.
+    pub dragons_have_rush: bool,
+    /// Whether the player's hero power costs (1) (2025–2026 expansions
+    /// M4-W4 — CATA_615t Genn, Worgen King "Upgrade your starting Hero
+    /// Power. It costs (1)"): consulted by the hero-power activation cost;
+    /// game-long.
+    pub hero_power_cost_1: bool,
+    /// The Cost of the last card the player played (2025–2026 expansions
+    /// M4-W4 — CATA_616 Gronn Giant "This minion's Cost is reduced by the
+    /// Cost of the last card you played"): recorded at the CardPlayed
+    /// path; 0 before the first play.
+    pub last_played_card_cost: i32,
+    /// Whether the last mana deduction emptied the pool (2025–2026
+    /// expansions M4-W4 — CATA_130 Crystalspine Cub "Whenever you spend
+    /// your last Mana Crystal"): set by the play-cost deduction, consumed
+    /// by the CardPlayed handler right after the player block (the
+    /// trigger fires after the borrow ends); cleared every play.
+    pub last_mana_crystal_spent_pending: bool,
+    /// The 1-Cost card ids the player played this game (2025–2026
+    /// expansions M4-W4 — CATA_560 Confront the Tol'vir "Replay each
+    /// 1-Cost card you've played this game"): pushed at CardPlayed for
+    /// 1-Cost plays, in play order; never resets.
+    pub played_one_cost_cards: Vec<String>,
+    /// Remaining turns of doubled friendly end-of-turn effects (2025–2026
+    /// expansions M4-W4 — CATA_480 Sandfury Aura "Your minions' end of
+    /// turn effects trigger twice. Lasts 3 turns"): while > 0, the
+    /// EndTriggers step resolves end-of-turn effects twice; decremented
+    /// at each of the owner's turn ends.
+    pub end_turn_effects_twice_turns: i32,
+    /// Whether Sylvanas's Triumph was played earlier this game (2025–2026
+    /// expansions M4-W4 — CATA_557 "If you've played another copy of
+    /// this, hit all enemies instead"): set at the cast site; never
+    /// resets.
+    pub sylvanas_triumph_played: bool,
+    /// Commander Geddon's draw replacement (2025–2026 expansions M4-W4 —
+    /// CATA_591 "Instead of drawing each turn, Discover a card from your
+    /// deck. It costs (3) less. Destroy the others"): while set, the
+    /// DrawStep hooks into the discover machinery instead of a normal
+    /// draw; game-long.
+    pub geddon_discover_draw: bool,
+    /// The spell absorbed by Crackling Cloudstrider (2025–2026 expansions
+    /// M4-W4 — CATA_563 "Choose a spell in your hand that costs (4) or
+    /// less to absorb. Deathrattle: Cast it"): the chosen spell entity;
+    /// `None` when nothing is absorbed.
+    pub absorbed_spell: Option<crate::core::entity::Entity>,
+    /// The card Gemstone Hoarder chose to discard (2025–2026 expansions
+    /// M4-W4 — CATA_897 "Choose a card in your hand to discard.
+    /// Deathrattle: Get it back. It costs (1) less"): the chosen card
+    /// entity; the deathrattle returns and discounts it.
+    pub hoarded_card: Option<crate::core::entity::Entity>,
+    /// The cards Iso'rath devoured (2025–2026 expansions M4-W4 — CATA_481
+    /// "Devour 2 random cards from the opponent's hand... Deathrattle:
+    /// Return them"): the devoured card entities (removed from the
+    /// opponent's hand); the deathrattle returns them to the owner.
+    pub devoured_cards: Vec<crate::core::entity::Entity>,
+    /// The card summoned at the start of the player's next turn
+    /// (2025–2026 expansions M4-W4 — CATA_528 Sigil of the Seas "At the
+    /// start of your next turn, summon a 3/3 Naga with Taunt"): the
+    /// card id; consumed by the TurnStarted handler. `String` (not
+    /// `&'static str`) so the player state stays (de)serializable.
+    pub next_turn_summon: Option<String>,
+    /// The Dragon Breath damage stored by Blackwing Experiment (2025–2026
+    /// expansions M4-W4 — CATA_464 "Deathrattle: Get a 2-Cost spell that
+    /// deals this minion's Attack damage"): the attack value captured at
+    /// the deathrattle; the gotten spell's damage is fixed by it.
+    pub dragon_breath_damage: i32,
+    /// Torch's pending return (2025–2026 expansions M4-W4 — CATA_585
+    /// "Deal 8 damage to a damaged minion. Return this to hand with any
+    /// excess damage"): set when the spell is played, consumed by the
+    /// play path if the target dies (the registered §26 approximation —
+    /// the official excess-damage return is a die-check).
+    pub torch_return_pending: bool,
+    /// Alexstrasza's pending full-health payoff (2025–2026 expansions
+    /// M4-W4 — CATA_307 "Set your remaining Health to 15. When you reach
+    /// full Health, deal 15 damage to your opponent"): the damage amount;
+    /// the heal pipeline checks it when the hero reaches full health and
+    /// clears it.
+    pub alexstrasza_full_health_pending: Option<i32>,
+    /// The pending "choose a card in your hand" action (2025–2026
+    /// expansions M4-W4 — CATA_200/209/477/490/563/566/697/721/979):
+    /// created by the `CardEffect::ChooseHandCard` resolution, consumed
+    /// by the ChoiceResolved handler; `None` between choices.
+    pub pending_choose_hand: Option<crate::cards::choose_hand_card::ChooseHandCardKind>,
+    /// The pending Cataclysm choice state (2025–2026 expansions M4-W4 —
+    /// Deathwing's battlecry): the number of picks left and the
+    /// already-picked Cataclysm ids (picks are distinct); `None` outside
+    /// the Deathwing play burst.
+    pub pending_cataclysms: Option<(u32, Vec<String>)>,
 }
 
 impl Player {
@@ -601,6 +747,34 @@ impl Player {
             chronikar_ticks: 0,
             acceleration_aura_ticks: 0,
             treants_died_total: 0,
+            deathwing_cost_reduction: 0,
+            mana_spent_this_turn: 0,
+            spell_damage_dealt_this_turn: 0,
+            first_spell_damage_gain_used: false,
+            healing_bonus: 0,
+            next_heal_deals_damage: false,
+            next_murloc_costs_health: false,
+            discarded_this_game: 0,
+            fel_spells_cast_this_game: 0,
+            friendly_attacks_this_game: 0,
+            fire_spell_played_this_turn: false,
+            dragons_have_rush: false,
+            hero_power_cost_1: false,
+            last_played_card_cost: 0,
+            last_mana_crystal_spent_pending: false,
+            played_one_cost_cards: Vec::new(),
+            end_turn_effects_twice_turns: 0,
+            sylvanas_triumph_played: false,
+            geddon_discover_draw: false,
+            absorbed_spell: None,
+            hoarded_card: None,
+            devoured_cards: Vec::new(),
+            next_turn_summon: None,
+            dragon_breath_damage: 0,
+            torch_return_pending: false,
+            alexstrasza_full_health_pending: None,
+            pending_choose_hand: None,
+            pending_cataclysms: None,
         }
     }
 }

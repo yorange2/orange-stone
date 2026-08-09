@@ -1,6 +1,6 @@
 //! Herald registry and resolution (2025–2026 expansions M4-W2 — the
 //! Cataclysm Herald wave, `exp_cata_w2.rs`): the id-keyed registry for
-//! the 13 Herald cards plus the `resolve_herald` hook the play paths call.
+//! the 15 Herald cards plus the `resolve_herald` hook the play paths call.
 //!
 //! # The pinned mechanic (verified from the official card texts, 2026-08-09)
 //!
@@ -16,10 +16,15 @@
 //! freshly summoned Soldier's numbers AND to every friendly on-board
 //! Soldier's live numbers.
 //!
-//! The 15 Herald cards minus W4's two (CATA_190h Deathwing, CATA_497
-//! Ultraxion) = 13 here. CATA_722 Envoy of the End is the NEUTRAL patron:
-//! the full dump has no neutral Soldier token, so its Herald increments
-//! the counter and summons nothing (fidelity-debt §24).
+//! All 15 Herald cards. CATA_722 Envoy of the End and W4's CATA_497
+//! Ultraxion are the NEUTRAL patrons: the full dump has no neutral Soldier
+//! token, so their Herald increments the counter and summons nothing
+//! (fidelity-debt §24); Ultraxion's add-on ("Reduce Deathwing's Cost by
+//! ({1})") lands in `resolve_herald` keyed by its id. W4's CATA_190h
+//! Deathwing is registered so the card is recognized as Herald-related,
+//! but its play does NOT resolve a Herald keyword — the hero card's
+//! battlecry only READS the counter ("Herald twice to upgrade" reminder
+//! text; the battlecry count = `herald_number(1, herald_count)`).
 //!
 //! # Resolution shape
 //!
@@ -52,22 +57,24 @@ use crate::core::state::GameState;
 use crate::core::zone::Zone;
 use crate::engine::trigger;
 
-/// The 13 Herald cards (the 15 official minus W4's CATA_190h Deathwing
-/// and CATA_497 Ultraxion — fidelity-debt §24).
+/// The 15 Herald cards (the full official set — W4 registered CATA_190h
+/// Deathwing and CATA_497 Ultraxion; §24/§26).
 pub const HERALD_CARD_IDS: &[&str] = &[
-    "CATA_156", // Experimental Animation (DK spell)
-    "CATA_158", // Maniacal Follower (Rogue minion — deathrattle Herald)
-    "CATA_160", // Scorching Ravager (Warrior minion)
-    "CATA_492", // Shrine of Twilight (Warlock location)
-    "CATA_525", // Armored Bloodletter (DH minion)
-    "CATA_530", // Fel Infusion (DH spell)
-    "CATA_561", // Ritual of Power (Shaman spell)
-    "CATA_565", // Skywall Sentinel (Shaman minion)
-    "CATA_580", // Cataclysmic War Axe (Warrior weapon)
-    "CATA_722", // Envoy of the End (neutral minion)
-    "CATA_725", // Shadowsworn Disciple (Warlock minion)
-    "CATA_780", // Obsessive Technician (DK minion)
-    "CATA_785", // Rite of Twilight (Rogue spell)
+    "CATA_156",  // Experimental Animation (DK spell)
+    "CATA_158",  // Maniacal Follower (Rogue minion — deathrattle Herald)
+    "CATA_160",  // Scorching Ravager (Warrior minion)
+    "CATA_492",  // Shrine of Twilight (Warlock location)
+    "CATA_525",  // Armored Bloodletter (DH minion)
+    "CATA_530",  // Fel Infusion (DH spell)
+    "CATA_561",  // Ritual of Power (Shaman spell)
+    "CATA_565",  // Skywall Sentinel (Shaman minion)
+    "CATA_580",  // Cataclysmic War Axe (Warrior weapon)
+    "CATA_722",  // Envoy of the End (neutral minion)
+    "CATA_725",  // Shadowsworn Disciple (Warlock minion)
+    "CATA_780",  // Obsessive Technician (DK minion)
+    "CATA_785",  // Rite of Twilight (Rogue spell)
+    "CATA_190h", // Deathwing, Worldbreaker (W4 — the battlecry reads the counter)
+    "CATA_497",  // Ultraxion (W4 — neutral patron, reduces Deathwing's cost)
 ];
 
 /// The class patron whose Colossal Soldier a Herald card summons.
@@ -89,7 +96,9 @@ pub enum HeraldPatron {
     Neutral,
 }
 
-/// Maps the 13 Herald cards to their class patron (CATA_722 → `Neutral`).
+/// Maps the 15 Herald cards to their class patron (CATA_722/CATA_497 →
+/// `Neutral`; CATA_190h → `Neutral` defensively — its play does not
+/// resolve a Herald keyword).
 #[must_use]
 pub fn herald_patron(card_id: &str) -> Option<HeraldPatron> {
     match card_id {
@@ -99,7 +108,7 @@ pub fn herald_patron(card_id: &str) -> Option<HeraldPatron> {
         "CATA_561" | "CATA_565" => Some(HeraldPatron::Shaman),
         "CATA_492" | "CATA_725" => Some(HeraldPatron::Warlock),
         "CATA_160" | "CATA_580" => Some(HeraldPatron::Warrior),
-        "CATA_722" => Some(HeraldPatron::Neutral),
+        "CATA_722" | "CATA_497" | "CATA_190h" => Some(HeraldPatron::Neutral),
         _ => None,
     }
 }
@@ -199,6 +208,16 @@ pub fn resolve_herald(
         inner.players[player.index()].herald_count
     };
 
+    // 1b. CATA_497 Ultraxion's add-on — "Reduce Deathwing's Cost by
+    // ({1})", where {1} is the post-increment counter read ({0}/{1} are
+    // the same value on the card). Every Herald resolution (including a
+    // copied Ultraxion's) accumulates; the cost pipeline subtracts the
+    // total from CATA_190h's play cost.
+    if card_id == "CATA_497" {
+        let inner = state.make_mut();
+        inner.players[player.index()].deathwing_cost_reduction += count as i32;
+    }
+
     // 2. Summon the Soldier (a neutral patron summons nothing — CATA_722;
     // a full board fails the summon, the counter still ticked).
     let soldier_id = herald_soldier(patron)?;
@@ -287,9 +306,9 @@ mod tests {
     use super::*;
     use crate::cards::def::card_by_id;
 
-    /// Every card with "Herald" text has a `herald_patron` entry — the 13
-    /// implementable Herald cards (the official 15 minus W4's Deathwing
-    /// and Ultraxion, §24).
+    /// Every card with "Herald" text has a `herald_patron` entry — the
+    /// full 15-card Herald set (W4 registered CATA_190h Deathwing and
+    /// CATA_497 Ultraxion, §26).
     #[test]
     fn herald_patron_table_is_complete() {
         for id in HERALD_CARD_IDS {
@@ -298,7 +317,7 @@ mod tests {
                 "missing herald_patron for {id}"
             );
         }
-        assert_eq!(HERALD_CARD_IDS.len(), 13);
+        assert_eq!(HERALD_CARD_IDS.len(), 15);
     }
 
     /// `herald_soldier` resolves to a registered CardDef for every patron
