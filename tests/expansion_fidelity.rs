@@ -67,3 +67,15 @@ fn across_the_timeways_dump_fidelity() {
         183,
     );
 }
+
+/// Cataclysm sub-roadmap W0 (M4-W0): CATA_ main set + MEND_ (the Class
+/// Sets — merged into cards.json at M0.3 but deferred as a follow-on
+/// wave in the roadmap; their generated baselines are covered here).
+#[test]
+fn cataclysm_dump_fidelity() {
+    check_dump_fidelity(
+        include_str!("../cards/data/CATACLYSM.json"),
+        &["CATA_", "MEND_"],
+        164,
+    );
+}
