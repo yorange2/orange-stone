@@ -1,6 +1,6 @@
 # 2025–2026 Expansions Roadmap — implementing the Year of the Raptor + Year of the Scarab sets
 
-> Status: **active** (created 2026-08-08). Chinese mirror: `2025-2026-expansions-roadmap-zh.md`.
+> Status: **archived** (complete 2026-08-09) (created 2026-08-08). Chinese mirror: `2025-2026-expansions-roadmap-zh.md`.
 > Scope: the five full expansions released between 2025-03 and 2026-07 (~730 cards)
 > plus their three minisets (~114 cards) — **Into the Emerald Dream**, **The Lost City
 > of Un'Goro**, **Across the Timeways** (2025, Year of the Raptor) and **Cataclysm**,
@@ -191,8 +191,19 @@ closing wave (tokens, legendary finishing touches, ledger sweep).
   ~100 cards + 21 tokens; ledger §23–§26; W0–W4 checked off (135
   main-set cards; the 29 MEND_ Class Set cards stay deferred as a
   follow-on wave with a roadmap note).
-- **M5** — Violet Hold complete (Rulebreakers); all five sub-roadmaps archived
-  with this master file to `docs/finished/`.
+- **M5** ✅ complete (2026-08-09, PR #160–#162) — Violet Hold: the
+  StartOfGame hook (the engine's first — annotates the EDR §14 Hamuul
+  "when real" row), the Prepare keyword (`Action::Prepare` — spend all
+  mana for a permanent discount + next-turn lock), the per-card rule
+  overrides (Hogger's legendary duplication, Azalina's 40-health/20-card
+  deck, Aya's always-go-second, Godfrey's overdraw-return, Neth'rek's
+  delayed mana-10, Mug'Zee's hero power), and the closing wave (10
+  remaining legendaries + 108 non-legendaries + 21 tokens); ledger
+  §27–§28; W0–W2 checked off (135 cards with F5 scenarios or registered
+  simplifications). **The 2025–2026 expansions roadmap is complete**
+  (M0–M5): all five sub-roadmaps archived with this master file to
+  `docs/finished/`; the RL pool cut-over (D3) and the MEND_ Class Sets
+  follow-on remain as the closing-stage actions.
 
 ## Definition of done
 
