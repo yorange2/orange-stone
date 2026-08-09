@@ -187,6 +187,21 @@ pub struct PyPlayerView {
     /// Hero power cost (`0` without a hero power)
     #[pyo3(get)]
     pub hero_power_cost: i32,
+    /// Active quest progress (`0` with no quest in the slot)
+    #[pyo3(get)]
+    pub quest_progress: i32,
+    /// Active quest target (`0` with no quest in the slot)
+    #[pyo3(get)]
+    pub quest_target: i32,
+    /// Imbue counter (0 default)
+    #[pyo3(get)]
+    pub imbue_count: i32,
+    /// Corpses counter (0 default)
+    #[pyo3(get)]
+    pub corpses: i32,
+    /// Sum of durability over the player's Location entities in play (0 without locations)
+    #[pyo3(get)]
+    pub location_durability: i32,
     /// Minions on the battlefield (left to right)
     #[pyo3(get)]
     pub field: Vec<PyEntityView>,
@@ -210,6 +225,11 @@ impl From<&rviews::PlayerView> for PyPlayerView {
             weapon_durability: v.weapon_durability,
             hero_power_usable: v.hero_power_usable,
             hero_power_cost: v.hero_power_cost,
+            quest_progress: v.quest_progress,
+            quest_target: v.quest_target,
+            imbue_count: v.imbue_count,
+            corpses: v.corpses,
+            location_durability: v.location_durability,
             field: v.field.iter().map(PyEntityView::from).collect(),
             hand: v.hand.iter().map(PyEntityView::from).collect(),
         }

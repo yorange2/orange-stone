@@ -116,6 +116,16 @@ pub struct PlayerView {
     pub hero_power_usable: bool,
     /// Hero power cost (`0` without a hero power)
     pub hero_power_cost: i32,
+    /// Active quest progress (`0` with no quest in the slot)
+    pub quest_progress: i32,
+    /// Active quest target (`0` with no quest in the slot)
+    pub quest_target: i32,
+    /// Imbue counter (0 default)
+    pub imbue_count: i32,
+    /// Corpses counter (0 default)
+    pub corpses: i32,
+    /// Sum of durability over the player's Location entities in play (0 without locations)
+    pub location_durability: i32,
     /// Minions on the battlefield (left to right)
     pub field: Vec<EntityView>,
     /// Cards in hand (only for the perspective player; the opponent's is empty)
@@ -311,6 +321,23 @@ pub fn player_view(state: &GameState, player: PlayerId, reveal_hand: bool) -> Pl
         None => (0, 0),
     };
     let hero_power = world.hero_power(hero).map(|hp| hp.cost);
+    // New-mechanic counters (decision D3): quest progress/target come from the
+    // Quest component on the player's quest-slot entity (0 when the slot is
+    // empty); location durability is the sum over the player's Location
+    // entities in play. All four are public information — filled for the
+    // opponent too (only the hand is hidden).
+    let quest = world
+        .zones()
+        .entities(Zone::Quest, player)
+        .first()
+        .and_then(|&e| world.quest(e));
+    let location_durability: i32 = world
+        .zones()
+        .iter(Zone::Play, player)
+        .filter(|&e| world.card_type(e) == Some(CardType::Location))
+        .filter_map(|e| world.durability(e))
+        .map(|d| d.0)
+        .sum();
 
     PlayerView {
         hero_health: world.effective_health(hero).map_or(0, |h| h.0),
@@ -327,6 +354,11 @@ pub fn player_view(state: &GameState, player: PlayerId, reveal_hand: bool) -> Pl
             && world.hero_power_used(hero).is_none()
             && hero_power.is_some_and(|c| c <= state.player(player).current_mana),
         hero_power_cost: hero_power.unwrap_or(0),
+        quest_progress: quest.as_ref().map_or(0, |q| q.progress as i32),
+        quest_target: quest.as_ref().map_or(0, |q| q.target as i32),
+        imbue_count: state.player(player).imbue_count,
+        corpses: state.player(player).corpses as i32,
+        location_durability,
         field: world
             .zones()
             .iter(Zone::Play, player)
@@ -427,6 +459,17 @@ mod tests {
         assert!(obs.me.field.is_empty());
         assert!(obs.me.hand.is_empty());
         assert!(obs.opponent.hand.is_empty(), "opponent hand is hidden");
+        // Plain state: the new-mechanic counters (decision D3) are all zero.
+        assert_eq!(obs.me.quest_progress, 0);
+        assert_eq!(obs.me.quest_target, 0);
+        assert_eq!(obs.me.imbue_count, 0);
+        assert_eq!(obs.me.corpses, 0);
+        assert_eq!(obs.me.location_durability, 0);
+        assert_eq!(obs.opponent.quest_progress, 0);
+        assert_eq!(obs.opponent.quest_target, 0);
+        assert_eq!(obs.opponent.imbue_count, 0);
+        assert_eq!(obs.opponent.corpses, 0);
+        assert_eq!(obs.opponent.location_durability, 0);
         // Perspective swap: heroes swap, `my_turn` flips
         let obs2 = observation(&state, PlayerId::Player2, false);
         assert!(!obs2.my_turn);
@@ -478,6 +521,81 @@ mod tests {
         let v_expensive = entity_view(&state, expensive, true);
         assert!(v_cheap.playable);
         assert!(!v_expensive.playable, "5-cost card with 3 mana");
+    }
+
+    /// Decision D3 — the structured view exposes the new-mechanic counters
+    /// (quest progress/target, imbue level, corpses, location durability) for
+    /// BOTH players: they are public information, unlike the opponent's hand.
+    #[test]
+    fn player_view_exposes_new_mechanic_counters() {
+        use crate::core::component::{Durability, Quest};
+
+        let builder = GameBuilder::new();
+        let mut state = builder.build();
+        {
+            let inner = state.make_mut();
+            let world = &mut inner.world;
+            // Friendly quest in the slot: 4/10 progress.
+            let q = world.spawn();
+            world.set_card_type(q, crate::core::component::CardType::Spell);
+            world.set_player(q, PlayerId::Player1);
+            world.set_zone(q, Zone::Quest);
+            world.zones_mut().insert(Zone::Quest, PlayerId::Player1, q);
+            world.set_quest(
+                q,
+                Quest {
+                    progress: 4,
+                    target: 10,
+                    repeatable: false,
+                    markers: Vec::new(),
+                    second: None,
+                },
+            );
+            // Friendly location (3 durability) + enemy location (1) in play.
+            let loc = world.spawn();
+            world.set_card_type(loc, crate::core::component::CardType::Location);
+            world.set_player(loc, PlayerId::Player1);
+            world.set_zone(loc, Zone::Play);
+            world.zones_mut().insert(Zone::Play, PlayerId::Player1, loc);
+            world.set_durability(loc, Durability(3));
+            let eloc = world.spawn();
+            world.set_card_type(eloc, crate::core::component::CardType::Location);
+            world.set_player(eloc, PlayerId::Player2);
+            world.set_zone(eloc, Zone::Play);
+            world
+                .zones_mut()
+                .insert(Zone::Play, PlayerId::Player2, eloc);
+            world.set_durability(eloc, Durability(1));
+            inner.players[PlayerId::Player1.index()].corpses = 6;
+            inner.players[PlayerId::Player2.index()].corpses = 3;
+            inner.players[PlayerId::Player1.index()].imbue_count = 5;
+        }
+        let obs = observation(&state, PlayerId::Player1, false);
+        // Me: quest 4/10, imbue 5, corpses 6, location durability 3.
+        assert_eq!(obs.me.quest_progress, 4);
+        assert_eq!(obs.me.quest_target, 10);
+        assert_eq!(obs.me.imbue_count, 5);
+        assert_eq!(obs.me.corpses, 6);
+        assert_eq!(obs.me.location_durability, 3);
+        // Opponent: no quest, corpses 3, location durability 1 — filled even
+        // though the hand is hidden.
+        assert_eq!(obs.opponent.quest_progress, 0);
+        assert_eq!(obs.opponent.quest_target, 0);
+        assert_eq!(obs.opponent.imbue_count, 0);
+        assert_eq!(obs.opponent.corpses, 3);
+        assert_eq!(obs.opponent.location_durability, 1);
+        // Swapped perspective: the counters travel with the player.
+        let obs2 = observation(&state, PlayerId::Player2, false);
+        assert_eq!(obs2.me.quest_progress, 0);
+        assert_eq!(obs2.me.quest_target, 0);
+        assert_eq!(obs2.me.imbue_count, 0);
+        assert_eq!(obs2.me.corpses, 3);
+        assert_eq!(obs2.me.location_durability, 1);
+        assert_eq!(obs2.opponent.quest_progress, 4);
+        assert_eq!(obs2.opponent.quest_target, 10);
+        assert_eq!(obs2.opponent.imbue_count, 5);
+        assert_eq!(obs2.opponent.corpses, 6);
+        assert_eq!(obs2.opponent.location_durability, 3);
     }
 
     #[test]
