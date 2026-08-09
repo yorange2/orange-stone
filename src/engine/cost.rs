@@ -557,5 +557,58 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
     {
         cost = Cost((cost.0 - 2).max(0));
     }
+    // M5-W2 — the closing Violet Hold wave, id-keyed overrides:
+    // - JAIL_204 Tricksy Rouge: "Costs (2) if you control no minions."
+    // - JAIL_433 Unshackle Soul: "Costs (1) if you played a copy of an
+    //   opponent's card while holding this" (the game-scoped flag, §28).
+    // - JAIL_503 Bribe: "Costs (1) less for each Coin in your hand."
+    // - JAIL_514 Nifty Lockpick: "Costs (1) less for each card in your
+    //   hand."
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "JAIL_204")
+    {
+        let has_minion = state
+            .world()
+            .zones()
+            .iter(crate::core::zone::Zone::Play, player)
+            .any(|e| state.world().card_type(e) == Some(crate::core::component::CardType::Minion));
+        if !has_minion {
+            cost = Cost(2);
+        }
+    }
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "JAIL_433")
+        && state.player(player).copied_from_opponent_played
+    {
+        cost = Cost((cost.0 - 1).max(0));
+    }
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "JAIL_503")
+    {
+        let coins = state
+            .world()
+            .zones()
+            .iter(crate::core::zone::Zone::Hand, player)
+            .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "GAME_005"))
+            .count() as i32;
+        cost = Cost((cost.0 - coins).max(0));
+    }
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "JAIL_514")
+    {
+        let hand_size = state
+            .world()
+            .zones()
+            .len(crate::core::zone::Zone::Hand, player) as i32;
+        cost = Cost((cost.0 - hand_size).max(0));
+    }
     cost
 }

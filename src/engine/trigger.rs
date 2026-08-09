@@ -122,6 +122,12 @@ fn apply_spell_power(
                 | "CATA_491"
                 | "CATA_585"
                 | "CATA_978"
+                // M5-W2 — JAIL_445 Bone Flurry, JAIL_881 Arcane Tripwire
+                // and its Tripped token are exempt from Spell Damage
+                // (the official data marks them ImmuneToSpellpower).
+                | "JAIL_445"
+                | "JAIL_881"
+                | "JAIL_881t"
         )
     }) {
         return effect;
@@ -9833,11 +9839,14 @@ pub fn resolve_effect(
             );
         }
         CardEffect::GiveCoin => {
-            // TIME_054 Time Skipper (M3-W2a) — "At the end of each
-            // player's turn, give them a Coin": the card is handled by
-            // the EndTriggers hook in rules.rs (owner-scoped TurnEnd
-            // triggers cannot see both players), so this arm only keeps
-            // the dispatch exhaustive.
+            // M5-W2 — JAIL_720 Lotus Bookie's deathrattle: "Add a Coin to
+            // your hand." — the GAME_005 add funnels through
+            // `add_card_to_hand` (the Aya coin-replacement swap applies).
+            // TIME_054 Time Skipper's Coin grant is handled by its own
+            // EndTriggers hook in rules.rs, so this is the only resolver.
+            if let Some(def) = crate::cards::def::card_by_id("GAME_005") {
+                add_card_to_hand(state, owner, def);
+            }
         }
         CardEffect::GiveHeroImmuneThisTurn => {
             // TIME_021 Doomsday Prepper's Outcast (M3-W2a) — "your hero
@@ -14235,7 +14244,2079 @@ pub fn resolve_effect(
             }
             add_random_cost_card(state, owner, 1, CardType::Spell);
         }
+        CardEffect::SliceAndDice => {
+            // M5-W2 — JAIL_500 Slice and Dice (legendary): "Replay all
+            // other cards played this turn (targeting enemies if
+            // possible). End your turn." — the rewind machinery replays
+            // the entries recorded since the turn-start mark (the card's
+            // own entry is pushed only after this effect resolves, so it
+            // never replays itself); the turn end is queued as a regular
+            // TurnEnded event. The "targeting enemies if possible" rider
+            // is registered as a simplification (§28).
+            let history = state.player(owner).last_played.clone();
+            let mark = state.player(owner).rewind_turn_start_len;
+            let entries: Vec<crate::cards::rewind::RewindEntry> =
+                history.get(mark..).unwrap_or_default().to_vec();
+            if !entries.is_empty() {
+                crate::engine::rewind::resolve_replay(state, queue, source, owner, &entries);
+            }
+            queue.push(Event::TurnEnded { player: owner });
+        }
+        CardEffect::TinyPal { ammo } => {
+            // M5-W2 — JAIL_458 Tiny Pal (legendary weapon): ammo 0 is
+            // the battlecry — surface the ammunition choice; ammo 1-4
+            // are the equipped ammunition weapons' attack triggers
+            // (JAIL_458t1-t4): resolve the ammo effect, then re-surface
+            // the choice ("After your hero attacks, choose another").
+            match ammo {
+                0 => {}
+                1 => {
+                    // Freeze: Freeze 2 random enemy characters.
+                    let enemy = owner.opponent();
+                    let mut chars: Vec<Entity> =
+                        state.world().zones().iter(Zone::Play, enemy).collect();
+                    chars.push(state.player(enemy).hero);
+                    for _ in 0..2 {
+                        if chars.is_empty() {
+                            break;
+                        }
+                        let idx = state.rng_mut().next_usize(chars.len());
+                        let picked = chars.remove(idx);
+                        state.world_mut().set_freeze(picked, Freeze);
+                    }
+                }
+                2 => {
+                    // Deal 1 damage to all enemies.
+                    resolve_deal_damage(
+                        state,
+                        queue,
+                        source,
+                        owner,
+                        1,
+                        EffectTarget::AllEnemies,
+                        None,
+                    );
+                }
+                3 => {
+                    // Summon a random 3-Cost minion with Taunt.
+                    if let Some(def) = random_minion_of_cost(state, 3) {
+                        if let Some(e) = resolve_summon(state, queue, source, owner, def.id) {
+                            state.world_mut().set_taunt(e, Taunt);
+                        }
+                    }
+                }
+                4 => {
+                    // Get a random Battlecry minion; it costs (2) less.
+                    let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                        crate::cards::sets::ALL_CARDS
+                            .iter()
+                            .filter(|c| {
+                                c.card_type == CardType::Minion
+                                    && c.battlecry.is_some()
+                                    && crate::cards::pool::in_active_window(c)
+                            })
+                            .collect();
+                    if let Some(def) = candidates.get(state.rng_mut().next_usize(candidates.len()))
+                    {
+                        if let Some(e) = add_card_to_hand(state, owner, def) {
+                            reduce_hand_card_cost(state, e, 2);
+                        }
+                    }
+                }
+                _ => {}
+            }
+            // Surface the ammunition choice on the battlecry (ammo 0) and
+            // re-surface it after every fired shot (ammo 1-4, "After your
+            // hero attacks, choose another").
+            let options: Vec<String> = ["JAIL_458t1", "JAIL_458t2", "JAIL_458t3", "JAIL_458t4"]
+                .iter()
+                .map(|id| {
+                    crate::cards::def::card_by_id(id)
+                        .map(|c| format!("{} ({})", c.name, c.id))
+                        .unwrap_or_else(|| id.to_string())
+                })
+                .collect();
+            let ids: Vec<String> = ["JAIL_458t1", "JAIL_458t2", "JAIL_458t3", "JAIL_458t4"]
+                .iter()
+                .map(|id| id.to_string())
+                .collect();
+            state.set_pending_choice(
+                crate::core::state::ChoiceKind::TinyPalAmmo,
+                source,
+                options,
+                ids,
+            );
+        }
+        CardEffect::StaffOfTrickery => {
+            // M5-W2 — JAIL_875 Staff of Trickery (legendary weapon
+            // trigger): "After your hero attacks, Discover a Druid card.
+            // Reduce its Cost by your hero's Attack." — the Druid pool is
+            // the data-defined DRUID_CLASSIC set, three random distinct
+            // cards; the reduction (the hero's Attack) rides the pending
+            // discover modifier.
+            let mut pool: Vec<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::DRUID_CLASSIC.iter().collect();
+            let mut picked: Vec<&'static crate::cards::def::CardDef> = Vec::new();
+            for _ in 0..3 {
+                if pool.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(pool.len());
+                picked.push(pool.remove(idx));
+            }
+            if picked.is_empty() {
+                return;
+            }
+            let options: Vec<String> = picked
+                .iter()
+                .map(|c| format!("{} ({})", c.name, c.id))
+                .collect();
+            let ids: Vec<String> = picked.iter().map(|c| c.id.to_string()).collect();
+            let hero = state.player(owner).hero;
+            // "Reduce its Cost by your hero's Attack" — the hero's Attack
+            // includes the equipped weapon (the Staff's own 1), i.e. the
+            // same value `compute_attacker_damage` uses for the hero's
+            // swing (it also covers Bladed Gauntlet's armor-as-attack).
+            let reduction = crate::engine::rules::compute_attacker_damage(state, hero);
+            state.make_mut().players[owner.index()].pending_discover_cost_reduction =
+                Some(reduction);
+            state.set_pending_choice(
+                crate::core::state::ChoiceKind::Discover,
+                source,
+                options,
+                ids,
+            );
+        }
+        CardEffect::R4TCatcher => {
+            // M5-W2 — JAIL_882 R4T-C4TCH3R (legendary): "Battlecry: Copy
+            // all spells in your deck." — every deck spell is copied as a
+            // fresh card at a random deck position (the Tradeable shuffle
+            // pattern); the deathrattle draws one of the copies.
+            let spells: Vec<String> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter_map(|e| {
+                    if state.world().card_type(e) == Some(CardType::Spell) {
+                        state.world().card_id(e).map(|c| c.0.to_string())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            for id in spells {
+                let Some(def) = crate::cards::def::card_by_id(&id) else {
+                    continue;
+                };
+                let deck_count = state.world().zones().len(Zone::Deck, owner);
+                let position = if deck_count > 0 {
+                    state.rng_mut().next_usize(deck_count + 1)
+                } else {
+                    0
+                };
+                let world = state.world_mut();
+                let e = crate::cards::spawn_card_from_def(world, owner, def);
+                world.set_zone(e, Zone::Deck);
+                world.zones_mut().insert_at(Zone::Deck, owner, e, position);
+            }
+        }
+        CardEffect::IridaSinseeker => {
+            // M5-W2 — JAIL_719 Irida Sinseeker (legendary): "Battlecry:
+            // Send your deck to the Void." — the deck card ids ride
+            // `Player::void_cards` (in deck order) and the deck entities
+            // are destroyed (the empty deck makes draws fatigue).
+            let deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, owner).collect();
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            for e in &deck {
+                if let Some(cid) = inner.world.card_id(*e) {
+                    p.void_cards.push(cid.0.to_string());
+                }
+            }
+            for e in deck {
+                let _ = state.world_mut().move_to_zone(e, Zone::Graveyard);
+            }
+        }
+        CardEffect::IridaGetVoid => {
+            // M5-W2 — JAIL_719 Irida Sinseeker's turn-start trigger: "At
+            // the start of your turn, get 2 cards from the Void." — two
+            // random ids are removed from `Player::void_cards` (sampling
+            // without replacement) and enter the hand.
+            for _ in 0..2 {
+                let ids = state.player(owner).void_cards.clone();
+                if ids.is_empty() {
+                    return;
+                }
+                let idx = state.rng_mut().next_usize(ids.len());
+                let id = ids[idx].clone();
+                state.make_mut().players[owner.index()]
+                    .void_cards
+                    .remove(idx);
+                if let Some(def) = crate::cards::def::card_by_id(&id) {
+                    add_card_to_hand(state, owner, def);
+                }
+            }
+        }
+        CardEffect::KingOfTheUnderbelly => {
+            // M5-W2 — JAIL_831 King of the Underbelly (legendary):
+            // "Battlecry: Discover one [contraband Beast]. It costs (3)
+            // less." — the building-time contraband pick is simplified to
+            // three random Beasts at battlecry (§28); the (3) reduction
+            // rides the pending discover modifier.
+            let mut pool: Vec<&'static crate::cards::def::CardDef> = crate::cards::sets::ALL_CARDS
+                .iter()
+                .filter(|c| {
+                    c.card_type == CardType::Minion
+                        && c.race == Some(crate::core::component::Race::Beast)
+                        && crate::cards::pool::in_active_window(c)
+                })
+                .collect();
+            let mut picked: Vec<&'static crate::cards::def::CardDef> = Vec::new();
+            for _ in 0..3 {
+                if pool.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(pool.len());
+                picked.push(pool.remove(idx));
+            }
+            if picked.is_empty() {
+                return;
+            }
+            let options: Vec<String> = picked
+                .iter()
+                .map(|c| format!("{} ({})", c.name, c.id))
+                .collect();
+            let ids: Vec<String> = picked.iter().map(|c| c.id.to_string()).collect();
+            state.make_mut().players[owner.index()].pending_discover_cost_reduction = Some(3);
+            state.set_pending_choice(
+                crate::core::state::ChoiceKind::Discover,
+                source,
+                options,
+                ids,
+            );
+        }
+        CardEffect::MurlocHolmes => {
+            // M5-W2 — JAIL_851 Inspector Murloc Holmes (legendary,
+            // pool-open): "Battlecry: Investigate a card in the enemy
+            // hand." — the investigation is a choice over three random
+            // enemy hand card ids; the ChoiceResolved handler stores the
+            // pick (with the expected turn) and the CardPlayed handler
+            // pays out 3 Coins when the enemy plays a card of that name
+            // on their next turn.
+            let enemy = owner.opponent();
+            let mut hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, enemy).collect();
+            let mut picked: Vec<Entity> = Vec::new();
+            for _ in 0..3 {
+                if hand.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(hand.len());
+                picked.push(hand.remove(idx));
+            }
+            if picked.is_empty() {
+                return;
+            }
+            let options: Vec<String> = picked
+                .iter()
+                .map(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .and_then(|c| crate::cards::def::card_by_id(c.0))
+                        .map_or_else(|| String::from("?"), |c| format!("{} ({})", c.name, c.id))
+                })
+                .collect();
+            let ids: Vec<String> = picked
+                .iter()
+                .map(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .map_or_else(String::new, |c| c.0.to_string())
+                })
+                .collect();
+            state.set_pending_choice(
+                crate::core::state::ChoiceKind::MurlocHolmes,
+                source,
+                options,
+                ids,
+            );
+        }
+        CardEffect::TogwaggleShuffleHands => {
+            // M5-W2 — JAIL_852 Togwaggle, Smuggler King (legendary):
+            // "Battlecry: Shuffle both players' hands together. Deal them
+            // back out." — both hands merge into one pile, the pile is
+            // Fisher-Yates shuffled, and the first half (rounded up) goes
+            // to the caster and the rest to the opponent (§28 pins the
+            // split convention). Cards are the same entities — each
+            // changes owner via the manual zone move.
+            let mut pile: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .chain(state.world().zones().iter(Zone::Hand, owner.opponent()))
+                .collect();
+            for i in (1..pile.len()).rev() {
+                let j = state.rng_mut().next_usize(i + 1);
+                pile.swap(i, j);
+            }
+            let split = pile.len().div_ceil(2);
+            for (i, e) in pile.into_iter().enumerate() {
+                let new_owner = if i < split { owner } else { owner.opponent() };
+                let old_owner = state.world().player(e).unwrap_or(new_owner);
+                if old_owner == new_owner {
+                    continue;
+                }
+                let world = state.world_mut();
+                world.zones_mut().remove(Zone::Hand, old_owner, e);
+                world.set_player(e, new_owner);
+                world.set_zone(e, Zone::Hand);
+                world.zones_mut().insert(Zone::Hand, new_owner, e);
+            }
+        }
+        CardEffect::MaievBuffDormant => {
+            // M5-W2 — JAIL_850 Warden Maiev (legendary): "After you play
+            // a minion, give it +3/+3 and make it go Dormant for 1 turn."
+            // — the played minion is the event subject.
+            let Some(subject) = event_subject else {
+                return;
+            };
+            state.world_mut().add_enchantment(
+                subject,
+                Enchantment {
+                    attack: 3,
+                    health: 3,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+            state
+                .world_mut()
+                .set_dormant(subject, crate::core::component::Dormant { turns: 1 });
+        }
+        CardEffect::ZuramatPlaysDiscarded => {
+            // M5-W2 — JAIL_887t2 Zuramat the Obliterator's turn-end
+            // trigger: "Free Zuramat, who plays one [discarded card] each
+            // turn!" — a random id from `Player::zuramat_discarded` is
+            // played: a minion is summoned, a weapon equipped, or a
+            // spell's effect resolved.
+            let ids = state.player(owner).zuramat_discarded.clone();
+            if ids.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(ids.len());
+            let id = ids[idx].clone();
+            state.make_mut().players[owner.index()]
+                .zuramat_discarded
+                .remove(idx);
+            let Some(def) = crate::cards::def::card_by_id(&id) else {
+                return;
+            };
+            match def.card_type {
+                CardType::Minion => {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+                CardType::Weapon => {
+                    resolve_equip_weapon(state, queue, owner, def.id);
+                }
+                CardType::Spell => {
+                    if let Some(effect) = def.spell_effect {
+                        resolve_effect(state, queue, source, owner, effect, None, None);
+                    }
+                }
+                _ => {}
+            }
+        }
+        CardEffect::ColdSnap => {
+            // M5-W2 — JAIL_125 Cold Snap: "Freeze an enemy. Get a random
+            // Frost spell." — the enemy pick is random (no targetable
+            // spell); the Frost spell pool reads the quest spell-school
+            // table.
+            let enemies = collect_enemy_characters(state, owner, Some(source));
+            if let Some(&target) = enemies.get(state.rng_mut().next_usize(enemies.len())) {
+                state.world_mut().set_freeze(target, Freeze);
+            }
+            let frost: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Spell
+                            && crate::cards::quest::spell_school(c.id)
+                                == Some(crate::cards::quest::SpellSchool::Frost)
+                    })
+                    .collect();
+            if let Some(def) = frost.get(state.rng_mut().next_usize(frost.len())) {
+                add_card_to_hand(state, owner, def);
+            }
+        }
+        CardEffect::MindSweeper => {
+            // M5-W2 — JAIL_432 Mind Sweeper: "If you played a copy of an
+            // opponent's card while holding this, deal 2 damage to all
+            // enemy minions." — the game-scoped played-a-copy flag rides
+            // the player record (set at CardPlayed; the "while holding
+            // this" nuance is dropped, §28).
+            if state.player(owner).copied_from_opponent_played {
+                resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    2,
+                    EffectTarget::AllEnemyMinions,
+                    None,
+                );
+            }
+        }
+        CardEffect::EnthralledShade => {
+            // M5-W2 — JAIL_434 Enthralled Shade: "Deathrattle: Reduce the
+            // Cost of cards in your hand that were copied from your
+            // opponent by (1)."
+            let marked: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().copied_from_opponent(e).is_some())
+                .collect();
+            for e in marked {
+                reduce_hand_card_cost(state, e, 1);
+            }
+        }
+        CardEffect::TricksyImproviser => {
+            // M5-W2 — JAIL_321 Tricksy Improviser: "If you've cast a
+            // spell this turn, cast a random Mage Secret." — the class
+            // filter is approximated by the whole secret pool (the
+            // engine has no per-card class, §28).
+            if state.player(owner).spells_cast_this_turn == 0 {
+                return;
+            }
+            let secrets: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.secret.is_some())
+                    .collect();
+            let Some(def) = secrets.get(state.rng_mut().next_usize(secrets.len())) else {
+                return;
+            };
+            if let Some(trigger) = def.secret {
+                let world = state.world_mut();
+                let e = crate::cards::spawn_card_from_def(world, owner, def);
+                world.set_secret(
+                    e,
+                    crate::core::component::Secret {
+                        trigger,
+                        effect: def.battlecry,
+                    },
+                );
+                let _ = world.move_to_zone(e, Zone::SetAside);
+            }
+        }
+        CardEffect::Judgment => {
+            // M5-W2 — JAIL_326 Judgment: "Choose a friendly minion. Set
+            // all minions' stats equal to that minion's." — the pick is
+            // random (§28); every minion on both boards gets the chosen
+            // minion's effective stats written as its base.
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner);
+            let Some(&reference) = minions.get(state.rng_mut().next_usize(minions.len())) else {
+                return;
+            };
+            let Some(atk) = state.world().effective_attack(reference) else {
+                return;
+            };
+            let Some(hp) = state.world().effective_health(reference) else {
+                return;
+            };
+            let mut all: SmallList<Entity> = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            let world = state.world_mut();
+            for e in all {
+                world.set_attack(e, Attack(atk.0));
+                world.set_health(e, Health(hp.0));
+            }
+        }
+        CardEffect::ReinforcementAura => {
+            // M5-W2 — JAIL_327 Reinforcement Aura: "At the end of your
+            // turns for the next 3 turns, summon a random minion costing
+            // (2) or less from your deck." — the tick counter is armed
+            // here and consumed by the TurnEnded hook (the
+            // Story-of-Lakkari pattern).
+            state.make_mut().players[owner.index()].reinforcement_aura_ticks = 3;
+        }
+        CardEffect::ScarletBruiser => {
+            // M5-W2 — JAIL_328 Scarlet Bruiser: "Deathrattle: If your
+            // deck has no Neutral cards, get a random Paladin card. It
+            // costs (2) less."
+            let deck_has_neutral = state.world().zones().iter(Zone::Deck, owner).any(|e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                    .is_some_and(is_neutral_def)
+            });
+            if deck_has_neutral {
+                return;
+            }
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::PALADIN_CLASSIC.iter().collect();
+            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+                if let Some(e) = add_card_to_hand(state, owner, def) {
+                    reduce_hand_card_cost(state, e, 2);
+                }
+            }
+        }
+        CardEffect::BallAndChain => {
+            // M5-W2 — JAIL_376 Ball and Chain: "Deathrattle: Give your
+            // damaged minions +1/+2."
+            let damaged: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| state.world().damage(e).is_some_and(|d| d.0 > 0))
+                .collect();
+            let world = state.world_mut();
+            for e in damaged {
+                world.add_enchantment(
+                    e,
+                    Enchantment {
+                        attack: 1,
+                        health: 2,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::HolyBola => {
+            // M5-W2 — JAIL_377 Holy Bola!: "Draw a card. If it costs (2)
+            // or less, draw another."
+            if let Some(drawn) = draw_card_no_queue(state, queue, owner) {
+                if state
+                    .world()
+                    .effective_cost(drawn)
+                    .is_some_and(|c| c.0 <= 2)
+                {
+                    draw_card_no_queue(state, queue, owner);
+                }
+            }
+        }
+        CardEffect::SpireSecurity => {
+            // M5-W2 — JAIL_379 Spire Security: "Battlecry: Reveal a spell
+            // in your deck. If it costs (5) or more, deal 5 damage split
+            // among enemy minions." — the reveal is a random deck spell
+            // (the official reads the top card; §28 pins the random
+            // pick); the split is five 1-damage pips.
+            let spells: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Spell))
+                .collect();
+            if spells.is_empty() {
+                return;
+            }
+            let pick = spells[state.rng_mut().next_usize(spells.len())];
+            if state.world().effective_cost(pick).is_some_and(|c| c.0 >= 5) {
+                resolve_deal_damage_randomly(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    1,
+                    5,
+                    EffectTarget::AnyEnemyMinion,
+                );
+            }
+        }
+        CardEffect::SmuggledShovel => {
+            // M5-W2 — JAIL_380 Smuggled Shovel: "Deathrattle: Draw a
+            // spell that didn't start in your deck." — the first deck
+            // spell whose id is absent from `Player::starting_deck`
+            // moves to the hand.
+            let drawn: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Spell)
+                        && state.world().card_id(e).is_some_and(|c| {
+                            !state.player(owner).starting_deck.contains(&c.0.to_string())
+                        })
+                })
+                .collect();
+            if let Some(&card) = drawn.first() {
+                let _ = state.world_mut().move_to_zone(card, Zone::Hand);
+            }
+        }
+        CardEffect::ScrambleForGear => {
+            // M5-W2 — JAIL_386 Scramble for Gear: "Gain 2 Armor. Shuffle
+            // five Found Gear! spells into your deck." — the Found Gear!
+            // token is JAIL_386t (a playable spell — the "when drawn"
+            // rider is not modeled, the W1 Blight convention).
+            grant_armor(state, queue, owner, 2);
+            let Some(def) = crate::cards::def::card_by_id("JAIL_386t") else {
+                return;
+            };
+            for _ in 0..5 {
+                let deck_count = state.world().zones().len(Zone::Deck, owner);
+                let position = if deck_count > 0 {
+                    state.rng_mut().next_usize(deck_count + 1)
+                } else {
+                    0
+                };
+                let world = state.world_mut();
+                let e = crate::cards::spawn_card_from_def(world, owner, def);
+                world.set_zone(e, Zone::Deck);
+                world.zones_mut().insert_at(Zone::Deck, owner, e, position);
+            }
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::ShuffleCards,
+                5,
+                None,
+            );
+        }
+        CardEffect::ReleaseTheBeasts => {
+            // M5-W2 — JAIL_387 Release the Beasts: "Give minions in your
+            // hand +1/+1." — the Legendary-extra +2/+1 is dropped (the
+            // CardDef carries no rarity, §28).
+            let minions: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            let world = state.world_mut();
+            for e in minions {
+                world.add_enchantment(
+                    e,
+                    Enchantment {
+                        attack: 1,
+                        health: 1,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::SewerSwimmer => {
+            // M5-W2 — JAIL_395 Sewer Swimmer: "Battlecry: Trigger a
+            // friendly minion's Deathrattle." — a random friendly minion
+            // that HAS a deathrattle; the deathrattle resolves with the
+            // minion as source (the in-hand/in-deck rider of the official
+            // text is dropped, §28).
+            let candidates: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| state.world().deathrattle(e).is_some())
+                .collect();
+            if let Some(&e) = candidates.get(state.rng_mut().next_usize(candidates.len())) {
+                if let Some(dr) = state.world().deathrattle(e) {
+                    resolve_effect(state, queue, e, owner, dr.0, None, None);
+                }
+            }
+        }
+        CardEffect::Imfernal => {
+            // M5-W2 — JAIL_398 IMPFERNAL!: "Deathrattle: Deal 3 damage to
+            // all other characters." — both heroes and every minion on
+            // either side, excluding the source (the in-hand/in-deck
+            // trigger is dropped, §28).
+            let mut all: SmallList<Entity> = collect_friendly_characters(state, owner, None);
+            all.extend(collect_all_enemy_characters(state, owner));
+            for e in all {
+                if e != source {
+                    queue.push(Event::DamageDealt {
+                        source,
+                        target: e,
+                        amount: 3,
+                    });
+                }
+            }
+        }
+        CardEffect::ImpGangStooge => {
+            // M5-W2 — JAIL_399 Imp Gang Stooge: "Deathrattle: Put two 8/8
+            // Demons with Taunt and Lifesteal on the bottom of your
+            // deck." — the Grandmother Imp is JAIL_399t1; the bottom of
+            // the deck is the last position (draws take the top).
+            let Some(def) = crate::cards::def::card_by_id("JAIL_399t1") else {
+                return;
+            };
+            for _ in 0..2 {
+                let world = state.world_mut();
+                let e = crate::cards::spawn_card_from_def(world, owner, def);
+                let bottom = world.zones().len(Zone::Deck, owner);
+                world.set_zone(e, Zone::Deck);
+                world.zones_mut().insert_at(Zone::Deck, owner, e, bottom);
+            }
+        }
+        CardEffect::DisguisedDoctor => {
+            // M5-W2 — JAIL_442 Disguised Doctor: "Deathrattle: Shuffle 4
+            // Blights into your deck" (the "deal 2 damage when drawn"
+            // rider is not modeled — the playable JAIL_443t spell, the W1
+            // convention).
+            let Some(def) = crate::cards::def::card_by_id("JAIL_443t") else {
+                return;
+            };
+            for _ in 0..4 {
+                let deck_count = state.world().zones().len(Zone::Deck, owner);
+                let position = if deck_count > 0 {
+                    state.rng_mut().next_usize(deck_count + 1)
+                } else {
+                    0
+                };
+                let world = state.world_mut();
+                let e = crate::cards::spawn_card_from_def(world, owner, def);
+                world.set_zone(e, Zone::Deck);
+                world.zones_mut().insert_at(Zone::Deck, owner, e, position);
+            }
+            crate::engine::quest::progress(
+                state,
+                queue,
+                owner,
+                crate::cards::quest::QuestCondition::ShuffleCards,
+                4,
+                None,
+            );
+        }
+        CardEffect::Sawbones => {
+            // M5-W2 — JAIL_444 Sawbones: "Battlecry: Destroy all your
+            // other minions. Draw a card and refresh a Mana Crystal for
+            // each one destroyed." — the count is the other friendly
+            // minions at resolution (destroyed via lethal damage, the
+            // standard destroy path).
+            let others: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| e != source)
+                .collect();
+            let count = others.len();
+            for e in others {
+                let hp = state.world().effective_health(e).unwrap_or(Health(1));
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: e,
+                    amount: hp.0.max(1),
+                });
+            }
+            for _ in 0..count {
+                draw_card(state, queue, owner);
+            }
+            if count > 0 {
+                let inner = state.make_mut();
+                let p = &mut inner.players[owner.index()];
+                p.current_mana = (p.current_mana + count as i32).min(10);
+            }
+        }
+        CardEffect::BoneFlurry => {
+            // M5-W2 — JAIL_445 Bone Flurry: "Deal 3 damage randomly split
+            // among enemies. If a friendly minion died this turn, deal 3
+            // more." — three 1-damage pips, another three when the
+            // per-turn death list is non-empty. ImmuneToSpellpower
+            // exempts it from the spell-damage pipeline (the
+            // `apply_spell_power` exemption list).
+            let mut pips = 3;
+            if !state.player(owner).died_this_turn.is_empty() {
+                pips += 3;
+            }
+            resolve_deal_damage_randomly(
+                state,
+                queue,
+                source,
+                owner,
+                1,
+                pips,
+                EffectTarget::AnyEnemy,
+            );
+        }
+        CardEffect::DrinkBlood => {
+            // M5-W2 — JAIL_441 Drink Blood: "Lifesteal. Deal 3 damage to
+            // a minion. Refresh your Hero Power." — the spell carries the
+            // Lifesteal keyword (the mod.rs keyword list), so the
+            // DamageDealt handler heals the owner's hero automatically;
+            // the hero power refreshes by clearing the used marker.
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                3,
+                EffectTarget::AnyMinion,
+                explicit_target,
+            );
+            let hero = state.player(owner).hero;
+            state
+                .world_mut()
+                .set_hero_power_used(hero, crate::core::component::HeroPowerUsed(false));
+        }
+        CardEffect::EmergencySurgery => {
+            // M5-W2 — JAIL_454 Emergency Surgery: "Summon four 3/1 Undead
+            // with Lifesteal. They attack a chosen enemy minion." — the
+            // chosen enemy minion is the explicit target (a random enemy
+            // minion stands in for a spell without one, §28); each
+            // summoned Necronurse (JAIL_454t, Lifesteal keyword) deals its
+            // attack as damage to the target.
+            let enemies = collect_enemy_minions(state, owner, Some(source));
+            let Some(target) = select_target(explicit_target, &enemies, state.rng_mut()) else {
+                return;
+            };
+            for _ in 0..4 {
+                if let Some(e) = resolve_summon(state, queue, source, owner, "JAIL_454t") {
+                    let atk = state
+                        .world()
+                        .effective_attack(e)
+                        .unwrap_or(crate::core::component::Attack(0))
+                        .0;
+                    if atk > 0 {
+                        queue.push(Event::DamageDealt {
+                            source: e,
+                            target,
+                            amount: atk,
+                        });
+                    }
+                }
+            }
+        }
+        CardEffect::DisguisedWatchman => {
+            // M5-W2 — JAIL_455 Disguised Watchman: "Battlecry: Deal 1
+            // damage to all other friendly minions, twice."
+            let others: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| e != source)
+                .collect();
+            for e in others {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: e,
+                    amount: 1,
+                });
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: e,
+                    amount: 1,
+                });
+            }
+        }
+        CardEffect::PickPocket => {
+            // M5-W2 — JAIL_456 P1CK-P0K3T: "Battlecry: If your deck has
+            // 25 or more cards, draw a card."
+            if state.world().zones().len(Zone::Deck, owner) >= 25 {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::JadeGuardians => {
+            // M5-W2 — JAIL_474 Jade Guardians: "Get two random 8-Cost
+            // minions. They cost (1) less for each card you've played
+            // that costs (2) this game." — the counter rides
+            // `Player::cards_played_cost_2`.
+            for _ in 0..2 {
+                if let Some(def) = random_minion_of_cost(state, 8) {
+                    if let Some(e) = add_card_to_hand(state, owner, def) {
+                        let discount = state.player(owner).cards_played_cost_2 as i32;
+                        if discount > 0 {
+                            reduce_hand_card_cost(state, e, discount);
+                        }
+                    }
+                }
+            }
+        }
+        CardEffect::CrowdControl => {
+            // M5-W2 — JAIL_307 Crowd Control: "Deal 2 damage to all
+            // minions. If your deck has 25 or more cards, deal 2 more."
+            let amount = if state.world().zones().len(Zone::Deck, owner) >= 25 {
+                4
+            } else {
+                2
+            };
+            let mut all: SmallList<Entity> = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            for e in all {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: e,
+                    amount,
+                });
+            }
+        }
+        CardEffect::VigilantSentry => {
+            // M5-W2 — JAIL_035 Vigilant Sentry: "Battlecry: If your deck
+            // has no Neutral cards, summon two Vigilant Sentries."
+            let deck_has_neutral = state.world().zones().iter(Zone::Deck, owner).any(|e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                    .is_some_and(is_neutral_def)
+            });
+            if deck_has_neutral {
+                return;
+            }
+            let _ = resolve_summon(state, queue, source, owner, "JAIL_035");
+            let _ = resolve_summon(state, queue, source, owner, "JAIL_035");
+        }
+        CardEffect::VioletPunisher => {
+            // M5-W2 — JAIL_101 Violet Punisher: "Battlecry: Choose an
+            // enemy minion. Steal its Bonus Effects and gain +1/+1 for
+            // each stolen." — the pick is random and the keywords
+            // themselves are not stolen (§28); only the +1/+1 per
+            // keyword the enemy minion has lands on the source.
+            let enemies = collect_enemy_minions(state, owner, Some(source));
+            let Some(&target) = enemies.get(state.rng_mut().next_usize(enemies.len())) else {
+                return;
+            };
+            let w = state.world();
+            let mut count = 0;
+            for keyword in [
+                w.taunt(target).is_some(),
+                w.stealth(target).is_some(),
+                w.divine_shield(target).is_some(),
+                w.windfury(target).is_some(),
+                w.charge(target).is_some(),
+                w.rush(target).is_some(),
+                w.lifesteal(target).is_some(),
+                w.poison(target).is_some(),
+                w.reborn(target).is_some(),
+                w.elusive(target).is_some(),
+            ] {
+                if keyword {
+                    count += 1;
+                }
+            }
+            if w.spell_damage(target).is_some_and(|s| s.0 > 0) {
+                count += 1;
+            }
+            if count > 0 {
+                state.world_mut().add_enchantment(
+                    source,
+                    Enchantment {
+                        attack: count,
+                        health: count,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::BreakoutArchitect => {
+            // M5-W2 — JAIL_123 Breakout Architect: "Battlecry: Discover a
+            // spell that costs (5) or more. It casts twice when played."
+            // — the Discover is simplified to a random pick (§28); the
+            // twice-cast flag rides `spells_cast_twice_pending` (the
+            // Tyrande pipeline, consumed by the next SpellCast).
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Spell
+                            && c.cost >= 5
+                            && !c.id.ends_with('t')
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if let Some(def) = spells.get(state.rng_mut().next_usize(spells.len())) {
+                add_card_to_hand(state, owner, def);
+                state.make_mut().players[owner.index()].spells_cast_twice_pending += 1;
+            }
+        }
+        CardEffect::NoxiousBribe => {
+            // M5-W2 — JAIL_861 Noxious Bribe: "Discover a Choose One
+            // card. It has both effects combined. Give your opponent a
+            // plain copy." — the Discover is a random Choose One card
+            // and the combined-effects rider is dropped (§28); the plain
+            // copy goes to the opponent without the copied marker.
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Spell
+                            && c.choose_one_effect.is_some()
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+                add_card_to_hand(state, owner, def);
+                add_card_to_hand(state, owner.opponent(), def);
+            }
+        }
+        CardEffect::AlarmOMatic => {
+            // M5-W2 — JAIL_502 Alarm-o-Matic (start-of-turn effect): "At
+            // the start of your turn, swap this minion with a random one
+            // in your opponent's hand." — both entities change owner via
+            // the manual zone moves.
+            let enemy = owner.opponent();
+            let hand: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, enemy)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if let Some(&picked) = hand.get(state.rng_mut().next_usize(hand.len())) {
+                let world = state.world_mut();
+                world.zones_mut().remove(Zone::Play, owner, source);
+                world.set_player(source, enemy);
+                world.set_zone(source, Zone::Hand);
+                world.zones_mut().insert(Zone::Hand, enemy, source);
+                world.zones_mut().remove(Zone::Hand, enemy, picked);
+                world.set_player(picked, owner);
+                world.set_zone(picked, Zone::Play);
+                world.zones_mut().insert(Zone::Play, owner, picked);
+            }
+        }
+        CardEffect::SpitefulChef => {
+            // M5-W2 — JAIL_507 Spiteful Chef: "Battlecry: Summon a 2-Cost
+            // Taunt minion. If you have 10 or more Mana, summon a 6-Cost
+            // instead." — the Taunt pool is filtered first; a bare
+            // random minion with Taunt granted stands in when the pool is
+            // empty (§28).
+            let big = state.player(owner).current_mana >= 10;
+            let cost = if big { 6 } else { 2 };
+            let taunt_pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.cost == cost
+                            && c.taunt
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if let Some(def) = taunt_pool.get(state.rng_mut().next_usize(taunt_pool.len())) {
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            } else if let Some(def) = random_minion_of_cost(state, cost) {
+                if let Some(e) = resolve_summon(state, queue, source, owner, def.id) {
+                    state.world_mut().set_taunt(e, Taunt);
+                }
+            }
+        }
+        CardEffect::Annihilation => {
+            // M5-W2 — JAIL_510 Annihilation: "Destroy all minions.
+            // Summon any Demons among the bottom 3 cards of your deck."
+            // — the destroy path is lethal damage (deathrattles fire); the
+            // bottom 3 cards are the deck tail.
+            let mut all: SmallList<Entity> = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            for e in all {
+                let hp = state.world().effective_health(e).unwrap_or(Health(1));
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: e,
+                    amount: hp.0.max(1),
+                });
+            }
+            let deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, owner).collect();
+            let demons: Vec<Entity> = deck
+                .iter()
+                .rev()
+                .take(3)
+                .copied()
+                .filter(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .and_then(|c| crate::cards::def::card_by_id(c.0))
+                        .is_some_and(|d| d.race == Some(crate::core::component::Race::Demon))
+                })
+                .collect();
+            for e in demons {
+                if let Some(def) = state
+                    .world()
+                    .card_id(e)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+            }
+        }
+        CardEffect::SpireOfSolitude => {
+            // M5-W2 — JAIL_511 Spire of Solitude (location): "Summon a
+            // Demon with stats equal to the number of cards in your hand.
+            // It attacks a random enemy minion." — the Shivarra
+            // Infiltrator (JAIL_511t) is summoned with its base stats
+            // rewritten to (hand size, hand size) and permanent Stealth
+            // (the engine's untargetable-token convention, §28); the
+            // attack is direct damage.
+            let hand_size = state.world().zones().len(Zone::Hand, owner) as i32;
+            if let Some(e) = resolve_summon(state, queue, source, owner, "JAIL_511t") {
+                state.world_mut().set_attack(e, Attack(hand_size.max(1)));
+                state.world_mut().set_health(e, Health(hand_size.max(1)));
+                state.world_mut().set_stealth(e, Stealth);
+                // "It attacks a random enemy minion" — with no enemy
+                // minions the attack has no target and simply does not
+                // happen (the demon still lands on the board).
+                let enemies = collect_enemy_minions(state, owner, Some(source));
+                if !enemies.is_empty() {
+                    let &target = &enemies[state.rng_mut().next_usize(enemies.len())];
+                    queue.push(Event::DamageDealt {
+                        source: e,
+                        target,
+                        amount: hand_size.max(1),
+                    });
+                }
+            }
+        }
+        CardEffect::ShadowRounds => {
+            // M5-W2 — JAIL_515 Shadow Rounds: "Deal 2 damage to an enemy
+            // minion. If it dies, cast this on another random enemy
+            // minion." — the died check is the prediction convention
+            // (no Divine Shield and the health cannot absorb the damage).
+            let enemies = collect_enemy_minions(state, owner, Some(source));
+            let Some(&first) = enemies.get(state.rng_mut().next_usize(enemies.len())) else {
+                return;
+            };
+            queue.push(Event::DamageDealt {
+                source,
+                target: first,
+                amount: 2,
+            });
+            let will_die = state.world().divine_shield(first).is_none()
+                && state
+                    .world()
+                    .effective_health(first)
+                    .is_some_and(|h| h.0 - 2 <= 0);
+            if will_die {
+                let enemies = collect_enemy_minions(state, owner, Some(source));
+                if let Some(&second) = enemies.get(state.rng_mut().next_usize(enemies.len())) {
+                    queue.push(Event::DamageDealt {
+                        source,
+                        target: second,
+                        amount: 2,
+                    });
+                }
+            }
+        }
+        CardEffect::ScarletRecruiter => {
+            // M5-W2 — JAIL_516 Scarlet Recruiter: "Battlecry: Summon two
+            // minions from your deck that cost (2) or less. Give them
+            // Rush."
+            let deck: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .and_then(|c| crate::cards::def::card_by_id(c.0))
+                        .is_some_and(|d| d.card_type == CardType::Minion && d.cost <= 2)
+                })
+                .collect();
+            for _ in 0..2 {
+                if deck.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(deck.len());
+                if let Some(def) = state
+                    .world()
+                    .card_id(deck[idx])
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    if let Some(e) = resolve_summon(state, queue, source, owner, def.id) {
+                        state.world_mut().set_rush(e, Rush);
+                    }
+                }
+            }
+        }
+        CardEffect::ThievesTools => {
+            // M5-W2 — JAIL_706 Thief's Tools: "Get two random 4-Cost
+            // spells. They cost (2) less."
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Spell
+                            && c.cost == 4
+                            && !c.id.ends_with('t')
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            for _ in 0..2 {
+                if let Some(def) = spells.get(state.rng_mut().next_usize(spells.len())) {
+                    if let Some(e) = add_card_to_hand(state, owner, def) {
+                        reduce_hand_card_cost(state, e, 2);
+                    }
+                }
+            }
+        }
+        CardEffect::VoidSoul => {
+            // M5-W2 — JAIL_732 Void Soul: "Summon a random 1-Cost Demon."
+            // — the summoned Demon's cost scales with
+            // `Player::void_soul_level` (1 + level, §28 pins the
+            // escalation), and the level improves for the next cast.
+            let level = state.player(owner).void_soul_level;
+            let cost = (1 + level).max(1);
+            let demons: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.race == Some(crate::core::component::Race::Demon)
+                            && c.cost == cost
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if let Some(def) = demons.get(state.rng_mut().next_usize(demons.len())) {
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+            state.make_mut().players[owner.index()].void_soul_level += 1;
+        }
+        CardEffect::CodeViolet => {
+            // M5-W2 — JAIL_735 Code Violet: "Summon an 8-Cost minion. If
+            // you've cast 3 other spells this turn, summon another." —
+            // the spell's own cast is not yet counted (the SpellCast
+            // event fires after the effect), so the threshold reads the
+            // already-cast count.
+            if let Some(def) = random_minion_of_cost(state, 8) {
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+            if state.player(owner).spells_cast_this_turn >= 3 {
+                if let Some(def) = random_minion_of_cost(state, 8) {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+            }
+        }
+        CardEffect::MoltenGold => {
+            // M5-W2 — JAIL_801 Molten Gold: "Deal 4 damage. After you
+            // cast 3 other spells this turn, summon a Molten Gold
+            // Elemental instead." — the source-id branch keeps the
+            // elemental's own battlecry (which rides this same variant)
+            // on the damage-only path.
+            let source_id = state
+                .world()
+                .card_id(source)
+                .map(|c| c.0)
+                .unwrap_or_default();
+            if source_id == "JAIL_801t" {
+                resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    4,
+                    EffectTarget::AnyEnemy,
+                    explicit_target,
+                );
+            } else if state.player(owner).spells_cast_this_turn >= 3 {
+                let _ = resolve_summon(state, queue, source, owner, "JAIL_801t");
+            } else {
+                resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    4,
+                    EffectTarget::AnyEnemy,
+                    explicit_target,
+                );
+            }
+        }
+        CardEffect::Frostshatter => {
+            // M5-W2 — JAIL_803 Frostshatter: "Freeze an enemy. Draw 2
+            // cards. After you cast 3 other spells this turn, summon a
+            // Frostshatter Elemental instead." — the elemental's battlecry
+            // rides this same variant (source-id branch).
+            let source_id = state
+                .world()
+                .card_id(source)
+                .map(|c| c.0)
+                .unwrap_or_default();
+            if source_id == "JAIL_803t" {
+                freeze_random_enemy(state, source, owner);
+                draw_card(state, queue, owner);
+                draw_card(state, queue, owner);
+            } else if state.player(owner).spells_cast_this_turn >= 3 {
+                let _ = resolve_summon(state, queue, source, owner, "JAIL_803t");
+            } else {
+                freeze_random_enemy(state, source, owner);
+                draw_card(state, queue, owner);
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::Stormfury => {
+            // M5-W2 — JAIL_805 Stormfury: "Lifesteal. Deal 2 damage to
+            // all enemy minions. (Cast 3 spells to turn into a minion!)"
+            // — the spell carries Lifesteal (the mod.rs keyword list), so
+            // the DamageDealt handler heals the owner's hero; the
+            // elemental's battlecry rides this same variant (source-id
+            // branch).
+            let source_id = state
+                .world()
+                .card_id(source)
+                .map(|c| c.0)
+                .unwrap_or_default();
+            if source_id != "JAIL_805t" && state.player(owner).spells_cast_this_turn >= 3 {
+                let _ = resolve_summon(state, queue, source, owner, "JAIL_805t");
+            } else {
+                resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    2,
+                    EffectTarget::AllEnemyMinions,
+                    None,
+                );
+            }
+        }
+        CardEffect::Hexmarshal => {
+            // M5-W2 — JAIL_806 Hexmarshal: "Battlecry: Get a random
+            // spell that costs (5) or more. If your deck started with no
+            // spells, it costs (5) less."
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Spell
+                            && c.cost >= 5
+                            && !c.id.ends_with('t')
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if let Some(def) = spells.get(state.rng_mut().next_usize(spells.len())) {
+                if let Some(e) = add_card_to_hand(state, owner, def) {
+                    let no_spells = !state.player(owner).starting_deck.iter().any(|id| {
+                        crate::cards::def::card_by_id(id)
+                            .is_some_and(|d| d.card_type == CardType::Spell)
+                    });
+                    if no_spells {
+                        reduce_hand_card_cost(state, e, 5);
+                    }
+                }
+            }
+        }
+        CardEffect::LethalRecipe => {
+            // M5-W2 — JAIL_866 Lethal Recipe: "Draw 2 minions. If you
+            // have 10 or more Mana, give them +3/+3." — the draw loop
+            // stops at two drawn minions or an empty deck (fatigue only
+            // when a draw is actually attempted).
+            let buff = state.player(owner).current_mana >= 10;
+            let mut found = 0;
+            while found < 2 {
+                let Some(e) = draw_card_no_queue(state, queue, owner) else {
+                    break;
+                };
+                if state.world().card_type(e) == Some(CardType::Minion) {
+                    found += 1;
+                    if buff {
+                        state.world_mut().add_enchantment(
+                            e,
+                            Enchantment {
+                                attack: 3,
+                                health: 3,
+                                cost: 0,
+                                expiry: EnchantmentExpiry::Permanent,
+                            },
+                        );
+                    }
+                }
+            }
+        }
+        CardEffect::DigForFreedom => {
+            // M5-W2 — JAIL_876 Dig for Freedom: "Give a friendly minion
+            // 'Deathrattle: Summon two random 4-Cost minions.'" — the
+            // granted deathrattle is the two-minion summon variant (the
+            // pick is a random friendly minion, §28).
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner);
+            let Some(&target) = minions.get(state.rng_mut().next_usize(minions.len())) else {
+                return;
+            };
+            state.world_mut().set_deathrattle(
+                target,
+                Deathrattle(CardEffect::SummonTwoRandomMinionsOfCost { cost: 4 }),
+            );
+        }
+        CardEffect::GuardDog => {
+            // M5-W2 — JAIL_878 Guard Dog: "Deathrattle: Summon a random
+            // 1-Cost Deathrattle minion."
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.cost == 1
+                            && c.deathrattle.is_some()
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+        }
+        CardEffect::BeastTripwire => {
+            // M5-W2 — JAIL_879 Beast Tripwire: "Summon a random 5-Cost
+            // Beast. Shuffle two Tripped Beast Tripwires into your deck."
+            // — the Tripped token (JAIL_879t) casts the summon-only
+            // branch (the "when drawn" rider is not modeled, the W1
+            // convention).
+            let source_id = state
+                .world()
+                .card_id(source)
+                .map(|c| c.0)
+                .unwrap_or_default();
+            let beasts: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.race == Some(crate::core::component::Race::Beast)
+                            && c.cost == 5
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if let Some(def) = beasts.get(state.rng_mut().next_usize(beasts.len())) {
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+            if source_id != "JAIL_879t" {
+                shuffle_copies_into_deck(state, queue, owner, "JAIL_879t", 2);
+            }
+        }
+        CardEffect::ArcaneTripwire => {
+            // M5-W2 — JAIL_881 Arcane Tripwire: "Deal 5 damage split
+            // among all enemies. Shuffle 2 spells into your deck that do
+            // it again when drawn." — five 1-damage pips among enemy
+            // characters; the Tripped token (JAIL_881t) casts the
+            // damage-only branch. ImmuneToSpellpower exempts it (the
+            // `apply_spell_power` exemption list).
+            let source_id = state
+                .world()
+                .card_id(source)
+                .map(|c| c.0)
+                .unwrap_or_default();
+            resolve_deal_damage_randomly(state, queue, source, owner, 1, 5, EffectTarget::AnyEnemy);
+            if source_id != "JAIL_881t" {
+                shuffle_copies_into_deck(state, queue, owner, "JAIL_881t", 2);
+            }
+        }
+        CardEffect::CapturedArchmage => {
+            // M5-W2 — JAIL_974 Captured Archmage: "Deathrattle: If you
+            // had 4 other Captured Archmages die this game, cast
+            // 'Fireball' at a random enemy." — the per-card death counter
+            // increments in the MinionDied handler BEFORE the dead
+            // minion's own deathrattle resolves, so the read is exactly
+            // the OTHER deaths (Fireball = 6 damage to a random enemy).
+            if state.player(owner).jail974_deaths >= 4 {
+                resolve_deal_damage(state, queue, source, owner, 6, EffectTarget::AnyEnemy, None);
+            }
+        }
+        CardEffect::FranticForger => {
+            // M5-W2 — JAIL_986 Frantic Forger: "Battlecry: Get a random
+            // playable spell. It is Temporary."
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Spell
+                            && !c.id.ends_with('t')
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if let Some(def) = spells.get(state.rng_mut().next_usize(spells.len())) {
+                if let Some(e) = add_card_to_hand(state, owner, def) {
+                    state.world_mut().set_temporary(e, Temporary);
+                }
+            }
+        }
+        CardEffect::LowSecurityWing => {
+            // M5-W2 — JAIL_987 Low Security Wing: "Get a random Shaman
+            // minion. It can't be played until you play a card." — the
+            // LockedUntilCardPlayed marker is cleared by the CardPlayed
+            // handler.
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::SHAMAN_CLASSIC
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Minion)
+                    .collect();
+            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+                if let Some(e) = add_card_to_hand(state, owner, def) {
+                    state.world_mut().set_locked_until_card_played(
+                        e,
+                        crate::core::component::LockedUntilCardPlayed,
+                    );
+                }
+            }
+        }
+        CardEffect::DemonicConfinement => {
+            // M5-W2 — JAIL_997 Demonic Confinement: "Choose a minion.
+            // Make it go Dormant for 2 turns. If it's a friendly Demon,
+            // give it +3/+3 instead." — the explicit target stands in for
+            // a targetless cast (a random minion, §28).
+            let mut all: SmallList<Entity> = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            let Some(target) = select_target(explicit_target, &all, state.rng_mut()) else {
+                return;
+            };
+            let is_friendly_demon = state.world().player(target) == Some(owner)
+                && state
+                    .world()
+                    .race(target)
+                    .is_some_and(|races| races.contains(&crate::core::component::Race::Demon));
+            if is_friendly_demon {
+                state.world_mut().add_enchantment(
+                    target,
+                    Enchantment {
+                        attack: 3,
+                        health: 3,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            } else {
+                state
+                    .world_mut()
+                    .set_dormant(target, crate::core::component::Dormant { turns: 2 });
+            }
+        }
+        CardEffect::WidowsBite => {
+            // M5-W2 — JAIL_436 Widow's Bite: "Give your hero +1 Attack
+            // this turn. Gain 1 Armor. Add a Widow's Feast to your hand."
+            resolve_gain_hero_attack(state, queue, owner, 1, 1);
+            if let Some(def) = crate::cards::def::card_by_id("JAIL_436t") {
+                add_card_to_hand(state, owner, def);
+            }
+        }
+        CardEffect::WidowsFeast => {
+            // M5-W2 — JAIL_436t Widow's Feast: "Give your hero +2 Attack
+            // this turn. Gain 2 Armor. Add a Widow's Banquet to your
+            // hand."
+            resolve_gain_hero_attack(state, queue, owner, 2, 2);
+            if let Some(def) = crate::cards::def::card_by_id("JAIL_436t2") {
+                add_card_to_hand(state, owner, def);
+            }
+        }
+        CardEffect::WidowsBanquet => {
+            // M5-W2 — JAIL_436t2 Widow's Banquet: "Give your hero +4
+            // Attack this turn and gain 4 Armor."
+            resolve_gain_hero_attack(state, queue, owner, 4, 4);
+        }
+        CardEffect::Nab => {
+            // M5-W2 — JAIL_225 Nab: "Deal 3 damage to a minion. If it
+            // dies, shuffle a copy of it into your deck with its Cost set
+            // to (2)." — the died check is the prediction convention; the
+            // fresh copy's cost is set directly (§28).
+            let mut all: SmallList<Entity> = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            let Some(target) = select_target(explicit_target, &all, state.rng_mut()) else {
+                return;
+            };
+            queue.push(Event::DamageDealt {
+                source,
+                target,
+                amount: 3,
+            });
+            let will_die = state.world().divine_shield(target).is_none()
+                && state
+                    .world()
+                    .effective_health(target)
+                    .is_some_and(|h| h.0 - 3 <= 0);
+            if will_die {
+                let Some(card_id) = state.world().card_id(target) else {
+                    return;
+                };
+                let Some(def) = crate::cards::def::card_by_id(card_id.0) else {
+                    return;
+                };
+                let deck_count = state.world().zones().len(Zone::Deck, owner);
+                let position = if deck_count > 0 {
+                    state.rng_mut().next_usize(deck_count + 1)
+                } else {
+                    0
+                };
+                let world = state.world_mut();
+                let e = crate::cards::spawn_card_from_def(world, owner, def);
+                world.set_cost(e, Cost(2));
+                world.set_zone(e, Zone::Deck);
+                world.zones_mut().insert_at(Zone::Deck, owner, e, position);
+                crate::engine::quest::progress(
+                    state,
+                    queue,
+                    owner,
+                    crate::cards::quest::QuestCondition::ShuffleCards,
+                    1,
+                    None,
+                );
+            }
+        }
+        CardEffect::VoidBlast => {
+            // M5-W2 — JAIL_891 Void Blast: "Deal 3 damage to a minion.
+            // If it dies, get a Void Soul." — the died check is the
+            // prediction convention.
+            let mut all: SmallList<Entity> = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            let Some(target) = select_target(explicit_target, &all, state.rng_mut()) else {
+                return;
+            };
+            queue.push(Event::DamageDealt {
+                source,
+                target,
+                amount: 3,
+            });
+            let will_die = state.world().divine_shield(target).is_none()
+                && state
+                    .world()
+                    .effective_health(target)
+                    .is_some_and(|h| h.0 - 3 <= 0);
+            if will_die {
+                if let Some(def) = crate::cards::def::card_by_id("JAIL_732") {
+                    add_card_to_hand(state, owner, def);
+                }
+            }
+        }
+        CardEffect::CosmicManifestations => {
+            // M5-W2 — JAIL_892 Cosmic Manifestations: "Deal 2 damage.
+            // Shuffle a random Demon Hunter spell into your deck.
+            // Outcast: Do it again." — the Demon Hunter class filter is
+            // the id-prefix approximation (the engine has no per-card
+            // class; §28).
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                2,
+                EffectTarget::AnyEnemy,
+                explicit_target,
+            );
+            shuffle_random_dh_spell(state, owner);
+            if state.world().outcast_played(source).is_some() {
+                resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    2,
+                    EffectTarget::AnyEnemy,
+                    explicit_target,
+                );
+                shuffle_random_dh_spell(state, owner);
+            }
+        }
+        CardEffect::DefiasWannabe => {
+            // M5-W2 — JAIL_909 Defias Wannabe's Combo: "Gain +1/+1 for
+            // each other card played this turn." — the current card's
+            // rewind entry is pushed after its effect, so the count is
+            // exactly the other cards played this turn.
+            let played = state
+                .player(owner)
+                .last_played
+                .len()
+                .saturating_sub(state.player(owner).rewind_turn_start_len);
+            if played > 0 {
+                state.world_mut().add_enchantment(
+                    source,
+                    Enchantment {
+                        attack: played as i32,
+                        health: played as i32,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::Soothsayer => {
+            // M5-W2 — JAIL_912 Soothsayer: "Deathrattle: Restore 6 Health
+            // to your hero. Summon a random 6-Cost minion."
+            resolve_restore_health(state, queue, owner, 6, EffectTarget::FriendlyHero, None);
+            if let Some(def) = random_minion_of_cost(state, 6) {
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+        }
+        CardEffect::HolyEmbrace => {
+            // M5-W2 — JAIL_941 Holy Embrace: "Restore 4 Health. Add a
+            // Dark Embrace to your hand." — the heal target is a random
+            // character (explicit-first).
+            resolve_restore_health(
+                state,
+                queue,
+                owner,
+                4,
+                EffectTarget::AnyCharacter,
+                explicit_target,
+            );
+            if let Some(def) = crate::cards::def::card_by_id("JAIL_941t") {
+                add_card_to_hand(state, owner, def);
+            }
+        }
+        CardEffect::RatBurglar => {
+            // M5-W2 — JAIL_205 Rat Burglar's turn-end trigger: "Steal all
+            // cards that entered your opponent's hand during your turn."
+            // — simplified to one random enemy hand card (§28).
+            let enemy = owner.opponent();
+            let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, enemy).collect();
+            if let Some(&picked) = hand.get(state.rng_mut().next_usize(hand.len())) {
+                let world = state.world_mut();
+                world.zones_mut().remove(Zone::Hand, enemy, picked);
+                world.set_player(picked, owner);
+                world.set_zone(picked, Zone::Hand);
+                world.zones_mut().insert(Zone::Hand, owner, picked);
+            }
+        }
+        CardEffect::DarkBribe => {
+            // M5-W2 — JAIL_206 Dark Bribe: "Draw 3 cards. Pick one to
+            // give to your opponent." — the three draws, then the
+            // GiveToOpponent hand choice surfaces (the pick scope is the
+            // whole hand, §28).
+            for _ in 0..3 {
+                draw_card(state, queue, owner);
+            }
+            let Some(kind) = choose_hand_card_kind(state, source) else {
+                return;
+            };
+            let options = crate::cards::choose_hand_card::options(state, owner, kind);
+            if options.is_empty() {
+                return;
+            }
+            state.make_mut().players[owner.index()].pending_choose_hand = Some(kind);
+            state.set_pending_choice(
+                crate::core::state::ChoiceKind::ChooseHandCard,
+                source,
+                options.clone(),
+                options,
+            );
+        }
+        CardEffect::AncientAugurPick => {
+            // M5-W2 — JAIL_303 Ancient Augur (pool-open): "Battlecry:
+            // Look at 3 cards in your opponent's hand and secretly choose
+            // one." — the choice over three random enemy hand card ids;
+            // the ChoiceResolved handler stores the pick into
+            // `Player::augur_suspect`.
+            let enemy = owner.opponent();
+            let mut hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, enemy).collect();
+            let mut picked: Vec<Entity> = Vec::new();
+            for _ in 0..3 {
+                if hand.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(hand.len());
+                picked.push(hand.remove(idx));
+            }
+            if picked.is_empty() {
+                return;
+            }
+            let options: Vec<String> = picked
+                .iter()
+                .map(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .and_then(|c| crate::cards::def::card_by_id(c.0))
+                        .map_or_else(|| String::from("?"), |c| format!("{} ({})", c.name, c.id))
+                })
+                .collect();
+            let ids: Vec<String> = picked
+                .iter()
+                .map(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .map_or_else(String::new, |c| c.0.to_string())
+                })
+                .collect();
+            state.set_pending_choice(
+                crate::core::state::ChoiceKind::PickEnemyHandCard,
+                source,
+                options,
+                ids,
+            );
+        }
+        CardEffect::AncientAugurDeathrattle => {
+            // M5-W2 — JAIL_303 Ancient Augur's deathrattle: "Discard it."
+            // — the secretly chosen enemy hand card (by id) is discarded;
+            // a card already played is simply gone.
+            let Some(suspect) = state.player(owner).augur_suspect.clone() else {
+                return;
+            };
+            let enemy = owner.opponent();
+            let found: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, enemy)
+                .filter(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .is_some_and(|c| c.0 == suspect.as_str())
+                })
+                .collect();
+            if let Some(&card) = found.first() {
+                resolve_discard_entity(state, queue, enemy, card);
+            }
+        }
+        CardEffect::ArachnathidVenom => {
+            // M5-W2 — JAIL_459 Arachnathid's battlecry (the Poisonous
+            // aura approximation, §28): "All friendly minions are
+            // Poisonous." — the other friendly minions gain the keyword
+            // directly; the FriendlyMinionSummoned trigger grants it to
+            // new minions too.
+            let others: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| e != source)
+                .collect();
+            for e in others {
+                state.world_mut().set_poison(e, Poison);
+            }
+        }
+        CardEffect::TruthSeeker => {
+            // M5-W2 — JAIL_329 Truth Seeker's weapon trigger: "After your
+            // hero attacks, give your Paladin minions +2/+2." — the class
+            // filter reads the data-defined PALADIN_CLASSIC set.
+            let paladins: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| {
+                    state.world().card_id(e).is_some_and(|c| {
+                        crate::cards::sets::PALADIN_CLASSIC
+                            .iter()
+                            .any(|p| p.id == c.0)
+                    })
+                })
+                .collect();
+            let world = state.world_mut();
+            for e in paladins {
+                world.add_enchantment(
+                    e,
+                    Enchantment {
+                        attack: 2,
+                        health: 2,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::ConcealingConfection => {
+            // M5-W2 — JAIL_460 Concealing Confection: "Deathrattle: Get a
+            // random weapon."
+            if let Some(def) = crate::cards::pool::random_card(
+                state.rng_mut(),
+                crate::core::effect::RandomPool::RandomWeapon,
+            ) {
+                add_card_to_hand(state, owner, def);
+            }
+        }
+        CardEffect::DisguisedExecutioner => {
+            // M5-W2 — JAIL_461 Disguised Executioner: "Battlecry: Destroy
+            // a random adjacent minion." — the source's left and right
+            // neighbours on its board; one is destroyed via lethal
+            // damage.
+            let board: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            let Some(pos) = board.iter().position(|&e| e == source) else {
+                return;
+            };
+            let mut neighbours: Vec<Entity> = Vec::new();
+            if pos > 0 {
+                neighbours.push(board[pos - 1]);
+            }
+            if pos + 1 < board.len() {
+                neighbours.push(board[pos + 1]);
+            }
+            if let Some(&target) = neighbours.get(state.rng_mut().next_usize(neighbours.len())) {
+                let hp = state.world().effective_health(target).unwrap_or(Health(1));
+                queue.push(Event::DamageDealt {
+                    source,
+                    target,
+                    amount: hp.0.max(1),
+                });
+            }
+        }
+        CardEffect::GetawayHogdriver => {
+            // M5-W2 — JAIL_462 Getaway Hogdriver: "Battlecry: Draw 2
+            // cards. If they're both minions, gain Charge."
+            let first = draw_card_no_queue(state, queue, owner);
+            let second = draw_card_no_queue(state, queue, owner);
+            if first.is_some_and(|e| state.world().card_type(e) == Some(CardType::Minion))
+                && second.is_some_and(|e| state.world().card_type(e) == Some(CardType::Minion))
+            {
+                state.world_mut().set_charge(source, Charge);
+            }
+        }
+        CardEffect::EscapeArtist => {
+            // M5-W2 — JAIL_030 Escape Artist's trigger: "After this
+            // attacks and survives, draw a card and escape the game" —
+            // the minion leaves play into the SetAside zone (the official
+            // return-to-hand behaviour is approximated, §28).
+            if state.world().zone(source) == Some(Zone::Play) {
+                draw_card(state, queue, owner);
+                let _ = state.world_mut().move_to_zone(source, Zone::SetAside);
+            }
+        }
+        CardEffect::BloodClone => {
+            // M5-W2 — JAIL_451 Blood Clone: "Discover a 5-Cost minion.
+            // Spend 5 Corpses to summon a copy of it." — the choice
+            // surfaces only when the 5 Corpses are affordable; the
+            // ChoiceResolved handler spends them and summons the pick.
+            if state.player(owner).corpses < 5 {
+                return;
+            }
+            let mut pool: Vec<&'static crate::cards::def::CardDef> = crate::cards::sets::ALL_CARDS
+                .iter()
+                .filter(|c| {
+                    c.card_type == CardType::Minion
+                        && c.cost == 5
+                        && crate::cards::pool::in_active_window(c)
+                })
+                .collect();
+            let mut picked: Vec<&'static crate::cards::def::CardDef> = Vec::new();
+            for _ in 0..3 {
+                if pool.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(pool.len());
+                picked.push(pool.remove(idx));
+            }
+            if picked.is_empty() {
+                return;
+            }
+            let options: Vec<String> = picked
+                .iter()
+                .map(|c| format!("{} ({})", c.name, c.id))
+                .collect();
+            let ids: Vec<String> = picked.iter().map(|c| c.id.to_string()).collect();
+            state.set_pending_choice(
+                crate::core::state::ChoiceKind::BloodClone,
+                source,
+                options,
+                ids,
+            );
+        }
+        CardEffect::GallagioGoon => {
+            // M5-W2 — JAIL_802 Gallagio Goon's CardPlayed trigger: "After
+            // you play a Battlecry minion, give it +1/+1." — the played
+            // minion is the event subject.
+            let Some(subject) = event_subject else {
+                return;
+            };
+            if state
+                .world()
+                .battlecry(subject)
+                .is_some_and(|b| b.0 != CardEffect::GallagioGoon)
+            {
+                state.world_mut().add_enchantment(
+                    subject,
+                    Enchantment {
+                        attack: 1,
+                        health: 1,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::BlackMarketOverseer => {
+            // M5-W2 — JAIL_880 Black Market Overseer's CardPlayed trigger:
+            // "After you play a Deathrattle minion, give it Rush." — the
+            // played minion is the event subject.
+            let Some(subject) = event_subject else {
+                return;
+            };
+            if state.world().deathrattle(subject).is_some() {
+                state.world_mut().set_rush(subject, Rush);
+            }
+        }
+        CardEffect::ActivatedGolem => {
+            // M5-W2 — JAIL_883 Activated Golem's TurnEnd trigger: "At the
+            // end of each turn, gain Reborn." — §28: TurnEnd triggers are
+            // owner-scoped, so the both-turns pin is approximated by the
+            // owner's turn end.
+            state.world_mut().set_reborn(source, Reborn);
+        }
+        CardEffect::Hellraiser => {
+            // M5-W2 — JAIL_734 Hellraiser: "Battlecry: Discover a card in
+            // your deck. If it's empty, gain +4/+4 instead." — the
+            // Discover is simplified to a random deck card (§28).
+            let deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, owner).collect();
+            if deck.is_empty() {
+                state.world_mut().add_enchantment(
+                    source,
+                    Enchantment {
+                        attack: 4,
+                        health: 4,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            } else if let Some(&card) = deck.get(state.rng_mut().next_usize(deck.len())) {
+                let _ = state.world_mut().move_to_zone(card, Zone::Hand);
+            }
+        }
+        CardEffect::SummonTwoRandomMinionsOfCost { cost } => {
+            // M5-W2 — JAIL_876 Dig for Freedom's granted Deathrattle:
+            // "Summon two random 4-Cost minions."
+            for _ in 0..2 {
+                if let Some(def) = random_minion_of_cost(state, cost) {
+                    let _ = resolve_summon(state, queue, source, owner, def.id);
+                }
+            }
+        }
     }
+}
+
+/// Freezes a random enemy character (the Frostshatter branch helper,
+/// M5-W2).
+fn freeze_random_enemy(state: &mut GameState, source: Entity, owner: PlayerId) {
+    let enemies = collect_enemy_characters(state, owner, Some(source));
+    if let Some(&target) = enemies.get(state.rng_mut().next_usize(enemies.len())) {
+        state.world_mut().set_freeze(target, Freeze);
+    }
+}
+
+/// Shuffles a random Demon Hunter spell into the owner's deck at a random
+/// position (M5-W2 — JAIL_892 Cosmic Manifestations' "Shuffle a random
+/// Demon Hunter spell into your deck"). The Demon Hunter class filter is
+/// the id-prefix approximation (the engine has no per-card class, §28).
+fn shuffle_random_dh_spell(state: &mut GameState, owner: PlayerId) {
+    let spells: SmallList<&'static crate::cards::def::CardDef> = crate::cards::sets::ALL_CARDS
+        .iter()
+        .filter(|c| {
+            c.card_type == CardType::Spell
+                && (c.id.starts_with("BT_") || c.id.starts_with("DH_"))
+                && crate::cards::pool::in_active_window(c)
+        })
+        .collect();
+    let Some(def) = spells.get(state.rng_mut().next_usize(spells.len())) else {
+        return;
+    };
+    let deck_count = state.world().zones().len(Zone::Deck, owner);
+    let position = if deck_count > 0 {
+        state.rng_mut().next_usize(deck_count + 1)
+    } else {
+        0
+    };
+    let world = state.world_mut();
+    let e = crate::cards::spawn_card_from_def(world, owner, def);
+    world.set_zone(e, Zone::Deck);
+    world.zones_mut().insert_at(Zone::Deck, owner, e, position);
+}
+
+/// Shuffles `count` fresh copies of `card_id` into the owner's deck at
+/// random positions (the M5-W2 tripwire shuffle helper).
+fn shuffle_copies_into_deck(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    owner: PlayerId,
+    card_id: &str,
+    count: u32,
+) {
+    let Some(def) = crate::cards::def::card_by_id(card_id) else {
+        return;
+    };
+    for _ in 0..count {
+        let deck_count = state.world().zones().len(Zone::Deck, owner);
+        let position = if deck_count > 0 {
+            state.rng_mut().next_usize(deck_count + 1)
+        } else {
+            0
+        };
+        let world = state.world_mut();
+        let e = crate::cards::spawn_card_from_def(world, owner, def);
+        world.set_zone(e, Zone::Deck);
+        world.zones_mut().insert_at(Zone::Deck, owner, e, position);
+    }
+    crate::engine::quest::progress(
+        state,
+        queue,
+        owner,
+        crate::cards::quest::QuestCondition::ShuffleCards,
+        count,
+        None,
+    );
 }
 
 /// A random minion of the given cost from ALL_CARDS (the Gravedawn
@@ -15998,7 +18079,7 @@ fn resolve_imbued_hero_power(
 }
 
 /// Equips a weapon.
-fn resolve_equip_weapon(
+pub(crate) fn resolve_equip_weapon(
     state: &mut GameState,
     queue: &mut EventQueue,
     owner: PlayerId,
@@ -17745,7 +19826,19 @@ pub(crate) fn copy_card_to_hand(state: &mut GameState, src: Entity, to_player: P
     let Some(card_def) = crate::cards::def::card_by_id(card_id.0) else {
         return;
     };
-    add_card_to_hand(state, to_player, card_def);
+    // M5-W2 — the copy-of-an-opponent's-card funnel: when the copied card
+    // belongs to the other player, the fresh copy carries the
+    // `CopiedFromOpponent` marker (Enthralled Shade's cost reduction,
+    // Unshackle Soul's cost read, Mind Sweeper's condition, and the
+    // CardPlayed `copied_from_opponent_played` flag all key off it).
+    let from_opponent = state.world().player(src) != Some(to_player);
+    if let Some(e) = add_card_to_hand(state, to_player, card_def) {
+        if from_opponent {
+            state
+                .world_mut()
+                .set_copied_from_opponent(e, crate::core::component::CopiedFromOpponent);
+        }
+    }
 }
 
 /// Copies `count` random cards from one of the enemy's zones into this
@@ -18013,6 +20106,12 @@ fn choose_hand_card_kind(state: &GameState, source: Entity) -> Option<ChooseHand
         "CATA_697" => ChooseHandCardKind::GetCopy,
         "CATA_721" => ChooseHandCardKind::ShuffleIntoDeckDraw,
         "CATA_979" => ChooseHandCardKind::SplitIntoTwoSameCost,
+        // M5-W2 — the Violet Hold closing wave (PR #162): the
+        // ChooseHandCard riders of Zuramat's Prison and Bootleg
+        // Alchemist; Dark Bribe's pick surfaces from the DarkBribe arm.
+        "JAIL_887" => ChooseHandCardKind::DiscardAndSummonZuramat,
+        "JAIL_313" => ChooseHandCardKind::TransformToSpell5More,
+        "JAIL_206" => ChooseHandCardKind::GiveToOpponent,
         _ => return None,
     })
 }
@@ -18111,6 +20210,48 @@ pub(crate) fn resolve_choose_hand_card(
                 None,
                 None,
             );
+        }
+        // M5-W2 — the Violet Hold closing wave (PR #162).
+        ChooseHandCardKind::DiscardAndSummonZuramat => {
+            // the picked card is discarded, its id is recorded for the
+            // freed Zuramat (JAIL_887t2), and a 5/5 Whisper of the Void
+            // with Taunt is summoned.
+            if let Some(id) = state.world().card_id(picked).map(|c| c.0.to_string()) {
+                state.make_mut().players[owner.index()]
+                    .zuramat_discarded
+                    .push(id);
+            }
+            resolve_discard_entity(state, queue, owner, picked);
+            let _ = resolve_summon(state, queue, source, owner, "JAIL_887t3");
+        }
+        ChooseHandCardKind::TransformToSpell5More => {
+            // the picked card is removed and replaced by a random spell
+            // that costs (5) or more (active window).
+            let _ = state.world_mut().move_to_zone(picked, Zone::Graveyard);
+            let spells: Vec<&crate::cards::def::CardDef> = crate::cards::sets::ALL_CARDS
+                .iter()
+                .filter(|def| {
+                    def.card_type == crate::core::component::CardType::Spell
+                        && def.cost >= 5
+                        && crate::cards::pool::in_active_window(def)
+                })
+                .collect();
+            if !spells.is_empty() {
+                let def = spells[state.rng_mut().next_usize(spells.len())];
+                add_card_to_hand(state, owner, def);
+            }
+        }
+        ChooseHandCardKind::GiveToOpponent => {
+            // the picked card is given to the opponent (the entity moves).
+            let world = state.world_mut();
+            if let Some(old) = world.player(picked) {
+                world.zones_mut().remove(Zone::Hand, old, picked);
+            }
+            world.set_player(picked, owner.opponent());
+            world.set_zone(picked, Zone::Hand);
+            world
+                .zones_mut()
+                .insert(Zone::Hand, owner.opponent(), picked);
         }
     }
 }

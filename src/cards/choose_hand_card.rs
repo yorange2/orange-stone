@@ -79,6 +79,22 @@ pub enum ChooseHandCardKind {
     /// the picked card is removed and two random same-Cost spells are
     /// added to the hand.
     SplitIntoTwoSameCost,
+    /// JAIL_887 Zuramat's Prison (2025–2026 expansions M5-W2) — "Choose
+    /// a card to discard. Summon a 5/5 Whisper of the Void with Taunt."
+    /// Any card qualifies; the picked card is discarded, its id is
+    /// recorded into `Player::zuramat_discarded`, and JAIL_887t3 is
+    /// summoned.
+    DiscardAndSummonZuramat,
+    /// JAIL_313 Bootleg Alchemist (2025–2026 expansions M5-W2) — "Choose
+    /// a card in your hand to transform into a random spell that costs
+    /// (5) or more." Any card qualifies; the picked card is removed and
+    /// a random spell costing 5+ replaces it.
+    TransformToSpell5More,
+    /// JAIL_206 Dark Bribe (2025–2026 expansions M5-W2) — "Draw 3 cards.
+    /// Pick one to give to your opponent." Any card qualifies (§28: the
+    /// pick scope is the whole hand, not only the three drawn); the
+    /// picked card moves to the opponent's hand.
+    GiveToOpponent,
 }
 
 /// Builds the option labels for a `ChoiceKind::ChooseHandCard` choice —
@@ -104,7 +120,11 @@ pub fn options(state: &GameState, player: PlayerId, kind: ChooseHandCardKind) ->
             ChooseHandCardKind::TransformToCoin
             | ChooseHandCardKind::Discard
             | ChooseHandCardKind::ReduceCostEachTurn
-            | ChooseHandCardKind::ShuffleIntoDeckDraw => true,
+            | ChooseHandCardKind::ShuffleIntoDeckDraw
+            // M5-W2 — the Violet Hold closing wave
+            | ChooseHandCardKind::DiscardAndSummonZuramat
+            | ChooseHandCardKind::TransformToSpell5More
+            | ChooseHandCardKind::GiveToOpponent => true,
         })
         .filter(|&e| match kind {
             ChooseHandCardKind::AbsorbSpell => {

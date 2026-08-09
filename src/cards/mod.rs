@@ -41,6 +41,7 @@ pub mod exp_edr_w4a;
 pub mod exp_edr_w4b;
 pub mod exp_edr_w5;
 pub mod exp_jail_w1;
+pub mod exp_jail_w2;
 pub mod exp_tlc_w2;
 pub mod exp_tlc_w3;
 pub mod exp_tlc_w4a;
@@ -64,7 +65,7 @@ use crate::core::component::{
     Lifesteal, Overload, Poison, Reborn, Rush, Stealth, Tradeable, Trigger, TriggerEvent,
     TriggerTiming,
 };
-use crate::core::effect::{CardEffect, EffectTarget};
+use crate::core::effect::{CardEffect, EffectTarget, KeywordKind};
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
 use crate::core::state::GameState;
@@ -219,6 +220,9 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // Warptooth and The Living Plague ride the CardDef charge field
         // and Moragg has no Rush)
         | "JAIL_721" // Tras'tath, Soul Parasite (also Prepare)
+        // M5-W2 — the Violet Hold closing wave
+        | "JAIL_447" // Reckless Detective
+        | "JAIL_459" // Arachnathid
     ) {
         world.set_rush(entity, Rush);
     }
@@ -256,6 +260,11 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "CATA_780" // Obsessive Technician
         // M4-W4 — the Cataclysm closing wave
         | "CATA_304" // Injured Attendant
+        // M5-W2 — the Violet Hold closing wave
+        | "JAIL_441" // Drink Blood (spell)
+        | "JAIL_454t" // Necronurse (token)
+        | "JAIL_805" // Stormfury (spell)
+        | "JAIL_805t" // Stormfury Elemental (token)
     ) {
         world.set_lifesteal(entity, Lifesteal);
     }
@@ -795,6 +804,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // M4-W4 — the Cataclysm closing wave
         "CATA_569" => Some(1), // Ceremonial Clash
         "CATA_724" => Some(3), // Stormbinder
+        // M5-W2 — the Violet Hold closing wave
+        "JAIL_452" => Some(2), // Disguised Detective
         _ => None,
     };
     if let Some(amount) = overload_amount {
@@ -1339,6 +1350,27 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
             TriggerEvent::Attacked,
             CardEffect::GrantRandomFriendlyMinionAttack { attack: 2 },
         )),
+        // M5-W2 — the Violet Hold closing wave (PR #162): the weapon
+        // triggers of Truth Seeker, Corpse Cannon, Tiny Pal's ammunition,
+        // Stardust Scythe and Staff of Trickery.
+        "JAIL_329" => Some((TriggerEvent::Attacked, CardEffect::TruthSeeker)),
+        "JAIL_450" => Some((
+            TriggerEvent::Attacked,
+            CardEffect::SummonMinion {
+                card_id: "JAIL_440t",
+            },
+        )),
+        "JAIL_458t1" => Some((TriggerEvent::Attacked, CardEffect::TinyPal { ammo: 1 })),
+        "JAIL_458t2" => Some((TriggerEvent::Attacked, CardEffect::TinyPal { ammo: 2 })),
+        "JAIL_458t3" => Some((TriggerEvent::Attacked, CardEffect::TinyPal { ammo: 3 })),
+        "JAIL_458t4" => Some((TriggerEvent::Attacked, CardEffect::TinyPal { ammo: 4 })),
+        "JAIL_730" => Some((
+            TriggerEvent::Attacked,
+            CardEffect::AddCardToHand {
+                card_id: "JAIL_732",
+            },
+        )),
+        "JAIL_875" => Some((TriggerEvent::Attacked, CardEffect::StaffOfTrickery)),
         _ => None,
     };
     if let Some((event, effect)) = weapon_trigger {
@@ -1352,6 +1384,176 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 max_attack: None,
             },
         );
+    }
+    // M5-W2 — the Violet Hold closing wave (PR #162): the per-card
+    // trigger attachments. The CardPlayed riders fire on ANY card play;
+    // the GallagioGoon / BlackMarketOverseer / MaievBuffDormant arms
+    // decide the subject condition inside the effect.
+    match card_def.id {
+        // Rioter — after a friendly minion survives damage, give it +1
+        // Attack (fires at damage application — the dying-minion pin is
+        // §28)
+        "JAIL_029" => world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionDamaged,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::GainStats {
+                    attack: 1,
+                    health: 0,
+                    target: EffectTarget::EventSubject,
+                },
+            },
+        ),
+        // Escape Artist — after this attacks (and survives, §28), draw a
+        // card and move this to the Set-Aside zone
+        "JAIL_030" => world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::Attacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::EscapeArtist,
+            },
+        ),
+        // Rat Burglar — at the end of your turn, steal a card from the
+        // top of the enemy deck (§28: the draw-card machinery moves a
+        // random deck card)
+        "JAIL_205" => world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::TurnEnd,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::RatBurglar,
+            },
+        ),
+        // Tower of Ghouls — after this takes damage, summon two Frail
+        // Ghouls
+        "JAIL_440" => world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::ThisMinionDamaged,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::SummonMultipleMinions {
+                    card_id: "JAIL_440t",
+                    count: 2,
+                },
+            },
+        ),
+        // Arachnathid — whenever you summon a minion, give it Poisonous
+        "JAIL_459" => world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionSummoned,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::GrantKeyword {
+                    keyword: KeywordKind::Poisonous,
+                    target: EffectTarget::EventSubject,
+                },
+            },
+        ),
+        // Black Market Auctioneer — after you cast a spell, draw a card
+        "JAIL_718" => world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlySpellCast,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::DrawCard { count: 1 },
+            },
+        ),
+        // Gallagio Goon — after you play a Battlecry minion, give it +1/+1
+        "JAIL_802" => world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::CardPlayed,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::GallagioGoon,
+            },
+        ),
+        // Warden Maiev — after you play a minion, give it +3/+3 and make
+        // it Dormant for 1 turn
+        "JAIL_850" => world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::CardPlayed,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::MaievBuffDormant,
+            },
+        ),
+        // Spider Rider — after your hero attacks, draw a card
+        "JAIL_872" => world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::HeroAttacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::DrawCard { count: 1 },
+            },
+        ),
+        // Black Market Overseer — after you play a Deathrattle minion,
+        // give it Rush
+        "JAIL_880" => world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::CardPlayed,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::BlackMarketOverseer,
+            },
+        ),
+        // Activated Golem — at the end of each turn, gain Reborn
+        "JAIL_883" => world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::TurnEnd,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::ActivatedGolem,
+            },
+        ),
+        // Zuramat the Obliterator — at the end of your turn, play a card
+        // discarded by Zuramat's Prison
+        "JAIL_887t2" => world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::TurnEnd,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::ZuramatPlaysDiscarded,
+            },
+        ),
+        // Irida Sinseeker — at the start of your turns, get two cards
+        // from the Void (§28: the retrieval stops if Irida leaves play)
+        "JAIL_719" => world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::TurnStart,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::IridaGetVoid,
+            },
+        ),
+        _ => {}
     }
     // Mana Addict (W6) — whenever you cast a spell, gain +2 Attack THIS TURN
     // (the temporary buff expires at the end of the turn)
@@ -1602,6 +1804,8 @@ pub(crate) fn choose_one_option_names(def: &CardDef) -> [&'static str; 2] {
         // M5-W1 — Aya, Lotus Kingpin's Start-of-Game pick (JAIL_504):
         // the upgraded counterfeits.
         "JAIL_504" => ["Jade Coin", "Grimy Coin"],
+        // M5-W2 — Secret Ingredient (the Violet Hold closing wave)
+        "JAIL_201" => ["A Little of This", "A Dash of That"],
         _ => ["First option", "Second option"],
     }
 }
@@ -2307,6 +2511,24 @@ mod generated_tests {
         // slot).
         if id == "CATA_301" || id == "CATA_477" || id == "CATA_527" || id == "CATA_584" {
             return matches!(field, "card_type" | "health" | "durability");
+        }
+        // M5-W2 — the four Violet Hold Locations (JAIL_511 Spire of
+        // Solitude, JAIL_877 Underbelly Network, JAIL_887 Zuramat's
+        // Prison, JAIL_987 Low Security Wing): the same
+        // generator-predates-Location divergence as the CATA_492 pair
+        // above (the generated baselines are vanilla Minions; the
+        // handwritten cards are the faithful Location representations —
+        // health 0, durability from the official data, activation in the
+        // battlecry slot).
+        if id == "JAIL_511" || id == "JAIL_877" || id == "JAIL_887" || id == "JAIL_987" {
+            return matches!(field, "card_type" | "health" | "durability");
+        }
+        // M5-W2 — JAIL_890 Captive Nathrezim: the official data dump
+        // lists only the AURA mechanic (the Taunt appears in the text
+        // alone), so the generated baseline drops the keyword; the
+        // handwritten card follows the text and carries Taunt.
+        if id == "JAIL_890" {
+            return field == "taunt";
         }
         false
     }

@@ -89,6 +89,25 @@ pub enum ChoiceKind {
     /// destroy scope is the unpicked Discover options) and the picked
     /// card enters the hand with a (3) cost reduction.
     DiscoverDeckDestroyRest,
+    /// Tiny Pal's ammunition pick (2025–2026 expansions M5-W2): the
+    /// options are the four ammunition weapon ids (JAIL_458t1–t4); the
+    /// picked weapon is equipped and its battlecry re-surfaces the choice
+    /// (the "choose another" rider, per-attack via the weapon triggers).
+    TinyPalAmmo,
+    /// Blood Clone's 5-Cost minion pick (2025–2026 expansions M5-W2): the
+    /// options are three random 5-cost minion ids; the resolution spends
+    /// 5 Corpses (when affordable) and summons the picked minion.
+    BloodClone,
+    /// Ancient Augur's enemy-hand pick (2025–2026 expansions M5-W2;
+    /// **pool-open**): the options are three random enemy-hand card ids;
+    /// the picked id is stored into `Player::augur_suspect` for the
+    /// deathrattle.
+    PickEnemyHandCard,
+    /// Inspector Murloc Holmes' investigation (2025–2026 expansions
+    /// M5-W2; **pool-open**): the options are three random enemy-hand
+    /// card ids; the picked id is stored into
+    /// `Player::murloc_holmes_suspect` for the next-turn match.
+    MurlocHolmes,
 }
 
 /// A choice the engine needs resolved (roadmap G6).

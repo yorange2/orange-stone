@@ -281,6 +281,14 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
         return Err(EngineError::InvalidTarget);
     }
 
+    // LockedUntilCardPlayed (M5-W2 — JAIL_987 Low Security Wing: "It can't
+    // be played until you play a card"): the marker is cleared by the
+    // CardPlayed handler, so the lock only ever blocks the first play
+    // after the buff landed.
+    if world.locked_until_card_played(card).is_some() {
+        return Err(EngineError::InvalidTarget);
+    }
+
     // Check mana (single cost composition — roadmap G5)
     let cost = crate::engine::cost::play_cost(state, card, active);
     if cost.0 > state.player(active).current_mana {
@@ -1144,6 +1152,20 @@ pub fn apply_event(
                 inner.players[player.index()].spell_damage_dealt_this_turn = 0;
                 inner.players[player.index()].first_spell_damage_gain_used = false;
                 inner.players[player.index()].fire_spell_played_this_turn = false;
+                // M5-W2 — per-turn resets: the elemental-chain spell
+                // counter (JAIL_801 Molten Gold / JAIL_803 Frostshatter /
+                // JAIL_805 Stormfury / JAIL_735 Code Violet / JAIL_321
+                // Tricksy Improviser read "3 other spells this turn"), the
+                // rewind mark for Slice and Dice (JAIL_500 — the replay
+                // starts from the plays recorded after this mark) and the
+                // Murloc Holmes suspect (JAIL_851 — the investigation
+                // window is the suspect's next turn; the record lives on
+                // the investigator, whose turn this is — by now the
+                // suspect's turn has passed).
+                inner.players[player.index()].spells_cast_this_turn = 0;
+                inner.players[player.index()].rewind_turn_start_len =
+                    inner.players[player.index()].last_played.len();
+                inner.players[player.index()].murloc_holmes_suspect = None;
             }
             // M3-W2a — Dormant countdown: at the owner's turn start each
             // dormant minion sleeps one less turn; at 0 it awakens (the
@@ -1386,6 +1408,45 @@ pub fn apply_event(
                         player,
                         "TLC_466t",
                     );
+                }
+            }
+            // M5-W2 — Reinforcement Aura (JAIL_327): "At the end of your
+            // turns for the next 3 turns, summon a random minion costing
+            // (2) or less from your deck" — the tick counter armed by the
+            // spell's cast is consumed here (the Lakkari pattern); the
+            // summon follows the Finja convention (§28: a fresh copy —
+            // the deck card itself stays).
+            if state.player(player).reinforcement_aura_ticks > 0 {
+                {
+                    let p = &mut state.make_mut().players[player.index()];
+                    p.reinforcement_aura_ticks -= 1;
+                }
+                let deck_minions: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Deck, player)
+                    .filter(|&e| {
+                        state
+                            .world()
+                            .card_id(e)
+                            .and_then(|c| crate::cards::def::card_by_id(c.0))
+                            .is_some_and(|d| d.card_type == CardType::Minion && d.cost <= 2)
+                    })
+                    .collect();
+                if let Some(&e) = deck_minions.get(state.rng_mut().next_usize(deck_minions.len())) {
+                    if let Some(def) = state
+                        .world()
+                        .card_id(e)
+                        .and_then(|c| crate::cards::def::card_by_id(c.0))
+                    {
+                        let _ = trigger::resolve_summon(
+                            state,
+                            queue,
+                            state.player(player).hero,
+                            player,
+                            def.id,
+                        );
+                    }
                 }
             }
             // Hatching Ceremony (M2-W4c): the +2/+2 to the owner's minions
@@ -1695,6 +1756,12 @@ pub fn apply_event(
                         p.played_one_cost_cards.push(cid);
                     }
                 }
+                // M5-W2 — Jade Guardians (JAIL_474): the per-game counter
+                // of cards played that cost (2) — the discount the two
+                // 8-Cost minions get.
+                if cost.0 == 2 {
+                    p.cards_played_cost_2 += 1;
+                }
                 if is_sylvanas_triumph {
                     p.sylvanas_triumph_played = true;
                 }
@@ -1858,6 +1925,53 @@ pub fn apply_event(
             // leaves the hand, like the Skittish Saucier position above.
             state.make_mut().players[player.index()].last_played_hand_center =
                 hand_len >= 1 && hand_len % 2 == 1 && hand_index == Some((hand_len - 1) / 2);
+            // M5-W2 — Unshackle Soul / Mind Sweeper: the "played a copy of
+            // an opponent's card" game-scoped flag reads the
+            // `CopiedFromOpponent` marker at play (the "while holding
+            // this" nuance is dropped, §28).
+            if state.world().copied_from_opponent(card).is_some() {
+                state.make_mut().players[player.index()].copied_from_opponent_played = true;
+            }
+            // M5-W2 — Inspector Murloc Holmes (JAIL_851): when a card
+            // whose NAME matches the suspect is played on the suspect's
+            // next turn, the investigator receives 3 Coins. The suspect
+            // record lives on the OTHER player (the investigator).
+            {
+                let investigator = player.opponent();
+                let suspect = state.player(investigator).murloc_holmes_suspect.clone();
+                if let Some((name, expected_turn)) = suspect {
+                    if expected_turn == state.turn() {
+                        let played_name = state
+                            .world()
+                            .card_id(card)
+                            .and_then(|c| crate::cards::def::card_by_id(c.0))
+                            .map(|d| d.name);
+                        if played_name == Some(name.as_str()) {
+                            state.make_mut().players[investigator.index()].murloc_holmes_suspect =
+                                None;
+                            if let Some(coin) = crate::cards::def::card_by_id("GAME_005") {
+                                for _ in 0..3 {
+                                    trigger::add_card_to_hand(state, investigator, coin);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // M5-W2 — Low Security Wing (JAIL_987): "It can't be played
+            // until you play a card" — any play clears the lock on every
+            // hand card.
+            {
+                let locked: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Hand, player)
+                    .filter(|&e| state.world().locked_until_card_played(e).is_some())
+                    .collect();
+                for e in locked {
+                    state.world_mut().remove_locked_until_card_played(e);
+                }
+            }
 
             // Detect combo: another card was played this turn (cards_played > 1 because it was just incremented)
             let combo_active = state.player(player).cards_played_this_turn > 1;
@@ -3628,10 +3742,22 @@ pub fn apply_event(
             // Record the death for resurrection effects; the owner also
             // gains a corpse (Core Set W1 — Malignant Horror's end-of-turn
             // effect spends them; any friendly death produces one)
+            let is_archmage = state
+                .world()
+                .card_id(minion)
+                .is_some_and(|c| c.0 == "JAIL_974");
             if let Some(owner) = owner {
                 let inner = state.make_mut();
                 inner.players[owner.index()].died_this_turn.push(minion);
                 inner.players[owner.index()].corpses += 1;
+                // M5-W2 — JAIL_974 Captured Archmage: the per-card death
+                // counter increments AFTER the deathrattle resolved above,
+                // so the dying archmage's own deathrattle never counts
+                // itself — the arm reads "4 OTHER Captured Archmages died
+                // this game" (the Fireball condition).
+                if is_archmage {
+                    inner.players[owner.index()].jail974_deaths += 1;
+                }
             }
         }
         Event::CardDrawn { .. } => {
@@ -3689,6 +3815,21 @@ pub fn apply_event(
             state
                 .world_mut()
                 .set_cant_play_next_turn(card, crate::core::component::CantPlayNextTurn);
+            // M5-W2 — Jailbird (JAIL_453): "When you Prepare while holding
+            // this, reduce this card's Cost by the same amount" — every
+            // JAIL_453 in the hand gets the spent mana as a permanent
+            // reduction (the same `reduce_hand_card_cost` path).
+            {
+                let jailbirds: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Hand, active)
+                    .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "JAIL_453"))
+                    .collect();
+                for e in jailbirds {
+                    trigger::reduce_hand_card_cost(state, e, spent);
+                }
+            }
         }
         Event::LocationActivated {
             player,
@@ -3881,6 +4022,12 @@ pub fn apply_event(
             // the deferral branch so a re-pushed SpellCast event only counts
             // once (the Wish/Ritual upgrade condition, §14.3).
             state.make_mut().players[player.index()].spells_cast_total += 1;
+            // M5-W2 — Molten Gold / Frostshatter / Stormfury / Code Violet /
+            // Tricksy Improviser read the OTHER spells cast this turn, so
+            // the counter increments here too — the SpellCast event fires
+            // after the spell's own effect, which therefore never counts
+            // itself. Cleared at the owner's turn start.
+            state.make_mut().players[player.index()].spells_cast_this_turn += 1;
             // Quest progress (M2-W1): TLC_817 — "Cast 4 Holy spells" — the
             // cast spell's school comes from the quest registry's static
             // spell-school table (the 22 dump entries); school-less spells
@@ -4506,6 +4653,79 @@ pub fn apply_event(
                         kind,
                         picked,
                     );
+                }
+                ChoiceKind::TinyPalAmmo => {
+                    // M5-W2 — JAIL_458 Tiny Pal's ammunition choice: the
+                    // picked option is the ammunition weapon id; equipping
+                    // it arms the attack trigger that fires the shot and
+                    // re-surfaces the choice.
+                    let player = state
+                        .world()
+                        .player(pending.card)
+                        .unwrap_or(state.active_player());
+                    let Some(weapon_id) = pending.pool.get(option as usize) else {
+                        return Ok(());
+                    };
+                    trigger::resolve_equip_weapon(state, queue, player, weapon_id);
+                }
+                ChoiceKind::BloodClone => {
+                    // M5-W2 — JAIL_451 Blood Clone: "Discover a 5-Cost
+                    // minion. Spend 5 Corpses to summon a copy of it." —
+                    // the choice only surfaces when the Corpses are
+                    // affordable; the resolution spends them and summons
+                    // the pick.
+                    let player = state
+                        .world()
+                        .player(pending.card)
+                        .unwrap_or(state.active_player());
+                    if state.player(player).corpses >= 5 {
+                        let inner = state.make_mut();
+                        inner.players[player.index()].corpses -= 5;
+                    }
+                    crate::engine::quest::progress(
+                        state,
+                        queue,
+                        player,
+                        crate::cards::quest::QuestCondition::SpendCorpses,
+                        5,
+                        None,
+                    );
+                    if let Some(card_id) = pending.pool.get(option as usize) {
+                        if let Some(def) = crate::cards::def::card_by_id(card_id) {
+                            let _ =
+                                trigger::resolve_summon(state, queue, pending.card, player, def.id);
+                        }
+                    }
+                }
+                ChoiceKind::PickEnemyHandCard => {
+                    // M5-W2 — JAIL_303 Ancient Augur's secret
+                    // investigation: the picked enemy hand card id is
+                    // stashed; the deathrattle discards the matching card.
+                    let player = state
+                        .world()
+                        .player(pending.card)
+                        .unwrap_or(state.active_player());
+                    if let Some(picked_id) = pending.pool.get(option as usize) {
+                        state.make_mut().players[player.index()].augur_suspect =
+                            Some(picked_id.clone());
+                    }
+                }
+                ChoiceKind::MurlocHolmes => {
+                    // M5-W2 — JAIL_851 Inspector Murloc Holmes: the
+                    // investigation records the suspected card's NAME and
+                    // the turn the other player would play it; the
+                    // CardPlayed handler pays out 3 Coins on a match.
+                    let player = state
+                        .world()
+                        .player(pending.card)
+                        .unwrap_or(state.active_player());
+                    if let Some(picked_id) = pending.pool.get(option as usize) {
+                        let name = crate::cards::def::card_by_id(picked_id)
+                            .map(|d| d.name.to_string())
+                            .unwrap_or_else(|| picked_id.clone());
+                        state.make_mut().players[player.index()].murloc_holmes_suspect =
+                            Some((name, state.turn() + 1));
+                    }
                 }
                 ChoiceKind::DiscoverDeckDestroyRest => {
                     // Commander Geddon (M4-W4): the DrawStep hook surfaces

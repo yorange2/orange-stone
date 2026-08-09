@@ -12,12 +12,13 @@ use serde::{Deserialize, Serialize};
 use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, BonusDamageTaken, CantAttack,
     CantAttackHeroesThisTurn, CantAttackThisTurn, CantPlayNextTurn, CardId, CardType, Charge,
-    ChooseOneEffect, ColossalMain, ColossalPart, ComboEffect, Cost, CostHealth, CostModifier,
-    CostModifierKind, Damage, DarkGiftKind, Deathrattle, DivineShield, Dormant, DoubleDamageTaken,
-    Durability, Elusive, Enchantment, Enrage, Freeze, HandTurnCounter, Health, HeroPowerDef,
-    HeroPowerUsed, Immune, Lifesteal, MegaWindfury, OutcastPlayed, Overload, PlayedThisTurn,
-    Poison, Quest, Race, Reborn, Rush, Secret, SpellDamage, Stealth, SummonedThisTurn, Taunt,
-    Temporary, Tradeable, Trigger, TurnCostReducer, Windfury,
+    ChooseOneEffect, ColossalMain, ColossalPart, ComboEffect, CopiedFromOpponent, Cost, CostHealth,
+    CostModifier, CostModifierKind, Damage, DarkGiftKind, Deathrattle, DivineShield, Dormant,
+    DoubleDamageTaken, Durability, Elusive, Enchantment, Enrage, Freeze, HandTurnCounter, Health,
+    HeroPowerDef, HeroPowerUsed, Immune, Lifesteal, LockedUntilCardPlayed, MegaWindfury,
+    OutcastPlayed, Overload, PlayedThisTurn, Poison, Quest, Race, Reborn, Rush, Secret,
+    SpellDamage, Stealth, SummonedThisTurn, Taunt, Temporary, Tradeable, Trigger, TurnCostReducer,
+    Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -214,6 +215,16 @@ pub struct World {
     /// CantPlayNextTurn storage (2025–2026 expansions M4-W4) — hand cards
     /// that cannot be played until the owner's next turn (Sabotage!).
     cant_play_next_turn: SparseSet<CantPlayNextTurn>,
+    /// CopiedFromOpponent storage (2025–2026 expansions M5-W2) — hand
+    /// cards copied from the opponent's hand/deck (the Murloc Holmes /
+    /// Ancient Augur / Mind Sweeper / Enthralled Shade predicates; set
+    /// by the `copy_card_to_hand` funnel when the source belongs to the
+    /// opponent).
+    copied_from_opponent: SparseSet<CopiedFromOpponent>,
+    /// LockedUntilCardPlayed storage (2025–2026 expansions M5-W2) —
+    /// hand cards that cannot be played until their owner plays a card
+    /// (Low Security Wing).
+    locked_until_card_played: SparseSet<LockedUntilCardPlayed>,
     /// HandTurnCounter storage (2025–2026 expansions M4-W4) — hand cards
     /// counting the turns spent in the owner's hand (Rafaam's Last Stand).
     hand_turn_counter: SparseSet<HandTurnCounter>,
@@ -384,6 +395,8 @@ impl World {
             bonus_damage_taken: SparseSet::new(),
             cant_attack_this_turn: SparseSet::new(),
             cant_play_next_turn: SparseSet::new(),
+            copied_from_opponent: SparseSet::new(),
+            locked_until_card_played: SparseSet::new(),
             hand_turn_counter: SparseSet::new(),
             mega_windfury: SparseSet::new(),
             cost_health: SparseSet::new(),
@@ -1105,6 +1118,22 @@ impl World {
         set_cant_play_next_turn,
         remove_cant_play_next_turn,
         iter_cant_play_next_turn
+    );
+    component_accessors!(
+        copied_from_opponent,
+        CopiedFromOpponent,
+        copied_from_opponent,
+        set_copied_from_opponent,
+        remove_copied_from_opponent,
+        iter_copied_from_opponent
+    );
+    component_accessors!(
+        locked_until_card_played,
+        LockedUntilCardPlayed,
+        locked_until_card_played,
+        set_locked_until_card_played,
+        remove_locked_until_card_played,
+        iter_locked_until_card_played
     );
     component_accessors!(
         hand_turn_counter,

@@ -407,6 +407,19 @@ fn resolve_secret_effect(
         CardEffect::SummonSpellbender => {
             resolve_spellbender(state, queue, event, player);
         }
+        CardEffect::TransformToMinion { card_id } => {
+            // M5-W2 — JAIL_315 Mystic Misdirection: "When an enemy
+            // attacks, transform the attacker into a 1/1 Sheep" — the
+            // generic arm would pick a random minion; the secret
+            // transforms the ATTACKER of the AttackDeclared event
+            // (SecretTrigger::WhenEnemyAttacks).
+            if let Event::AttackDeclared { attacker, .. } = event {
+                let Some(def) = crate::cards::def::card_by_id(card_id) else {
+                    return;
+                };
+                crate::engine::trigger::resolve_transform_to_def(state, *attacker, def);
+            }
+        }
         _ => {
             crate::engine::trigger::resolve_effect(state, queue, entity, player, effect, None, None)
         }
