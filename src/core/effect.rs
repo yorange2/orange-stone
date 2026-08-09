@@ -4550,6 +4550,330 @@ pub enum CardEffect {
     /// Kazakus potion pool is generated multi-choice spells with no
     /// static defs — approximated by the 1-cost spell pool).
     KabalCoin,
+    // ----------------------------------------------------------------
+    // M5-W2 — the closing Escape from Violet Hold wave (exp_jail_w2.rs,
+    // fidelity-debt §28)
+    // ----------------------------------------------------------------
+    /// M5-W2 — JAIL_500 Slice and Dice (legendary): replay all other
+    /// cards played this turn, then end the turn. The replay runs the
+    /// rewind machinery over the entries since the turn-start mark
+    /// (`Player::rewind_turn_start_len`); "targeting enemies if
+    /// possible" is registered as a simplification (§28).
+    SliceAndDice,
+    /// M5-W2 — JAIL_458 Tiny Pal (legendary weapon): `ammo == 0` is
+    /// the battlecry — surface a `ChoiceKind::TinyPalAmmo` choice;
+    /// `ammo` 1-4 are the weapon triggers (JAIL_458t1-t4): resolve the
+    /// ammo effect and re-surface the choice.
+    TinyPal {
+        /// The ammunition slot: 0 = battlecry choice, 1-4 = ammo effects
+        ammo: u8,
+    },
+    /// M5-W2 — JAIL_875 Staff of Trickery (legendary weapon trigger):
+    /// after the hero attacks, discover a Druid card; the picked card
+    /// costs (the hero's Attack) less.
+    StaffOfTrickery,
+    /// M5-W2 — JAIL_882 R4T-C4TCH3R's battlecry: copy every spell in
+    /// the owner's deck (fresh copies at random deck positions).
+    R4TCatcher,
+    /// M5-W2 — JAIL_719 Irida Sinseeker's battlecry: send the deck to
+    /// the Void — the deck card ids ride `Player::void_cards` and the
+    /// deck entities are destroyed.
+    IridaSinseeker,
+    /// M5-W2 — JAIL_719 Irida Sinseeker's turn-start trigger: get two
+    /// cards from the Void.
+    IridaGetVoid,
+    /// M5-W2 — JAIL_831 King of the Underbelly's battlecry: discover
+    /// one of three random Beasts; it costs (3) less.
+    KingOfTheUnderbelly,
+    /// M5-W2 — JAIL_851 Inspector Murloc Holmes's battlecry: look at
+    /// three random enemy hand cards and secretly pick one — the
+    /// `ChoiceKind::MurlocHolmes` choice; if the enemy plays the pick
+    /// on their next turn, the owner gets 3 Coins.
+    MurlocHolmes,
+    /// M5-W2 — JAIL_852 Togwaggle, Smuggler King's battlecry: shuffle
+    /// both players' hands together — one pile, shuffled, the first
+    /// half to the caster and the rest to the opponent (§28 pins the
+    /// split convention).
+    TogwaggleShuffleHands,
+    /// M5-W2 — JAIL_850 Warden Maiev's trigger: after the owner plays
+    /// a minion, give it +3/+3 and make it Dormant for 1 turn.
+    MaievBuffDormant,
+    /// M5-W2 — JAIL_887t2 Zuramat the Obliterator's turn-end trigger:
+    /// play a card discarded by Zuramat's Prison (JAIL_887) — the
+    /// discarded ids ride `Player::zuramat_discarded`; a minion is
+    /// summoned, a weapon equipped, or a spell effect resolved.
+    ZuramatPlaysDiscarded,
+    /// M5-W2 — JAIL_125 Cold Snap: Freeze an enemy and get a random
+    /// Frost spell.
+    ColdSnap,
+    /// M5-W2 — JAIL_432 Mind Sweeper's battlecry: if the owner played
+    /// a copy of an opponent's card while holding this, deal 2 damage
+    /// to all enemy minions.
+    MindSweeper,
+    /// M5-W2 — JAIL_434 Enthralled Shade's deathrattle: reduce the
+    /// Cost of hand cards copied from the opponent by (1).
+    EnthralledShade,
+    /// M5-W2 — JAIL_321 Tricksy Improviser's battlecry: if the owner
+    /// cast a spell this turn, cast a random Mage Secret.
+    TricksyImproviser,
+    /// M5-W2 — JAIL_326 Judgment: choose a friendly minion (the pick
+    /// is random, §28) and set all minions' stats equal to that
+    /// minion's.
+    Judgment,
+    /// M5-W2 — JAIL_327 Reinforcement Aura: at each of the next 3
+    /// owner turn ends, summon a random minion costing (2) or less
+    /// from the deck (`Player::reinforcement_aura_ticks`).
+    ReinforcementAura,
+    /// M5-W2 — JAIL_328 Scarlet Bruiser's deathrattle: if the deck
+    /// has no Neutral cards, get a random Paladin card; it costs (2)
+    /// less.
+    ScarletBruiser,
+    /// M5-W2 — JAIL_376 Ball and Chain's deathrattle: give the
+    /// owner's damaged minions +1/+2.
+    BallAndChain,
+    /// M5-W2 — JAIL_377 Holy Bola!: draw a card; if it costs (2) or
+    /// less, draw another.
+    HolyBola,
+    /// M5-W2 — JAIL_379 Spire Security's battlecry: reveal a random
+    /// spell in the deck; if it costs (5) or more, deal 5 damage split
+    /// among enemy minions.
+    SpireSecurity,
+    /// M5-W2 — JAIL_380 Smuggled Shovel's deathrattle: draw a spell
+    /// that didn't start in the deck (`Player::starting_deck`).
+    SmuggledShovel,
+    /// M5-W2 — JAIL_386 Scramble for Gear: gain 2 Armor and shuffle
+    /// five Found Gear! (JAIL_386t) spells into the deck.
+    ScrambleForGear,
+    /// M5-W2 — JAIL_387 Release the Beasts: give minions in hand
+    /// +1/+1 (the Legendary extra +2/+1 is dropped — the CardDef
+    /// carries no rarity, §28).
+    ReleaseTheBeasts,
+    /// M5-W2 — JAIL_395 Sewer Swimmer's battlecry: trigger a random
+    /// friendly minion's Deathrattle.
+    SewerSwimmer,
+    /// M5-W2 — JAIL_398 IMPFERNAL!'s deathrattle: deal 3 damage to
+    /// all other characters (the in-hand/in-deck trigger is dropped,
+    /// §28).
+    Imfernal,
+    /// M5-W2 — JAIL_399 Imp Gang Stooge's deathrattle: put two
+    /// Grandmother Imps (JAIL_399t1, 8/8 Taunt Lifesteal) on the
+    /// bottom of the deck.
+    ImpGangStooge,
+    /// M5-W2 — JAIL_442 Disguised Doctor's deathrattle: shuffle four
+    /// Blights (JAIL_443t) into the deck.
+    DisguisedDoctor,
+    /// M5-W2 — JAIL_444 Sawbones's battlecry: destroy the owner's
+    /// other minions; draw a card and refresh a Mana Crystal for each
+    /// one destroyed.
+    Sawbones,
+    /// M5-W2 — JAIL_445 Bone Flurry: deal 3 damage split among
+    /// enemies; +3 more if a friendly minion died this turn. The
+    /// ImmuneToSpellpower keyword exempts it from spell power (the
+    /// `apply_spell_power` exemption list).
+    BoneFlurry,
+    /// M5-W2 — JAIL_441 Drink Blood: deal 3 damage to a minion with
+    /// Lifesteal — the owner's hero heals for the damage dealt — and
+    /// refresh the Hero Power.
+    DrinkBlood,
+    /// M5-W2 — JAIL_454 Emergency Surgery: summon four 3/1 Undead
+    /// with Lifesteal (JAIL_454t Necronurse) that attack the chosen
+    /// enemy minion.
+    EmergencySurgery,
+    /// M5-W2 — JAIL_455 Disguised Watchman's battlecry: deal 1 damage
+    /// to all other friendly minions, twice.
+    DisguisedWatchman,
+    /// M5-W2 — JAIL_456 P1CK-P0K3T's battlecry: if the deck has 25 or
+    /// more cards, draw a card.
+    PickPocket,
+    /// M5-W2 — JAIL_474 Jade Guardians: get two random 8-Cost minions;
+    /// they cost (1) less for each card played for 2 Mana this game
+    /// (`Player::cards_played_cost_2`).
+    JadeGuardians,
+    /// M5-W2 — JAIL_307 Crowd Control: deal 2 damage to all minions;
+    /// +2 more if the deck has 25 or more cards.
+    CrowdControl,
+    /// M5-W2 — JAIL_035 Vigilant Sentry's battlecry: if the deck has
+    /// no Neutral cards, summon two Vigilant Sentries.
+    VigilantSentry,
+    /// M5-W2 — JAIL_101 Violet Punisher's battlecry: choose an enemy
+    /// minion (the pick is random, §28) and gain +1/+1 per keyword it
+    /// has (the keywords themselves are not stolen, §28).
+    VioletPunisher,
+    /// M5-W2 — JAIL_123 Breakout Architect's battlecry: get a random
+    /// spell costing (5) or more; the next spell the owner casts casts
+    /// twice (the Discover is simplified to a random pick, §28).
+    BreakoutArchitect,
+    /// M5-W2 — JAIL_861 Noxious Bribe: get a random Choose One card
+    /// (a plain pick, §28 — the combined-effects discover is
+    /// simplified) and give the opponent a plain copy of it.
+    NoxiousBribe,
+    /// M5-W2 — JAIL_502 Alarm-o-Matic's start-of-turn effect: swap
+    /// this minion with a random minion in the opponent's hand.
+    AlarmOMatic,
+    /// M5-W2 — JAIL_507 Spiteful Chef's battlecry: summon a random
+    /// 2-Cost Taunt minion, or a 6-Cost one at 10+ Mana.
+    SpitefulChef,
+    /// M5-W2 — JAIL_510 Annihilation: destroy all minions, then
+    /// summon any Demons among the bottom 3 cards of the deck.
+    Annihilation,
+    /// M5-W2 — JAIL_511 Spire of Solitude: summon a Demon with stats
+    /// equal to the hand size; it attacks a random enemy minion.
+    SpireOfSolitude,
+    /// M5-W2 — JAIL_515 Shadow Rounds: deal 2 damage to an enemy
+    /// minion; if it dies, cast this on another random enemy minion.
+    ShadowRounds,
+    /// M5-W2 — JAIL_516 Scarlet Recruiter's battlecry: summon two
+    /// minions costing (2) or less from the deck and give them Rush.
+    ScarletRecruiter,
+    /// M5-W2 — JAIL_706 Thief's Tools: get two random 4-Cost spells;
+    /// they cost (2) less.
+    ThievesTools,
+    /// M5-W2 — JAIL_732 Void Soul: summon a random 1-Cost Demon and
+    /// improve future Void Souls (the summoned Demon's cost scales
+    /// with `Player::void_soul_level`).
+    VoidSoul,
+    /// M5-W2 — JAIL_735 Code Violet: summon an 8-Cost minion; if the
+    /// owner cast 3 other spells this turn, summon another.
+    CodeViolet,
+    /// M5-W2 — JAIL_801 Molten Gold: deal 4 damage; after 3 spells
+    /// cast this turn, summon a Molten Gold Elemental (JAIL_801t)
+    /// instead.
+    MoltenGold,
+    /// M5-W2 — JAIL_803 Frostshatter: Freeze an enemy and draw 2
+    /// cards; after 3 spells cast this turn, summon a Frostshatter
+    /// Elemental (JAIL_803t) instead (the elemental's battlecry rides
+    /// this same variant — the source check selects the branch).
+    Frostshatter,
+    /// M5-W2 — JAIL_805 Stormfury: deal 2 damage to all enemy minions
+    /// with Lifesteal; after 3 spells cast this turn, summon a
+    /// Stormfury Elemental (JAIL_805t) instead (the elemental's
+    /// battlecry rides this same variant).
+    Stormfury,
+    /// M5-W2 — JAIL_806 Hexmarshal's battlecry: get a random spell
+    /// costing (5) or more; if the deck started with no spells, it
+    /// costs (5) less.
+    Hexmarshal,
+    /// M5-W2 — JAIL_866 Lethal Recipe: draw 2 minions; at 10+ Mana,
+    /// give them +3/+3.
+    LethalRecipe,
+    /// M5-W2 — JAIL_876 Dig for Freedom: give a friendly minion
+    /// "Deathrattle: Summon two random 4-Cost minions."
+    DigForFreedom,
+    /// M5-W2 — JAIL_878 Guard Dog's deathrattle: summon a random
+    /// 1-Cost Deathrattle minion.
+    GuardDog,
+    /// M5-W2 — JAIL_879 Beast Tripwire: summon a random 5-Cost Beast
+    /// and shuffle two Tripped Beast Tripwires (JAIL_879t) into the
+    /// deck.
+    BeastTripwire,
+    /// M5-W2 — JAIL_881 Arcane Tripwire: deal 5 damage split among
+    /// all enemies and shuffle two Tripped Arcane Tripwires (JAIL_881t)
+    /// into the deck. ImmuneToSpellpower exempts it (the
+    /// `apply_spell_power` exemption list).
+    ArcaneTripwire,
+    /// M5-W2 — JAIL_974 Captured Archmage's deathrattle: if 4 other
+    /// Captured Archmages died this game, cast Fireball at a random
+    /// enemy.
+    CapturedArchmage,
+    /// M5-W2 — JAIL_986 Frantic Forger's battlecry: get a random
+    /// playable spell; it is Temporary.
+    FranticForger,
+    /// M5-W2 — JAIL_987 Low Security Wing: get a random Shaman
+    /// minion, locked in hand until the owner plays another card (the
+    /// `LockedUntilCardPlayed` component).
+    LowSecurityWing,
+    /// M5-W2 — JAIL_997 Demonic Confinement: make a minion go Dormant
+    /// for 2 turns; if it is a friendly Demon, give it +3/+3 instead.
+    DemonicConfinement,
+    /// M5-W2 — JAIL_436 Widow's Bite: hero +1 Attack this turn, gain
+    /// 1 Armor, add Widow's Feast (JAIL_436t) to hand.
+    WidowsBite,
+    /// M5-W2 — JAIL_436t Widow's Feast: hero +2 Attack this turn,
+    /// gain 2 Armor, add Widow's Banquet (JAIL_436t2) to hand.
+    WidowsFeast,
+    /// M5-W2 — JAIL_436t2 Widow's Banquet: hero +4 Attack this turn
+    /// and gain 4 Armor.
+    WidowsBanquet,
+    /// M5-W2 — JAIL_225 Nab: deal 3 damage to a minion; if it dies,
+    /// shuffle a copy of it into the deck with its Cost set to (2)
+    /// (the fresh copy's cost is set directly, §28).
+    Nab,
+    /// M5-W2 — JAIL_891 Void Blast: deal 3 damage to a minion; if it
+    /// dies, get a Void Soul (JAIL_732).
+    VoidBlast,
+    /// M5-W2 — JAIL_892 Cosmic Manifestations: deal 2 damage (4 when
+    /// Outcast) and shuffle a random Demon Hunter spell into the deck.
+    CosmicManifestations,
+    /// M5-W2 — JAIL_909 Defias Wannabe's Combo: gain +1/+1 for each
+    /// other card played this turn.
+    DefiasWannabe,
+    /// M5-W2 — JAIL_912 Soothsayer's deathrattle: restore 6 Health to
+    /// the owner's hero and summon a random 6-Cost minion.
+    Soothsayer,
+    /// M5-W2 — JAIL_941 Holy Embrace: restore 4 Health and get a Dark
+    /// Embrace (JAIL_941t).
+    HolyEmbrace,
+    /// M5-W2 — JAIL_205 Rat Burglar's turn-end trigger: steal all
+    /// cards that entered the opponent's hand during the owner's turn
+    /// (simplified to one random enemy hand card, §28).
+    RatBurglar,
+    /// M5-W2 — JAIL_206 Dark Bribe: draw 3 cards, then choose one to
+    /// give to the opponent (the `ChooseHandCardKind::GiveToOpponent`
+    /// hand choice).
+    DarkBribe,
+    /// M5-W2 — JAIL_303 Ancient Augur's battlecry: look at 3 random
+    /// enemy hand cards and secretly choose one — the
+    /// `ChoiceKind::PickEnemyHandCard` choice.
+    AncientAugurPick,
+    /// M5-W2 — JAIL_303 Ancient Augur's deathrattle: discard the
+    /// secretly chosen enemy hand card.
+    AncientAugurDeathrattle,
+    /// M5-W2 — JAIL_459 Arachnathid's battlecry (the Poisonous aura
+    /// approximation, §28): give other friendly minions Poisonous; the
+    /// FriendlyMinionSummoned trigger grants it to new minions too.
+    ArachnathidVenom,
+    /// M5-W2 — JAIL_329 Truth Seeker's weapon trigger: after the hero
+    /// attacks, give the owner's Paladin minions +2/+2.
+    TruthSeeker,
+    /// M5-W2 — JAIL_460 Concealing Confection's deathrattle: get a
+    /// random weapon.
+    ConcealingConfection,
+    /// M5-W2 — JAIL_461 Disguised Executioner's battlecry: destroy a
+    /// random adjacent minion.
+    DisguisedExecutioner,
+    /// M5-W2 — JAIL_462 Getaway Hogdriver's battlecry: draw 2 cards;
+    /// if both are minions, gain Charge.
+    GetawayHogdriver,
+    /// M5-W2 — JAIL_030 Escape Artist's trigger: after this attacks
+    /// and survives, draw a card and escape the game — the minion is
+    /// moved to the set-aside zone (the official return-to-hand
+    /// behaviour is approximated, §28).
+    EscapeArtist,
+    /// M5-W2 — JAIL_451 Blood Clone: discover a 5-Cost minion and
+    /// spend 5 Corpses to summon a copy of it (the
+    /// `ChoiceKind::BloodClone` choice).
+    BloodClone,
+    /// M5-W2 — JAIL_802 Gallagio Goon's CardPlayed trigger: when the
+    /// played card is a Battlecry minion, give it +1/+1 (the subject).
+    GallagioGoon,
+    /// M5-W2 — JAIL_880 Black Market Overseer's CardPlayed trigger: when
+    /// the played card is a Deathrattle minion, give it Rush (the
+    /// subject).
+    BlackMarketOverseer,
+    /// M5-W2 — JAIL_883 Activated Golem's TurnEnd trigger: grant the
+    /// source Reborn (§28: TurnEnd triggers are owner-scoped, so the
+    /// "each turn" pin is approximated).
+    ActivatedGolem,
+    /// M5-W2 — JAIL_734 Hellraiser's battlecry: add a random deck card
+    /// to the hand; when the deck is empty, the source gains +4/+4
+    /// (§28: the discover is a random deck card).
+    Hellraiser,
+    /// M5-W2 — JAIL_876 Dig for Freedom's granted Deathrattle: "Summon
+    /// two random minions of the given Cost."
+    SummonTwoRandomMinionsOfCost {
+        /// The minion Cost to summon.
+        cost: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -6373,6 +6697,98 @@ enum CardEffectDe {
     JadeCoin,
     GrimyCoin,
     KabalCoin,
+    // M5-W2 — the closing Escape from Violet Hold wave
+    SliceAndDice,
+    TinyPal {
+        ammo: u8,
+    },
+    StaffOfTrickery,
+    R4TCatcher,
+    IridaSinseeker,
+    IridaGetVoid,
+    KingOfTheUnderbelly,
+    MurlocHolmes,
+    TogwaggleShuffleHands,
+    MaievBuffDormant,
+    ZuramatPlaysDiscarded,
+    ColdSnap,
+    MindSweeper,
+    EnthralledShade,
+    TricksyImproviser,
+    Judgment,
+    ReinforcementAura,
+    ScarletBruiser,
+    BallAndChain,
+    HolyBola,
+    SpireSecurity,
+    SmuggledShovel,
+    ScrambleForGear,
+    ReleaseTheBeasts,
+    SewerSwimmer,
+    Imfernal,
+    ImpGangStooge,
+    DisguisedDoctor,
+    Sawbones,
+    BoneFlurry,
+    DrinkBlood,
+    EmergencySurgery,
+    DisguisedWatchman,
+    PickPocket,
+    JadeGuardians,
+    CrowdControl,
+    VigilantSentry,
+    VioletPunisher,
+    BreakoutArchitect,
+    NoxiousBribe,
+    AlarmOMatic,
+    SpitefulChef,
+    Annihilation,
+    SpireOfSolitude,
+    ShadowRounds,
+    ScarletRecruiter,
+    ThievesTools,
+    VoidSoul,
+    CodeViolet,
+    MoltenGold,
+    Frostshatter,
+    Stormfury,
+    Hexmarshal,
+    LethalRecipe,
+    DigForFreedom,
+    GuardDog,
+    BeastTripwire,
+    ArcaneTripwire,
+    CapturedArchmage,
+    FranticForger,
+    LowSecurityWing,
+    DemonicConfinement,
+    WidowsBite,
+    WidowsFeast,
+    WidowsBanquet,
+    Nab,
+    VoidBlast,
+    CosmicManifestations,
+    DefiasWannabe,
+    Soothsayer,
+    HolyEmbrace,
+    RatBurglar,
+    DarkBribe,
+    AncientAugurPick,
+    AncientAugurDeathrattle,
+    ArachnathidVenom,
+    TruthSeeker,
+    ConcealingConfection,
+    DisguisedExecutioner,
+    GetawayHogdriver,
+    EscapeArtist,
+    BloodClone,
+    GallagioGoon,
+    BlackMarketOverseer,
+    ActivatedGolem,
+    Hellraiser,
+    SummonTwoRandomMinionsOfCost {
+        cost: i32,
+    },
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -8444,6 +8860,96 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::JadeCoin => CardEffect::JadeCoin,
             CardEffectDe::GrimyCoin => CardEffect::GrimyCoin,
             CardEffectDe::KabalCoin => CardEffect::KabalCoin,
+            // M5-W2 — the closing Escape from Violet Hold wave
+            CardEffectDe::SliceAndDice => CardEffect::SliceAndDice,
+            CardEffectDe::TinyPal { ammo } => CardEffect::TinyPal { ammo },
+            CardEffectDe::StaffOfTrickery => CardEffect::StaffOfTrickery,
+            CardEffectDe::R4TCatcher => CardEffect::R4TCatcher,
+            CardEffectDe::IridaSinseeker => CardEffect::IridaSinseeker,
+            CardEffectDe::IridaGetVoid => CardEffect::IridaGetVoid,
+            CardEffectDe::KingOfTheUnderbelly => CardEffect::KingOfTheUnderbelly,
+            CardEffectDe::MurlocHolmes => CardEffect::MurlocHolmes,
+            CardEffectDe::TogwaggleShuffleHands => CardEffect::TogwaggleShuffleHands,
+            CardEffectDe::MaievBuffDormant => CardEffect::MaievBuffDormant,
+            CardEffectDe::ZuramatPlaysDiscarded => CardEffect::ZuramatPlaysDiscarded,
+            CardEffectDe::ColdSnap => CardEffect::ColdSnap,
+            CardEffectDe::MindSweeper => CardEffect::MindSweeper,
+            CardEffectDe::EnthralledShade => CardEffect::EnthralledShade,
+            CardEffectDe::TricksyImproviser => CardEffect::TricksyImproviser,
+            CardEffectDe::Judgment => CardEffect::Judgment,
+            CardEffectDe::ReinforcementAura => CardEffect::ReinforcementAura,
+            CardEffectDe::ScarletBruiser => CardEffect::ScarletBruiser,
+            CardEffectDe::BallAndChain => CardEffect::BallAndChain,
+            CardEffectDe::HolyBola => CardEffect::HolyBola,
+            CardEffectDe::SpireSecurity => CardEffect::SpireSecurity,
+            CardEffectDe::SmuggledShovel => CardEffect::SmuggledShovel,
+            CardEffectDe::ScrambleForGear => CardEffect::ScrambleForGear,
+            CardEffectDe::ReleaseTheBeasts => CardEffect::ReleaseTheBeasts,
+            CardEffectDe::SewerSwimmer => CardEffect::SewerSwimmer,
+            CardEffectDe::Imfernal => CardEffect::Imfernal,
+            CardEffectDe::ImpGangStooge => CardEffect::ImpGangStooge,
+            CardEffectDe::DisguisedDoctor => CardEffect::DisguisedDoctor,
+            CardEffectDe::Sawbones => CardEffect::Sawbones,
+            CardEffectDe::BoneFlurry => CardEffect::BoneFlurry,
+            CardEffectDe::DrinkBlood => CardEffect::DrinkBlood,
+            CardEffectDe::EmergencySurgery => CardEffect::EmergencySurgery,
+            CardEffectDe::DisguisedWatchman => CardEffect::DisguisedWatchman,
+            CardEffectDe::PickPocket => CardEffect::PickPocket,
+            CardEffectDe::JadeGuardians => CardEffect::JadeGuardians,
+            CardEffectDe::CrowdControl => CardEffect::CrowdControl,
+            CardEffectDe::VigilantSentry => CardEffect::VigilantSentry,
+            CardEffectDe::VioletPunisher => CardEffect::VioletPunisher,
+            CardEffectDe::BreakoutArchitect => CardEffect::BreakoutArchitect,
+            CardEffectDe::NoxiousBribe => CardEffect::NoxiousBribe,
+            CardEffectDe::AlarmOMatic => CardEffect::AlarmOMatic,
+            CardEffectDe::SpitefulChef => CardEffect::SpitefulChef,
+            CardEffectDe::Annihilation => CardEffect::Annihilation,
+            CardEffectDe::SpireOfSolitude => CardEffect::SpireOfSolitude,
+            CardEffectDe::ShadowRounds => CardEffect::ShadowRounds,
+            CardEffectDe::ScarletRecruiter => CardEffect::ScarletRecruiter,
+            CardEffectDe::ThievesTools => CardEffect::ThievesTools,
+            CardEffectDe::VoidSoul => CardEffect::VoidSoul,
+            CardEffectDe::CodeViolet => CardEffect::CodeViolet,
+            CardEffectDe::MoltenGold => CardEffect::MoltenGold,
+            CardEffectDe::Frostshatter => CardEffect::Frostshatter,
+            CardEffectDe::Stormfury => CardEffect::Stormfury,
+            CardEffectDe::Hexmarshal => CardEffect::Hexmarshal,
+            CardEffectDe::LethalRecipe => CardEffect::LethalRecipe,
+            CardEffectDe::DigForFreedom => CardEffect::DigForFreedom,
+            CardEffectDe::GuardDog => CardEffect::GuardDog,
+            CardEffectDe::BeastTripwire => CardEffect::BeastTripwire,
+            CardEffectDe::ArcaneTripwire => CardEffect::ArcaneTripwire,
+            CardEffectDe::CapturedArchmage => CardEffect::CapturedArchmage,
+            CardEffectDe::FranticForger => CardEffect::FranticForger,
+            CardEffectDe::LowSecurityWing => CardEffect::LowSecurityWing,
+            CardEffectDe::DemonicConfinement => CardEffect::DemonicConfinement,
+            CardEffectDe::WidowsBite => CardEffect::WidowsBite,
+            CardEffectDe::WidowsFeast => CardEffect::WidowsFeast,
+            CardEffectDe::WidowsBanquet => CardEffect::WidowsBanquet,
+            CardEffectDe::Nab => CardEffect::Nab,
+            CardEffectDe::VoidBlast => CardEffect::VoidBlast,
+            CardEffectDe::CosmicManifestations => CardEffect::CosmicManifestations,
+            CardEffectDe::DefiasWannabe => CardEffect::DefiasWannabe,
+            CardEffectDe::Soothsayer => CardEffect::Soothsayer,
+            CardEffectDe::HolyEmbrace => CardEffect::HolyEmbrace,
+            CardEffectDe::RatBurglar => CardEffect::RatBurglar,
+            CardEffectDe::DarkBribe => CardEffect::DarkBribe,
+            CardEffectDe::AncientAugurPick => CardEffect::AncientAugurPick,
+            CardEffectDe::AncientAugurDeathrattle => CardEffect::AncientAugurDeathrattle,
+            CardEffectDe::ArachnathidVenom => CardEffect::ArachnathidVenom,
+            CardEffectDe::TruthSeeker => CardEffect::TruthSeeker,
+            CardEffectDe::ConcealingConfection => CardEffect::ConcealingConfection,
+            CardEffectDe::DisguisedExecutioner => CardEffect::DisguisedExecutioner,
+            CardEffectDe::GetawayHogdriver => CardEffect::GetawayHogdriver,
+            CardEffectDe::EscapeArtist => CardEffect::EscapeArtist,
+            CardEffectDe::BloodClone => CardEffect::BloodClone,
+            CardEffectDe::GallagioGoon => CardEffect::GallagioGoon,
+            CardEffectDe::BlackMarketOverseer => CardEffect::BlackMarketOverseer,
+            CardEffectDe::ActivatedGolem => CardEffect::ActivatedGolem,
+            CardEffectDe::Hellraiser => CardEffect::Hellraiser,
+            CardEffectDe::SummonTwoRandomMinionsOfCost { cost } => {
+                CardEffect::SummonTwoRandomMinionsOfCost { cost }
+            }
         })
     }
 }
@@ -9424,6 +9930,107 @@ mod tests {
             CardEffect::JadeCoin,
             CardEffect::GrimyCoin,
             CardEffect::KabalCoin,
+        ] {
+            let bytes = bincode::serialize(&effect).expect("serialize");
+            let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
+            assert_eq!(back, effect, "roundtrip failed for {effect:?}");
+        }
+    }
+
+    /// Every new M5-W2 (the closing Escape from Violet Hold wave,
+    /// src/cards/exp_jail_w2.rs) variant survives the bincode roundtrip
+    /// (CardEffectDe → CardEffect via the interned card ids).
+    #[test]
+    fn w2_effects_serialize_roundtrip() {
+        for effect in [
+            CardEffect::SliceAndDice,
+            CardEffect::TinyPal { ammo: 0 },
+            CardEffect::TinyPal { ammo: 4 },
+            CardEffect::StaffOfTrickery,
+            CardEffect::R4TCatcher,
+            CardEffect::IridaSinseeker,
+            CardEffect::IridaGetVoid,
+            CardEffect::KingOfTheUnderbelly,
+            CardEffect::MurlocHolmes,
+            CardEffect::TogwaggleShuffleHands,
+            CardEffect::MaievBuffDormant,
+            CardEffect::ZuramatPlaysDiscarded,
+            CardEffect::ColdSnap,
+            CardEffect::MindSweeper,
+            CardEffect::EnthralledShade,
+            CardEffect::TricksyImproviser,
+            CardEffect::Judgment,
+            CardEffect::ReinforcementAura,
+            CardEffect::ScarletBruiser,
+            CardEffect::BallAndChain,
+            CardEffect::HolyBola,
+            CardEffect::SpireSecurity,
+            CardEffect::SmuggledShovel,
+            CardEffect::ScrambleForGear,
+            CardEffect::ReleaseTheBeasts,
+            CardEffect::SewerSwimmer,
+            CardEffect::Imfernal,
+            CardEffect::ImpGangStooge,
+            CardEffect::DisguisedDoctor,
+            CardEffect::Sawbones,
+            CardEffect::BoneFlurry,
+            CardEffect::DrinkBlood,
+            CardEffect::EmergencySurgery,
+            CardEffect::DisguisedWatchman,
+            CardEffect::PickPocket,
+            CardEffect::JadeGuardians,
+            CardEffect::CrowdControl,
+            CardEffect::VigilantSentry,
+            CardEffect::VioletPunisher,
+            CardEffect::BreakoutArchitect,
+            CardEffect::NoxiousBribe,
+            CardEffect::AlarmOMatic,
+            CardEffect::SpitefulChef,
+            CardEffect::Annihilation,
+            CardEffect::SpireOfSolitude,
+            CardEffect::ShadowRounds,
+            CardEffect::ScarletRecruiter,
+            CardEffect::ThievesTools,
+            CardEffect::VoidSoul,
+            CardEffect::CodeViolet,
+            CardEffect::MoltenGold,
+            CardEffect::Frostshatter,
+            CardEffect::Stormfury,
+            CardEffect::Hexmarshal,
+            CardEffect::LethalRecipe,
+            CardEffect::DigForFreedom,
+            CardEffect::GuardDog,
+            CardEffect::BeastTripwire,
+            CardEffect::ArcaneTripwire,
+            CardEffect::CapturedArchmage,
+            CardEffect::FranticForger,
+            CardEffect::LowSecurityWing,
+            CardEffect::DemonicConfinement,
+            CardEffect::WidowsBite,
+            CardEffect::WidowsFeast,
+            CardEffect::WidowsBanquet,
+            CardEffect::Nab,
+            CardEffect::VoidBlast,
+            CardEffect::CosmicManifestations,
+            CardEffect::DefiasWannabe,
+            CardEffect::Soothsayer,
+            CardEffect::HolyEmbrace,
+            CardEffect::RatBurglar,
+            CardEffect::DarkBribe,
+            CardEffect::AncientAugurPick,
+            CardEffect::AncientAugurDeathrattle,
+            CardEffect::ArachnathidVenom,
+            CardEffect::TruthSeeker,
+            CardEffect::ConcealingConfection,
+            CardEffect::DisguisedExecutioner,
+            CardEffect::GetawayHogdriver,
+            CardEffect::EscapeArtist,
+            CardEffect::BloodClone,
+            CardEffect::GallagioGoon,
+            CardEffect::BlackMarketOverseer,
+            CardEffect::ActivatedGolem,
+            CardEffect::Hellraiser,
+            CardEffect::SummonTwoRandomMinionsOfCost { cost: 4 },
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");

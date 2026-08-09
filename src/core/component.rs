@@ -948,6 +948,23 @@ pub struct BonusDamageTaken;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct CantPlayNextTurn;
 
+/// CopiedFromOpponent (2025–2026 expansions M5-W2) — a hand-card marker
+/// set in `copy_card_to_hand` when the source card belongs to the other
+/// player (Mind Sweeper's "a card copied from the opponent", Enthralled
+/// Shade's "a copied card", Unshackle Soul's cost read). The played flag
+/// is mirrored on `Player::copied_from_opponent_played` by the
+/// `CardPlayed` handler.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct CopiedFromOpponent;
+
+/// LockedUntilCardPlayed (2025–2026 expansions M5-W2) — a hand-card
+/// marker: the card cannot be played until its owner plays a card
+/// (JAIL_987 Low Security Wing's "It can't be played until you play a
+/// card"). Consulted by `validate_play_card`; cleared in the
+/// `CardPlayed` handler.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct LockedUntilCardPlayed;
+
 /// HandTurnCounter (2025–2026 expansions M4-W4) — a hand-card marker
 /// counting the number of turns the card has been in its owner's hand
 /// (CATA_498 Rafaam's Last Stand: "Deal damage equal to the number of

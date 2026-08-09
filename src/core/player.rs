@@ -692,6 +692,48 @@ pub struct Player {
     /// hero power swapped in by the battlecry costs Corpses instead of
     /// Mana (2 Corpses per use).
     pub thalena_corpses_hero_power: bool,
+    /// The spells cast this turn (2025–2026 expansions M5-W2 — the Violet
+    /// Hold closing wave: the Molten Gold / Frostshatter / Stormfury
+    /// elemental-chain counter; incremented in the SpellCast handler and
+    /// cleared at the owner's turn start).
+    pub spells_cast_this_turn: u32,
+    /// The rewind history length at this turn's start (M5-W2 — Slice and
+    /// Dice: replayed plays start from this mark; set at the owner's turn
+    /// start).
+    pub rewind_turn_start_len: usize,
+    /// The card ids discarded by Zuramat's Prison (M5-W2 — the freed
+    /// Zuramat the Obliterator plays one per turn).
+    pub zuramat_discarded: Vec<String>,
+    /// The suspect of Inspector Murloc Holmes' investigation: the card id
+    /// and the turn it was investigated (M5-W2 — if the other player plays
+    /// that id during the suspect's next turn, the caster gets 3 Coins).
+    pub murloc_holmes_suspect: Option<(String, u32)>,
+    /// The suspect card id of Ancient Augur's investigation (M5-W2 — the
+    /// matching enemy hand card is discarded by the deathrattle).
+    pub augur_suspect: Option<String>,
+    /// The card ids Irida Sinseeker sent to the Void (M5-W2 — two random
+    /// ones return to hand at the start of the owner's turns).
+    pub void_cards: Vec<String>,
+    /// The Reinforcement Aura tick count (M5-W2 — at each end of the
+    /// owner's turn, a random deck minion costing 2 or less is summoned
+    /// while the count is above zero).
+    pub reinforcement_aura_ticks: u8,
+    /// The Void Soul level (M5-W2 — each cast summons a random Demon of
+    /// cost (1 + level) and increments the level; §28 approximation).
+    pub void_soul_level: i32,
+    /// The cards played this game that cost (2) (M5-W2 — Jade Guardians'
+    /// cost-reduction counter; incremented at the play-cost deduction
+    /// site).
+    pub cards_played_cost_2: u32,
+    /// Whether a card copied from the opponent was played (M5-W2 — the
+    /// Unshackle Soul cost read; set in the CardPlayed handler when the
+    /// played card carries the `CopiedFromOpponent` marker).
+    pub copied_from_opponent_played: bool,
+    /// The Captured Archmage deaths this game (M5-W2 — JAIL_974's
+    /// deathrattle fires Fireball once the count reaches 4; incremented in
+    /// the MinionDied handler, so the dying archmage itself is never
+    /// counted — the deathrattle resolves before the increment).
+    pub jail974_deaths: u32,
 }
 
 impl Player {
@@ -843,6 +885,17 @@ impl Player {
             prepare_used_this_turn: false,
             prepared_cards: Vec::new(),
             thalena_corpses_hero_power: false,
+            spells_cast_this_turn: 0,
+            rewind_turn_start_len: 0,
+            zuramat_discarded: Vec::new(),
+            murloc_holmes_suspect: None,
+            augur_suspect: None,
+            void_cards: Vec::new(),
+            reinforcement_aura_ticks: 0,
+            void_soul_level: 0,
+            cards_played_cost_2: 0,
+            copied_from_opponent_played: false,
+            jail974_deaths: 0,
         }
     }
 }

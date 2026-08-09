@@ -2171,3 +2171,192 @@ while-alive convention), `jail_w1_skeleton_key_discovers`,
 `jail_w1_karov_three_legendaries`. Full `cargo test` fully green (all
 suites, incl. every prior scenario — 996 passed, 1 ignored), `cargo fmt`
 clean, `cargo clippy --all-targets` zero warnings.
+
+### 28. 2025–2026 expansions M5-W2 — Escape from Violet Hold, the closing wave (139 cards: 10 legendaries + 108 non-legendaries + 21 tokens) 🔓 registered
+
+The registered simplifications of the M5-W2 wave (`src/cards/exp_jail_w2.rs`):
+the FINAL wave of the 2025–2026 expansions roadmap — every remaining JAIL
+card (10 legendaries + 108 non-legendaries) plus the wave tokens, registered
+in `sets.rs` (139 entries). As with §14–§27, these handwritten expansion
+cards are not in the RL pool (classic + core 668/659), so the rows are
+informational: they keep the code's simplifications traceable to the ledger.
+Each row stays open until its mechanism lands.
+
+The wave's headline mechanics are FULL primitives: **Tiny Pal's ammunition**
+(`ChoiceKind::TinyPalAmmo` — the battlecry pick among the four ammunition
+weapons JAIL_458t1–t4; each hero attack fires the armed shot and re-surfaces
+the choice through the `weapon_trigger` table); **Slice and Dice** (replays
+the turn's earlier plays through the M3 Rewind machinery —
+`Player::rewind_turn_start_len` — then ends the turn); **Irida Sinseeker**
+(the whole deck moves to `Player::void_cards`; a per-card TurnStart trigger
+retrieves two random ones — the retrieval stops if Irida leaves play);
+**King of the Underbelly / Staff of Trickery** (D2-random discover pools with
+`pending_discover_cost_reduction`); **Warden Maiev** (+3/+3 + Dormant 1 on
+every played minion through a `CardPlayed` per-card trigger); **Inspector
+Murloc Holmes** (`ChoiceKind::MurlocHolmes` — a three-card read of the enemy
+hand; the suspect is tracked in `Player::murloc_holmes_suspect` and the
+`CardPlayed` handler pays out 3 Coins on a same-name play); **Togwaggle,
+Smuggler King** (both hands merged, shuffled, and dealt out in halves);
+**R4T-C4TCH3R** (deck spells copied at random deck positions; the deathrattle
+draws one); **Zuramat's Prison** (a location whose battlecry is a
+`ChooseHandCard` discard-summon; the freed Zuramat JAIL_887t2 plays one
+discarded card per turn); **Blood Clone** (`ChoiceKind::BloodClone` — the
+discover only surfaces when the 5 Corpses are affordable, spent on the pick);
+**the elemental counter cards** (Molten Gold / Frostshatter / Stormfury read
+`Player::spells_cast_this_turn` — incremented in the `SpellCast` handler,
+whose event fires AFTER the spell's own effect, so a `>= 3` check reads
+three OTHER spells; the elemental tokens reuse the parent spell's effect
+through a source-id branch inside the arm, so the Elemental's own battlecry
+still deals the damage on the summon); **Captured Archmage** (the per-card
+death counter increments in the `MinionDied` handler before the dead
+minion's own deathrattle resolves, so the read is exactly the OTHER deaths:
+four other Archmages → Fireball); and **the twelve new Prepare cards**
+(registered in `cards::prepare::is_prepare_card`, driven by the W1
+`PrepareCardExecuted` pin).
+
+The wave's §28 pins (documented conventions): **Slice and Dice** —
+"targeting enemies if possible" is dropped, the replays use the original
+targeting; **King of the Underbelly** — the deck-building pick is a
+battlecry-time D2 pool of three random Beasts (no deck-building surface);
+**Staff of Trickery** — the reduction is the hero's Attack including the
+equipped weapon (`compute_attacker_damage`, which also covers Bladed
+Gauntlet's armor-as-attack); **Murloc Holmes** — the tracking is
+turn-based, not name-based; **Togwaggle** — the caster gets the first half
+rounded up ("you get one half" split convention); **Unshackle Soul** —
+"while holding this" is dropped (the cost-1 rides `cost.rs`); **the
+copy-family** — Mind Sweeper and Enthralled Shade approximate "copied from
+the opponent" with the `CopiedFromOpponent` marker set in
+`copy_card_to_hand`; **Void Soul** — the official "first Void Soul this
+game" escalation is a per-cast level (a random Demon of cost 1 + level,
+level increments per cast); **Reinforcement Aura** — the three turns run
+back-to-back from the casting turn (`reinforcement_aura_ticks`, summoned
+minions are fresh copies — the Finja convention); **Dig for Freedom** — the
+friendly-minion pick is random; the granted deathrattle is the new
+`SummonTwoRandomMinionsOfCost` effect variant (a deviation recorded for the
+mirror/bot updates); **Beast Tripwire / Arcane Tripwire** — the Tripped
+tokens are playable spells per the W1 Blight convention (the
+auto-cast-on-draw property is not modeled); **Jailbird** — the Prepare
+discount is a permanent hand-cost reduction; **Demonic Confinement** — the
+-3/-3 half is dropped (a non-Demon target is made Dormant 2); **Violet
+Punisher** — the keyword count reads the minion's keyword components
+(Taunt / Divine Shield / Windfury / Charge / Stealth / Poisonous / Rush /
+Elusive / Reborn / Lifesteal), the keyword theft is not modeled; **Spire of
+Solitude** — the demon's stats equal the hand size and it has permanent
+Stealth (the engine's untargetable-token convention); with no enemy minion
+the attack simply does not happen (the empty-enemies guard); **Spiderling**
+— the "on your turn" pin is dropped; **Captive Nathrezim** — "ALL" is
+approximated by the Mana Wraith global cost aura (both hands) and the
+conditional +5 Attack is dropped; **Scrappy Defender** — the conditional
++5 Attack is dropped; **the "Casts When Drawn" family** — JAIL_386t/879t/881t
+are playable spells; **Nab** — the shuffled copy's cost is set directly;
+**Widow's Bite** — the escalation chain is bounded at three; **Lotus
+Troublemaker** — the repeat rider is dropped; **Emergency Surgery** — one
+Necronurse per hand card (the 2-cost 3/1 Lifesteal JAIL_454t); **Thief's
+Tools** — the steal is a fresh copy of a random enemy hand card; **Frail
+Ghoul** — the token is self-defined (the official card is HERO_11bpt).
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| JAIL_458 | Tiny Pal | Full: the TinyPalAmmo choice + the armed-shot weapon triggers (JAIL_458t1–t4) | — |
+| JAIL_500 | Slice and Dice | The Rewind replay is full; "targeting enemies if possible" dropped — replays use the original targeting | enemy-favoring retargeting |
+| JAIL_719 | Irida Sinseeker | Full: the whole deck to the Void; two random cards back at each of your turn starts (stops if Irida leaves play) | — |
+| JAIL_831 | King of the Underbelly | The deck-building pick → a battlecry-time D2 pool of three random Beasts, cost (3) less | a deck-building pick |
+| JAIL_850 | Warden Maiev | Full: every played minion gets +3/+3 and Dormant for 1 turn | — |
+| JAIL_851 | Inspector Murloc Holmes | Full: the three-card enemy-hand investigation + the same-name play pays 3 Coins (turn-based tracking) | — |
+| JAIL_852 | Togwaggle, Smuggler King | Full: both hands merged, shuffled, dealt in halves — the caster gets the first half rounded up | — |
+| JAIL_875 | Staff of Trickery | The Druid discover is a D2 random pool; the reduction = the hero's Attack incl. the equipped weapon | — |
+| JAIL_882 | R4T-C4TCH3R | Full: deck spells copied at random deck positions; the deathrattle draws one | — |
+| JAIL_887 | Zuramat's Prison | Full: the choose-a-card-to-discard location; Zuramat plays one discarded card each turn (TurnEnd trigger) | — |
+| JAIL_007 | Sewer Imp | The "if it survives" pin is approximated — the trigger fires without the survival check | a survival check |
+| JAIL_029 | Rioter | The "and survives" pin is approximated — the effect fires on the damage, not after the death check | a survival check |
+| JAIL_030 | Escape Artist | "Give a random friendly minion Divine Shield" — the pick is random | — |
+| JAIL_101 | Violet Punisher | The keyword count reads the keyword components; the keyword theft is not modeled | keyword theft |
+| JAIL_123 | Breakout Architect | "The next spell you cast this turn casts twice" discover → a random pick | a discover |
+| JAIL_200 | Infest the Scullery | The "It has your hero's Attack" improvement is dropped | a hero-attack copy |
+| JAIL_202 | Spiderling | The "on your turn" pin is dropped — the +1/+1 aura applies on both turns | a turn pin |
+| JAIL_205 | Rat Burglar | The steal is a draw-card draw of one random enemy deck card | a top-of-deck steal |
+| JAIL_206 | Dark Bribe | The pick scope is the whole hand, not only the drawn three | a drawn-only pick |
+| JAIL_225 | Nab | The shuffled copy's cost is set directly | a cost (2) copy |
+| JAIL_303 | Ancient Augur | The friendly-minion pick is random | — |
+| JAIL_321 | Tricksy Improviser | The secret is a random Mage-class secret, not a deck read | a deck read |
+| JAIL_326 | Judgment | "Set all minions' stats to a random friendly minion's" — the pick is random | — |
+| JAIL_327 | Reinforcement Aura | The three turns run back-to-back from the casting turn; the summoned minion is a fresh copy (Finja convention) | one summon per turn |
+| JAIL_380 | Smuggled Shovel | The drawn spell must not already be in the starting deck | — |
+| JAIL_386 | Scramble for Gear | The Armor token is a playable spell per the W1 Blight convention (no auto-cast on draw) | a cast-when-drawn pipeline |
+| JAIL_387 | Release the Beasts | The two random 4-Cost Beasts come from the closed pool | — |
+| JAIL_395 | Sewer Swimmer | The random 3-Cost Beast pick; Stealth is permanent per the engine convention | — |
+| JAIL_398 | IMPFERNAL! | The "if it dies" escalation rider is dropped | a death chain |
+| JAIL_433 | Unshackle Soul | "While holding this" is dropped — the cost-1 rides cost.rs | a holding condition |
+| JAIL_436 | Widow's Bite | The escalation chain is bounded at three | an open chain |
+| JAIL_442 | Disguised Doctor | Elusive is modeled; the +2/+2 target is random | — |
+| JAIL_444 | Sawbones | The +2/+2 target is random; Elusive granted | — |
+| JAIL_451 | Blood Clone | Full: the 5-Cost discover surfaces only when the 5 Corpses are affordable; the pick spends them and summons | — |
+| JAIL_453 | Jailbird | Full: the Prepare discount is a permanent hand-cost reduction (the W1 pin) | — |
+| JAIL_454 | Emergency Surgery | One 3/1 Lifesteal Necronurse (JAIL_454t) per hand card | — |
+| JAIL_456 | P1CK-P0K3T | The +2/+2 target is random | — |
+| JAIL_459 | Arachnathid | The friendly-minion pick is random; Stealth is permanent | — |
+| JAIL_470 | Lotus Troublemaker | The "If it dies, deal 1 damage again" repeat rider is dropped | a repeat rider |
+| JAIL_474 | Jade Guardians | The "cost (2) this game" counter is approximated | a game-long counter |
+| JAIL_501 | Picklock | The dynamic numbers (damage / attack gain) are static 1 | dynamic scaling |
+| JAIL_502 | Alarm-o-Matic | The "replace this" rider is dropped — the minion stays on the board | a replace rider |
+| JAIL_507 | Spiteful Chef | The cost-to-0 is a hand-cost reduction | — |
+| JAIL_511 | Spire of Solitude | Full: the hand-sized Shivarra Infiltrator with permanent Stealth; with no enemy minion the attack does not happen | — |
+| JAIL_513 | Caged Cranium | Stealth is permanent per the engine convention | — |
+| JAIL_515 | Shadow Rounds | Full: the chain re-casts on the killed target | — |
+| JAIL_516 | Scarlet Recruiter | Full: two deck minions costing (2) or less, +2/+2 | — |
+| JAIL_706 | Thief's Tools | The steal is a fresh copy of a random enemy hand card | a real steal |
+| JAIL_718 | Black Market Auctioneer | Full: the FriendlySpellCast draw | — |
+| JAIL_732 | Void Soul | The official first-cast escalation → a per-cast level (a random Demon of cost 1 + level, bounded) | an open escalation |
+| JAIL_733 | Vicious Voidscale | The discover is a random deck card; the empty-deck read is approximated | a deck read |
+| JAIL_735 | Code Violet | The random 7-Cost minion is summoned with Taunt | — |
+| JAIL_801 | Molten Gold | Full: the 3-other-spells counter; the Elemental's own battlecry still deals the 4 on the summon | — |
+| JAIL_803 | Frostshatter | Full: the 3-other-spells counter; the 5/5 Elemental (JAIL_803t) battlecry deals 5 | — |
+| JAIL_805 | Stormfury | Full: the 3-other-spells counter; the 7/7 Lifesteal Elemental (JAIL_805t) battlecry deals 7 | — |
+| JAIL_806 | Hexmarshal | The deck check reads the deck's spell count | a deck read |
+| JAIL_861 | Noxious Bribe | The random-card pick | — |
+| JAIL_876 | Dig for Freedom | The friendly-minion pick is random; the granted deathrattle is the new SummonTwoRandomMinionsOfCost effect | a chosen minion |
+| JAIL_877 | Underbelly Network | The +2/+2 target is random | — |
+| JAIL_878 | Guard Dog | The Divine Shield target is random | — |
+| JAIL_879 | Beast Tripwire | Full: the random 5-Cost Beast summon + the two Tripped tokens shuffled in (playable spells per the Blight convention) | — |
+| JAIL_881 | Arcane Tripwire | The Tripped token is a playable spell per the Blight convention, Immune to Spellpower | a cast-when-drawn pipeline |
+| JAIL_890 | Captive Nathrezim | "ALL" is approximated by the global Mana Wraith cost aura (both hands); the conditional +5 Attack is dropped | a both-hands read |
+| JAIL_909 | Defias Wannabe | The "for the rest of the game" combo rider is simplified | a game-long rider |
+| JAIL_912 | Soothsayer | The +3/+3 target is random | — |
+| JAIL_913 | Hold Them Off! | The Deathrattle target is the first friendly Deathrattle minion | — |
+| JAIL_940 | Undeath Sentence | The target is the first friendly Deathrattle minion, not a random one | a random trigger |
+| JAIL_974 | Captured Archmage | Full: the 4-other-deaths counter casts Fireball (6) at a random enemy | — |
+| JAIL_986 | Frantic Forger | The random playable-spell pool | — |
+| JAIL_987 | Low Security Wing | The gate is the LockedUntilCardPlayed marker, cleared by any play | — |
+| JAIL_997 | Demonic Confinement | The -3/-3 half is dropped — a non-Demon target is made Dormant 2 | a full -3/-3 |
+| JAIL_998 | Defias Smuggler | The +2/+2 target is random | — |
+| JAIL_440t | Frail Ghoul | The token is self-defined (the official card is HERO_11bpt) | the official token |
+| JAIL_458t1–t4 | Tiny Pal ammunition | Full: Freeze 2 / +2/+2 / 3 damage / 2/1-with-Taunt armed shots | — |
+| JAIL_879t / 881t | Tripped Tripwires | Playable spells per the W1 Blight convention (no auto-cast on draw) | a cast-when-drawn pipeline |
+| JAIL_887t2 / 887t3 | Zuramat / Whisper of the Void | Full tokens of the prison's deathrattle chain | — |
+
+F5 coverage: `jail_w2_*` (18 scenarios in `tests/differential.rs`) —
+`jail_w2_slice_and_dice_replays_and_ends_turn` (the Rewind replay + the
+end-of-turn push), `jail_w2_tiny_pal_ammo_freeze_cycle` (the ammo choice,
+the equipped shot, the freeze, the re-surface), `jail_w2_irida_sinseeker_void_deck`
+(the whole deck to the Void + the two-card retrieval),
+`jail_w2_king_of_the_underbelly_discover_beast` (the Beast discover + the
+(3) reduction), `jail_w2_warden_maiev_dormant_buff` (+3/+3 + Dormant),
+`jail_w2_murloc_holmes_investigates` (the investigation + the 3-Coin payout),
+`jail_w2_togwaggle_shuffles_hands_together` (the merge + the ceil-half
+split), `jail_w2_staff_of_trickery_discovers_druid` (the Druid discover +
+the hero-Attack reduction), `jail_w2_r4t_catcher_copies_deck_spells` (the
+deck-spell copies), `jail_w2_zuramats_prison_discard_chain` (the
+choose-a-card-to-discard location + the freed Zuramat's per-turn play),
+`jail_w2_molten_gold_elemental_threshold` (the 3-other-spells counter + the
+Elemental's own battlecry), `jail_w2_beast_tripwire_summons_and_shuffles`
+(the 5-Cost Beast + the two Tripped tokens), `jail_w2_blood_clone_spends_corpses`
+(the Corpses spend + the summon), `jail_w2_jailbird_prepare_discount` (the
+Prepare-keyword discount on the W2 card), `jail_w2_dig_for_freedom_grants_deathrattle`
+(the granted SummonTwoRandomMinionsOfCost deathrattle — battlecries fire on
+effect summons, the pre-existing engine convention),
+`jail_w2_reinforcement_aura_end_turn_summon` (the 3-tick aura),
+`jail_w2_spire_of_solitude_hand_sized_demon` (the hand-sized demon + the
+no-target guard), `jail_w2_captured_archmage_four_deaths_fireball` (the
+4-other-deaths Fireball). Full `cargo test` fully green (all suites, incl.
+every prior scenario), `cargo fmt` clean, `cargo clippy --all-targets` zero
+warnings.

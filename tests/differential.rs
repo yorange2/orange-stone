@@ -34410,3 +34410,811 @@ fn jail_w1_karov_three_legendaries() {
         );
     }
 }
+
+// ============================================================
+// 2025-2026 expansions M5-W2 (exp_jail_w2) — the Violet Hold
+// closing wave: the 10 remaining legendaries + misc shape
+// representatives (§28). F5 scenarios, one per legendary plus
+// representative mechanics (elemental threshold, tripwires,
+// corpses, Prepare, granted deathrattles, end-turn summons,
+// location activation, death-counter threshold).
+// ============================================================
+
+/// JAILW2-1 — Slice and Dice: "Replay all other cards played this
+/// turn. End your turn." — the Widow's Bite played earlier is replayed
+/// (another +1 Armor and Widow's Feast), then the turn ends.
+#[test]
+fn jail_w2_slice_and_dice_replays_and_ends_turn() {
+    use orange_stone::cards::exp_jail_w2::{SLICE_AND_DICE, WIDOWS_BITE};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &WIDOWS_BITE);
+    builder.add_minion_to_hand(p1, &SLICE_AND_DICE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Widow's Bite: +1 hero Attack this turn, +1 Armor, add a Feast
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).armor, 1, "the first cast");
+    // Slice and Dice replays it — the armor stacks, another Feast lands
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).armor, 2, "the replay granted armor again");
+    let feasts = hand_ids(&state, p1)
+        .into_iter()
+        .filter(|id| id == "JAIL_436t")
+        .count();
+    assert_eq!(feasts, 2, "two Widow's Feasts from cast + replay");
+    assert_eq!(state.active_player(), PlayerId2(), "the turn ended");
+}
+
+/// JAILW2-2 — Tiny Pal: the play surfaces the ammunition choice; the
+/// Freeze ammunition (JAIL_458t1) equips and, when the hero attacks,
+/// freezes 2 random enemy characters and re-surfaces the choice.
+#[test]
+fn jail_w2_tiny_pal_ammo_freeze_cycle() {
+    use orange_stone::cards::exp_jail_w2::TINY_PAL;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &TINY_PAL);
+    builder.add_custom_minion_to_board(p2, 1, 5, 1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let choice = play_front_card_choice(&mut state, &engine, p1);
+    assert_eq!(choice.kind, ChoiceKind::TinyPalAmmo);
+    assert_eq!(choice.pool.len(), 4, "four ammunition options");
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0, // the Freeze ammunition
+            },
+        )
+        .unwrap();
+    let weapon = state.player(p1).weapon.expect("ammo equipped");
+    assert_eq!(
+        state.world().card_id(weapon).map(|c| c.0),
+        Some("JAIL_458t1"),
+        "the freeze ammunition replaced Tiny Pal"
+    );
+    // The hero attacks: the ammo trigger freezes 2 random enemy
+    // characters (the hero and the only enemy minion — both), then
+    // re-surfaces the choice ("choose another").
+    let hero = state.player(p1).hero;
+    let enemy_minion = board_minions(&state, p2)[0];
+    let resolution = engine
+        .apply_choices(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: enemy_minion,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice: reload } = resolution else {
+        panic!("the fired shot must re-surface the ammo choice");
+    };
+    assert_eq!(reload.kind, ChoiceKind::TinyPalAmmo, "choose another");
+    let enemy_hero = state.player(p2).hero;
+    assert!(state.world().freeze(enemy_hero).is_some(), "hero frozen");
+    assert!(
+        state.world().freeze(enemy_minion).is_some(),
+        "enemy minion frozen"
+    );
+}
+
+/// JAILW2-3 — Irida Sinseeker: the battlecry sends the whole deck to
+/// the Void; at the next turn start two random Void cards return.
+#[test]
+fn jail_w2_irida_sinseeker_void_deck() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, KNIFE_JUGGLER, WORGEN_INFILTRATOR};
+    use orange_stone::cards::exp_jail_w2::IRIDA_SINSEEKER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &IRIDA_SINSEEKER);
+    builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(p1, &WORGEN_INFILTRATOR);
+    builder.add_minion_to_deck(p1, &KNIFE_JUGGLER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    // The deck is shuffled at build (roadmap G7), so the Void holds the
+    // three cards in a random order — assert the set, not the order.
+    let mut void = state.player(p1).void_cards.clone();
+    void.sort();
+    assert_eq!(
+        void,
+        vec![
+            "CLASSIC_001".to_string(),
+            "NEUTRAL_C08".to_string(),
+            "NEUTRAL_R09".to_string()
+        ],
+        "the whole deck went to the Void"
+    );
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), 0, "empty deck");
+    // The next turn start retrieves two random Void cards
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let hand = hand_ids(&state, p1);
+    assert_eq!(hand.len(), 2, "two cards from the Void");
+    let known = ["CLASSIC_001", "NEUTRAL_C08", "NEUTRAL_R09"];
+    for id in &hand {
+        assert!(known.contains(&id.as_str()), "a card from the Void");
+    }
+    assert_eq!(state.player(p1).void_cards.len(), 1, "one card stays");
+}
+
+/// JAILW2-4 — King of the Underbelly: a contraband Beast discover whose
+/// pick costs (3) less.
+#[test]
+fn jail_w2_king_of_the_underbelly_discover_beast() {
+    use orange_stone::cards::exp_jail_w2::KING_OF_THE_UNDERBELLY;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &KING_OF_THE_UNDERBELLY);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let choice = play_front_card_choice(&mut state, &engine, p1);
+    assert_eq!(choice.kind, ChoiceKind::Discover);
+    assert_eq!(choice.pool.len(), 3, "three Beast options");
+    let picked_id = choice.pool[0].clone();
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    let picked = find_hand_entity(&state, p1, &picked_id);
+    let def = orange_stone::cards::def::card_by_id(&picked_id).expect("a known Beast");
+    assert_eq!(
+        def.race,
+        Some(orange_stone::core::component::Race::Beast),
+        "a Beast"
+    );
+    assert_eq!(
+        state.world().effective_cost(picked),
+        Some(Cost((def.cost - 3).max(0))),
+        "it costs (3) less"
+    );
+}
+
+/// JAILW2-5 — Warden Maiev: "After you play a minion, give it +3/+3
+/// and make it go Dormant for 1 turn."
+#[test]
+fn jail_w2_warden_maiev_dormant_buff() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_jail_w2::WARDEN_MAIEV;
+    use orange_stone::core::component::Dormant;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_board(p1, &WARDEN_MAIEV);
+    builder.add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let raptor = find_entity(&state, p1, "CLASSIC_001");
+    assert_eq!(
+        state.world().effective_attack(raptor),
+        Some(Attack(6)),
+        "3/2 +3/+3"
+    );
+    assert_eq!(
+        state.world().effective_health(raptor),
+        Some(Health(5)),
+        "3/2 +3/+3"
+    );
+    assert!(
+        matches!(state.world().dormant(raptor), Some(Dormant { turns: 1 })),
+        "dormant for 1 turn"
+    );
+}
+
+/// JAILW2-6 — Inspector Murloc Holmes: the investigation picks a card
+/// from the enemy hand; playing a card of that name on the enemy's next
+/// turn pays out 3 Coins.
+#[test]
+fn jail_w2_murloc_holmes_investigates() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, KNIFE_JUGGLER, WORGEN_INFILTRATOR};
+    use orange_stone::cards::exp_jail_w2::INSPECTOR_MURLOC_HOLMES;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.set_mana(p2, 10, 10);
+    builder.add_minion_to_hand(p1, &INSPECTOR_MURLOC_HOLMES);
+    builder.add_minion_to_hand(p2, &BLOODFEN_RAPTOR);
+    builder.add_minion_to_hand(p2, &WORGEN_INFILTRATOR);
+    builder.add_minion_to_hand(p2, &KNIFE_JUGGLER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let choice = play_front_card_choice(&mut state, &engine, p1);
+    assert_eq!(choice.kind, ChoiceKind::MurlocHolmes);
+    assert_eq!(choice.pool.len(), 3, "the whole enemy hand is investigated");
+    let raptor_idx = choice
+        .pool
+        .iter()
+        .position(|id| id == "CLASSIC_001")
+        .expect("the Raptor is an option");
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: raptor_idx as u8,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.player(p1).murloc_holmes_suspect.is_some(),
+        "the investigation is open"
+    );
+    // The enemy's next turn: playing the named card pays out 3 Coins
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    play_front_card(&mut state, &engine, p2);
+    let coins = hand_ids(&state, p1)
+        .into_iter()
+        .filter(|id| id == "GAME_005")
+        .count();
+    assert_eq!(coins, 3, "three Coins for the solved investigation");
+    assert!(
+        state.player(p1).murloc_holmes_suspect.is_none(),
+        "the investigation closed"
+    );
+}
+
+/// JAILW2-7 — Togwaggle, Smuggler King: both hands are shuffled
+/// together and dealt back out — ceil half to the caster.
+#[test]
+fn jail_w2_togwaggle_shuffles_hands_together() {
+    use orange_stone::cards::exp_jail_w2::TOGWAGGLE_SMUGGLER_KING;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &TOGWAGGLE_SMUGGLER_KING);
+    let a = builder.add_custom_minion_to_hand(p1, 1, 1, 1);
+    let b = builder.add_custom_minion_to_hand(p1, 2, 2, 2);
+    let c = builder.add_custom_minion_to_hand(p2, 3, 3, 3);
+    let d = builder.add_custom_minion_to_hand(p2, 4, 4, 4);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        2,
+        "the caster gets the ceil half"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p2),
+        2,
+        "the opponent the rest"
+    );
+    for e in [a, b, c, d] {
+        let in_p1 = state.world().zones().iter(Zone::Hand, p1).any(|x| x == e);
+        let in_p2 = state.world().zones().iter(Zone::Hand, p2).any(|x| x == e);
+        assert!(in_p1 || in_p2, "every shuffled card stayed in a hand");
+    }
+}
+
+/// JAILW2-8 — Staff of Trickery: the weapon trigger discovers a Druid
+/// card whose Cost is reduced by the hero's Attack (the weapon's 1).
+#[test]
+fn jail_w2_staff_of_trickery_discovers_druid() {
+    use orange_stone::cards::exp_jail_w2::STAFF_OF_TRICKERY;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.equip_weapon(p1, &STAFF_OF_TRICKERY);
+    builder.add_custom_minion_to_board(p2, 1, 5, 1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero = state.player(p1).hero;
+    let enemy = board_minions(&state, p2)[0];
+    let resolution = engine
+        .apply_choices(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: enemy,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = resolution else {
+        panic!("the weapon trigger must surface a Druid discover");
+    };
+    assert_eq!(choice.kind, ChoiceKind::Discover);
+    assert_eq!(choice.pool.len(), 3, "three Druid cards");
+    let picked_id = choice.pool[0].clone();
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    let def = orange_stone::cards::def::card_by_id(&picked_id).expect("a known Druid card");
+    let picked = find_hand_entity(&state, p1, &picked_id);
+    assert_eq!(
+        state.world().effective_cost(picked),
+        Some(Cost((def.cost - 1).max(0))),
+        "reduced by the hero's Attack (weapon 1)"
+    );
+}
+
+/// JAILW2-9 — R4T-C4TCH3R: the battlecry copies every spell in the
+/// deck (the two spell deck becomes four).
+#[test]
+fn jail_w2_r4t_catcher_copies_deck_spells() {
+    use orange_stone::cards::exp_jail_w2::{MOLTEN_GOLD, R4T_C4TCH3R, WIDOWS_BITE};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &R4T_C4TCH3R);
+    builder.add_minion_to_deck(p1, &WIDOWS_BITE);
+    builder.add_minion_to_deck(p1, &MOLTEN_GOLD);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let deck: Vec<String> = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, p1)
+        .filter_map(|e| state.world().card_id(e).map(|c| c.0.to_string()))
+        .collect();
+    assert_eq!(
+        deck.iter().filter(|id| *id == "JAIL_436").count(),
+        2,
+        "Widow's Bite plus its copy"
+    );
+    assert_eq!(
+        deck.iter().filter(|id| *id == "JAIL_801").count(),
+        2,
+        "Molten Gold plus its copy"
+    );
+}
+
+/// JAILW2-10 — Zuramat's Prison: each activation discards a chosen hand
+/// card, records it, and summons a Whisper of the Void; when the last
+/// charge is spent the prison breaks and frees Zuramat, who plays one
+/// discarded card at the end of the turn.
+#[test]
+fn jail_w2_zuramats_prison_discard_chain() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, KNIFE_JUGGLER, WORGEN_INFILTRATOR};
+    use orange_stone::cards::exp_jail_w2::ZURAMATS_PRISON;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &ZURAMATS_PRISON);
+    builder.add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    builder.add_minion_to_hand(p1, &WORGEN_INFILTRATOR);
+    builder.add_minion_to_hand(p1, &KNIFE_JUGGLER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // the location
+    let loc = state.player(p1).location.expect("the prison was played");
+    // The prison's battlecry slot is the ACTIVATE effect: a choose-a-
+    // card discard that summons a Whisper. Cooldown first.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Activation 1: the front card is the Raptor
+    let choice = play_location_choice(&mut state, &engine, loc);
+    assert_eq!(choice.kind, ChoiceKind::ChooseHandCard);
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(p1).zuramat_discarded,
+        vec!["CLASSIC_001".to_string()],
+        "the Raptor was recorded"
+    );
+    assert_eq!(board_count(&state, p1, "JAIL_887t3"), 1, "a Whisper");
+    // Activation 2: the Worgen
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let choice = play_location_choice(&mut state, &engine, loc);
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(p1).zuramat_discarded,
+        vec!["CLASSIC_001".to_string(), "NEUTRAL_C08".to_string()],
+        "the Worgen joined the discard pile"
+    );
+    // Activation 3: the Knife Juggler — the last charge breaks the
+    // prison and its deathrattle frees Zuramat the Obliterator.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let choice = play_location_choice(&mut state, &engine, loc);
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(p1).zuramat_discarded,
+        vec![
+            "CLASSIC_001".to_string(),
+            "NEUTRAL_C08".to_string(),
+            "NEUTRAL_R09".to_string()
+        ],
+        "the Knife Juggler joined the discard pile"
+    );
+    assert!(
+        state.player(p1).location.is_none(),
+        "the prison broke apart"
+    );
+    assert_eq!(board_count(&state, p1, "JAIL_887t2"), 1, "Zuramat freed");
+    // End of the turn: Zuramat plays one random discarded card — all
+    // three are minions, so a fresh copy is summoned. The played card is
+    // removed from the discard pile, so check the board against the
+    // ORIGINAL three discarded ids.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let discarded = state.player(p1).zuramat_discarded.clone();
+    assert_eq!(discarded.len(), 2, "one card was played");
+    let original = ["CLASSIC_001", "NEUTRAL_C08", "NEUTRAL_R09"];
+    let board: Vec<String> = board_minions(&state, p1)
+        .into_iter()
+        .filter_map(|e| state.world().card_id(e).map(|c| c.0.to_string()))
+        .collect();
+    assert!(
+        board.iter().any(|id| original.contains(&id.as_str())),
+        "Zuramat played a discarded minion: {board:?}"
+    );
+}
+
+/// JAILW2-11 — Molten Gold: the elemental-spell threshold — after 3
+/// other spells this turn, the cast summons the Molten Gold Elemental
+/// instead of dealing 4 damage.
+#[test]
+fn jail_w2_molten_gold_elemental_threshold() {
+    use orange_stone::cards::exp_jail_w2::MOLTEN_GOLD;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    for _ in 0..4 {
+        builder.add_minion_to_hand(p1, &MOLTEN_GOLD);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let enemy_hero = state.player(p2).hero;
+    // Three casts deal 4 damage each (9 mana)
+    for _ in 0..3 {
+        play_front_card(&mut state, &engine, p1);
+    }
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(18)),
+        "3 x 4 damage"
+    );
+    assert_eq!(board_count(&state, p1, "JAIL_801t"), 0, "no elemental yet");
+    // The fourth cast of the turn summons the Elemental instead
+    give_mana(&mut state, p1, 10);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        board_count(&state, p1, "JAIL_801t"),
+        1,
+        "the Elemental replaced the damage"
+    );
+    // The Elemental's own battlecry ("Deal 4 damage to a random enemy")
+    // still fires on the summon — the hero takes the 4 (18 → 14).
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(14)),
+        "the Elemental's battlecry dealt the 4"
+    );
+}
+
+/// JAILW2-12 — Beast Tripwire: summons a random 5-Cost Beast and
+/// shuffles two Tripped Beast Tripwires into the deck.
+#[test]
+fn jail_w2_beast_tripwire_summons_and_shuffles() {
+    use orange_stone::cards::exp_jail_w2::BEAST_TRIPWIRE;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &BEAST_TRIPWIRE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 1, "one summoned Beast");
+    let cid = state.world().card_id(minions[0]).expect("a real Beast").0;
+    let def = orange_stone::cards::def::card_by_id(cid).expect("a known Beast");
+    assert_eq!(def.cost, 5, "a 5-Cost Beast");
+    assert_eq!(
+        def.race,
+        Some(orange_stone::core::component::Race::Beast),
+        "a Beast"
+    );
+    let deck: Vec<String> = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, p1)
+        .filter_map(|e| state.world().card_id(e).map(|c| c.0.to_string()))
+        .collect();
+    assert_eq!(
+        deck.iter().filter(|id| *id == "JAIL_879t").count(),
+        2,
+        "two Tripped Tripwires shuffled in"
+    );
+}
+
+/// JAILW2-13 — Blood Clone: with 5 Corpses available, the discover
+/// surfaces; the pick spends the Corpses and summons a 5-Cost copy.
+#[test]
+fn jail_w2_blood_clone_spends_corpses() {
+    use orange_stone::cards::exp_jail_w2::BLOOD_CLONE;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &BLOOD_CLONE);
+    let mut state = builder.build();
+    state.make_mut().players[p1.index()].corpses = 5;
+    let engine = GameEngine::new();
+    let choice = play_front_card_choice(&mut state, &engine, p1);
+    assert_eq!(choice.kind, ChoiceKind::BloodClone);
+    assert_eq!(choice.pool.len(), 3, "three 5-Cost options");
+    let picked_id = choice.pool[0].clone();
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(p1).corpses, 0, "five Corpses spent");
+    assert_eq!(
+        board_count(&state, p1, &picked_id),
+        1,
+        "the clone was summoned"
+    );
+    let def = orange_stone::cards::def::card_by_id(&picked_id).expect("a known minion");
+    assert_eq!(def.cost, 5, "a 5-Cost minion");
+}
+
+/// JAILW2-14 — Jailbird: "When you Prepare while holding this, reduce
+/// this card's Cost by the same amount" — a 4-mana Prepare discounts
+/// the Jailbird by (4).
+#[test]
+fn jail_w2_jailbird_prepare_discount() {
+    use orange_stone::cards::exp_jail_w2::{JAILBIRD, TRICKSY_IMPROVISER};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 4, 4);
+    builder.add_minion_to_hand(p1, &JAILBIRD);
+    builder.add_minion_to_hand(p1, &TRICKSY_IMPROVISER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Prepare validates the target against the prepare-keyword table —
+    // a real W2 Prepare card (JAIL_321 Tricksy Improviser) is the target.
+    let tricksy = find_hand_entity(&state, p1, "JAIL_321");
+    engine
+        .apply(&mut state, Action::Prepare { card: tricksy })
+        .unwrap();
+    let jailbird = find_hand_entity(&state, p1, "JAIL_453");
+    assert_eq!(
+        state.world().effective_cost(jailbird),
+        Some(Cost(1)),
+        "5 - the 4 mana spent"
+    );
+}
+
+/// JAILW2-15 — Dig for Freedom: grants a friendly minion 'Deathrattle:
+/// Summon two random 4-Cost minions' — the granted deathrattle fires
+/// when the minion dies.
+#[test]
+fn jail_w2_dig_for_freedom_grants_deathrattle() {
+    use orange_stone::cards::exp_jail_w2::DIG_FOR_FREEDOM;
+    use orange_stone::core::component::Deathrattle;
+    use orange_stone::core::effect::CardEffect;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &DIG_FOR_FREEDOM);
+    let friend = builder.add_custom_minion_to_board(p1, 1, 3, 1);
+    let big = builder.add_custom_minion_to_board(p2, 9, 9, 9);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert!(
+        matches!(
+            state.world().deathrattle(friend),
+            Some(Deathrattle(CardEffect::SummonTwoRandomMinionsOfCost {
+                cost: 4
+            }))
+        ),
+        "the granted deathrattle"
+    );
+    // The minion dies attacking the 9/9 — two random 4-Cost minions join
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: friend,
+                defender: big,
+            },
+        )
+        .unwrap();
+    // Both summons happened, but a summoned minion's battlecry fires on
+    // effect summons in this engine (pre-existing convention) — a 4-Cost
+    // Battlecry minion like Ancient Brewmaster can bounce its co-summoned
+    // partner to the hand. Count 4-Cost-def entities across Play + Hand +
+    // Graveyard instead of the board alone.
+    let zones = [Zone::Play, Zone::Hand, Zone::Graveyard];
+    let four_cost: Vec<Entity> = zones
+        .iter()
+        .flat_map(|z| state.world().zones().iter(*z, p1).collect::<Vec<_>>())
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .and_then(|c| orange_stone::cards::def::card_by_id(c.0))
+                .is_some_and(|def| def.card_type == CardType::Minion && def.cost == 4)
+        })
+        .collect();
+    assert_eq!(four_cost.len(), 2, "two 4-Cost minions summoned");
+}
+
+/// JAILW2-16 — Reinforcement Aura: arms a 3-turn end-of-turn summon of
+/// a random deck minion costing (2) or less; the first tick fires at
+/// the end of the turn it was cast.
+#[test]
+fn jail_w2_reinforcement_aura_end_turn_summon() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, WORGEN_INFILTRATOR};
+    use orange_stone::cards::exp_jail_w2::REINFORCEMENT_AURA;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &REINFORCEMENT_AURA);
+    builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(p1, &WORGEN_INFILTRATOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).reinforcement_aura_ticks, 3, "armed");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.player(p1).reinforcement_aura_ticks,
+        2,
+        "one tick spent"
+    );
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 1, "one deck minion answered the call");
+    let cid = state.world().card_id(minions[0]).expect("a real minion").0;
+    let def = orange_stone::cards::def::card_by_id(cid).expect("a known def");
+    assert!(def.cost <= 2, "costs (2) or less");
+}
+
+/// JAILW2-17 — Spire of Solitude: the activation summons a Shivarra
+/// Infiltrator with stats equal to the hand size.
+#[test]
+fn jail_w2_spire_of_solitude_hand_sized_demon() {
+    use orange_stone::cards::exp_jail_w2::SPIRE_OF_SOLITUDE;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &SPIRE_OF_SOLITUDE);
+    builder.add_custom_minion_to_hand(p1, 1, 1, 1);
+    builder.add_custom_minion_to_hand(p1, 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // the location
+    let loc = state.player(p1).location.expect("the Spire was played");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Activation: the hand held 3 (Spire + two customs), the play dropped
+    // it to 2, and p1's turn-start draw (two EndTurns later) brought it
+    // back to 3 -> a 3/3 Shivarra Infiltrator.
+    engine
+        .apply(
+            &mut state,
+            Action::ActivateLocation {
+                location: loc,
+                target: None,
+            },
+        )
+        .unwrap();
+    let demon = find_entity(&state, p1, "JAIL_511t");
+    assert_eq!(
+        state.world().effective_attack(demon),
+        Some(Attack(3)),
+        "stats equal the hand size"
+    );
+    assert_eq!(
+        state.world().effective_health(demon),
+        Some(Health(3)),
+        "stats equal the hand size"
+    );
+}
+
+/// JAILW2-18 — Captured Archmage: the deathrattle fires only after 4
+/// OTHER Captured Archmages died this game — the fifth death casts
+/// Fireball (6 damage) at a random enemy.
+#[test]
+fn jail_w2_captured_archmage_four_deaths_fireball() {
+    use orange_stone::cards::exp_jail_w2::CAPTURED_ARCHMAGE;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    for _ in 0..5 {
+        builder.add_minion_to_board(p1, &CAPTURED_ARCHMAGE);
+    }
+    let big = builder.add_custom_minion_to_board(p2, 20, 30, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let archmages = board_minions(&state, p1);
+    assert_eq!(archmages.len(), 5, "five Archmages");
+    for (i, archmage) in archmages.into_iter().enumerate() {
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker: archmage,
+                    defender: big,
+                },
+            )
+            .unwrap();
+        if i < 4 {
+            assert_eq!(
+                state.player(p1).jail974_deaths,
+                (i + 1) as u32,
+                "the first four deaths stay quiet"
+            );
+        }
+    }
+    // The fifth death sees 4 other Archmages: Fireball at a random
+    // enemy (the hero or the 20/15 minion — exactly one takes 6).
+    assert_eq!(state.player(p1).jail974_deaths, 5, "all five died");
+    let enemy_hero = state.player(p2).hero;
+    let hero_hp = state.world().effective_health(enemy_hero).unwrap().0;
+    let minion_hp = state.world().effective_health(big).unwrap().0;
+    assert!((24..=30).contains(&hero_hp), "hero took 0 or 6");
+    assert!((9..=15).contains(&minion_hp), "minion took 0 or 6");
+    assert_eq!(hero_hp + minion_hp, 39, "exactly one 6-damage Fireball");
+}
