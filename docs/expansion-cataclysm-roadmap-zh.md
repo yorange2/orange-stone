@@ -41,7 +41,7 @@
 - [x] **W2 —— 先锋（C2）**（PR #157）： 缩放计数 + 巨像士兵池；6 职业先锋卡。
 - [x] **W3 —— 粉碎（C3）**（PR #158）： 分裂/重组管线；F5 场景钉死 抽牌-分裂-重组 时序；若该波
   判定完整保真过大，按 D2 登记简化而非上残缺机制。
-- **W4 —— 死亡之翼 + 收尾：** C4 基于 P1 机制；其余卡；职业套装跟进推迟；
+- [x] **W4 —— 死亡之翼 + 收尾**（PR #159）： C4 基于 P1 机制；其余卡；职业套装跟进推迟；
   收尾波清扫衍生物/账本。
 
 ## 卡清单
@@ -85,112 +85,114 @@
 - [x] CATA_820 Supply Run
 
 ### W4 —— 死亡之翼 + 其余卡
-- [ ] CATA_190h Deathwing, Worldbreaker
-- [ ] CATA_497 Ultraxion
-- [ ] CATA_111 Darkscale Broodmother
-- [ ] CATA_130 Crystalspine Cub
-- [ ] CATA_131 Felwood Treant
-- [ ] CATA_132 Broodwatcher
-- [ ] CATA_133 Iridescent Flitterwing
-- [ ] CATA_135 Mossbinding
-- [ ] CATA_136 Azshara's Triumph
-- [ ] CATA_138 Forest's Gift
-- [ ] CATA_140 Merithra of the Dream
-- [ ] CATA_161 Gruesome Nightmare
-- [ ] CATA_180 War'loc
-- [ ] CATA_185 Faceless Replicator
-- [ ] CATA_186 Stickybomb Saboteur
-- [ ] CATA_200 Agent of the Old Ones
-- [ ] CATA_201 Twilight Mistress
-- [ ] CATA_203 Garona's Last Stand
-- [ ] CATA_206 Twisted Monstrosity
-- [ ] CATA_208 Selfless Protector
-- [ ] CATA_209 Battlefield Blaster
-- [ ] CATA_210 Twilight Egg
-- [ ] CATA_213 Vyranoth
-- [ ] CATA_215 Daze
-- [ ] CATA_216 Cleansing Cleric
-- [ ] CATA_301 Ruby Sanctum
-- [ ] CATA_302 Mend
-- [ ] CATA_303 Purifying Breath
-- [ ] CATA_304 Injured Attendant
-- [ ] CATA_305 Incensed Matriarch
-- [ ] CATA_307 Alexstrasza, Guardian of Life
-- [ ] CATA_308 Medivh's Triumph
-- [ ] CATA_452 Spellweaver's Brilliance
-- [ ] CATA_458 Archmage Kalec
-- [ ] CATA_464 Blackwing Experiment
-- [ ] CATA_465 Chow Down
-- [ ] CATA_467 Command Claw
-- [ ] CATA_469 Chromatic Broodmother
-- [ ] CATA_470 Victor Nefarius
-- [ ] CATA_471 Talanji's Last Stand
-- [ ] CATA_472 Inspiring Maul
-- [ ] CATA_473 Nozdormu, Bronze Aspect
-- [ ] CATA_474 Spearheart Sentry
-- [ ] CATA_475 Scalebreaker Bulwark
-- [ ] CATA_476 Bronze Keeper
-- [ ] CATA_477 Chamber of Aspects
-- [ ] CATA_478 Bronze Redeemer
-- [ ] CATA_480 Sandfury Aura
-- [ ] CATA_481 Iso'rath
-- [ ] CATA_483 Unstable Spellcaster
-- [ ] CATA_484 Winterspring Whelp
-- [ ] CATA_485 Sleet Storm
-- [ ] CATA_487 Raincaller
-- [ ] CATA_490 Ocular Occultist
-- [ ] CATA_491 Eldritch Tentacles
-- [ ] CATA_493 Duke of Below
-- [ ] CATA_494 Maloriak
-- [ ] CATA_496 Cursed Chains
-- [ ] CATA_498 Rafaams' Last Stand
-- [ ] CATA_499 Disposable Acolytes
-- [ ] CATA_526 Broxigar's Last Stand
-- [ ] CATA_527 Nespirah, Enthralled
-- [ ] CATA_528 Sigil of the Seas
-- [ ] CATA_529 Ravenous Felfisher
-- [ ] CATA_533 Flash Flood
-- [ ] CATA_551 Stonetalon Striker
-- [ ] CATA_552 Ebonscale Scout
-- [ ] CATA_553 Ebyssian
-- [ ] CATA_554 Earthen Roar
-- [ ] CATA_556 Carrier Whelp
-- [ ] CATA_557 Sylvanas's Triumph
-- [ ] CATA_558 Reinforcement Rallier
-- [ ] CATA_560 Confront the Tol'vir
-- [ ] CATA_563 Crackling Cloudstrider
-- [ ] CATA_564 Air Support
-- [ ] CATA_566 Tol'vir Carver
-- [ ] CATA_567 Ascendance
-- [ ] CATA_568 Muradin's Last Stand
-- [ ] CATA_569 Ceremonial Clash
-- [ ] CATA_570 Morchok
-- [ ] CATA_581 Decimation
-- [ ] CATA_582 Searing Fissure
-- [ ] CATA_584 Erupting Volcano
-- [ ] CATA_585 Torch
-- [ ] CATA_586 Destructive Blaze
-- [ ] CATA_591 Commander Geddon
-- [ ] CATA_610 Lo'Gosh's Last Stand
-- [ ] CATA_612 Frostbitten Imp
-- [ ] CATA_613 Survivalist
-- [ ] CATA_614 Shadowed Informant
-- [ ] CATA_615 Genn, Cursed King
-- [ ] CATA_616 Gronn Giant
-- [ ] CATA_621 Gelbin's Triumph
-- [ ] CATA_697 Malevolent Mutant
-- [ ] CATA_699 Dread Leviathan
-- [ ] CATA_720 Warmaster Blackhorn
-- [ ] CATA_721 Sheltered Survivor
-- [ ] CATA_723 Drakeadon Mongrel
-- [ ] CATA_724 Stormbinder
-- [ ] CATA_786 Chaos Supplicant
-- [ ] CATA_897 Gemstone Hoarder
-- [ ] CATA_898 Scaled Lancer
-- [ ] CATA_978 Sindragosa's Triumph
-- [ ] CATA_979 Conjuration Specialist
-- [ ] CATA_999 Earthen Drake
-> Class Sets (follow-up wave, 29 cards — the miniset slot):
+- [x] CATA_190h Deathwing, Worldbreaker
+- [x] CATA_497 Ultraxion
+- [x] CATA_111 Darkscale Broodmother
+- [x] CATA_130 Crystalspine Cub
+- [x] CATA_131 Felwood Treant
+- [x] CATA_132 Broodwatcher
+- [x] CATA_133 Iridescent Flitterwing
+- [x] CATA_135 Mossbinding
+- [x] CATA_136 Azshara's Triumph
+- [x] CATA_138 Forest's Gift
+- [x] CATA_140 Merithra of the Dream
+- [x] CATA_161 Gruesome Nightmare
+- [x] CATA_180 War'loc
+- [x] CATA_185 Faceless Replicator
+- [x] CATA_186 Stickybomb Saboteur
+- [x] CATA_200 Agent of the Old Ones
+- [x] CATA_201 Twilight Mistress
+- [x] CATA_203 Garona's Last Stand
+- [x] CATA_206 Twisted Monstrosity
+- [x] CATA_208 Selfless Protector
+- [x] CATA_209 Battlefield Blaster
+- [x] CATA_210 Twilight Egg
+- [x] CATA_213 Vyranoth
+- [x] CATA_215 Daze
+- [x] CATA_216 Cleansing Cleric
+- [x] CATA_301 Ruby Sanctum
+- [x] CATA_302 Mend
+- [x] CATA_303 Purifying Breath
+- [x] CATA_304 Injured Attendant
+- [x] CATA_305 Incensed Matriarch
+- [x] CATA_307 Alexstrasza, Guardian of Life
+- [x] CATA_308 Medivh's Triumph
+- [x] CATA_452 Spellweaver's Brilliance
+- [x] CATA_458 Archmage Kalec
+- [x] CATA_464 Blackwing Experiment
+- [x] CATA_465 Chow Down
+- [x] CATA_467 Command Claw
+- [x] CATA_469 Chromatic Broodmother
+- [x] CATA_470 Victor Nefarius
+- [x] CATA_471 Talanji's Last Stand
+- [x] CATA_472 Inspiring Maul
+- [x] CATA_473 Nozdormu, Bronze Aspect
+- [x] CATA_474 Spearheart Sentry
+- [x] CATA_475 Scalebreaker Bulwark
+- [x] CATA_476 Bronze Keeper
+- [x] CATA_477 Chamber of Aspects
+- [x] CATA_478 Bronze Redeemer
+- [x] CATA_480 Sandfury Aura
+- [x] CATA_481 Iso'rath
+- [x] CATA_483 Unstable Spellcaster
+- [x] CATA_484 Winterspring Whelp
+- [x] CATA_485 Sleet Storm
+- [x] CATA_487 Raincaller
+- [x] CATA_490 Ocular Occultist
+- [x] CATA_491 Eldritch Tentacles
+- [x] CATA_493 Duke of Below
+- [x] CATA_494 Maloriak
+- [x] CATA_496 Cursed Chains
+- [x] CATA_498 Rafaams' Last Stand
+- [x] CATA_499 Disposable Acolytes
+- [x] CATA_526 Broxigar's Last Stand
+- [x] CATA_527 Nespirah, Enthralled
+- [x] CATA_528 Sigil of the Seas
+- [x] CATA_529 Ravenous Felfisher
+- [x] CATA_533 Flash Flood
+- [x] CATA_551 Stonetalon Striker
+- [x] CATA_552 Ebonscale Scout
+- [x] CATA_553 Ebyssian
+- [x] CATA_554 Earthen Roar
+- [x] CATA_556 Carrier Whelp
+- [x] CATA_557 Sylvanas's Triumph
+- [x] CATA_558 Reinforcement Rallier
+- [x] CATA_560 Confront the Tol'vir
+- [x] CATA_563 Crackling Cloudstrider
+- [x] CATA_564 Air Support
+- [x] CATA_566 Tol'vir Carver
+- [x] CATA_567 Ascendance
+- [x] CATA_568 Muradin's Last Stand
+- [x] CATA_569 Ceremonial Clash
+- [x] CATA_570 Morchok
+- [x] CATA_581 Decimation
+- [x] CATA_582 Searing Fissure
+- [x] CATA_584 Erupting Volcano
+- [x] CATA_585 Torch
+- [x] CATA_586 Destructive Blaze
+- [x] CATA_591 Commander Geddon
+- [x] CATA_610 Lo'Gosh's Last Stand
+- [x] CATA_612 Frostbitten Imp
+- [x] CATA_613 Survivalist
+- [x] CATA_614 Shadowed Informant
+- [x] CATA_615 Genn, Cursed King
+- [x] CATA_616 Gronn Giant
+- [x] CATA_621 Gelbin's Triumph
+- [x] CATA_697 Malevolent Mutant
+- [x] CATA_699 Dread Leviathan
+- [x] CATA_720 Warmaster Blackhorn
+- [x] CATA_721 Sheltered Survivor
+- [x] CATA_723 Drakeadon Mongrel
+- [x] CATA_724 Stormbinder
+- [x] CATA_786 Chaos Supplicant
+- [x] CATA_897 Gemstone Hoarder
+- [x] CATA_898 Scaled Lancer
+- [x] CATA_978 Sindragosa's Triumph
+- [x] CATA_979 Conjuration Specialist
+- [x] CATA_999 Earthen Drake
+> Class Sets（跟进波，29 张——迷你包位）：**W4 之后仍然推迟** —— MEND_ 职业
+> 套装卡不属于 W4 范围（跟进波随 2025–2026 主路线图进入迷你包位时落地；W0
+> 数据与 `cataclysm_dump_fidelity` 基线已覆盖它们）。
 - [ ] MEND_040 Ash Worm
 - [ ] MEND_041 Wizened Wildspeaker
 - [ ] MEND_042 Lifebloom
