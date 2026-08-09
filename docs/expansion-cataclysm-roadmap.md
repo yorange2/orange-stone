@@ -46,7 +46,7 @@ registration; simplifications get ledger rows.
   part positioning, part-death rules and main-death cascades.
 - [x] **W2 — Herald (C2)** (PR #157): scaling counter + Colossal Soldier pool; the 6
   classes' Herald cards.
-- **W3 — Shatter (C3):** split/recombine pipeline; F5 scenarios pin the
+- [x] **W3 — Shatter (C3)** (PR #158): split/recombine pipeline; F5 scenarios pin the
   draw-split-recombine sequencing; if the wave judges full fidelity too large,
   register the simplification (D2) instead of shipping a partial mechanic.
 - **W4 — Deathwing hero + closing:** C4 on P1's machinery; remaining cards;
@@ -85,12 +85,12 @@ registration; simplifications get ledger rows.
 - [x] CATA_785 Rite of Twilight
 
 ### W3 — Shatter
-- [ ] CATA_134 Wildwood Circle
-- [ ] CATA_202 Stolen Power
-- [ ] CATA_306 Schism
-- [ ] CATA_479 Flight Maneuvers
-- [ ] CATA_489 Arcane Flow
-- [ ] CATA_820 Supply Run
+- [x] CATA_134 Wildwood Circle
+- [x] CATA_202 Stolen Power
+- [x] CATA_306 Schism
+- [x] CATA_479 Flight Maneuvers
+- [x] CATA_489 Arcane Flow
+- [x] CATA_820 Supply Run
 
 ### W4 — Deathwing + remaining cards
 - [ ] CATA_190h Deathwing, Worldbreaker

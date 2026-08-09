@@ -39,7 +39,7 @@
 - [x] **W1 —— 巨像（C1）**（PR #156）： 附属部件组件 + 召唤路径；F5 场景钉死部件占位、部件
   死亡规则与本体死亡级联。
 - [x] **W2 —— 先锋（C2）**（PR #157）： 缩放计数 + 巨像士兵池；6 职业先锋卡。
-- **W3 —— 粉碎（C3）：** 分裂/重组管线；F5 场景钉死 抽牌-分裂-重组 时序；若该波
+- [x] **W3 —— 粉碎（C3）**（PR #158）： 分裂/重组管线；F5 场景钉死 抽牌-分裂-重组 时序；若该波
   判定完整保真过大，按 D2 登记简化而非上残缺机制。
 - **W4 —— 死亡之翼 + 收尾：** C4 基于 P1 机制；其余卡；职业套装跟进推迟；
   收尾波清扫衍生物/账本。
@@ -77,12 +77,12 @@
 - [x] CATA_785 Rite of Twilight
 
 ### W3 —— 粉碎
-- [ ] CATA_134 Wildwood Circle
-- [ ] CATA_202 Stolen Power
-- [ ] CATA_306 Schism
-- [ ] CATA_479 Flight Maneuvers
-- [ ] CATA_489 Arcane Flow
-- [ ] CATA_820 Supply Run
+- [x] CATA_134 Wildwood Circle
+- [x] CATA_202 Stolen Power
+- [x] CATA_306 Schism
+- [x] CATA_479 Flight Maneuvers
+- [x] CATA_489 Arcane Flow
+- [x] CATA_820 Supply Run
 
 ### W4 —— 死亡之翼 + 其余卡
 - [ ] CATA_190h Deathwing, Worldbreaker
