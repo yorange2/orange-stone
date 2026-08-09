@@ -1900,3 +1900,55 @@ fully green (all suites, incl. every `tlc_w*_*`/`tmw1_*`/`tmw2a_*`/
 `tmw2b_*`/`tmw3_*`/`cata_w1_*` scenario and the 9 `cata_w2_*` — 954
 passed, 1 ignored), `cargo fmt` clean, `cargo clippy --all-targets` zero
 warnings.
+
+### 25. 2025–2026 expansions M4-W3 — the Cataclysm Shatter wave (6 cards + 2 board tokens) 🔓 registered
+
+The registered simplifications of the M4-W3 wave (`src/cards/exp_cata_w3.rs`):
+the 6 Shatter cards of the Cataclysm expansion and their 2 board tokens
+(Treant CATA_134t3, Sky Drake CATA_479t3). As with §14–§24, these
+handwritten expansion cards are not in the RL pool (classic + core
+668/659), so the rows are informational: they keep the code's
+simplifications traceable to the ledger. Each row stays open until its
+mechanism lands.
+
+The wave's headline decision is the **D2 simplification** (sanctioned by
+the M4-W3 spec 2026-08-09): the official dump has NO half-card tokens — a
+full split/recombine pipeline would synthesize halves from card texts with
+no data anchor, and CATA_202 Stolen Power's text literally says "(It's
+already combined)" — the combined form is the playable norm. **The Shatter
+cards are played as their combined full cards**: each card carries ONE
+effect (or one new combined `CardEffect` variant) that resolves the whole
+"Shatter. \<combined effect\>" text — no draw-split, no halves, no
+recombination. The `CATA_xxx t/t2` half-card "Shattered" tokens of the
+dump (CATA_134t/134t2, CATA_306t1/306t2, CATA_479t/479t2, CATA_489t/489t2,
+CATA_820t/820t2 — 10 tokens) are NOT implemented. All effects map to
+existing primitives (the attach-deathrattle from M2-W4c's Sheep Mask
+precedent, the copy from M2-W4b's `SummonCopyOfFriendlyMinion` convention,
+the D2 random pool from the Mask-pool precedent — `pool::SHATTER_POOL`);
+only Arcane Flow's two "$" amounts needed a new `apply_spell_power` arm
+(both scaled by spell damage, Velen doubling both).
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| CATA_134 | Wildwood Circle | Combined form: "Summon two 2/2 Treants. Give your minions 'Deathrattle: Summon a 2/2 Treant.'" — `SummonMinionsAndGrantDeathrattleAll` (the deathrattle attaches AFTER the summon, so the fresh Treants receive it; the replacement Treant summoned by the deathrattle does not) | a data-anchored split/recombine pipeline: the card splits into halves at play and recombines into the full form |
+| CATA_202 | Stolen Power | Combined form: "Get a random Shatter card from another class. (It's already combined)" — `AddRandomShatterCardToHand` draws the combined playable form from the fixed `SHATTER_POOL` (the other 5 Shatter cards, all non-Rogue) | the class filter + the split/recombine pipeline |
+| CATA_306 | Schism | Combined form: "Give a friendly minion +2/+3 and Elusive. Summon a copy of it." — `GainStatsElusiveAndSummonCopy`: one pick feeds all three parts; the copy is the base card (no buff, no Elusive) | a data-anchored split/recombine pipeline |
+| CATA_479 | Flight Maneuvers | Combined form: "Summon two 4/2 Drakes. Give your minions +1 Attack and Divine Shield." — `SummonMinionsAndGrantFriendlyAttackDivineShield` (the buff applies after the summon, the fresh Drakes included) | a data-anchored split/recombine pipeline |
+| CATA_489 | Arcane Flow | Combined form: "Deal $4 damage. Deal $2 damage to all enemies." — `DealDamageAndDamageAllEnemies`: the primary part targets any character (the official "$4 damage" has no target filter, the §25 pin), the splash hits all enemies (the enemy hero included); both amounts take the spell damage bonus | a data-anchored split/recombine pipeline |
+| CATA_820 | Supply Run | Combined form: "Draw 3 minions. Give minions in your hand +2/+2." — `DrawMinionsAndBuffHandMinions`: each draw picks a random minion from the deck (a minion never drawn twice, the §20 Disciple-of-the-Dove convention), then every hand minion (the drawn ones included) gains +2/+2 | a data-anchored split/recombine pipeline |
+
+F5 coverage: `cata_w3_*` (6 scenarios in `tests/differential.rs`) —
+`cata_w3_wildwood_circle_combined` (the two Treants + the deathrattle
+attached to every friendly minion, and the deathrattle summoning a
+replacement that does NOT inherit it), `cata_w3_schism_combined` (the
++2/+3 + Elusive buff and the base-card copy off one pick),
+`cata_w3_flight_maneuvers_combined` (the two Dragon Drakes + the +1 Attack
+and Divine Shield on every friendly minion, the fresh Drakes included),
+`cata_w3_arcane_flow_combined` (the primary 4+1 damage on the chosen
+character, the 2+1 splash on the enemy hero and enemy minions under an
+Ogre Magi), `cata_w3_supply_run_combined` (3 random minions drawn, the
+deck down to 2, every hand minion 5/4), `cata_w3_stolen_power_pool` (one
+Shatter card from the fixed pool). Full `cargo test` fully green (all
+suites, incl. every `tlc_w*_*`/`tmw1_*`/`tmw2a_*`/`tmw2b_*`/`tmw3_*`/
+`cata_w1_*`/`cata_w2_*` scenario and the 6 `cata_w3_*` — 956 passed, 1
+ignored), `cargo fmt` clean, `cargo clippy --all-targets` zero warnings.

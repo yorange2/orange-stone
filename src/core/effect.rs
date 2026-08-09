@@ -3871,6 +3871,70 @@ pub enum CardEffect {
         /// Attack gained by the random friendly minion
         attack: i32,
     },
+    /// Summon `count` copies of a minion, then grant ALL friendly minions
+    /// "Deathrattle: summon the same minion" (2025–2026 expansions M4-W3
+    /// — CATA_134 Wildwood Circle's combined form; the
+    /// GrantDeathrattleAll Soul-of-the-Forest convention applied AFTER
+    /// the summon, so the fresh tokens receive the deathrattle too).
+    SummonMinionsAndGrantDeathrattleAll {
+        /// Card ID to summon (and to attach as the deathrattle summon)
+        card_id: &'static str,
+        /// Number of minions to summon
+        count: u32,
+    },
+    /// Give a friendly minion stats and Elusive, then summon a copy of it
+    /// (2025–2026 expansions M4-W3 — CATA_306 Schism's combined form; one
+    /// pick feeds all three parts, and the copy is the base card — the
+    /// SummonCopyOfFriendlyMinion convention).
+    GainStatsElusiveAndSummonCopy {
+        /// Attack gained by the target
+        attack: i32,
+        /// Health gained by the target
+        health: i32,
+    },
+    /// Summon `count` copies of a minion, then give every friendly minion
+    /// extra Attack and Divine Shield (2025–2026 expansions M4-W3 —
+    /// CATA_479 Flight Maneuvers' combined form; the buff applies after
+    /// the summon, so the fresh Drakes receive it too — the
+    /// Longneck-Egg convention).
+    SummonMinionsAndGrantFriendlyAttackDivineShield {
+        /// Card ID to summon
+        card_id: &'static str,
+        /// Number of minions to summon
+        count: u32,
+        /// Attack gained by every friendly minion
+        attack: i32,
+    },
+    /// Deal damage to a character, then deal damage to all enemies
+    /// (2025–2026 expansions M4-W3 — CATA_489 Arcane Flow's combined
+    /// form; the primary part targets any character — the official
+    /// "$4 damage" has no target filter, the Rite-of-Twilight §24 pin —
+    /// and the splash hits the enemy hero too).
+    DealDamageAndDamageAllEnemies {
+        /// Primary damage (targeted)
+        amount: i32,
+        /// Damage dealt to all enemies
+        aoe: i32,
+    },
+    /// Draw `count` random minions from the deck, then give every minion
+    /// in hand stats (2025–2026 expansions M4-W3 — CATA_820 Supply Run's
+    /// combined form; the draw-minions convention of
+    /// DrawMinionAndBuffHandMinionsHealth, with the hand buff applied
+    /// after the draws so the drawn minions receive it too).
+    DrawMinionsAndBuffHandMinions {
+        /// Number of minions to draw
+        count: u32,
+        /// Attack gained by every minion in hand
+        attack: i32,
+        /// Health gained by every minion in hand
+        health: i32,
+    },
+    /// Get a random Shatter card from another class (2025–2026 expansions
+    /// M4-W3 — CATA_202 Stolen Power; the fixed `SHATTER_POOL` — the
+    /// other 5 Shatter cards, all non-Rogue — is the D2 random
+    /// simplification, the Mask-pool convention, §25; the gotten card is
+    /// the combined playable form).
+    AddRandomShatterCardToHand,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -5493,6 +5557,29 @@ enum CardEffectDe {
     GiveRandomFriendlyMinionAttack {
         attack: i32,
     },
+    SummonMinionsAndGrantDeathrattleAll {
+        card_id: String,
+        count: u32,
+    },
+    GainStatsElusiveAndSummonCopy {
+        attack: i32,
+        health: i32,
+    },
+    SummonMinionsAndGrantFriendlyAttackDivineShield {
+        card_id: String,
+        count: u32,
+        attack: i32,
+    },
+    DealDamageAndDamageAllEnemies {
+        amount: i32,
+        aoe: i32,
+    },
+    DrawMinionsAndBuffHandMinions {
+        count: u32,
+        attack: i32,
+        health: i32,
+    },
+    AddRandomShatterCardToHand,
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -7318,6 +7405,37 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::GiveRandomFriendlyMinionAttack { attack } => {
                 CardEffect::GiveRandomFriendlyMinionAttack { attack }
             }
+            CardEffectDe::SummonMinionsAndGrantDeathrattleAll { card_id, count } => {
+                CardEffect::SummonMinionsAndGrantDeathrattleAll {
+                    card_id: intern(card_id)?,
+                    count,
+                }
+            }
+            CardEffectDe::GainStatsElusiveAndSummonCopy { attack, health } => {
+                CardEffect::GainStatsElusiveAndSummonCopy { attack, health }
+            }
+            CardEffectDe::SummonMinionsAndGrantFriendlyAttackDivineShield {
+                card_id,
+                count,
+                attack,
+            } => CardEffect::SummonMinionsAndGrantFriendlyAttackDivineShield {
+                card_id: intern(card_id)?,
+                count,
+                attack,
+            },
+            CardEffectDe::DealDamageAndDamageAllEnemies { amount, aoe } => {
+                CardEffect::DealDamageAndDamageAllEnemies { amount, aoe }
+            }
+            CardEffectDe::DrawMinionsAndBuffHandMinions {
+                count,
+                attack,
+                health,
+            } => CardEffect::DrawMinionsAndBuffHandMinions {
+                count,
+                attack,
+                health,
+            },
+            CardEffectDe::AddRandomShatterCardToHand => CardEffect::AddRandomShatterCardToHand,
         })
     }
 }
@@ -8155,6 +8273,27 @@ mod tests {
             CardEffect::TriggerFriendlyDeathrattles,
             CardEffect::AddRandomMinionsCostEqualAttack { count: 2 },
             CardEffect::GiveRandomFriendlyMinionAttack { attack: 2 },
+            // 2025–2026 expansions M4-W3 (Shatter) variants.
+            CardEffect::SummonMinionsAndGrantDeathrattleAll {
+                card_id: "CATA_134t3",
+                count: 2,
+            },
+            CardEffect::GainStatsElusiveAndSummonCopy {
+                attack: 2,
+                health: 3,
+            },
+            CardEffect::SummonMinionsAndGrantFriendlyAttackDivineShield {
+                card_id: "CATA_479t3",
+                count: 2,
+                attack: 1,
+            },
+            CardEffect::DealDamageAndDamageAllEnemies { amount: 4, aoe: 2 },
+            CardEffect::DrawMinionsAndBuffHandMinions {
+                count: 3,
+                attack: 2,
+                health: 2,
+            },
+            CardEffect::AddRandomShatterCardToHand,
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");

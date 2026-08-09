@@ -189,6 +189,21 @@ pub const MASK_POOL: &[&str] = &[
     "DINO_432", // Panther Mask (Druid)
 ];
 
+/// The Shatter pool — CATA_202 Stolen Power's "get a random Shatter card
+/// from another class" (2025–2026 expansions M4-W3): Stolen Power is
+/// Rogue, and the other 5 Shatter cards (Wildwood Circle, Schism, Flight
+/// Maneuvers, Arcane Flow, Supply Run) are all non-Rogue, so the "from
+/// another class" filter leaves the full set. The fixed table is the D2
+/// random simplification (fidelity-debt §25) — the gotten card is the
+/// combined playable form ("It's already combined").
+pub const SHATTER_POOL: &[&str] = &[
+    "CATA_134", // Wildwood Circle (Druid)
+    "CATA_306", // Schism (Priest)
+    "CATA_479", // Flight Maneuvers (Paladin)
+    "CATA_489", // Arcane Flow (Mage)
+    "CATA_820", // Supply Run (Hunter)
+];
+
 /// The multi-tribe minion pool — Tortotem's "get a random minion with
 /// multiple minion types" (2025–2026 expansions M2-W4c). The engine models
 /// a second tribe per-card in apply_card_keywords; filtering the active

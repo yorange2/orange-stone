@@ -1153,3 +1153,44 @@ F5 覆盖：`cata_w2_*`（`tests/differential.rs` 中 9 个场景）——
 `tlc_w*_*`/`tmw1_*`/`tmw2a_*`/`tmw2b_*`/`tmw3_*`/`cata_w1_*` 场景与 9 个
 `cata_w2_*`——954 通过、1 忽略），`cargo fmt` 干净，`cargo clippy
 --all-targets` 零警告。
+
+### 25. 2025–2026 扩展 M4-W3 —— 大灾变碎裂波（6 张卡 + 2 个战场衍生物）🔓 登记
+
+M4-W3 波的简化登记（`src/cards/exp_cata_w3.rs`）：大灾变扩展的 6 张碎裂卡
+及其 2 个战场衍生物（树妖 CATA_134t3、苍穹巨龙 CATA_479t3）。与 §14–§24
+相同，这些手写扩展卡不在 RL 池中（经典 + 核心 668/659），行目是信息性
+的：让代码中的简化在账本上可溯。每行保持开放，直到其机制落地。
+
+本波的核心决策是 **D2 简化**（M4-W3 规格 2026-08-09 认可）：官方卡库**没有**
+半卡衍生物——完整的分裂/重组管线需要从卡文凭空合成半卡、没有数据锚点，
+且 CATA_202 偷取力量卡文直说"(It's already combined)"——合体形态才是可玩
+常态。**碎裂卡以合体完整形态打出**：每张卡只带一个效果（或一个新的组合
+`CardEffect` 变体），一次结算整段"Shatter. \<合体效果\>"文本——不分裂、无
+半卡、无重组。卡库中的 `CATA_xxx t/t2` 半卡"碎裂"衍生物（CATA_134t/134t2、
+CATA_306t1/306t2、CATA_479t/479t2、CATA_489t/489t2、CATA_820t/820t2，共
+10 个）**不实现**。所有效果都映射到既有原语（亡语附加沿用 M2-W4c 绵羊面
+具先例、复制沿用 M2-W4b 的 `SummonCopyOfFriendlyMinion` 惯例、D2 随机池
+沿用面具池先例——`pool::SHATTER_POOL`）；只有奥术流的两处 "$" 数值需要
+新的 `apply_spell_power` 分支（两处都吃法术伤害加成、维伦双倍两者）。
+
+| ID | 卡牌 | 简化 | 何时真实 |
+| --- | --- | --- | --- |
+| CATA_134 | 野林环 | 合体形态："召唤两个 2/2 树妖。使你的随从获得'亡语：召唤一个 2/2 树妖'"——`SummonMinionsAndGrantDeathrattleAll`（亡语在召唤**之后**附加，新树妖也吃到；亡语召唤的替身树妖不再继承亡语） | 数据锚定的分裂/重组管线：打出时分裂成半卡、再重组为合体形态 |
+| CATA_202 | 偷取力量 | 合体形态："获取一张其他职业的随机碎裂卡。（它已合体）"——`AddRandomShatterCardToHand` 从固定 `SHATTER_POOL`（其余 5 张碎裂卡，均非盗贼）取合体可玩形态 | 职业过滤 + 分裂/重组管线 |
+| CATA_306 | 裂痕 | 合体形态："使一个友方随从获得 +2/+3 和精妙。召唤它的一个复制"——`GainStatsElusiveAndSummonCopy`：一次选目标喂三部分；复制为基础卡（无增益、无精妙） | 数据锚定的分裂/重组管线 |
+| CATA_479 | 机动演习 | 合体形态："召唤两个 4/2 巨龙。使你的随从获得 +1 攻击力和圣盾"——`SummonMinionsAndGrantFriendlyAttackDivineShield`（增益在召唤后生效，新巨龙也吃到） | 数据锚定的分裂/重组管线 |
+| CATA_489 | 奥术流 | 合体形态："造成 $4 点伤害。对所有敌人造成 $2 点伤害"——`DealDamageAndDamageAllEnemies`：主伤害可指向任意角色（官方 "$4 伤害"无目标过滤，§24 钉法），溅射命中所有敌人（含敌方英雄）；两处数值都吃法术伤害加成 | 数据锚定的分裂/重组管线 |
+| CATA_820 | 补给线 | 合体形态："抽三张随从牌。使你手牌中的随从获得 +2/+2"——`DrawMinionsAndBuffHandMinions`：每次抽牌从牌库随机选一张随从（同一张不会被抽两次，§20 信鸽使徒惯例），然后所有手牌随从（含刚抽到的）获得 +2/+2 | 数据锚定的分裂/重组管线 |
+
+F5 覆盖：`cata_w3_*`（`tests/differential.rs` 中 6 个场景）——
+`cata_w3_wildwood_circle_combined`（两只树妖 + 亡语附加到每个友方随从，
+且亡语召唤的替身**不**继承亡语）；`cata_w3_schism_combined`（一次选目标
+的 +2/+3 + 精妙增益与基础卡复制）；`cata_w3_flight_maneuvers_combined`
+（两只龙族巨龙 + 每个友方随从的 +1 攻击力和圣盾，新巨龙在内）；
+`cata_w3_arcane_flow_combined`（奥术师术士在场时主伤害 4+1 命中选定角
+色、溅射 2+1 命中敌方英雄与敌方随从）；`cata_w3_supply_run_combined`
+（抽 3 张随机随从、牌库剩 2、所有手牌随从 5/4）；
+`cata_w3_stolen_power_pool`（从固定池获得一张碎裂卡）。全部 `cargo test`
+全绿（所有套件，含全部 `tlc_w*_*`/`tmw1_*`/`tmw2a_*`/`tmw2b_*`/`tmw3_*`/
+`cata_w1_*`/`cata_w2_*` 场景与 6 个 `cata_w3_*`——956 通过、1 忽略），
+`cargo fmt` 干净，`cargo clippy --all-targets` 零警告。

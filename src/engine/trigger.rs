@@ -225,6 +225,15 @@ fn apply_spell_power(
         CardEffect::DealDamageToTwoAndFreeze { amount } => CardEffect::DealDamageToTwoAndFreeze {
             amount: adjust(amount),
         },
+        // M4-W3 — CATA_489 Arcane Flow's combined form: both "$" amounts
+        // (the targeted 4 and the all-enemies 2) take the Spell Damage
+        // bonus, Velen doubling both.
+        CardEffect::DealDamageAndDamageAllEnemies { amount, aoe } => {
+            CardEffect::DealDamageAndDamageAllEnemies {
+                amount: adjust(amount),
+                aoe: adjust(aoe),
+            }
+        }
         other => other,
     }
 }
@@ -11976,6 +11985,162 @@ pub fn resolve_effect(
                     expiry: crate::core::component::EnchantmentExpiry::Permanent,
                 },
             );
+        }
+        CardEffect::SummonMinionsAndGrantDeathrattleAll { card_id, count } => {
+            // CATA_134 Wildwood Circle (M4-W3, the D2 combined form —
+            // §25): "Summon two 2/2 Treants. Give your minions
+            // 'Deathrattle: Summon a 2/2 Treant.'" The deathrattle is
+            // attached AFTER the summon, so the freshly summoned tokens
+            // are friendly minions and receive it too (the Longneck-Egg
+            // convention).
+            for _ in 0..count {
+                let _ = resolve_summon(state, queue, source, owner, card_id);
+            }
+            let dr = Deathrattle(CardEffect::SummonMinion { card_id });
+            let minions = collect_friendly_minions(state, owner);
+            let world = state.world_mut();
+            for m in &minions {
+                world.set_deathrattle(*m, dr);
+            }
+        }
+        CardEffect::GainStatsElusiveAndSummonCopy { attack, health } => {
+            // CATA_306 Schism (M4-W3, the D2 combined form — §25):
+            // "Give a friendly minion +2/+3 and Elusive. Summon a copy
+            // of it." One pick feeds all three parts; the copy is the
+            // base card (the SummonCopyOfFriendlyMinion convention — the
+            // buff and Elusive do not transfer).
+            let minions = collect_friendly_minions(state, owner);
+            let Some(picked) = select_target(explicit_target, &minions, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().add_enchantment(
+                picked,
+                Enchantment {
+                    attack,
+                    health,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+            state.world_mut().set_elusive(picked, Elusive);
+            let Some(card_id) = state.world().card_id(picked) else {
+                return;
+            };
+            let _ = resolve_summon(state, queue, source, owner, card_id.0);
+        }
+        CardEffect::SummonMinionsAndGrantFriendlyAttackDivineShield {
+            card_id,
+            count,
+            attack,
+        } => {
+            // CATA_479 Flight Maneuvers (M4-W3, the D2 combined form —
+            // §25): "Summon two 4/2 Drakes. Give your minions +1 Attack
+            // and Divine Shield." The buff applies after the summon, so
+            // the fresh Drakes receive it too.
+            for _ in 0..count {
+                let _ = resolve_summon(state, queue, source, owner, card_id);
+            }
+            let minions = collect_friendly_minions(state, owner);
+            for e in minions {
+                state.world_mut().add_enchantment(
+                    e,
+                    Enchantment {
+                        attack,
+                        health: 0,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+                state.world_mut().set_divine_shield(e, DivineShield);
+            }
+        }
+        CardEffect::DealDamageAndDamageAllEnemies { amount, aoe } => {
+            // CATA_489 Arcane Flow (M4-W3, the D2 combined form — §25):
+            // "Deal 4 damage. Deal 2 damage to all enemies." The primary
+            // part targets any character (the "$4 damage" no-target-filter
+            // pin, §24 — the explicit target when the player chose one,
+            // random otherwise); the splash hits the enemy hero and all
+            // enemy minions. Both amounts were already spell-powered by
+            // `apply_spell_power`.
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                amount,
+                EffectTarget::AnyCharacter,
+                explicit_target,
+            );
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                aoe,
+                EffectTarget::AllEnemies,
+                None,
+            );
+        }
+        CardEffect::DrawMinionsAndBuffHandMinions {
+            count,
+            attack,
+            health,
+        } => {
+            // CATA_820 Supply Run (M4-W3, the D2 combined form — §25):
+            // "Draw 3 minions. Give minions in your hand +2/+2." Each
+            // draw picks a random minion from the deck (the
+            // Disciple-of-the-Dove convention — re-collected per draw so
+            // a minion is never drawn twice); the hand buff lands after
+            // the draws, the drawn minions included.
+            for _ in 0..count {
+                let minions: Vec<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Deck, owner)
+                    .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                    .collect();
+                if minions.is_empty() {
+                    break;
+                }
+                let picked = minions[state.rng_mut().next_usize(minions.len())];
+                if state.world_mut().move_to_zone(picked, Zone::Hand).is_ok() {
+                    queue.push(Event::CardDrawn {
+                        player: owner,
+                        card: picked,
+                    });
+                }
+            }
+            let hand: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            for e in hand {
+                state.world_mut().add_enchantment(
+                    e,
+                    Enchantment {
+                        attack,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::AddRandomShatterCardToHand => {
+            // CATA_202 Stolen Power (M4-W3, the D2 combined form — §25):
+            // "Get a random Shatter card from another class. (It's
+            // already combined)." The fixed SHATTER_POOL (the other 5
+            // Shatter cards, all non-Rogue — the Mask-pool convention);
+            // the gotten card is the combined playable form.
+            let Some(def) = crate::cards::pool::random_from_pool(
+                crate::cards::pool::SHATTER_POOL,
+                state.rng_mut(),
+            ) else {
+                return;
+            };
+            let _ = add_card_to_hand(state, owner, def);
         }
     }
 }
