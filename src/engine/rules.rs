@@ -1433,7 +1433,7 @@ pub fn apply_event(
                             .is_some_and(|d| d.card_type == CardType::Minion && d.cost <= 2)
                     })
                     .collect();
-                if let Some(&e) = deck_minions.get(state.rng_mut().next_usize(deck_minions.len())) {
+                if let Some(&e) = trigger::pick_random(state, &deck_minions) {
                     if let Some(def) = state
                         .world()
                         .card_id(e)
@@ -1671,7 +1671,7 @@ pub fn apply_event(
             if let Some((discovered, others)) = state.player(player).map_pending.clone() {
                 if discovered == card && !others.is_empty() {
                     state.make_mut().players[player.index()].map_pending = None;
-                    if let Some(other) = others.get(state.rng_mut().next_usize(others.len())) {
+                    if let Some(other) = trigger::pick_random(state, &others) {
                         if let Some(other_def) = crate::cards::def::card_by_id(other.as_str()) {
                             trigger::add_card_to_hand(state, player, other_def);
                         }
@@ -4505,9 +4505,7 @@ pub fn apply_event(
                     }
                     let (deck_pool, enemy_pool) = pending.pool.split_at(3);
                     let other_pool = if option < 3 { enemy_pool } else { deck_pool };
-                    if let Some(other) =
-                        other_pool.get(state.rng_mut().next_usize(other_pool.len()))
-                    {
+                    if let Some(other) = trigger::pick_random(state, other_pool) {
                         if let Some(other_def) = crate::cards::def::card_by_id(other) {
                             trigger::add_card_to_hand(state, player, other_def);
                         }

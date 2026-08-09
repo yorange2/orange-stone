@@ -15212,9 +15212,10 @@ fn edr_w2_treacherous_tormentor_legendary_gift_attack_lifesteal() {
         .expect("the discovered Legendary");
     let id = state.world().card_id(legendary).expect("card id").0;
     assert!(
-        orange_stone::cards::sets::LEGENDARY_CLASSIC
-            .iter()
-            .any(|l| l.id == id),
+        // Window-dependent since the D3 cut-over (2026-08-09): the pool
+        // is the in-window Legendary minions (LEGENDARY_CLASSIC members
+        // in the window plus TIME_063) — seed 42 now draws TIME_063.
+        orange_stone::cards::pool::is_legendary(id),
         "{id} is a Legendary minion"
     );
     let def = card_by_id(id).expect("def");
@@ -15576,14 +15577,23 @@ fn edr_w2_darkrider_holding_dragon_gift_deck_top_buff() {
         )
         .unwrap();
     let on_board = find_entity(&state, PlayerId1(), id);
+    // The window-dependent draw (D3 cut-over, 2026-08-09) is now EDR_256
+    // Dreamwarden, whose own battlecry adds +2/+2 on play — count it so
+    // the assertion checks the gift buff rather than the draw.
+    let battlecry_stats: (i32, i32) = match def.battlecry {
+        Some(orange_stone::core::effect::CardEffect::DrawAndGainStats { attack, health }) => {
+            (attack, health)
+        }
+        _ => (0, 0),
+    };
     assert_eq!(
         state.world().effective_attack(on_board),
-        Some(Attack(def.attack + 4)),
+        Some(Attack(def.attack + 4 + battlecry_stats.0)),
         "the buff persists on the battlefield"
     );
     assert_eq!(
         state.world().effective_health(on_board),
-        Some(Health(def.health + 5))
+        Some(Health(def.health + 5 + battlecry_stats.1))
     );
     assert!(
         state
@@ -32787,14 +32797,15 @@ fn cata_w4_deathwing_herald_tier4_enthrall() {
     let dragons: Vec<Entity> = deck
         .iter()
         .filter(|&&e| {
-            // The pool is pinned by card ID — the classic legendary defs
-            // are race-less by convention (§26), so membership in
-            // LEGENDARY_DRAGON_CLASSIC is the definition of "Legendary
-            // Dragon" here.
+            // Window-dependent since the D3 cut-over (2026-08-09): the
+            // Classic legendary defs are race-less and pinned by ID
+            // (LEGENDARY_DRAGON_CLASSIC, §26); in-window Core and
+            // expansion legendary dragons carry the Dragon race plus a
+            // Legendary marker instead. The shared definition lives in
+            // cards::pool::is_legendary_dragon.
             state.world().card_id(e).is_some_and(|c| {
-                orange_stone::cards::sets::LEGENDARY_DRAGON_CLASSIC
-                    .iter()
-                    .any(|l| l.id == c.0)
+                orange_stone::cards::card_by_id(c.0)
+                    .is_some_and(orange_stone::cards::pool::is_legendary_dragon)
             })
         })
         .copied()

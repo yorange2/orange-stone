@@ -2378,9 +2378,10 @@ mod generated_tests {
         assert!(!sets::ALL_CARDS.iter().any(|c| c.id == "JAIL_007"));
     }
 
-    /// 2025–2026 expansions M0.3 — D3 window filters: `is_standard` marks
-    /// Core + the five expansions; every pool-sampled card stays inside the
-    /// current training window (Classic-era + Core).
+    /// 2025–2026 expansions M0.3, updated for the D3 cut-over (2026-08-09):
+    /// `is_standard` marks Core + the five expansions; every pool-sampled
+    /// card stays inside the active training window (Standard) — no Classic
+    /// card is sampled anymore, and the pools can reach expansion cards.
     #[test]
     fn sampling_pools_keep_current_window() {
         use crate::cards::pool;
@@ -2406,11 +2407,21 @@ mod generated_tests {
         ] {
             let cards = pool::pool_cards(pool_kind);
             assert!(
-                cards.iter().all(|c| !pool::is_expansion(c)),
-                "{pool_kind:?} leaked an expansion card: {:?}",
-                cards.iter().find(|c| pool::is_expansion(c)).map(|c| c.id)
+                !cards.is_empty(),
+                "{pool_kind:?} must not be empty after the D3 cut-over"
+            );
+            assert!(
+                cards.iter().all(|c| pool::is_standard(c)),
+                "{pool_kind:?} leaked a non-Standard card: {:?}",
+                cards.iter().find(|c| !pool::is_standard(c)).map(|c| c.id)
             );
         }
+        // The cut-over widened the pools: the Spell pool reaches expansions.
+        let spell_pool = pool::pool_cards(RandomPool::Spell);
+        assert!(
+            spell_pool.iter().any(|c| pool::is_expansion(c)),
+            "the Spell pool must reach expansion cards after the D3 cut-over"
+        );
     }
 
     /// 2025–2026 expansions M0.4 — ID uniqueness: the generated registry has
