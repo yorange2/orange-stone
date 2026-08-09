@@ -2806,9 +2806,10 @@ pub const EXPANSION_CARDS: &[CardDef] =
 /// they read the opponent's actual hand/deck, or copy a cast spell.
 ///
 /// The active sampling pool is closed today — every sampling pool is a
-/// filtered subset of the active window (Classic-era + Core, enforced via
-/// `cards::pool::in_active_window`, 2025–2026 expansions M0.3), so anything
-/// in the opponent's zones within that window is already in the pool. This
+/// filtered subset of the active window (Core + the 2025–2026 expansions
+/// since the D3 cut-over, enforced via `cards::pool::in_active_window`,
+/// 2026-08-09), so anything in the opponent's zones within that window is
+/// already in the pool. This
 /// registry keeps the closure invariant auditable: the zone-reading effect
 /// variants may appear only on registered cards (enforced by
 /// `pool_open_effects_require_registry` in `trigger.rs`), and any new

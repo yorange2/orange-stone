@@ -1487,7 +1487,7 @@ pub fn resolve_effect(
                         c.card_type == CardType::Minion && c.cost == 2 && !c.id.ends_with('t')
                     })
                     .collect();
-            if let Some(&pick) = cost2.get(state.rng_mut().next_usize(cost2.len())) {
+            if let Some(&pick) = pick_random(state, &cost2) {
                 let _ = resolve_summon(state, queue, source, owner, pick.id);
             }
         }
@@ -3074,7 +3074,7 @@ pub fn resolve_effect(
                         c.card_type == CardType::Minion && c.cost == 2 && !c.id.ends_with('t')
                     })
                     .collect();
-            if let Some(&pick) = cost2.get(state.rng_mut().next_usize(cost2.len())) {
+            if let Some(&pick) = pick_random(state, &cost2) {
                 if let Some(e) = resolve_summon(state, queue, source, owner, pick.id) {
                     state.world_mut().set_taunt(e, Taunt);
                 }
@@ -6115,7 +6115,7 @@ pub fn resolve_effect(
                         c.card_type == CardType::Minion && c.cost == cost && !c.id.ends_with('t')
                     })
                     .collect();
-            if let Some(&pick) = pool.get(state.rng_mut().next_usize(pool.len())) {
+            if let Some(&pick) = pick_random(state, &pool) {
                 if let Some(e) = resolve_summon(state, queue, source, owner, pick.id) {
                     state.world_mut().set_taunt(e, Taunt);
                 }
@@ -6913,7 +6913,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+            let Some(def) = pick_random(state, &pool).copied() else {
                 return;
             };
             resolve_transform_to_def(state, target, def);
@@ -6935,7 +6935,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+            let Some(def) = pick_random(state, &pool).copied() else {
                 return;
             };
             if let Some(e) = resolve_summon(state, queue, source, owner, def.id) {
@@ -7059,7 +7059,7 @@ pub fn resolve_effect(
                                 && crate::cards::pool::in_active_window(c)
                         })
                         .collect();
-                let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+                let Some(def) = pick_random(state, &pool).copied() else {
                     return;
                 };
                 let Some(e) = resolve_summon(state, queue, source, owner, def.id) else {
@@ -7099,7 +7099,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+            let Some(def) = pick_random(state, &pool).copied() else {
                 return;
             };
             let Some(e) = resolve_summon(state, queue, source, owner, def.id) else {
@@ -7129,7 +7129,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+            let Some(def) = pick_random(state, &pool).copied() else {
                 return;
             };
             let Some(e) = resolve_summon(state, queue, source, owner, def.id) else {
@@ -7174,7 +7174,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+            let Some(def) = pick_random(state, &pool).copied() else {
                 return;
             };
             let world = state.world_mut();
@@ -7199,7 +7199,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+            let Some(def) = pick_random(state, &pool).copied() else {
                 return;
             };
             let _ = resolve_summon(state, queue, source, owner, def.id);
@@ -7219,7 +7219,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+            let Some(def) = pick_random(state, &pool).copied() else {
                 return;
             };
             let _ = resolve_summon(state, queue, source, owner, def.id);
@@ -7240,7 +7240,7 @@ pub fn resolve_effect(
                                 && crate::cards::pool::in_active_window(card)
                         })
                         .collect();
-                let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+                let Some(def) = pick_random(state, &pool).copied() else {
                     return;
                 };
                 let _ = resolve_summon(state, queue, source, owner, def.id);
@@ -9259,7 +9259,7 @@ pub fn resolve_effect(
                                 && crate::cards::pool::in_active_window(c)
                         })
                         .collect();
-                if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+                if let Some(def) = pick_random(state, &pool) {
                     let _ = resolve_summon(state, queue, source, owner, def.id);
                 }
             }
@@ -10209,7 +10209,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+            if let Some(def) = pick_random(state, &pool) {
                 if let Some(e) = resolve_summon(state, queue, source, owner, def.id) {
                     let enemies = collect_all_enemy_characters(state, owner);
                     if let Some(target) = select_target(None, &enemies, state.rng_mut()) {
@@ -10268,7 +10268,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+            if let Some(def) = pick_random(state, &pool) {
                 let _ = resolve_summon(state, queue, source, owner, def.id);
             }
         }
@@ -10285,7 +10285,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+            if let Some(def) = pick_random(state, &pool) {
                 if let Some(e) = resolve_summon(state, queue, source, owner, def.id) {
                     state
                         .world_mut()
@@ -10410,7 +10410,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+            if let Some(def) = pick_random(state, &pool) {
                 resolve_transform_to_def(state, source, def);
             }
         }
@@ -10427,7 +10427,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+            if let Some(def) = pick_random(state, &pool) {
                 resolve_transform_to_def(state, source, def);
             }
         }
@@ -10459,10 +10459,7 @@ pub fn resolve_effect(
                 .iter(Zone::Hand, owner.opponent())
                 .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
                 .collect();
-            if let Some(&picked) = hand
-                .get(state.rng_mut().next_usize(hand.len()))
-                .or(hand.last())
-            {
+            if let Some(&picked) = pick_random(state, &hand).or(hand.last()) {
                 if let Some(def) = state
                     .world()
                     .card_id(picked)
@@ -10830,7 +10827,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() {
+            if let Some(def) = pick_random(state, &pool).copied() {
                 let _ = resolve_summon(state, queue, source, owner, def.id);
             }
         }
@@ -11118,7 +11115,7 @@ pub fn resolve_effect(
                                     && crate::cards::pool::in_active_window(c)
                             })
                             .collect();
-                    if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() {
+                    if let Some(def) = pick_random(state, &pool).copied() {
                         let _ = resolve_summon(state, queue, source, owner, def.id);
                     }
                 };
@@ -11337,7 +11334,7 @@ pub fn resolve_effect(
                     .is_some_and(|h| h.0 - amount <= 0);
             if dies {
                 let friendly = collect_friendly_minions(state, owner);
-                if let Some(&m) = friendly.get(state.rng_mut().next_usize(friendly.len())) {
+                if let Some(&m) = pick_random(state, &friendly) {
                     state.world_mut().add_enchantment(
                         m,
                         Enchantment {
@@ -11642,7 +11639,7 @@ pub fn resolve_effect(
                 .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
                 .collect();
             if !minions.is_empty() {
-                if let Some(&m) = minions.get(state.rng_mut().next_usize(minions.len())) {
+                if let Some(&m) = pick_random(state, &minions) {
                     let hp = state.world().effective_health(m).unwrap_or(Health(1));
                     queue.push(Event::DamageDealt {
                         source: m,
@@ -11661,7 +11658,7 @@ pub fn resolve_effect(
             // play keeps the rest of the destroy sequence (the random pick
             // must not run on an empty list).
             if !locations.is_empty() {
-                if let Some(&l) = locations.get(state.rng_mut().next_usize(locations.len())) {
+                if let Some(&l) = pick_random(state, &locations) {
                     let _ = state.world_mut().move_to_zone(l, Zone::Graveyard);
                 }
             }
@@ -11843,7 +11840,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+            let Some(def) = pick_random(state, &pool).copied() else {
                 return;
             };
             if let Some(added) = add_card_to_hand(state, owner, def) {
@@ -11980,7 +11977,7 @@ pub fn resolve_effect(
                                 && crate::cards::pool::in_active_window(c)
                         })
                         .collect();
-                let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+                let Some(def) = pick_random(state, &pool).copied() else {
                     return;
                 };
                 if let Some(added) = add_card_to_hand(state, owner, def) {
@@ -13811,7 +13808,7 @@ pub fn resolve_effect(
                 .iter(Zone::Graveyard, owner)
                 .filter(|&e| state.world().card_type(e) == Some(CardType::Location))
                 .collect();
-            if let Some(&loc) = destroyed.get(state.rng_mut().next_usize(destroyed.len())) {
+            if let Some(&loc) = pick_random(state, &destroyed) {
                 let full = state
                     .world()
                     .card_id(loc)
@@ -13877,7 +13874,7 @@ pub fn resolve_effect(
                             && crate::cards::colossal::colossal_parts(c.id).is_none()
                     })
                     .collect();
-            let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+            let Some(def) = pick_random(state, &pool).copied() else {
                 return;
             };
             let e = add_card_to_hand(state, owner, def);
@@ -14316,8 +14313,7 @@ pub fn resolve_effect(
                                     && crate::cards::pool::in_active_window(c)
                             })
                             .collect();
-                    if let Some(def) = candidates.get(state.rng_mut().next_usize(candidates.len()))
-                    {
+                    if let Some(def) = pick_random(state, &candidates) {
                         if let Some(e) = add_card_to_hand(state, owner, def) {
                             reduce_hand_card_cost(state, e, 2);
                         }
@@ -14633,7 +14629,7 @@ pub fn resolve_effect(
             // spell); the Frost spell pool reads the quest spell-school
             // table.
             let enemies = collect_enemy_characters(state, owner, Some(source));
-            if let Some(&target) = enemies.get(state.rng_mut().next_usize(enemies.len())) {
+            if let Some(&target) = pick_random(state, &enemies) {
                 state.world_mut().set_freeze(target, Freeze);
             }
             let frost: SmallList<&'static crate::cards::def::CardDef> =
@@ -14645,7 +14641,7 @@ pub fn resolve_effect(
                                 == Some(crate::cards::quest::SpellSchool::Frost)
                     })
                     .collect();
-            if let Some(def) = frost.get(state.rng_mut().next_usize(frost.len())) {
+            if let Some(def) = pick_random(state, &frost) {
                 add_card_to_hand(state, owner, def);
             }
         }
@@ -14694,7 +14690,7 @@ pub fn resolve_effect(
                     .iter()
                     .filter(|c| c.secret.is_some())
                     .collect();
-            let Some(def) = secrets.get(state.rng_mut().next_usize(secrets.len())) else {
+            let Some(def) = pick_random(state, &secrets) else {
                 return;
             };
             if let Some(trigger) = def.secret {
@@ -14716,7 +14712,7 @@ pub fn resolve_effect(
             // random (§28); every minion on both boards gets the chosen
             // minion's effective stats written as its base.
             let minions: SmallList<Entity> = collect_friendly_minions(state, owner);
-            let Some(&reference) = minions.get(state.rng_mut().next_usize(minions.len())) else {
+            let Some(&reference) = pick_random(state, &minions) else {
                 return;
             };
             let Some(atk) = state.world().effective_attack(reference) else {
@@ -14757,7 +14753,7 @@ pub fn resolve_effect(
             }
             let pool: SmallList<&'static crate::cards::def::CardDef> =
                 crate::cards::sets::PALADIN_CLASSIC.iter().collect();
-            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+            if let Some(def) = pick_random(state, &pool) {
                 if let Some(e) = add_card_to_hand(state, owner, def) {
                     reduce_hand_card_cost(state, e, 2);
                 }
@@ -14907,7 +14903,7 @@ pub fn resolve_effect(
                 .into_iter()
                 .filter(|&e| state.world().deathrattle(e).is_some())
                 .collect();
-            if let Some(&e) = candidates.get(state.rng_mut().next_usize(candidates.len())) {
+            if let Some(&e) = pick_random(state, &candidates) {
                 if let Some(dr) = state.world().deathrattle(e) {
                     resolve_effect(state, queue, e, owner, dr.0, None, None);
                 }
@@ -15156,7 +15152,7 @@ pub fn resolve_effect(
             // themselves are not stolen (§28); only the +1/+1 per
             // keyword the enemy minion has lands on the source.
             let enemies = collect_enemy_minions(state, owner, Some(source));
-            let Some(&target) = enemies.get(state.rng_mut().next_usize(enemies.len())) else {
+            let Some(&target) = pick_random(state, &enemies) else {
                 return;
             };
             let w = state.world();
@@ -15208,7 +15204,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            if let Some(def) = spells.get(state.rng_mut().next_usize(spells.len())) {
+            if let Some(def) = pick_random(state, &spells) {
                 add_card_to_hand(state, owner, def);
                 state.make_mut().players[owner.index()].spells_cast_twice_pending += 1;
             }
@@ -15228,7 +15224,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+            if let Some(def) = pick_random(state, &pool) {
                 add_card_to_hand(state, owner, def);
                 add_card_to_hand(state, owner.opponent(), def);
             }
@@ -15245,7 +15241,7 @@ pub fn resolve_effect(
                 .iter(Zone::Hand, enemy)
                 .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
                 .collect();
-            if let Some(&picked) = hand.get(state.rng_mut().next_usize(hand.len())) {
+            if let Some(&picked) = pick_random(state, &hand) {
                 let world = state.world_mut();
                 world.zones_mut().remove(Zone::Play, owner, source);
                 world.set_player(source, enemy);
@@ -15275,7 +15271,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            if let Some(def) = taunt_pool.get(state.rng_mut().next_usize(taunt_pool.len())) {
+            if let Some(def) = pick_random(state, &taunt_pool) {
                 let _ = resolve_summon(state, queue, source, owner, def.id);
             } else if let Some(def) = random_minion_of_cost(state, cost) {
                 if let Some(e) = resolve_summon(state, queue, source, owner, def.id) {
@@ -15355,7 +15351,7 @@ pub fn resolve_effect(
             // minion." — the died check is the prediction convention
             // (no Divine Shield and the health cannot absorb the damage).
             let enemies = collect_enemy_minions(state, owner, Some(source));
-            let Some(&first) = enemies.get(state.rng_mut().next_usize(enemies.len())) else {
+            let Some(&first) = pick_random(state, &enemies) else {
                 return;
             };
             queue.push(Event::DamageDealt {
@@ -15370,7 +15366,7 @@ pub fn resolve_effect(
                     .is_some_and(|h| h.0 - 2 <= 0);
             if will_die {
                 let enemies = collect_enemy_minions(state, owner, Some(source));
-                if let Some(&second) = enemies.get(state.rng_mut().next_usize(enemies.len())) {
+                if let Some(&second) = pick_random(state, &enemies) {
                     queue.push(Event::DamageDealt {
                         source,
                         target: second,
@@ -15425,7 +15421,7 @@ pub fn resolve_effect(
                     })
                     .collect();
             for _ in 0..2 {
-                if let Some(def) = spells.get(state.rng_mut().next_usize(spells.len())) {
+                if let Some(def) = pick_random(state, &spells) {
                     if let Some(e) = add_card_to_hand(state, owner, def) {
                         reduce_hand_card_cost(state, e, 2);
                     }
@@ -15449,7 +15445,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            if let Some(def) = demons.get(state.rng_mut().next_usize(demons.len())) {
+            if let Some(def) = pick_random(state, &demons) {
                 let _ = resolve_summon(state, queue, source, owner, def.id);
             }
             state.make_mut().players[owner.index()].void_soul_level += 1;
@@ -15566,7 +15562,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            if let Some(def) = spells.get(state.rng_mut().next_usize(spells.len())) {
+            if let Some(def) = pick_random(state, &spells) {
                 if let Some(e) = add_card_to_hand(state, owner, def) {
                     let no_spells = !state.player(owner).starting_deck.iter().any(|id| {
                         crate::cards::def::card_by_id(id)
@@ -15611,7 +15607,7 @@ pub fn resolve_effect(
             // granted deathrattle is the two-minion summon variant (the
             // pick is a random friendly minion, §28).
             let minions: SmallList<Entity> = collect_friendly_minions(state, owner);
-            let Some(&target) = minions.get(state.rng_mut().next_usize(minions.len())) else {
+            let Some(&target) = pick_random(state, &minions) else {
                 return;
             };
             state.world_mut().set_deathrattle(
@@ -15632,7 +15628,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+            if let Some(def) = pick_random(state, &pool) {
                 let _ = resolve_summon(state, queue, source, owner, def.id);
             }
         }
@@ -15657,7 +15653,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            if let Some(def) = beasts.get(state.rng_mut().next_usize(beasts.len())) {
+            if let Some(def) = pick_random(state, &beasts) {
                 let _ = resolve_summon(state, queue, source, owner, def.id);
             }
             if source_id != "JAIL_879t" {
@@ -15704,7 +15700,7 @@ pub fn resolve_effect(
                             && crate::cards::pool::in_active_window(c)
                     })
                     .collect();
-            if let Some(def) = spells.get(state.rng_mut().next_usize(spells.len())) {
+            if let Some(def) = pick_random(state, &spells) {
                 if let Some(e) = add_card_to_hand(state, owner, def) {
                     state.world_mut().set_temporary(e, Temporary);
                 }
@@ -15720,7 +15716,7 @@ pub fn resolve_effect(
                     .iter()
                     .filter(|c| c.card_type == CardType::Minion)
                     .collect();
-            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())) {
+            if let Some(def) = pick_random(state, &pool) {
                 if let Some(e) = add_card_to_hand(state, owner, def) {
                     state.world_mut().set_locked_until_card_played(
                         e,
@@ -15936,7 +15932,7 @@ pub fn resolve_effect(
             // — simplified to one random enemy hand card (§28).
             let enemy = owner.opponent();
             let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, enemy).collect();
-            if let Some(&picked) = hand.get(state.rng_mut().next_usize(hand.len())) {
+            if let Some(&picked) = pick_random(state, &hand) {
                 let world = state.world_mut();
                 world.zones_mut().remove(Zone::Hand, enemy, picked);
                 world.set_player(picked, owner);
@@ -16107,7 +16103,7 @@ pub fn resolve_effect(
             if pos + 1 < board.len() {
                 neighbours.push(board[pos + 1]);
             }
-            if let Some(&target) = neighbours.get(state.rng_mut().next_usize(neighbours.len())) {
+            if let Some(&target) = pick_random(state, &neighbours) {
                 let hp = state.world().effective_health(target).unwrap_or(Health(1));
                 queue.push(Event::DamageDealt {
                     source,
@@ -16232,7 +16228,7 @@ pub fn resolve_effect(
                         expiry: EnchantmentExpiry::Permanent,
                     },
                 );
-            } else if let Some(&card) = deck.get(state.rng_mut().next_usize(deck.len())) {
+            } else if let Some(&card) = pick_random(state, &deck) {
                 let _ = state.world_mut().move_to_zone(card, Zone::Hand);
             }
         }
@@ -16248,11 +16244,70 @@ pub fn resolve_effect(
     }
 }
 
+/// Random-pick protocol for the effect code's lists (`Vec` and
+/// `SmallList` both support `len` + indexed access).
+pub(crate) trait RandomPick<'a> {
+    type Item: 'a;
+    fn random_len(&self) -> usize;
+    fn random_get(&'a self, index: usize) -> Option<&'a Self::Item>;
+}
+
+impl<'a, T: 'a> RandomPick<'a> for [T] {
+    type Item = T;
+    fn random_len(&self) -> usize {
+        self.len()
+    }
+    fn random_get(&'a self, index: usize) -> Option<&'a Self::Item> {
+        self.get(index)
+    }
+}
+
+impl<'a, T: 'a> RandomPick<'a> for Vec<T> {
+    type Item = T;
+    fn random_len(&self) -> usize {
+        self.len()
+    }
+    fn random_get(&'a self, index: usize) -> Option<&'a Self::Item> {
+        self.get(index)
+    }
+}
+
+impl<'a, T: 'a, const N: usize> RandomPick<'a> for SmallList<T, N> {
+    type Item = T;
+    fn random_len(&self) -> usize {
+        self.len()
+    }
+    fn random_get(&'a self, index: usize) -> Option<&'a Self::Item> {
+        self.get(index)
+    }
+}
+
+/// Picks a random element of `list`, or `None` when the list is empty.
+///
+/// The `.get(rng.next_usize(len))` form it replaces evaluated
+/// `next_usize` before `.get`, so an empty list panicked — a latent bug
+/// the D3 cut-over (2026-08-09) exposed: generated 2025–2026 expansion
+/// cards can now fire effects in edge situations (e.g. a random-target
+/// effect with an empty board or a random-hand-card effect with an empty
+/// hand). RNG consumption is unchanged whenever the list is non-empty,
+/// so existing deterministic games replay identically.
+pub(crate) fn pick_random<'a, T, L>(state: &mut GameState, list: &'a L) -> Option<&'a T>
+where
+    T: 'a,
+    L: ?Sized + RandomPick<'a, Item = T>,
+{
+    if list.random_len() == 0 {
+        None
+    } else {
+        list.random_get(state.rng_mut().next_usize(list.random_len()))
+    }
+}
+
 /// Freezes a random enemy character (the Frostshatter branch helper,
 /// M5-W2).
 fn freeze_random_enemy(state: &mut GameState, source: Entity, owner: PlayerId) {
     let enemies = collect_enemy_characters(state, owner, Some(source));
-    if let Some(&target) = enemies.get(state.rng_mut().next_usize(enemies.len())) {
+    if let Some(&target) = pick_random(state, &enemies) {
         state.world_mut().set_freeze(target, Freeze);
     }
 }
@@ -16270,7 +16325,7 @@ fn shuffle_random_dh_spell(state: &mut GameState, owner: PlayerId) {
                 && crate::cards::pool::in_active_window(c)
         })
         .collect();
-    let Some(def) = spells.get(state.rng_mut().next_usize(spells.len())) else {
+    let Some(def) = pick_random(state, &spells) else {
         return;
     };
     let deck_count = state.world().zones().len(Zone::Deck, owner);
@@ -16329,7 +16384,7 @@ pub(crate) fn random_minion_of_cost(
         .iter()
         .filter(|c| c.card_type == CardType::Minion && c.cost == cost && !c.id.ends_with('t'))
         .collect();
-    pool.get(state.rng_mut().next_usize(pool.len())).copied()
+    pick_random(state, &pool).copied()
 }
 
 /// The candidate minions for a target selection (M2-W4a helper — the
@@ -19809,7 +19864,7 @@ fn add_random_cost_card(state: &mut GameState, player: PlayerId, cost: i32, card
                 && crate::cards::pool::in_active_window(c)
         })
         .collect();
-    let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+    let Some(def) = pick_random(state, &pool).copied() else {
         return;
     };
     add_card_to_hand(state, player, def);

@@ -5,7 +5,7 @@
 //! ```python
 //! import orange_stone as os
 //! env = os.GameEnv(seed=42)
-//! obs = env.reset(seed=1)          # 168-dim observation vector
+//! obs = env.reset(seed=1)          # 177-dim observation vector
 //! actions = env.legal_actions()    # [(index, description), ...]
 //! obs, reward, done, winner = env.step(action_index)
 //! ```
@@ -122,7 +122,8 @@ impl PyGameEnv {
         Ok(Self { env })
     }
 
-    /// Observation vector length (fixed at 168).
+    /// Observation vector length (177 since the D3 observation extension —
+    /// the legacy 168 features plus the new-mechanic block).
     #[staticmethod]
     fn obs_len() -> usize {
         OBS_LEN
@@ -275,7 +276,7 @@ impl PyBatchEnv {
         self.envs.len()
     }
 
-    /// Resets every env with the given seeds; returns the initial 168-dim
+    /// Resets every env with the given seeds; returns the initial 177-dim
     /// observation of each env (its own perspective).
     fn reset(&mut self, py: Python<'_>, seeds: Vec<u64>) -> Vec<Vec<f32>> {
         py.allow_threads(|| {
@@ -293,7 +294,7 @@ impl PyBatchEnv {
         py.allow_threads(|| self.envs[index].reset(seed))
     }
 
-    /// Current 168-dim observation per env (each env's own perspective).
+    /// Current 177-dim observation per env (each env's own perspective).
     fn observation(&self, py: Python<'_>) -> Vec<Vec<f32>> {
         py.allow_threads(|| self.envs.iter().map(|env| env.observation()).collect())
     }

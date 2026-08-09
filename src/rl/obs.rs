@@ -3,7 +3,7 @@
 //! Observations are encoded from the perspective of the given player (normalized to [0, 1]),
 //! with a fixed layout and constant length, so they can be fed directly into a neural network.
 //!
-//! # Layout (`OBS_LEN` = 168)
+//! # Layout (`OBS_LEN` = 177)
 //!
 //! | Range | Content | Normalization |
 //! |------|------|--------|
@@ -14,6 +14,16 @@
 //! | 10..70 | Friendly hand (up to 10 cards): each [cost, attack, health, minion, spell, weapon] | /10, /15, /30, 0/1 |
 //! | 70..119 | Friendly board (up to 7 minions): each [attack, health, taunt, divine shield, windfury, charge, stealth] | /15, /30, 0/1 |
 //! | 119..168 | Enemy board (same as above, 7 slots) | |
+//! | 168..170 | Friendly quest: progress, target (0 when no quest) | /10 |
+//! | 170..172 | Enemy quest: progress, target (0 when no quest) | /10 |
+//! | 172..173 | Friendly imbue level | /10 |
+//! | 173..174 | Friendly corpses | /30 |
+//! | 174..175 | Enemy corpses | /30 |
+//! | 175..176 | Friendly location durability (sum over friendly Locations in play) | /3 |
+//! | 176..177 | Enemy location durability (sum) | /3 |
+//!
+//! The new-mechanic block (decision D3, 2025–2026 expansions) is appended at
+//! the END so the legacy indices 0..168 stay unchanged.
 
 use crate::core::component::CardType;
 use crate::core::player::PlayerId;
@@ -28,9 +38,14 @@ pub const MAX_BOARD: usize = 7;
 pub const CARD_FEATURES: usize = 6;
 /// Number of features per minion
 pub const MINION_FEATURES: usize = 7;
+/// Number of features in the new-mechanic block (decision D3): friendly +
+/// enemy quest progress/target (4), friendly imbue level (1), friendly +
+/// enemy corpses (2), friendly + enemy location durability (2).
+pub const MECHANIC_FEATURES: usize = 9;
 
 /// Observation vector length — fixed value, for preallocation on the Python side.
-pub const OBS_LEN: usize = 10 + MAX_HAND * CARD_FEATURES + 2 * MAX_BOARD * MINION_FEATURES;
+pub const OBS_LEN: usize =
+    10 + MAX_HAND * CARD_FEATURES + 2 * MAX_BOARD * MINION_FEATURES + MECHANIC_FEATURES;
 
 /// Normalization helper: divides the value by the denominator and clamps to [0, 1].
 fn norm(value: i32, max: f32) -> f32 {
@@ -121,6 +136,34 @@ pub fn encode_observation(state: &GameState, player: PlayerId) -> Vec<f32> {
         }
     }
 
+    // New-mechanic block (decision D3) — appended after the legacy 168 so the
+    // existing indices stay put. Quest progress/target come from the Quest
+    // component on the player's quest-slot entity (0 when the slot is empty);
+    // location durability is the sum over the player's Location entities in
+    // play.
+    for side in [player, enemy] {
+        let quest = world
+            .zones()
+            .entities(Zone::Quest, side)
+            .first()
+            .and_then(|&e| world.quest(e));
+        obs.push(norm(quest.as_ref().map_or(0, |q| q.progress as i32), 10.0));
+        obs.push(norm(quest.as_ref().map_or(0, |q| q.target as i32), 10.0));
+    }
+    obs.push(norm(state.player(player).imbue_count, 10.0));
+    obs.push(norm(state.player(player).corpses as i32, 30.0));
+    obs.push(norm(state.player(enemy).corpses as i32, 30.0));
+    for side in [player, enemy] {
+        let durability: i32 = world
+            .zones()
+            .iter(Zone::Play, side)
+            .filter(|&e| world.card_type(e) == Some(CardType::Location))
+            .filter_map(|e| world.durability(e))
+            .map(|d| d.0)
+            .sum();
+        obs.push(norm(durability, 3.0));
+    }
+
     debug_assert_eq!(obs.len(), OBS_LEN, "observation length must be fixed");
     obs
 }
@@ -135,7 +178,7 @@ mod tests {
         let state = GameState::new();
         let obs = encode_observation(&state, PlayerId::Player1);
         assert_eq!(obs.len(), OBS_LEN);
-        assert_eq!(OBS_LEN, 168);
+        assert_eq!(OBS_LEN, 177);
         // Hero 30 HP → 1.0, attack 0 → 0.0
         assert_eq!(obs[0], 1.0);
         assert_eq!(obs[1], 0.0);
@@ -144,8 +187,8 @@ mod tests {
         assert_eq!(obs[4], 0.1);
         // Enemy hero 30 HP
         assert_eq!(obs[5], 1.0);
-        // Empty hand / empty board are all 0
-        assert!(obs[10..168].iter().all(|&v| v == 0.0));
+        // Empty hand / empty board / empty new-mechanic block are all 0
+        assert!(obs[10..177].iter().all(|&v| v == 0.0));
     }
 
     /// The observation window is an exact bound, not a truncation: the engine
@@ -223,5 +266,83 @@ mod tests {
         // After swapping perspectives, the hero blocks are swapped
         assert_eq!(obs1[0..3], obs2[5..8]);
         assert_eq!(obs1[5..8], obs2[0..3]);
+    }
+
+    /// Decision D3 — the new-mechanic block (appended at 168..177) encodes
+    /// quest progress/target, imbue level, corpses and location durability.
+    #[test]
+    fn new_mechanic_block_encodes_quest_corpses_imbue_locations() {
+        use crate::core::component::{CardType, Durability, Quest};
+        use crate::sim::game::GameBuilder;
+
+        let mut builder = GameBuilder::new();
+        builder.set_mana(PlayerId::Player1, 10, 10);
+        let mut state = builder.build();
+        {
+            let inner = state.make_mut();
+            let world = &mut inner.world;
+            // Friendly quest in the slot: 4/10 progress.
+            let q = world.spawn();
+            world.set_card_type(q, CardType::Spell);
+            world.set_player(q, PlayerId::Player1);
+            world.set_zone(q, Zone::Quest);
+            world.zones_mut().insert(Zone::Quest, PlayerId::Player1, q);
+            world.set_quest(
+                q,
+                Quest {
+                    progress: 4,
+                    target: 10,
+                    repeatable: false,
+                    markers: Vec::new(),
+                    second: None,
+                },
+            );
+            // Friendly location (3 durability) + enemy location (1) in play.
+            let loc = world.spawn();
+            world.set_card_type(loc, CardType::Location);
+            world.set_player(loc, PlayerId::Player1);
+            world.set_zone(loc, Zone::Play);
+            world.zones_mut().insert(Zone::Play, PlayerId::Player1, loc);
+            world.set_durability(loc, Durability(3));
+            let eloc = world.spawn();
+            world.set_card_type(eloc, CardType::Location);
+            world.set_player(eloc, PlayerId::Player2);
+            world.set_zone(eloc, Zone::Play);
+            world
+                .zones_mut()
+                .insert(Zone::Play, PlayerId::Player2, eloc);
+            world.set_durability(eloc, Durability(1));
+            inner.players[PlayerId::Player1.index()].corpses = 6;
+            inner.players[PlayerId::Player2.index()].corpses = 3;
+            inner.players[PlayerId::Player1.index()].imbue_count = 5;
+        }
+        let obs = encode_observation(&state, PlayerId::Player1);
+        assert_eq!(obs.len(), OBS_LEN);
+        // Friendly quest: progress 4/10, target 10/10.
+        assert!(
+            (obs[168] - 0.4).abs() < 1e-5,
+            "quest progress: {}",
+            obs[168]
+        );
+        assert_eq!(obs[169], 1.0, "quest target");
+        // Enemy quest: none → 0.
+        assert_eq!(obs[170], 0.0);
+        assert_eq!(obs[171], 0.0);
+        // Friendly imbue 5/10.
+        assert_eq!(obs[172], 0.5, "imbue level");
+        // Corpses 6/30 and 3/30.
+        assert!(
+            (obs[173] - 0.2).abs() < 1e-5,
+            "friendly corpses: {}",
+            obs[173]
+        );
+        assert!((obs[174] - 0.1).abs() < 1e-5, "enemy corpses: {}", obs[174]);
+        // Location durability 3/3 and 1/3.
+        assert_eq!(obs[175], 1.0, "friendly location durability");
+        assert!(
+            (obs[176] - 1.0 / 3.0).abs() < 1e-5,
+            "enemy location durability: {}",
+            obs[176]
+        );
     }
 }

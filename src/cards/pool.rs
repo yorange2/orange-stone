@@ -1,9 +1,10 @@
 //! Random pools — filtered sampling from the active card window.
 //!
 //! Pool closure is guaranteed: every sampling pool is a filtered subset of the
-//! active window (`ALL_CARDS` ∩ `in_active_window`, i.e. Classic-era + Core as
-//! of 2025–2026 expansions M0.3) or built-in token pools, so no cards outside
-//! the active window are introduced.
+//! active window (`sampling_cards()` ∩ `in_active_window` — Standard, i.e.
+//! Core + the five 2025–2026 expansions, since the D3 cut-over, 2026-08-09)
+//! or built-in token pools, so no cards outside the active window are
+//! introduced.
 //!
 //! Beast/Demon pools are field-driven (fidelity-debt W1): `CardDef.race` decides
 //! membership, so the pools stay in sync with the card data automatically.
@@ -17,23 +18,18 @@ use crate::core::state::GameState;
 use crate::sim::rng::GameRng;
 use serde::{Deserialize, Serialize};
 
-/// Whether the card is inside the active sampling window (decision D3,
-/// 2025–2026 expansions M0.3): the current training pool (Classic-era + Core).
-///
-/// The 2025–2026 expansion cards are engine-available via `ALL_CARDS` but are
-/// **not** sampled until the single cut-over — at which point this predicate
-/// flips to the Standard window (`CardSet::Core | the five expansions`, see
-/// `is_standard`).
+/// Whether the card is inside the active sampling window — the Standard
+/// window (`CardSet::Core | the five 2025–2026 expansions`, see
+/// `is_standard`). Decision D3 cut-over (2026-08-09): Classic is no longer
+/// sampled; this predicate is the single source of truth for the window.
 pub(crate) fn in_active_window(card: &CardDef) -> bool {
-    matches!(
-        crate::cards::generated::card_set(card.id),
-        CardSet::Classic | CardSet::Core
-    )
+    is_standard(card)
 }
 
 /// Whether the card belongs to the Standard window (decision D3): Core + the
-/// five 2025–2026 expansions. This is the future training pool; today it only
-/// drives explicit filters, never the sampling pools.
+/// five 2025–2026 expansions. Since the D3 cut-over (2026-08-09) this is the
+/// active training window — `in_active_window` delegates here, keeping one
+/// source of truth.
 #[must_use]
 pub fn is_standard(card: &CardDef) -> bool {
     matches!(
@@ -48,7 +44,7 @@ pub fn is_standard(card: &CardDef) -> bool {
 }
 
 /// Whether the card belongs to one of the five 2025–2026 expansions — the
-/// cards excluded from the sampling pools until the D3 cut-over.
+/// cards the pre-cut-over sampling pools excluded.
 #[must_use]
 pub fn is_expansion(card: &CardDef) -> bool {
     matches!(
@@ -61,11 +57,24 @@ pub fn is_expansion(card: &CardDef) -> bool {
     )
 }
 
+/// The card chain the sampling pools draw from (decision D3 cut-over,
+/// 2026-08-09): `ALL_CARDS` (Classic-era + Core handwritten defs) chained
+/// with `HANDWRITTEN_EXPANSION_CARDS` (the expansions' handwritten effect
+/// implementations). The expansions' generated baselines (`EXPANSION_CARDS`)
+/// are stat-only and must never be sampled — this chain is their only
+/// sampled entry. Tokens stay out downstream: handwritten-only token ids
+/// fall back to `CardSet::Classic` in `card_set` and JSON tokens map to
+/// `CardSet::Other`, neither of which passes `is_standard`.
+pub(crate) fn sampling_cards() -> impl Iterator<Item = &'static CardDef> {
+    crate::cards::sets::ALL_CARDS
+        .iter()
+        .chain(crate::cards::sets::HANDWRITTEN_EXPANSION_CARDS)
+}
+
 /// All cards of the given race inside the active window (field-driven —
 /// `CardDef.race`).
 fn race_pool(race: Race) -> Vec<&'static CardDef> {
-    crate::cards::sets::ALL_CARDS
-        .iter()
+    sampling_cards()
         .filter(|c| c.race == Some(race) && in_active_window(c))
         .collect()
 }
@@ -166,6 +175,25 @@ pub fn is_legendary(card_id: &str) -> bool {
         .any(|l| l.id == card_id)
         || card_id == "TIME_063"
         || CATA_LEGENDARY.contains(&card_id)
+}
+
+/// Whether `card` counts as a "Legendary Dragon" for the sampling pools
+/// (`RandomPool::LegendaryDragon`, §26).
+///
+/// The Classic legendary defs are race-less (they predate the Race
+/// component), so they are pinned by ID — see `LEGENDARY_DRAGON_CLASSIC`.
+/// Since the D3 cut-over (2026-08-09) the pool must also reach the
+/// in-window Core and 2025–2026 expansion legendary dragons (which carry
+/// the Dragon race plus a Legendary marker — e.g. TIME_063, CATA_154,
+/// CORE_DRG_256), or the ID pin alone samples nothing.
+#[must_use]
+pub fn is_legendary_dragon(card: &CardDef) -> bool {
+    crate::cards::sets::LEGENDARY_DRAGON_CLASSIC
+        .iter()
+        .any(|l| l.id == card.id)
+        || (card.card_type == CardType::Minion
+            && card.race == Some(Race::Dragon)
+            && (is_legendary(card.id) || rarity_of(card.id) == Some(Rarity::Legendary)))
 }
 
 /// Dream card pool — Classic built-in tokens (Ysera).
@@ -1428,8 +1456,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(|id| card_by_id(id))
             .collect(),
-        RandomPool::Legendary => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::Legendary => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Minion
                     && (crate::cards::sets::LEGENDARY_CLASSIC
@@ -1447,8 +1474,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::MageSpell => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::MageSpell => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Spell
                     && crate::cards::sets::MAGE_CLASSIC
@@ -1461,8 +1487,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::ShadowSpell => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::ShadowSpell => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Spell && c.name.contains("Shadow") && in_active_window(c)
             })
@@ -1471,8 +1496,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::Spell => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::Spell => sampling_cards()
             .filter(|c| {
                 c.card_type == crate::core::component::CardType::Spell && in_active_window(c)
             })
@@ -1481,16 +1505,14 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::OtherClass => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::OtherClass => sampling_cards()
             .filter(|c| is_other_class_card(c) && in_active_window(c))
             .copied()
             .collect::<Vec<CardDef>>()
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::PriestCard => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::PriestCard => sampling_cards()
             .filter(|c| {
                 (c.card_type == CardType::Minion || c.card_type == CardType::Spell)
                     && crate::cards::sets::PRIEST_CLASSIC
@@ -1503,8 +1525,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::DeathrattleMinion => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::DeathrattleMinion => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Minion
                     && (c.deathrattle.is_some() || c.death_trigger.is_some())
@@ -1515,8 +1536,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::UndeadMinion => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::UndeadMinion => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Minion
                     && c.race == Some(Race::Undead)
@@ -1527,8 +1547,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::DemonCost5Plus => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::DemonCost5Plus => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Minion
                     && c.race == Some(Race::Demon)
@@ -1546,8 +1565,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .collect(),
         RandomPool::Murloc => race_pool(Race::Murloc),
         RandomPool::Elemental => race_pool(Race::Elemental),
-        RandomPool::WarriorMinion => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::WarriorMinion => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Minion
                     && crate::cards::sets::WARRIOR_CLASSIC
@@ -1562,8 +1580,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .collect(),
         // M2-W4a pools (school/class filters read the official dump tables;
         // all in-window unless the card text says otherwise).
-        RandomPool::FelSpell => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::FelSpell => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Spell
                     && crate::cards::quest::spell_school(c.id)
@@ -1575,8 +1592,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::HolySpell => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::HolySpell => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Spell
                     && crate::cards::quest::spell_school(c.id)
@@ -1588,8 +1604,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::HolySpellCost1 => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::HolySpellCost1 => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Spell
                     && c.cost == 1
@@ -1602,8 +1617,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::FelBeast => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::FelBeast => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Minion
                     && c.race == Some(Race::Beast)
@@ -1649,16 +1663,14 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .filter_map(card_by_id_ref)
             .collect(),
         // M3-W2a pools (Across the Timeways).
-        RandomPool::AnyMinion => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::AnyMinion => sampling_cards()
             .filter(|c| c.card_type == CardType::Minion && in_active_window(c))
             .copied()
             .collect::<Vec<CardDef>>()
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::Cost5Minion => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::Cost5Minion => sampling_cards()
             .filter(|c| c.card_type == CardType::Minion && c.cost == 5 && in_active_window(c))
             .copied()
             .collect::<Vec<CardDef>>()
@@ -1669,16 +1681,14 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(|id| card_by_id(id))
             .collect(),
-        RandomPool::ClassSpell => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::ClassSpell => sampling_cards()
             .filter(|c| c.card_type == CardType::Spell && is_class_card(c) && in_active_window(c))
             .copied()
             .collect::<Vec<CardDef>>()
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::NatureSpell => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::NatureSpell => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Spell
                     && crate::cards::quest::spell_school(c.id)
@@ -1690,24 +1700,21 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::RandomWeapon => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::RandomWeapon => sampling_cards()
             .filter(|c| c.card_type == CardType::Weapon && in_active_window(c))
             .copied()
             .collect::<Vec<CardDef>>()
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::OneCostMinion => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::OneCostMinion => sampling_cards()
             .filter(|c| c.card_type == CardType::Minion && c.cost == 1 && in_active_window(c))
             .copied()
             .collect::<Vec<CardDef>>()
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::OtherClassMinion => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::OtherClassMinion => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Minion && is_other_class_card(c) && in_active_window(c)
             })
@@ -1717,8 +1724,7 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .filter_map(card_by_id_ref)
             .collect(),
         // M4-W4 pools (2025–2026 expansions — Deathwing & Cataclysm §26).
-        RandomPool::DragonCost3OrLess => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::DragonCost3OrLess => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Minion
                     && c.race == Some(Race::Dragon)
@@ -1730,33 +1736,21 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::LegendaryDragon => crate::cards::sets::ALL_CARDS
-            .iter()
-            .filter(|c| {
-                c.card_type == CardType::Minion
-                    // The classic legendary defs are race-less (they
-                    // predate the Race component), so the pool is pinned
-                    // by ID — see LEGENDARY_DRAGON_CLASSIC (§26).
-                    && crate::cards::sets::LEGENDARY_DRAGON_CLASSIC
-                        .iter()
-                        .any(|l| l.id == c.id)
-                    && in_active_window(c)
-            })
+        RandomPool::LegendaryDragon => sampling_cards()
+            .filter(|c| is_legendary_dragon(c) && in_active_window(c))
             .copied()
             .collect::<Vec<CardDef>>()
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::MinionCost8OrMore => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::MinionCost8OrMore => sampling_cards()
             .filter(|c| c.card_type == CardType::Minion && c.cost >= 8 && in_active_window(c))
             .copied()
             .collect::<Vec<CardDef>>()
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
-        RandomPool::PaladinSpell => crate::cards::sets::ALL_CARDS
-            .iter()
+        RandomPool::PaladinSpell => sampling_cards()
             .filter(|c| {
                 c.card_type == CardType::Spell
                     && crate::cards::sets::PALADIN_CLASSIC
@@ -1898,15 +1892,7 @@ pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'stati
         RandomPool::DragonCost3OrLess => random_filtered(rng, |c| {
             c.card_type == CardType::Minion && c.race == Some(Race::Dragon) && c.cost <= 3
         }),
-        RandomPool::LegendaryDragon => random_filtered(rng, |c| {
-            c.card_type == CardType::Minion
-                // The classic legendary defs are race-less (they predate
-                // the Race component), so the pool is pinned by ID — see
-                // LEGENDARY_DRAGON_CLASSIC (§26).
-                && crate::cards::sets::LEGENDARY_DRAGON_CLASSIC
-                    .iter()
-                    .any(|l| l.id == c.id)
-        }),
+        RandomPool::LegendaryDragon => random_filtered(rng, is_legendary_dragon),
         RandomPool::MinionCost8OrMore => {
             random_filtered(rng, |c| c.card_type == CardType::Minion && c.cost >= 8)
         }
@@ -1942,8 +1928,7 @@ fn random_filtered(
     rng: &mut GameRng,
     predicate: impl Fn(&CardDef) -> bool,
 ) -> Option<&'static CardDef> {
-    let pool: Vec<&CardDef> = crate::cards::sets::ALL_CARDS
-        .iter()
+    let pool: Vec<&CardDef> = sampling_cards()
         .filter(|c| predicate(c) && in_active_window(c))
         .collect();
     if pool.is_empty() {
@@ -1959,16 +1944,21 @@ fn random_filtered(
 /// Some pools depend on game state: `CostEqualRemainingMana` reads the
 /// player's remaining mana (Scrappy Scavenger), `MinionOfUnplayedType` the
 /// races already played this game (Mountain Map). All other pools are
-/// in-window filtered subsets of `ALL_CARDS` (or fixed tables — see
-/// fidelity-debt §17).
+/// in-window filtered subsets of the sampling chain (`sampling_cards()` —
+/// fixed tables excluded, see fidelity-debt §17).
 pub(crate) fn discover_pool_cards(
     pool: DiscoverPool,
     state: &GameState,
     player: PlayerId,
 ) -> Vec<&'static CardDef> {
+    // The in-window discover pools sample the full handwritten chain
+    // (D3 cut-over, sampling_cards); the window-free arms (SpellCostGE8,
+    // CostEqualRemainingMana, DemonCostGE5 — "full catalog" reads) keep the
+    // ALL_CARDS catalog.
+    let sampling: Vec<&'static CardDef> = sampling_cards().collect();
     let all = crate::cards::sets::ALL_CARDS;
     match pool {
-        DiscoverPool::LegendaryMinion => all
+        DiscoverPool::LegendaryMinion => sampling
             .iter()
             .filter(|c| {
                 c.card_type == CardType::Minion
@@ -1978,26 +1968,29 @@ pub(crate) fn discover_pool_cards(
                         || c.id == "TIME_063")
                     && in_active_window(c)
             })
+            .copied()
             .collect(),
-        DiscoverPool::UndeadMinion => all
+        DiscoverPool::UndeadMinion => sampling
             .iter()
             .filter(|c| {
                 c.card_type == CardType::Minion
                     && c.race == Some(Race::Undead)
                     && in_active_window(c)
             })
+            .copied()
             .collect(),
         DiscoverPool::FrostRune => FROST_RUNE_POOL
             .iter()
             .filter_map(|id| card_by_id(id))
             .collect(),
-        DiscoverPool::Murloc => all
+        DiscoverPool::Murloc => sampling
             .iter()
             .filter(|c| {
                 c.card_type == CardType::Minion
                     && c.race == Some(Race::Murloc)
                     && in_active_window(c)
             })
+            .copied()
             .collect(),
         DiscoverPool::MinionOfUnplayedType => {
             // The set of races already played this game (from the minion ids
@@ -2011,15 +2004,17 @@ pub(crate) fn discover_pool_cards(
                 .filter_map(|c| c.race)
                 .collect();
             played.dedup();
-            all.iter()
+            sampling
+                .iter()
                 .filter(|c| {
                     c.card_type == CardType::Minion
                         && c.race.is_some_and(|r| !played.contains(&r))
                         && in_active_window(c)
                 })
+                .copied()
                 .collect()
         }
-        DiscoverPool::BeastOddAttack => all
+        DiscoverPool::BeastOddAttack => sampling
             .iter()
             .filter(|c| {
                 c.card_type == CardType::Minion
@@ -2027,8 +2022,9 @@ pub(crate) fn discover_pool_cards(
                     && c.attack % 2 == 1
                     && in_active_window(c)
             })
+            .copied()
             .collect(),
-        DiscoverPool::FelSpell => all
+        DiscoverPool::FelSpell => sampling
             .iter()
             .filter(|c| {
                 c.card_type == CardType::Spell
@@ -2036,6 +2032,7 @@ pub(crate) fn discover_pool_cards(
                         == Some(crate::cards::quest::SpellSchool::Fel)
                     && in_active_window(c)
             })
+            .copied()
             .collect(),
         // Relic of Kings — "a spell from any class that costs (8) or more":
         // the full catalog, no window restriction (fidelity-debt §17).
@@ -2046,13 +2043,14 @@ pub(crate) fn discover_pool_cards(
         // M3-W2a pools.
         // TIME_704 Highborne Mentor — "a spell that costs (7) or more from
         // the past": the SpellCostGE8 precedent, threshold 7.
-        DiscoverPool::SpellCostGE7 => all
+        DiscoverPool::SpellCostGE7 => sampling
             .iter()
             .filter(|c| c.card_type == CardType::Spell && c.cost >= 7 && in_active_window(c))
+            .copied()
             .collect(),
         // TIME_857 Alter Time — "two Arcane spells from the past": the
         // school filter is the FelSpell precedent.
-        DiscoverPool::ArcaneSpell => all
+        DiscoverPool::ArcaneSpell => sampling
             .iter()
             .filter(|c| {
                 c.card_type == CardType::Spell
@@ -2060,11 +2058,12 @@ pub(crate) fn discover_pool_cards(
                         == Some(crate::cards::quest::SpellSchool::Arcane)
                     && in_active_window(c)
             })
+            .copied()
             .collect(),
         // TIME_016 Neon Innovation — "a Paladin Mech from the past": the
         // class filter is the MageSpell precedent, restricted to Mechs
         // (§20 — the exact past-set filter is the active window).
-        DiscoverPool::PaladinMech => all
+        DiscoverPool::PaladinMech => sampling
             .iter()
             .filter(|c| {
                 c.card_type == CardType::Minion
@@ -2074,12 +2073,14 @@ pub(crate) fn discover_pool_cards(
                         .any(|p| p.id == c.id)
                     && in_active_window(c)
             })
+            .copied()
             .collect(),
         // M3-W2a — TIME_612 Blood Draw — "a spell from the past": the whole
         // active window, no class or school filter (§20).
-        DiscoverPool::Spell => all
+        DiscoverPool::Spell => sampling
             .iter()
             .filter(|c| c.card_type == CardType::Spell && in_active_window(c))
+            .copied()
             .collect(),
         // Scrappy Scavenger — "Cost equal to your remaining Mana Crystals"
         // (the static cost, computed after this card's own cost was paid;
@@ -2088,15 +2089,16 @@ pub(crate) fn discover_pool_cards(
             let remaining = state.player(player).current_mana;
             all.iter().filter(|c| c.cost == remaining).collect()
         }
-        DiscoverPool::TemporaryOneCostMinion => all
+        DiscoverPool::TemporaryOneCostMinion => sampling
             .iter()
             .filter(|c| c.card_type == CardType::Minion && c.cost == 1 && in_active_window(c))
+            .copied()
             .collect(),
         // M3-W2b pools (the Across the Timeways legendary wave).
         // TIME_013 Farseer Wo — "a Nature spell from the past": the school
         // filter is the ArcaneSpell precedent (§21 — "from the past" is the
         // active window).
-        DiscoverPool::NatureSpell => all
+        DiscoverPool::NatureSpell => sampling
             .iter()
             .filter(|c| {
                 c.card_type == CardType::Spell
@@ -2104,6 +2106,7 @@ pub(crate) fn discover_pool_cards(
                         == Some(crate::cards::quest::SpellSchool::Nature)
                     && in_active_window(c)
             })
+            .copied()
             .collect(),
         // TIME_446 The Eternal Hold — "any Demon that costs (5) or more":
         // the full catalog, no window restriction (the SpellCostGE8
@@ -2116,9 +2119,10 @@ pub(crate) fn discover_pool_cards(
             .collect(),
         // M4-W4 — CATA_484 Winter's Answer — "a spell that costs (1)":
         // the active-window pool like the plain Spell arm.
-        DiscoverPool::OneCostSpell => all
+        DiscoverPool::OneCostSpell => sampling
             .iter()
             .filter(|c| c.card_type == CardType::Spell && c.cost == 1 && in_active_window(c))
+            .copied()
             .collect(),
     }
 }
@@ -2129,8 +2133,7 @@ pub(crate) fn discover_pool_cards(
 /// out-of-table card) the caller fizzles the discover instead (see the
 /// DestroyTopCardDiscoverSameRarity arm in trigger.rs; fidelity-debt §17).
 pub(crate) fn cards_of_rarity(rarity: Rarity) -> Vec<&'static CardDef> {
-    crate::cards::sets::ALL_CARDS
-        .iter()
+    sampling_cards()
         .filter(|c| rarity_of(c.id) == Some(rarity) && in_active_window(c))
         .collect()
 }
@@ -2158,8 +2161,14 @@ mod tests {
             sets::WARLOCK_CLASSIC,
             sets::WARRIOR_CLASSIC,
         ];
+        // D3 cut-over (2026-08-09): only the in-window (Standard) members of
+        // the other-class groups are reachable — Classic-era members are no
+        // longer sampled.
         for class in other_classes {
             for card in class {
+                if !in_active_window(card) {
+                    continue;
+                }
                 assert!(
                     ids.contains(&card.id),
                     "{} must be in the OtherClass pool",
@@ -2186,16 +2195,18 @@ mod tests {
         }
     }
 
-    /// PriestCard (Blessing of the Moon — M1-W1) — every Priest class
-    /// minion or spell is reachable and nothing else (no neutrals, no
-    /// non-minion/spell types).
+    /// PriestCard (Blessing of the Moon — M1-W1) — every in-window (Standard,
+    /// D3 cut-over) Priest class minion or spell is reachable and nothing
+    /// else (no neutrals, no non-minion/spell types).
     #[test]
     fn priest_card_pool_is_priest_minions_and_spells() {
         let pool = pool_cards(RandomPool::PriestCard);
         assert!(!pool.is_empty(), "the PriestCard pool must not be empty");
         let ids: Vec<&str> = pool.iter().map(|c| c.id).collect();
         for card in sets::PRIEST_CLASSIC {
-            if card.card_type == CardType::Minion || card.card_type == CardType::Spell {
+            if (card.card_type == CardType::Minion || card.card_type == CardType::Spell)
+                && in_active_window(card)
+            {
                 assert!(
                     ids.contains(&card.id),
                     "{} must be in the PriestCard pool",
@@ -2218,7 +2229,8 @@ mod tests {
     }
 
     /// DeathrattleMinion (Avant-Gardening — M1-W2 dark gifts) — exactly the
-    /// in-window minions carrying a Deathrattle effect or a death trigger.
+    /// in-window (Standard, D3 cut-over) minions carrying a Deathrattle
+    /// effect or a death trigger, across the whole sampling chain.
     #[test]
     fn deathrattle_minion_pool_is_minions_with_deathrattle() {
         let pool = pool_cards(RandomPool::DeathrattleMinion);
@@ -2227,13 +2239,10 @@ mod tests {
             "the DeathrattleMinion pool must not be empty"
         );
         let ids: Vec<&str> = pool.iter().map(|c| c.id).collect();
-        for card in sets::ALL_CARDS {
-            let in_window = crate::cards::generated::card_set(card.id)
-                == crate::cards::def::CardSet::Classic
-                || crate::cards::generated::card_set(card.id) == crate::cards::def::CardSet::Core;
+        for card in sampling_cards() {
             if card.card_type == CardType::Minion
                 && (card.deathrattle.is_some() || card.death_trigger.is_some())
-                && in_window
+                && in_active_window(card)
             {
                 assert!(
                     ids.contains(&card.id),
@@ -2258,17 +2267,17 @@ mod tests {
     }
 
     /// UndeadMinion (Rite of Atrocity — M1-W2 dark gifts) — exactly the
-    /// in-window Undead minions.
+    /// in-window (Standard, D3 cut-over) Undead minions.
     #[test]
     fn undead_minion_pool_is_undead() {
         let pool = pool_cards(RandomPool::UndeadMinion);
         assert!(!pool.is_empty(), "the UndeadMinion pool must not be empty");
         let ids: Vec<&str> = pool.iter().map(|c| c.id).collect();
-        for card in sets::ALL_CARDS {
-            let in_window = crate::cards::generated::card_set(card.id)
-                == crate::cards::def::CardSet::Classic
-                || crate::cards::generated::card_set(card.id) == crate::cards::def::CardSet::Core;
-            if card.card_type == CardType::Minion && card.race == Some(Race::Undead) && in_window {
+        for card in sampling_cards() {
+            if card.card_type == CardType::Minion
+                && card.race == Some(Race::Undead)
+                && in_active_window(card)
+            {
                 assert!(
                     ids.contains(&card.id),
                     "{} must be in the UndeadMinion pool",
@@ -2288,7 +2297,7 @@ mod tests {
     }
 
     /// DemonCost5Plus (Jumpscare! — M1-W2 dark gifts) — exactly the
-    /// in-window Demons costing (5) or more.
+    /// in-window (Standard, D3 cut-over) Demons costing (5) or more.
     #[test]
     fn demon_cost_5_plus_pool_is_costly_demons() {
         let pool = pool_cards(RandomPool::DemonCost5Plus);
@@ -2297,14 +2306,11 @@ mod tests {
             "the DemonCost5Plus pool must not be empty"
         );
         let ids: Vec<&str> = pool.iter().map(|c| c.id).collect();
-        for card in sets::ALL_CARDS {
-            let in_window = crate::cards::generated::card_set(card.id)
-                == crate::cards::def::CardSet::Classic
-                || crate::cards::generated::card_set(card.id) == crate::cards::def::CardSet::Core;
+        for card in sampling_cards() {
             if card.card_type == CardType::Minion
                 && card.race == Some(Race::Demon)
                 && card.cost >= 5
-                && in_window
+                && in_active_window(card)
             {
                 assert!(
                     ids.contains(&card.id),
@@ -2361,10 +2367,10 @@ mod tests {
     }
 
     /// Murloc (Gnawing Greenfin — M1-W4a) — every Murloc race member in the
-    /// active window is reachable and nothing else. Expansion cards like
-    /// Gnawing Greenfin (EDR_999) stay out of the sampling pools until the
-    /// D3 cut-over (in_active_window), so a Classic-era member anchors the
-    /// "non-empty" assertion.
+    /// active window is reachable and nothing else. Since the D3 cut-over the
+    /// pool spans the Standard window, so an in-window (Core or expansion)
+    /// member anchors the "non-empty" assertion; Classic-era Murlocs are no
+    /// longer sampled.
     #[test]
     fn murloc_pool_is_murloc_minions() {
         let pool = pool_cards(RandomPool::Murloc);
@@ -2375,10 +2381,61 @@ mod tests {
                 "{} is not a Murloc",
                 card.id
             );
+            assert!(
+                in_active_window(card),
+                "{} is outside the Standard window after the D3 cut-over",
+                card.id
+            );
+        }
+        // Every in-window Murloc def is reachable (sampling chain).
+        let ids: Vec<&str> = pool.iter().map(|c| c.id).collect();
+        for card in sampling_cards() {
+            if card.race == Some(Race::Murloc) && in_active_window(card) {
+                assert!(
+                    ids.contains(&card.id),
+                    "{} must be in the Murloc pool",
+                    card.id
+                );
+            }
+        }
+    }
+
+    /// D3 cut-over sanity — a fixed-seed `random_card` draw over the new
+    /// window returns a Standard def (Core or one of the five expansions) and
+    /// never a Classic def; the AnyMinion pool can actually draw an expansion
+    /// minion.
+    #[test]
+    fn d3_cutover_draws_standard_cards_only_and_can_hit_expansions() {
+        let mut rng = GameRng::new(42);
+        for _ in 0..200 {
+            let def = random_card(&mut rng, RandomPool::AnyMinion)
+                .expect("the AnyMinion pool must not be empty");
+            assert!(
+                is_standard(def),
+                "{} is outside the Standard window after the D3 cut-over",
+                def.id
+            );
+            assert_ne!(
+                crate::cards::generated::card_set(def.id),
+                CardSet::Classic,
+                "{} is a Classic card — no longer sampled",
+                def.id
+            );
+        }
+        let mut rng = GameRng::new(7);
+        let mut saw_expansion = false;
+        for _ in 0..500 {
+            let Some(def) = random_card(&mut rng, RandomPool::AnyMinion) else {
+                break;
+            };
+            if is_expansion(def) {
+                saw_expansion = true;
+                break;
+            }
         }
         assert!(
-            pool.iter().any(|c| c.id == "CLASSIC_006"),
-            "Murloc Tidehunter must be in the Murloc pool"
+            saw_expansion,
+            "the AnyMinion pool must be able to draw an expansion minion"
         );
     }
 }
