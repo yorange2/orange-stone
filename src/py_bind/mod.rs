@@ -132,8 +132,13 @@ impl PyGameEnv {
     /// All card IDs in the full classic pool (M5 deck building).
     #[staticmethod]
     fn all_card_ids() -> Vec<String> {
+        // D3 cut-over (2026-08-09): the RL pool is now Standard — the
+        // handwritten expansion cards are sampled alongside Classic-era +
+        // Core (mirror of `pool::sampling_cards`; generated stat-only
+        // baselines stay out). The Python side filters debt/tokens.
         crate::cards::sets::ALL_CARDS
             .iter()
+            .chain(crate::cards::sets::HANDWRITTEN_EXPANSION_CARDS)
             .map(|c| c.id.to_string())
             .collect()
     }
