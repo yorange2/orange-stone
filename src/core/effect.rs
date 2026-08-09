@@ -3730,7 +3730,8 @@ pub enum CardEffect {
     /// "After your hero attacks, discard your highest Cost card")
     DiscardHighestCostCard,
     /// Draw cards until the hand is full (END_017t Tick and Tock
-    /// battlecry — the 10-card hand cap, F-A11)
+    /// battlecry and JAIL_430 Azalina Soulsever's battlecry, M5-W1 —
+    /// the 10-card hand cap, F-A11)
     DrawUntilHandFull,
     /// Empty the opponent's hand — every card is destroyed (END_017t Tick
     /// and Tock deathrattle)
@@ -4460,6 +4461,95 @@ pub enum CardEffect {
     /// spell" trigger effect; the Naga pool samples the active window
     /// minus the Colossal registry).
     AddRandomNagaCost1,
+    /// M5-W1 — JAIL_384 Chainbreaker Hogger's Start of Game: duplicate
+    /// all OTHER Legendary cards in the starting deck (a copy of each —
+    /// the 1-copy-per-legendary invariant is overridden by Hogger's
+    /// presence in the starting deck). Resolved by the StartOfGame phase
+    /// in `GameBuilder::build`.
+    HoggerStartOfGame,
+    /// M5-W1 — JAIL_430 Azalina Soulsever's Start of Game: starting
+    /// Health 40, deck trimmed to 20 cards plus 20 random copies from
+    /// the enemy's starting deck. Resolved by the StartOfGame phase.
+    AzalinaStartOfGame,
+    /// M5-W1 — JAIL_509 Godfrey the Betrayer's Start of Game: arms the
+    /// player's F-A11 override — overdrawn cards park in the SetAside
+    /// zone and return to the hand (costing (1) less) when there is
+    /// space, instead of burning.
+    GodfreyStartOfGame,
+    /// M5-W1 — JAIL_860 Chef Neth'rek's Start of Game: when the starting
+    /// deck only holds ≤3-cost cards, arms the "Mana to 10 after five
+    /// turns" flag (the timer runs at the owner's turn starts).
+    NethrekStartOfGame,
+    /// M5-W1 — JAIL_800 Mug'Zee's Start of Game: deck-composition
+    /// hero-power override — no other minions in the deck gets Mug's
+    /// Magic ("your first minion each turn costs (2) less"), no spells
+    /// gets Zee's Might ("every fifth minion you play triggers its
+    /// Battlecry twice"); both are passive hero powers.
+    MugzeeStartOfGame,
+    /// M5-W1 — JAIL_397 Commander Beatrix's Start of Game (simplified,
+    /// §27): the deck-building-time 2-Cost pick is a random 2-Cost
+    /// minion sampled at setup; ten copies join the starting deck.
+    BeatrixStartOfGame,
+    /// M5-W1 — JAIL_504 Aya, Lotus Kingpin's battlecry branch: pick an
+    /// upgraded counterfeit — the chosen coin replaces The Coin this
+    /// game (`Player::coin_replacement`, read by the add-to-hand choke
+    /// point), any Coin already in hand transforms into it, and two
+    /// copies join the hand. The three branches ride the choose-one
+    /// machinery (battlecry slot = Jade Coin, choose-one slot = Grimy
+    /// Coin, third branch = Kabal Coin).
+    AyaUpgradeCoins {
+        /// The upgraded counterfeit token's card id
+        card_id: &'static str,
+    },
+    /// M5-W1 — JAIL_448 Karov the Broken's deathrattle: get three 1/1
+    /// copies of random Legendary minions; they cost (1). The pool is
+    /// the `is_legendary` filter over the minion cards (the D2 pool
+    /// convention).
+    KarovThreeLegendaryCopies,
+    /// M5-W1 — JAIL_446 Blood Doctor Thal'ena's battlecry (simplified,
+    /// §27): the second hero power is a swap — the hero power becomes
+    /// Vampyr's Kiss (3 mana, "Give a minion +3 Attack"), which costs 3
+    /// Corpses instead of Mana (the HeroPowerActivated cost site).
+    ThalenaSecondHeroPower,
+    /// M5-W1 — JAIL_122 Jailhouse Manastorm's battlecry: while this
+    /// minion is on the board, each spell the owner casts this game
+    /// summons a random minion of the same Cost. (Simplified to
+    /// while-alive, §27: the game-long flag is cleared when the minion
+    /// dies.)
+    ManastormSetAfterSpell,
+    /// M5-W1 — JAIL_407 Vanessa the Ringleader's trigger: after the
+    /// owner plays a card, get a random Battlecry minion; it costs (2)
+    /// less (the `AddRandomBattlecryMinion` pool — ALL_CARDS minions
+    /// with a battlecry).
+    VanessaGetBattlecryMinionCost2Less,
+    /// M5-W1 — JAIL_721 Tras'tath, Soul Parasite's trigger: after the
+    /// owner summons a Demon, gain its stats (a permanent enchantment
+    /// on the Tras'tath; the just-summoned Demon is the event subject).
+    TrastathGainSummonedDemonStats,
+    /// M5-W1 — JAIL_906 Moragg's deathrattle: summon a random Demon
+    /// from the owner's deck and grant it "Deathrattle: Summon Moragg"
+    /// (the deck entity is consumed, the §21 deck-summon convention).
+    MoraggDeathrattle,
+    /// M5-W1 — the deathrattle granted by Moragg's chain: summon Moragg
+    /// (JAIL_906).
+    SummonMoragg,
+    /// M5-W1 — a passive hero power's effect marker (JAIL_800hp1 Mug's
+    /// Magic / JAIL_800hp2 Zee's Might): the power's actual behaviour
+    /// lives in the cost pipeline and the CardPlayed counter — the
+    /// effect resolves nothing.
+    PassiveHeroPower,
+    /// M5-W1 — JAIL_504t Jade Coin: gain 1 Mana Crystal this turn only
+    /// and summon a 1/1 Jade Golem (the Golem's scaling is simplified
+    /// to a fixed 1/1, §27).
+    JadeCoin,
+    /// M5-W1 — JAIL_504t2 Grimy Coin: gain 1 Mana Crystal this turn
+    /// only and deal 2 damage to a random enemy minion.
+    GrimyCoin,
+    /// M5-W1 — JAIL_504t3 Kabal Coin (simplified, §27): gain 1 Mana
+    /// Crystal this turn only and get a random 1-Cost spell (the
+    /// Kazakus potion pool is generated multi-choice spells with no
+    /// static defs — approximated by the 1-cost spell pool).
+    KabalCoin,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -6263,6 +6353,26 @@ enum CardEffectDe {
         count: u8,
     },
     AddRandomNagaCost1,
+    HoggerStartOfGame,
+    AzalinaStartOfGame,
+    GodfreyStartOfGame,
+    NethrekStartOfGame,
+    MugzeeStartOfGame,
+    BeatrixStartOfGame,
+    AyaUpgradeCoins {
+        card_id: String,
+    },
+    KarovThreeLegendaryCopies,
+    ThalenaSecondHeroPower,
+    ManastormSetAfterSpell,
+    VanessaGetBattlecryMinionCost2Less,
+    TrastathGainSummonedDemonStats,
+    MoraggDeathrattle,
+    SummonMoragg,
+    PassiveHeroPower,
+    JadeCoin,
+    GrimyCoin,
+    KabalCoin,
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -8310,6 +8420,30 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 CardEffect::SummonRandomMinionsOfCost { cost, count }
             }
             CardEffectDe::AddRandomNagaCost1 => CardEffect::AddRandomNagaCost1,
+            CardEffectDe::HoggerStartOfGame => CardEffect::HoggerStartOfGame,
+            CardEffectDe::AzalinaStartOfGame => CardEffect::AzalinaStartOfGame,
+            CardEffectDe::GodfreyStartOfGame => CardEffect::GodfreyStartOfGame,
+            CardEffectDe::NethrekStartOfGame => CardEffect::NethrekStartOfGame,
+            CardEffectDe::MugzeeStartOfGame => CardEffect::MugzeeStartOfGame,
+            CardEffectDe::BeatrixStartOfGame => CardEffect::BeatrixStartOfGame,
+            CardEffectDe::AyaUpgradeCoins { card_id } => CardEffect::AyaUpgradeCoins {
+                card_id: intern(card_id)?,
+            },
+            CardEffectDe::KarovThreeLegendaryCopies => CardEffect::KarovThreeLegendaryCopies,
+            CardEffectDe::ThalenaSecondHeroPower => CardEffect::ThalenaSecondHeroPower,
+            CardEffectDe::ManastormSetAfterSpell => CardEffect::ManastormSetAfterSpell,
+            CardEffectDe::VanessaGetBattlecryMinionCost2Less => {
+                CardEffect::VanessaGetBattlecryMinionCost2Less
+            }
+            CardEffectDe::TrastathGainSummonedDemonStats => {
+                CardEffect::TrastathGainSummonedDemonStats
+            }
+            CardEffectDe::MoraggDeathrattle => CardEffect::MoraggDeathrattle,
+            CardEffectDe::SummonMoragg => CardEffect::SummonMoragg,
+            CardEffectDe::PassiveHeroPower => CardEffect::PassiveHeroPower,
+            CardEffectDe::JadeCoin => CardEffect::JadeCoin,
+            CardEffectDe::GrimyCoin => CardEffect::GrimyCoin,
+            CardEffectDe::KabalCoin => CardEffect::KabalCoin,
         })
     }
 }
@@ -9270,6 +9404,26 @@ mod tests {
             CardEffect::ReopenLocationIfFelSpell,
             CardEffect::SummonRandomMinionsOfCost { cost: 4, count: 2 },
             CardEffect::AddRandomNagaCost1,
+            CardEffect::HoggerStartOfGame,
+            CardEffect::AzalinaStartOfGame,
+            CardEffect::GodfreyStartOfGame,
+            CardEffect::NethrekStartOfGame,
+            CardEffect::MugzeeStartOfGame,
+            CardEffect::BeatrixStartOfGame,
+            CardEffect::AyaUpgradeCoins {
+                card_id: "JAIL_504t",
+            },
+            CardEffect::KarovThreeLegendaryCopies,
+            CardEffect::ThalenaSecondHeroPower,
+            CardEffect::ManastormSetAfterSpell,
+            CardEffect::VanessaGetBattlecryMinionCost2Less,
+            CardEffect::TrastathGainSummonedDemonStats,
+            CardEffect::MoraggDeathrattle,
+            CardEffect::SummonMoragg,
+            CardEffect::PassiveHeroPower,
+            CardEffect::JadeCoin,
+            CardEffect::GrimyCoin,
+            CardEffect::KabalCoin,
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");

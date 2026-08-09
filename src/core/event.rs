@@ -98,6 +98,13 @@ pub enum Event {
         /// The traded card entity
         card: Entity,
     },
+    /// A card was prepared (M5-W1 — Escape from Violet Hold): the owner
+    /// spent ALL remaining mana, the card's cost drops by (spent + 1), and
+    /// the card is locked in hand until its owner's next turn start.
+    PrepareCardExecuted {
+        /// The prepared card entity
+        card: Entity,
+    },
     /// Game over
     GameOver {
         /// The winner

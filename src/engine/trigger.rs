@@ -11368,9 +11368,10 @@ pub fn resolve_effect(
             }
         }
         CardEffect::DrawUntilHandFull => {
-            // END_017t Tick and Tock battlecry — "Draw until your hand
-            // is full." Consecutive draws stop at the 10-card cap; an
-            // empty deck ends the loop (no fatigue is inflicted by the
+            // END_017t Tick and Tock battlecry and JAIL_430 Azalina
+            // Soulsever's battlecry (M5-W1) — "Draw until your hand is
+            // full." Consecutive draws stop at the 10-card cap; an empty
+            // deck ends the loop (no fatigue is inflicted by the
             // draw-until loop itself — the draw stops when the deck is
             // empty, matching the official card).
             while state.world().zones().len(Zone::Hand, owner) < MAX_HAND_SIZE
@@ -13877,12 +13878,369 @@ pub fn resolve_effect(
                     .set_cost(e, crate::core::component::Cost(1));
             }
         }
+        CardEffect::HoggerStartOfGame => {
+            // M5-W1 — JAIL_384 Chainbreaker Hogger: "Start of Game:
+            // Duplicate all other Legendary cards in your deck" — one
+            // copy per other Legendary card in the starting deck (the
+            // 1-copy-per-legendary invariant is overridden by Hogger's
+            // own presence; the SOG phase resolves this before the
+            // shuffle, so the copy position does not matter).
+            let copies: SmallList<&'static crate::cards::def::CardDef> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter_map(|e| state.world().card_id(e).map(|c| c.0))
+                .filter(|id| *id != "JAIL_384" && crate::cards::pool::is_legendary(id))
+                .filter_map(crate::cards::def::card_by_id)
+                .collect();
+            for def in copies {
+                let e = crate::cards::spawn_card_from_def(state.world_mut(), owner, def);
+                state.world_mut().set_zone(e, Zone::Deck);
+                state.world_mut().zones_mut().insert(Zone::Deck, owner, e);
+            }
+        }
+        CardEffect::AzalinaStartOfGame => {
+            // M5-W1 — JAIL_430 Azalina Soulsever: "Your starting Health
+            // is 40. Your deck is 20 cards, plus 20 copied from your
+            // enemy." The starting Health is set on the hero; the deck
+            // keeps its first 20 cards (the setup deck is never larger
+            // in practice; a smaller deck keeps all of it) and gains 20
+            // random copies sampled WITH replacement from the enemy's
+            // starting deck (the enemy deck can be smaller than 20 —
+            // the solo-adventure mode always fills it, pinned here).
+            let hero = state.player(owner).hero;
+            state.world_mut().set_health(hero, Health(40));
+            // Trim the own deck to at most 20 cards (keep the front).
+            let own: Vec<Entity> = state.world().zones().iter(Zone::Deck, owner).collect();
+            for e in own.iter().skip(20) {
+                state.world_mut().zones_mut().remove(Zone::Deck, owner, *e);
+                state.world_mut().set_zone(*e, Zone::Graveyard);
+            }
+            // 20 random copies from the enemy's starting deck.
+            let enemy: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner.opponent())
+                .collect();
+            if !enemy.is_empty() {
+                for _ in 0..20 {
+                    let src = enemy[state.rng_mut().next_usize(enemy.len())];
+                    let Some(def) = state
+                        .world()
+                        .card_id(src)
+                        .map(|cid| cid.0)
+                        .and_then(crate::cards::def::card_by_id)
+                    else {
+                        continue;
+                    };
+                    let e = crate::cards::spawn_card_from_def(state.world_mut(), owner, def);
+                    state.world_mut().set_zone(e, Zone::Deck);
+                    state.world_mut().zones_mut().insert(Zone::Deck, owner, e);
+                }
+            }
+        }
+        CardEffect::GodfreyStartOfGame => {
+            // M5-W1 — JAIL_509 Godfrey the Betrayer: "Overdrawn cards
+            // return to your hand when you have space. They cost (1)
+            // less." — arms the F-A11 override (the burn branch in
+            // `draw_card_no_queue` parks the card instead).
+            state.make_mut().players[owner.index()].godfrey_overdraw_return = true;
+        }
+        CardEffect::NethrekStartOfGame => {
+            // M5-W1 — JAIL_860 Chef Neth'rek: "If your deck only has
+            // cards that cost (3) or less, set your Mana to 10 after
+            // five turns!" — the deck check arms the flag; the
+            // TurnStarted handler runs the five-turn timer.
+            let all_cheap = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter_map(|e| state.world().effective_cost(e))
+                .all(|c| c.0 <= 3);
+            if all_cheap {
+                state.make_mut().players[owner.index()].nethrek_mana_after_five = true;
+            }
+        }
+        CardEffect::MugzeeStartOfGame => {
+            // M5-W1 — JAIL_800 Mug'Zee: "If your deck has no other
+            // minions, get Mug's Hero Power. If it has no spells, get
+            // Zee's!" — the passive powers' behaviour lives in the cost
+            // pipeline (Mug's Magic: the first minion each turn costs
+            // (2) less) and the CardPlayed counter (Zee's Might: every
+            // fifth minion played triggers its Battlecry twice). The
+            // "other" in the official text excludes Mug'Zee's own deck
+            // copies from the minion scan. When both conditions hold (a
+            // deck of neither minions nor spells — the empty-deck edge),
+            // Zee's Might wins the single hero-power slot.
+            let has_minion = state.world().zones().iter(Zone::Deck, owner).any(|e| {
+                state.world().card_id(e).is_some_and(|c| c.0 != "JAIL_800")
+                    && state.world().card_type(e) == Some(CardType::Minion)
+            });
+            let has_spell = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .any(|e| state.world().card_type(e) == Some(CardType::Spell));
+            let hero = state.player(owner).hero;
+            if !has_minion {
+                state.make_mut().players[owner.index()].mugzee_mug_magic = true;
+                state.world_mut().set_hero_power(
+                    hero,
+                    HeroPowerDef {
+                        cost: 0,
+                        effect: CardEffect::PassiveHeroPower,
+                    },
+                );
+            }
+            if !has_spell {
+                state.make_mut().players[owner.index()].mugzee_zee_might = true;
+                state.world_mut().set_hero_power(
+                    hero,
+                    HeroPowerDef {
+                        cost: 0,
+                        effect: CardEffect::PassiveHeroPower,
+                    },
+                );
+            }
+        }
+        CardEffect::BeatrixStartOfGame => {
+            // M5-W1 — JAIL_397 Commander Beatrix (simplified, §27):
+            // "While building your deck, pick a 2-Cost minion. Ten
+            // copies join your deck!" — the deck-building-time pick has
+            // no surface in the engine setup, so a random 2-Cost minion
+            // (ALL_CARDS, tokens excluded — the `random_minion_of_cost`
+            // convention) is sampled and ten copies join the starting
+            // deck.
+            let Some(def) = random_minion_of_cost(state, 2) else {
+                return;
+            };
+            for _ in 0..10 {
+                let e = crate::cards::spawn_card_from_def(state.world_mut(), owner, def);
+                state.world_mut().set_zone(e, Zone::Deck);
+                state.world_mut().zones_mut().insert(Zone::Deck, owner, e);
+            }
+        }
+        CardEffect::AyaUpgradeCoins { card_id } => {
+            // M5-W1 — JAIL_504 Aya, Lotus Kingpin: "Pick an upgraded
+            // counterfeit to replace your Coins this game. Get two."
+            // The chosen coin becomes the replacement (the add-to-hand
+            // choke point swaps any future THE_COIN), Coins already in
+            // hand transform into it, and two copies join the hand.
+            let Some(def) = crate::cards::def::card_by_id(card_id) else {
+                return;
+            };
+            state.make_mut().players[owner.index()].coin_replacement = Some(card_id.to_string());
+            let coins: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "GAME_005"))
+                .collect();
+            for e in coins {
+                resolve_transform_to_def(state, e, def);
+            }
+            add_card_to_hand(state, owner, def);
+            add_card_to_hand(state, owner, def);
+        }
+        CardEffect::KarovThreeLegendaryCopies => {
+            // M5-W1 — JAIL_448 Karov the Broken's deathrattle: "Get
+            // three 1/1 copies of random Legendary minions. They cost
+            // (1)." — the Legendary filter is the `is_legendary` pool
+            // convention (§26); the copies are 1/1 and cost 1.
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion && crate::cards::pool::is_legendary(c.id)
+                    })
+                    .collect();
+            if pool.is_empty() {
+                return;
+            }
+            for _ in 0..3 {
+                let def = pool[state.rng_mut().next_usize(pool.len())];
+                if let Some(e) = add_card_to_hand(state, owner, def) {
+                    let world = state.world_mut();
+                    world.set_attack(e, Attack(1));
+                    world.set_health(e, Health(1));
+                    world.set_cost(e, Cost(1));
+                }
+            }
+        }
+        CardEffect::ThalenaSecondHeroPower => {
+            // M5-W1 — JAIL_446 Blood Doctor Thal'ena (simplified, §27):
+            // "Get a second Hero Power that costs Corpses." — the
+            // engine has a single hero-power slot, so the battlecry
+            // swaps the hero power to Vampyr's Kiss ("Give a minion +3
+            // Attack"), which costs 3 Corpses instead of Mana (the
+            // HeroPowerActivated cost site).
+            let hero = state.player(owner).hero;
+            state.world_mut().set_hero_power(
+                hero,
+                HeroPowerDef {
+                    cost: 3,
+                    effect: CardEffect::GainStats {
+                        attack: 3,
+                        health: 0,
+                        target: EffectTarget::AnyMinion,
+                    },
+                },
+            );
+            state.make_mut().players[owner.index()].thalena_corpses_hero_power = true;
+        }
+        CardEffect::ManastormSetAfterSpell => {
+            // M5-W1 — JAIL_122 Jailhouse Manastorm (simplified, §27):
+            // "After you cast a spell this game, summon a random minion
+            // of the same Cost." — the battlecry arms the flag; the
+            // SpellCast hook summons while the Manastorm is on the
+            // board (while-alive simplification of the game-long
+            // trigger).
+            state.make_mut().players[owner.index()].manastorm_after_spell = true;
+        }
+        CardEffect::VanessaGetBattlecryMinionCost2Less => {
+            // M5-W1 — JAIL_407 Vanessa the Ringleader: "After you play
+            // a card, get a random Battlecry minion. It costs (2)
+            // less." — the AddRandomBattlecryMinion pool (ALL_CARDS
+            // minions with a battlecry), plus the permanent (2)
+            // discount.
+            let candidates: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| c.card_type == CardType::Minion && c.battlecry.is_some())
+                    .collect();
+            if candidates.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(candidates.len());
+            if let Some(e) = add_card_to_hand(state, owner, candidates[idx]) {
+                reduce_hand_card_cost(state, e, 2);
+            }
+        }
+        CardEffect::TrastathGainSummonedDemonStats => {
+            // M5-W1 — JAIL_721 Tras'tath, Soul Parasite: "After you
+            // summon a Demon, gain its stats." — the trigger rides the
+            // Tras'tath, the just-summoned Demon is the event subject;
+            // the Demon's current stats land as a permanent
+            // enchantment.
+            let Some(subject) = event_subject else {
+                return;
+            };
+            let atk = state
+                .world()
+                .effective_attack(subject)
+                .unwrap_or(Attack(0))
+                .0;
+            let hp = state
+                .world()
+                .effective_health(subject)
+                .unwrap_or(Health(0))
+                .0;
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack: atk,
+                    health: hp,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::MoraggDeathrattle => {
+            // M5-W1 — JAIL_906 Moragg: "Summon a random Demon from your
+            // deck. Give it 'Deathrattle: Summon Moragg.'" — the deck
+            // entity is consumed (the §21 deck-summon convention: a
+            // fresh copy joins the board, the deck card is destroyed).
+            let deck: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .map(|cid| cid.0)
+                        .and_then(crate::cards::def::card_by_id)
+                        .is_some_and(|d| d.race == Some(Race::Demon))
+                })
+                .collect();
+            if deck.is_empty() {
+                return;
+            }
+            let picked = deck[state.rng_mut().next_usize(deck.len())];
+            if let Some(def) = state
+                .world()
+                .card_id(picked)
+                .map(|cid| cid.0)
+                .and_then(crate::cards::def::card_by_id)
+            {
+                if let Some(e) = resolve_summon(state, queue, source, owner, def.id) {
+                    state.world_mut().set_deathrattle(
+                        e,
+                        crate::core::component::Deathrattle(CardEffect::SummonMoragg),
+                    );
+                }
+            }
+            let _ = state.world_mut().move_to_zone(picked, Zone::Graveyard);
+        }
+        CardEffect::SummonMoragg => {
+            // M5-W1 — the chain-deathrattle granted by Moragg: summon
+            // Moragg (JAIL_906) itself.
+            let _ = resolve_summon(state, queue, source, owner, "JAIL_906");
+        }
+        CardEffect::PassiveHeroPower => {
+            // M5-W1 — the passive hero powers (JAIL_800hp1 Mug's Magic,
+            // JAIL_800hp2 Zee's Might) resolve nothing on activation —
+            // their behaviour lives in the cost pipeline and the
+            // CardPlayed counter.
+        }
+        CardEffect::JadeCoin => {
+            // M5-W1 — JAIL_504t Jade Coin: "Gain 1 Mana Crystal this
+            // turn only. Summon a 1/1 Jade Golem." (the Golem's scaling
+            // is simplified to a fixed 1/1, §27.)
+            {
+                let inner = state.make_mut();
+                let p = &mut inner.players[owner.index()];
+                p.current_mana = (p.current_mana + 1).min(10);
+            }
+            let _ = resolve_summon(state, queue, source, owner, "JAIL_504tj");
+        }
+        CardEffect::GrimyCoin => {
+            // M5-W1 — JAIL_504t2 Grimy Coin: "Gain 1 Mana Crystal this
+            // turn only. Deal 2 damage to a random enemy minion."
+            {
+                let inner = state.make_mut();
+                let p = &mut inner.players[owner.index()];
+                p.current_mana = (p.current_mana + 1).min(10);
+            }
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                2,
+                EffectTarget::AnyEnemyMinion,
+                None,
+            );
+        }
+        CardEffect::KabalCoin => {
+            // M5-W1 — JAIL_504t3 Kabal Coin (simplified, §27): "Gain 1
+            // Mana Crystal this turn only. Get a random 1-Cost Kazakus
+            // Potion." — the potion pool is generated multi-choice
+            // spells with no static defs, so the 1-Cost spell pool
+            // stands in (the `add_random_cost_card` window filter).
+            {
+                let inner = state.make_mut();
+                let p = &mut inner.players[owner.index()];
+                p.current_mana = (p.current_mana + 1).min(10);
+            }
+            add_random_cost_card(state, owner, 1, CardType::Spell);
+        }
     }
 }
 
 /// A random minion of the given cost from ALL_CARDS (the Gravedawn
 /// Voidbulb D2 convention — token cards excluded).
-fn random_minion_of_cost(
+pub(crate) fn random_minion_of_cost(
     state: &mut GameState,
     cost: i32,
 ) -> Option<&'static crate::cards::def::CardDef> {
@@ -14212,16 +14570,35 @@ pub(crate) fn draw_card_no_queue(
     // Hand-size cap (F-A11): a card drawn past the 10-card limit is burned —
     // destroyed (sent to the graveyard), while the draw still counts for deck
     // depletion and the CardDrawn event still fires (the caller pushes it).
+    // M5-W1 — Godfrey the Betrayer (JAIL_509) overrides the burn: the card
+    // parks in the SetAside zone with its cost recorded, and the owner's
+    // TurnStarted handler returns it to the hand (with a (1) discount) when
+    // there is space.
+    let godfrey_return = state.player(player).godfrey_overdraw_return;
     let world = state.world_mut();
     let hand_full = world.zones().len(Zone::Hand, player) >= MAX_HAND_SIZE;
     let zone = if hand_full {
-        Zone::Graveyard
+        if godfrey_return {
+            Zone::SetAside
+        } else {
+            Zone::Graveyard
+        }
     } else {
         Zone::Hand
+    };
+    let held_cost = if hand_full && godfrey_return {
+        world.effective_cost(card).unwrap_or(Cost(0)).0
+    } else {
+        0
     };
     world
         .move_to_zone(card, zone)
         .expect("card should be movable to hand");
+    if hand_full && godfrey_return {
+        state.make_mut().players[player.index()]
+            .godfrey_held_cards
+            .push((card, held_cost));
+    }
     // M3-W3 — Battle at the End Time (END_017): the "filled" half of the
     // fill-then-empty SEQUENCE — a draw that leaves the hand full records
     // the filled marker (the dedicated branch in quest.rs dedups it, so a
@@ -17300,6 +17677,22 @@ pub(crate) fn add_card_to_hand(
     player: PlayerId,
     card_def: &crate::cards::def::CardDef,
 ) -> Option<Entity> {
+    // M5-W1 — Aya, Lotus Kingpin (JAIL_504): the upgraded counterfeit
+    // (JAIL_504t Jade Coin / JAIL_504t2 Grimy Coin / JAIL_504t3 Kabal
+    // Coin) replaces THE_COIN (GAME_005) everywhere a Coin would be
+    // added to hand this game. The swap precedes the cap check, so a
+    // full-hand add burns the upgraded coin exactly as the base one
+    // would.
+    let card_def = if card_def.id == "GAME_005" {
+        state
+            .player(player)
+            .coin_replacement
+            .as_deref()
+            .and_then(crate::cards::def::card_by_id)
+            .unwrap_or(card_def)
+    } else {
+        card_def
+    };
     // Hand-size cap (F-A11): a GENERATED card past the 10-card limit is never
     // created (official rule — a full-hand add destroys the card).
     if state.world().zones().len(Zone::Hand, player) >= MAX_HAND_SIZE {

@@ -328,7 +328,7 @@ later wave (W3 brings the real choice/discover pipeline).
 
 | ID | Card | Simplified | When real |
 | --- | --- | --- | --- |
-| EDR_845 | Hamuul Runetotem | Nature school check skipped (every friendly spell qualifies); the Start-of-Game part fires on play (the engine has no StartOfGame event) and the every-3-spells trigger fires only while Hamuul is in play (the per-player counter survives him leaving play) | a StartOfGame event + a school check on the spell entity |
+| EDR_845 | Hamuul Runetotem | Nature school check skipped (every friendly spell qualifies); the Start-of-Game part fires on play (the engine has no StartOfGame event) and the every-3-spells trigger fires only while Hamuul is in play (the per-player counter survives him leaving play) | ~~a StartOfGame event~~ ✅ resolved (M5-W1, PR #161 — the `cards::start_of_game` setup-phase hook lands the engine-side StartOfGame phase; the Hamuul card itself keeps its play-time firing) + a school check on the spell entity |
 | EDR_449p | Blessing of the Moon (Priest skill) | "Choose a playable Priest minion or spell" → a random pick over the PriestCard pool | the real choice mechanism (W3) |
 | EDR_445pt3 | Emerald Portal (Paladin skill token) | "Casts When Drawn" not modeled → a playable 0-cost spell that summons a random 1-Cost Dragon when played; the dragon pool spans the expansion baselines (END_022 / CATA_484 / CATA_556) because the active Classic/Core window has no 1-Cost dragons | a cast-when-drawn pipeline |
 | EDR_888 | Malorne the Waywatcher | Discover → the existing random simplification over the fixed WILD_GOD_POOL (the 8 EDR Wild Gods) | the real Discover pipeline (W3) |
@@ -2065,3 +2065,109 @@ green (all suites,
 incl. every `tlc_w*_*`/`tmw1_*`/`tmw2a_*`/`tmw2b_*`/`tmw3_*`/`cata_w1_*`/
 `cata_w2_*`/`cata_w3_*` scenario and the 16 `cata_w4_*` — 976 passed, 1
 ignored), `cargo fmt` clean, `cargo clippy --all-targets` zero warnings.
+
+### 27. 2025–2026 expansions M5-W1 — Escape from Violet Hold, the Rulebreakers wave (17 cards + 5 tokens) 🔓 registered
+
+The registered simplifications of the M5-W1 wave (`src/cards/exp_jail_w1.rs`):
+the first Rulebreakers batch of the Escape from Violet Hold sub-roadmap — the
+Start-of-Game block (Hogger, Azalina, Godfrey, Neth'rek, Mug'Zee, Beatrix —
+resolved through the new `cards::start_of_game` V1 hook in
+`GameBuilder::build`, which also pays the §14 EDR_845 Hamuul "the engine has
+no StartOfGame event" note), the Prepare block (Vanessa, Tras'tath, Moragg —
+the pinned keyword: spend ALL remaining mana → a permanent (spent + 1) cost
+discount → locked in hand via CantPlayNextTurn until the owner's next turn
+start; once per card, once per turn, never at 0 mana), and the plain-effect
+batch (V'ama, Manastorm, Skeleton Key, Warptooth, Living Plague, Thal'ena,
+Karov). As with §14–§26, these handwritten expansion cards are not in the RL
+pool (classic + core 668/659), so the rows are informational: they keep the
+code's simplifications traceable to the ledger. Each row stays open until
+its mechanism lands.
+
+The wave's headline mechanics are FULL primitives: **the Start-of-Game
+hook** (`cards::start_of_game` — the id-keyed registry resolved in
+`GameBuilder::build` after the turn-order override and before the
+starting-deck snapshot and the shuffle; the decks are scanned in order,
+Player1's first then Player2's, and every registered card resolves through
+the normal `trigger::resolve_effect` pipeline); **Prepare** (see the pin
+above — the CantPlayNextTurn component is the CATA_186t Sabotage!
+precedent; the discount goes through `reduce_hand_card_cost`; the
+once-per-turn guard and the per-card list live on `Player`);
+**Warptooth's damage-pipeline summon** (four DISTINCT friendly characters
+take real damage on the owner's turn — armor-absorbed damage does not
+count, the Emberroot convention — and the actual hand/deck card moves to
+the battlefield, no fresh copy); **The Living Plague's hero-damage
+redirection** (a Plague attack on a hero enqueues no damage; `attacker_damage`
+Blights shuffle into the hero's deck at random positions); **Aya's
+counterfeit machinery** (the builder-level `aya_flip` turn-order override
+plus the choose-one three-branch battlecry: battlecry slot = Jade Coin,
+choose-one slot = Grimy Coin, cards-side table = Kabal Coin); **Mug'Zee's
+conditional hero powers** (the passive powers live in the cost pipeline —
+Mug's Magic: the first minion each turn costs (2) less — and the CardPlayed
+counter — Zee's Might: every fifth minion played triggers its Battlecry
+twice); and **Karov's deathrattle** (three 1/1 Legendary Cho'gall brothers).
+
+The wave's §27 pins (documented conventions): **Beatrix's deck-building
+pick** — "While building your deck, pick a 2-Cost minion" has no surface in
+the engine setup, so a random 2-Cost minion (ALL_CARDS, tokens excluded)
+is sampled at Start-of-Game and ten copies join the starting deck;
+**Mug'Zee's both-conditions corner** — a deck with no other minions AND no
+spells (the empty-deck edge) grants both flags, but Zee's Might wins the
+single hero-power slot; **Zee's Might × Choose One** — a Choose One fifth
+minion's battlecry resolves through the choice system and is NOT doubled
+(the readiness flag is still consumed); **Aya's symmetric flip corner** —
+both decks holding Aya (or neither) flips nothing; **the Kabal Coin potion
+pool** — "Get a random 1-Cost Kazakus Potion" samples the 1-Cost spell pool
+instead; **the Jade Golem scaling** — the Jade Coin's Golem is the fixed
+1/1 JAIL_504tj (the official incrementing Golem is unmodeled); **Moragg's
+deck consumption** — the deathrattle summons a random Demon from the deck
+and moves that deck card to the graveyard (the board-full case is
+unchecked); **Thal'ena's single hero-power slot** — "Get a second Hero
+Power" becomes a swap into Vampyr's Kiss (3 Corpses instead of Mana).
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| JAIL_384 | Chainbreaker Hogger | Full: Start-of-Game duplicates every other Legendary card in the starting deck | — |
+| JAIL_430 | Azalina Soulsever | Full: starting Health 40, the 20+20-deck construction, the draw-until-hand-full battlecry through the F-A11 cap | — |
+| JAIL_509 | Godfrey the Betrayer | Full: the F-A11 burn override parks overdrawn cards; they return at the owner's turn start, oldest first, each costing (1) less | — |
+| JAIL_860 | Chef Neth'rek | Full: the deck-≤3-cost check; the Mana set to 10 at turn 5 | — |
+| JAIL_800 | Mug'Zee | Full: the no-other-minions / no-spells checks grant the passive hero powers; the both-conditions corner gives Zee's Might the single hero-power slot | — |
+| JAIL_397 | Commander Beatrix | "While building your deck, pick a 2-Cost minion" → a Start-of-Game random 2-Cost minion ×10 (no deck-building surface) | a deck-building pick |
+| JAIL_407 | Vanessa the Ringleader | Full: Prepare + the after-play random Battlecry minion costing (2) less | — |
+| JAIL_721 | Tras'tath, Soul Parasite | Full: Prepare + Rush; the after-Demon-summon stat gain | — |
+| JAIL_906 | Moragg | The deathrattle consumes the deck card (moves it to the graveyard); the board-full case is unchecked | the official deck handling |
+| JAIL_504 | Aya, Lotus Kingpin | Full: the `aya_flip` turn-order override + the choose-one three-branch counterfeit pick; the both-decks corner flips nothing | — |
+| JAIL_118 | V'ama, Looming Death | The Paladin class filter is dropped — destroys ALL minions (the Sinestra §23 precedent) | a class filter |
+| JAIL_122 | Jailhouse Manastorm | "After you cast a spell this game" → while-alive: the SpellCast hook checks the board | a game-long trigger |
+| JAIL_319 | The Skeleton Key | The refresh / 20%-damage half is simplified away: a plain discover-a-spell | the refresh pipeline |
+| JAIL_421 | Warptooth | Full: the four-distinct-friendly-damaged summon from hand or deck; the summon consumes the per-turn count (a later crossing of four finds no copy — the card is already in play) | per-crossing refire |
+| JAIL_443 | The Living Plague | The Blight's "deal 2 when drawn" fires as a playable 1-Cost spell (the cast-when-drawn simplification); the shuffle count = the Plague's attack damage | the cast-when-drawn pipeline |
+| JAIL_446 | Blood Doctor Thal'ena | "Get a second Hero Power" → a swap: the hero power becomes Vampyr's Kiss (3 Corpses instead of Mana) — one hero-power slot | a real second hero-power slot |
+| JAIL_448 | Karov the Broken | Full: the deathrattle summons three 1/1 Legendary Cho'gall brothers | — |
+| JAIL_504t | Jade Coin | The Golem's scaling is a fixed 1/1 (JAIL_504tj) | the incrementing Jade Golem |
+| JAIL_504t2 | Grimy Coin | Full | — |
+| JAIL_504t3 | Kabal Coin | "Get a random 1-Cost Kazakus Potion" → the 1-Cost spell pool | the Kazakus potion pool |
+| JAIL_443t | Blight | The cast-when-drawn deal-2 fires as a playable spell (see JAIL_443) | the cast-when-drawn pipeline |
+| JAIL_504tj | Jade Golem | The fixed 1/1 token of the Jade Coin | the incrementing Jade Golem |
+
+F5 coverage: `jail_w1_*` (19 scenarios in `tests/differential.rs`) —
+`jail_w1_hogger_duplicates_legendaries` (the Start-of-Game duplicate of
+every other Legendary in the deck), `jail_w1_azalina_health_and_deck`
+(starting Health 40 + the 20+20 deck), `jail_w1_aya_always_second` (the
+flip) + `jail_w1_aya_battlecry_upgrades_coins` (the three-branch coin
+pick), `jail_w1_godfrey_overdraw_returns` (the burn override + the return),
+`jail_w1_nethrek_mana_after_five` (the deck check + the turn-5 Mana),
+`jail_w1_mugzee_hero_power` + `jail_w1_mugzee_zee_might_doubles_battlecry`
+(the passive powers + the fifth-minion double), `jail_w1_beatrix_ten_copies`
+(the random 2-Cost ×10), `jail_w1_vanessa_prepare_after_play` (the full
+Prepare pin: spend-all, the (spent + 1) discount, the lock, once-per-card,
+once-per-turn, the 0-mana gate, the expiry, and her play-fires-own trigger
+convention), `jail_w1_trastath_demon_stats` (the Demon-summon stat gain),
+`jail_w1_moragg_chain` (the chain deathrattle + the fresh copy summon-sick),
+`jail_w1_vama_destroys_all`, `jail_w1_manastorm_summons_on_spell` (the
+while-alive convention), `jail_w1_skeleton_key_discovers`,
+`jail_w1_warptooth_summons_on_four` (the four-damage summon),
+`jail_w1_living_plague_shuffles_blights` (the hero-damage redirection),
+`jail_w1_thalena_corpses_hero_power` (the Corpses-costed swap),
+`jail_w1_karov_three_legendaries`. Full `cargo test` fully green (all
+suites, incl. every prior scenario — 996 passed, 1 ignored), `cargo fmt`
+clean, `cargo clippy --all-targets` zero warnings.

@@ -638,6 +638,60 @@ pub struct Player {
     /// already-picked Cataclysm ids (picks are distinct); `None` outside
     /// the Deathwing play burst.
     pub pending_cataclysms: Option<(u32, Vec<String>)>,
+    /// Escape from Violet Hold W1 — JAIL_509 Godfrey the Betrayer's
+    /// StartOfGame override is active for this player: overdrawn cards
+    /// return to the hand instead of burning (F-A11 override).
+    pub godfrey_overdraw_return: bool,
+    /// Escape from Violet Hold W1 — JAIL_509: the cards that would have
+    /// been burned sit in the SetAside zone (entity, original cost) until
+    /// the hand has room; they return costing (1) less.
+    pub godfrey_held_cards: Vec<(crate::core::entity::Entity, i32)>,
+    /// Escape from Violet Hold W1 — JAIL_860 Chef Neth'rek's StartOfGame
+    /// check passed (starting deck is all ≤3-cost cards): set Mana to 10
+    /// after five turns have passed.
+    pub nethrek_mana_after_five: bool,
+    /// Escape from Violet Hold W1 — JAIL_860: how many of the player's
+    /// own turns have elapsed since the game started (Neth'rek's timer).
+    pub nethrek_turns_elapsed: u32,
+    /// Escape from Violet Hold W1 — JAIL_421 Warptooth: the distinct
+    /// friendly characters that lost Health this turn (cleared at the
+    /// owner's turn start). At 4 distinct characters the card summons
+    /// itself from hand or deck.
+    pub warptooth_damaged_ids: Vec<crate::core::entity::Entity>,
+    /// Escape from Violet Hold W1 — JAIL_122 Jailhouse Manastorm: while
+    /// this is on the board, each spell this player casts summons a
+    /// random minion of the same Cost. (Game-long flag on the player —
+    /// set by the battlecry, cleared when the minion dies.)
+    pub manastorm_after_spell: bool,
+    /// Escape from Violet Hold W1 — JAIL_504 Aya, Lotus Kingpin: the card
+    /// id that replaces THE_COIN in this player's hand (the upgraded
+    /// counterfeit token chosen at start of game); `None` = normal Coin.
+    pub coin_replacement: Option<String>,
+    /// Escape from Violet Hold W1 — JAIL_800 Mug'Zee: the player received
+    /// Mug's Hero Power (deck has no other minions).
+    pub mugzee_mug_magic: bool,
+    /// Escape from Violet Hold W1 — JAIL_800 Mug'Zee: the player received
+    /// Zee's Might (deck has no spells): minions cost (2) less while none
+    /// have been played this turn, and five minion plays in one turn
+    /// empower the next summoned minion's battlecry.
+    pub mugzee_zee_might: bool,
+    /// Escape from Violet Hold W1 — JAIL_800: how many minions the player
+    /// played this turn (Zee's Might counter; reset at turn start).
+    pub zee_might_counter: u8,
+    /// Escape from Violet Hold W1 — JAIL_800: five minions played in one
+    /// turn — the next minion summoned this turn has its battlecry
+    /// resolved a second time.
+    pub zee_might_ready: bool,
+    /// Escape from Violet Hold W1 — the Prepare keyword: a Prepare card
+    /// was dragged onto the deck this turn (once per turn).
+    pub prepare_used_this_turn: bool,
+    /// Escape from Violet Hold W1 — the Prepare keyword: cards that have
+    /// been prepared (their one-time Prepare discount has been applied).
+    pub prepared_cards: Vec<crate::core::entity::Entity>,
+    /// Escape from Violet Hold W1 — JAIL_446 Blood Doctor Thal'ena: the
+    /// hero power swapped in by the battlecry costs Corpses instead of
+    /// Mana (2 Corpses per use).
+    pub thalena_corpses_hero_power: bool,
 }
 
 impl Player {
@@ -775,6 +829,20 @@ impl Player {
             alexstrasza_full_health_pending: None,
             pending_choose_hand: None,
             pending_cataclysms: None,
+            godfrey_overdraw_return: false,
+            godfrey_held_cards: Vec::new(),
+            nethrek_mana_after_five: false,
+            nethrek_turns_elapsed: 0,
+            warptooth_damaged_ids: Vec::new(),
+            manastorm_after_spell: false,
+            coin_replacement: None,
+            mugzee_mug_magic: false,
+            mugzee_zee_might: false,
+            zee_might_counter: 0,
+            zee_might_ready: false,
+            prepare_used_this_turn: false,
+            prepared_cards: Vec::new(),
+            thalena_corpses_hero_power: false,
         }
     }
 }

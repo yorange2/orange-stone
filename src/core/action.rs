@@ -65,4 +65,12 @@ pub enum Action {
         /// The Tradeable card in hand
         card: Entity,
     },
+    /// Prepare a hand card (M5-W1 — Escape from Violet Hold, JAIL_407/721/
+    /// 906): spend ALL remaining mana; the card's cost is reduced by
+    /// (spent + 1) permanently and the card stays in hand, unplayable
+    /// until its owner's next turn start. Once per card, once per turn.
+    Prepare {
+        /// The card to prepare
+        card: Entity,
+    },
 }
