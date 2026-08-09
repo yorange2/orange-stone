@@ -36,9 +36,10 @@
   表、`REWIND_CARD_IDS`）+ `engine::rewind` 重放（push 前快照、计数钳制、
   按序、Rewind 卡为源）；出牌路径：自身效果 → 重放 → push；8 个 `tmw1_*`
   F5 场景钉死时序、x3 叠加、自身排除、快照语义、空槽钳制与死亡阶段交互。
-- **W2 —— 时光倒流卡 + 平行线（R2）：** 在 R1 上落系列时光倒流卡；平行线传说；
-  杂项效果。
-- **W3 —— 时间的终结迷你：** 迷你卡（机制由数据回填）；收尾波清扫衍生物/账本。
+- [x] **W2 —— 时光倒流卡 + 平行线（R2）**（PR #152、#153）：在 R1 上落系列
+  时光倒流卡；平行线传说；杂项效果。
+- [x] **W3 —— 时间的终结迷你**（PR #154）：迷你卡（机制由数据回填）；
+  收尾波清扫衍生物/账本。
 
 ## 卡清单
 
@@ -193,44 +194,44 @@
 - [x] TIME_872 Undefeated Champion
 - [x] TIME_873 Unleash the Crocolisks
 - [x] TIME_876 Shapeshifter
-- [ ] END_000 Eventuality
-- [ ] END_001 Jagged Edge of Time
-- [ ] END_002 Wicked Blightspawn
-- [ ] END_003 Finality
-- [ ] END_004 Remnant of Rage
-- [ ] END_005 Bygone Echoes
-- [ ] END_006 Chronikar
-- [ ] END_007 Press the Advantage
-- [ ] END_008 Enduring Roach
-- [ ] END_009 Splintered Reality
-- [ ] END_010 Twilight Timereaver
-- [ ] END_011 Acceleration Aura
-- [ ] END_012 Hand of Infinity
-- [ ] END_013 Brutish Endmaw
-- [ ] END_014 Synchronized Spark
-- [ ] END_015 Triennium Rex
-- [ ] END_016 Chronoclaws
-- [ ] END_017 Battle at the End Time
-- [ ] END_018 Acolyte of Infinity
-- [ ] END_019 Endtime Survivor
-- [ ] END_020 Eternal Toil
-- [ ] END_021 Dimensional Weaponsmith
-- [ ] END_022 Time-Twisted Seer
-- [ ] END_023 Bitter End
-- [ ] END_024 Flames of Infinity
-- [ ] END_025 Eternal Firebolt
-- [ ] END_026 Fragment of Nothing
-- [ ] END_027 Wings of Eternity
-- [ ] END_028 For All Time
-- [ ] END_029 Voodoo Totem
-- [ ] END_030 Haywire Hornswog
-- [ ] END_031 Shade of the End Time
-- [ ] END_032 Winged Aberration
-- [ ] END_033 Prescient Slitherdrake
-- [ ] END_034 Crumblecrusher
-- [ ] END_035 Omen of the End
-- [ ] END_036 Morchie
-- [ ] END_037 Endtime Murozond
+- [x] END_000 Eventuality
+- [x] END_001 Jagged Edge of Time
+- [x] END_002 Wicked Blightspawn
+- [x] END_003 Finality
+- [x] END_004 Remnant of Rage
+- [x] END_005 Bygone Echoes
+- [x] END_006 Chronikar
+- [x] END_007 Press the Advantage
+- [x] END_008 Enduring Roach
+- [x] END_009 Splintered Reality
+- [x] END_010 Twilight Timereaver
+- [x] END_011 Acceleration Aura
+- [x] END_012 Hand of Infinity
+- [x] END_013 Brutish Endmaw
+- [x] END_014 Synchronized Spark
+- [x] END_015 Triennium Rex
+- [x] END_016 Chronoclaws
+- [x] END_017 Battle at the End Time
+- [x] END_018 Acolyte of Infinity
+- [x] END_019 Endtime Survivor
+- [x] END_020 Eternal Toil
+- [x] END_021 Dimensional Weaponsmith
+- [x] END_022 Time-Twisted Seer
+- [x] END_023 Bitter End
+- [x] END_024 Flames of Infinity
+- [x] END_025 Eternal Firebolt
+- [x] END_026 Fragment of Nothing
+- [x] END_027 Wings of Eternity
+- [x] END_028 For All Time
+- [x] END_029 Voodoo Totem
+- [x] END_030 Haywire Hornswog
+- [x] END_031 Shade of the End Time
+- [x] END_032 Winged Aberration
+- [x] END_033 Prescient Slitherdrake
+- [x] END_034 Crumblecrusher
+- [x] END_035 Omen of the End
+- [x] END_036 Morchie
+- [x] END_037 Endtime Murozond
 
 ## 完成定义
 
