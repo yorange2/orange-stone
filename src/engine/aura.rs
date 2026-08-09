@@ -83,6 +83,14 @@ fn aura_applies_to_entity(
 ) -> bool {
     use crate::core::component::CardType;
 
+    // M4-W1 — FriendlyHero scope (Azshara's "Your hero has Windfury"):
+    // the hero-targeting aura is decided before the minion gate below.
+    if matches!(aura.target, AuraTarget::FriendlyHero) {
+        return target_player == aura_player
+            && world.card_type(target) == Some(CardType::Hero)
+            && world.is_alive(target);
+    }
+
     // The target must be a living minion
     if world.card_type(target) != Some(CardType::Minion) {
         return false;
@@ -107,6 +115,7 @@ fn aura_applies_to_entity(
             is_adjacent_to(aura_source, target, aura_player, world)
         }
         AuraTarget::AllEnemyMinions => target_player != aura_player,
+        AuraTarget::FriendlyHero => false,
     }
 }
 
@@ -151,6 +160,7 @@ const fn aura_attack_value(effect: AuraEffect) -> i32 {
         AuraEffect::ChargeWithWeapon => 0,
         AuraEffect::DoubleTriggers => 0,
         AuraEffect::RewindKeepsBothOutcomes => 0,
+        AuraEffect::GrantWindfury => 0,
     }
 }
 
@@ -169,5 +179,6 @@ const fn aura_health_value(effect: AuraEffect) -> i32 {
         AuraEffect::ChargeWithWeapon => 0,
         AuraEffect::DoubleTriggers => 0,
         AuraEffect::RewindKeepsBothOutcomes => 0,
+        AuraEffect::GrantWindfury => 0,
     }
 }

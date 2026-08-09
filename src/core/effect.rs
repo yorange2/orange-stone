@@ -106,6 +106,10 @@ pub enum KeywordKind {
     /// Rush (2025–2026 expansions M3-W2b — TIME_619 Talanji of the Graves'
     /// Boon of Speed for Bwonsamdi)
     Rush,
+    /// Divine Shield (2025–2026 expansions M4-W1 — Chromatus's Bronze
+    /// Head: the head carries Divine Shield and its deathrattle removes
+    /// the keyword from the main Chromatus)
+    DivineShield,
 }
 
 /// Discover pool — the source of a `DiscoverPool` discover (2025–2026
@@ -3798,6 +3802,70 @@ pub enum CardEffect {
         /// Attack granted
         attack: i32,
     },
+    /// Gain stats on the source AND on its Colossal main minion
+    /// (2025–2026 expansions M4-W1 — Wickerfang's Legs: "At the end of
+    /// your turn, gain +1/+1", copied to Wickerfang via the part→main
+    /// link). Registered approximation: only the legs' own gains copy —
+    /// an external buff on a leg does not (§23).
+    GainStatsAndCopyToColossalMain {
+        /// Attack gained on the part and the main
+        attack: i32,
+        /// Health gained on the part and the main
+        health: i32,
+    },
+    /// Remove a keyword from the source's Colossal main minion
+    /// (2025–2026 expansions M4-W1 — Chromatus's Heads: each head's
+    /// deathrattle removes its own keyword from Chromatus, resolved via
+    /// the part→main link).
+    RemoveKeywordFromColossalMain {
+        /// The keyword to remove from the main minion
+        keyword: KeywordKind,
+    },
+    /// Get a random minion of the given cost that costs Health instead of
+    /// Mana (2025–2026 expansions M4-W1 — Onyxia's Wing: "get a random
+    /// {0}-Cost minion. It costs Health this turn" — the Herald {0} is
+    /// fixed to 0, §23).
+    AddRandomCostMinionCostsHealth {
+        /// The minion's base cost
+        cost: i32,
+    },
+    /// Destroy the friendly minion immediately to the right of the source
+    /// to gain +A/+A (2025–2026 expansions M4-W1 — Cho's Arm / Gall's
+    /// Arm, §23). While the owner has a friendly Cho'gall on the board,
+    /// a random minion in the ENEMY's deck is destroyed instead.
+    ColossalArmDestroyRight {
+        /// Attack gained when a minion is destroyed
+        attack: i32,
+        /// Health gained when a minion is destroyed
+        health: i32,
+    },
+    /// Get a random Fire spell; it costs `reduction` less (2025–2026
+    /// expansions M4-W1 — Plume of Vulcanos: "Whenever this takes damage,
+    /// get a random Fire spell. It costs (3) less." — the Fire filter
+    /// reads the quest registry's official spell-school table).
+    AddRandomFireSpellCostsLess {
+        /// Cost reduction for the added spell
+        reduction: i32,
+    },
+    /// Trigger the Deathrattles of ALL friendly on-board minions, once
+    /// each, in play order (2025–2026 expansions M4-W1 — Ragnaros, the
+    /// Great Fire: "At the end of your turn, trigger your minions'
+    /// Deathrattles").
+    TriggerFriendlyDeathrattles,
+    /// Get `count` random minions whose base cost equals the source's
+    /// attack; each costs (1) (2025–2026 expansions M4-W1 — Al'Akir,
+    /// Lord of Storms' battlecry; the cost-set uses the roadmap G5
+    /// set-to-value cost modifier).
+    AddRandomMinionsCostEqualAttack {
+        /// Number of minions to get
+        count: i32,
+    },
+    /// Give a random friendly minion `attack` more Attack (2025–2026
+    /// expansions M4-W1 — Magmaw's Body deathrattle, a fixed +2).
+    GiveRandomFriendlyMinionAttack {
+        /// Attack gained by the random friendly minion
+        attack: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -5393,6 +5461,30 @@ enum CardEffectDe {
         reduction: i32,
     },
     BuffFirstUndeadPlayedEachTurn {
+        attack: i32,
+    },
+    GainStatsAndCopyToColossalMain {
+        attack: i32,
+        health: i32,
+    },
+    RemoveKeywordFromColossalMain {
+        keyword: KeywordKind,
+    },
+    AddRandomCostMinionCostsHealth {
+        cost: i32,
+    },
+    ColossalArmDestroyRight {
+        attack: i32,
+        health: i32,
+    },
+    AddRandomFireSpellCostsLess {
+        reduction: i32,
+    },
+    TriggerFriendlyDeathrattles,
+    AddRandomMinionsCostEqualAttack {
+        count: i32,
+    },
+    GiveRandomFriendlyMinionAttack {
         attack: i32,
     },
 }
@@ -7197,6 +7289,28 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::BuffFirstUndeadPlayedEachTurn { attack } => {
                 CardEffect::BuffFirstUndeadPlayedEachTurn { attack }
             }
+            CardEffectDe::GainStatsAndCopyToColossalMain { attack, health } => {
+                CardEffect::GainStatsAndCopyToColossalMain { attack, health }
+            }
+            CardEffectDe::RemoveKeywordFromColossalMain { keyword } => {
+                CardEffect::RemoveKeywordFromColossalMain { keyword }
+            }
+            CardEffectDe::AddRandomCostMinionCostsHealth { cost } => {
+                CardEffect::AddRandomCostMinionCostsHealth { cost }
+            }
+            CardEffectDe::ColossalArmDestroyRight { attack, health } => {
+                CardEffect::ColossalArmDestroyRight { attack, health }
+            }
+            CardEffectDe::AddRandomFireSpellCostsLess { reduction } => {
+                CardEffect::AddRandomFireSpellCostsLess { reduction }
+            }
+            CardEffectDe::TriggerFriendlyDeathrattles => CardEffect::TriggerFriendlyDeathrattles,
+            CardEffectDe::AddRandomMinionsCostEqualAttack { count } => {
+                CardEffect::AddRandomMinionsCostEqualAttack { count }
+            }
+            CardEffectDe::GiveRandomFriendlyMinionAttack { attack } => {
+                CardEffect::GiveRandomFriendlyMinionAttack { attack }
+            }
         })
     }
 }
@@ -8016,6 +8130,23 @@ mod tests {
             CardEffect::FillBoardRandomDragonsHealHeroSkipNextTurn,
             CardEffect::GetRandomOtherClassMinionCostsLess { reduction: 1 },
             CardEffect::BuffFirstUndeadPlayedEachTurn { attack: 1 },
+            // 2025–2026 expansions M4-W1 (Colossal) variants.
+            CardEffect::GainStatsAndCopyToColossalMain {
+                attack: 1,
+                health: 1,
+            },
+            CardEffect::RemoveKeywordFromColossalMain {
+                keyword: KeywordKind::Taunt,
+            },
+            CardEffect::AddRandomCostMinionCostsHealth { cost: 0 },
+            CardEffect::ColossalArmDestroyRight {
+                attack: 2,
+                health: 2,
+            },
+            CardEffect::AddRandomFireSpellCostsLess { reduction: 3 },
+            CardEffect::TriggerFriendlyDeathrattles,
+            CardEffect::AddRandomMinionsCostEqualAttack { count: 2 },
+            CardEffect::GiveRandomFriendlyMinionAttack { attack: 2 },
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");

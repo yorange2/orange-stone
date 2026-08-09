@@ -11,12 +11,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack,
-    CantAttackHeroesThisTurn, CardId, CardType, Charge, ChooseOneEffect, ComboEffect, Cost,
-    CostHealth, CostModifier, CostModifierKind, Damage, DarkGiftKind, Deathrattle, DivineShield,
-    Dormant, DoubleDamageTaken, Durability, Elusive, Enchantment, Enrage, Freeze, Health,
-    HeroPowerDef, HeroPowerUsed, Immune, Lifesteal, OutcastPlayed, Overload, PlayedThisTurn,
-    Poison, Quest, Race, Reborn, Rush, Secret, SpellDamage, Stealth, SummonedThisTurn, Taunt,
-    Temporary, Tradeable, Trigger, TurnCostReducer, Windfury,
+    CantAttackHeroesThisTurn, CardId, CardType, Charge, ChooseOneEffect, ColossalMain,
+    ColossalPart, ComboEffect, Cost, CostHealth, CostModifier, CostModifierKind, Damage,
+    DarkGiftKind, Deathrattle, DivineShield, Dormant, DoubleDamageTaken, Durability, Elusive,
+    Enchantment, Enrage, Freeze, Health, HeroPowerDef, HeroPowerUsed, Immune, Lifesteal,
+    OutcastPlayed, Overload, PlayedThisTurn, Poison, Quest, Race, Reborn, Rush, Secret,
+    SpellDamage, Stealth, SummonedThisTurn, Taunt, Temporary, Tradeable, Trigger, TurnCostReducer,
+    Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -212,6 +213,12 @@ pub struct World {
     /// minions played from the hand this turn (the TIME_620 secret
     /// predicate); set at CardPlayed, cleared at the turn start.
     played_this_turn: SparseSet<PlayedThisTurn>,
+    /// ColossalPart storage (2025–2026 expansions M4-W1) — appendage
+    /// tokens linked to their main Colossal minion.
+    colossal_part: SparseSet<ColossalPart>,
+    /// ColossalMain storage (2025–2026 expansions M4-W1) — the main
+    /// minion's attached body parts, in left-to-right board order.
+    colossal_main: SparseSet<ColossalMain>,
     /// Zone table — ordered entity lists per Zone
     zones: Zones,
 }
@@ -279,7 +286,11 @@ impl AuraIndex {
             // M3-W3 — Morchie's rewind-doubling marker grants no stats; it
             // rides the attack bucket like DoubleTriggers (a unit marker,
             // §22).
-            | AuraEffect::RewindKeepsBothOutcomes => self.attack[oi].push((entity, aura)),
+            | AuraEffect::RewindKeepsBothOutcomes
+            // M4-W1 — Azshara's hero-windfury marker rides the attack
+            // bucket like GrantCharge (a unit marker; `max_attacks`
+            // consults it).
+            | AuraEffect::GrantWindfury => self.attack[oi].push((entity, aura)),
             AuraEffect::GainHealth(_) => self.health[oi].push((entity, aura)),
             AuraEffect::ReduceSpellCost(_)
             | AuraEffect::ReduceMinionCost { .. }
@@ -350,6 +361,8 @@ impl World {
             double_damage_taken: SparseSet::new(),
             cost_health: SparseSet::new(),
             played_this_turn: SparseSet::new(),
+            colossal_part: SparseSet::new(),
+            colossal_main: SparseSet::new(),
             zones: Zones::new(),
         }
     }
@@ -437,6 +450,8 @@ impl World {
         self.cant_attack_heroes_this_turn.remove(entity);
         self.turn_cost_reducer.remove(entity);
         self.double_damage_taken.remove(entity);
+        self.colossal_part.remove(entity);
+        self.colossal_main.remove(entity);
         // Bump the generation
         self.generations[idx] = self.generations[idx].wrapping_add(1);
         // Return the slot
@@ -1051,6 +1066,35 @@ impl World {
         remove_played_this_turn,
         iter_played_this_turn
     );
+    /// Get the `ColossalPart` component of an entity — the link from an
+    /// appendage token to its main Colossal minion (M4-W1).
+    #[must_use]
+    pub fn colossal_part(&self, entity: Entity) -> Option<ColossalPart> {
+        self.colossal_part.get(entity)
+    }
+
+    /// Set the `ColossalPart` component of an entity.
+    pub fn set_colossal_part(&mut self, entity: Entity, value: impl Into<ColossalPart>) {
+        self.colossal_part.insert(entity, value.into());
+    }
+
+    /// Remove the `ColossalPart` component of an entity.
+    pub fn remove_colossal_part(&mut self, entity: Entity) -> Option<ColossalPart> {
+        self.colossal_part.remove(entity)
+    }
+
+    /// Iterate all entities with the `ColossalPart` component.
+    pub fn iter_colossal_part(&self) -> impl Iterator<Item = (Entity, &ColossalPart)> {
+        self.colossal_part.iter()
+    }
+    component_accessors!(
+        colossal_main,
+        ColossalMain,
+        colossal_main,
+        set_colossal_main,
+        remove_colossal_main,
+        iter_colossal_main
+    );
     /// Get the tribes of an entity (empty for tribe-less minions).
     #[must_use]
     pub fn race(&self, entity: Entity) -> Option<&[Race]> {
@@ -1157,10 +1201,24 @@ impl World {
     pub fn max_attacks(&self, entity: Entity) -> u8 {
         let enraged_windfury = self.active_enrage(entity).is_some_and(|e| e.windfury);
         if self.windfury(entity).is_some() || enraged_windfury {
-            2
-        } else {
-            1
+            return 2;
         }
+        // M4-W1 — Azshara, Ocean Lord: "Your hero has Windfury" — the
+        // hero carries no Windfury component, so a GrantWindfury aura on
+        // the board raises its attack budget (the effective_charge scan
+        // pattern: the source sits in its owner's attack bucket).
+        if let Some(player) = self.player(entity) {
+            for owner in [player, player.opponent()] {
+                for (source, aura) in &self.aura_index.attack[owner.index()] {
+                    if aura.effect == crate::core::component::AuraEffect::GrantWindfury
+                        && aura_applies_to(aura, *source, owner, entity, player, self)
+                    {
+                        return 2;
+                    }
+                }
+            }
+        }
+        1
     }
 
     /// Get the total friendly spell damage on the board.
@@ -1357,6 +1415,14 @@ fn aura_applies_to(
 ) -> bool {
     use crate::core::component::{AuraTarget, CardType};
 
+    // M4-W1 — FriendlyHero scope (Azshara's "Your hero has Windfury"):
+    // the hero-targeting aura is decided before the minion gate below.
+    if matches!(aura.target, AuraTarget::FriendlyHero) {
+        return target_player == aura_player
+            && world.card_type(target) == Some(CardType::Hero)
+            && world.is_alive(target);
+    }
+
     // The target must be a living minion
     if world.card_type(target) != Some(CardType::Minion) {
         return false;
@@ -1387,6 +1453,7 @@ fn aura_applies_to(
             is_adjacent(aura_source, target, aura_player, world)
         }
         AuraTarget::AllEnemyMinions => target_player != aura_player,
+        AuraTarget::FriendlyHero => false,
     }
 }
 
@@ -1429,6 +1496,7 @@ const fn aura_attack_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::ChargeWithWeapon => 0,
         AuraEffect::DoubleTriggers => 0,
         AuraEffect::RewindKeepsBothOutcomes => 0,
+        AuraEffect::GrantWindfury => 0,
     }
 }
 
@@ -1448,6 +1516,7 @@ const fn aura_health_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::ChargeWithWeapon => 0,
         AuraEffect::DoubleTriggers => 0,
         AuraEffect::RewindKeepsBothOutcomes => 0,
+        AuraEffect::GrantWindfury => 0,
     }
 }
 
@@ -1511,7 +1580,10 @@ mod tests {
                 | AuraEffect::ChargeWithWeapon
                 | AuraEffect::DoubleTriggers
                 // M3-W3 — Morchie's rewind-doubling marker (see above).
-                | AuraEffect::RewindKeepsBothOutcomes => idx.attack[oi].push((source, *aura)),
+                | AuraEffect::RewindKeepsBothOutcomes
+                // M4-W1 — Azshara's hero-Windfury aura (attack bucket;
+                // max_attacks consults it).
+                | AuraEffect::GrantWindfury => idx.attack[oi].push((source, *aura)),
                 AuraEffect::GainHealth(_) => idx.health[oi].push((source, *aura)),
                 AuraEffect::ReduceSpellCost(_)
                 | AuraEffect::ReduceMinionCost { .. }

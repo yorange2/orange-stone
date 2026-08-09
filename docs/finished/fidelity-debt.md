@@ -1738,3 +1738,80 @@ Totem end-of-turn grant, and the Remnant / Bygone Echoes / Eternal Firebolt
 every `tlc_w*_*`/`tmw1_*`/`tmw2a_*`/`tmw2b_*` scenario and the 22
 `tmw3_*` — 930 passed, 1 ignored), `cargo fmt` clean,
 `cargo clippy --all-targets` zero warnings.
+
+### 23. 2025–2026 expansions M4-W1 — the Cataclysm Colossal wave (11 cards + 31 tokens) 🔓 registered
+
+The registered simplifications of the M4-W1 wave (`src/cards/exp_cata_w1.rs` +
+`src/cards/colossal.rs`): the 11 CATA_ Colossal cards of the Cataclysm
+expansion and their 31 appendage tokens (4× Wickerfang's Leg, 2× Hand of
+Ragnaros, 2× Azshara's Tentacle, 2× Charged Hand of Al'Akir, 2× Sinestra's
+Wing, 2× Onyxia's Wing, 3× Black Blood's Body, 4× Chromatus Head, 2× Plume
+of Vulcanos, 6× Magmaw's Body, 2× Cho's/Gall's Arm). As with §14–§22, these
+handwritten expansion cards are not in the RL pool (classic + core
+668/659), so the rows are informational: they keep the code's
+simplifications traceable to the ledger. Each row stays open until its
+mechanism lands.
+
+The wave's headline mechanism is a FULL primitive: **Colossal +N** — the
+`ColossalPart{main}` / `ColossalMain{parts}` components (sparse-set stored)
+plus the id-keyed `colossal_parts` registry (the CardDef gets NO new field).
+Played from hand, the parts enter the board positions immediately right of
+the main, in order, after the main's battlecry resolves (the play-path
+MinionSummoned hook, played-from-hand only — effect summons bring no
+parts); the 7-minion cap applies (a full board summons nothing; Magmaw's
++99 is the `fill` entry and clamps to every remaining slot). A part's own
+death is an independent minion death (the main survives). A dying main
+cascades its death to the parts: they join the SAME death batch (their
+deathrattles fire, in play order) and each doomed part's base health drops
+to 0 at cascade time, so the MinionDied health re-check passes — in
+Hearthstone a Colossal main's death commits its parts' deaths
+unconditionally, mid-batch healing cannot save them. Per-token "when
+summoned" effects ride the `appendage_on_summon` registry instead of a
+summon trigger (the FriendlyMinionSummoned firing excludes the summoned
+minion itself).
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| CATA_139 | Wickerfang | The Legs' end-of-turn +1/+1 gains copy to the main (`GainStatsAndCopyToColossalMain` — gain + copy resolve together); the official "After one of Wickerfang's Legs gains stats, this gains them too" — only the Legs' own end-of-turn gains exist this wave, so the copy site is equivalent; an EXTERNAL stat gain on a Leg would not copy | the official any-gain scope |
+| CATA_150 | Ragnaros, the Great Fire | Full: the end-of-turn "trigger your minions' Deathrattles" fires every friendly board minion's deathrattle once, in play order, with the minion as source (the source itself included — the official text says "your minions'") | — |
+| CATA_151 | Azshara, Ocean Lord | Full: the "Your hero has Windfury" aura (`AuraEffect::GrantWindfury`, the new `AuraTarget::FriendlyHero` — silenceable); the Tentacles' on-summon +2 Attack (below) | — |
+| CATA_153 | Al'Akir, Lord of Storms | Full: Rush (keyword hook) + Windfury + "Get 2 minions with Cost equal to this minion's Attack. They cost (1)" — the random pick over the in-window pool filtered by the source's effective Attack (2), the Set(1) cost modifier (roadmap G5 precedent) | — |
+| CATA_154 | Sinestra | "Your spells from other classes cast twice" — the CLASS FILTER IS DROPPED (the engine has no per-player/per-card class concept): EVERY spell the player casts re-resolves once, the Tyrande convention (no explicit target, no second SpellCast event) | the official class filter |
+| CATA_155 | Arisen Onyxia | "When your hero would lose Health on your turn, gain that much max Health instead" — the DamageDealt redirect fires BEFORE armor/weapon absorption, so a hero with armor that would absorb the damage still gains the max Health (the official armor-first order is not modeled); the gain is a permanent max-Health enchantment and no damage is ever applied — no damage triggers, no armor spend | the official armor-first order |
+| CATA_300 | The Black Blood | "After you restore Health to a character, attack a random enemy minion" — the trigger rides the GLOBAL CharacterHealed event class, so ANY heal by EITHER player fires it (the official owner-only "you restore" scope is approximated); the "attack" is the excess-damage direct model — the source's Attack as damage, the overkill carried to the enemy hero (no attack action: no retaliation, no on-attack triggers) | the official owner scope + real attack |
+| CATA_432 | Chromatus | Full: Taunt + Lifesteal + Elusive + Divine Shield; the four Heads' deathrattles remove their keyword from the main (below) | — |
+| CATA_488 | Vulcanos | Full: "At the end of your turn, deal 2 damage to all other minions" (the source excluded); the Plumes' damaged-trigger (below) | — |
+| CATA_550 | Magmaw | Full: Colossal +99 "Summon any leftover appendages when there is room" — the `fill` registry entry clamps the summon count to the free slots; the maximum free space is 6 (the main occupies one slot), which equals the appendage count, so the +99 always fills the board | — |
+| CATA_726 | Cho'gall, Mastermind | "Your Arms and Soldiers destroy minions in the enemy's deck instead" — a friendly Cho'gall makes each Arm's destroy hit a random enemy DECK minion instead (moved to the graveyard); without Cho'gall the Arm destroys its right neighbor; the Soldiers (the two 1/1s the official text pairs with the Arms) are W2's problem, not this wave | the official Soldier interaction |
+| CATA_139t / _t2 / _t3 / _t4 | Wickerfang's Leg | Full: "At the end of your turn, gain +1/+1" with the copy onto the main (see CATA_139) | — |
+| CATA_150t / _t1 | Hand of Ragnaros | {0} fixed to 2: "Deathrattle: Deal 2 damage to a random enemy" | the Herald upgrade |
+| CATA_151t / _t1 | Azshara's Tentacle | {0} fixed to 2: "When summoned, give your hero +2 Attack this turn" (`GainHeroAttack` is already until-end-of-turn) | the Herald upgrade |
+| CATA_153t / _t1 | Charged Hand of Al'Akir | {0} fixed to 1: the "Adjacent minions have +1 Attack" aura (GrantAttack, AdjacentMinions) | the Herald upgrade |
+| CATA_154t / _t1 | Sinestra's Wing | "When summoned, get a random spell from another class. It costs ({0}) less" — {0} fixed to 0: the reduction is DROPPED (the spell is still added) | the Herald upgrade + the reduction |
+| CATA_155t / _t1 | Onyxia's Wing | "When summoned, get a random {0}-Cost minion. It costs Health this turn" — {0} fixed to 0; the CostHealth marker rides the added card (the "this turn" scope is not cleared) | the Herald upgrade + the turn scope |
+| CATA_300t1 / _t2 / _t3 | Black Blood's Body | Full: the end-of-turn "restore 3 Health to a random damaged friendly character" | — |
+| CATA_432t1 | Green Head of Chromatus | Full: Taunt; "Deathrattle: Remove Taunt from Chromatus" | — |
+| CATA_432t2 | Red Head of Chromatus | Full: Lifesteal (the lifesteal keyword hook); "Deathrattle: Remove Lifesteal from Chromatus" | — |
+| CATA_432t3 | Blue Head of Chromatus | Full: Elusive; "Deathrattle: Remove Elusive from Chromatus" | — |
+| CATA_432t4 | Bronze Head of Chromatus | Full: Divine Shield; "Deathrattle: Remove Divine Shield from Chromatus" | — |
+| CATA_488t / _t2 | Plume of Vulcanos | Full: the ThisMinionDamaged trigger adds a random Fire spell that costs (3) less (the spell-school table from quest.rs) | — |
+| CATA_550t / _t2 / _t3 / _t4 / _t5 / _t6 | Magmaw's Body | Full: "Deathrattle: Give a random friendly minion +2 Attack" — the enchantment-layer buff (`GiveRandomFriendlyMinionAttack`; a base-stat setter would not compose with auras, the Fiendish-Servant precedent) | — |
+| CATA_726t / _t1 | Cho's / Gall's Arm | {0} fixed to 2: "At the end of your turn, destroy the minion to the right to gain +2/+2" — the rightmost arm destroys nothing when nothing is to its right; the Cho'gall deck-destroy (see CATA_726) | the Herald upgrade |
+
+F5 coverage: `cata_w1_*` (9 scenarios in `tests/differential.rs`) —
+`cata_w1_colossal_summons_parts_adjacent` (the parts adjacent to the main,
+linked both ways, in order), `cata_w1_colossal_part_positions_ordered` (the
+filler + Wickerfang layout, parts left-to-right), `cata_w1_colossal_part_cap`
+(near-full board summons one leg, full board rejects the play),
+`cata_w1_magmaw_fills_board` (the +99 fills every remaining slot),
+`cata_w1_main_death_kills_parts` (the main dies → the Hands die with their
+deathrattles firing), `cata_w1_part_death_keeps_main` (a part dies → the
+main + the other parts survive), `cata_w1_wickerfang_legs_gain_stats_copied`
+(the four legs' end-of-turn gains copied to the main),
+`cata_w1_chromatus_head_removes_keyword` (the Green Head's deathrattle
+strips Taunt, the other keywords stay),
+`cata_w1_colossal_dies_via_aoes` (the AOE kills main + parts in one batch,
+each death processed exactly once). Full `cargo test` fully green (all
+suites, incl. every `tlc_w*_*`/`tmw1_*`/`tmw2a_*`/`tmw2b_*`/`tmw3_*`
+scenario and the 9 `cata_w1_*` — 938 passed, 1 ignored), `cargo fmt` clean,
+`cargo clippy --all-targets` zero warnings.

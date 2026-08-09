@@ -747,6 +747,12 @@ fn queue_death_events(
         Some(CardType::Minion) => {
             let inner = state.make_mut();
             inner.pending_deaths.push(target);
+            // M4-W1 Colossal (2025–2026 expansions): a dying Colossal
+            // main takes its attached body parts with it — they join this
+            // same death batch, so their deathrattles fire in the death
+            // phase and the parts die in play order (the main is left of
+            // its parts, so its own death processes first).
+            crate::cards::colossal::cascade_part_deaths(state, target);
         }
         _ => {}
     }
@@ -1705,6 +1711,23 @@ pub fn apply_event(
                                         );
                                     }
                                 }
+                                // M4-W1 (CATA_154 Sinestra — 2025–2026
+                                // expansions): "Your spells from other classes
+                                // cast twice." A friendly Sinestra on the board
+                                // makes this spell's effect re-resolve once —
+                                // the Tyrande convention (no explicit target,
+                                // no second SpellCast event). The class filter
+                                // is dropped: the engine has no per-player or
+                                // per-card class concept (fidelity-debt §23).
+                                if state.world().zones().iter(Zone::Play, player).any(|e| {
+                                    state.world().card_id(e).is_some_and(|c| c.0 == "CATA_154")
+                                }) {
+                                    if let Some(effect) = chosen_effect {
+                                        trigger::resolve_effect(
+                                            state, queue, card, player, effect, None, None,
+                                        );
+                                    }
+                                }
                                 // Kindred (M2-W3): a Kindred spell's OnPlay
                                 // effect resolves after the base spell effect
                                 // (and the Tyrande double), before the
@@ -2261,6 +2284,14 @@ pub fn apply_event(
                     );
                 }
             }
+            // M4-W1 Colossal (2025–2026 expansions): a Colossal minion
+            // played from hand summons its appendages AFTER its battlecry
+            // resolves (Hearthstone order — the battlecry block above ran
+            // first). The played-minion gate keeps effect summons
+            // (resurrections, copies) from bringing parts along.
+            if played_minion {
+                crate::cards::colossal::summon_colossal_parts(state, queue, minion, player);
+            }
             // Summon triggers: registered FriendlyMinionSummoned triggers fire in
             // play order (the summoned minion itself is excluded). The summoned
             // minion is the event subject — Sword of Justice buffs it via
@@ -2633,6 +2664,35 @@ pub fn apply_event(
                     });
                     if tichondrius {
                         return Ok(());
+                    }
+                }
+            }
+            // M4-W1 (CATA_155 Arisen Onyxia — 2025–2026 expansions):
+            // "When your hero would lose Health on your turn, gain that
+            // much max Health instead." A damage-pipeline redirect: the
+            // hero's owner must be the active player and control a
+            // friendly Arisen Onyxia — the damage is fully converted to a
+            // permanent max-Health enchantment (no damage component, so
+            // nothing reaches armor/weapon absorption — §23).
+            if card_type == Some(CardType::Hero) && amount > 0 {
+                if let Some(pid) = state.world().player(target) {
+                    if pid == state.active_player() {
+                        let onyxia =
+                            state.world().zones().iter(Zone::Play, pid).any(|e| {
+                                state.world().card_id(e).is_some_and(|c| c.0 == "CATA_155")
+                            });
+                        if onyxia {
+                            state.world_mut().add_enchantment(
+                                target,
+                                crate::core::component::Enchantment {
+                                    attack: 0,
+                                    health: amount,
+                                    cost: 0,
+                                    expiry: crate::core::component::EnchantmentExpiry::Permanent,
+                                },
+                            );
+                            return Ok(());
+                        }
                     }
                 }
             }
