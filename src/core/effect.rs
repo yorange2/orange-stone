@@ -1529,6 +1529,11 @@ pub enum CardEffect {
     /// The player's hero gains Poisonous until the end of this turn (Barbed
     /// Thorn choose branch 1 — weapon attacks poison what they hit)
     GrantPoisonousThisTurn,
+    /// The player's hero gains Lifesteal until the end of this turn
+    /// (2025–2026 expansions M4-W2 — CATA_530 Fel Infusion's "Your hero
+    /// has Lifesteal this turn"; the per-player flag expires in the
+    /// turn-end wrap-up, the GrantPoisonousThisTurn convention)
+    GrantHeroLifestealThisTurn,
     /// The player's weapon gains "Deathrattle: deal damage to all enemies"
     /// (Barbed Thorn choose branch 2 — the deathrattle fires when the weapon
     /// breaks or is replaced)
@@ -4509,6 +4514,7 @@ enum CardEffectDe {
         target: EffectTarget,
     },
     GrantPoisonousThisTurn,
+    GrantHeroLifestealThisTurn,
     GrantWeaponDeathrattleAllEnemies {
         damage: i32,
     },
@@ -6161,6 +6167,7 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 target,
             },
             CardEffectDe::GrantPoisonousThisTurn => CardEffect::GrantPoisonousThisTurn,
+            CardEffectDe::GrantHeroLifestealThisTurn => CardEffect::GrantHeroLifestealThisTurn,
             CardEffectDe::GrantWeaponDeathrattleAllEnemies { damage } => {
                 CardEffect::GrantWeaponDeathrattleAllEnemies { damage }
             }
@@ -7433,6 +7440,7 @@ mod tests {
                 target: EffectTarget::Self_,
             },
             CardEffect::GrantPoisonousThisTurn,
+            CardEffect::GrantHeroLifestealThisTurn,
             CardEffect::GrantWeaponDeathrattleAllEnemies { damage: 2 },
             CardEffect::DrawCardByType {
                 count: 1,

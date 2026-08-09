@@ -252,6 +252,17 @@ pub struct Player {
     /// the next Murloc the player plays, whenever that is — no turn-end
     /// clear (the official flag persists until a Murloc is played).
     pub next_murloc_discount: i32,
+    /// Herald (2025–2026 expansions M4-W2 — the Cataclysm Herald wave,
+    /// exp_cata_w2.rs): the number of Herald cards this player has played
+    /// this game. Incremented by the Herald resolution (cards::herald)
+    /// BEFORE the class Soldier is summoned; never resets. W4's Deathwing
+    /// reads it directly ("Cataclysms scale with the Herald counter").
+    pub herald_count: u32,
+    /// Whether the hero has Lifesteal until the end of this turn
+    /// (2025–2026 expansions M4-W2 — CATA_530 Fel Infusion; the Lifesteal
+    /// component rides the hero entity, the flag expires in the turn-end
+    /// wrap-up, the hero_poisonous_this_turn convention)
+    pub hero_lifesteal_this_turn: bool,
     /// Kindred (M2-W3): TLC_428's Kindred add-on — "your next Murloc gains
     /// Divine Shield". Consumed together with `next_murloc_discount` by
     /// the next Murloc play; the shield is applied to the played Murloc.
@@ -546,6 +557,8 @@ impl Player {
             next_kindred_twice: false,
             next_murloc_discount: 0,
             next_murloc_divine_shield: false,
+            herald_count: 0,
+            hero_lifesteal_this_turn: false,
             discovered_this_turn: false,
             quest_played: false,
             next_temporary_discount: 0,

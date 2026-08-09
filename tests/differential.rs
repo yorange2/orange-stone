@@ -31692,3 +31692,427 @@ fn cata_w1_colossal_dies_via_aoes() {
         assert!(dead.contains(&leg), "{leg} died");
     }
 }
+
+// ============================================================
+// M4-W2 — the Cataclysm Herald wave (src/cards/exp_cata_w2.rs +
+// src/cards/herald.rs): the Herald keyword (counter + class Soldier
+// summon), the "Herald twice to upgrade" tiers, the deathrattle /
+// location resolution points, the Soldier effects (Azshara hero
+// Attack, Al'Akir aura, Ragnaros deathrattle, Cho'gall destroy-right,
+// the neutral Envoy) and the CATA_160 Rush add-on. The pinned
+// semantics (2026-08-09): the counter increments BEFORE the summon;
+// the Soldier numbers are the family base × tier (×1 at counter 1,
+// ×2 at counters 2–3, ×4 at counters 4+); each Herald play summons a
+// NEW Soldier; the on-board Soldiers' {0}-components re-bake on every
+// Herald (fidelity-debt §24).
+// ============================================================
+
+/// CATAW2-1 — playing a Herald minion (CATA_525 Armored Bloodletter,
+/// Demon Hunter) resolves the Herald keyword: the counter increments to
+/// 1 and the class Soldier (Soldier of Azshara, CATA_525t) is summoned
+/// with the base-tier numbers (2/1). The Bloodletter itself carries Rush
+/// (apply_card_keywords).
+#[test]
+fn cata_w2_herald_summons_soldier() {
+    use orange_stone::cards::exp_cata_w2::ARMORED_BLOODLETTER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ARMORED_BLOODLETTER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).herald_count, 1, "the counter ticked");
+    let bloodletter = find_entity(&state, p1, "CATA_525");
+    assert!(
+        state.world().rush(bloodletter).is_some(),
+        "the Bloodletter has Rush"
+    );
+    let soldier = find_entity(&state, p1, "CATA_525t");
+    assert_eq!(
+        state.world().effective_attack(soldier),
+        Some(Attack(2)),
+        "the Soldier of Azshara is 2/1 at the base tier"
+    );
+    assert_eq!(
+        state.world().effective_health(soldier),
+        Some(Health(1)),
+        "the Soldier of Azshara is 2/1 at the base tier"
+    );
+    assert_eq!(
+        board_minions(&state, p1).len(),
+        2,
+        "the Herald card + the summoned Soldier"
+    );
+}
+
+/// CATAW2-2 — "Herald twice to upgrade": the SECOND Herald play summons
+/// a NEW Soldier whose numbers read the upgraded counter, and every
+/// friendly on-board Soldier's {0}-components re-bake (the official
+/// live-updating numbers). Two Skywall Sentinels (CATA_565) summon two
+/// Soldiers of Al'Akir: the first Soldier's +1 aura (base tier) becomes
+/// +2 after the second Herald; the fresh Soldier arrives with +2 too.
+#[test]
+fn cata_w2_herald_counter_scales_soldier() {
+    use orange_stone::cards::exp_cata_w2::SKYWALL_SENTINEL;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_custom_minion_to_board(p1, 2, 2, 2);
+    builder
+        .add_minion_to_hand(p1, &SKYWALL_SENTINEL)
+        .add_minion_to_hand(p1, &SKYWALL_SENTINEL);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let sentinel1 = find_entity(&state, p1, "CATA_565");
+    let soldier1 = find_entity(&state, p1, "CATA_565t");
+    assert_eq!(state.player(p1).herald_count, 1);
+    assert_eq!(
+        state.world().effective_attack(sentinel1),
+        Some(Attack(1)),
+        "first tier: adjacent +1 aura (0 base + 1)"
+    );
+    play_front_card(&mut state, &engine, p1); // the second Sentinel
+    assert_eq!(state.player(p1).herald_count, 2, "the counter upgraded");
+    assert_eq!(
+        board_minions(&state, p1).len(),
+        5,
+        "filler + 2 sentinels + 2 soldiers"
+    );
+    let sentinel2 = board_minions(&state, p1)[3];
+    let soldier2 = board_minions(&state, p1)[4];
+    assert_ne!(soldier1, soldier2, "each Herald summons a NEW Soldier");
+    assert_eq!(
+        state.world().effective_attack(sentinel1),
+        Some(Attack(2)),
+        "the first Soldier's aura re-baked to +2 (×2 tier)"
+    );
+    assert_eq!(
+        state.world().effective_attack(sentinel2),
+        Some(Attack(4)),
+        "the second Sentinel sits between both +2 auras"
+    );
+    assert_eq!(
+        state.world().effective_attack(soldier1),
+        Some(Attack(1)),
+        "an aura never buffs its own source"
+    );
+    let filler = board_minions(&state, p1)[0];
+    assert_eq!(
+        state.world().effective_attack(filler),
+        Some(Attack(2)),
+        "the filler is not adjacent to any Soldier"
+    );
+}
+
+/// CATAW2-3 — the Deathrattle Herald: CATA_158 Maniacal Follower's
+/// "Deathrattle: Herald {0}." resolves when it dies (its card id stays
+/// readable in the graveyard), incrementing the counter and summoning a
+/// NEW Soldier of Sinestra.
+#[test]
+fn cata_w2_herald_deathrattle() {
+    use orange_stone::cards::exp_cata_w2::MANIACAL_FOLLOWER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &MANIACAL_FOLLOWER)
+        .add_minion_to_hand(p1, &CATAW1_DMG8);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).herald_count, 1);
+    let follower = find_entity(&state, p1, "CATA_158");
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .next()
+        .expect("fixture in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: Some(follower),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(p1).herald_count,
+        2,
+        "the deathrattle Herald ticked the counter"
+    );
+    assert_eq!(
+        state.world().zone(follower),
+        Some(Zone::Graveyard),
+        "the follower died"
+    );
+    let soldiers: Vec<&str> = board_minions(&state, p1)
+        .iter()
+        .filter_map(|&e| state.world().card_id(e))
+        .map(|c| c.0)
+        .collect();
+    assert_eq!(
+        soldiers,
+        vec!["CATA_158t", "CATA_158t"],
+        "both Soldiers of Sinestra survive — the first from the play, the second from the deathrattle"
+    );
+}
+
+/// CATAW2-4 — the Location Herald: CATA_492 Shrine of Twilight's
+/// "Herald {0}. Draw a card." resolves on ACTIVATION (the Herald sits in
+/// the location's activate text) — the counter ticks, the Soldier of
+/// Cho'gall is summoned and the draw resolves; one durability charge is
+/// spent.
+#[test]
+fn cata_w2_herald_location() {
+    use orange_stone::cards::exp_cata_w2::SHRINE_OF_TWILIGHT;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SHRINE_OF_TWILIGHT);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let location = state.player(p1).location.expect("the location sits");
+    assert_eq!(state.player(p1).herald_count, 0, "no Herald on play");
+    assert_eq!(
+        state.world().durability(location).map(|d| d.0),
+        Some(2),
+        "both charges ready"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // The two turn starts drew one card each (p2's and p1's).
+    let hand_before = state.world().zones().iter(Zone::Hand, p1).count();
+    engine
+        .apply(
+            &mut state,
+            Action::ActivateLocation {
+                location,
+                target: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(p1).herald_count, 1, "the activation Heralded");
+    let soldier = find_entity(&state, p1, "CATA_725t");
+    assert_eq!(
+        state.world().effective_attack(soldier),
+        Some(Attack(1)),
+        "the Soldier of Cho'gall summoned by the activation"
+    );
+    assert_eq!(
+        state.world().zones().iter(Zone::Hand, p1).count(),
+        hand_before + 1,
+        "the activation drew exactly one card"
+    );
+    assert_eq!(
+        state.world().durability(location).map(|d| d.0),
+        Some(1),
+        "one charge spent"
+    );
+}
+
+/// CATAW2-5 — CATA_160 Scorching Ravager's "Battlecry: Herald {0}. Give
+/// the Soldier Rush." — the JUST-summoned Soldier of Ragnaros carries
+/// Rush (the Ravager itself does not).
+#[test]
+fn cata_w2_ravager_gives_soldier_rush() {
+    use orange_stone::cards::exp_cata_w2::SCORCHING_RAVAGER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SCORCHING_RAVAGER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).herald_count, 1);
+    let ravager = find_entity(&state, p1, "CATA_160");
+    assert!(
+        state.world().rush(ravager).is_none(),
+        "the Ravager itself has no Rush"
+    );
+    let soldier = find_entity(&state, p1, "CATA_580t");
+    assert!(
+        state.world().rush(soldier).is_some(),
+        "the just-summoned Soldier has Rush"
+    );
+}
+
+/// CATAW2-6 — the Soldier of Azshara's on-summon effect ("give your hero
+/// +{0} Attack this turn", base +2) resolved by CATA_530 Fel Infusion,
+/// whose own effect gives the hero Lifesteal THIS TURN (the
+/// GrantHeroLifestealThisTurn flag expires in the turn-end wrap-up).
+#[test]
+fn cata_w2_soldier_azshara_hero_attack() {
+    use orange_stone::cards::exp_cata_w2::FEL_INFUSION;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &FEL_INFUSION);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hero = state.player(p1).hero;
+    assert_eq!(state.player(p1).herald_count, 1);
+    assert_eq!(
+        state.world().effective_attack(hero),
+        Some(Attack(2)),
+        "the Soldier gave the hero +2 Attack this turn"
+    );
+    assert!(
+        state.world().lifesteal(hero).is_some(),
+        "the hero has Lifesteal this turn"
+    );
+    assert!(state.player(p1).hero_lifesteal_this_turn);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert!(
+        !state.player(p1).hero_lifesteal_this_turn,
+        "the Lifesteal-this-turn flag expired"
+    );
+    assert!(
+        state.world().lifesteal(hero).is_none(),
+        "the hero Lifesteal component was removed"
+    );
+    assert_eq!(
+        state.world().effective_attack(hero),
+        Some(Attack(0)),
+        "the +2 Attack expired too"
+    );
+}
+
+/// CATAW2-7 — the Soldier of Ragnaros' deathrattle ("Deal {0} damage to
+/// a random enemy", base 2) — CATA_580 Cataclysmic War Axe's battlecry
+/// Herald summons it; its death deals 2 to the only enemy character (the
+/// enemy hero).
+#[test]
+fn cata_w2_soldier_ragnaros_deathrattle() {
+    use orange_stone::cards::exp_cata_w2::CATACLYSMIC_WAR_AXE;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &CATACLYSMIC_WAR_AXE)
+        .add_minion_to_hand(p1, &CATAW1_DMG3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).herald_count, 1);
+    assert!(state.player(p1).weapon.is_some(), "the War Axe is equipped");
+    let soldier = find_entity(&state, p1, "CATA_580t");
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .next()
+        .expect("fixture in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: Some(soldier),
+                position: None,
+            },
+        )
+        .unwrap();
+    let enemy_hero = state.player(p2).hero;
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(28)),
+        "the deathrattle dealt the base 2 to a random enemy"
+    );
+    assert_eq!(
+        state.world().zone(soldier),
+        Some(Zone::Graveyard),
+        "the Soldier died to the fixture"
+    );
+}
+
+/// CATAW2-8 — the Soldier of Cho'gall's end-of-turn destroy-right: with
+/// a friendly minion to its right, it destroys that minion and gains
+/// +{0}/+{0} (base +2/+2) — the friendly CATA_725 Shadowsworn Disciple
+/// (whose deathrattle heals the hero) survives.
+#[test]
+fn cata_w2_soldier_cho_gall_destroys_right() {
+    use orange_stone::cards::exp_cata_w2::SHADOWSWORN_DISCIPLE;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SHADOWSWORN_DISCIPLE)
+        .add_custom_minion_to_hand(p1, 3, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // the Disciple (Heralds)
+    let disciple = find_entity(&state, p1, "CATA_725");
+    let soldier = find_entity(&state, p1, "CATA_725t");
+    play_front_card(&mut state, &engine, p1); // the custom minion
+    let right = board_minions(&state, p1)[2];
+    assert_ne!(
+        right, disciple,
+        "the custom minion landed right of the Soldier"
+    );
+    assert_eq!(state.player(p1).herald_count, 1);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().zone(right),
+        Some(Zone::Graveyard),
+        "the minion to the Soldier's right was destroyed"
+    );
+    assert_eq!(
+        state.world().effective_attack(soldier),
+        Some(Attack(3)),
+        "the Soldier gained +2/+2 (base tier)"
+    );
+    assert_eq!(
+        state.world().effective_health(soldier),
+        Some(Health(3)),
+        "the Soldier gained +2/+2 (base tier)"
+    );
+    assert_eq!(
+        state.world().zone(disciple),
+        Some(Zone::Play),
+        "the Disciple survives"
+    );
+}
+
+/// CATAW2-9 — the NEUTRAL Herald: CATA_722 Envoy of the End's battlecry
+/// Herald ticks the counter but summons nothing (the full dump has no
+/// neutral Soldier token, §24).
+#[test]
+fn cata_w2_envoy_neutral_summons_nothing() {
+    use orange_stone::cards::exp_cata_w2::ENVOY_OF_THE_END;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ENVOY_OF_THE_END);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).herald_count, 1, "the counter ticked");
+    assert_eq!(
+        board_minions(&state, p1).len(),
+        1,
+        "only the Envoy itself — no neutral Soldier"
+    );
+}
