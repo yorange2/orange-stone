@@ -30,7 +30,7 @@ registration; simplifications get ledger rows.
 
 - [x] **W0 — wiring + data** (PR #160): M0 data for this set; inventory backfilled; fidelity
   tests.
-- **W1 — Rulebreakers batch 1 (V1):** the override framework + the first
+- [x] **W1 — Rulebreakers batch 1 (V1)** (PR #161): the override framework + the first
   batch of Rulebreakers; F5 scenarios pin each overridden invariant
   (before/after the override).
 - **W2 — Rulebreakers batch 2 + closing:** remaining Rulebreakers + the rest
@@ -41,24 +41,24 @@ registration; simplifications get ledger rows.
 > Backfilled from the M0 data dump (D1). Placeholder grouped by wave.
 
 ### W1/W2 — Rulebreakers
-- [ ] JAIL_118 V'ama, Looming Death
-- [ ] JAIL_122 Jailhouse Manastorm
-- [ ] JAIL_319 The Skeleton Key
-- [ ] JAIL_384 Chainbreaker Hogger
-- [ ] JAIL_397 Commander Beatrix
-- [ ] JAIL_407 Vanessa the Ringleader
-- [ ] JAIL_421 Warptooth
-- [ ] JAIL_430 Azalina Soulsever
-- [ ] JAIL_443 The Living Plague
-- [ ] JAIL_446 Blood Doctor Thal'ena
-- [ ] JAIL_448 Karov the Broken
+- [x] JAIL_118 V'ama, Looming Death
+- [x] JAIL_122 Jailhouse Manastorm
+- [x] JAIL_319 The Skeleton Key
+- [x] JAIL_384 Chainbreaker Hogger
+- [x] JAIL_397 Commander Beatrix
+- [x] JAIL_407 Vanessa the Ringleader
+- [x] JAIL_421 Warptooth
+- [x] JAIL_430 Azalina Soulsever
+- [x] JAIL_443 The Living Plague
+- [x] JAIL_446 Blood Doctor Thal'ena
+- [x] JAIL_448 Karov the Broken
 - [ ] JAIL_458 Tiny Pal
 - [ ] JAIL_500 Slice and Dice
-- [ ] JAIL_504 Aya, Lotus Kingpin
-- [ ] JAIL_509 Godfrey the Betrayer
-- [ ] JAIL_719 Irida Sinseeker
-- [ ] JAIL_721 Tras'tath, Soul Parasite
-- [ ] JAIL_800 Mug'Zee
+- [x] JAIL_504 Aya, Lotus Kingpin
+- [x] JAIL_509 Godfrey the Betrayer
+- [x] JAIL_719 Irida Sinseeker
+- [x] JAIL_721 Tras'tath, Soul Parasite
+- [x] JAIL_800 Mug'Zee
 - [ ] JAIL_831 King of the Underbelly
 - [ ] JAIL_850 Warden Maiev
 - [ ] JAIL_851 Inspector Murloc Holmes
@@ -67,7 +67,7 @@ registration; simplifications get ledger rows.
 - [ ] JAIL_875 Staff of Trickery
 - [ ] JAIL_882 R4T-C4TCH3R
 - [ ] JAIL_887 Zuramat's Prison
-- [ ] JAIL_906 Moragg
+- [x] JAIL_906 Moragg
 > Rulebreaker wave membership verified per-card text during W1/W2 implementation
 
 ### W2 — remaining cards

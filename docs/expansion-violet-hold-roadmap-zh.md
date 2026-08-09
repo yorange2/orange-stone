@@ -26,7 +26,7 @@
 每波一个 PR；每张卡带 F5 对拍场景；`sets.rs` 注册；简化带账本行。
 
 - [x] **W0 —— 接线 + 数据**（PR #160）： 本系列 M0 数据；清单回填；保真测试。
-- **W1 —— 破规者第一批（V1）：** 覆写框架 + 第一批破规者；F5 场景逐个钉死被
+- [x] **W1 —— 破规者第一批（V1）**（PR #161）： 覆写框架 + 第一批破规者；F5 场景逐个钉死被
   覆写的不变量（覆写前/后）。
 - **W2 —— 破规者第二批 + 收尾：** 其余破规者 + 系列其余卡；收尾波清扫衍生物/
   账本。
@@ -36,24 +36,24 @@
 > 由 M0 数据转储回填（D1）。按波分组占位。
 
 ### W1/W2 —— 破规者
-- [ ] JAIL_118 V'ama, Looming Death
-- [ ] JAIL_122 Jailhouse Manastorm
-- [ ] JAIL_319 The Skeleton Key
-- [ ] JAIL_384 Chainbreaker Hogger
-- [ ] JAIL_397 Commander Beatrix
-- [ ] JAIL_407 Vanessa the Ringleader
-- [ ] JAIL_421 Warptooth
-- [ ] JAIL_430 Azalina Soulsever
-- [ ] JAIL_443 The Living Plague
-- [ ] JAIL_446 Blood Doctor Thal'ena
-- [ ] JAIL_448 Karov the Broken
+- [x] JAIL_118 V'ama, Looming Death
+- [x] JAIL_122 Jailhouse Manastorm
+- [x] JAIL_319 The Skeleton Key
+- [x] JAIL_384 Chainbreaker Hogger
+- [x] JAIL_397 Commander Beatrix
+- [x] JAIL_407 Vanessa the Ringleader
+- [x] JAIL_421 Warptooth
+- [x] JAIL_430 Azalina Soulsever
+- [x] JAIL_443 The Living Plague
+- [x] JAIL_446 Blood Doctor Thal'ena
+- [x] JAIL_448 Karov the Broken
 - [ ] JAIL_458 Tiny Pal
 - [ ] JAIL_500 Slice and Dice
-- [ ] JAIL_504 Aya, Lotus Kingpin
-- [ ] JAIL_509 Godfrey the Betrayer
-- [ ] JAIL_719 Irida Sinseeker
-- [ ] JAIL_721 Tras'tath, Soul Parasite
-- [ ] JAIL_800 Mug'Zee
+- [x] JAIL_504 Aya, Lotus Kingpin
+- [x] JAIL_509 Godfrey the Betrayer
+- [x] JAIL_719 Irida Sinseeker
+- [x] JAIL_721 Tras'tath, Soul Parasite
+- [x] JAIL_800 Mug'Zee
 - [ ] JAIL_831 King of the Underbelly
 - [ ] JAIL_850 Warden Maiev
 - [ ] JAIL_851 Inspector Murloc Holmes
@@ -62,7 +62,7 @@
 - [ ] JAIL_875 Staff of Trickery
 - [ ] JAIL_882 R4T-C4TCH3R
 - [ ] JAIL_887 Zuramat's Prison
-- [ ] JAIL_906 Moragg
+- [x] JAIL_906 Moragg
 > Rulebreaker wave membership verified per-card text during W1/W2 implementation
 
 ### W2 —— 其余卡
