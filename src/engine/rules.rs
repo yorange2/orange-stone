@@ -1326,7 +1326,8 @@ pub fn apply_event(
                 let room =
                     MAX_HAND_SIZE.saturating_sub(state.world().zones().len(Zone::Hand, player));
                 if !held.is_empty() && room > 0 {
-                    for (e, _held_cost) in held.into_iter().take(room) {
+                    let restore = room.min(held.len());
+                    for (e, _held_cost) in held.into_iter().take(restore) {
                         state
                             .world_mut()
                             .move_to_zone(e, Zone::Hand)
@@ -1335,7 +1336,7 @@ pub fn apply_event(
                     }
                     state.make_mut().players[player.index()]
                         .godfrey_held_cards
-                        .drain(..room);
+                        .drain(..restore);
                 }
             }
             // M4-W4 — CantPlayNextTurn expires at the owner's turn start

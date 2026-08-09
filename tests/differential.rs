@@ -33676,6 +33676,60 @@ fn jail_w1_godfrey_overdraw_returns() {
     );
 }
 
+/// Godfrey's overdraw-return with MORE room than held cards — the
+/// regression pin for the D3 pool-stress panic (drain(..room) on a
+/// shorter held list): one parked card returns into two free slots and
+/// the held list empties cleanly.
+#[test]
+fn jail_w1_godfrey_room_exceeds_held() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_jail_w1::GODFREY_THE_BETRAYER;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(p1, &GODFREY_THE_BETRAYER);
+    for _ in 0..12 {
+        builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    }
+    builder.add_minion_to_deck(p2, &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(p2, &BLOODFEN_RAPTOR);
+    for _ in 0..10 {
+        builder.add_custom_minion_to_hand(p1, 1, 1, 1);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Turn 3: the turn-start draw overflows → one card parked
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.player(p1).godfrey_held_cards.len(), 1, "one parked");
+    // Free TWO slots (room 2 > held 1) — the old drain(..room) panicked
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.player(p1).godfrey_held_cards.len(), 0, "held emptied");
+    let id_cards: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter(|&e| state.world().card_id(e).is_some())
+        .collect();
+    // room 2: the parked card returns AND the turn-start draw still fits
+    // (no new park) — so both id-carrying cards sit in the hand, and the
+    // returned one carries the (1)-less reduction.
+    assert_eq!(id_cards.len(), 2, "returned card + the fresh draw");
+    let discounted = id_cards.iter().filter(|&&e| {
+        let cid = state.world().card_id(e).expect("a card id").0;
+        let def = orange_stone::cards::def::card_by_id(cid).expect("a known def");
+        state.world().effective_cost(e) == Some(Cost(def.cost - 1))
+    });
+    assert_eq!(
+        discounted.count(),
+        1,
+        "exactly the returned card is discounted"
+    );
+}
+
 /// JAILW1-6 — Chef Neth'rek's Start of Game check: an all-(3)-or-less
 /// starting deck arms the flag; after the fifth own turn start the Mana
 /// caps at 10. A 4-Cost card in the starting deck disables the flag.
