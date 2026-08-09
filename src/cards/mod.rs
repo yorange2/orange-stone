@@ -40,6 +40,7 @@ pub mod exp_edr_w3;
 pub mod exp_edr_w4a;
 pub mod exp_edr_w4b;
 pub mod exp_edr_w5;
+pub mod exp_jail_w1;
 pub mod exp_tlc_w2;
 pub mod exp_tlc_w3;
 pub mod exp_tlc_w4a;
@@ -52,9 +53,11 @@ pub mod generated;
 pub mod herald;
 pub mod kindred;
 pub mod pool;
+pub mod prepare;
 pub mod quest;
 pub mod rewind;
 pub mod sets;
+pub mod start_of_game;
 
 use crate::core::component::{
     Attack, AttacksUsed, Aura, CardId, Cost, Deathrattle, Dormant, Durability, Enrage, Health,
@@ -212,6 +215,10 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // M4-W4 — the Cataclysm closing wave
         | "CATA_469" // Chromatic Broodmother
         | "CATA_493" // Duke of Below
+        // M5-W1 — Escape from Violet Hold (only Tras'tath carries Rush;
+        // Warptooth and The Living Plague ride the CardDef charge field
+        // and Moragg has no Rush)
+        | "JAIL_721" // Tras'tath, Soul Parasite (also Prepare)
     ) {
         world.set_rush(entity, Rush);
     }
@@ -543,6 +550,39 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 race: None,
                 max_attack: None,
                 effect: CardEffect::NiriOfTheCrater,
+            },
+        );
+    }
+    // M5-W1 — Escape from Violet Hold trigger attachments (the TLC_836
+    // pattern — the trigger rides the card, so it only fires for its
+    // own owner):
+    // - Vanessa the Ringleader (JAIL_407, Prepare): "After you play a
+    //   card, get a random Battlecry minion. It costs (2) less."
+    // - Tras'tath, Soul Parasite (JAIL_721, Prepare): "After you summon
+    //   a Demon, gain its stats" — the race filter rides the trigger
+    //   (the FriendlyMinionSummoned event's subject is the just-summoned
+    //   Demon).
+    if card_def.id == "JAIL_407" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::CardPlayed,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::VanessaGetBattlecryMinionCost2Less,
+            },
+        );
+    }
+    if card_def.id == "JAIL_721" {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlyMinionSummoned,
+                timing: TriggerTiming::Whenever,
+                race: Some(crate::core::component::Race::Demon),
+                max_attack: None,
+                effect: CardEffect::TrastathGainSummonedDemonStats,
             },
         );
     }
@@ -1559,6 +1599,9 @@ pub(crate) fn choose_one_option_names(def: &CardDef) -> [&'static str; 2] {
         "TIME_619" => ["Boon of Power (Taunt)", "Boon of Longevity (Lifesteal)"],
         // M3-W3 — The End of Time miniset
         "END_010" => ["Set Attack to 1", "Set Health to 1"],
+        // M5-W1 — Aya, Lotus Kingpin's Start-of-Game pick (JAIL_504):
+        // the upgraded counterfeits.
+        "JAIL_504" => ["Jade Coin", "Grimy Coin"],
         _ => ["First option", "Second option"],
     }
 }
@@ -1598,6 +1641,12 @@ pub(crate) fn choose_one_three_branch(def: &CardDef) -> Option<CardEffect> {
         "TIME_619" => Some(CardEffect::DrawOrResurrectBwonsamdiAndGrantBoon {
             keyword: crate::core::effect::KeywordKind::Rush,
         }),
+        // M5-W1 — Aya, Lotus Kingpin's third counterfeit (JAIL_504): the
+        // Kabal Coin (the battlecry slot = Jade Coin, the choose-one
+        // slot = Grimy Coin — see the card's registration).
+        "JAIL_504" => Some(CardEffect::AyaUpgradeCoins {
+            card_id: "JAIL_504t3",
+        }),
         _ => None,
     }
 }
@@ -1612,6 +1661,7 @@ pub(crate) fn choose_one_three_option_names(def: &CardDef) -> Option<&'static st
         "TLC_245" => Some("Deathrattle: Summon two 1/1 Plants"),
         "TLC_246" => Some("Gain Windfury"),
         "TIME_619" => Some("Boon of Speed (Rush)"),
+        "JAIL_504" => Some("Kabal Coin"),
         _ => None,
     }
 }

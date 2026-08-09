@@ -2609,6 +2609,36 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_cata_w4::EBONSCALE_SCOUT_DRAGON,
     super::exp_cata_w4::EBYSSIAN_DRAGON,
     super::exp_cata_w4::GENN_WORGEN_KING,
+    // M5-W1 — the Escape from Violet Hold wave (src/cards/exp_jail_w1.rs):
+    // the rule-override framework V1 Start-of-Game block (Hogger, Azalina,
+    // Godfrey, Neth'rek, Mug'Zee, Beatrix — resolved via
+    // `cards::start_of_game` in the setup phase; Aya's flip + pick), the
+    // Prepare block (Vanessa, Tras'tath, Moragg — `cards::prepare`), and
+    // the plain-effect batch (V'ama, Manastorm, Skeleton Key, Warptooth,
+    // Living Plague, Thal'ena, Karov). All simplifications in §27.
+    super::exp_jail_w1::CHAINBREAKER_HOGGER,
+    super::exp_jail_w1::AZALINA_SOULSEVER,
+    super::exp_jail_w1::GODFREY_THE_BETRAYER,
+    super::exp_jail_w1::CHEF_NETHREK,
+    super::exp_jail_w1::MUGZEE,
+    super::exp_jail_w1::COMMANDER_BEATRIX,
+    super::exp_jail_w1::VANESSA_THE_RINGLEADER,
+    super::exp_jail_w1::TRASTATHS_SOUL_PARASITE,
+    super::exp_jail_w1::MORAGG,
+    super::exp_jail_w1::AYA_LOTUS_KINGPIN,
+    super::exp_jail_w1::VAMA_LOOMING_DEATH,
+    super::exp_jail_w1::JAILHOUSE_MANASTORM,
+    super::exp_jail_w1::THE_SKELETON_KEY,
+    super::exp_jail_w1::WARPTOOTH,
+    super::exp_jail_w1::THE_LIVING_PLAGUE,
+    super::exp_jail_w1::BLOOD_DOCTOR_THALENA,
+    super::exp_jail_w1::KAROV_THE_BROKEN,
+    // M5-W1 board tokens.
+    super::exp_jail_w1::BLIGHT,
+    super::exp_jail_w1::JADE_COIN,
+    super::exp_jail_w1::GRIMY_COIN,
+    super::exp_jail_w1::KABAL_COIN,
+    super::exp_jail_w1::JADE_GOLEM,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated

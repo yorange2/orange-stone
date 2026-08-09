@@ -544,5 +544,18 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
     {
         cost = Cost((cost.0 - state.player(player).last_played_card_cost).max(0));
     }
+    // M5-W1 — Mug's Magic (JAIL_800hp1, the Mug'Zee hero power): "Your
+    // first minion each turn costs (2) less." The flag is set at the
+    // StartOfGame hero-power swap and never expires (the replacement is
+    // permanent, like any hero-power swap); the per-turn gate reuses the
+    // `minions_played_this_turn` counter (reset at the owner's turn
+    // start, incremented at the CardPlayed path) — the same shape as
+    // Pint-Sized Summoner's FirstMinionDiscount above.
+    if state.world().card_type(card) == Some(crate::core::component::CardType::Minion)
+        && state.player(player).mugzee_mug_magic
+        && state.player(player).minions_played_this_turn == 0
+    {
+        cost = Cost((cost.0 - 2).max(0));
+    }
     cost
 }

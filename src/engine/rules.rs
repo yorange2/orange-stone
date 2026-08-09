@@ -19,7 +19,7 @@ use crate::core::small_list::SmallList;
 use crate::core::state::{ChoiceKind, GameState, Step};
 use crate::core::zone::Zone;
 use crate::engine::secret;
-use crate::engine::trigger;
+use crate::engine::trigger::{self, MAX_HAND_SIZE};
 
 /// Engine error — why an action could not be executed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -137,7 +137,41 @@ pub fn validate(state: &GameState, action: Action) -> Result<(), EngineError> {
         Action::ActivateLocation { location, .. } => validate_activate_location(state, location),
         Action::Choose { choice_id, option } => validate_choose(state, choice_id, option),
         Action::TradeCard { card } => validate_trade_card(state, card),
+        Action::Prepare { card } => validate_prepare(state, card),
     }
+}
+
+/// Validates a Prepare action (M5-W1 — Escape from Violet Hold, the
+/// Prepare keyword of JAIL_407/721/906, pinned §27): the card must be a
+/// Prepare card in the active player's hand, the player must not have
+/// already prepared this turn, the card must not have been prepared
+/// before, and the player must hold at least 1 mana to spend.
+fn validate_prepare(state: &GameState, card: Entity) -> Result<(), EngineError> {
+    let world = state.world();
+    let active = state.active_player();
+    check_entity(world, card)?;
+    let card_player = world.player(card).ok_or(EngineError::EntityGone(card))?;
+    if card_player != active {
+        return Err(EngineError::NotYourCard);
+    }
+    if world.zone(card) != Some(Zone::Hand) {
+        return Err(EngineError::CardNotInHand);
+    }
+    if !crate::cards::prepare::is_prepare_card(state, card) {
+        return Err(EngineError::InvalidTarget);
+    }
+    // Once per turn, once per card (the official constraints).
+    if state.player(active).prepare_used_this_turn {
+        return Err(EngineError::InvalidTarget);
+    }
+    if state.player(active).prepared_cards.contains(&card) {
+        return Err(EngineError::InvalidTarget);
+    }
+    // Cannot prepare with 0 mana.
+    if state.player(active).current_mana < 1 {
+        return Err(EngineError::NotEnoughMana);
+    }
+    Ok(())
 }
 
 /// Validates a location activation (Core Set W8): the entity must be a
@@ -497,6 +531,17 @@ fn validate_hero_power(state: &GameState, hero: Entity) -> Result<(), EngineErro
         return Err(EngineError::NotEnoughMana);
     }
 
+    // M5-W1 — Blood Doctor Thal'ena (JAIL_446, §27): the swapped-in
+    // Vampyr's Kiss hero power costs 3 Corpses instead of Mana — the
+    // affordability check reads the Corpses counter (spent at the
+    // HeroPowerActivated handler).
+    if state.player(active).thalena_corpses_hero_power
+        && !state.player(active).next_hero_power_free
+        && state.player(active).corpses < 3
+    {
+        return Err(EngineError::NotEnoughMana);
+    }
+
     Ok(())
 }
 
@@ -661,6 +706,12 @@ pub fn enqueue(
             // event handler (`TradeCardExecuted`); enqueue is read-only.
             queue.push(Event::TradeCardExecuted { card });
         }
+        Action::Prepare { card } => {
+            // Prepare (M5-W1 — Escape from Violet Hold): the state changes
+            // run in the event handler (`PrepareCardExecuted`); enqueue is
+            // read-only, mirroring the TradeCard arm.
+            queue.push(Event::PrepareCardExecuted { card });
+        }
         Action::HeroPower { hero, target } => {
             let active = state.active_player();
             queue.push(Event::HeroPowerActivated {
@@ -800,6 +851,74 @@ fn fire_hero_damage_counters(state: &mut GameState, target: Entity) {
     let inner = state.make_mut();
     inner.players[pid.index()].hero_damaged_this_turn = true;
     inner.players[pid.opponent().index()].enemy_hero_damaged_this_turn += 1;
+}
+
+/// M5-W1 — Warptooth (JAIL_421): "Charge. If four friendly characters
+/// take damage on one of your turns, summon this from your hand or
+/// deck." A damage-pipeline hook at the two real-loss sites (the Emberroot
+/// convention: armor-absorbed damage does not count). Four DISTINCT
+/// friendly characters — any character owned by the active player, i.e.
+/// the owner's own turn — must take real damage; the summon consumes the
+/// trigger, so a second crossing of four does not summon a further copy
+/// in the same turn (the per-turn count, §27). The damaged list clears at
+/// the owner's turn start.
+fn fire_warptooth_hook(state: &mut GameState, target: Entity) {
+    let active = state.active_player();
+    let Some(owner) = state.world().player(target) else {
+        return;
+    };
+    if owner != active {
+        return;
+    }
+    if state.player(active).warptooth_damaged_ids.contains(&target) {
+        return;
+    }
+    state.make_mut().players[active.index()]
+        .warptooth_damaged_ids
+        .push(target);
+    if state.player(active).warptooth_damaged_ids.len() < 4 {
+        return;
+    }
+    // Four distinct friendly characters damaged this turn: summon
+    // Warptooth from the hand, else from the deck — the actual card
+    // moves to the battlefield (no fresh copy; the official "summon
+    // this from your hand or deck"). The count then clears — the summon
+    // consumed the trigger, so a later crossing of four in the same turn
+    // finds no hand/deck copy (the card is already in play, §27).
+    let summoned = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, active)
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "JAIL_421"))
+        .or_else(|| {
+            state
+                .world()
+                .zones()
+                .iter(Zone::Deck, active)
+                .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "JAIL_421"))
+        });
+    if let Some(e) = summoned {
+        state
+            .world_mut()
+            .move_to_zone(e, Zone::Play)
+            .expect("Warptooth must be movable from hand or deck to play");
+        // The canonical summon-sickness shape (the MinionSummoned
+        // convention): Charge minions skip it entirely and may attack
+        // the turn they arrive; Rush minions are tracked by
+        // SummonedThisTurn (hero-attack ban) but may attack minions;
+        // everything else gets attacks_used(1).
+        if !state.world().effective_charge(e) {
+            state
+                .world_mut()
+                .set_summoned_this_turn(e, crate::core::component::SummonedThisTurn);
+            if state.world().rush(e).is_none() {
+                state.world_mut().set_attacks_used(e, AttacksUsed(1));
+            }
+        }
+        state.make_mut().players[active.index()]
+            .warptooth_damaged_ids
+            .clear();
+    }
 }
 
 fn fire_emberroot_hook(state: &mut GameState, queue: &mut EventQueue, target: Entity) {
@@ -987,6 +1106,24 @@ pub fn apply_event(
                 inner.players[player.index()].hero_damaged_this_turn = false;
                 // M3-W2a — Clockwork Rager counts the turns taken this game.
                 inner.players[player.index()].turns_taken += 1;
+                // M5-W1 — Chef Neth'rek (JAIL_860): "If your deck only has
+                // cards that cost (3) or less, set your Mana to 10 after
+                // five turns!" — the StartOfGame deck check armed
+                // `nethrek_mana_after_five`; after the fifth own turn start
+                // the crystals cap at 10 (the ManaRefill step that follows
+                // this handler refills the current mana from the crystals).
+                if inner.players[player.index()].nethrek_mana_after_five
+                    && inner.players[player.index()].turns_taken >= 5
+                {
+                    inner.players[player.index()].mana_crystals = 10;
+                }
+                // M5-W1 — per-turn resets: Warptooth's four-friendly-damage
+                // counter (JAIL_421), the Prepare once-per-turn guard
+                // (JAIL_407/721/906) and Zee's Might's fifth-minion counter
+                // (JAIL_800hp2) all clear at the owner's turn start.
+                inner.players[player.index()].warptooth_damaged_ids.clear();
+                inner.players[player.index()].prepare_used_this_turn = false;
+                inner.players[player.index()].zee_might_counter = 0;
                 // M3-W2a — TIME_716 Slow Motion's tax applied to the
                 // opponent's cards during their (just-finished) turn:
                 // the caster's tax expires at the caster's next turn start.
@@ -1157,9 +1294,33 @@ pub fn apply_event(
                     }
                 }
             }
+            // M5-W1 — Godfrey the Betrayer (JAIL_509): at the owner's turn
+            // start, overdrawn cards return to the hand (oldest first) while
+            // there is space, each costing (1) less — the F-A11 override
+            // armed at StartOfGame (the draw path parked the cards in the
+            // SetAside zone instead of burning them).
+            {
+                let held: Vec<(Entity, i32)> = state.player(player).godfrey_held_cards.to_vec();
+                let room =
+                    MAX_HAND_SIZE.saturating_sub(state.world().zones().len(Zone::Hand, player));
+                if !held.is_empty() && room > 0 {
+                    for (e, _held_cost) in held.into_iter().take(room) {
+                        state
+                            .world_mut()
+                            .move_to_zone(e, Zone::Hand)
+                            .expect("parked card should be movable to hand");
+                        trigger::reduce_hand_card_cost(state, e, 1);
+                    }
+                    state.make_mut().players[player.index()]
+                        .godfrey_held_cards
+                        .drain(..room);
+                }
+            }
             // M4-W4 — CantPlayNextTurn expires at the owner's turn start
             // (CATA_186t Sabotage!'s "It can't be played until your next
-            // turn").
+            // turn" — and M5-W1's Prepare lock, which reuses the same
+            // component: a prepared card stays unplayable exactly until
+            // its owner's next turn start).
             {
                 let marked: SmallList<Entity> = state
                     .world()
@@ -1559,6 +1720,19 @@ pub fn apply_event(
                     p.minions_played_this_turn += 1;
                     if let Some(id) = played_minion_id {
                         p.played_minion_ids.push(id.to_string());
+                    }
+                    // M5-W1 — Zee's Might (JAIL_800hp2, the Mug'Zee hero
+                    // power): "Every 5th minion you play triggers its
+                    // Battlecry twice." — the counter arms the readiness
+                    // flag, consumed by the played minion's battlecry
+                    // resolution (the MinionSummoned site below, gated on
+                    // `played_minion`). Resets at the owner's turn start.
+                    if p.mugzee_zee_might {
+                        p.zee_might_counter += 1;
+                        if p.zee_might_counter >= 5 {
+                            p.zee_might_counter = 0;
+                            p.zee_might_ready = true;
+                        }
                     }
                     // Naralex (M1-W4b): the per-turn Dragon play counter —
                     // "your first Dragon each turn costs (1)"
@@ -2434,6 +2608,18 @@ pub fn apply_event(
             if played_minion {
                 state.make_mut().players[player.index()].rewind_played_minion = None;
             }
+            // M5-W1 — Zee's Might (JAIL_800hp2, the Mug'Zee hero power):
+            // "Every 5th minion you play triggers its Battlecry twice."
+            // The CardPlayed path armed the readiness flag for the fifth
+            // played minion; this summon consumes it (unconditionally,
+            // like the rewind marker — a Choose One fifth minion's
+            // battlecry resolves through the choice system and is not
+            // doubled, the corner registered in §27), and the battlecry
+            // re-resolve fires below after Deios's.
+            let zee_might_ready = played_minion && state.player(player).zee_might_ready;
+            if zee_might_ready {
+                state.make_mut().players[player.index()].zee_might_ready = false;
+            }
             // Check battlecry component (combo-aware). Choose One minions
             // resolve their branch through the choice system (roadmap G6).
             if state.world().choose_one_effect(minion).is_none() {
@@ -2504,6 +2690,11 @@ pub fn apply_event(
                     // the same convention as the dark gift above (the two
                     // together resolve 3 times, never 4, §21).
                     if deios_doubling(state, player) {
+                        trigger::resolve_effect(state, queue, minion, player, effect, target, None);
+                    }
+                    // M5-W1 — Zee's Might (see the consumption above): one
+                    // more re-resolve of the pre-captured effect.
+                    if zee_might_ready {
                         trigger::resolve_effect(state, queue, minion, player, effect, target, None);
                     }
                 }
@@ -2832,12 +3023,46 @@ pub fn apply_event(
                     amount: 3,
                 });
             }
-            // Enqueue the attack damage (the value was fixed at enqueue time)
-            queue.push(Event::DamageDealt {
-                source: attacker,
-                target: defender,
-                amount: attacker_damage,
-            });
+            // M5-W1 — The Living Plague (JAIL_443): "Instead of damaging
+            // heroes, shuffle that many Blights into their deck that deal
+            // 2 when drawn" — the hero-damage redirection: a Plague attack
+            // on a hero enqueues no damage; `attacker_damage` Blights
+            // (JAIL_443t, a playable 1-Cost spell dealing 2 to its own
+            // hero — the cast-when-drawn simplification, §27) shuffle into
+            // the hero's deck instead, at random positions (the
+            // shuffle-into-deck convention).
+            if state
+                .world()
+                .card_id(attacker)
+                .is_some_and(|c| c.0 == "JAIL_443")
+                && state.world().card_type(defender) == Some(CardType::Hero)
+            {
+                if let Some(owner) = state.world().player(defender) {
+                    if let Some(def) = crate::cards::def::card_by_id("JAIL_443t") {
+                        for _ in 0..attacker_damage.max(0) {
+                            let e =
+                                crate::cards::spawn_card_from_def(state.world_mut(), owner, def);
+                            state.world_mut().set_zone(e, Zone::Deck);
+                            let deck_count = state.world().zones().len(Zone::Deck, owner);
+                            let position = if deck_count > 0 {
+                                state.rng_mut().next_usize(deck_count + 1)
+                            } else {
+                                0
+                            };
+                            state
+                                .world_mut()
+                                .zones_mut()
+                                .insert_at(Zone::Deck, owner, e, position);
+                        }
+                    }
+                }
+            } else {
+                queue.push(Event::DamageDealt {
+                    source: attacker,
+                    target: defender,
+                    amount: attacker_damage,
+                });
+            }
             // Defender retaliation: attack is computed from the current state
             // at resolution time — after an attack is redirected by a secret,
             // the new defender's retaliation applies automatically, without
@@ -3131,6 +3356,7 @@ pub fn apply_event(
                             .set_damage(target, crate::core::component::Damage(new_damage));
                         fire_emberroot_hook(state, queue, target);
                         fire_hero_damage_counters(state, target);
+                        fire_warptooth_hook(state, target);
                         queue_death_events(state, queue, target, card_type);
                         return Ok(());
                     }
@@ -3187,6 +3413,10 @@ pub fn apply_event(
             // battlecry check). Same site as the Emberroot hook: only
             // real health loss counts (armor absorption does not).
             fire_hero_damage_counters(state, target);
+
+            // M5-W1 — Warptooth (JAIL_421): the four-friendly-characters
+            // damage count (see the hook above; same real-loss site).
+            fire_warptooth_hook(state, target);
 
             // Lifesteal (Core Set W1): damage dealt by a Lifesteal source
             // heals the source's owner hero for the damage dealt. Weapon,
@@ -3438,6 +3668,28 @@ pub fn apply_event(
             // draw_card pushes its own CardDrawn event for the drawn card
             trigger::draw_card(state, queue, active);
         }
+        Event::PrepareCardExecuted { card } => {
+            // Prepare (M5-W1 — Escape from Violet Hold, pinned §27): spend
+            // ALL remaining mana, permanently reduce the card's cost by
+            // (spent + 1), and lock the card in hand — it cannot be played
+            // until its owner's next turn start (the CantPlayNextTurn
+            // component, whose expiry lives in the TurnStarted handler —
+            // CATA_186t Sabotage! precedent). Once per card and once per
+            // turn (validated at the action site).
+            let active = state.active_player();
+            let spent = state.player(active).current_mana;
+            {
+                let inner = state.make_mut();
+                let p = &mut inner.players[active.index()];
+                p.current_mana = 0;
+                p.prepare_used_this_turn = true;
+                p.prepared_cards.push(card);
+            }
+            trigger::reduce_hand_card_cost(state, card, spent + 1);
+            state
+                .world_mut()
+                .set_cant_play_next_turn(card, crate::core::component::CantPlayNextTurn);
+        }
         Event::LocationActivated {
             player,
             location,
@@ -3515,13 +3767,20 @@ pub fn apply_event(
                 cost = 0;
             }
             let free = state.player(player).next_hero_power_free;
+            // M5-W1 — Blood Doctor Thal'ena (JAIL_446, §27): the Vampyr's
+            // Kiss hero power costs 3 Corpses instead of Mana (spent here;
+            // the affordability check sits in validate_hero_power).
+            let thalena_corpses = state.player(player).thalena_corpses_hero_power;
             {
                 let inner = state.make_mut();
                 let p = &mut inner.players[player.index()];
                 if free {
                     p.next_hero_power_free = false;
+                } else if thalena_corpses {
+                    p.corpses = p.corpses.saturating_sub(3);
+                } else {
+                    p.current_mana = (p.current_mana - cost).max(0);
                 }
-                p.current_mana = (p.current_mana - if free { 0 } else { cost }).max(0);
                 // Glowroot Lure (M1-W4a): the hero-power-use counter
                 p.hero_power_uses += 1;
             }
@@ -3719,6 +3978,28 @@ pub fn apply_event(
                         Some(t),
                         None,
                     );
+                }
+            }
+            // M5-W1 — Jailhouse Manastorm (JAIL_122, §27): "After you cast
+            // a spell this game, summon a random minion of the same Cost."
+            // The battlecry armed `manastorm_after_spell`; while the
+            // Manastorm is on the board (the while-alive simplification of
+            // the game-long trigger — the flag persists after its death but
+            // the board check gates it), every cast spell summons a random
+            // minion of the spell's Cost from the `random_minion_of_cost`
+            // pool (ALL_CARDS, tokens excluded). Fires after the
+            // after-cast triggers, at the end of the handler.
+            if state.player(player).manastorm_after_spell
+                && state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, player)
+                    .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "JAIL_122"))
+            {
+                if let Some(cost) = state.world().effective_cost(spell) {
+                    if let Some(def) = trigger::random_minion_of_cost(state, cost.0) {
+                        trigger::resolve_summon(state, queue, spell, player, def.id);
+                    }
                 }
             }
         }

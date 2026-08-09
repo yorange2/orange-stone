@@ -33407,3 +33407,1006 @@ fn cata_w4_earthen_drake_end_turn_damage() {
         "the end-of-turn effect dealt 4 to the enemy hero"
     );
 }
+
+/// JAILW1-1 — Chainbreaker Hogger's Start of Game effect: "Duplicate
+/// all other Legendary cards in your deck" — one extra copy per other
+/// Legendary in the starting deck (resolved pre-shuffle, §27).
+#[test]
+fn jail_w1_hogger_duplicates_legendaries() {
+    use std::collections::BTreeMap;
+
+    use orange_stone::cards::classic_legendary::{ALEXSTRASZA, MILLHOUSE_MANASTORM};
+    use orange_stone::cards::classic_neutral::CHILLWIND_YETI;
+    use orange_stone::cards::exp_jail_w1::CHAINBREAKER_HOGGER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(p1, &CHAINBREAKER_HOGGER);
+    builder.add_minion_to_deck(p1, &ALEXSTRASZA);
+    builder.add_minion_to_deck(p1, &MILLHOUSE_MANASTORM);
+    builder.add_minion_to_deck(p1, &CHILLWIND_YETI);
+    let state = builder.build();
+    let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
+    for e in state.world().zones().iter(Zone::Deck, p1) {
+        if let Some(cid) = state.world().card_id(e) {
+            *counts.entry(cid.0).or_insert(0) += 1;
+        }
+    }
+    assert_eq!(
+        counts.get("JAIL_384"),
+        Some(&1),
+        "Hogger itself stays single"
+    );
+    assert_eq!(
+        counts.get("LEGENDARY_008"),
+        Some(&2),
+        "Alexstrasza was duplicated"
+    );
+    assert_eq!(
+        counts.get("LEGENDARY_021"),
+        Some(&2),
+        "Millhouse was duplicated"
+    );
+    assert_eq!(
+        counts.get("NEUTRAL_T08"),
+        Some(&1),
+        "the non-Legendary Yeti is not duplicated"
+    );
+    assert_eq!(
+        counts.values().sum::<usize>(),
+        6,
+        "4 starting cards + one copy of each of the 2 other Legendaries"
+    );
+}
+
+/// JAILW1-2 — Azalina Soulsever's Start of Game effect: starting Health
+/// 40 and a 20+20 deck (own deck trimmed to 20, then 20 random copies
+/// from the enemy's starting deck). The battlecry (a hand copy, the
+/// SOG effect stays a starting-deck property) draws until the hand is
+/// full.
+#[test]
+fn jail_w1_azalina_health_and_deck() {
+    use std::collections::BTreeMap;
+
+    use orange_stone::cards::classic_neutral::CHILLWIND_YETI;
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_jail_w1::AZALINA_SOULSEVER;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(p1, &AZALINA_SOULSEVER);
+    for _ in 0..25 {
+        builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    }
+    for _ in 0..10 {
+        builder.add_minion_to_deck(p2, &CHILLWIND_YETI);
+    }
+    builder.add_minion_to_hand(p1, &AZALINA_SOULSEVER);
+    builder.set_mana(p1, 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero = state.player(p1).hero;
+    assert_eq!(
+        state.world().health(hero),
+        Some(Health(40)),
+        "40 starting Health"
+    );
+    let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
+    for e in state.world().zones().iter(Zone::Deck, p1) {
+        if let Some(cid) = state.world().card_id(e) {
+            *counts.entry(cid.0).or_insert(0) += 1;
+        }
+    }
+    assert_eq!(counts.values().sum::<usize>(), 40, "20 kept + 20 copied");
+    assert_eq!(counts.get("JAIL_430"), Some(&1), "Azalina kept");
+    assert_eq!(
+        counts.get("CLASSIC_001"),
+        Some(&19),
+        "own deck trimmed to 20"
+    );
+    assert_eq!(
+        counts.get("NEUTRAL_T08"),
+        Some(&20),
+        "20 random copies sampled (with replacement) from the enemy deck"
+    );
+    // The battlecry of a hand copy draws until the 10-card hand is full
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().zones().len(Zone::Hand, p1), 10, "hand filled");
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), 30, "10 drawn");
+}
+
+/// JAILW1-3 — Aya, Lotus Kingpin's turn-order override: "You always go
+/// second" — when only Player1's deck holds Aya the seats flip (P1 0/0,
+/// P2 1/1). Both decks holding Aya (or neither) keeps the default order
+/// (the both-decks corner registered in §27).
+#[test]
+fn jail_w1_aya_always_second() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_jail_w1::AYA_LOTUS_KINGPIN;
+    // Only Player1's deck holds Aya → the seats flip
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(PlayerId1(), &AYA_LOTUS_KINGPIN);
+    builder.add_minion_to_deck(PlayerId2(), &BLOODFEN_RAPTOR);
+    let state = builder.build();
+    assert_eq!(state.active_player(), PlayerId2(), "Player1 goes second");
+    assert_eq!(state.player(PlayerId1()).mana_crystals, 0);
+    assert_eq!(state.player(PlayerId2()).mana_crystals, 1);
+    // Both decks hold Aya → no flip
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(PlayerId1(), &AYA_LOTUS_KINGPIN);
+    builder.add_minion_to_deck(PlayerId2(), &AYA_LOTUS_KINGPIN);
+    let state = builder.build();
+    assert_eq!(state.active_player(), PlayerId1(), "no flip");
+    assert_eq!(state.player(PlayerId1()).mana_crystals, 1);
+    assert_eq!(state.player(PlayerId2()).mana_crystals, 0);
+}
+
+/// JAILW1-4 — Aya's Start-of-Game pick (a Choose One on her battlecry):
+/// the chosen counterfeit replaces THE_COIN in hand, transforms Coins
+/// already held, and grants two copies (option 0 = Jade Coin).
+#[test]
+fn jail_w1_aya_battlecry_upgrades_coins() {
+    use orange_stone::cards::classic_neutral::THE_COIN;
+    use orange_stone::cards::exp_jail_w1::AYA_LOTUS_KINGPIN;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    // Both decks hold Aya → no seat flip, Player1 stays active
+    builder.add_minion_to_deck(p1, &AYA_LOTUS_KINGPIN);
+    builder.add_minion_to_deck(p2, &AYA_LOTUS_KINGPIN);
+    builder.add_minion_to_hand(p1, &AYA_LOTUS_KINGPIN);
+    builder.add_minion_to_hand(p1, &THE_COIN);
+    builder.set_mana(p1, 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let choice = play_front_card_choice(&mut state, &engine, p1);
+    assert_eq!(
+        choice.kind,
+        ChoiceKind::ChooseOne,
+        "the pick is a Choose One"
+    );
+    assert_eq!(choice.options.len(), 3, "Jade / Grimy / Kabal Coin");
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0, // Jade Coin
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(p1).coin_replacement.as_deref(),
+        Some("JAIL_504t"),
+        "the Jade Coin becomes the replacement"
+    );
+    let jades = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter(|e| {
+            state
+                .world()
+                .card_id(*e)
+                .is_some_and(|c| c.0 == "JAIL_504t")
+        })
+        .count();
+    assert_eq!(
+        jades, 3,
+        "the held Coin transformed + two fresh copies join the hand"
+    );
+}
+
+/// JAILW1-5 — Godfrey the Betrayer's F-A11 override: overdrawn cards
+/// park in the SetAside zone instead of burning, and return to the hand
+/// (costing (1) less) at the owner's turn start while there is room —
+/// before the turn's draw parks a fresh card.
+#[test]
+fn jail_w1_godfrey_overdraw_returns() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_jail_w1::GODFREY_THE_BETRAYER;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(p1, &GODFREY_THE_BETRAYER);
+    for _ in 0..12 {
+        builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    }
+    builder.add_minion_to_deck(p2, &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(p2, &BLOODFEN_RAPTOR);
+    for _ in 0..10 {
+        builder.add_custom_minion_to_hand(p1, 1, 1, 1);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    assert!(state.player(p1).godfrey_overdraw_return, "override armed");
+    // Turn 3: the turn-start draw overflows the 10-card hand → parked
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), 12, "one drawn");
+    assert_eq!(
+        state.world().zones().len(Zone::SetAside, p1),
+        1,
+        "parked, not burned"
+    );
+    assert_eq!(state.player(p1).godfrey_held_cards.len(), 1);
+    // Free a hand slot, then turn 5 returns the parked card (1) cheaper
+    // before the draw parks the next overflow
+    play_front_card(&mut state, &engine, p1);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.world().zones().len(Zone::Hand, p1), 10, "full again");
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), 11, "next draw");
+    assert_eq!(state.world().zones().len(Zone::SetAside, p1), 1, "new park");
+    assert_eq!(
+        state.player(p1).godfrey_held_cards.len(),
+        1,
+        "one still held"
+    );
+    // The returned card is the one parked on turn 3 (the shuffled deck
+    // decides whether it is Godfrey or a Raptor) — either way it is the
+    // only id-carrying card in the hand and costs (1) less than printed
+    let returned: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter(|&e| state.world().card_id(e).is_some())
+        .collect();
+    assert_eq!(
+        returned.len(),
+        1,
+        "the returned card (the fillers are id-less)"
+    );
+    let cid = state.world().card_id(returned[0]).expect("a card id").0;
+    let def = orange_stone::cards::def::card_by_id(cid).expect("a known def");
+    assert_eq!(
+        state.world().effective_cost(returned[0]),
+        Some(Cost(def.cost - 1)),
+        "the returned card costs (1) less"
+    );
+}
+
+/// JAILW1-6 — Chef Neth'rek's Start of Game check: an all-(3)-or-less
+/// starting deck arms the flag; after the fifth own turn start the Mana
+/// caps at 10. A 4-Cost card in the starting deck disables the flag.
+#[test]
+fn jail_w1_nethrek_mana_after_five() {
+    use orange_stone::cards::classic_neutral::CHILLWIND_YETI;
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_jail_w1::CHEF_NETHREK;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(p1, &CHEF_NETHREK);
+    for _ in 0..4 {
+        builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    }
+    for _ in 0..5 {
+        builder.add_minion_to_deck(p2, &BLOODFEN_RAPTOR);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    assert!(state.player(p1).nethrek_mana_after_five, "all cheap");
+    // 8 EndTurns → Player1's turn 9 (four own turn starts): still 5
+    for _ in 0..8 {
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+    }
+    assert_eq!(state.player(p1).mana_crystals, 5, "not yet");
+    // 10 EndTurns → Player1's turn 11: the fifth own turn start caps at 10
+    for _ in 0..2 {
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+    }
+    assert_eq!(state.player(p1).mana_crystals, 10, "capped at 10");
+    assert_eq!(state.player(p1).current_mana, 10, "refilled");
+    // Negative: a 4-Cost card in the starting deck disables the flag
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(p1, &CHEF_NETHREK);
+    builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(p1, &CHILLWIND_YETI);
+    let state = builder.build();
+    assert!(
+        !state.player(p1).nethrek_mana_after_five,
+        "the 4-Cost Yeti fails the check"
+    );
+}
+
+/// JAILW1-7 — Mug'Zee's Start of Game hero powers: no other minions in
+/// the deck → Mug's Magic; no spells → Zee's Might (both conditions at
+/// once → Zee's Might wins the single slot, §27). The passive powers
+/// sit at cost 0.
+#[test]
+fn jail_w1_mugzee_hero_power() {
+    use orange_stone::cards::classic_mage::ARCANE_EXPLOSION;
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_jail_w1::MUGZEE;
+    let p1 = PlayerId1();
+    let hero = |state: &GameState| state.player(p1).hero;
+    // A deck with only Mug'Zee: both conditions hold
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(p1, &MUGZEE);
+    let state = builder.build();
+    assert!(state.player(p1).mugzee_mug_magic);
+    assert!(state.player(p1).mugzee_zee_might);
+    let hp = state
+        .world()
+        .hero_power(hero(&state))
+        .expect("a hero power");
+    assert_eq!(hp.cost, 0, "the passive power costs (0)");
+    // Minions in the deck: only Zee's Might
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(p1, &MUGZEE);
+    builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    let state = builder.build();
+    assert!(!state.player(p1).mugzee_mug_magic);
+    assert!(state.player(p1).mugzee_zee_might);
+    // Spells in the deck: only Mug's Magic
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(p1, &MUGZEE);
+    builder.add_minion_to_deck(p1, &ARCANE_EXPLOSION);
+    builder.add_minion_to_deck(p1, &ARCANE_EXPLOSION);
+    let state = builder.build();
+    assert!(state.player(p1).mugzee_mug_magic);
+    assert!(!state.player(p1).mugzee_zee_might);
+}
+
+/// JAILW1-8 — Zee's Might (Mug'Zee's passive): the fifth minion played
+/// in one turn has its Battlecry resolved twice — Novice Engineer
+/// draws two.
+#[test]
+fn jail_w1_mugzee_zee_might_doubles_battlecry() {
+    use orange_stone::cards::classic_neutral::NOVICE_ENGINEER;
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_jail_w1::MUGZEE;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(p1, &MUGZEE);
+    builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    builder.set_mana(p1, 10, 10);
+    for _ in 0..4 {
+        builder.add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    }
+    builder.add_minion_to_hand(p1, &NOVICE_ENGINEER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    assert!(state.player(p1).mugzee_zee_might);
+    for _ in 0..4 {
+        play_front_card(&mut state, &engine, p1);
+    }
+    assert_eq!(state.player(p1).zee_might_counter, 4, "four plays counted");
+    play_front_card(&mut state, &engine, p1); // the fifth: Novice Engineer
+    assert_eq!(state.player(p1).zee_might_counter, 0, "counter reset");
+    assert!(!state.player(p1).zee_might_ready, "readiness consumed");
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        2,
+        "the battlecry drew twice — the 2 Raptors"
+    );
+}
+
+/// JAILW1-9 — Commander Beatrix's Start of Game effect: ten copies of
+/// one random 2-Cost minion join the starting deck (the deck-building
+/// pick has no surface in the engine — simplified, §27).
+#[test]
+fn jail_w1_beatrix_ten_copies() {
+    use std::collections::BTreeMap;
+
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_jail_w1::COMMANDER_BEATRIX;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_deck(p1, &COMMANDER_BEATRIX);
+    for _ in 0..5 {
+        builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    }
+    let state = builder.build();
+    let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
+    for e in state.world().zones().iter(Zone::Deck, p1) {
+        if let Some(cid) = state.world().card_id(e) {
+            *counts.entry(cid.0).or_insert(0) += 1;
+        }
+    }
+    let mut extra_total = 0usize;
+    let mut sampled = None;
+    for (id, count) in &counts {
+        let base = match *id {
+            "JAIL_397" => 1,
+            "CLASSIC_001" => 5,
+            _ => 0,
+        };
+        let extra = count - base;
+        extra_total += extra;
+        if extra > 0 {
+            sampled = Some(*id);
+        }
+    }
+    assert_eq!(extra_total, 10, "ten copies join the deck");
+    let sampled = sampled.expect("one sampled id");
+    let def = orange_stone::cards::def::card_by_id(sampled).expect("a known def");
+    assert_eq!(def.cost, 2, "the sampled minion costs (2)");
+    assert_eq!(def.card_type, CardType::Minion);
+}
+
+/// JAILW1-10 — the Prepare keyword (pinned §27): spend ALL remaining
+/// mana → permanent (spent + 1) cost discount → locked in hand until
+/// the owner's next turn start. Once per card, once per turn, never at
+/// 0 mana. After the lock expires, Vanessa's own play fires her
+/// "after you play a card" trigger — the engine convention (the
+/// trigger rides the card).
+#[test]
+fn jail_w1_vanessa_prepare_after_play() {
+    use orange_stone::cards::exp_jail_w1::VANESSA_THE_RINGLEADER;
+    use orange_stone::engine::rules::{EngineError, validate};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder.set_mana(p1, 3, 3);
+    builder.add_minion_to_hand(p1, &VANESSA_THE_RINGLEADER);
+    builder.add_minion_to_hand(p1, &VANESSA_THE_RINGLEADER);
+    builder.add_custom_minion_to_hand(p1, 1, 1, 1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    let first = hand[0];
+    let second = hand[1];
+    // Prepare with 3 mana: spend all 3, discount (3 + 1), lock in hand
+    engine
+        .apply(&mut state, Action::Prepare { card: first })
+        .unwrap();
+    assert_eq!(state.player(p1).current_mana, 0, "all mana spent");
+    assert_eq!(
+        state.world().effective_cost(first),
+        Some(Cost(3)),
+        "7 - (3 + 1)"
+    );
+    assert!(
+        state.world().cant_play_next_turn(first).is_some(),
+        "locked in hand"
+    );
+    assert!(state.player(p1).prepare_used_this_turn);
+    assert_eq!(
+        state.player(p1).prepared_cards,
+        vec![first],
+        "once per card"
+    );
+    // The locked card cannot be played
+    assert_eq!(
+        validate(
+            &state,
+            Action::PlayCard {
+                card: first,
+                target: None,
+                position: None
+            }
+        ),
+        Err(EngineError::InvalidTarget),
+        "CantPlayNextTurn blocks the play"
+    );
+    // Once per turn: a second Prepare is rejected
+    assert_eq!(
+        validate(&state, Action::Prepare { card: second }),
+        Err(EngineError::InvalidTarget),
+        "once per turn"
+    );
+    // Once per card: the prepared card cannot be prepared again
+    assert_eq!(
+        validate(&state, Action::Prepare { card: first }),
+        Err(EngineError::InvalidTarget),
+        "once per card"
+    );
+    // The lock and the once-per-turn guard expire at the owner's next
+    // turn start
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert!(
+        state.world().cant_play_next_turn(first).is_none(),
+        "lock expired"
+    );
+    assert!(!state.player(p1).prepare_used_this_turn);
+    // Still once per card
+    assert_eq!(
+        validate(&state, Action::Prepare { card: first }),
+        Err(EngineError::InvalidTarget),
+        "still once per card"
+    );
+    // Cannot prepare with 0 mana (the turn-start refill refilled the
+    // crystals — drain the current mana to pin the gate)
+    give_mana(&mut state, p1, 0);
+    assert_eq!(
+        validate(&state, Action::Prepare { card: second }),
+        Err(EngineError::NotEnoughMana)
+    );
+    // A 10-mana Prepare discounts heavily (the cost floors at 0)
+    give_mana(&mut state, p1, 10);
+    engine
+        .apply(&mut state, Action::Prepare { card: second })
+        .unwrap();
+    assert_eq!(state.player(p1).current_mana, 0, "all 10 spent");
+    assert_eq!(
+        state.world().effective_cost(second),
+        Some(Cost(0)),
+        "floored at 0"
+    );
+    // Next turn the lock expires — playing Vanessa fires her own
+    // CardPlayed trigger (the engine convention): a random Battlecry
+    // minion joins the hand costing (2) less
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    play_front_card(&mut state, &engine, p1); // Vanessa
+    let gained: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter(|&e| state.world().battlecry(e).is_some())
+        .collect();
+    assert_eq!(gained.len(), 1, "one Battlecry minion after her play");
+    let def = orange_stone::cards::def::card_by_id(
+        state.world().card_id(gained[0]).expect("a card id").0,
+    )
+    .expect("a known def");
+    assert_eq!(
+        state.world().effective_cost(gained[0]),
+        Some(Cost(def.cost - 2)),
+        "it costs (2) less"
+    );
+    // Playing the second Vanessa (the hand front is a Vanessa, not the
+    // filler) fires the on-board trigger AND her own play-fires-own
+    // trigger — two grants (the engine convention, §27)
+    play_front_card(&mut state, &engine, p1);
+    let after: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter(|&e| state.world().battlecry(e).is_some())
+        .collect();
+    assert_eq!(
+        after.len(),
+        3,
+        "the on-board trigger and her own both fired"
+    );
+}
+
+/// JAILW1-11 — Tras'tath, Soul Parasite: "After you summon a Demon,
+/// gain its stats" — playing Moragg (a 6/5 Demon) grants Tras'tath
+/// +6/+5 (9/8).
+#[test]
+fn jail_w1_trastath_demon_stats() {
+    use orange_stone::cards::exp_jail_w1::{MORAGG, TRASTATHS_SOUL_PARASITE};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_board(p1, &TRASTATHS_SOUL_PARASITE);
+    builder.add_minion_to_hand(p1, &MORAGG);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let tras = find_entity(&state, p1, "JAIL_721");
+    assert_eq!(
+        state.world().effective_attack(tras),
+        Some(Attack(9)),
+        "3 + 6"
+    );
+    assert_eq!(
+        state.world().effective_health(tras),
+        Some(Health(8)),
+        "3 + 5"
+    );
+}
+
+/// JAILW1-12 — Moragg's chain: the deathrattle summons a random Demon
+/// from the deck (the deck card is consumed) and grants it "Deathrattle:
+/// Summon Moragg" — killing the chained copy summons Moragg again, the
+/// fresh copy summon-sick.
+#[test]
+fn jail_w1_moragg_chain() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_jail_w1::MORAGG;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_deck(p1, &MORAGG);
+    builder.add_minion_to_deck(p1, &BLOODFEN_RAPTOR);
+    builder.add_minion_to_board(p1, &MORAGG);
+    let big1 = builder.add_custom_minion_to_board(p2, 6, 6, 6);
+    let big2 = builder.add_custom_minion_to_board(p2, 8, 8, 8);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let moragg = find_entity(&state, p1, "JAIL_906");
+    // Attack 1: Moragg (6/5) trades into big1 (6/6) — both die; the
+    // deathrattle summons the deck's Moragg as the chained copy (the
+    // non-Demon filler BLOODFEN_RAPTOR is excluded from the pick).
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: moragg,
+                defender: big1,
+            },
+        )
+        .unwrap();
+    let chained = find_entity(&state, p1, "JAIL_906");
+    assert_ne!(chained, moragg, "the chain summoned a fresh copy");
+    assert_eq!(state.world().zone(chained), Some(Zone::Play));
+    // The deck's Moragg was consumed by the summon; only the filler
+    // remains.
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), 1);
+    // The fresh copy is summon-sick (no Rush, no Charge).
+    assert_eq!(
+        state.world().attacks_used(chained),
+        Some(orange_stone::core::component::AttacksUsed(1)),
+        "deathrattle summon arrives with summoning sickness"
+    );
+    assert!(
+        state.world().summoned_this_turn(chained).is_some(),
+        "the summon is tracked as this turn's summon"
+    );
+    // Attack 2: big2 (8/8) kills the chained copy (6/5) — the granted
+    // "Deathrattle: Summon Moragg" fires and summons yet another copy.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: big2,
+                defender: chained,
+            },
+        )
+        .unwrap();
+    let fresh = find_entity(&state, p1, "JAIL_906");
+    assert_ne!(fresh, chained, "the chained copy re-summoned Moragg");
+    assert_eq!(state.world().zone(fresh), Some(Zone::Play));
+    assert_eq!(
+        state.world().effective_health(big2),
+        Some(Health(2)),
+        "retaliation 6 against the 8/8"
+    );
+    assert_eq!(
+        state.world().attacks_used(fresh),
+        Some(orange_stone::core::component::AttacksUsed(1)),
+        "the second fresh copy is also summon-sick"
+    );
+}
+
+/// JAILW1-13 — V'ama, Looming Death: "Battlecry: Destroy ALL other
+/// minions" — every minion on both sides dies (herself included), the
+/// heroes survive.
+#[test]
+fn jail_w1_vama_destroys_all() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_jail_w1::VAMA_LOOMING_DEATH;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &VAMA_LOOMING_DEATH);
+    builder.add_minion_to_board(p1, &BLOODFEN_RAPTOR);
+    let enemy = builder.add_custom_minion_to_board(p2, 3, 3, 1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().zones().len(Zone::Play, p1), 1, "hero only");
+    assert_eq!(state.world().zones().len(Zone::Play, p2), 1, "hero only");
+    assert_eq!(state.world().zone(enemy), Some(Zone::Graveyard));
+    assert_eq!(
+        state.world().effective_health(state.player(p1).hero),
+        Some(Health(30)),
+        "heroes are untouched"
+    );
+    assert_eq!(
+        state.world().effective_health(state.player(p2).hero),
+        Some(Health(30))
+    );
+}
+
+/// JAILW1-14 — Jailhouse Manastorm: "After you cast a spell, summon a
+/// random minion of the same Cost" — the battlecry arms the flag; each
+/// cast spell summons a minion of the spell's Cost while the Manastorm
+/// is on the board (the while-alive simplification, §27).
+#[test]
+fn jail_w1_manastorm_summons_on_spell() {
+    use orange_stone::cards::classic_mage::ARCANE_EXPLOSION;
+    use orange_stone::cards::exp_jail_w1::JAILHOUSE_MANASTORM;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &JAILHOUSE_MANASTORM);
+    builder.add_minion_to_hand(p1, &ARCANE_EXPLOSION);
+    builder.add_minion_to_hand(p1, &ARCANE_EXPLOSION);
+    let enemy = builder.add_custom_minion_to_board(p2, 8, 8, 8);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Manastorm
+    assert!(state.player(p1).manastorm_after_spell, "flag armed");
+    play_front_card(&mut state, &engine, p1); // Arcane Explosion (2)
+    let board: Vec<Entity> = state.world().zones().iter(Zone::Play, p1).collect();
+    let summon = board
+        .iter()
+        .copied()
+        .find(|e| {
+            state.world().card_type(*e) == Some(CardType::Minion)
+                && !state.world().card_id(*e).is_some_and(|c| c.0 == "JAIL_122")
+        })
+        .expect("the summoned minion");
+    assert_eq!(
+        state.world().effective_cost(summon),
+        Some(Cost(2)),
+        "a random 2-Cost minion"
+    );
+    assert_eq!(board.len(), 3, "hero + Manastorm + summon");
+    // Kill the Manastorm, then the next spell summons nothing
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let manastorm = find_entity(&state, p1, "JAIL_122");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: manastorm,
+                defender: enemy,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(manastorm), Some(Zone::Graveyard));
+    assert_eq!(
+        state.world().zones().len(Zone::Play, p1),
+        2,
+        "hero + the earlier summoned 2-Cost minion (the Manastorm itself is gone)"
+    );
+    play_front_card(&mut state, &engine, p1); // second Arcane Explosion
+    assert_eq!(
+        state.world().zones().len(Zone::Play, p1),
+        2,
+        "no summon without the Manastorm"
+    );
+}
+
+/// JAILW1-15 — The Skeleton Key: "Discover a spell" — the play
+/// surfaces a Discover choice; the pick adds the spell to the hand.
+#[test]
+fn jail_w1_skeleton_key_discovers() {
+    use orange_stone::cards::exp_jail_w1::THE_SKELETON_KEY;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &THE_SKELETON_KEY);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let choice = play_front_card_choice(&mut state, &engine, p1);
+    assert_eq!(choice.kind, ChoiceKind::Discover);
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1, "exactly the discovered spell");
+    assert_eq!(state.world().card_type(hand[0]), Some(CardType::Spell));
+}
+
+/// JAILW1-16 — Warptooth: "If four friendly characters take damage on
+/// one of your turns, summon this from your hand or deck" — four 2/2s
+/// trading into an 8/8 each take real retaliation damage; the fourth
+/// damage summons Warptooth (Charge — it attacks the hero the same
+/// turn) and consumes the trigger.
+#[test]
+fn jail_w1_warptooth_summons_on_four() {
+    use orange_stone::cards::exp_jail_w1::WARPTOOTH;
+    use orange_stone::core::component::AttacksUsed;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &WARPTOOTH);
+    let mut attackers = Vec::new();
+    for _ in 0..4 {
+        attackers.push(builder.add_custom_minion_to_board(p1, 2, 2, 1));
+    }
+    let big = builder.add_custom_minion_to_board(p2, 8, 8, 8);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    for a in &attackers {
+        engine
+            .apply(
+                &mut state,
+                Action::Attack {
+                    attacker: *a,
+                    defender: big,
+                },
+            )
+            .unwrap();
+    }
+    let warptooth = find_entity(&state, p1, "JAIL_421");
+    assert_eq!(
+        state.world().attacks_used(warptooth),
+        Some(AttacksUsed(0)),
+        "Charge skips summon sickness"
+    );
+    assert_eq!(
+        state.player(p1).warptooth_damaged_ids.len(),
+        0,
+        "the trigger was consumed"
+    );
+    // Charge: Warptooth attacks the enemy hero on the same turn
+    let hero2 = state.player(p2).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: warptooth,
+                defender: hero2,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(state.player(p2).hero),
+        Some(Health(27)),
+        "3 damage from Warptooth"
+    );
+}
+
+/// JAILW1-17 — The Living Plague: "Instead of damaging heroes, shuffle
+/// that many Blights into their deck" — a Plague attack on the hero
+/// deals nothing, but shuffles 8 Blights (JAIL_443t) into the enemy
+/// deck; a Blight played from hand deals 2 to its caster's own hero
+/// (the cast-when-drawn simplification, §27).
+#[test]
+fn jail_w1_living_plague_shuffles_blights() {
+    use orange_stone::cards::exp_jail_w1::{BLIGHT, THE_LIVING_PLAGUE};
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &THE_LIVING_PLAGUE);
+    builder.add_minion_to_hand(p1, &BLIGHT);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // the Plague (Charge)
+    let plague = find_entity(&state, p1, "JAIL_443");
+    let hero2 = state.player(p2).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: plague,
+                defender: hero2,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(state.player(p2).hero),
+        Some(Health(30)),
+        "the hero damage was redirected"
+    );
+    let blights = state
+        .world()
+        .zones()
+        .iter(Zone::Deck, p2)
+        .filter(|e| {
+            state
+                .world()
+                .card_id(*e)
+                .is_some_and(|c| c.0 == "JAIL_443t")
+        })
+        .count();
+    assert_eq!(blights, 8, "8 Blights for the 8 attack");
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, p2),
+        13,
+        "5 Raptors + 8 Blights"
+    );
+    // The Blight is playable: 2 damage to its own hero
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().effective_health(state.player(p1).hero),
+        Some(Health(28)),
+        "the Blight deals 2 to its caster's hero"
+    );
+}
+
+/// JAILW1-18 — Blood Doctor Thal'ena: the battlecry swaps the hero
+/// power to Vampyr's Kiss (3 Corpses instead of Mana — the single
+/// hero-power-slot simplification, §27); a use spends 3 Corpses, and
+/// the next turn without Corpses the use is rejected.
+#[test]
+fn jail_w1_thalena_corpses_hero_power() {
+    use orange_stone::cards::exp_jail_w1::BLOOD_DOCTOR_THALENA;
+    use orange_stone::engine::rules::{EngineError, validate};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &BLOOD_DOCTOR_THALENA);
+    let friend = builder.add_custom_minion_to_board(p1, 1, 1, 1);
+    let mut state = builder.build();
+    state.make_mut().players[p1.index()].corpses = 5;
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hero = state.player(p1).hero;
+    let hp = state
+        .world()
+        .hero_power(hero)
+        .expect("the swapped hero power");
+    assert_eq!(hp.cost, 3, "Vampyr's Kiss costs 3");
+    let mana_before = state.player(p1).current_mana;
+    engine
+        .apply(
+            &mut state,
+            Action::HeroPower {
+                hero,
+                target: Some(friend),
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(p1).corpses, 2, "3 Corpses spent");
+    assert_eq!(state.player(p1).current_mana, mana_before, "no Mana spent");
+    assert_eq!(
+        state.world().effective_attack(friend),
+        Some(Attack(4)),
+        "+3 Attack"
+    );
+    // Next turn: the once-per-turn reset happens, but 2 Corpses are not
+    // enough for another use
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        validate(
+            &state,
+            Action::HeroPower {
+                hero,
+                target: Some(friend)
+            }
+        ),
+        Err(EngineError::NotEnoughMana),
+        "needs 3 Corpses"
+    );
+}
+
+/// JAILW1-19 — Karov the Broken: "Deathrattle: Get three 1/1 copies of
+/// random Legendary minions. They cost (1)" — killing Karov grants the
+/// three 1/1, cost-(1) Legendary hand cards.
+#[test]
+fn jail_w1_karov_three_legendaries() {
+    use orange_stone::cards::exp_jail_w1::KAROV_THE_BROKEN;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_board(p1, &KAROV_THE_BROKEN);
+    let big = builder.add_custom_minion_to_board(p2, 9, 9, 9);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let karov = find_entity(&state, p1, "JAIL_448");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: karov,
+                defender: big,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 3, "three copies");
+    for e in hand {
+        assert_eq!(state.world().effective_attack(e), Some(Attack(1)));
+        assert_eq!(state.world().effective_health(e), Some(Health(1)));
+        assert_eq!(state.world().effective_cost(e), Some(Cost(1)));
+        let cid = state.world().card_id(e).expect("a card id");
+        assert!(
+            orange_stone::cards::pool::is_legendary(cid.0),
+            "a Legendary minion"
+        );
+    }
+}

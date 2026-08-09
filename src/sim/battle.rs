@@ -401,16 +401,37 @@ impl BattleRunner {
         for card in deck2 {
             builder.add_minion_to_deck(PlayerId::Player2, card);
         }
+        // M5-W1 — Aya's turn-order override (JAIL_504, "You always go
+        // second"): when only Player1's deck holds Aya the seats flip —
+        // Player2 becomes the first player. The builder's build() applies
+        // the same flip (the deck scans are identical, so the Coin
+        // placement and the SOG phase agree); this side determines the
+        // Coin's owner and the starting mana in advance.
+        let p1_has_aya = deck1.iter().any(|c| c.id == "JAIL_504");
+        let p2_has_aya = deck2.iter().any(|c| c.id == "JAIL_504");
+        let aya_flip = crate::cards::start_of_game::aya_flip(p1_has_aya, p2_has_aya);
+        let second_player = if aya_flip {
+            PlayerId::Player1
+        } else {
+            PlayerId::Player2
+        };
         // The Coin joins the second player's hand before the deal (it is not
         // part of the deck, so the shuffle never touches it)
         if second_player_coin {
-            builder.add_minion_to_hand(PlayerId::Player2, &crate::cards::def::THE_COIN);
+            builder.add_minion_to_hand(second_player, &crate::cards::def::THE_COIN);
         }
         // Mana: GameState::new() already gives Player1 the turn-1 crystal (1/1,
         // HS official); Player2 starts at 0/0 and gets its crystal on its first
         // ManaRefill. Do NOT reset P1 to 0/0 — that clobbers the turn-1 crystal
         // and leaves the first player a full crystal behind for the whole game.
-        builder.set_mana(PlayerId::Player2, 0, 0);
+        // With the Aya flip the second seat (and the 0/0 starting mana) moves
+        // to Player1 and Player2 receives the turn-1 crystal.
+        if aya_flip {
+            builder.set_mana(PlayerId::Player1, 0, 0);
+            builder.set_mana(PlayerId::Player2, 1, 1);
+        } else {
+            builder.set_mana(PlayerId::Player2, 0, 0);
+        }
         let mut state = builder.build();
 
         // Opening hand — draw from the *current* deck length (the deck shrinks
@@ -419,9 +440,14 @@ impl BattleRunner {
         // turn-1 draw (their 4th card as the turn starts); the second player
         // draws its own first-turn card via the step machine (DrawStep).
         let p2_bonus = if second_player_coin { 1 } else { 0 };
+        // M5-W1 — keyed on the active player (the post-Aya-flip first
+        // seat): the first player's `hand_size + 1` is the official
+        // opening plus the turn-1 draw; the second player draws
+        // `hand_size + p2_bonus` (the Coin is the extra card).
+        let first = state.active_player();
         for (pid, draw_count) in [
-            (PlayerId::Player1, hand_size + 1),
-            (PlayerId::Player2, hand_size + p2_bonus),
+            (first, hand_size + 1),
+            (first.opponent(), hand_size + p2_bonus),
         ] {
             // Opening deal (official fatigue rule 5): the deck is provably
             // full here, so these draws never fatigue. This is the battle
