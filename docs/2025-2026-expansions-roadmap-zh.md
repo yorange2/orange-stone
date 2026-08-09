@@ -139,7 +139,14 @@ M0 数据管线（本文件）
   Temporary 原语）、同族机制（按卡文本核实：本回合同类卡激活，非计数）、
   其余 145 张卡 + 38 张恐龙节迷你；账本 §15–§19；W0–W4 全部勾选
   （183 张卡带 F5 场景或登记简化）。
-- **M3** —— 时光之径 + 迷你完成（时光倒流）。
+- **M3** ✅ 完成（2026-08-09，PR #150–#154）——时光之径 + 迷你：Rewind
+  原语（`Player.last_played` 历史 + `cards::rewind` 注册表 +
+  `engine::rewind` 重放——关键字按文本核实为同类叠加重放）、Dormant
+  关键字（全量原语）、Shred 包、pool-open 注册、Fabled 传说
+  （DoubleTriggers 光环、INFINITY_ATTACK_CAP = 100 先例）、以及以复用
+  为主的 38 张时间的终结迷你（Imbue/Dark Gift/抉择/任务复用，新增
+  FillThenEmptyHand 任务条件与 WhenEnemyTurnEnds 奥秘触发）；账本
+  §20–§22；W0–W3 全部勾选（183 张卡带 F5 场景或登记简化）。
 - **M4** —— 大灾变完成（巨像 / 先锋 / 粉碎 / 死亡之翼）。
 - **M5** —— 紫罗兰监狱完成（破规者）；五个子路线图与本主文件一并归档至
   `docs/finished/`。

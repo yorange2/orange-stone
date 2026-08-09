@@ -170,7 +170,16 @@ closing wave (tokens, legendary finishing touches, ledger sweep).
   the remaining 145 cards + the 38-card Festival of the Devilsaur
   miniset; ledger §15–§19; W0–W4 checked off (183 cards with F5
   scenarios or registered simplifications).
-- **M3** — Timeways + mini complete (Rewind).
+- **M3** ✅ complete (2026-08-09, PR #150–#154) — Timeways + miniset: the
+  Rewind primitive (`Player.last_played` history + `cards::rewind`
+  registry + `engine::rewind` replay — the keyword verified as
+  same-type-stacking replays), the Dormant keyword (full primitive),
+  the Shred package, pool-open registrations, the Fabled legendaries
+  (DoubleTriggers aura, INFINITY_ATTACK_CAP = 100 precedent), and the
+  reuse-heavy 38-card The End of Time miniset (Imbue/Dark Gifts/
+  Choose One/quest reuses, new FillThenEmptyHand quest condition and
+  WhenEnemyTurnEnds secret trigger); ledger §20–§22; W0–W3 checked off
+  (183 cards with F5 scenarios or registered simplifications).
 - **M4** — Cataclysm complete (Colossal / Herald / Shatter / Deathwing).
 - **M5** — Violet Hold complete (Rulebreakers); all five sub-roadmaps archived
   with this master file to `docs/finished/`.
