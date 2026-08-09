@@ -28,7 +28,7 @@ prison. Verified mechanics (2026-08-08, 36.0 patch notes):
 One PR per wave; every card lands with an F5 differential scenario; `sets.rs`
 registration; simplifications get ledger rows.
 
-- **W0 — wiring + data:** M0 data for this set; inventory backfilled; fidelity
+- [x] **W0 — wiring + data** (PR #160): M0 data for this set; inventory backfilled; fidelity
   tests.
 - **W1 — Rulebreakers batch 1 (V1):** the override framework + the first
   batch of Rulebreakers; F5 scenarios pin each overridden invariant
