@@ -38,7 +38,7 @@
 - [x] **W0 —— 接线 + 数据**（PR #155）：本系列 M0 数据（M0.1–M0.5，含 M0.3 已合并的职业套装 MEND_ 29 张，按路线图延后为跟进波）；清单回填；per-set dump 保真测试（`cataclysm_dump_fidelity`，CATA_ + MEND_ 前缀，164 张）与生成基线落地。
 - [x] **W1 —— 巨像（C1）**（PR #156）： 附属部件组件 + 召唤路径；F5 场景钉死部件占位、部件
   死亡规则与本体死亡级联。
-- **W2 —— 先锋（C2）：** 缩放计数 + 巨像士兵池；6 职业先锋卡。
+- [x] **W2 —— 先锋（C2）**（PR #157）： 缩放计数 + 巨像士兵池；6 职业先锋卡。
 - **W3 —— 粉碎（C3）：** 分裂/重组管线；F5 场景钉死 抽牌-分裂-重组 时序；若该波
   判定完整保真过大，按 D2 登记简化而非上残缺机制。
 - **W4 —— 死亡之翼 + 收尾：** C4 基于 P1 机制；其余卡；职业套装跟进推迟；
@@ -62,19 +62,19 @@
 - [x] CATA_726 Cho'gall, Mastermind
 
 ### W2 —— 先锋
-- [ ] CATA_156 Experimental Animation
-- [ ] CATA_158 Maniacal Follower
-- [ ] CATA_160 Scorching Ravager
-- [ ] CATA_492 Shrine of Twilight
-- [ ] CATA_525 Armored Bloodletter
-- [ ] CATA_530 Fel Infusion
-- [ ] CATA_561 Ritual of Power
-- [ ] CATA_565 Skywall Sentinel
-- [ ] CATA_580 Cataclysmic War Axe
-- [ ] CATA_722 Envoy of the End
-- [ ] CATA_725 Shadowsworn Disciple
-- [ ] CATA_780 Obsessive Technician
-- [ ] CATA_785 Rite of Twilight
+- [x] CATA_156 Experimental Animation
+- [x] CATA_158 Maniacal Follower
+- [x] CATA_160 Scorching Ravager
+- [x] CATA_492 Shrine of Twilight
+- [x] CATA_525 Armored Bloodletter
+- [x] CATA_530 Fel Infusion
+- [x] CATA_561 Ritual of Power
+- [x] CATA_565 Skywall Sentinel
+- [x] CATA_580 Cataclysmic War Axe
+- [x] CATA_722 Envoy of the End
+- [x] CATA_725 Shadowsworn Disciple
+- [x] CATA_780 Obsessive Technician
+- [x] CATA_785 Rite of Twilight
 
 ### W3 —— 粉碎
 - [ ] CATA_134 Wildwood Circle

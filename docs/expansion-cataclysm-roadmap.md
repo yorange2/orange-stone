@@ -44,7 +44,7 @@ registration; simplifications get ledger rows.
   tests.
 - [x] **W1 — Colossal (C1)** (PR #156): body-part component + summon path; F5 scenarios pin
   part positioning, part-death rules and main-death cascades.
-- **W2 — Herald (C2):** scaling counter + Colossal Soldier pool; the 6
+- [x] **W2 — Herald (C2)** (PR #157): scaling counter + Colossal Soldier pool; the 6
   classes' Herald cards.
 - **W3 — Shatter (C3):** split/recombine pipeline; F5 scenarios pin the
   draw-split-recombine sequencing; if the wave judges full fidelity too large,
@@ -70,19 +70,19 @@ registration; simplifications get ledger rows.
 - [x] CATA_726 Cho'gall, Mastermind
 
 ### W2 — Herald
-- [ ] CATA_156 Experimental Animation
-- [ ] CATA_158 Maniacal Follower
-- [ ] CATA_160 Scorching Ravager
-- [ ] CATA_492 Shrine of Twilight
-- [ ] CATA_525 Armored Bloodletter
-- [ ] CATA_530 Fel Infusion
-- [ ] CATA_561 Ritual of Power
-- [ ] CATA_565 Skywall Sentinel
-- [ ] CATA_580 Cataclysmic War Axe
-- [ ] CATA_722 Envoy of the End
-- [ ] CATA_725 Shadowsworn Disciple
-- [ ] CATA_780 Obsessive Technician
-- [ ] CATA_785 Rite of Twilight
+- [x] CATA_156 Experimental Animation
+- [x] CATA_158 Maniacal Follower
+- [x] CATA_160 Scorching Ravager
+- [x] CATA_492 Shrine of Twilight
+- [x] CATA_525 Armored Bloodletter
+- [x] CATA_530 Fel Infusion
+- [x] CATA_561 Ritual of Power
+- [x] CATA_565 Skywall Sentinel
+- [x] CATA_580 Cataclysmic War Axe
+- [x] CATA_722 Envoy of the End
+- [x] CATA_725 Shadowsworn Disciple
+- [x] CATA_780 Obsessive Technician
+- [x] CATA_785 Rite of Twilight
 
 ### W3 — Shatter
 - [ ] CATA_134 Wildwood Circle
