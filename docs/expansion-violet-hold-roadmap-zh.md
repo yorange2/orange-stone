@@ -28,7 +28,7 @@
 - [x] **W0 —— 接线 + 数据**（PR #160）： 本系列 M0 数据；清单回填；保真测试。
 - [x] **W1 —— 破规者第一批（V1）**（PR #161）： 覆写框架 + 第一批破规者；F5 场景逐个钉死被
   覆写的不变量（覆写前/后）。
-- **W2 —— 破规者第二批 + 收尾：** 其余破规者 + 系列其余卡；收尾波清扫衍生物/
+- [x] **W2 —— 破规者第二批 + 收尾**（PR #162）： 其余破规者 + 系列其余卡；收尾波清扫衍生物/
   账本。
 
 ## 卡清单
@@ -47,133 +47,133 @@
 - [x] JAIL_443 The Living Plague
 - [x] JAIL_446 Blood Doctor Thal'ena
 - [x] JAIL_448 Karov the Broken
-- [ ] JAIL_458 Tiny Pal
-- [ ] JAIL_500 Slice and Dice
+- [x] JAIL_458 Tiny Pal
+- [x] JAIL_500 Slice and Dice
 - [x] JAIL_504 Aya, Lotus Kingpin
 - [x] JAIL_509 Godfrey the Betrayer
 - [x] JAIL_719 Irida Sinseeker
 - [x] JAIL_721 Tras'tath, Soul Parasite
 - [x] JAIL_800 Mug'Zee
-- [ ] JAIL_831 King of the Underbelly
-- [ ] JAIL_850 Warden Maiev
-- [ ] JAIL_851 Inspector Murloc Holmes
-- [ ] JAIL_852 Togwaggle, Smuggler King
-- [ ] JAIL_860 Chef Neth'rek
-- [ ] JAIL_875 Staff of Trickery
-- [ ] JAIL_882 R4T-C4TCH3R
-- [ ] JAIL_887 Zuramat's Prison
+- [x] JAIL_831 King of the Underbelly
+- [x] JAIL_850 Warden Maiev
+- [x] JAIL_851 Inspector Murloc Holmes
+- [x] JAIL_852 Togwaggle, Smuggler King
+- [x] JAIL_860 Chef Neth'rek
+- [x] JAIL_875 Staff of Trickery
+- [x] JAIL_882 R4T-C4TCH3R
+- [x] JAIL_887 Zuramat's Prison
 - [x] JAIL_906 Moragg
 > Rulebreaker wave membership verified per-card text during W1/W2 implementation
 
 ### W2 —— 其余卡
-- [ ] JAIL_007 Sewer Imp
-- [ ] JAIL_029 Rioter
-- [ ] JAIL_030 Escape Artist
-- [ ] JAIL_035 Vigilant Sentry
-- [ ] JAIL_101 Violet Punisher
-- [ ] JAIL_123 Breakout Architect
-- [ ] JAIL_125 Cold Snap
-- [ ] JAIL_200 Infest the Scullery
-- [ ] JAIL_201 Secret Ingredient
-- [ ] JAIL_202 Spiderling
-- [ ] JAIL_204 Solitary Prisoner
-- [ ] JAIL_205 Rat Burglar
-- [ ] JAIL_206 Dark Bribe
-- [ ] JAIL_225 Nab
-- [ ] JAIL_303 Ancient Augur
-- [ ] JAIL_307 Crowd Control
-- [ ] JAIL_311 Scrappy Defender
-- [ ] JAIL_312 Contraband Wands
-- [ ] JAIL_313 Bootleg Alchemist
-- [ ] JAIL_315 Mystic Misdirection
-- [ ] JAIL_321 Tricksy Improviser
-- [ ] JAIL_326 Judgment
-- [ ] JAIL_327 Reinforcement Aura
-- [ ] JAIL_328 Scarlet Bruiser
-- [ ] JAIL_329 Truth Seeker
-- [ ] JAIL_330 Dalaran Champion
-- [ ] JAIL_376 Ball and Chain
-- [ ] JAIL_377 Holy Bola!
-- [ ] JAIL_379 Spire Security
-- [ ] JAIL_380 Smuggled Shovel
-- [ ] JAIL_386 Scramble for Gear
-- [ ] JAIL_387 Release the Beasts
-- [ ] JAIL_395 Sewer Swimmer
-- [ ] JAIL_398 IMPFERNAL!
-- [ ] JAIL_399 Imp Gang Stooge
-- [ ] JAIL_432 Mind Sweeper
-- [ ] JAIL_433 Unshackle Soul
-- [ ] JAIL_434 Enthralled Shade
-- [ ] JAIL_435 Rampaging Hound
-- [ ] JAIL_436 Widow's Bite
-- [ ] JAIL_440 Tower of Ghouls
-- [ ] JAIL_441 Drink Blood
-- [ ] JAIL_442 Disguised Doctor
-- [ ] JAIL_444 Sawbones
-- [ ] JAIL_445 Bone Flurry
-- [ ] JAIL_447 Reckless Detective
-- [ ] JAIL_450 Corpse Cannon
-- [ ] JAIL_451 Blood Clone
-- [ ] JAIL_452 Disguised Detective
-- [ ] JAIL_453 Jailbird
-- [ ] JAIL_454 Emergency Surgery
-- [ ] JAIL_455 Disguised Watchman
-- [ ] JAIL_456 P1CK-P0K3T
-- [ ] JAIL_457 Hijacked Securitybot
-- [ ] JAIL_459 Arachnathid
-- [ ] JAIL_460 Concealing Confection
-- [ ] JAIL_461 Disguised Executioner
-- [ ] JAIL_462 Getaway Hogdriver
-- [ ] JAIL_470 Lotus Troublemaker
-- [ ] JAIL_474 Jade Guardians
-- [ ] JAIL_501 Picklock
-- [ ] JAIL_502 Alarm-o-Matic
-- [ ] JAIL_503 Blackpaw's Whip
-- [ ] JAIL_507 Spiteful Chef
-- [ ] JAIL_510 Annihilation
-- [ ] JAIL_511 Spire of Solitude
-- [ ] JAIL_513 Caged Cranium
-- [ ] JAIL_514 The Unseen Atlas
-- [ ] JAIL_515 Shadow Rounds
-- [ ] JAIL_516 Scarlet Recruiter
-- [ ] JAIL_703 Gullible Guard
-- [ ] JAIL_706 Thief's Tools
-- [ ] JAIL_718 Black Market Auctioneer
-- [ ] JAIL_720 Lotus Bookie
-- [ ] JAIL_730 Stardust Scythe
-- [ ] JAIL_732 Void Soul
-- [ ] JAIL_733 Vicious Voidscale
-- [ ] JAIL_734 Hellraiser
-- [ ] JAIL_735 Code Violet
-- [ ] JAIL_801 Molten Gold
-- [ ] JAIL_802 Gallagio Goon
-- [ ] JAIL_803 Frostshatter
-- [ ] JAIL_805 Stormfury
-- [ ] JAIL_806 Hexmarshal
-- [ ] JAIL_861 Noxious Bribe
-- [ ] JAIL_866 Lethal Recipe
-- [ ] JAIL_872 Spider Rider
-- [ ] JAIL_876 Dig for Freedom
-- [ ] JAIL_877 Underbelly Network
-- [ ] JAIL_878 Guard Dog
-- [ ] JAIL_879 Beast Tripwire
-- [ ] JAIL_880 Black Market Overseer
-- [ ] JAIL_881 Arcane Tripwire
-- [ ] JAIL_883 Activated Golem
-- [ ] JAIL_890 Captive Nathrezim
-- [ ] JAIL_891 Void Blast
-- [ ] JAIL_892 Cosmic Manifestations
-- [ ] JAIL_909 Defias Wannabe
-- [ ] JAIL_912 Soothsayer
-- [ ] JAIL_913 Hold Them Off!
-- [ ] JAIL_940 Undeath Sentence
-- [ ] JAIL_941 Holy Embrace
-- [ ] JAIL_942 Specter of Despair
-- [ ] JAIL_974 Captured Archmage
-- [ ] JAIL_986 Frantic Forger
-- [ ] JAIL_987 Low Security Wing
-- [ ] JAIL_997 Demonic Confinement
-- [ ] JAIL_998 Defias Smuggler
+- [x] JAIL_007 Sewer Imp
+- [x] JAIL_029 Rioter
+- [x] JAIL_030 Escape Artist
+- [x] JAIL_035 Vigilant Sentry
+- [x] JAIL_101 Violet Punisher
+- [x] JAIL_123 Breakout Architect
+- [x] JAIL_125 Cold Snap
+- [x] JAIL_200 Infest the Scullery
+- [x] JAIL_201 Secret Ingredient
+- [x] JAIL_202 Spiderling
+- [x] JAIL_204 Solitary Prisoner
+- [x] JAIL_205 Rat Burglar
+- [x] JAIL_206 Dark Bribe
+- [x] JAIL_225 Nab
+- [x] JAIL_303 Ancient Augur
+- [x] JAIL_307 Crowd Control
+- [x] JAIL_311 Scrappy Defender
+- [x] JAIL_312 Contraband Wands
+- [x] JAIL_313 Bootleg Alchemist
+- [x] JAIL_315 Mystic Misdirection
+- [x] JAIL_321 Tricksy Improviser
+- [x] JAIL_326 Judgment
+- [x] JAIL_327 Reinforcement Aura
+- [x] JAIL_328 Scarlet Bruiser
+- [x] JAIL_329 Truth Seeker
+- [x] JAIL_330 Dalaran Champion
+- [x] JAIL_376 Ball and Chain
+- [x] JAIL_377 Holy Bola!
+- [x] JAIL_379 Spire Security
+- [x] JAIL_380 Smuggled Shovel
+- [x] JAIL_386 Scramble for Gear
+- [x] JAIL_387 Release the Beasts
+- [x] JAIL_395 Sewer Swimmer
+- [x] JAIL_398 IMPFERNAL!
+- [x] JAIL_399 Imp Gang Stooge
+- [x] JAIL_432 Mind Sweeper
+- [x] JAIL_433 Unshackle Soul
+- [x] JAIL_434 Enthralled Shade
+- [x] JAIL_435 Rampaging Hound
+- [x] JAIL_436 Widow's Bite
+- [x] JAIL_440 Tower of Ghouls
+- [x] JAIL_441 Drink Blood
+- [x] JAIL_442 Disguised Doctor
+- [x] JAIL_444 Sawbones
+- [x] JAIL_445 Bone Flurry
+- [x] JAIL_447 Reckless Detective
+- [x] JAIL_450 Corpse Cannon
+- [x] JAIL_451 Blood Clone
+- [x] JAIL_452 Disguised Detective
+- [x] JAIL_453 Jailbird
+- [x] JAIL_454 Emergency Surgery
+- [x] JAIL_455 Disguised Watchman
+- [x] JAIL_456 P1CK-P0K3T
+- [x] JAIL_457 Hijacked Securitybot
+- [x] JAIL_459 Arachnathid
+- [x] JAIL_460 Concealing Confection
+- [x] JAIL_461 Disguised Executioner
+- [x] JAIL_462 Getaway Hogdriver
+- [x] JAIL_470 Lotus Troublemaker
+- [x] JAIL_474 Jade Guardians
+- [x] JAIL_501 Picklock
+- [x] JAIL_502 Alarm-o-Matic
+- [x] JAIL_503 Blackpaw's Whip
+- [x] JAIL_507 Spiteful Chef
+- [x] JAIL_510 Annihilation
+- [x] JAIL_511 Spire of Solitude
+- [x] JAIL_513 Caged Cranium
+- [x] JAIL_514 The Unseen Atlas
+- [x] JAIL_515 Shadow Rounds
+- [x] JAIL_516 Scarlet Recruiter
+- [x] JAIL_703 Gullible Guard
+- [x] JAIL_706 Thief's Tools
+- [x] JAIL_718 Black Market Auctioneer
+- [x] JAIL_720 Lotus Bookie
+- [x] JAIL_730 Stardust Scythe
+- [x] JAIL_732 Void Soul
+- [x] JAIL_733 Vicious Voidscale
+- [x] JAIL_734 Hellraiser
+- [x] JAIL_735 Code Violet
+- [x] JAIL_801 Molten Gold
+- [x] JAIL_802 Gallagio Goon
+- [x] JAIL_803 Frostshatter
+- [x] JAIL_805 Stormfury
+- [x] JAIL_806 Hexmarshal
+- [x] JAIL_861 Noxious Bribe
+- [x] JAIL_866 Lethal Recipe
+- [x] JAIL_872 Spider Rider
+- [x] JAIL_876 Dig for Freedom
+- [x] JAIL_877 Underbelly Network
+- [x] JAIL_878 Guard Dog
+- [x] JAIL_879 Beast Tripwire
+- [x] JAIL_880 Black Market Overseer
+- [x] JAIL_881 Arcane Tripwire
+- [x] JAIL_883 Activated Golem
+- [x] JAIL_890 Captive Nathrezim
+- [x] JAIL_891 Void Blast
+- [x] JAIL_892 Cosmic Manifestations
+- [x] JAIL_909 Defias Wannabe
+- [x] JAIL_912 Soothsayer
+- [x] JAIL_913 Hold Them Off!
+- [x] JAIL_940 Undeath Sentence
+- [x] JAIL_941 Holy Embrace
+- [x] JAIL_942 Specter of Despair
+- [x] JAIL_974 Captured Archmage
+- [x] JAIL_986 Frantic Forger
+- [x] JAIL_987 Low Security Wing
+- [x] JAIL_997 Demonic Confinement
+- [x] JAIL_998 Defias Smuggler
 
 ## 完成定义
 
