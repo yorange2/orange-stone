@@ -61,22 +61,22 @@
 - [x] TIME_441 Aeon Rend
 - [x] TIME_602 Wormhole
 - [x] TIME_610 Shadows of Yesterday
-- [ ] TIME_005 Timethief Rafaam
-- [ ] TIME_009 Gelbin of Tomorrow
-- [ ] TIME_020 Broxigar
-- [ ] TIME_209 Muradin, High King
-- [ ] TIME_211 Lady Azshara
-- [ ] TIME_609 Ranger General Sylvanas
-- [ ] TIME_619 Talanji of the Graves
-- [ ] TIME_850 Lo'Gosh, Blood Fighter
-- [ ] TIME_852 Azure Queen Sindragosa
-- [ ] TIME_875 Garona Halforcen
-- [ ] TIME_890 Medivh the Hallowed
+- [x] TIME_005 Timethief Rafaam
+- [x] TIME_009 Gelbin of Tomorrow
+- [x] TIME_020 Broxigar
+- [x] TIME_209 Muradin, High King
+- [x] TIME_211 Lady Azshara
+- [x] TIME_609 Ranger General Sylvanas
+- [x] TIME_619 Talanji of the Graves
+- [x] TIME_850 Lo'Gosh, Blood Fighter
+- [x] TIME_852 Azure Queen Sindragosa
+- [x] TIME_875 Garona Halforcen
+- [x] TIME_890 Medivh the Hallowed
 > note: Lady Azshara is also a Choose One card: TIME_211
 
 ### W3 —— 其余卡 + 迷你
 - [x] TIME_006 Mirror Dimension
-- [ ] TIME_013 Farseer Wo
+- [x] TIME_013 Farseer Wo
 - [x] TIME_015 Hardlight Protector
 - [x] TIME_016 Neon Innovation
 - [x] TIME_017 Tankgineer
@@ -84,7 +84,7 @@
 - [x] TIME_021 Doomsday Prepper
 - [x] TIME_022 Perennial Serpent
 - [x] TIME_023 Contingency
-- [ ] TIME_024 Murozond, Unbounded
+- [x] TIME_024 Murozond, Unbounded
 - [x] TIME_025 Twilight Timehopper
 - [x] TIME_026 Entropic Continuity
 - [x] TIME_027 Tachyon Barrage
@@ -92,13 +92,13 @@
 - [x] TIME_029 Ruinous Velocidrake
 - [x] TIME_030 Divergence
 - [x] TIME_031 RAFAAM LADDER!!
-- [ ] TIME_032 Chronogor
+- [x] TIME_032 Chronogor
 - [x] TIME_036 Royal Informant
 - [x] TIME_037 Disciple of the Dove
 - [x] TIME_039 Deja Vu
 - [x] TIME_040 Fading Memory
 - [x] TIME_041 Futuristic Forefather
-- [ ] TIME_042 King Maluk
+- [x] TIME_042 King Maluk
 - [x] TIME_043 PMM Infinitizer
 - [x] TIME_044 Past Gnomeregan
 - [x] TIME_045 Whelp of the Infinite
@@ -120,11 +120,11 @@
 - [x] TIME_061 Timeless Causality
 - [x] TIME_062 Chronicle Keeper
 - [x] TIME_063 Timelord Nozdormu
-- [ ] TIME_064 Chrono-Lord Deios
+- [x] TIME_064 Chrono-Lord Deios
 - [x] TIME_100 Hourglass Attendant
 - [x] TIME_101 Misplaced Pyromancer
 - [x] TIME_102 Circadiamancer
-- [ ] TIME_103 Chromie
+- [x] TIME_103 Chromie
 - [x] TIME_212 Lightning Rod
 - [x] TIME_213 Primordial Overseer
 - [x] TIME_214 Flux Revenant
@@ -138,12 +138,12 @@
 - [x] TIME_431 Amber Priestess
 - [x] TIME_432 Intertwined Fate
 - [x] TIME_434 Temporal Traveler
-- [ ] TIME_435 Eternus
+- [x] TIME_435 Eternus
 - [x] TIME_436 Past Conflux
 - [x] TIME_442 Timeway Warden
 - [x] TIME_443 Hounds of Fury
 - [x] TIME_444 Time-Lost Glaive
-- [ ] TIME_446 The Eternal Hold
+- [x] TIME_446 The Eternal Hold
 - [x] TIME_447 Power Word: Barrier
 - [x] TIME_448 Solitude
 - [x] TIME_449 Lasting Legacy
@@ -159,21 +159,21 @@
 - [x] TIME_615 Forgotten Millennium
 - [x] TIME_616 Memoriam Manifest
 - [x] TIME_617 Chronochiller
-- [ ] TIME_618 Husk, Eternal Reaper
+- [x] TIME_618 Husk, Eternal Reaper
 - [x] TIME_620 Untimely Death
 - [x] TIME_700 Chronological Aura
 - [x] TIME_701 Waveshaping
 - [x] TIME_702 Ebb and Flow
 - [x] TIME_703 Endangered Dodo
 - [x] TIME_704 Highborne Mentor
-- [ ] TIME_705 Krona, Keeper of Eons
-- [ ] TIME_706 The Fins Beyond Time
+- [x] TIME_705 Krona, Keeper of Eons
+- [x] TIME_706 The Fins Beyond Time
 - [x] TIME_707 Alternate Reality
 - [x] TIME_710 Troubled Double
 - [x] TIME_711 Flashback
 - [x] TIME_712 Dethrone
-- [ ] TIME_713 Time Adm'ral Hooktail
-- [ ] TIME_714 Chrono-Lord Epoch
+- [x] TIME_713 Time Adm'ral Hooktail
+- [x] TIME_714 Chrono-Lord Epoch
 - [x] TIME_715 For Glory!
 - [x] TIME_716 Slow Motion
 - [x] TIME_720 Soldier of the Bronze
@@ -187,7 +187,7 @@
 - [x] TIME_858 Temporal Construct
 - [x] TIME_859 Anomalize
 - [x] TIME_860 Faceless Enigma
-- [ ] TIME_861 Timelooper Toki
+- [x] TIME_861 Timelooper Toki
 - [x] TIME_870 Gladiatorial Combat
 - [x] TIME_871 Heir of Hereafter
 - [x] TIME_872 Undefeated Champion
