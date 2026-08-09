@@ -2449,6 +2449,23 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_cata_w2::SOLDIER_OF_ONYXIA,
     super::exp_cata_w2::SOLDIER_OF_SINESTRA,
     super::exp_cata_w2::BREEZLING,
+    // M4-W3 — the Cataclysm Shatter wave (src/cards/exp_cata_w3.rs): the
+    // 6 Shatter cards played as their COMBINED full forms (the D2
+    // simplification — the dump has no half-card tokens; §25) + the 2
+    // board tokens they summon (Treant CATA_134t3, Sky Drake
+    // CATA_479t3). The dump's half-card "Shattered" tokens (CATA_134t,
+    // CATA_134t2, CATA_306t1, CATA_306t2, CATA_479t, CATA_479t2,
+    // CATA_489t, CATA_489t2, CATA_820t, CATA_820t2) are NOT implemented
+    // (§25).
+    super::exp_cata_w3::WILDWOOD_CIRCLE,
+    super::exp_cata_w3::STOLEN_POWER,
+    super::exp_cata_w3::SCHISM,
+    super::exp_cata_w3::FLIGHT_MANEUVERS,
+    super::exp_cata_w3::ARCANE_FLOW,
+    super::exp_cata_w3::SUPPLY_RUN,
+    // M4-W3 board tokens.
+    super::exp_cata_w3::TREANT,
+    super::exp_cata_w3::SKY_DRAKE,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated

@@ -31,6 +31,7 @@ pub mod core_w8;
 pub mod def;
 pub mod exp_cata_w1;
 pub mod exp_cata_w2;
+pub mod exp_cata_w3;
 pub mod exp_edr_w1;
 pub mod exp_edr_w2;
 pub mod exp_edr_w3;

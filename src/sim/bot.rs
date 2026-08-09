@@ -2055,6 +2055,23 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::TriggerFriendlyDeathrattles => 2.0,
         CardEffect::AddRandomMinionsCostEqualAttack { .. } => 4.0,
         CardEffect::GiveRandomFriendlyMinionAttack { attack } => attack as f64 * 0.8,
+        // 2025–2026 expansions M4-W3 (Shatter, the D2 combined forms — §25).
+        CardEffect::SummonMinionsAndGrantDeathrattleAll { count, .. } => 4.0 + count as f64 * 1.5,
+        CardEffect::GainStatsElusiveAndSummonCopy { attack, health } => {
+            (attack + health) as f64 * 0.8 + 3.0
+        }
+        CardEffect::SummonMinionsAndGrantFriendlyAttackDivineShield { count, attack, .. } => {
+            4.0 + count as f64 * 1.5 + attack as f64
+        }
+        CardEffect::DealDamageAndDamageAllEnemies { amount, aoe } => {
+            amount as f64 + aoe as f64 * 1.5
+        }
+        CardEffect::DrawMinionsAndBuffHandMinions {
+            count,
+            attack,
+            health,
+        } => count as f64 * 2.0 + (attack + health) as f64 * 1.5,
+        CardEffect::AddRandomShatterCardToHand => 3.0,
     }
 }
 

@@ -32116,3 +32116,329 @@ fn cata_w2_envoy_neutral_summons_nothing() {
         "only the Envoy itself — no neutral Soldier"
     );
 }
+
+// ============================================================
+// Wave 3 — Shatter (fidelity-debt §25, the D2 combined forms):
+// the 6 Shatter cards play as their combined full cards — no
+// draw-split, no half-card tokens, no recombination (the dump
+// has no half-card tokens; CATA_202's "(It's already combined)"
+// pins the combined form as the playable norm).
+// ============================================================
+
+/// CATAW3-1 — Wildwood Circle (CATA_134) summons its two 2/2 Treants and
+/// then attaches "Deathrattle: Summon a 2/2 Treant" to EVERY friendly
+/// minion (the freshly summoned Treants included — they are your minions
+/// when the buff resolves). When a Treant dies, the attached deathrattle
+/// summons a new Treant — which does NOT carry the deathrattle itself.
+#[test]
+fn cata_w3_wildwood_circle_combined() {
+    use orange_stone::cards::exp_cata_w3::WILDWOOD_CIRCLE;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &WILDWOOD_CIRCLE)
+        .add_minion_to_hand(p1, &CATAW1_DMG5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        board_count(&state, p1, "CATA_134t3"),
+        2,
+        "the two Treants from the combined cast"
+    );
+    for treant in board_minions(&state, p1) {
+        assert_eq!(
+            state.world().effective_attack(treant),
+            Some(Attack(2)),
+            "Treant is 2/2"
+        );
+        assert_eq!(
+            state.world().effective_health(treant),
+            Some(Health(2)),
+            "Treant is 2/2"
+        );
+        assert!(
+            state.world().deathrattle(treant).is_some(),
+            "the fresh Treants receive the deathrattle too"
+        );
+    }
+    // Kill one Treant — its deathrattle summons a replacement.
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .next()
+        .expect("DMG5 in hand");
+    let treant = board_minions(&state, p1)[0];
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: Some(treant),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_count(&state, p1, "CATA_134t3"),
+        2,
+        "the deathrattle summoned a replacement Treant"
+    );
+    assert_eq!(
+        board_minions(&state, p1)
+            .iter()
+            .filter(|t| state.world().deathrattle(**t).is_some())
+            .count(),
+        1,
+        "the replacement Treant does not inherit the deathrattle"
+    );
+}
+
+/// CATAW3-2 — Schism (CATA_306) resolves its three parts off ONE pick: the
+/// targeted friendly minion gains +2/+3 and Elusive, and a copy of its BASE
+/// card (without the buff or Elusive) is summoned.
+#[test]
+fn cata_w3_schism_combined() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_cata_w3::SCHISM;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.add_minion_to_board(p1, &BLOODFEN_RAPTOR);
+    builder.set_mana(p1, 10, 10).add_minion_to_hand(p1, &SCHISM);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let raptor = find_entity(&state, p1, "CLASSIC_001");
+    let schism = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .next()
+        .expect("Schism in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: schism,
+                target: Some(raptor),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(raptor),
+        Some(Attack(5)),
+        "the Raptor's +2/+3 buff: 3/2 -> 5/5"
+    );
+    assert_eq!(
+        state.world().effective_health(raptor),
+        Some(Health(5)),
+        "the Raptor's +2/+3 buff: 3/2 -> 5/5"
+    );
+    assert!(
+        state.world().elusive(raptor).is_some(),
+        "the targeted minion gains Elusive"
+    );
+    assert_eq!(board_minions(&state, p1).len(), 2, "the copy was summoned");
+    let copy = board_minions(&state, p1)
+        .iter()
+        .copied()
+        .find(|&m| m != raptor)
+        .expect("the copy entity");
+    assert_eq!(
+        state.world().effective_attack(copy),
+        Some(Attack(3)),
+        "the copy is the base card (3/2)"
+    );
+    assert_eq!(
+        state.world().effective_health(copy),
+        Some(Health(2)),
+        "the copy is the base card (3/2)"
+    );
+    assert!(
+        state.world().elusive(copy).is_none(),
+        "the copy does not carry the buff or Elusive"
+    );
+}
+
+/// CATAW3-3 — Flight Maneuvers (CATA_479) summons its two 4/2 Sky Drakes
+/// (Dragon) and then gives EVERY friendly minion (the fresh Drakes
+/// included) +1 Attack and Divine Shield.
+#[test]
+fn cata_w3_flight_maneuvers_combined() {
+    use orange_stone::cards::exp_cata_w3::FLIGHT_MANEUVERS;
+    use orange_stone::core::component::Race;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.add_custom_minion_to_board(p1, 2, 2, 2);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &FLIGHT_MANEUVERS);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        board_count(&state, p1, "CATA_479t3"),
+        2,
+        "the two Sky Drakes from the combined cast"
+    );
+    for minion in board_minions(&state, p1) {
+        assert!(
+            state.world().divine_shield(minion).is_some(),
+            "every friendly minion gains Divine Shield"
+        );
+    }
+    let filler = board_minions(&state, p1)[0];
+    assert_eq!(
+        state.world().effective_attack(filler),
+        Some(Attack(3)),
+        "the filler 2/2 -> 3/2 (+1 Attack)"
+    );
+    for drake in board_minions(&state, p1).iter().skip(1) {
+        assert_eq!(
+            state.world().effective_attack(*drake),
+            Some(Attack(5)),
+            "the Sky Drake 4/2 -> 5/2 (+1 Attack)"
+        );
+        assert_eq!(
+            state.world().effective_health(*drake),
+            Some(Health(2)),
+            "the Sky Drake stays 5/2"
+        );
+        assert!(
+            state.world().has_race(*drake, Race::Dragon),
+            "the Sky Drake is a Dragon"
+        );
+    }
+}
+
+/// CATAW3-4 — Arcane Flow (CATA_489): the primary "$4 damage" hits the
+/// chosen character (any character; here our own filler dies), and the
+/// "$2 damage" splash hits all enemies (the enemy hero and the enemy
+/// minion — friendly minions are spared). Both "$" amounts ride the spell
+/// damage pipeline: an Ogre Magi (+1) makes them 5 and 3.
+#[test]
+fn cata_w3_arcane_flow_combined() {
+    use orange_stone::cards::def::OGRE_MAGI;
+    use orange_stone::cards::exp_cata_w3::ARCANE_FLOW;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.add_minion_to_board(p1, &OGRE_MAGI);
+    let friendly = builder.add_custom_minion_to_board(p1, 2, 2, 2);
+    builder.add_custom_minion_to_board(p2, 2, 4, 4);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ARCANE_FLOW);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let flow = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .next()
+        .expect("Arcane Flow in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: flow,
+                target: Some(friendly),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_count(&state, p1, "NEUTRAL_013"),
+        1,
+        "the Ogre Magi survives"
+    );
+    assert_eq!(
+        board_minions(&state, p1).len(),
+        1,
+        "the friendly filler died to the primary 5 damage"
+    );
+    assert_eq!(
+        state.world().effective_health(state.player(p2).hero),
+        Some(Health(27)),
+        "the enemy hero took the spell-powered splash (2+1)"
+    );
+    assert_eq!(
+        state.world().effective_health(board_minions(&state, p2)[0]),
+        Some(Health(1)),
+        "the enemy minion took the splash (4/4 -> 4/1)"
+    );
+}
+
+/// CATAW3-5 — Supply Run (CATA_820): draws 3 random minions from the deck
+/// (a minion never drawn twice), then gives every minion in hand (the
+/// drawn ones AND any pre-existing ones) +2/+2.
+#[test]
+fn cata_w3_supply_run_combined() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_cata_w3::SUPPLY_RUN;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder); // 5 Raptors (3/2) per deck
+    builder.add_minion_to_hand(p1, &SUPPLY_RUN);
+    builder.add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    builder.set_mana(p1, 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, p1),
+        2,
+        "3 of the 5 deck minions were drawn"
+    );
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 4, "3 drawn + 1 pre-existing Raptor");
+    for minion in hand {
+        assert_eq!(
+            state.world().effective_attack(minion),
+            Some(Attack(5)),
+            "every hand minion gained +2/+2 (3/2 -> 5/4)"
+        );
+        assert_eq!(
+            state.world().effective_health(minion),
+            Some(Health(4)),
+            "every hand minion gained +2/+2 (3/2 -> 5/4)"
+        );
+    }
+}
+
+/// CATAW3-6 — Stolen Power (CATA_202): adds ONE random Shatter card to the
+/// hand — the combined playable form from the fixed 5-card SHATTER_POOL
+/// (the other Shatter cards, all non-Rogue; "(It's already combined)").
+#[test]
+fn cata_w3_stolen_power_pool() {
+    use orange_stone::cards::exp_cata_w3::STOLEN_POWER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &STOLEN_POWER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1, "exactly one card gained");
+    let got = state
+        .world()
+        .card_id(hand[0])
+        .expect("the gained card has a card id")
+        .0;
+    assert!(
+        matches!(
+            got,
+            "CATA_134" | "CATA_306" | "CATA_479" | "CATA_489" | "CATA_820"
+        ),
+        "the gained card is a Shatter card from the pool, got {got}"
+    );
+}
