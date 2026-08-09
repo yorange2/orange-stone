@@ -30,6 +30,7 @@ pub mod core_w7;
 pub mod core_w8;
 pub mod def;
 pub mod exp_cata_w1;
+pub mod exp_cata_w2;
 pub mod exp_edr_w1;
 pub mod exp_edr_w2;
 pub mod exp_edr_w3;
@@ -45,6 +46,7 @@ pub mod exp_tmw_w2a;
 pub mod exp_tmw_w2b;
 pub mod exp_tmw_w3;
 pub mod generated;
+pub mod herald;
 pub mod kindred;
 pub mod pool;
 pub mod quest;
@@ -181,6 +183,9 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "END_032" // Winged Aberration
         // M4-W1 — the Cataclysm Colossal wave
         | "CATA_153" // Al'Akir, Lord of Storms
+        // M4-W2 — the Cataclysm Herald wave
+        | "CATA_525" // Armored Bloodletter
+        | "CATA_561t" // Breezling (Ritual of Power token)
     ) {
         world.set_rush(entity, Rush);
     }
@@ -214,6 +219,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // Head — the other three heads ride the CardDef fields)
         | "CATA_432" // Chromatus
         | "CATA_432t2" // Red Head of Chromatus
+        // M4-W2 — the Cataclysm Herald wave
+        | "CATA_780" // Obsessive Technician
     ) {
         world.set_lifesteal(entity, Lifesteal);
     }
@@ -2134,6 +2141,14 @@ mod generated_tests {
         // compares it — the gate normally excludes spell_damage entirely.
         if id == "END_022" {
             return matches!(field, "spell_damage");
+        }
+        // M4-W2 — CATA_492 Shrine of Twilight: the same
+        // generator-predates-Location divergence as the EDR_454/TLC_449
+        // pair above (the generated baseline is a vanilla Minion; the
+        // handwritten card is the faithful Location 4-mana / 2-durability
+        // representation, activation in the battlecry slot).
+        if id == "CATA_492" {
+            return matches!(field, "card_type" | "health" | "durability");
         }
         false
     }

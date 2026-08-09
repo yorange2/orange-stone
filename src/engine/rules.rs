@@ -1658,6 +1658,14 @@ pub fn apply_event(
                             crate::engine::rewind::record_play(state, card, player, chosen_effect);
                         }
                         secret::Interception::None => {
+                            // M4-W2 Herald (2025–2026 expansions): a
+                            // Herald spell's keyword resolves BEFORE the
+                            // spell's own effect — the official text
+                            // order "Herald {0}. Deal $4 damage..." (CATA_
+                            // 156/530/561/785). A countered / spellbent
+                            // spell resolves nothing — the hook lives
+                            // only in the un-intercepted arm (§24).
+                            crate::cards::herald::resolve_herald(state, queue, card, player);
                             // Choose One always surfaces the branch choice in
                             // real Hearthstone, regardless of cards played
                             // earlier this turn (the old `!combo_active` guard
@@ -1801,6 +1809,10 @@ pub fn apply_event(
                     player,
                     weapon: card,
                 });
+                // M4-W2 Herald (2025–2026 expansions): the weapon's
+                // "Battlecry: Herald {0}." (CATA_580 Cataclysmic War Axe)
+                // resolves right after equipping, before any battlecry.
+                crate::cards::herald::resolve_herald(state, queue, card, player);
                 // Choose One weapons (Barbed Thorn, M1-W3): the branch choice
                 // surfaces as a pending choice after equipping — ChoiceResolved
                 // resolves the chosen branch (same pattern as spells/minions).
@@ -2220,6 +2232,17 @@ pub fn apply_event(
                 } else {
                     state.world().battlecry(minion).map(|b| b.0)
                 };
+                // M4-W2 Herald (2025–2026 expansions): a Herald minion's
+                // battlecry IS the Herald keyword ("Battlecry: Herald
+                // {0}." — CATA_160/525/565/722/725/780). The CardDefs
+                // carry no battlecry; the hook (keyed by the herald
+                // registry) increments the counter, summons the class
+                // Soldier and applies the source-keyed add-ons. Sitting
+                // in the battlecry conditions, an effect-summoned copy
+                // Heralds too — the official "Battlecry:" text (§24);
+                // Deios / BattlecryTwice do not double it (no battlecry
+                // component).
+                crate::cards::herald::resolve_herald(state, queue, minion, player);
                 if let Some(effect) = chosen_effect {
                     // Kindred battlecry modifiers (M2-W3): the modifier
                     // either replaces the battlecry (TLC_454/463/829 —
@@ -3078,6 +3101,14 @@ pub fn apply_event(
                 .move_to_zone(minion, Zone::Graveyard)
                 .map_err(|_| EngineError::EntityGone(minion))?;
 
+            // M4-W2 Herald (2025–2026 expansions): CATA_158 Maniacal
+            // Follower's "Deathrattle: Herald {0}." — the dead minion's
+            // card id stays readable in the graveyard; the hook is
+            // id-keyed (the CardDef carries no deathrattle for this
+            // card, §24).
+            if let Some(owner) = owner {
+                crate::cards::herald::resolve_herald(state, queue, minion, owner);
+            }
             // Deathrattle effect (the entity is in the graveyard, as in HS)
             if let (Some(dr), Some(owner)) = (state.world().deathrattle(minion), owner) {
                 trigger::resolve_effect(state, queue, minion, owner, dr.0, None, None);
@@ -3160,6 +3191,11 @@ pub fn apply_event(
             location,
             target,
         } => {
+            // M4-W2 Herald (2025–2026 expansions): CATA_492 Shrine of
+            // Twilight's "Herald {0}. Draw a card." — the Herald sits in
+            // the location's ACTIVATE text and resolves on activation,
+            // before the draw (§24).
+            crate::cards::herald::resolve_herald(state, queue, location, player);
             // Resolve the location's effect (stored in the battlecry slot,
             // the secret convention), consume one durability charge, and
             // mark it used this turn (attacks_used, reset at turn start).
@@ -4385,6 +4421,12 @@ fn wrap_up_turn(state: &mut GameState) {
         if p.hero_poisonous_this_turn {
             inner.world.remove_poison(p.hero);
             p.hero_poisonous_this_turn = false;
+        }
+        // CATA_530 Fel Infusion's "hero Lifesteal this turn" expires at the
+        // turn end (M4-W2 — the GrantPoisonousThisTurn convention)
+        if p.hero_lifesteal_this_turn {
+            inner.world.remove_lifesteal(p.hero);
+            p.hero_lifesteal_this_turn = false;
         }
     }
     // Return temporarily controlled minions (Shadow Madness — until end of turn)

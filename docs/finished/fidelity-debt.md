@@ -1815,3 +1815,88 @@ each death processed exactly once). Full `cargo test` fully green (all
 suites, incl. every `tlc_w*_*`/`tmw1_*`/`tmw2a_*`/`tmw2b_*`/`tmw3_*`
 scenario and the 9 `cata_w1_*` — 938 passed, 1 ignored), `cargo fmt` clean,
 `cargo clippy --all-targets` zero warnings.
+
+### 24. 2025–2026 expansions M4-W2 — the Cataclysm Herald wave (13 cards + 6 Soldier tokens + 1 Breezling) 🔓 registered
+
+The registered simplifications of the M4-W2 wave (`src/cards/exp_cata_w2.rs`
++ `src/cards/herald.rs`): the 13 Herald cards of the Cataclysm expansion
+(the official 15 minus W4's CATA_190h Deathwing and CATA_497 Ultraxion —
+W4's cards) and their 6 Colossal Soldier tokens plus the Ritual-of-Power
+Breezling token. As with §14–§23, these handwritten expansion cards are
+not in the RL pool (classic + core 668/659), so the rows are
+informational: they keep the code's simplifications traceable to the
+ledger. Each row stays open until its mechanism lands.
+
+The wave's headline mechanism is a NEW primitive: **Herald** — the
+per-player `Player.herald_count` (increments on every Herald resolution,
+never resets, W4's Deathwing reads it) plus the id-keyed `cards::herald`
+registry (`herald_patron` / `herald_soldier` / `HERALD_CARD_IDS`).
+Resolving a Herald keyword increments the counter and summons the class
+patron's Colossal Soldier; the {0} on the cards is the counter value, and
+the pinned "Herald twice to upgrade" tiers (2026-08-09, from the official
+card texts + the official Ragnaros example 2 → 4 → 8) scale the Soldier
+numbers by ×1 at counter 1, ×2 at counters 2–3, ×4 at counters 4+. The
+counter increments BEFORE the summon (the first Herald of the game reads
+"Herald 1"); each Herald resolution summons a NEW Soldier — the upgrade
+applies to the fresh Soldier's numbers AND to every friendly on-board
+Soldier's live numbers. There is NO `CardEffect::Herald` variant (Design
+B, the rewind/kindred precedent): the play paths call `resolve_herald` at
+the battlecry / spell / weapon / deathrattle / location-activation
+resolution points, keyed by the registry — a countered or spellbent spell
+resolves nothing (the hook lives only in the un-intercepted arm), and a
+minion Herald fires wherever its battlecry fires (an effect-summoned copy
+Heralds too — the official "Battlecry: Herald" text). The Soldiers'
+{0}-carrying components (the Al'Akir aura, the Ragnaros deathrattle, the
+Cho'gall end-of-turn trigger) are BAKED at summon and RE-BAKED on every
+later Herald — the aura system cannot read the per-player counter at
+query time (the numbers update live, resolved eagerly); a component
+stripped by Silence is not re-granted. The one-shot "when summoned"
+effects (Azshara / Onyxia / Sinestra) read the counter at resolution
+time. The keyword inside a battlecry is NOT doubled by Deios or the
+BattlecryTwice dark gift (the Herald CardDefs carry no battlecry
+component — the keyword resolves once). The W1 appendages' {0} values are
+NOT upgraded by the counter — the official "Herald upgrades your
+Colossal's appendages too" interaction stays out of scope (the §23 rows
+keep their fixed values, pinned by the `cata_w1_*` scenarios).
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| CATA_156 | Experimental Animation | Full: "Herald. Deal 4 damage to all enemy minions" — the Herald is the play-path hook, the damage an existing primitive | — |
+| CATA_158 | Maniacal Follower | Full: "Stealth. Deathrattle: Herald" — the deathrattle path calls the hook (the dead minion's card id stays readable in the graveyard); the CardDef carries no deathrattle | — |
+| CATA_160 | Scorching Ravager | Full: "Battlecry: Herald. Give the Soldier Rush" — the Rush is granted inside the hook, keyed by the source id, on the just-summoned Soldier | — |
+| CATA_492 | Shrine of Twilight | Full: the Location Herald — "Herald {0}. Draw a card" resolves on ACTIVATION (the Herald sits in the location's activate text, before the draw; the draw is the battlecry-slot effect) | — |
+| CATA_525 | Armored Bloodletter | Full: "Rush. Battlecry: Herald" (Rush via the apply_card_keywords hook) | — |
+| CATA_530 | Fel Infusion | Full: "Herald. Your hero has Lifesteal this turn" — the new `GrantHeroLifestealThisTurn` variant (hero Lifesteal component + per-player flag, the GrantPoisonousThisTurn convention, cleared at turn end) | — |
+| CATA_561 | Ritual of Power | Full: "Herald. Get two 1/1 Elementals with Rush" — the two CATA_561t Breezlings (the token carries no {0} — no Herald scaling) | — |
+| CATA_565 | Skywall Sentinel | Full: "Taunt. Battlecry: Herald" | — |
+| CATA_580 | Cataclysmic War Axe | Full: the weapon-path Herald ("Battlecry: Herald") resolves right after equipping | — |
+| CATA_722 | Envoy of the End | The NEUTRAL patron: the Herald increments the counter and summons NOTHING — the full dump has no neutral Soldier token | a neutral Soldier token |
+| CATA_725 | Shadowsworn Disciple | Full: "Battlecry: Herald. Deathrattle: Restore 3 Health to your hero" | — |
+| CATA_780 | Obsessive Technician | Full: "Lifesteal. Battlecry: Herald" (Lifesteal via the apply_card_keywords hook) | — |
+| CATA_785 | Rite of Twilight | Full: "Herald. Combo: Deal 3 damage" — the combo effect targets any character (the official "$3 damage" has no target filter, pinned from the dump); the Herald fires regardless of the combo status | — |
+| CATA_525t | Soldier of Azshara | "When summoned, give your hero +{0} Attack this turn" — the {0} is the pinned tier (base 2, the Azshara's-Tentacle §23 value) read at summon: +2/+4/+8 | — |
+| CATA_565t | Soldier of Al'Akir | "Adjacent minions have +{0} Attack" — the aura (base 1, the Charged-Hand §23 value) is baked at summon and RE-BAKED on every Herald: +1/+2/+4, live-updating | the official live update (the bake resolves the same numbers eagerly) |
+| CATA_580t | Soldier of Ragnaros | "Deathrattle: Deal {0} damage to a random enemy" — baked + re-baked (base 2): 2/4/8 | the official live update |
+| CATA_725t | Soldier of Cho'gall | "At the end of your turn, destroy the minion to the right to gain +{0}/+{0}" — baked + re-baked (base 2, the Cho's-Arm §23 value): +2/+2, +4/+4, +8/+8; the Cho'gall deck-destroy redirect rides ColossalArmDestroyRight | the official live update |
+| CATA_780t | Soldier of Onyxia | "When summoned, get a random {0}-Cost minion. It costs Health this turn" — the {0} is the tier read at summon (base 1-Cost): 1/2/4-Cost; the CostHealth marker rides the added card (the "this turn" scope is not cleared, the Onyxia's-Wing §23 convention) | the turn scope |
+| CATA_158t | Soldier of Sinestra | "When summoned, get a random spell from another class. It costs ({0}) less" — the {0}-less reduction is DROPPED (the Sinestra's-Wing §23 convention: the engine's other-class-spell effect has no discount parameter); the class filter is dropped (the engine has no per-card class concept, §23) | the reduction + the class filter |
+| CATA_561t | Breezling | Full: "Rush" — the Ritual-of-Power token, no {0} | — |
+
+F5 coverage: `cata_w2_*` (9 scenarios in `tests/differential.rs`) —
+`cata_w2_herald_summons_soldier` (a Herald play ticks the counter to 1
+and summons the class Soldier with base-tier numbers),
+`cata_w2_herald_counter_scales_soldier` (the second Herald summons a NEW
+Soldier and re-bakes the on-board Soldiers' auras to the ×2 tier),
+`cata_w2_herald_deathrattle` (CATA_158's deathrattle Herald),
+`cata_w2_herald_location` (CATA_492's activation Herald + draw),
+`cata_w2_ravager_gives_soldier_rush` (CATA_160's Rush add-on on the
+just-summoned Soldier), `cata_w2_soldier_azshara_hero_attack` (the
++2-this-turn hero Attack + the Fel Infusion hero-Lifesteal-this-turn
+scope), `cata_w2_soldier_ragnaros_deathrattle` (the base 2 random-enemy
+damage), `cata_w2_soldier_cho_gall_destroys_right` (the end-of-turn
+destroy-right +2/+2 gain), `cata_w2_envoy_neutral_summons_nothing` (the
+neutral patron ticks the counter without summoning). Full `cargo test`
+fully green (all suites, incl. every `tlc_w*_*`/`tmw1_*`/`tmw2a_*`/
+`tmw2b_*`/`tmw3_*`/`cata_w1_*` scenario and the 9 `cata_w2_*` — 954
+passed, 1 ignored), `cargo fmt` clean, `cargo clippy --all-targets` zero
+warnings.

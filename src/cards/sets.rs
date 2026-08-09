@@ -2422,6 +2422,33 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_cata_w1::MAGMAWS_BODY_6,
     super::exp_cata_w1::CHOS_ARM,
     super::exp_cata_w1::GALLS_ARM,
+    // M4-W2 — the Cataclysm Herald wave (src/cards/exp_cata_w2.rs): the
+    // 13 Herald cards (the official 15 minus W4's Deathwing CATA_190h
+    // and Ultraxion CATA_497 — §24) + the 6 Soldier tokens + the
+    // Ritual-of-Power Breezling token. The Herald keyword itself is the
+    // cards/herald.rs registry + the play-path hook (no CardEffect
+    // variant, §24).
+    super::exp_cata_w2::EXPERIMENTAL_ANIMATION,
+    super::exp_cata_w2::MANIACAL_FOLLOWER,
+    super::exp_cata_w2::SCORCHING_RAVAGER,
+    super::exp_cata_w2::SHRINE_OF_TWILIGHT,
+    super::exp_cata_w2::ARMORED_BLOODLETTER,
+    super::exp_cata_w2::FEL_INFUSION,
+    super::exp_cata_w2::RITUAL_OF_POWER,
+    super::exp_cata_w2::SKYWALL_SENTINEL,
+    super::exp_cata_w2::CATACLYSMIC_WAR_AXE,
+    super::exp_cata_w2::ENVOY_OF_THE_END,
+    super::exp_cata_w2::SHADOWSWORN_DISCIPLE,
+    super::exp_cata_w2::OBSESSIVE_TECHNICIAN,
+    super::exp_cata_w2::RITE_OF_TWILIGHT,
+    // M4-W2 Soldier tokens.
+    super::exp_cata_w2::SOLDIER_OF_AZSHARA,
+    super::exp_cata_w2::SOLDIER_OF_ALAKIR,
+    super::exp_cata_w2::SOLDIER_OF_RAGNAROS,
+    super::exp_cata_w2::SOLDIER_OF_CHOGALL,
+    super::exp_cata_w2::SOLDIER_OF_ONYXIA,
+    super::exp_cata_w2::SOLDIER_OF_SINESTRA,
+    super::exp_cata_w2::BREEZLING,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated

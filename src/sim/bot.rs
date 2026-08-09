@@ -1540,6 +1540,9 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
             (attack + health) as f64 * 0.8 + 2.0
         }
         CardEffect::GrantPoisonousThisTurn => 2.0,
+        // M4-W2 — CATA_530 Fel Infusion's "hero Lifesteal this turn" (a
+        // defensive bonus on the hero's next hits).
+        CardEffect::GrantHeroLifestealThisTurn => 2.0,
         CardEffect::GrantWeaponDeathrattleAllEnemies { damage } => damage as f64 * 1.2,
         CardEffect::DrawCardByType { count, .. } => count as f64 * 3.0,
         CardEffect::SpendCorpsesDamageMinion { damage, .. } => damage as f64 * 1.2,

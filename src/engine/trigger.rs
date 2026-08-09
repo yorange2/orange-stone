@@ -3392,6 +3392,18 @@ pub fn resolve_effect(
                 .set_poison(inner.players[owner.index()].hero, Poison);
             inner.players[owner.index()].hero_poisonous_this_turn = true;
         }
+        CardEffect::GrantHeroLifestealThisTurn => {
+            // CATA_530 Fel Infusion (M4-W2) — the hero has Lifesteal until
+            // the end of this turn (the damage pipeline's
+            // resolve_lifesteal_heal checks the attacker's Lifesteal
+            // component — the hero entity carries it); the per-player flag
+            // expires in the turn-end wrap-up.
+            let inner = state.make_mut();
+            inner
+                .world
+                .set_lifesteal(inner.players[owner.index()].hero, Lifesteal);
+            inner.players[owner.index()].hero_lifesteal_this_turn = true;
+        }
         CardEffect::GrantWeaponDeathrattleAllEnemies { damage } => {
             // Barbed Thorn choose branch 2 (M1-W3) — the equipped weapon
             // gains the deathrattle; it fires on break or replace
