@@ -249,6 +249,7 @@ fn two_bots_battle() {
                 Action::ActivateLocation { .. } => "激活地点".to_string(),
                 Action::Choose { .. } => "抉择".to_string(),
                 Action::TradeCard { .. } => "交易".to_string(),
+                Action::Prepare { .. } => "准备".to_string(),
             };
             println!("  [{}/{}] {}", i + 1, actions.len(), action_desc);
 
@@ -312,6 +313,9 @@ fn two_bots_battle() {
                             }
                             orange_stone::core::event::Event::TradeCardExecuted { .. } => {
                                 "  ↪ 交易".to_string()
+                            }
+                            orange_stone::core::event::Event::PrepareCardExecuted { .. } => {
+                                "  ↪ 准备".to_string()
                             }
                             orange_stone::core::event::Event::GameOver { winner } => {
                                 format!("  ↪ 🏆 游戏结束! 胜者: {}", player_name(*winner))
@@ -506,6 +510,7 @@ fn two_smart_bots_battle() {
                 Action::ActivateLocation { .. } => "激活地点".to_string(),
                 Action::Choose { .. } => "抉择".to_string(),
                 Action::TradeCard { .. } => "交易".to_string(),
+                Action::Prepare { .. } => "准备".to_string(),
             };
             println!("  [{}/{}] {}", i + 1, actions.len(), action_desc);
 
@@ -569,6 +574,9 @@ fn two_smart_bots_battle() {
                             }
                             orange_stone::core::event::Event::TradeCardExecuted { .. } => {
                                 "  ↪ 交易".to_string()
+                            }
+                            orange_stone::core::event::Event::PrepareCardExecuted { .. } => {
+                                "  ↪ 准备".to_string()
                             }
                             orange_stone::core::event::Event::GameOver { winner } => {
                                 format!("  ↪ 🏆 游戏结束! 胜者: {}", player_name(*winner))
