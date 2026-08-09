@@ -40,7 +40,7 @@ Theme: an alternate timeline where Deathwing won. Verified mechanics
 One PR per wave; every card lands with an F5 differential scenario; `sets.rs`
 registration; simplifications get ledger rows.
 
-- **W0 — wiring + data:** M0 data for this set; inventory backfilled; fidelity
+- [x] **W0 — wiring + data** (PR #155): M0 data for this set landed (M0.1–M0.5, incl. the MEND_ Class Sets merged at M0.3, deferred as a follow-on wave); inventory backfilled; the per-set dump fidelity test (`cataclysm_dump_fidelity`, CATA_ + MEND_ prefixes, 164 cards) landed with the generated baseline; fidelity
   tests.
 - **W1 — Colossal (C1):** body-part component + summon path; F5 scenarios pin
   part positioning, part-death rules and main-death cascades.
