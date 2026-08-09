@@ -8157,6 +8157,10 @@ pub fn resolve_effect(
                 // Stealth (fidelity-debt §17).
                 KeywordKind::Stealth => world.set_stealth(picked, Stealth),
                 KeywordKind::Windfury => world.set_windfury(picked, Windfury),
+                // M3-W2b — TIME_619 Talanji of the Graves' boons for
+                // Bwonsamdi (Lifesteal / Rush).
+                KeywordKind::Lifesteal => world.set_lifesteal(picked, Lifesteal),
+                KeywordKind::Rush => world.set_rush(picked, Rush),
             }
         }
         CardEffect::GrantDeathrattleSummon {
@@ -10424,6 +10428,590 @@ pub fn resolve_effect(
             // the died minion at FULL Health (unlike the older
             // ResurrectDiedMinion shape, which brings it back with 1
             // Health). This arm only keeps the dispatch exhaustive.
+        }
+        // ===== M3-W2b — Across the Timeways legendary wave
+        // (src/cards/exp_tmw_w2b.rs); the fidelity rows are fidelity-debt.md
+        // §21 (+zh).
+        CardEffect::SummonRandomMinionFromDeck => {
+            // TIME_009 Gelbin of Tomorrow — "Put one of each Aura from your
+            // deck into the battlefield" approximated as ONE random deck
+            // minion (§21): the TIME_870 precedent — battlecry-free summon
+            // (the summon funnel would resolve the battlecry, so it is
+            // removed like Gladiatorial Combat does), the deck entity is
+            // consumed.
+            let deck: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if !deck.is_empty() {
+                let picked = deck[state.rng_mut().next_usize(deck.len())];
+                if let Some(def) = state
+                    .world()
+                    .card_id(picked)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                {
+                    if let Some(e) = resolve_summon(state, queue, source, owner, def.id) {
+                        state.world_mut().remove_battlecry(e);
+                    }
+                }
+                let _ = state.world_mut().move_to_zone(picked, Zone::Graveyard);
+            }
+        }
+        CardEffect::SylvanasDealToAllEnemiesRepeated { damage } => {
+            // TIME_609 Ranger General Sylvanas — "Deal 2 damage to all
+            // enemies. If you've played Alleria or Vereesa, repeat for
+            // each." The repeat count reads the all-time played-minion log
+            // for the two sisters (TIME_609t1 Ranger Captain Alleria,
+            // TIME_609t2 Ranger Initiate Vereesa). §21 — the log counts
+            // effect-summoned copies too (the log is the best available
+            // approximation of "you've played").
+            let repeats = state
+                .player(owner)
+                .played_minion_ids
+                .iter()
+                .filter(|id| id.as_str() == "TIME_609t1" || id.as_str() == "TIME_609t2")
+                .count();
+            for _ in 0..=repeats {
+                resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    damage,
+                    EffectTarget::AllEnemies,
+                    None,
+                );
+            }
+        }
+        CardEffect::ChronogorDrawsHighestLowest => {
+            // TIME_032 Chronogor — "You draw your 2 highest Cost cards. Your
+            // opponent draws your 2 lowest Cost cards": BOTH draws come from
+            // the OWNER's deck (the scan-draw convention, no fatigue — the
+            // resolve_draw_by_race precedent: a scan draws what exists).
+            let deck: Vec<Entity> = state.world().zones().entities(Zone::Deck, owner);
+            let mut ranked: Vec<(Entity, i32)> = deck
+                .iter()
+                .copied()
+                .filter_map(|e| state.world().cost(e).map(|c| (e, c.0)))
+                .collect();
+            // Highest first, stable within ties (the deck's deterministic
+            // order breaks them).
+            ranked.sort_by_key(|(_, cost)| std::cmp::Reverse(*cost));
+            let highest: Vec<Entity> = ranked.iter().take(2).map(|(e, _)| *e).collect();
+            for card in &highest {
+                if state.world_mut().move_to_zone(*card, Zone::Hand).is_ok() {
+                    queue.push(Event::CardDrawn {
+                        player: owner,
+                        card: *card,
+                    });
+                }
+            }
+            // The two lowest of the REMAINING deck (the highest already left).
+            let rest: Vec<Entity> = state.world().zones().entities(Zone::Deck, owner);
+            let mut rest_ranked: Vec<(Entity, i32)> = rest
+                .iter()
+                .copied()
+                .filter_map(|e| state.world().cost(e).map(|c| (e, c.0)))
+                .collect();
+            rest_ranked.sort_by_key(|(_, cost)| *cost);
+            let enemy = owner.opponent();
+            for (card, _) in rest_ranked.iter().take(2) {
+                // The zone lists are keyed by player: pull the card out of
+                // the OWNER's deck list, insert it into the OPPONENT's hand
+                // list and re-own it (the transfer_minion pattern).
+                state
+                    .world_mut()
+                    .zones_mut()
+                    .remove(Zone::Deck, owner, *card);
+                state
+                    .world_mut()
+                    .zones_mut()
+                    .insert(Zone::Hand, enemy, *card);
+                state.world_mut().set_zone(*card, Zone::Hand);
+                state.world_mut().set_player(*card, enemy);
+                queue.push(Event::CardDrawn {
+                    player: enemy,
+                    card: *card,
+                });
+            }
+        }
+        CardEffect::DiscardHandAndAddInfiniteBanana => {
+            // TIME_042 King Maluk — discard the owner's hand, then get an
+            // Infinite Banana (TIME_042t). The "Infinite" keyword (the card
+            // stays in hand when played) is not implemented — the Banana is
+            // a plain 1-Cost spell (§21).
+            resolve_discard_hand(state, owner);
+            if let Some(def) = crate::cards::def::card_by_id("TIME_042t") {
+                let _ = add_card_to_hand(state, owner, def);
+            }
+        }
+        CardEffect::MurozondPrepareInfiniteAttack => {
+            // TIME_024 Murozond, Unbounded — arm the owner's player record;
+            // the start of the owner's NEXT turn sets the Attack to the
+            // INFINITY cap (rules.rs TurnStarted hook consumes the flag).
+            state.make_mut().players[owner.index()].murozond_infinite_pending = Some(source);
+        }
+        CardEffect::AddCopiesOfLastPlayedCards { count } => {
+            // TIME_103 Chromie's deathrattle — "Draw another copy of cards
+            // you've played this game": one copy of each of the last `count`
+            // DISTINCT played cards (the rewind history is capped at
+            // MAX_REWIND_HISTORY, so the unbounded official effect is
+            // approximated by the last `count` — §21).
+            let mut copied: Vec<String> = Vec::new();
+            for entry in state.player(owner).last_played.iter().rev() {
+                if !copied.contains(&entry.card_id) {
+                    copied.push(entry.card_id.clone());
+                    if copied.len() >= count.max(0) as usize {
+                        break;
+                    }
+                }
+            }
+            for id in copied {
+                if let Some(def) = crate::cards::def::card_by_id(&id) {
+                    let _ = add_card_to_hand(state, owner, def);
+                }
+            }
+        }
+        CardEffect::SummonLocationForPlayer { card_id } => {
+            // TIME_211 Lady Azshara's choose-one branches — summon a
+            // Location into the owner's location slot (the play path's
+            // location rules: the old location is replaced, the new one
+            // enters play with full durability and starts the play
+            // cooldown).
+            let old = state.player(owner).location;
+            if let Some(old_loc) = old {
+                let inner = state.make_mut();
+                inner.players[owner.index()].location = None;
+                let _ = state.world_mut().move_to_zone(old_loc, Zone::Graveyard);
+            }
+            if let Some(def) = crate::cards::def::card_by_id(card_id) {
+                let location = crate::cards::spawn_card_from_def(state.world_mut(), owner, def);
+                state.world_mut().set_zone(location, Zone::Play);
+                state
+                    .world_mut()
+                    .zones_mut()
+                    .insert(Zone::Play, owner, location);
+                let turn = state.turn();
+                let inner = state.make_mut();
+                inner.players[owner.index()].location = Some(location);
+                inner.players[owner.index()].location_played_turn = turn;
+            }
+        }
+        CardEffect::SummonCopyOfFriendlyMinion => {
+            // TIME_211t2 Zin-Azshari's activation — summon a copy of a
+            // random friendly minion (D2 pick; an empty board fizzles).
+            let friendly: SmallList<Entity> = collect_friendly_minions(state, owner);
+            let Some(picked) = select_target(None, &friendly, state.rng_mut()) else {
+                return;
+            };
+            let Some(card_id) = state.world().card_id(picked) else {
+                return;
+            };
+            let _ = resolve_summon(state, queue, source, owner, card_id.0);
+        }
+        CardEffect::FillHandWithRandomTemporarySpells => {
+            // TIME_211t1 The Well of Eternity's activation — fill the
+            // owner's hand with random Temporary spells (the in-window
+            // RandomPool::Spell convention; hand cap 10; the Temporary
+            // marker is applied to each generated card).
+            loop {
+                if state.world().zones().len(Zone::Hand, owner) >= MAX_HAND_SIZE {
+                    break;
+                }
+                let Some(def) = crate::cards::pool::random_card(state.rng_mut(), RandomPool::Spell)
+                else {
+                    break;
+                };
+                if let Some(e) = add_card_to_hand(state, owner, def) {
+                    state.world_mut().set_temporary(e, Temporary);
+                }
+            }
+        }
+        CardEffect::TakeControlEnemyMinionHealthLE => {
+            // TIME_435 Eternus — take control of an enemy minion whose
+            // Health is at most THIS minion's Health (the threshold is the
+            // source's current effective health; the Mind Control precedent
+            // — permanent control).
+            let threshold = state
+                .world()
+                .effective_health(source)
+                .unwrap_or(crate::core::component::Health(0))
+                .0;
+            let minions: SmallList<Entity> = collect_enemy_minions(state, owner, Some(source))
+                .into_iter()
+                .filter(|&e| {
+                    state
+                        .world()
+                        .effective_health(e)
+                        .is_some_and(|h| h.0 <= threshold)
+                })
+                .collect();
+            let Some(target) = select_target(None, &minions, state.rng_mut()) else {
+                return;
+            };
+            transfer_minion(state, target, owner);
+        }
+        CardEffect::DiscoverDemonGE5AndSetNextDemonCostOne => {
+            // TIME_446 The Eternal Hold (a Location) — activate: "Discover
+            // any Demon that costs (5) or more. If your deck has no
+            // minions, your next one costs (1)." The discover surfaces the
+            // real three-option choice (the DemonCostGE5 pool — full
+            // catalog, no window); the deck-no-minions check sets the
+            // one-time flag consumed by the next Demon play.
+            if state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .all(|e| state.world().card_type(e) != Some(CardType::Minion))
+            {
+                state.make_mut().players[owner.index()].next_demon_cost_one = true;
+            }
+            let cards = crate::cards::pool::discover_pool_cards(
+                crate::core::effect::DiscoverPool::DemonCostGE5,
+                state,
+                owner,
+            );
+            if cards.is_empty() {
+                return;
+            }
+            let options: Vec<String> = cards
+                .iter()
+                .map(|c| format!("{} ({})", c.name, c.id))
+                .collect();
+            let pool_ids: Vec<String> = cards.iter().map(|c| c.id.to_string()).collect();
+            state.set_pending_choice_w4a(
+                crate::core::state::ChoiceKind::Discover,
+                source,
+                options,
+                pool_ids,
+                false,
+                1,
+                false,
+                Vec::new(),
+            );
+        }
+        CardEffect::SpendCorpsesRestoreHeroHealth { max } => {
+            // TIME_618 Husk, Eternal Reaper — "Give your hero 'Deathrattle:
+            // Spend up to 20 Corpses to resurrect with that much Health'"
+            // approximated as an immediate battlecry spend: spend up to 20
+            // Corpses to restore that much Health to the hero (§21 — the
+            // hero deathrattle does not exist in the engine).
+            let have = state.player(owner).corpses;
+            let spend = have.min(max.max(0) as u32);
+            if spend == 0 {
+                return;
+            }
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].corpses -= spend;
+            }
+            resolve_restore_health(
+                state,
+                queue,
+                owner,
+                spend as i32,
+                EffectTarget::FriendlyHero,
+                None,
+            );
+        }
+        CardEffect::DrawOrResurrectBwonsamdiAndGrantBoon { keyword } => {
+            // TIME_619 Talanji of the Graves — "Draw Bwonsamdi (or
+            // resurrect him if he has died). Choose a Boon to give him."
+            // The draw-or-resurrect runs FIRST inside every branch effect,
+            // so it happens exactly once regardless of the chosen option;
+            // the boon keyword lands on Bwonsamdi wherever he is (hand or
+            // board). The deathrattle-minion-cost rider of the official
+            // boons ("Minions summoned by his Deathrattle cost (2) more")
+            // is simplified away (§21).
+            let hero = state.player(owner).hero;
+            let mut bwonsamdi: Option<Entity> = None;
+            // 1. Draw from the deck (scan, the resolve_draw_by_race
+            //    convention — no fatigue on a scan).
+            let deck: Vec<Entity> = state.world().zones().entities(Zone::Deck, owner);
+            if let Some(found) = deck
+                .iter()
+                .copied()
+                .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_619t"))
+            {
+                if state.world_mut().move_to_zone(found, Zone::Hand).is_ok() {
+                    queue.push(Event::CardDrawn {
+                        player: owner,
+                        card: found,
+                    });
+                    bwonsamdi = Some(found);
+                }
+            }
+            // 2. Else resurrect from the graveyard (a fresh summon).
+            if bwonsamdi.is_none()
+                && state
+                    .world()
+                    .zones()
+                    .iter(Zone::Graveyard, owner)
+                    .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_619t"))
+            {
+                bwonsamdi = resolve_summon(state, queue, hero, owner, "TIME_619t");
+            }
+            // 3. Grant the boon keyword wherever Bwonsamdi is.
+            if let Some(b) = bwonsamdi {
+                let world = state.world_mut();
+                match keyword {
+                    crate::core::effect::KeywordKind::Taunt => world.set_taunt(b, Taunt),
+                    crate::core::effect::KeywordKind::Lifesteal => {
+                        world.set_lifesteal(b, Lifesteal)
+                    }
+                    crate::core::effect::KeywordKind::Rush => world.set_rush(b, Rush),
+                    _ => {}
+                }
+            }
+        }
+        CardEffect::SummonRandomCostMinion { cost } => {
+            // TIME_619t Bwonsamdi's deathrattle — summon a random N-Cost
+            // minion (the Ritual of Life filter: active-window minions,
+            // tokens excluded).
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.cost == cost
+                            && !c.id.ends_with('t')
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() {
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+        }
+        CardEffect::SetDeckBottomCostsOne { count } => {
+            // TIME_705 Krona, Keeper of Eons — "Set the Costs of the bottom
+            // 5 cards of your deck to (1)": the deck's zone index 0 is the
+            // top, so the bottom cards are the LAST entries; the set is a
+            // Set-to-1 cost modifier on each.
+            let deck: Vec<Entity> = state.world().zones().entities(Zone::Deck, owner);
+            let start = deck.len().saturating_sub(count.max(0) as usize);
+            for &e in deck.iter().skip(start) {
+                state.world_mut().add_cost_modifier(
+                    e,
+                    crate::core::component::CostModifier {
+                        kind: crate::core::component::CostModifierKind::Set(1),
+                    },
+                );
+            }
+        }
+        CardEffect::ReplaceHandAndSwapBackAtTurnEnd => {
+            // TIME_706 The Fins Beyond Time — "Replace your hand with your
+            // starting hand. Swap back at the end of your turn." §21: the
+            // starting hand is approximated by fresh draws — the current
+            // hand is shuffled into the deck BOTTOM, the same number of
+            // cards are drawn, and the snapshot is restored by the
+            // end-of-turn `RestoreHandSnapshot`.
+            let hand: Vec<Entity> = state.world().zones().entities(Zone::Hand, owner);
+            if hand.is_empty() {
+                return;
+            }
+            let snapshot: Vec<String> = hand
+                .iter()
+                .filter_map(|e| state.world().card_id(*e).map(|c| c.0.to_string()))
+                .collect();
+            for card in &hand {
+                let _ = state.world_mut().move_to_zone(*card, Zone::Deck);
+            }
+            {
+                let inner = state.make_mut();
+                inner.players[owner.index()].hand_swap_snapshot = Some(snapshot);
+            }
+            for _ in 0..hand.len() {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::RestoreHandSnapshot => {
+            // TIME_706 The Fins Beyond Time's end-of-turn restore — swap
+            // the hand back to the snapshot taken at play (a no-op when no
+            // snapshot exists — e.g. a silenced battlecry never armed one).
+            let Some(snapshot) = state.player(owner).hand_swap_snapshot.clone() else {
+                return;
+            };
+            state.make_mut().players[owner.index()].hand_swap_snapshot = None;
+            let hand: Vec<Entity> = state.world().zones().entities(Zone::Hand, owner);
+            for card in hand {
+                let _ = state.world_mut().move_to_zone(card, Zone::Graveyard);
+            }
+            for id in snapshot {
+                if let Some(def) = crate::cards::def::card_by_id(&id) {
+                    if add_card_to_hand(state, owner, def).is_none() {
+                        break; // the hand hit the 10-card cap
+                    }
+                }
+            }
+        }
+        CardEffect::SummonChestForOpponent => {
+            // TIME_713 Time Adm'ral Hooktail — "Summon a 0/8 Chest for your
+            // opponent. It's FULL of Coins!"
+            let _ = resolve_summon(state, queue, source, owner.opponent(), "TIME_713t");
+        }
+        CardEffect::FillOpponentHandWithCoins => {
+            // TIME_713t Timeless Chest's deathrattle — fill the opponent's
+            // hand with Coins (THE_COIN GAME_005, hand cap 10).
+            let enemy = owner.opponent();
+            if let Some(coin) = crate::cards::def::card_by_id("GAME_005") {
+                while state.world().zones().len(Zone::Hand, enemy) < MAX_HAND_SIZE {
+                    if add_card_to_hand(state, enemy, coin).is_none() {
+                        break;
+                    }
+                }
+            }
+        }
+        CardEffect::DestroyAllMinionsOpponentPlayedLastTurn => {
+            // TIME_714 Chrono-Lord Epoch — "Destroy all minions that your
+            // opponent played last turn": the opponent's per-turn snapshot
+            // (last_turn_minion_play_ids, maintained by the CardPlayed and
+            // TurnEnded hooks) matched against the CURRENT enemy board; the
+            // death path is the normal MinionDied queue (deathrattles fire).
+            let enemy = owner.opponent();
+            let last_turn: Vec<String> = state.player(enemy).last_turn_minion_play_ids.clone();
+            let targets: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, enemy)
+                .filter(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .is_some_and(|c| last_turn.contains(&c.0.to_string()))
+                })
+                .collect();
+            for target in targets {
+                let hp = state.world().effective_health(target).unwrap_or(Health(1));
+                queue.push(Event::DamageDealt {
+                    source: target,
+                    target,
+                    amount: hp.0.max(1),
+                });
+            }
+        }
+        CardEffect::SummonBloodFighterFromHandBuffAndAttack => {
+            // TIME_850 Lo'Gosh, Blood Fighter's deathrattle — "Summon a
+            // Blood Fighter from your hand. It gains +5/+5 and attacks a
+            // random enemy." The Blood Fighter is the other Fabled form in
+            // the hand (TIME_850t Broll, TIME_850t1 Valeera — either one).
+            let hand: Vec<Entity> = state.world().zones().entities(Zone::Hand, owner);
+            let Some(found) = hand.iter().copied().find(|&e| {
+                state
+                    .world()
+                    .card_id(e)
+                    .is_some_and(|c| c.0 == "TIME_850t" || c.0 == "TIME_850t1")
+            }) else {
+                return;
+            };
+            let Some(card_id) = state.world().card_id(found) else {
+                return;
+            };
+            let _ = state.world_mut().move_to_zone(found, Zone::Graveyard);
+            if let Some(e) = resolve_summon(state, queue, source, owner, card_id.0) {
+                state.world_mut().add_enchantment(
+                    e,
+                    crate::core::component::Enchantment {
+                        attack: 5,
+                        health: 5,
+                        cost: 0,
+                        expiry: crate::core::component::EnchantmentExpiry::Permanent,
+                    },
+                );
+                let enemies = collect_all_enemy_characters(state, owner);
+                if let Some(target) = select_target(None, &enemies, state.rng_mut()) {
+                    let atk = crate::engine::rules::compute_attacker_damage(state, e);
+                    queue.push(Event::AttackDeclared {
+                        attacker: e,
+                        defender: target,
+                    });
+                    queue.push(Event::ResolveAttack {
+                        attacker: e,
+                        defender: target,
+                        attacker_damage: atk,
+                        retaliation_immune: false,
+                    });
+                }
+            }
+        }
+        CardEffect::GetThreeRandomSpellsFromPastTracked => {
+            // TIME_861 Timelooper Toki — "Get 3 random spells from the
+            // past. When you play ALL 3, get another Timelooper Toki." The
+            // generated spell ids are tracked per player; the CardPlayed
+            // hook removes a played id and adds TIME_861 when the list
+            // empties. §21 — "from the past" is the active spell window
+            // (the SpellCostGE8 precedent family).
+            let mut gained: Vec<String> = Vec::new();
+            for _ in 0..3 {
+                let Some(def) = crate::cards::pool::random_card(state.rng_mut(), RandomPool::Spell)
+                else {
+                    continue;
+                };
+                if let Some(e) = add_card_to_hand(state, owner, def) {
+                    if let Some(cid) = state.world().card_id(e) {
+                        gained.push(cid.0.to_string());
+                    }
+                }
+            }
+            if !gained.is_empty() {
+                let inner = state.make_mut();
+                inner.players[owner.index()]
+                    .toki_pending_spells
+                    .extend(gained);
+            }
+        }
+        CardEffect::DestroyHeldKingLlaneAndHalveEnemyHealth => {
+            // TIME_875 Garona Halforcen — "If your opponent is holding King
+            // Llane, destroy him and cut their Health in half." (pool-open:
+            // reads the opponent's hand — POOL_OPEN_CARDS.) The halving
+            // keeps the hero's current damage and rounds the max up (§21).
+            let enemy = owner.opponent();
+            let held: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, enemy)
+                .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_875t"))
+                .collect();
+            if held.is_empty() {
+                return;
+            }
+            for king_llane in held {
+                let _ = state.world_mut().move_to_zone(king_llane, Zone::Graveyard);
+            }
+            let hero = state.player(enemy).hero;
+            let max = state
+                .world()
+                .health(hero)
+                .unwrap_or(crate::core::component::Health(30))
+                .0;
+            let dmg = state.world().damage(hero).map(|d| d.0).unwrap_or(0);
+            let new_max = (max + 1) / 2;
+            let world = state.world_mut();
+            world.set_health(hero, crate::core::component::Health(new_max));
+            world.set_damage(hero, crate::core::component::Damage(dmg.min(new_max)));
+        }
+        CardEffect::SilenceAndDestroyAllOtherMinions => {
+            // TIME_890 Medivh the Hallowed — "Silence and destroy all other
+            // minions": every minion on BOTH boards except Medivh himself is
+            // silenced (removing deathrattles) and then destroyed through
+            // the normal death path.
+            let others: SmallList<Entity> = [owner, owner.opponent()]
+                .iter()
+                .flat_map(|&p| state.world().zones().iter(Zone::Play, p))
+                .filter(|&e| e != source && state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            for target in &others {
+                silence_entity(state.world_mut(), *target);
+            }
+            for target in others {
+                let hp = state.world().effective_health(target).unwrap_or(Health(1));
+                queue.push(Event::DamageDealt {
+                    source: target,
+                    target,
+                    amount: hp.0.max(1),
+                });
+            }
         }
     }
 }

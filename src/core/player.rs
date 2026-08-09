@@ -401,6 +401,42 @@ pub struct Player {
     /// records nothing) is inert — the equality check cannot match a
     /// future summon, and the next play overwrites it.
     pub rewind_played_minion: Option<crate::core::entity::Entity>,
+    /// Murozond, Unbounded's INFINITY arming (2025–2026 expansions M3-W2b —
+    /// TIME_024): the battlecry records the minion here; the start of the
+    /// owner's NEXT turn sets its Attack to the INFINITY cap (the
+    /// documented `exp_tmw_w2b::INFINITY_ATTACK_CAP`) and clears the flag.
+    /// None between plays; a stale marker is inert — the next arming
+    /// overwrites it and the turn-start hook checks the minion is still on
+    /// the board.
+    pub murozond_infinite_pending: Option<crate::core::entity::Entity>,
+    /// Timelooper Toki's pending spells (2025–2026 expansions M3-W2b —
+    /// TIME_861 "Get 3 random spells from the past. When all 3 are played,
+    /// add another Timelooper Toki to your hand"): the ids of the 3 spells
+    /// the battlecry generated; the CardPlayed path removes a played id,
+    /// and when the list empties adds TIME_861 to the hand. §21 — the
+    /// official "from the past" pool is approximated by the whole active
+    /// spell window (the SpellCostGE8 precedent).
+    pub toki_pending_spells: Vec<String>,
+    /// The Fins Beyond Time's hand snapshot (2025–2026 expansions M3-W2b —
+    /// TIME_706): the battlecry stores the hand's card ids here, shuffles
+    /// them into the deck and draws replacements; the end-of-turn restore
+    /// returns the snapshot (or is a no-op when None — a silenced/removed
+    /// battlecry never snapshots).
+    pub hand_swap_snapshot: Option<Vec<String>>,
+    /// The minion card ids the OPPONENT played last turn (2025–2026
+    /// expansions M3-W2b — Chrono-Lord Epoch TIME_714 "Destroy all minions
+    /// your opponent played last turn"): snapshotted from
+    /// `minions_played_this_turn_ids` at the opponent's turn end.
+    pub last_turn_minion_play_ids: Vec<String>,
+    /// The minion card ids THIS player played this turn (2025–2026
+    /// expansions M3-W2b — the per-turn counterpart of `played_minion_ids`:
+    /// pushed at CardPlayed, cleared at the owner's turn start, snapshotted
+    /// into `last_turn_minion_play_ids` at the owner's turn end).
+    pub minions_played_this_turn_ids: Vec<String>,
+    /// The next Demon the player plays costs (1) (2025–2026 expansions
+    /// M3-W2b — TIME_446 The Eternal Hold's deck-no-minions fallback;
+    /// one-time, consumed by the next Demon play in the CardPlayed path).
+    pub next_demon_cost_one: bool,
 }
 
 impl Player {
@@ -494,6 +530,12 @@ impl Player {
             elise_location_crafted: false,
             last_played: Vec::new(),
             rewind_played_minion: None,
+            murozond_infinite_pending: None,
+            toki_pending_spells: Vec::new(),
+            hand_swap_snapshot: None,
+            last_turn_minion_play_ids: Vec::new(),
+            minions_played_this_turn_ids: Vec::new(),
+            next_demon_cost_one: false,
         }
     }
 }

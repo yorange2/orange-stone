@@ -464,6 +464,23 @@ fn validate_hero_power(state: &GameState, hero: Entity) -> Result<(), EngineErro
     Ok(())
 }
 
+/// M3-W2b — TIME_064 Deios, the Unstoppable Force: "Your Battlecries
+/// trigger twice" as an `AuraEffect::DoubleTriggers` aura carried in the
+/// minion's Aura component (silenceable — `silence_entity` drops the aura
+/// with the rest). Returns whether the player controls an active Deios;
+/// the call sites re-resolve the pre-captured effect exactly once
+/// (fidelity-debt §21: one re-resolve, never four under a stacked
+/// BattlecryTwice dark gift).
+pub(crate) fn deios_doubling(state: &GameState, player: PlayerId) -> bool {
+    state.world().zones().iter(Zone::Play, player).any(|e| {
+        state.world().card_id(e).is_some_and(|c| c.0 == "TIME_064")
+            && state
+                .world()
+                .aura(e)
+                .is_some_and(|a| a.effect == crate::core::component::AuraEffect::DoubleTriggers)
+    })
+}
+
 /// Computes the attacker's total damage (base attack + auras + weapon bonus).
 /// `pub(crate)` — the forced-attack effect (Mythical Terror, Core Set W1)
 /// enqueues attacks from the trigger resolver.
@@ -917,6 +934,13 @@ pub fn apply_event(
                 // opponent's cards during their (just-finished) turn:
                 // the caster's tax expires at the caster's next turn start.
                 inner.players[player.index()].next_turn_enemy_cards_cost_more = 0;
+                // M3-W2b — Chrono-Lord Epoch's per-turn minion-play list
+                // resets at the owner's turn start (the TurnEnded handler
+                // snapshotted it into last_turn_minion_play_ids for the
+                // opponent to destroy).
+                inner.players[player.index()]
+                    .minions_played_this_turn_ids
+                    .clear();
             }
             // M3-W2a — Dormant countdown: at the owner's turn start each
             // dormant minion sleeps one less turn; at 0 it awakens (the
@@ -976,6 +1000,25 @@ pub fn apply_event(
                         crate::core::effect::CardEffect::TransformHandSelfToRandomEnemyHandMinion,
                         None,
                         None,
+                    );
+                }
+            }
+            // M3-W2b — TIME_024 Murozond, Unbounded: "At the start of your
+            // next turn, this minion's Attack is infinite" — the play
+            // effect armed the flag; this turn start consumes it and sets
+            // the Attack to the INFINITY cap (an unbounded value does not
+            // exist in a 32-bit engine, fidelity-debt §21; the constant is
+            // shared with W3).
+            if let Some(murozond) = state.player(player).murozond_infinite_pending {
+                state.make_mut().players[player.index()].murozond_infinite_pending = None;
+                if state.world().is_alive(murozond)
+                    && state.world().zone(murozond) == Some(Zone::Play)
+                {
+                    state.world_mut().set_attack(
+                        murozond,
+                        crate::core::component::Attack(
+                            crate::cards::exp_tmw_w2b::INFINITY_ATTACK_CAP,
+                        ),
                     );
                 }
             }
@@ -1139,6 +1182,16 @@ pub fn apply_event(
                     }
                     p.mana_crystals = (p.mana_crystals + crystal_gain).min(10);
                 }
+            }
+            // M3-W2b — Chrono-Lord Epoch: snapshot this turn's minion
+            // plays into the "last turn" list — TIME_714's battlecry
+            // destroys the opponent's minions matching it. The list is
+            // mem::take'd (an empty Vec swaps in, no allocation).
+            {
+                let played = std::mem::take(
+                    &mut state.make_mut().players[player.index()].minions_played_this_turn_ids,
+                );
+                state.make_mut().players[player.index()].last_turn_minion_play_ids = played;
             }
         }
         Event::CardPlayed {
@@ -1683,6 +1736,11 @@ pub fn apply_event(
                     };
                     if let Some(effect) = weapon_effect {
                         trigger::resolve_effect(state, queue, card, player, effect, None, None);
+                        // M3-W2b — Deios' "Battlecries trigger twice" aura
+                        // also doubles weapon battlecries (§21).
+                        if deios_doubling(state, player) {
+                            trigger::resolve_effect(state, queue, card, player, effect, None, None);
+                        }
                     }
                     // Rewind (M3-W1): the weapon's battlecry resolved above —
                     // the rewind replay + history record follow (the spell
@@ -1918,6 +1976,46 @@ pub fn apply_event(
                     None,
                 );
             }
+            // M3-W2b — Chrono-Lord Epoch's tracking: every minion play is
+            // recorded in the per-turn list (the TurnEnded handler
+            // snapshots it into last_turn_minion_play_ids).
+            if let Some(cid) = played_minion_id {
+                state.make_mut().players[player.index()]
+                    .minions_played_this_turn_ids
+                    .push(cid.to_string());
+            }
+            // M3-W2b — Timelooper Toki: playing one of the three tracked
+            // "random spells from the past" removes it from the pending
+            // list; when the list empties (all three played), a fresh
+            // Toki joins the hand.
+            {
+                let cid = state.world().card_id(card).map(|c| c.0.to_string());
+                if let Some(cid) = cid {
+                    let emptied = {
+                        let p = &mut state.make_mut().players[player.index()];
+                        if let Some(pos) = p.toki_pending_spells.iter().position(|s| *s == cid) {
+                            p.toki_pending_spells.remove(pos);
+                            p.toki_pending_spells.is_empty()
+                        } else {
+                            false
+                        }
+                    };
+                    if emptied {
+                        if let Some(def) = crate::cards::def::card_by_id("TIME_861") {
+                            trigger::add_card_to_hand(state, player, def);
+                        }
+                    }
+                }
+            }
+            // M3-W2b — The Eternal Hold's one-time "your next Demon costs
+            // (1)" flag: the discount was already applied by play_cost; the
+            // flag is consumed by the next Demon played (any cost path).
+            if state
+                .world()
+                .has_race(card, crate::core::component::Race::Demon)
+            {
+                state.make_mut().players[player.index()].next_demon_cost_one = false;
+            }
             // Card-played triggers (Questing Adventurer — whenever YOU play a
             // card): fire after the card fully resolved (effect included).
             fire_triggers(
@@ -2049,6 +2147,13 @@ pub fn apply_event(
                         .world()
                         .has_dark_gift(minion, DarkGiftKind::BattlecryTwice)
                     {
+                        trigger::resolve_effect(state, queue, minion, player, effect, target, None);
+                    }
+                    // M3-W2b — TIME_064 Deios: "Your Battlecries trigger
+                    // twice" — one re-resolve of the pre-captured effect,
+                    // the same convention as the dark gift above (the two
+                    // together resolve 3 times, never 4, §21).
+                    if deios_doubling(state, player) {
                         trigger::resolve_effect(state, queue, minion, player, effect, target, None);
                     }
                 }
@@ -2813,6 +2918,10 @@ pub fn apply_event(
             // Deathrattle effect (the entity is in the graveyard, as in HS)
             if let (Some(dr), Some(owner)) = (state.world().deathrattle(minion), owner) {
                 trigger::resolve_effect(state, queue, minion, owner, dr.0, None, None);
+                // M3-W2b — Deios' doubling covers deathrattles too (§21).
+                if deios_doubling(state, owner) {
+                    trigger::resolve_effect(state, queue, minion, owner, dr.0, None, None);
+                }
             }
 
             // Death triggers: registered FriendlyMinionDied triggers fire in play
@@ -2981,6 +3090,10 @@ pub fn apply_event(
             if let Some(hp_def) = state.world().hero_power(hero) {
                 let effect = hp_def.effect;
                 trigger::resolve_effect(state, queue, hero, player, effect, target, None);
+                // M3-W2b — Deios doubles hero-power activations (§21).
+                if deios_doubling(state, player) {
+                    trigger::resolve_effect(state, queue, hero, player, effect, target, None);
+                }
             }
         }
         Event::WeaponEquipped { .. } => {
@@ -3137,6 +3250,13 @@ pub fn apply_event(
                     // (no explicit target, no second SpellCast event, §14.4).
                     if state.player(player).spells_cast_twice_pending > 0 {
                         state.make_mut().players[player.index()].spells_cast_twice_pending -= 1;
+                        if let Some(effect) = chosen_effect {
+                            trigger::resolve_effect(state, queue, card, player, effect, None, None);
+                        }
+                    }
+                    // M3-W2b — Deios: the choose-one branch is the card's
+                    // battlecry — one re-resolve of the chosen branch (§21).
+                    if deios_doubling(state, player) {
                         if let Some(effect) = chosen_effect {
                             trigger::resolve_effect(state, queue, card, player, effect, None, None);
                         }
@@ -3638,6 +3758,11 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
             // End-of-turn triggers fire before the wrap-up cleanup
             let active = state.active_player();
             fire_triggers(state, queue, TriggerEvent::TurnEnd, active, None, None);
+            // M3-W2b — Deios' doubling covers end-of-turn trigger effects
+            // (TIME_706's swap-back): the full trigger set fires twice (§21).
+            if deios_doubling(state, active) {
+                fire_triggers(state, queue, TriggerEvent::TurnEnd, active, None, None);
+            }
             // M3-W2a — TIME_054 Time Skipper: "At the end of each player's
             // turn, that player gets a Coin" — a per-Skipper check across
             // BOTH boards (a Trigger component cannot express this: TurnEnd

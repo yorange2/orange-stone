@@ -100,6 +100,12 @@ pub enum KeywordKind {
     Stealth,
     /// Windfury (M2-W4a — Ancient Pterrordax's third choose-one branch)
     Windfury,
+    /// Lifesteal (2025–2026 expansions M3-W2b — TIME_619 Talanji of the
+    /// Graves' Boon of Longevity for Bwonsamdi)
+    Lifesteal,
+    /// Rush (2025–2026 expansions M3-W2b — TIME_619 Talanji of the Graves'
+    /// Boon of Speed for Bwonsamdi)
+    Rush,
 }
 
 /// Discover pool — the source of a `DiscoverPool` discover (2025–2026
@@ -142,6 +148,13 @@ pub enum DiscoverPool {
     /// Any spell from the past (2025–2026 expansions M3-W2a — TIME_612
     /// Blood Draw; the pool spans the whole active window, §20)
     Spell,
+    /// A Nature spell from the past (2025–2026 expansions M3-W2b —
+    /// TIME_013 Chromie's discovery branch; the school filter is the
+    /// ArcaneSpell precedent)
+    NatureSpell,
+    /// Any Demon costing (5) or more from the past (2025–2026 expansions
+    /// M3-W2b — TIME_446 The Eternal Hold; full-catalog like SpellCostGE8)
+    DemonCostGE5,
 }
 
 /// Card effect — an action executed when triggered.
@@ -3500,6 +3513,120 @@ pub enum CardEffect {
     /// ResurrectDiedMinion but WITHOUT the 1-Health damage — the
     /// official "resurrect it" resummons at full Health)
     ResurrectDiedMinionFull,
+    // ===== M3-W2b — Across the Timeways legendary wave
+    // (src/cards/exp_tmw_w2b.rs) — every variant stays in lockstep order
+    // with the CardEffectDe mirror below (the
+    // card_effect_de_mirror_order_matches guard).
+    /// Summon a random minion from the owner's deck (TIME_009 Gelbin of
+    /// Tomorrow — "put one of each Aura from your deck into the
+    /// battlefield" approximated as one random deck minion, §21)
+    SummonRandomMinionFromDeck,
+    /// Deal N damage to all enemies, once plus once per Alleria/Vereesa
+    /// played this game (TIME_609 Ranger General Sylvanas — the repeat
+    /// count reads the played-minion log)
+    SylvanasDealToAllEnemiesRepeated {
+        /// Damage amount
+        damage: i32,
+    },
+    /// The owner draws their 2 highest-Cost cards; the opponent draws the
+    /// owner's 2 lowest-Cost cards (TIME_032 Chronogor — filtered deck
+    /// draws from the owner's deck)
+    ChronogorDrawsHighestLowest,
+    /// Discard the owner's hand and add an Infinite Banana to it (TIME_042
+    /// King Maluk)
+    DiscardHandAndAddInfiniteBanana,
+    /// Arm the owner's player record: at the start of the owner's NEXT
+    /// turn, set this minion's Attack to the INFINITY cap (TIME_024
+    /// Murozond, Unbounded — the two-tick hatching precedent, the flag is
+    /// consumed by the TurnStarted hook)
+    MurozondPrepareInfiniteAttack,
+    /// Add a copy of the last N cards the owner played this game to the
+    /// hand (TIME_103 Chromie — the official "draw another copy of each
+    /// card you've played this game" approximated by the rewind history,
+    /// §21)
+    AddCopiesOfLastPlayedCards {
+        /// How many played cards to copy
+        count: i32,
+    },
+    /// Summon a Location card into the owner's location slot, replacing
+    /// the current location (TIME_211 Lady Azshara's choose-one branches)
+    SummonLocationForPlayer {
+        /// The Location card's id
+        card_id: &'static str,
+    },
+    /// Summon a copy of a random friendly minion (TIME_211t2 Zin-Azshari
+    /// location activation)
+    SummonCopyOfFriendlyMinion,
+    /// Fill the owner's hand with random Temporary spells (TIME_211t1 The
+    /// Well of Eternity location activation)
+    FillHandWithRandomTemporarySpells,
+    /// Take permanent control of an enemy minion whose Health is at most
+    /// the SOURCE's Health (TIME_435 Eternus — "an enemy minion with this
+    /// minion's Health or less"; the threshold is read from the source at
+    /// resolution, the Mind Control precedent)
+    TakeControlEnemyMinionHealthLE,
+    /// Discover any Demon costing (5) or more; if the owner's deck has no
+    /// minions, the next Demon the owner plays costs (1) (TIME_446 The
+    /// Eternal Hold)
+    DiscoverDemonGE5AndSetNextDemonCostOne,
+    /// Spend up to N Corpses to restore that much Health to the owner's
+    /// hero (TIME_618 Husk, Eternal Reaper — the hero-deathrattle
+    /// resurrection approximated as an immediate spend, §21)
+    SpendCorpsesRestoreHeroHealth {
+        /// The corpse spend cap
+        max: i32,
+    },
+    /// Draw Bwonsamdi from the deck, or resurrect him if he has died, and
+    /// grant him the chosen Boon keyword (TIME_619 Talanji of the Graves
+    /// — one instance per choose-one branch, so the draw+grant runs once)
+    DrawOrResurrectBwonsamdiAndGrantBoon {
+        /// The boon keyword granted
+        keyword: KeywordKind,
+    },
+    /// Summon a random minion of the exact Cost (TIME_619t Bwonsamdi's
+    /// deathrattle — "Summon a random 4-Cost minion"; the active-window
+    /// filter is the Ritual of Life precedent)
+    SummonRandomCostMinion {
+        /// The exact cost of the summoned minion
+        cost: i32,
+    },
+    /// Set the Costs of the bottom N cards of the owner's deck to (1)
+    /// (TIME_705 Krona, Keeper of Eons)
+    SetDeckBottomCostsOne {
+        /// How many bottom cards to set
+        count: i32,
+    },
+    /// Snapshot the owner's hand and replace it with draws from the deck;
+    /// the end-of-turn restore swaps it back (TIME_706 The Fins Beyond
+    /// Time — "your starting hand" approximated as fresh draws, §21)
+    ReplaceHandAndSwapBackAtTurnEnd,
+    /// Restore the hand snapshot taken by `ReplaceHandAndSwapBackAtTurnEnd`
+    /// (TIME_706 The Fins Beyond Time end-of-turn effect)
+    RestoreHandSnapshot,
+    /// Summon a 0/8 Timeless Chest for the OPPONENT (TIME_713 Time
+    /// Adm'ral Hooktail)
+    SummonChestForOpponent,
+    /// Fill the opponent's hand with Coins (TIME_713t Timeless Chest
+    /// deathrattle)
+    FillOpponentHandWithCoins,
+    /// Destroy all minions the opponent played last turn (TIME_714
+    /// Chrono-Lord Epoch — reads the opponent's per-turn played-id
+    /// snapshot)
+    DestroyAllMinionsOpponentPlayedLastTurn,
+    /// Summon a Blood Fighter from the owner's hand, give it +5/+5, and it
+    /// attacks a random enemy (TIME_850 Lo'Gosh, Blood Fighter)
+    SummonBloodFighterFromHandBuffAndAttack,
+    /// Get 3 random spells from the past, tracked per player; when all 3
+    /// are played, add another TIME_861 Timelooper Toki to the hand
+    /// (TIME_861 Toki)
+    GetThreeRandomSpellsFromPastTracked,
+    /// If the opponent is holding King Llane, destroy him and cut the
+    /// enemy hero's Health in half (TIME_875 Garona Halforcen;
+    /// **pool-open**, POOL_OPEN_CARDS)
+    DestroyHeldKingLlaneAndHalveEnemyHealth,
+    /// Silence and destroy all other minions (TIME_890 Medivh the
+    /// Hallowed)
+    SilenceAndDestroyAllOtherMinions,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -4993,6 +5120,44 @@ enum CardEffectDe {
     },
     TransformHandSelfToRandomEnemyHandMinion,
     ResurrectDiedMinionFull,
+    SummonRandomMinionFromDeck,
+    SylvanasDealToAllEnemiesRepeated {
+        damage: i32,
+    },
+    ChronogorDrawsHighestLowest,
+    DiscardHandAndAddInfiniteBanana,
+    MurozondPrepareInfiniteAttack,
+    AddCopiesOfLastPlayedCards {
+        count: i32,
+    },
+    SummonLocationForPlayer {
+        card_id: String,
+    },
+    SummonCopyOfFriendlyMinion,
+    FillHandWithRandomTemporarySpells,
+    TakeControlEnemyMinionHealthLE,
+    DiscoverDemonGE5AndSetNextDemonCostOne,
+    SpendCorpsesRestoreHeroHealth {
+        max: i32,
+    },
+    DrawOrResurrectBwonsamdiAndGrantBoon {
+        keyword: KeywordKind,
+    },
+    SummonRandomCostMinion {
+        cost: i32,
+    },
+    SetDeckBottomCostsOne {
+        count: i32,
+    },
+    ReplaceHandAndSwapBackAtTurnEnd,
+    RestoreHandSnapshot,
+    SummonChestForOpponent,
+    FillOpponentHandWithCoins,
+    DestroyAllMinionsOpponentPlayedLastTurn,
+    SummonBloodFighterFromHandBuffAndAttack,
+    GetThreeRandomSpellsFromPastTracked,
+    DestroyHeldKingLlaneAndHalveEnemyHealth,
+    SilenceAndDestroyAllOtherMinions,
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -6649,6 +6814,68 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 CardEffect::TransformHandSelfToRandomEnemyHandMinion
             }
             CardEffectDe::ResurrectDiedMinionFull => CardEffect::ResurrectDiedMinionFull,
+            CardEffectDe::SummonRandomMinionFromDeck => CardEffect::SummonRandomMinionFromDeck,
+            CardEffectDe::SylvanasDealToAllEnemiesRepeated { damage } => {
+                CardEffect::SylvanasDealToAllEnemiesRepeated { damage }
+            }
+            CardEffectDe::ChronogorDrawsHighestLowest => CardEffect::ChronogorDrawsHighestLowest,
+            CardEffectDe::DiscardHandAndAddInfiniteBanana => {
+                CardEffect::DiscardHandAndAddInfiniteBanana
+            }
+            CardEffectDe::MurozondPrepareInfiniteAttack => {
+                CardEffect::MurozondPrepareInfiniteAttack
+            }
+            CardEffectDe::AddCopiesOfLastPlayedCards { count } => {
+                CardEffect::AddCopiesOfLastPlayedCards { count }
+            }
+            CardEffectDe::SummonLocationForPlayer { card_id } => {
+                CardEffect::SummonLocationForPlayer {
+                    card_id: intern(card_id)?,
+                }
+            }
+            CardEffectDe::SummonCopyOfFriendlyMinion => CardEffect::SummonCopyOfFriendlyMinion,
+            CardEffectDe::FillHandWithRandomTemporarySpells => {
+                CardEffect::FillHandWithRandomTemporarySpells
+            }
+            CardEffectDe::TakeControlEnemyMinionHealthLE => {
+                CardEffect::TakeControlEnemyMinionHealthLE
+            }
+            CardEffectDe::DiscoverDemonGE5AndSetNextDemonCostOne => {
+                CardEffect::DiscoverDemonGE5AndSetNextDemonCostOne
+            }
+            CardEffectDe::SpendCorpsesRestoreHeroHealth { max } => {
+                CardEffect::SpendCorpsesRestoreHeroHealth { max }
+            }
+            CardEffectDe::DrawOrResurrectBwonsamdiAndGrantBoon { keyword } => {
+                CardEffect::DrawOrResurrectBwonsamdiAndGrantBoon { keyword }
+            }
+            CardEffectDe::SummonRandomCostMinion { cost } => {
+                CardEffect::SummonRandomCostMinion { cost }
+            }
+            CardEffectDe::SetDeckBottomCostsOne { count } => {
+                CardEffect::SetDeckBottomCostsOne { count }
+            }
+            CardEffectDe::ReplaceHandAndSwapBackAtTurnEnd => {
+                CardEffect::ReplaceHandAndSwapBackAtTurnEnd
+            }
+            CardEffectDe::RestoreHandSnapshot => CardEffect::RestoreHandSnapshot,
+            CardEffectDe::SummonChestForOpponent => CardEffect::SummonChestForOpponent,
+            CardEffectDe::FillOpponentHandWithCoins => CardEffect::FillOpponentHandWithCoins,
+            CardEffectDe::DestroyAllMinionsOpponentPlayedLastTurn => {
+                CardEffect::DestroyAllMinionsOpponentPlayedLastTurn
+            }
+            CardEffectDe::SummonBloodFighterFromHandBuffAndAttack => {
+                CardEffect::SummonBloodFighterFromHandBuffAndAttack
+            }
+            CardEffectDe::GetThreeRandomSpellsFromPastTracked => {
+                CardEffect::GetThreeRandomSpellsFromPastTracked
+            }
+            CardEffectDe::DestroyHeldKingLlaneAndHalveEnemyHealth => {
+                CardEffect::DestroyHeldKingLlaneAndHalveEnemyHealth
+            }
+            CardEffectDe::SilenceAndDestroyAllOtherMinions => {
+                CardEffect::SilenceAndDestroyAllOtherMinions
+            }
         })
     }
 }
@@ -7394,6 +7621,34 @@ mod tests {
                 pool: DiscoverPool::Spell,
             },
             CardEffect::DamageSelfHero { damage: 3 },
+            CardEffect::SummonRandomMinionFromDeck,
+            CardEffect::SylvanasDealToAllEnemiesRepeated { damage: 2 },
+            CardEffect::ChronogorDrawsHighestLowest,
+            CardEffect::DiscardHandAndAddInfiniteBanana,
+            CardEffect::MurozondPrepareInfiniteAttack,
+            CardEffect::AddCopiesOfLastPlayedCards { count: 3 },
+            CardEffect::SummonLocationForPlayer {
+                card_id: "TIME_211t1",
+            },
+            CardEffect::SummonCopyOfFriendlyMinion,
+            CardEffect::FillHandWithRandomTemporarySpells,
+            CardEffect::TakeControlEnemyMinionHealthLE,
+            CardEffect::DiscoverDemonGE5AndSetNextDemonCostOne,
+            CardEffect::SpendCorpsesRestoreHeroHealth { max: 20 },
+            CardEffect::DrawOrResurrectBwonsamdiAndGrantBoon {
+                keyword: KeywordKind::Lifesteal,
+            },
+            CardEffect::SummonRandomCostMinion { cost: 4 },
+            CardEffect::SetDeckBottomCostsOne { count: 5 },
+            CardEffect::ReplaceHandAndSwapBackAtTurnEnd,
+            CardEffect::RestoreHandSnapshot,
+            CardEffect::SummonChestForOpponent,
+            CardEffect::FillOpponentHandWithCoins,
+            CardEffect::DestroyAllMinionsOpponentPlayedLastTurn,
+            CardEffect::SummonBloodFighterFromHandBuffAndAttack,
+            CardEffect::GetThreeRandomSpellsFromPastTracked,
+            CardEffect::DestroyHeldKingLlaneAndHalveEnemyHealth,
+            CardEffect::SilenceAndDestroyAllOtherMinions,
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");

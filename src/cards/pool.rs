@@ -1929,6 +1929,28 @@ pub(crate) fn discover_pool_cards(
             .iter()
             .filter(|c| c.card_type == CardType::Minion && c.cost == 1 && in_active_window(c))
             .collect(),
+        // M3-W2b pools (the Across the Timeways legendary wave).
+        // TIME_013 Farseer Wo — "a Nature spell from the past": the school
+        // filter is the ArcaneSpell precedent (§21 — "from the past" is the
+        // active window).
+        DiscoverPool::NatureSpell => all
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Spell
+                    && crate::cards::quest::spell_school(c.id)
+                        == Some(crate::cards::quest::SpellSchool::Nature)
+                    && in_active_window(c)
+            })
+            .collect(),
+        // TIME_446 The Eternal Hold — "any Demon that costs (5) or more":
+        // the full catalog, no window restriction (the SpellCostGE8
+        // precedent — the pool is the "from the past" whole-set reading).
+        DiscoverPool::DemonCostGE5 => all
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Minion && c.race == Some(Race::Demon) && c.cost >= 5
+            })
+            .collect(),
     }
 }
 

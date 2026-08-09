@@ -378,6 +378,12 @@ pub enum AuraEffect {
     /// Conditional Charge marker (Southsea Deckhand — has Charge while you
     /// have a weapon equipped). Consulted by `World::effective_charge`.
     ChargeWithWeapon,
+    /// Triggers of the owner's cards fire twice while the source is on the
+    /// board (2025–2026 expansions M3-W2b — TIME_064 Deios the Betrayer).
+    /// Unit marker: the aura's presence is the whole effect; the doubling
+    /// is wired at the battlecry / weapon play / choose-one / deathrattle /
+    /// hero-power / turn-end trigger sites. Silenceable like every aura.
+    DoubleTriggers,
 }
 
 /// Aura target scope.

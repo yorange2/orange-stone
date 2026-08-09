@@ -40,6 +40,7 @@ pub mod exp_tlc_w4a;
 pub mod exp_tlc_w4b;
 pub mod exp_tlc_w4c;
 pub mod exp_tmw_w2a;
+pub mod exp_tmw_w2b;
 pub mod generated;
 pub mod kindred;
 pub mod pool;
@@ -168,6 +169,11 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "TIME_063" // Timelord Nozdormu
         | "TIME_605" // Epoch Stalker
         | "TIME_872" // Undefeated Champion
+        // M3-W2b — Across the Timeways legendary wave (the Blood Fighter
+        // tokens TIME_850t/TIME_850t1 are the transformed forms — their
+        // Taunt / Elusive ride the CardDef fields, no Rush)
+        | "TIME_209" // Muradin, High King
+        | "TIME_850" // Lo'Gosh, Blood Fighter
     ) {
         world.set_rush(entity, Rush);
     }
@@ -1332,6 +1338,9 @@ pub(crate) fn choose_one_option_names(def: &CardDef) -> [&'static str; 2] {
         ],
         "EDR_843" => ["Draw a spell", "Draw a minion"],
         "EDR_872" => ["Discover a Mage spell", "Discover a Druid spell"],
+        // M3-W2b — the Across the Timeways legendary wave
+        "TIME_211" => ["Empower Zin-Azshari", "The Well of Eternity"],
+        "TIME_619" => ["Boon of Power (Taunt)", "Boon of Longevity (Lifesteal)"],
         _ => ["First option", "Second option"],
     }
 }
@@ -1363,6 +1372,14 @@ pub(crate) fn choose_one_three_branch(def: &CardDef) -> Option<CardEffect> {
             keyword: crate::core::effect::KeywordKind::Windfury,
             target: EffectTarget::Self_,
         }),
+        // M3-W2b — TIME_619 Talanji of the Graves' third boon (Boon of
+        // Speed). The battlecry slot and choose-one slot carry the Taunt and
+        // Lifesteal boons; the draw-or-resurrect Bwonsamdi half runs first
+        // inside EVERY branch effect, so it resolves exactly once regardless
+        // of the chosen option.
+        "TIME_619" => Some(CardEffect::DrawOrResurrectBwonsamdiAndGrantBoon {
+            keyword: crate::core::effect::KeywordKind::Rush,
+        }),
         _ => None,
     }
 }
@@ -1376,6 +1393,7 @@ pub(crate) fn choose_one_three_option_names(def: &CardDef) -> Option<&'static st
         "TLC_242" => Some("Gain +1/+1"),
         "TLC_245" => Some("Deathrattle: Summon two 1/1 Plants"),
         "TLC_246" => Some("Gain Windfury"),
+        "TIME_619" => Some("Boon of Speed (Rush)"),
         _ => None,
     }
 }
@@ -1985,6 +2003,13 @@ mod generated_tests {
         // cards are the faithful Location representations (health 0,
         // durability 3, activation in the battlecry slot).
         if id == "TIME_044" || id == "TIME_436" || id == "TIME_810" {
+            return matches!(field, "card_type" | "health" | "durability");
+        }
+        // M3-W2b — TIME_446 The Eternal Hold: the same generator-predates-
+        // Location divergence (the generated baseline is a vanilla Minion
+        // 6-cost 0/3; the handwritten card is the faithful Location 6-mana
+        // / 3-durability representation, activation in the battlecry slot).
+        if id == "TIME_446" {
             return matches!(field, "card_type" | "health" | "durability");
         }
         false
