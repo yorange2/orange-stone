@@ -2042,6 +2042,16 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::FillBoardRandomDragonsHealHeroSkipNextTurn => 7.0,
         CardEffect::GetRandomOtherClassMinionCostsLess { .. } => 4.0,
         CardEffect::BuffFirstUndeadPlayedEachTurn { attack } => attack as f64 * 1.5,
+        CardEffect::GainStatsAndCopyToColossalMain { attack, health } => {
+            (attack + health) as f64 * 1.5
+        }
+        CardEffect::RemoveKeywordFromColossalMain { .. } => 0.5,
+        CardEffect::AddRandomCostMinionCostsHealth { .. } => 2.0,
+        CardEffect::ColossalArmDestroyRight { attack, health } => (attack + health) as f64 * 1.2,
+        CardEffect::AddRandomFireSpellCostsLess { .. } => 2.0,
+        CardEffect::TriggerFriendlyDeathrattles => 2.0,
+        CardEffect::AddRandomMinionsCostEqualAttack { .. } => 4.0,
+        CardEffect::GiveRandomFriendlyMinionAttack { attack } => attack as f64 * 0.8,
     }
 }
 

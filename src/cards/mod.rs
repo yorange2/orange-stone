@@ -15,6 +15,7 @@ pub mod classic_rogue;
 pub mod classic_shaman;
 pub mod classic_warlock;
 pub mod classic_warrior;
+pub mod colossal;
 pub mod core_w1;
 pub mod core_w2;
 pub mod core_w3a;
@@ -28,6 +29,7 @@ pub mod core_w6;
 pub mod core_w7;
 pub mod core_w8;
 pub mod def;
+pub mod exp_cata_w1;
 pub mod exp_edr_w1;
 pub mod exp_edr_w2;
 pub mod exp_edr_w3;
@@ -177,6 +179,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "TIME_850" // Lo'Gosh, Blood Fighter
         // M3-W3 — The End of Time miniset
         | "END_032" // Winged Aberration
+        // M4-W1 — the Cataclysm Colossal wave
+        | "CATA_153" // Al'Akir, Lord of Storms
     ) {
         world.set_rush(entity, Rush);
     }
@@ -206,6 +210,10 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "TIME_427" // Cleansing Lightspawn (M3-W2a)
         // M3-W3 — The End of Time miniset
         | "END_025" // Eternal Firebolt (spell)
+        // M4-W1 — the Cataclysm Colossal wave (Chromatus and its Red
+        // Head — the other three heads ride the CardDef fields)
+        | "CATA_432" // Chromatus
+        | "CATA_432t2" // Red Head of Chromatus
     ) {
         world.set_lifesteal(entity, Lifesteal);
     }
@@ -255,6 +263,29 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
     if card_def.id == "TLC_243" {
         // Whirling Stormdrake — Elemental + Dragon
         world.add_race(entity, crate::core::component::Race::Dragon);
+    }
+    // M4-W1 dual tribes — the Cataclysm Colossal wave (the same
+    // convention: the CardDef carries the first dump-listed race, the
+    // second tribe lands here)
+    if matches!(
+        card_def.id,
+        // Arisen Onyxia and its Wings — Dragon + Undead
+        "CATA_155" | "CATA_155t" | "CATA_155t1"
+    ) {
+        world.add_race(entity, crate::core::component::Race::Undead);
+    }
+    if matches!(
+        card_def.id,
+        // Magmaw and its Bodies — Beast + Mechanical
+        "CATA_550"
+            | "CATA_550t"
+            | "CATA_550t2"
+            | "CATA_550t3"
+            | "CATA_550t4"
+            | "CATA_550t5"
+            | "CATA_550t6"
+    ) {
+        world.add_race(entity, crate::core::component::Race::Mechanical);
     }
     if card_def.id == "TLC_432" {
         // Dread Raptor — Undead + Beast
@@ -1085,6 +1116,16 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 target: EffectTarget::Self_,
             },
         )),
+        // The Black Blood (M4-W1 — the Cataclysm Colossal wave): "After
+        // you restore Health to a character, attack a random enemy
+        // minion." The trigger rides the global CharacterHealed class —
+        // it fires on ANY heal on either side (the official "you
+        // restore" scope is approximated, §23); the excess-damage attack
+        // model is the Briarspawn Drake convention.
+        "CATA_300" => Some((
+            TriggerEvent::CharacterHealed,
+            CardEffect::AttackRandomEnemyMinionExcess,
+        )),
         _ => None,
     };
     if let Some((event, effect)) = w2_trigger {
@@ -1309,6 +1350,21 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                     health: 0,
                     target: EffectTarget::Self_,
                 },
+            },
+        );
+    }
+    // M4-W1 — Plume of Vulcanos (the Cataclysm Colossal wave):
+    // "Whenever this takes damage, get a random Fire spell. It costs (3)
+    // less."
+    if matches!(card_def.id, "CATA_488t" | "CATA_488t2") {
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::ThisMinionDamaged,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::AddRandomFireSpellCostsLess { reduction: 3 },
             },
         );
     }

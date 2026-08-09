@@ -399,6 +399,11 @@ pub enum AuraEffect {
     /// board, Rewind triggers twice; consulted by `engine::rewind` — the
     /// same unit-marker pattern as `DoubleTriggers`, §22)
     RewindKeepsBothOutcomes,
+    /// Windfury aura (2025–2026 expansions M4-W1 — Azshara, Ocean Lord:
+    /// "Your hero has Windfury"). Unit marker like `GrantCharge`: the
+    /// hero carries no Windfury component; `World::max_attacks` consults
+    /// the aura index and returns 2 while the aura applies.
+    GrantWindfury,
 }
 
 /// Aura target scope.
@@ -417,6 +422,10 @@ pub enum AuraTarget {
     /// Friendly minions of the given race, excluding the source
     /// (Murloc Warleader, Siegebreaker)
     OtherFriendlyRace(Race),
+    /// The friendly hero (2025–2026 expansions M4-W1 — Azshara, Ocean
+    /// Lord's "Your hero has Windfury"). The only hero-scoped aura; the
+    /// applicability helpers decide it before their minion gates.
+    FriendlyHero,
 }
 
 /// Secret — a face-down, passively triggered spell.
@@ -937,6 +946,28 @@ pub struct Quest {
     /// and leaves the quest slot — only when BOTH bars are done; each bar's
     /// reward resolves independently at its own target.
     pub second: Option<QuestSecondState>,
+}
+
+/// Colossal body-part link (2025–2026 expansions M4-W1 — the Cataclysm
+/// wave's Colossal primitive). Every appendage token summoned alongside a
+/// Colossal minion carries this component pointing back at its main minion.
+///
+/// The link drives the death cascade (main dies → its parts die with their
+/// deathrattles) and the "refer to the main" effects (Wickerfang's stat
+/// copy, Chromatus's keyword-removal deathrattles).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ColossalPart {
+    /// The main Colossal minion this part is attached to.
+    pub main: crate::core::entity::Entity,
+}
+
+/// Colossal main marker (2025–2026 expansions M4-W1) — placed on the main
+/// minion of a Colossal card. `parts` lists its attached body-part entities
+/// in left-to-right board order, so the death cascade is O(parts).
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct ColossalMain {
+    /// The attached body parts, in left-to-right board order.
+    pub parts: Vec<crate::core::entity::Entity>,
 }
 
 #[cfg(test)]

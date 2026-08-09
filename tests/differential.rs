@@ -31168,3 +31168,527 @@ fn tmw3_remnant_bygone_firebolt_crumble() {
         "the enemy weapon was destroyed"
     );
 }
+
+// ============================================================
+// M4-W1 — the Cataclysm Colossal wave (2025–2026 expansions):
+// the Colossal body-part primitive (cards/colossal.rs) — the
+// summon path (parts enter right of the main, in order, 7-cap),
+// the death cascade (main dies → parts die with deathrattles;
+// part dies → main survives) and the part→main effects.
+// ============================================================
+
+/// Fixture spells for the wave — deal 3/5/8 to an enemy minion and a
+/// 5-damage AOE across all minions (the tmw1_def! fixture macro has no
+/// end-of-turn/aura slots — these spells only need the spell_effect).
+const CATAW1_DMG3: CardDef = tmw1_def!(
+    "CATAW1_DMG3",
+    "CataW1 Fixture 3",
+    CardType::Spell,
+    0,
+    0,
+    None,
+    None,
+    Some(CardEffect::DealDamage {
+        amount: 3,
+        target: EffectTarget::AnyMinion,
+    })
+);
+
+const CATAW1_DMG5: CardDef = tmw1_def!(
+    "CATAW1_DMG5",
+    "CataW1 Fixture 5",
+    CardType::Spell,
+    0,
+    0,
+    None,
+    None,
+    Some(CardEffect::DealDamage {
+        amount: 5,
+        target: EffectTarget::AnyMinion,
+    })
+);
+
+const CATAW1_DMG8: CardDef = tmw1_def!(
+    "CATAW1_DMG8",
+    "CataW1 Fixture 8",
+    CardType::Spell,
+    0,
+    0,
+    None,
+    None,
+    Some(CardEffect::DealDamage {
+        amount: 8,
+        target: EffectTarget::AnyMinion,
+    })
+);
+
+const CATAW1_AOE5: CardDef = tmw1_def!(
+    "CATAW1_AOE5",
+    "CataW1 Fixture AOE",
+    CardType::Spell,
+    0,
+    0,
+    None,
+    None,
+    Some(CardEffect::DealDamage {
+        amount: 5,
+        target: EffectTarget::AllMinions,
+    })
+);
+
+/// CATAW1-1 — a +2 Colossal (Azshara) played from hand summons its two
+/// appendages: both parts sit on the board immediately right of the main,
+/// carry the `ColossalPart` link to it, and the main's `ColossalMain`
+/// lists them in board order.
+#[test]
+fn cata_w1_colossal_summons_parts_adjacent() {
+    use orange_stone::cards::exp_cata_w1::AZSHARA_OCEAN_LORD;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &AZSHARA_OCEAN_LORD);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 3, "main + 2 appendages");
+    let main = find_entity(&state, p1, "CATA_151");
+    assert_eq!(minions[0], main, "the main is the leftmost board slot");
+    let (t1, t2) = (minions[1], minions[2]);
+    assert!(
+        state
+            .world()
+            .card_id(t1)
+            .is_some_and(|c| c.0 == "CATA_151t"),
+        "first appendage in order"
+    );
+    assert!(
+        state
+            .world()
+            .card_id(t2)
+            .is_some_and(|c| c.0 == "CATA_151t1"),
+        "second appendage in order"
+    );
+    for part in [t1, t2] {
+        assert_eq!(
+            state.world().colossal_part(part).map(|p| p.main),
+            Some(main),
+            "appendage links to the main"
+        );
+    }
+    let cm = state
+        .world()
+        .colossal_main(main)
+        .expect("main lists its parts");
+    assert_eq!(cm.parts, vec![t1, t2], "parts listed in board order");
+}
+
+/// CATAW1-2 — the parts fill the positions immediately right of the main,
+/// left to right, after any pre-existing minions (a +4 Wickerfang on a
+/// one-minion board lands at slots 2–6 in token order).
+#[test]
+fn cata_w1_colossal_part_positions_ordered() {
+    use orange_stone::cards::exp_cata_w1::WICKERFANG;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.add_custom_minion_to_board(p1, 2, 2, 2);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &WICKERFANG);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 6, "filler + main + 4 legs");
+    let main = find_entity(&state, p1, "CATA_139");
+    assert_eq!(
+        minions[0..2],
+        [minions[0], main],
+        "filler left, main right of it"
+    );
+    let expected_ids = ["CATA_139t", "CATA_139t2", "CATA_139t3", "CATA_139t4"];
+    for (i, (slot, expected)) in minions.iter().skip(2).zip(expected_ids).enumerate() {
+        assert!(
+            state
+                .world()
+                .card_id(*slot)
+                .is_some_and(|c| c.0 == expected),
+            "slot {i} holds {expected}"
+        );
+    }
+}
+
+/// CATAW1-3 — the 7-minion cap: a nearly-full board summons only the
+/// parts that fit (5 fillers + the main leaves 1 slot → exactly 1 leg),
+/// and a full board rejects the play entirely (the main never enters —
+/// nothing summons).
+#[test]
+fn cata_w1_colossal_part_cap() {
+    use orange_stone::cards::exp_cata_w1::WICKERFANG;
+    let p1 = PlayerId1();
+    // Near-full: 5 fillers, 1 free slot for the main, 1 for one leg.
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    for _ in 0..5 {
+        builder.add_custom_minion_to_board(p1, 1, 1, 1);
+    }
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &WICKERFANG);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 7, "the board is full");
+    let legs: Vec<Entity> = minions
+        .iter()
+        .copied()
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0.starts_with("CATA_139t"))
+        })
+        .collect();
+    assert_eq!(legs.len(), 1, "only the one free slot is filled");
+    assert_eq!(
+        state.world().colossal_part(legs[0]).map(|p| p.main),
+        Some(find_entity(&state, p1, "CATA_139")),
+        "the summoned leg is linked"
+    );
+    // Full board: 7 fillers leave no slot for the main — the play itself
+    // is rejected (the main never enters; nothing summons).
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    for _ in 0..7 {
+        builder.add_custom_minion_to_board(p1, 1, 1, 1);
+    }
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &WICKERFANG);
+    let mut state = builder.build();
+    let card = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .next()
+        .expect("wickerfang in hand");
+    let result = engine.apply(
+        &mut state,
+        Action::PlayCard {
+            card,
+            target: None,
+            position: None,
+        },
+    );
+    assert!(
+        matches!(
+            result,
+            Err(orange_stone::engine::rules::EngineError::BoardFull)
+        ),
+        "a minion cannot be played onto a full board"
+    );
+}
+
+/// CATAW1-4 — Magmaw's +99 fills every remaining slot (the `fill`
+/// registry entry): 2 fillers + Magmaw leaves 4 slots → all 4 free slots
+/// hold a linked Magmaw's Body.
+#[test]
+fn cata_w1_magmaw_fills_board() {
+    use orange_stone::cards::exp_cata_w1::MAGMAW;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.add_custom_minion_to_board(p1, 1, 1, 1);
+    builder.add_custom_minion_to_board(p1, 1, 1, 1);
+    builder.set_mana(p1, 10, 10).add_minion_to_hand(p1, &MAGMAW);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 7, "Magmaw fills the whole board");
+    let main = find_entity(&state, p1, "CATA_550");
+    let bodies: Vec<Entity> = minions
+        .iter()
+        .copied()
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0.starts_with("CATA_550t"))
+        })
+        .collect();
+    assert_eq!(bodies.len(), 4, "all four free slots hold a Body");
+    for body in &bodies {
+        assert_eq!(
+            state.world().colossal_part(*body).map(|p| p.main),
+            Some(main),
+            "every Body is linked to Magmaw"
+        );
+    }
+}
+
+/// CATAW1-5 — main death cascades to the parts WITH their deathrattles:
+/// Ragnaros + 2 Hands; killing the main puts all three in the graveyard
+/// and the Hands' deathrattles fire (each deals 2 to the enemy hero — the
+/// only enemy character — 4 total).
+#[test]
+fn cata_w1_main_death_kills_parts() {
+    use orange_stone::cards::exp_cata_w1::RAGNAROS_THE_GREAT_FIRE;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &RAGNAROS_THE_GREAT_FIRE)
+        .add_minion_to_hand(p1, &CATAW1_DMG8);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let main = find_entity(&state, p1, "CATA_150");
+    assert_eq!(board_minions(&state, p1).len(), 3, "main + 2 Hands");
+    let enemy_hero = state.player(p2).hero;
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .next()
+        .expect("fixture in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: Some(main), // the 8-damage fixture kills the main
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        board_minions(&state, p1).is_empty(),
+        "the whole board died with the main"
+    );
+    let graveyard: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Graveyard, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    let ids: Vec<&str> = graveyard
+        .iter()
+        .filter_map(|&e| state.world().card_id(e))
+        .map(|c| c.0)
+        .collect();
+    assert_eq!(ids.len(), 3, "main + 2 Hands in the graveyard");
+    assert!(ids.contains(&"CATA_150"), "the main died");
+    assert!(
+        ids.contains(&"CATA_150t") && ids.contains(&"CATA_150t1"),
+        "both Hands died"
+    );
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(26)),
+        "both Hands' deathrattles fired (2 each)"
+    );
+}
+
+/// CATAW1-6 — a part death is independent: killing one Wickerfang Leg
+/// leaves the main and the other three legs alive.
+#[test]
+fn cata_w1_part_death_keeps_main() {
+    use orange_stone::cards::exp_cata_w1::WICKERFANG;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &WICKERFANG)
+        .add_minion_to_hand(p1, &CATAW1_DMG5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let leg = find_entity(&state, p1, "CATA_139t");
+    let main = find_entity(&state, p1, "CATA_139");
+    // Kill the first leg (0/2 — 5 damage).
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .next()
+        .expect("fixture in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: Some(leg),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.world().zone(leg) == Some(Zone::Graveyard),
+        "the damaged leg died"
+    );
+    assert!(
+        state.world().is_alive(main),
+        "the main survives a part death"
+    );
+    let legs: Vec<Entity> = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0.starts_with("CATA_139t"))
+        })
+        .collect();
+    assert_eq!(legs.len(), 3, "the other three legs survive");
+}
+
+/// CATAW1-7 — Wickerfang's Legs' end-of-turn +1/+1 copies to the main:
+/// after the turn ends each leg is 1/3 and the main copied all four
+/// gains (0/5 → 4/9).
+#[test]
+fn cata_w1_wickerfang_legs_gain_stats_copied() {
+    use orange_stone::cards::exp_cata_w1::WICKERFANG;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &WICKERFANG);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let main = find_entity(&state, p1, "CATA_139");
+    assert_eq!(state.world().effective_attack(main), Some(Attack(0)));
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_attack(main),
+        Some(Attack(4)),
+        "the main copied all four +1/+1 gains"
+    );
+    assert_eq!(
+        state.world().effective_health(main),
+        Some(Health(9)),
+        "the main copied all four +1/+1 gains"
+    );
+    for leg_id in ["CATA_139t", "CATA_139t2", "CATA_139t3", "CATA_139t4"] {
+        let leg = find_entity(&state, p1, leg_id);
+        assert_eq!(
+            state.world().effective_attack(leg),
+            Some(Attack(1)),
+            "{leg_id} gained +1 attack"
+        );
+        assert_eq!(
+            state.world().effective_health(leg),
+            Some(Health(3)),
+            "{leg_id} gained +1 health"
+        );
+    }
+}
+
+/// CATAW1-8 — a Chromatus Head's deathrattle removes its own keyword
+/// from the main: killing the Green Head strips Chromatus's Taunt while
+/// Lifesteal / Elusive / Divine Shield stay.
+#[test]
+fn cata_w1_chromatus_head_removes_keyword() {
+    use orange_stone::cards::exp_cata_w1::CHROMATUS;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &CHROMATUS)
+        .add_minion_to_hand(p1, &CATAW1_DMG3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let main = find_entity(&state, p1, "CATA_432");
+    assert_eq!(board_minions(&state, p1).len(), 5, "main + 4 Heads");
+    assert!(state.world().taunt(main).is_some(), "Chromatus has Taunt");
+    let green = find_entity(&state, p1, "CATA_432t1");
+    let spell = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .next()
+        .expect("fixture in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: spell,
+                target: Some(green),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.world().zone(green) == Some(Zone::Graveyard),
+        "the Green Head died"
+    );
+    assert!(
+        state.world().is_alive(main),
+        "the main survives the Head death"
+    );
+    assert!(
+        state.world().taunt(main).is_none(),
+        "the deathrattle removed Taunt from the main"
+    );
+    assert!(state.world().lifesteal(main).is_some(), "Lifesteal stays");
+    assert!(state.world().elusive(main).is_some(), "Elusive stays");
+    assert!(
+        state.world().divine_shield(main).is_some(),
+        "Divine Shield stays"
+    );
+    assert_eq!(
+        state.world().effective_health(main),
+        Some(Health(8)),
+        "Chromatus is unharmed"
+    );
+}
+
+/// CATAW1-9 — an AOE that kills the main AND the parts in one batch
+/// processes every death exactly once (the cascade dedups parts already
+/// pending from their own damage): Wickerfang + 4 legs all die to a
+/// 5-damage AOE, five graveyard entries, none double-processed.
+#[test]
+fn cata_w1_colossal_dies_via_aoes() {
+    use orange_stone::cards::exp_cata_w1::WICKERFANG;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &WICKERFANG)
+        .add_minion_to_hand(p1, &CATAW1_AOE5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(board_minions(&state, p1).len(), 5, "main + 4 legs");
+    play_front_card(&mut state, &engine, p1); // the AOE fixture
+    assert_eq!(
+        board_minions(&state, p1).len(),
+        0,
+        "the whole board died in the AOE"
+    );
+    let dead: Vec<&str> = state
+        .world()
+        .zones()
+        .iter(Zone::Graveyard, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .filter_map(|e| state.world().card_id(e))
+        .map(|c| c.0)
+        .collect();
+    assert_eq!(dead.len(), 5, "exactly one graveyard entry per minion");
+    assert!(dead.contains(&"CATA_139"), "the main died");
+    for leg in ["CATA_139t", "CATA_139t2", "CATA_139t3", "CATA_139t4"] {
+        assert!(dead.contains(&leg), "{leg} died");
+    }
+}

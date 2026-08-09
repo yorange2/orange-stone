@@ -8161,6 +8161,9 @@ pub fn resolve_effect(
                 // Bwonsamdi (Lifesteal / Rush).
                 KeywordKind::Lifesteal => world.set_lifesteal(picked, Lifesteal),
                 KeywordKind::Rush => world.set_rush(picked, Rush),
+                // M4-W1 — the Bronze Head of Chromatus grants itself the
+                // keyword the deathrattle later removes from the main.
+                KeywordKind::DivineShield => world.set_divine_shield(picked, DivineShield),
             }
         }
         CardEffect::GrantDeathrattleSummon {
@@ -11711,6 +11714,254 @@ pub fn resolve_effect(
                     health: 0,
                     cost: 0,
                     expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::GainStatsAndCopyToColossalMain { attack, health } => {
+            // Wickerfang's Legs (M4-W1): the leg's end-of-turn +1/+1 —
+            // the leg gains the stats, then its Colossal main copies
+            // them (the part→main link). Registered approximation: the
+            // official "AFTER a Leg gains stats" trigger only copies the
+            // legs' own end-of-turn gains — an external buff on a leg
+            // does not copy (§23).
+            resolve_gain_stats(
+                state,
+                queue,
+                source,
+                owner,
+                attack,
+                health,
+                EffectTarget::Self_,
+                explicit_target,
+                event_subject,
+            );
+            if let Some(main) = state.world().colossal_part(source).map(|p| p.main) {
+                if state.world().is_alive(main) {
+                    resolve_gain_stats(
+                        state,
+                        queue,
+                        main,
+                        owner,
+                        attack,
+                        health,
+                        EffectTarget::Self_,
+                        None,
+                        None,
+                    );
+                }
+            }
+        }
+        CardEffect::RemoveKeywordFromColossalMain { keyword } => {
+            // Chromatus's Heads (M4-W1): the head's deathrattle removes
+            // its own keyword from the main Chromatus via the part→main
+            // link (the head sits in the graveyard, the main on the
+            // board).
+            let Some(main) = state.world().colossal_part(source).map(|p| p.main) else {
+                return;
+            };
+            if !state.world().is_alive(main) {
+                return;
+            }
+            let world = state.world_mut();
+            match keyword {
+                KeywordKind::Taunt => {
+                    world.remove_taunt(main);
+                }
+                KeywordKind::Lifesteal => {
+                    world.remove_lifesteal(main);
+                }
+                KeywordKind::Elusive => {
+                    world.remove_elusive(main);
+                }
+                KeywordKind::DivineShield => {
+                    world.remove_divine_shield(main);
+                }
+                _ => {}
+            }
+        }
+        CardEffect::AddRandomCostMinionCostsHealth { cost } => {
+            // Onyxia's Wing (M4-W1): "When summoned, get a random
+            // {0}-Cost minion. It costs Health this turn." The Herald {0}
+            // is fixed to 0 (§23); the added minion carries the CostHealth
+            // marker (the "this turn" scope is not cleared — the marker
+            // persists until the card is played, §23).
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.cost == cost
+                            && !c.id.ends_with('t')
+                            && crate::cards::pool::in_active_window(c)
+                    })
+                    .collect();
+            let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+                return;
+            };
+            if let Some(added) = add_card_to_hand(state, owner, def) {
+                state
+                    .world_mut()
+                    .set_cost_health(added, crate::core::component::CostHealth);
+            }
+        }
+        CardEffect::ColossalArmDestroyRight { attack, health } => {
+            // Cho's Arm / Gall's Arm (M4-W1): "At the end of your turn,
+            // destroy the minion to the right to gain +A/+A." While the
+            // owner has a friendly Cho'gall (CATA_726) on the board, the
+            // destruction target moves to the ENEMY's deck (a random
+            // minion there — the "Soldiers" cards are W2+ and share the
+            // same hook, §23). The right-neighbor target is the friendly
+            // minion immediately right of the arm; the rightmost arm
+            // destroys nothing (no target, no gain).
+            let with_chogall = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "CATA_726"));
+            let destroyed = if with_chogall {
+                let enemy = owner.opponent();
+                let deck_minions: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Deck, enemy)
+                    .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                    .collect();
+                if deck_minions.is_empty() {
+                    return;
+                }
+                let idx = state.rng_mut().next_usize(deck_minions.len());
+                let victim = deck_minions[idx];
+                state.world_mut().move_to_zone(victim, Zone::Graveyard).ok();
+                true
+            } else {
+                let minions: Vec<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, owner)
+                    .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                    .collect();
+                let Some(pos) = minions.iter().position(|&e| e == source) else {
+                    return;
+                };
+                let Some(&victim) = minions.get(pos + 1) else {
+                    // Rightmost minion — no one to the right.
+                    return;
+                };
+                // The engine's destroy convention — the victim deals its
+                // own full health as damage to itself (flows through the
+                // damage pipeline and the death check).
+                let hp = state.world().effective_health(victim).unwrap_or(Health(1));
+                queue.push(Event::DamageDealt {
+                    source: victim,
+                    target: victim,
+                    amount: hp.0.max(1),
+                });
+                true
+            };
+            if destroyed {
+                resolve_gain_stats(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    attack,
+                    health,
+                    EffectTarget::Self_,
+                    explicit_target,
+                    event_subject,
+                );
+            }
+        }
+        CardEffect::AddRandomFireSpellCostsLess { reduction } => {
+            // Plume of Vulcanos (M4-W1): "Whenever this takes damage, get
+            // a random Fire spell. It costs (3) less." The Fire filter
+            // reads the quest registry's official spell-school table.
+            let spells: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Spell
+                            && crate::cards::quest::spell_school(c.id)
+                                == Some(crate::cards::quest::SpellSchool::Fire)
+                    })
+                    .collect();
+            if spells.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(spells.len());
+            if let Some(added) = add_card_to_hand(state, owner, spells[idx]) {
+                reduce_hand_card_cost(state, added, reduction);
+            }
+        }
+        CardEffect::TriggerFriendlyDeathrattles => {
+            // Ragnaros, the Great Fire (M4-W1): "At the end of your turn,
+            // trigger your minions' Deathrattles." All friendly ON-BOARD
+            // minions with a deathrattle fire it once, in play order
+            // (unlike TriggerFriendlyDeadDeathrattles — the graveyard
+            // scan — this one reads the living board; each deathrattle
+            // resolves with the minion as source, like a normal death).
+            let minions: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .filter(|&e| state.world().deathrattle(e).is_some())
+                .collect();
+            for e in minions {
+                if let Some(dr) = state.world().deathrattle(e) {
+                    resolve_effect(state, queue, e, owner, dr.0, None, None);
+                }
+            }
+        }
+        CardEffect::AddRandomMinionsCostEqualAttack { count } => {
+            // Al'Akir, Lord of Storms (M4-W1): "Battlecry: Get 2 minions
+            // with Cost equal to this minion's Attack. They cost (1)."
+            // The random pick uses the source's effective attack as the
+            // cost filter; each added minion receives the roadmap G5
+            // set-to-value cost modifier (a set — not a reduction, so a
+            // discount on the added card composes like the official
+            // "cost (1)" set).
+            let atk = state.world().effective_attack(source).map_or(0, |a| a.0);
+            for _ in 0..count.max(0) {
+                let pool: SmallList<&'static crate::cards::def::CardDef> =
+                    crate::cards::sets::ALL_CARDS
+                        .iter()
+                        .filter(|c| {
+                            c.card_type == CardType::Minion
+                                && c.cost == atk
+                                && !c.id.ends_with('t')
+                                && crate::cards::pool::in_active_window(c)
+                        })
+                        .collect();
+                let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+                    return;
+                };
+                if let Some(added) = add_card_to_hand(state, owner, def) {
+                    state.world_mut().add_cost_modifier(
+                        added,
+                        crate::core::component::CostModifier {
+                            kind: crate::core::component::CostModifierKind::Set(1),
+                        },
+                    );
+                }
+            }
+        }
+        CardEffect::GiveRandomFriendlyMinionAttack { attack } => {
+            // Magmaw's Body (M4-W1): "Deathrattle: Give a random friendly
+            // minion +2 Attack." A fixed attack enchantment on a random
+            // friendly minion (the base-attack setter of Fiendish Servant's
+            // GrantAttackToRandomFriendly does not compose with buffs, so
+            // this arm uses the enchantment layer instead).
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner);
+            let Some(target) = select_target(None, &minions, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().add_enchantment(
+                target,
+                crate::core::component::Enchantment {
+                    attack,
+                    health: 0,
+                    cost: 0,
+                    expiry: crate::core::component::EnchantmentExpiry::Permanent,
                 },
             );
         }
