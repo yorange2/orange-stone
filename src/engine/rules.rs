@@ -9,8 +9,8 @@
 
 use crate::core::action::Action;
 use crate::core::component::{
-    Attack, AttacksUsed, CardType, Cost, DarkGiftKind, Durability, EnchantmentExpiry, Health,
-    HeroPowerUsed, Secret, TriggerEvent, TriggerTiming,
+    Attack, AttacksUsed, CardType, Cost, DarkGiftKind, Durability, EnchantmentExpiry,
+    HandTurnCounter, Health, HeroPowerUsed, Secret, TriggerEvent, TriggerTiming,
 };
 use crate::core::entity::Entity;
 use crate::core::event::{Event, EventQueue, Priority};
@@ -240,6 +240,13 @@ fn validate_play_card(state: &GameState, card: Entity) -> Result<(), EngineError
         return Err(EngineError::CardNotInHand);
     }
 
+    // CantPlayNextTurn (2025–2026 expansions M4-W4 — CATA_158 Windwalker's
+    // "It can't be played next turn"): the marker survives the zone move
+    // home and blocks the play until the owner's next turn start clears it.
+    if world.cant_play_next_turn(card).is_some() {
+        return Err(EngineError::InvalidTarget);
+    }
+
     // Check mana (single cost composition — roadmap G5)
     let cost = crate::engine::cost::play_cost(state, card, active);
     if cost.0 > state.player(active).current_mana {
@@ -331,6 +338,13 @@ fn validate_attack(
         return Err(EngineError::InvalidTarget);
     }
 
+    // CantAttackThisTurn (2025–2026 expansions M4-W4 — CATA_496 Cursed
+    // Chains: "It can't attack this turn"): the temporary restriction
+    // blocks attacks until the turn-end wrap-up clears it.
+    if world.cant_attack_this_turn(attacker).is_some() {
+        return Err(EngineError::InvalidTarget);
+    }
+
     // Dormant minions cannot attack (M3-W2a).
     if world.dormant(attacker).is_some() {
         return Err(EngineError::InvalidTarget);
@@ -389,7 +403,9 @@ fn validate_attack(
 
     // Taunt check: if the enemy board has taunt minions, a taunt must be
     // attacked — unless a friendly Kayn Sunfury is on the board (Core Set
-    // W5: friendly attacks ignore Taunt)
+    // W5: friendly attacks ignore Taunt). M4-W4 — the effective-Taunt
+    // helper folds in Taunt auras (CATA_556 Carrier Whelp's
+    // other-Dragons-Taunt).
     let enemy = active.opponent();
     let kayn_sunfury = world
         .zones()
@@ -399,10 +415,10 @@ fn validate_attack(
         && world
             .zones()
             .iter(Zone::Play, enemy)
-            .any(|e| world.taunt(e).is_some() && world.dormant(e).is_none());
+            .any(|e| world.effective_taunt(e) && world.dormant(e).is_none());
     if has_taunt {
         // defender must be a taunt minion
-        if world.taunt(defender).is_none() {
+        if !world.effective_taunt(defender) {
             return Err(EngineError::MustAttackTaunt);
         }
     }
@@ -456,9 +472,14 @@ fn validate_hero_power(state: &GameState, hero: Entity) -> Result<(), EngineErro
     }
 
     // Check mana (Dreambound Disciple — M1-W4a: the next Hero Power costs
-    // (0), so the affordability check is skipped when the flag is set)
+    // (0), so the affordability check is skipped when the flag is set;
+    // M4-W4 — CATA_615t Genn's upgraded power costs (1), §26)
     let hero_power = world.hero_power(hero);
-    let cost = hero_power.map(|hp| hp.cost).unwrap_or(2);
+    let cost = if state.player(active).hero_power_cost_1 {
+        1
+    } else {
+        hero_power.map(|hp| hp.cost).unwrap_or(2)
+    };
     // M3-W2a (TIME_606 Quel'dorei Fletcher): "Your Hero Power costs (0)
     // while your hand has 3 or less cards" — the affordability check is
     // skipped when a friendly Quel'dorei is on the board and the hand is
@@ -977,6 +998,15 @@ pub fn apply_event(
                 inner.players[player.index()]
                     .minions_played_this_turn_ids
                     .clear();
+                // M4-W4 — per-turn counters reset at the owner's turn start
+                // (the mana-spent tally behind CATA_130/132/135's
+                // spend-condition arms, the spell-damage tally behind
+                // CATA_483/487, the once-per-turn spell-damage guard and
+                // the Fire-spell marker behind CATA_584).
+                inner.players[player.index()].mana_spent_this_turn = 0;
+                inner.players[player.index()].spell_damage_dealt_this_turn = 0;
+                inner.players[player.index()].first_spell_damage_gain_used = false;
+                inner.players[player.index()].fire_spell_played_this_turn = false;
             }
             // M3-W2a — Dormant countdown: at the owner's turn start each
             // dormant minion sleeps one less turn; at 0 it awakens (the
@@ -1058,6 +1088,89 @@ pub fn apply_event(
                     );
                 }
             }
+            // M4-W4 — CATA_528 Sigil of the Seas: "At the start of your
+            // next turn, summon a 3/3 Naga with Taunt" — the pending
+            // summon armed by the play resolves once at the owner's turn
+            // start.
+            if let Some(id) = state.player(player).next_turn_summon.clone() {
+                state.make_mut().players[player.index()].next_turn_summon = None;
+                let hero = state.player(player).hero;
+                trigger::resolve_summon(state, queue, hero, player, &id);
+            }
+            // M4-W4 — CATA_498 Rafaam's Last Stand: "(Upgrades each turn!)"
+            // — the hand card's in-hand turn counter ticks at each owner
+            // turn start (the effect arm reads it as bonus damage).
+            {
+                let marked: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Hand, player)
+                    .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "CATA_498"))
+                    .collect();
+                for e in marked {
+                    let cur = state
+                        .world()
+                        .hand_turn_counter(e)
+                        .unwrap_or(HandTurnCounter(0))
+                        .0;
+                    state
+                        .world_mut()
+                        .set_hand_turn_counter(e, HandTurnCounter(cur + 1));
+                }
+            }
+            // M4-W4 — CATA_615 Genn, Cursed King: "While holding this, if
+            // the rest of your hand is all even or all odd, transform into
+            // the 6/5 Worgen King." The official continuous check is
+            // approximated at each own turn start (an empty "rest" hand
+            // vacuously qualifies; the transform is permanent once
+            // triggered, §26).
+            {
+                let genn: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Hand, player)
+                    .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "CATA_615"))
+                    .collect();
+                for e in genn {
+                    let rest: Vec<Entity> = state
+                        .world()
+                        .zones()
+                        .iter(Zone::Hand, player)
+                        .filter(|&h| h != e)
+                        .collect();
+                    let all_even = rest.iter().all(|&h| {
+                        state
+                            .world()
+                            .effective_cost(h)
+                            .is_some_and(|c| c.0 % 2 == 0)
+                    });
+                    let all_odd = rest.iter().all(|&h| {
+                        state
+                            .world()
+                            .effective_cost(h)
+                            .is_some_and(|c| c.0 % 2 == 1)
+                    });
+                    if rest.is_empty() || all_even || all_odd {
+                        if let Some(def) = crate::cards::def::card_by_id("CATA_615t") {
+                            trigger::resolve_transform_to_def(state, e, def);
+                        }
+                    }
+                }
+            }
+            // M4-W4 — CantPlayNextTurn expires at the owner's turn start
+            // (CATA_186t Sabotage!'s "It can't be played until your next
+            // turn").
+            {
+                let marked: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Hand, player)
+                    .filter(|&e| state.world().cant_play_next_turn(e).is_some())
+                    .collect();
+                for e in marked {
+                    state.world_mut().remove_cant_play_next_turn(e);
+                }
+            }
             state.set_active_player(player);
             state.set_turn(new_turn);
             // Enter the start-of-turn sequence. The mana refill and the draw are
@@ -1097,7 +1210,7 @@ pub fn apply_event(
                     let p = &mut state.make_mut().players[player.index()];
                     p.lakkari_ticks -= 1;
                 }
-                trigger::resolve_discard_random(state, player);
+                trigger::resolve_discard_random(state, queue, player);
                 let board_count = state
                     .world()
                     .zones()
@@ -1248,6 +1361,21 @@ pub fn apply_event(
                     }
                 }
             }
+            // M4-W4 — CATA_480 Sandfury Aura: "Your minions' end of turn
+            // effects trigger twice. Lasts 3 turns." — each of the owner's
+            // turn ends consumes one tick (the EndTriggers step re-fires
+            // the full TurnEnd trigger set while the counter is positive).
+            if state.player(player).end_turn_effects_twice_turns > 0 {
+                let p = &mut state.make_mut().players[player.index()];
+                p.end_turn_effects_twice_turns -= 1;
+            }
+            // M4-W4 — CATA_301 Ruby Sanctum's "Your next Healing effect
+            // this turn deals damage instead" — the leftover flag clears at
+            // the owner's turn end (a backstop; the funnel already clears
+            // it on conversion).
+            if state.player(player).next_heal_deals_damage {
+                state.make_mut().players[player.index()].next_heal_deals_damage = false;
+            }
         }
         Event::CardPlayed {
             player,
@@ -1291,7 +1419,21 @@ pub fn apply_event(
                     .card_id(card)
                     .is_some_and(|c| c.0 == "CORE_ETC_523"))
                 || state.world().cost_health(card).is_some();
-            if pay_health {
+            // M4-W4 — CATA_180 War'loc: "Your next Murloc that costs
+            // (3) or less costs Health instead of Mana" — the one-time
+            // flag pays Health for the first eligible Murloc played
+            // (§26: the "next" window opens from the battlecry and the
+            // eligibility reads the play cost).
+            let war_loc = state.player(player).next_murloc_costs_health
+                && is_minion
+                && state
+                    .world()
+                    .has_race(card, crate::core::component::Race::Murloc)
+                && cost.0 <= 3;
+            if war_loc {
+                state.make_mut().players[player.index()].next_murloc_costs_health = false;
+            }
+            if pay_health || war_loc {
                 let hero = state.player(player).hero;
                 queue.push(Event::DamageDealt {
                     source: hero,
@@ -1361,11 +1503,39 @@ pub fn apply_event(
             } else {
                 None
             };
+            // M4-W4 (2025–2026 expansions, Cataclysm §26) reads captured
+            // before the player block below (the block holds the only
+            // mutable borrow): CATA_560 Confront the Tol'vir replays the
+            // 1-Cost cards played this game; CATA_557 Sylvanas's Triumph
+            // checks the played-copy flag.
+            let played_card_id = state.world().card_id(card).map(|c| c.0.to_string());
+            let is_sylvanas_triumph = played_card_id.as_deref() == Some("CATA_557");
             {
                 let inner = state.make_mut();
                 let p = &mut inner.players[player.index()];
                 if !pay_health {
                     p.current_mana -= cost.0;
+                    // "spent X Mana while holding this" cards (CATA_131
+                    // Felwood Treant / CATA_132 Broodwatcher / CATA_140
+                    // Merithra) accumulate every mana deduction here.
+                    p.mana_spent_this_turn += cost.0;
+                    // CATA_130 Crystalspine Cub "Whenever you spend your
+                    // last Mana Crystal" — flagged here, the trigger fires
+                    // after the borrow block ends (in play order).
+                    p.last_mana_crystal_spent_pending = p.current_mana == 0;
+                }
+                // CATA_616 Gronn Giant "Cost reduced by the Cost of the
+                // last card you played": recorded before the CardPlayed
+                // triggers fire (their own plays update it again).
+                p.last_played_card_cost = cost.0;
+                // CATA_560: the played 1-Cost card's id list.
+                if cost.0 == 1 {
+                    if let Some(cid) = played_card_id {
+                        p.played_one_cost_cards.push(cid);
+                    }
+                }
+                if is_sylvanas_triumph {
+                    p.sylvanas_triumph_played = true;
                 }
                 p.cards_played_this_turn += 1;
                 if is_murloc_play {
@@ -1420,6 +1590,68 @@ pub fn apply_event(
                 // Bookkeeper's copy does not loop).
                 if let Some(kindred_type) = kindred_type_played {
                     p.kindred_played.push(kindred_type);
+                }
+            }
+            // CATA_130 Crystalspine Cub "Whenever you spend your last Mana
+            // Crystal" (M4-W4, §26): the play-cost deduction set the flag —
+            // the trigger fires after the player block, in play order.
+            if state.make_mut().players[player.index()].last_mana_crystal_spent_pending {
+                state.make_mut().players[player.index()].last_mana_crystal_spent_pending = false;
+                fire_triggers(
+                    state,
+                    queue,
+                    crate::core::component::TriggerEvent::LastManaCrystalSpent,
+                    player,
+                    None,
+                    None,
+                );
+            }
+            // M4-W4 — CATA_585 Torch: "Return this to hand with any
+            // excess damage" — the die-check during the effect resolution
+            // set the pending flag; a fresh copy returns to the hand (the
+            // played entity still moves to the graveyard below, F-A11 hand
+            // cap applies — §26's die-check approximation of the excess
+            // damage return).
+            if state.player(player).torch_return_pending {
+                state.make_mut().players[player.index()].torch_return_pending = false;
+                if let Some(def) = crate::cards::def::card_by_id("CATA_585") {
+                    trigger::add_card_to_hand(state, player, def);
+                }
+            }
+            // M4-W4 — the Dragon-in-hand transform (CATA_551 Stonetalon
+            // Striker / CATA_552 Ebonscale Scout / CATA_553 Ebyssian):
+            // "While in hand, play a Dragon to become a ... Dragon!" —
+            // each transformed hand entity swaps its card id for the
+            // token id at the Dragon's play (the token def carries the
+            // new stats, race and type — §26).
+            if is_dragon {
+                let transforming: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Hand, player)
+                    .filter(|&e| {
+                        state
+                            .world()
+                            .card_id(e)
+                            .is_some_and(|c| matches!(c.0, "CATA_551" | "CATA_552" | "CATA_553"))
+                    })
+                    .collect();
+                for e in transforming {
+                    let Some(id) = state.world().card_id(e).map(|c| c.0) else {
+                        continue;
+                    };
+                    let token = match id {
+                        "CATA_551" => "CATA_551t",
+                        "CATA_552" => "CATA_552t",
+                        _ => "CATA_553t",
+                    };
+                    // The full transform (shared primitive): the token's
+                    // stats, race and keywords replace the base card's —
+                    // the Dragon form is played as its own card (6/6
+                    // Taunt for CATA_551t, and so on).
+                    if let Some(def) = crate::cards::def::card_by_id(token) {
+                        trigger::resolve_transform_to_def(state, e, def);
+                    }
                 }
             }
             // Outcast (Core Set W2): a card played from the leftmost or
@@ -1882,58 +2114,32 @@ pub fn apply_event(
                 // Card-played triggers fire in the shared section below
                 // (same as every other card type).
             } else if card_type == Some(CardType::Hero) {
-                // Hero card (Core Set W8 — Lord Jaraxxus): replace the
-                // hero. The played entity becomes the new hero: its card id
-                // stays, its health is set to the def's health (15), the
-                // armor is lost, Blood Fury is equipped, and the hero power
-                // is replaced (INFERNO!).
-                let old_hero = state.player(player).hero;
-                state
-                    .world_mut()
-                    .move_to_zone(old_hero, Zone::Graveyard)
-                    .map_err(|_| EngineError::EntityGone(old_hero))?;
-                {
-                    let new_health = state
-                        .world()
-                        .card_id(card)
-                        .and_then(|cid| crate::cards::def::card_by_id(cid.0))
-                        .map(|d| d.health)
-                        .unwrap_or(15);
-                    let world = state.world_mut();
-                    world.set_health(card, Health(new_health));
-                    world.remove_damage(card);
-                    world.set_attack(card, Attack(0));
-                    world.set_attacks_used(card, AttacksUsed(0));
-                    world.set_hero_power_used(card, crate::core::component::HeroPowerUsed(false));
-                    world.set_hero_power(
-                        card,
-                        crate::core::component::HeroPowerDef {
-                            cost: 2,
-                            effect: crate::core::effect::CardEffect::SummonMinion {
-                                card_id: "CORE_EX1_323t",
-                            },
-                        },
-                    );
-                    world.set_zone(card, Zone::Play);
-                    world.zones_mut().insert(Zone::Play, player, card);
-                }
-                {
-                    let inner = state.make_mut();
-                    inner.players[player.index()].hero = card;
-                    inner.players[player.index()].armor = 0;
-                }
-                // Equip Blood Fury (replaces the current weapon)
+                // Hero card (Core Set W8 — Lord Jaraxxus; 2025–2026
+                // expansions M4-W4 — Deathwing, Worldbreaker): replace the
+                // hero through the shared ReplaceHero primitive — the old
+                // hero entity moves to the graveyard, the played entity
+                // becomes the new hero (def health, damage and attack
+                // cleared, hero power and armor from the cards-side table,
+                // equipped weapon destroyed), then the hero's battlecry
+                // resolves (M4-W4 — Deathwing's "Choose a Cataclysm to
+                // unleash!").
+                let Some(cid) = state.world().card_id(card).map(|c| c.0) else {
+                    return Err(EngineError::EntityGone(card));
+                };
                 trigger::resolve_effect(
                     state,
                     queue,
                     card,
                     player,
-                    crate::core::effect::CardEffect::EquipWeapon {
-                        card_id: "WARLOCK_010t",
-                    },
+                    crate::core::effect::CardEffect::ReplaceHero { card_id: cid },
                     None,
                     None,
                 );
+                if let Some(def) = crate::cards::def::card_by_id(cid) {
+                    if let Some(bc) = def.battlecry {
+                        trigger::resolve_effect(state, queue, card, player, bc, None, None);
+                    }
+                }
             } else {
                 // Move the card from hand to the battlefield (summon position,
                 // roadmap G6 — 0 = leftmost)
@@ -1947,6 +2153,15 @@ pub fn apply_event(
                     world
                         .zones_mut()
                         .insert_at(Zone::Play, player, card, position as usize);
+                }
+                // M4-W4 — CATA_493 Duke of Below: the discard-scaled
+                // self-aura bakes at play with the current count.
+                if state
+                    .world()
+                    .card_id(card)
+                    .is_some_and(|c| c.0 == "CATA_493")
+                {
+                    crate::cards::bake_duke_of_below(state, card, player);
                 }
                 // Rewind (M3-W1): mark this minion as the one being played —
                 // its MinionSummoned event (also enqueued for effect summons)
@@ -2565,6 +2780,12 @@ pub fn apply_event(
                 // Stealth (roadmap F2): attacking breaks the attacker's stealth
                 world.remove_stealth(attacker);
             }
+            // M4-W4 — CATA_469 (friendly-attack counter): every attack by a
+            // friendly character bumps the attacker's side's game-long
+            // counter (consulted by the Attack-scaled arm).
+            if let Some(pid) = state.world().player(attacker) {
+                state.make_mut().players[pid.index()].friendly_attacks_this_game += 1;
+            }
 
             // Decrement weapon durability by 1 — except Gorehowl attacking a
             // minion: the attack loss (triggered above) replaces the
@@ -2665,9 +2886,32 @@ pub fn apply_event(
                     None,
                 );
             }
+            // M4-W4 — spell-damage counters and the FriendlySpellDealtDamage
+            // event: a spell source bumps the caster's per-turn counter
+            // (CATA_483 Unstable Spellcaster's "if you dealt damage with a
+            // spell this turn" battlecry) and fires the friendly-scoped
+            // event the CATA_487 Raincaller trigger rides (timing mirrors
+            // the quest progress above — the damage is dealt regardless of
+            // shield absorption).
+            if state.world().card_type(source) == Some(CardType::Spell) {
+                if let Some(pid) = state.world().player(source) {
+                    state.make_mut().players[pid.index()].spell_damage_dealt_this_turn += 1;
+                    fire_triggers(
+                        state,
+                        queue,
+                        TriggerEvent::FriendlySpellDealtDamage,
+                        pid,
+                        Some(source),
+                        None,
+                    );
+                }
+            }
             // Unified damage pipeline: immune → dormant → divine shield → armor → health → death check
-            // Immune: damage is completely ignored (the attack is still consumed)
-            if state.world().immune(target).is_some() {
+            // Immune: damage is completely ignored (the attack is still consumed).
+            // M4-W4 — CATA_613 Survivalist's Immune-while-alone aura is
+            // folded in here (the alone condition is evaluated by the
+            // helper at the consult).
+            if state.world().immune(target).is_some() || state.world().immune_while_alone(target) {
                 return Ok(());
             }
             // Dormant minions take no damage while asleep (M3-W2a).
@@ -2802,6 +3046,14 @@ pub fn apply_event(
             // as Goldrinn (before the divine-shield absorption).
             if state.world().double_damage_taken(target).is_some() {
                 amount *= 2;
+            }
+            // M4-W4 — CATA_208 Selfless Protector "takes one extra damage
+            // from all sources": the marked minion takes +1 (a permanent
+            // marker on the minion, cleared when it leaves play or dies —
+            // the move strips components; applied AFTER the doubling, like
+            // the official "+1 extra damage" stacking).
+            if state.world().bonus_damage_taken(target).is_some() {
+                amount += 1;
             }
             // Divine shield absorbs: if the target has a divine shield, remove it and zero the damage
             if state.world().divine_shield(target).is_some() {
@@ -3216,6 +3468,12 @@ pub fn apply_event(
                         inner.players[player.index()].location = None;
                     }
                     let _ = state.world_mut().move_to_zone(location, Zone::Graveyard);
+                    // M4-W4 — CATA_527 Nespirah: a destroyed Location
+                    // fires its Deathrattle ("Summon Nespirah,
+                    // Unshackled") like any other board card.
+                    if let Some(dr) = state.world().deathrattle(location) {
+                        trigger::resolve_effect(state, queue, location, player, dr.0, None, None);
+                    }
                 }
             }
             state
@@ -3229,11 +3487,20 @@ pub fn apply_event(
         } => {
             // Deduct mana (Blowtorch Saboteur — Core Set W4b: the opponent's
             // next Hero Power costs more; Dreambound Disciple — M1-W4a: the
-            // next Hero Power costs (0), one-time, consumed here)
+            // next Hero Power costs (0), one-time, consumed here; M4-W4 —
+            // CATA_615t Genn, Worgen King's "It costs (1)" flag — the
+            // upgraded-power approximation, §26)
             let mut cost = state
                 .world()
                 .hero_power(hero)
-                .map(|hp| hp.cost + state.player(player).hero_power_cost_more)
+                .map(|hp| {
+                    let base = hp.cost + state.player(player).hero_power_cost_more;
+                    if state.player(player).hero_power_cost_1 {
+                        1
+                    } else {
+                        base
+                    }
+                })
                 .unwrap_or(2 + state.player(player).hero_power_cost_more);
             // M3-W2a (TIME_606 Quel'dorei Fletcher): "Your Hero Power costs
             // (0) while your hand has 3 or less cards" — the deduction
@@ -3392,6 +3659,17 @@ pub fn apply_event(
                         // M3-W2a — Primordial Overseer TIME_213's battlecry
                         // scales with the Nature spells cast this game.
                         state.make_mut().players[player.index()].nature_spells_cast_total += 1;
+                    }
+                    // M4-W4 counters (2025–2026 expansions, Cataclysm §26):
+                    // CATA_529 Ravenous Felfisher "Costs (1) less for each
+                    // Fel spell you've cast this game" and CATA_584 Erupting
+                    // Volcano "If you've played a Fire spell this turn" —
+                    // both read at the cost / battlecry sites.
+                    crate::cards::quest::SpellSchool::Fel => {
+                        state.make_mut().players[player.index()].fel_spells_cast_this_game += 1;
+                    }
+                    crate::cards::quest::SpellSchool::Fire => {
+                        state.make_mut().players[player.index()].fire_spell_played_this_turn = true;
                     }
                     _ => {}
                 }
@@ -3857,6 +4135,145 @@ pub fn apply_event(
                         world.zones_mut().insert(Zone::Deck, player, e);
                     }
                 }
+                ChoiceKind::Cataclysm => {
+                    // Deathwing's battlecry (M4-W4 — the C4 primitive): the
+                    // pool holds the four data-defined Cataclysm spell ids;
+                    // the pick resolves the Cataclysm's spell effect and is
+                    // recorded in `Player::pending_cataclysms` so the choice
+                    // re-surfaces (herald-scaled count of distinct picks)
+                    // with the picked options removed.
+                    let player = state
+                        .world()
+                        .player(pending.card)
+                        .unwrap_or(state.active_player());
+                    let Some((picks_left, picked)) =
+                        state.player(player).pending_cataclysms.clone()
+                    else {
+                        return Ok(());
+                    };
+                    let Some(card_id) = pending.pool.get(option as usize) else {
+                        return Ok(());
+                    };
+                    if let Some(def) = crate::cards::def::card_by_id(card_id) {
+                        if let Some(effect) = def.spell_effect {
+                            trigger::resolve_effect(
+                                state,
+                                queue,
+                                pending.card,
+                                player,
+                                effect,
+                                None,
+                                None,
+                            );
+                        }
+                    }
+                    let mut picked = picked;
+                    picked.push(card_id.clone());
+                    let remaining = picks_left.saturating_sub(1);
+                    if remaining > 0 {
+                        let reduced: Vec<String> = pending
+                            .pool
+                            .iter()
+                            .filter(|id| !picked.iter().any(|p| p == *id))
+                            .cloned()
+                            .collect();
+                        state.make_mut().players[player.index()].pending_cataclysms =
+                            Some((remaining, picked));
+                        state.set_pending_choice_repeat(
+                            ChoiceKind::Cataclysm,
+                            pending.card,
+                            reduced.clone(),
+                            reduced,
+                            false,
+                            remaining as u8,
+                        );
+                    } else {
+                        state.make_mut().players[player.index()].pending_cataclysms = None;
+                    }
+                }
+                ChoiceKind::ChooseHandCard => {
+                    // M4-W4 — choose a card in the player's hand (the
+                    // options are the hand card ids in hand order); the
+                    // pending kind stashed by the effect arm applies to the
+                    // picked hand entity.
+                    let player = state
+                        .world()
+                        .player(pending.card)
+                        .unwrap_or(state.active_player());
+                    let Some(kind) = state.player(player).pending_choose_hand else {
+                        return Ok(());
+                    };
+                    state.make_mut().players[player.index()].pending_choose_hand = None;
+                    let Some(picked_id) = pending.pool.get(option as usize) else {
+                        return Ok(());
+                    };
+                    let hand: Vec<Entity> =
+                        state.world().zones().iter(Zone::Hand, player).collect();
+                    let Some(picked) = hand.iter().copied().find(|&e| {
+                        state
+                            .world()
+                            .card_id(e)
+                            .is_some_and(|c| c.0 == picked_id.as_str())
+                    }) else {
+                        return Ok(());
+                    };
+                    trigger::resolve_choose_hand_card(
+                        state,
+                        queue,
+                        pending.card,
+                        player,
+                        kind,
+                        picked,
+                    );
+                }
+                ChoiceKind::DiscoverDeckDestroyRest => {
+                    // Commander Geddon (M4-W4): the DrawStep hook surfaces
+                    // this choice instead of the turn's draw; the pool
+                    // holds deck card ids. The picked card's EXISTING
+                    // entity moves to hand with a (3) reduction; the
+                    // unpicked pool entries are destroyed (§26 — the
+                    // destroy scope is the two unpicked Discover options).
+                    let player = state
+                        .world()
+                        .player(pending.card)
+                        .unwrap_or(state.active_player());
+                    let Some(picked_id) = pending.pool.get(option as usize) else {
+                        return Ok(());
+                    };
+                    let deck: Vec<Entity> = state
+                        .world()
+                        .zones()
+                        .iter(Zone::Deck, player)
+                        .filter(|&e| {
+                            state
+                                .world()
+                                .card_id(e)
+                                .is_some_and(|c| c.0 == picked_id.as_str())
+                        })
+                        .collect();
+                    let Some(picked) = deck.first().copied() else {
+                        return Ok(());
+                    };
+                    let _ = state.world_mut().move_to_zone(picked, Zone::Hand);
+                    let cur = state.world().effective_cost(picked).unwrap_or(Cost(0)).0;
+                    state.world_mut().set_cost(picked, Cost((cur - 3).max(0)));
+                    for id in &pending.pool {
+                        if id == picked_id {
+                            continue;
+                        }
+                        let doomed: Vec<Entity> = state
+                            .world()
+                            .zones()
+                            .iter(Zone::Deck, player)
+                            .filter(|&e| {
+                                state.world().card_id(e).is_some_and(|c| c.0 == id.as_str())
+                            })
+                            .collect();
+                        for e in doomed {
+                            let _ = state.world_mut().move_to_zone(e, Zone::Graveyard);
+                        }
+                    }
+                }
                 ChoiceKind::Mulligan => {
                     // Opening mulligan (roadmap G7): "Keep all" (option 0) or
                     // replace the chosen starting card — the card returns to the
@@ -4006,7 +4423,36 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
                 .zones()
                 .iter(Zone::Play, active)
                 .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_617"));
-            if !skip_draw {
+            // M4-W4 — CATA_591 Commander Geddon: "Instead of drawing each
+            // turn, Discover a card from your deck. It costs (3) less.
+            // Destroy the others." — while the battlecry-set flag rides the
+            // player, the DrawStep surfaces a DiscoverDeckDestroyRest choice
+            // over 3 distinct deck card ids (sampled with the embedded RNG;
+            // the picked entity moves to hand at (3) less, the unpicked
+            // options are destroyed at resolution — §26).
+            if state.player(active).geddon_discover_draw {
+                let mut ids: Vec<String> = Vec::new();
+                for e in state.world().zones().iter(Zone::Deck, active) {
+                    if let Some(c) = state.world().card_id(e) {
+                        if !ids.iter().any(|s| s.as_str() == c.0) {
+                            ids.push(c.0.to_string());
+                        }
+                    }
+                }
+                for i in (1..ids.len()).rev() {
+                    let j = state.rng_mut().next_usize(i + 1);
+                    ids.swap(i, j);
+                }
+                ids.truncate(3);
+                if !ids.is_empty() {
+                    state.set_pending_choice(
+                        ChoiceKind::DiscoverDeckDestroyRest,
+                        state.player(active).hero,
+                        ids.clone(),
+                        ids,
+                    );
+                }
+            } else if !skip_draw {
                 trigger::draw_card(state, queue, active);
             }
             state.set_step(Step::Main);
@@ -4058,6 +4504,13 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
                     active,
                     "TIME_700t",
                 );
+            }
+            // M4-W4 — CATA_480 Sandfury Aura: "Your minions' end of turn
+            // effects trigger twice. Lasts 3 turns." — while the counter
+            // is positive the full TurnEnd trigger set fires a second time
+            // (the TurnEnded handler consumes one tick per own turn end).
+            if state.player(active).end_turn_effects_twice_turns > 0 {
+                fire_triggers(state, queue, TriggerEvent::TurnEnd, active, None, None);
             }
             state.set_step(Step::WrapUp);
             true
@@ -4427,6 +4880,17 @@ fn wrap_up_turn(state: &mut GameState) {
         if p.hero_lifesteal_this_turn {
             inner.world.remove_lifesteal(p.hero);
             p.hero_lifesteal_this_turn = false;
+        }
+        // CATA_496 Cursed Chains' "It can't attack this turn" marker
+        // expires at the wrap-up step (M4-W4 — both players' entities:
+        // the controlled minion sits on the active player's board).
+        let cant_attack_now: SmallList<Entity> = inner
+            .world
+            .iter_cant_attack_this_turn()
+            .map(|(e, _)| e)
+            .collect();
+        for &e in cant_attack_now.iter() {
+            inner.world.remove_cant_attack_this_turn(e);
         }
     }
     // Return temporarily controlled minions (Shadow Madness — until end of turn)

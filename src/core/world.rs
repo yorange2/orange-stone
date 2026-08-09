@@ -10,14 +10,14 @@
 use serde::{Deserialize, Serialize};
 
 use crate::core::component::{
-    Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, CantAttack,
-    CantAttackHeroesThisTurn, CardId, CardType, Charge, ChooseOneEffect, ColossalMain,
-    ColossalPart, ComboEffect, Cost, CostHealth, CostModifier, CostModifierKind, Damage,
-    DarkGiftKind, Deathrattle, DivineShield, Dormant, DoubleDamageTaken, Durability, Elusive,
-    Enchantment, Enrage, Freeze, Health, HeroPowerDef, HeroPowerUsed, Immune, Lifesteal,
-    OutcastPlayed, Overload, PlayedThisTurn, Poison, Quest, Race, Reborn, Rush, Secret,
-    SpellDamage, Stealth, SummonedThisTurn, Taunt, Temporary, Tradeable, Trigger, TurnCostReducer,
-    Windfury,
+    Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, BonusDamageTaken, CantAttack,
+    CantAttackHeroesThisTurn, CantAttackThisTurn, CantPlayNextTurn, CardId, CardType, Charge,
+    ChooseOneEffect, ColossalMain, ColossalPart, ComboEffect, Cost, CostHealth, CostModifier,
+    CostModifierKind, Damage, DarkGiftKind, Deathrattle, DivineShield, Dormant, DoubleDamageTaken,
+    Durability, Elusive, Enchantment, Enrage, Freeze, HandTurnCounter, Health, HeroPowerDef,
+    HeroPowerUsed, Immune, Lifesteal, MegaWindfury, OutcastPlayed, Overload, PlayedThisTurn,
+    Poison, Quest, Race, Reborn, Rush, Secret, SpellDamage, Stealth, SummonedThisTurn, Taunt,
+    Temporary, Tradeable, Trigger, TurnCostReducer, Windfury,
 };
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
@@ -199,12 +199,27 @@ pub struct World {
     /// CantAttackHeroesThisTurn storage (2025–2026 expansions M3-W2a) —
     /// minions that may attack minions but not the enemy hero this turn.
     cant_attack_heroes_this_turn: SparseSet<CantAttackHeroesThisTurn>,
+    /// CantAttackThisTurn storage (2025–2026 expansions M4-W4) — minions
+    /// that cannot attack at all this turn (CATA_496 Cursed Chains).
+    cant_attack_this_turn: SparseSet<CantAttackThisTurn>,
     /// TurnCostReducer storage (2025–2026 expansions M3-W2a) — hand cards
     /// that cost (1) less per own turn start (Circadiamancer).
     turn_cost_reducer: SparseSet<TurnCostReducer>,
     /// DoubleDamageTaken storage (2025–2026 expansions M3-W2a) — marked
     /// characters take double damage (Temporal Construct).
     double_damage_taken: SparseSet<DoubleDamageTaken>,
+    /// BonusDamageTaken storage (2025–2026 expansions M4-W4) — marked
+    /// minions take +1 damage from the next damage event (Morchok).
+    bonus_damage_taken: SparseSet<BonusDamageTaken>,
+    /// CantPlayNextTurn storage (2025–2026 expansions M4-W4) — hand cards
+    /// that cannot be played until the owner's next turn (Sabotage!).
+    cant_play_next_turn: SparseSet<CantPlayNextTurn>,
+    /// HandTurnCounter storage (2025–2026 expansions M4-W4) — hand cards
+    /// counting the turns spent in the owner's hand (Rafaam's Last Stand).
+    hand_turn_counter: SparseSet<HandTurnCounter>,
+    /// MegaWindfury storage (2025–2026 expansions M4-W4) — minions with
+    /// the Mega-Windfury keyword (four attacks per turn).
+    mega_windfury: SparseSet<MegaWindfury>,
     /// CostHealth marker storage (2025–2026 expansions M2-W4a) — hand
     /// cards that cost Health instead of Mana (Whispering Stone's gotten
     /// Fel spells).
@@ -290,7 +305,14 @@ impl AuraIndex {
             // M4-W1 — Azshara's hero-windfury marker rides the attack
             // bucket like GrantCharge (a unit marker; `max_attacks`
             // consults it).
-            | AuraEffect::GrantWindfury => self.attack[oi].push((entity, aura)),
+            | AuraEffect::GrantWindfury
+            // M4-W4 — unit markers: GrantTaunt (CATA_556 Carrier Whelp's
+            // other-Dragons-Taunt; consulted by the effective-Taunt
+            // helper) and ImmuneWhileAlone (CATA_613 Survivalist's
+            // self-Immune; consulted by the damage pipeline) ride the
+            // attack bucket like GrantCharge.
+            | AuraEffect::GrantTaunt
+            | AuraEffect::ImmuneWhileAlone => self.attack[oi].push((entity, aura)),
             AuraEffect::GainHealth(_) => self.health[oi].push((entity, aura)),
             AuraEffect::ReduceSpellCost(_)
             | AuraEffect::ReduceMinionCost { .. }
@@ -359,6 +381,11 @@ impl World {
             cant_attack_heroes_this_turn: SparseSet::new(),
             turn_cost_reducer: SparseSet::new(),
             double_damage_taken: SparseSet::new(),
+            bonus_damage_taken: SparseSet::new(),
+            cant_attack_this_turn: SparseSet::new(),
+            cant_play_next_turn: SparseSet::new(),
+            hand_turn_counter: SparseSet::new(),
+            mega_windfury: SparseSet::new(),
             cost_health: SparseSet::new(),
             played_this_turn: SparseSet::new(),
             colossal_part: SparseSet::new(),
@@ -448,8 +475,13 @@ impl World {
         self.temporary.remove(entity);
         self.dormant.remove(entity);
         self.cant_attack_heroes_this_turn.remove(entity);
+        self.cant_attack_this_turn.remove(entity);
         self.turn_cost_reducer.remove(entity);
         self.double_damage_taken.remove(entity);
+        self.bonus_damage_taken.remove(entity);
+        self.cant_play_next_turn.remove(entity);
+        self.hand_turn_counter.remove(entity);
+        self.mega_windfury.remove(entity);
         self.colossal_part.remove(entity);
         self.colossal_main.remove(entity);
         // Bump the generation
@@ -1035,6 +1067,14 @@ impl World {
         iter_cant_attack_heroes_this_turn
     );
     component_accessors!(
+        cant_attack_this_turn,
+        CantAttackThisTurn,
+        cant_attack_this_turn,
+        set_cant_attack_this_turn,
+        remove_cant_attack_this_turn,
+        iter_cant_attack_this_turn
+    );
+    component_accessors!(
         turn_cost_reducer,
         TurnCostReducer,
         turn_cost_reducer,
@@ -1049,6 +1089,38 @@ impl World {
         set_double_damage_taken,
         remove_double_damage_taken,
         iter_double_damage_taken
+    );
+    component_accessors!(
+        bonus_damage_taken,
+        BonusDamageTaken,
+        bonus_damage_taken,
+        set_bonus_damage_taken,
+        remove_bonus_damage_taken,
+        iter_bonus_damage_taken
+    );
+    component_accessors!(
+        cant_play_next_turn,
+        CantPlayNextTurn,
+        cant_play_next_turn,
+        set_cant_play_next_turn,
+        remove_cant_play_next_turn,
+        iter_cant_play_next_turn
+    );
+    component_accessors!(
+        hand_turn_counter,
+        HandTurnCounter,
+        hand_turn_counter,
+        set_hand_turn_counter,
+        remove_hand_turn_counter,
+        iter_hand_turn_counter
+    );
+    component_accessors!(
+        mega_windfury,
+        MegaWindfury,
+        mega_windfury,
+        set_mega_windfury,
+        remove_mega_windfury,
+        iter_mega_windfury
     );
     component_accessors!(
         cost_health,
@@ -1175,6 +1247,62 @@ impl World {
         false
     }
 
+    /// Whether an entity effectively has Taunt — its base Taunt component or
+    /// an applying Taunt aura (2025–2026 expansions M4-W4 — CATA_556
+    /// Carrier Whelp: "Your other Dragons have Taunt"). Consulted by the
+    /// attack-target validation; mirrors the `effective_charge` scan.
+    #[must_use]
+    pub fn effective_taunt(&self, entity: Entity) -> bool {
+        if self.taunt(entity).is_some() {
+            return true;
+        }
+        let Some(player) = self.player(entity) else {
+            return false;
+        };
+        for owner in [player, player.opponent()] {
+            for (source, aura) in &self.aura_index.attack[owner.index()] {
+                if aura.effect == crate::core::component::AuraEffect::GrantTaunt
+                    && aura_applies_to(aura, *source, owner, entity, player, self)
+                {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    /// Whether an entity is Immune through an applying ImmuneWhileAlone
+    /// aura (2025–2026 expansions M4-W4 — CATA_613 Survivalist: "While you
+    /// control no other minions, this has Immune"). The "alone" condition
+    /// is evaluated at this consult: the aura source's owner controls no
+    /// other living minions besides the source (dormant minions have no
+    /// board presence, M3-W2a).
+    #[must_use]
+    pub fn immune_while_alone(&self, entity: Entity) -> bool {
+        let Some(player) = self.player(entity) else {
+            return false;
+        };
+        for (source, aura) in &self.aura_index.attack[player.index()] {
+            if aura.effect != crate::core::component::AuraEffect::ImmuneWhileAlone {
+                continue;
+            }
+            let others = self
+                .zones()
+                .iter(crate::core::zone::Zone::Play, player)
+                .filter(|&e| {
+                    e != *source
+                        && self.card_type(e) == Some(crate::core::component::CardType::Minion)
+                        && self.is_alive(e)
+                        && self.dormant(e).is_none()
+                })
+                .count();
+            if others == 0 && aura_applies_to(aura, *source, player, entity, player, self) {
+                return true;
+            }
+        }
+        false
+    }
+
     /// Whether an entity currently sits below its maximum Health.
     ///
     /// This is the Enrage condition. Accumulated damage is the only thing that
@@ -1199,6 +1327,11 @@ impl World {
     /// the worgen is damaged.
     #[must_use]
     pub fn max_attacks(&self, entity: Entity) -> u8 {
+        // M4-W4 — Mega-Windfury (CATA_484 Colossal Claw's granted
+        // keyword): four attacks per turn.
+        if self.mega_windfury(entity).is_some() {
+            return 4;
+        }
         let enraged_windfury = self.active_enrage(entity).is_some_and(|e| e.windfury);
         if self.windfury(entity).is_some() || enraged_windfury {
             return 2;
@@ -1221,7 +1354,11 @@ impl World {
         1
     }
 
-    /// Get the total friendly spell damage on the board.
+    /// Get the total friendly spell damage — on-board minions plus hand and
+    /// deck SPELLS carrying a SpellDamage component (2025–2026 expansions
+    /// M4-W4 — CATA_458 Archmage Kalec "Give all spells in your hand and
+    /// deck Spell Damage +1" and CATA_209 Battlefield Blaster's chosen hand
+    /// spell; the component rides the spell entity across zones, §26).
     #[must_use]
     pub fn total_spell_damage(&self, player: PlayerId) -> i32 {
         use crate::core::zone::Zone;
@@ -1454,6 +1591,9 @@ fn aura_applies_to(
         }
         AuraTarget::AllEnemyMinions => target_player != aura_player,
         AuraTarget::FriendlyHero => false,
+        // M4-W4 — CATA_493 Duke of Below / CATA_613 Survivalist: the aura
+        // only reaches its own source.
+        AuraTarget::Self_ => target == aura_source && target_player == aura_player,
     }
 }
 
@@ -1497,6 +1637,9 @@ const fn aura_attack_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::DoubleTriggers => 0,
         AuraEffect::RewindKeepsBothOutcomes => 0,
         AuraEffect::GrantWindfury => 0,
+        // M4-W4 — unit markers (GrantTaunt, ImmuneWhileAlone) grant no stats.
+        AuraEffect::GrantTaunt => 0,
+        AuraEffect::ImmuneWhileAlone => 0,
     }
 }
 
@@ -1517,6 +1660,9 @@ const fn aura_health_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::DoubleTriggers => 0,
         AuraEffect::RewindKeepsBothOutcomes => 0,
         AuraEffect::GrantWindfury => 0,
+        // M4-W4 — unit markers (GrantTaunt, ImmuneWhileAlone) grant no stats.
+        AuraEffect::GrantTaunt => 0,
+        AuraEffect::ImmuneWhileAlone => 0,
     }
 }
 
@@ -1583,7 +1729,11 @@ mod tests {
                 | AuraEffect::RewindKeepsBothOutcomes
                 // M4-W1 — Azshara's hero-Windfury aura (attack bucket;
                 // max_attacks consults it).
-                | AuraEffect::GrantWindfury => idx.attack[oi].push((source, *aura)),
+                | AuraEffect::GrantWindfury
+                // M4-W4 — unit markers (GrantTaunt, ImmuneWhileAlone) ride
+                // the attack bucket like GrantCharge.
+                | AuraEffect::GrantTaunt
+                | AuraEffect::ImmuneWhileAlone => idx.attack[oi].push((source, *aura)),
                 AuraEffect::GainHealth(_) => idx.health[oi].push((source, *aura)),
                 AuraEffect::ReduceSpellCost(_)
                 | AuraEffect::ReduceMinionCost { .. }

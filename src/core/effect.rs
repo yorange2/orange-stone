@@ -37,6 +37,10 @@ pub enum EffectTarget {
     FriendlyMinion,
     /// A random friendly minion other than the effect source (Young Priestess)
     OtherFriendlyMinion,
+    /// All friendly minions other than the effect source (2025–2026
+    /// expansions M4-W4 — CATA_133 Iridescent Flitterwing's end-of-turn
+    /// "give your other minions +1/+1")
+    AllOtherFriendlyMinions,
     /// A random enemy Taunt minion
     TauntEnemyMinion,
     /// The entity the triggering event happened to (Sword of Justice — the
@@ -159,6 +163,9 @@ pub enum DiscoverPool {
     /// Any Demon costing (5) or more from the past (2025–2026 expansions
     /// M3-W2b — TIME_446 The Eternal Hold; full-catalog like SpellCostGE8)
     DemonCostGE5,
+    /// A spell that costs (1) (2025–2026 expansions M4-W4 — CATA_484
+    /// Winter's Answer; the pool spans the whole active window, §26)
+    OneCostSpell,
 }
 
 /// Card effect — an action executed when triggered.
@@ -1792,7 +1799,9 @@ pub enum CardEffect {
         /// Cost reduction
         reduction: u8,
     },
-    /// Summon a copy of the player's own minion (Bloodthistle Illusionist)
+    /// Summon a copy of the player's own minion (Bloodthistle Illusionist;
+    /// also 2025–2026 expansions M4-W4 — CATA_586 Destructive Blaze's
+    /// "after this survives damage, summon a copy" trigger).
     SummonCopyOfSelf,
     /// Destroy a friendly Wisp to draw the given number of cards
     /// (Divination — the engine's Wisp is the EDR_851t token)
@@ -3935,6 +3944,522 @@ pub enum CardEffect {
     /// simplification, the Mask-pool convention, §25; the gotten card is
     /// the combined playable form).
     AddRandomShatterCardToHand,
+    /// Replace the owner's hero with a fresh copy of `card_id` (2025–2026
+    /// expansions M4-W4 — the hero-replacement primitive, pays the M2 §15
+    /// Master Dusk "when real" note). The old hero entity moves to the
+    /// graveyard; the new hero's health is the def's, accumulated damage
+    /// and attack are cleared, the hero power comes from the def (or the
+    /// cards-side table), the equipped weapon is destroyed, and the old
+    /// hero's enchantments are left behind with it.
+    ReplaceHero {
+        /// Card ID of the replacement hero (a `CardType::Hero` def)
+        card_id: &'static str,
+    },
+    /// "Choose a Cataclysm to unleash!" (2025–2026 expansions M4-W4 —
+    /// CATA_190h Deathwing, Worldbreaker's battlecry). Surfaces a
+    /// `ChoiceKind::Cataclysm` pending choice whose option count is the
+    /// herald tier — `herald_number(1, herald_count)`: 1 pick at counter
+    /// 0–1, 2 at 2–3, 4 at 4+ ("Herald twice to upgrade"). Distinct
+    /// picks: each resolution re-surfaces the choice with the picked
+    /// Cataclysm removed from the pool.
+    ChooseCataclysms,
+    /// "Choose a card in your hand" (2025–2026 expansions M4-W4 — the
+    /// shared hand-pick machinery of CATA_200/209/477/490/563/566/697/
+    /// 721/897/979). Surfaces a `ChoiceKind::ChooseHandCard` pending
+    /// choice whose pool is the owner's hand card ids; the resolution
+    /// dispatches to the cards-side `choose_hand_card` table keyed by the
+    /// source card id (the Agent-of-the-Old-Ones convention).
+    ChooseHandCard,
+    /// Refresh Mana Crystals if the owner is holding a Dragon (2025–2026
+    /// expansions M4-W4 — CATA_111 Darkscale Broodmother's "if you're
+    /// holding a Dragon, refresh 2 Mana Crystals").
+    RefreshManaIfHoldingDragon {
+        /// Mana refreshed when holding a Dragon
+        amount: i32,
+    },
+    /// Gain a temporary Mana Crystal — permanent if the owner spent the
+    /// threshold Mana while holding this card (2025–2026 expansions M4-W4
+    /// — CATA_131 Felwood Treant. Registered: the official "while holding
+    /// this" accumulation is approximated by the per-turn spent counter,
+    /// §26).
+    GainTempManaOrPermanentIfSpent {
+        /// Mana spent this turn that makes the crystal permanent
+        threshold: i32,
+    },
+    /// Get two 3/3 Taunt Whelps — summon them instead if the owner spent
+    /// the threshold Mana while holding this (2025–2026 expansions M4-W4
+    /// — CATA_132 Broodwatcher; the spent-while-holding approximation of
+    /// GainTempManaOrPermanentIfSpent, §26).
+    GetOrSummonTauntWhelpsIfSpent {
+        /// Mana spent this turn that summons instead of getting
+        threshold: i32,
+    },
+    /// Summon two 1/2 Golems, then spend all the owner's Mana to give
+    /// them +1/+1 for each Mana spent (2025–2026 expansions M4-W4 —
+    /// CATA_135 Mossbinding).
+    SummonGolemsSpendAllMana,
+    /// Shuffle 5 random minions that cost (8) or more into the deck with
+    /// doubled stats (2025–2026 expansions M4-W4 — CATA_136 Azshara's
+    /// Triumph; the shuffled copies carry a doubled-stats enchantment).
+    ShuffleRandomMinionsCostGE8DoubleStats,
+    /// Give a friendly minion +1/+1 for each minion the owner controls
+    /// (2025–2026 expansions M4-W4 — CATA_138 Forest's Gift; the
+    /// targeted version of GainStatsPerFriendlyMinion — the count
+    /// includes the target itself).
+    GainStatsPerFriendlyMinionTargeted,
+    /// Fill the owner's hand with random Dragons; if the owner spent the
+    /// threshold Mana while holding this, they cost (1) (2025–2026
+    /// expansions M4-W4 — CATA_140 Merithra of the Dream; the
+    /// spent-while-holding approximation of §26).
+    FillHandWithRandomDragons {
+        /// Mana spent this turn that makes the Dragons cost (1)
+        threshold: i32,
+    },
+    /// Give a friendly minion on the battlefield Attack equal to the
+    /// source's Attack (2025–2026 expansions M4-W4 — CATA_161 Gruesome
+    /// Nightmare. Registered: the official "minion in your hand or
+    /// battlefield" target set is approximated by the battlefield side,
+    /// §26).
+    SetAttackEqualToSource,
+    /// The owner's next Murloc that costs (3) or less costs Health
+    /// instead of Mana (2025–2026 expansions M4-W4 — CATA_180 War'loc;
+    /// the one-time flag is consumed by the next eligible Murloc play,
+    /// the CostHealth convention, §26).
+    NextMurlocCostsHealth,
+    /// Transform a random enemy minion into a copy of the source
+    /// (2025–2026 expansions M4-W4 — CATA_185 Faceless Replicator's
+    /// deathrattle. Registered: the official "the minion that killed
+    /// this" killer-identification is unmodeled — the deathrattle hits a
+    /// random enemy minion instead, §26).
+    TransformRandomEnemyMinionToSelf,
+    /// Give the opponent a 2-Cost Sabotage (2025–2026 expansions M4-W4 —
+    /// CATA_186 Stickybomb Saboteur. Registered: the official "cards
+    /// next to it cost (1) more" hand-adjacency aura is unmodeled — the
+    /// gotten Sabotage is a blank 2-cost spell, §26).
+    GiveOpponentSabotage,
+    /// Return an enemy minion to its owner's hand; it can't be played
+    /// next turn (2025–2026 expansions M4-W4 — CATA_215 Daze; the
+    /// returned entity carries the CantPlayNextTurn marker, cleared at
+    /// the owner's turn end).
+    ReturnEnemyMinionCantPlayNextTurn,
+    /// The owner's healing effects restore `amount` more Health this game
+    /// (2025–2026 expansions M4-W4 — CATA_216 Cleansing Cleric; the
+    /// permanent heal bonus is added by the heal pipeline).
+    SetHealingBonus {
+        /// Bonus Health restored by every friendly heal
+        amount: i32,
+    },
+    /// The owner's next Healing effect this turn deals damage instead
+    /// (2025–2026 expansions M4-W4 — CATA_301 Ruby Sanctum; the flag is
+    /// consumed by the next friendly heal and cleared at turn end).
+    SetNextHealDealsDamage,
+    /// Restore a minion to full Health, then draw a card (2025–2026
+    /// expansions M4-W4 — CATA_302 Mend).
+    FullHealMinionAndDraw,
+    /// Deal `amount` damage to a minion; if it dies, restore `amount`
+    /// Health to the enemy hero (2025–2026 expansions M4-W4 — CATA_303
+    /// Purifying Breath; the kill check runs after the damage resolves).
+    DamageMinionHealEnemyHeroIfKilled {
+        /// Damage dealt to the minion (and the heal on its death)
+        amount: i32,
+    },
+    /// Lifesteal Battlecry — deal `amount` damage to the source and heal
+    /// the owner's hero for the same amount (2025–2026 expansions M4-W4 —
+    /// CATA_304 Injured Attendant; registered: the official lifesteal
+    /// heals for the damage actually dealt, simplified to the exact
+    /// amount, §26).
+    LifestealSelfDamage {
+        /// Damage dealt to the source
+        amount: i32,
+    },
+    /// At the end of the owner's turn, if the source is at full Health,
+    /// gain `amount` Health (2025–2026 expansions M4-W4 — CATA_305
+    /// Incensed Matriarch's end-of-turn effect).
+    GainHealthIfFullHealth {
+        /// Health gained at full Health
+        amount: i32,
+    },
+    /// Set the owner's remaining Health to `health`; when the hero next
+    /// reaches full Health, deal `damage` to the opponent (2025–2026
+    /// expansions M4-W4 — CATA_307 Alexstrasza, Guardian of Life; the
+    /// full-Health watcher is a player flag consumed by the heal
+    /// pipeline's FriendlyHeroHealedToFull event).
+    SetRemainingHealthAndFullHealDamage {
+        /// Health the owner's hero is set to
+        health: i32,
+        /// Damage dealt to the opponent when the hero reaches full Health
+        damage: i32,
+    },
+    /// Give all spells in the owner's hand and deck Spell Damage +1
+    /// (2025–2026 expansions M4-W4 — CATA_458 Archmage Kalec; the spell
+    /// entities carry the SpellDamage component, which the cast pipeline
+    /// adds to the damage).
+    BuffSpellDamageHandAndDeck,
+    /// Get a 2-Cost spell that deals the source's Attack damage
+    /// (2025–2026 expansions M4-W4 — CATA_464 Blackwing Experiment's
+    /// deathrattle; the source's Attack is stashed in the player's
+    /// `dragon_breath_damage` flag, read by DealDamageEqualDragonBreath —
+    /// the baked-value convention, §26).
+    AddDragonBreathScaledByAttack,
+    /// Deal damage equal to the player's stashed `dragon_breath_damage`
+    /// (2025–2026 expansions M4-W4 — CATA_464t Dragon Breath's spell
+    /// effect; the flag is set by AddDragonBreathScaledByAttack).
+    DealDamageEqualDragonBreath,
+    /// Summon five 5/4 Undead Drakes; if the owner has 8 Corpses, spend
+    /// them to give the Drakes Rush (2025–2026 expansions M4-W4 —
+    /// CATA_465 Chow Down).
+    SummonFiveHungryDrakesSpendCorpsesRush,
+    /// Refresh Mana Crystals equal to the source's Attack (2025–2026
+    /// expansions M4-W4 — CATA_469 Chromatic Broodmother's "whenever this
+    /// attacks" trigger effect).
+    RefreshManaEqualSelfAttack,
+    /// Get the crafted Undead Dragon; if the owner is holding a Dragon,
+    /// reduce its Cost by `reduction` (2025–2026 expansions M4-W4 —
+    /// CATA_470 Victor Nefarius. Registered: the official "craft a custom
+    /// Undead Dragon" choice is fixed to the Nefarian's Creation token,
+    /// §26).
+    AddNefariansCreation {
+        /// Cost reduction when holding a Dragon
+        reduction: i32,
+    },
+    /// Give every friendly minion "Deathrattle: summon a random minion
+    /// that costs `cost`" (2025–2026 expansions M4-W4 — CATA_471
+    /// Talanji's Last Stand; the Soul-of-the-Forest grant convention).
+    GrantDeathrattleSummonRandomCostMinion {
+        /// Cost of the deathrattle-summoned minion
+        cost: i32,
+    },
+    /// Trigger a random friendly minion's end-of-turn effect once
+    /// (2025–2026 expansions M4-W4 — CATA_472 Inspiring Maul's
+    /// deathrattle; the triggered effect is the target's TurnEnd trigger
+    /// effect, resolved with the target as the source).
+    TriggerRandomFriendlyEndTurnEffect,
+    /// Give every friendly minion Divine Shield; any that already had one
+    /// gain +A/+H instead (2025–2026 expansions M4-W4 — CATA_473
+    /// Nozdormu, Bronze Aspect's end-of-turn effect).
+    GrantDivineShieldOrGainStats {
+        /// Attack gained by minions that already had Divine Shield
+        attack: i32,
+        /// Health gained by minions that already had Divine Shield
+        health: i32,
+    },
+    /// Get a random Holy spell; reduce its Cost by `reduction`
+    /// (2025–2026 expansions M4-W4 — CATA_474 Spearheart Sentry's
+    /// end-of-turn effect).
+    AddRandomHolySpellCostReduced {
+        /// Cost reduction for the added spell
+        reduction: i32,
+    },
+    /// Summon a Dragon with stats equal to the source's (2025–2026
+    /// expansions M4-W4 — CATA_478 Bronze Redeemer's end-of-turn effect;
+    /// the token carries a copied-stats enchantment).
+    SummonDragonWithSelfStats,
+    /// The owner's minions' end-of-turn effects trigger twice, for
+    /// `turns` turns (2025–2026 expansions M4-W4 — CATA_480 Sandfury
+    /// Aura; the tick counter is consumed by the owner's turn ends).
+    SetEndTurnEffectsTwice {
+        /// Number of turns the doubling lasts
+        turns: u32,
+    },
+    /// Devour 2 random cards from the opponent's hand, then the source
+    /// goes Dormant for 2 turns (2025–2026 expansions M4-W4 — CATA_481
+    /// Iso'rath's battlecry; the devoured entities are stashed in the
+    /// player's `devoured_cards` list, returned by
+    /// ReturnDevouredCards).
+    DevourTwoEnemyHandCardsAndDormant,
+    /// Return the devoured cards to the opponent's hand (2025–2026
+    /// expansions M4-W4 — CATA_481 Iso'rath's deathrattle).
+    ReturnDevouredCards,
+    /// If the owner dealt damage with a spell this turn, summon a copy of
+    /// the source (2025–2026 expansions M4-W4 — CATA_483 Unstable
+    /// Spellcaster's battlecry).
+    SummonCopyIfSpellDamageDealtThisTurn,
+    /// Deal `amount` damage to a character, then deal `secondary` damage
+    /// to a random enemy minion (2025–2026 expansions M4-W4 — CATA_485
+    /// Sleet Storm's combined form; the primary target is any character,
+    /// the Arcane Flow §24 pin).
+    DealDamageAndDamageRandomEnemyMinion {
+        /// Primary damage (targeted)
+        amount: i32,
+        /// Damage dealt to a random enemy minion
+        secondary: i32,
+    },
+    /// The first time the owner deals damage with a spell each turn, gain
+    /// `attack` Attack (2025–2026 expansions M4-W4 — CATA_487
+    /// Raincaller's trigger effect; the once-per-turn guard rides the
+    /// player's per-turn flag).
+    GainAttackFirstSpellDamageThisTurn {
+        /// Attack gained
+        attack: i32,
+    },
+    /// Deal `amount` damage to all minions, repeating with 1 less damage
+    /// until 0 (2025–2026 expansions M4-W4 — CATA_491 Eldritch
+    /// Tentacles: "deal $3 damage to all minions. Repeat this with 1 less
+    /// damage.").
+    DamageAllMinionsRepeatDescending {
+        /// Starting damage
+        amount: i32,
+    },
+    /// Summon a copy of the discarded minion (2025–2026 expansions M4-W4
+    /// — CATA_494 Maloriak's "after you discard a minion" trigger
+    /// effect; the event subject is the discarded minion).
+    SummonCopyOfDiscardedMinion,
+    /// Take control of an enemy minion until the end of the owner's turn;
+    /// it can't attack this turn (2025–2026 expansions M4-W4 — CATA_496
+    /// Cursed Chains; registered: the official "until the end of THEIR
+    /// turn" timing is approximated by the standard until-end-of-turn
+    /// convention, §26).
+    TakeControlUntilEndOfTurnCantAttack,
+    /// Deal `base` plus the number of turns this card has spent in the
+    /// owner's hand damage to two random enemy minions (2025–2026
+    /// expansions M4-W4 — CATA_498 Rafaams' Last Stand's "(Upgrades each
+    /// turn!)"; the hand-turn counter is bumped at the owner's turn start
+    /// for the marked card).
+    DealDamageToTwoScaledByHandTurns {
+        /// Base damage before the hand-turn upgrade
+        base: i32,
+    },
+    /// Deal `amount` damage to all minions; draw a card for each that
+    /// died (2025–2026 expansions M4-W4 — CATA_526 Broxigar's Last
+    /// Stand).
+    DamageAllMinionsDrawPerDeath {
+        /// Damage dealt to each minion
+        amount: i32,
+    },
+    /// Reopen the location — it becomes ready again this turn (2025–2026
+    /// expansions M4-W4 — CATA_527 Nespirah, Enthralled's "after you cast
+    /// a Fel spell, reopen" trigger effect; the Fel check is id-keyed in
+    /// the trigger resolution).
+    ReopenLocation,
+    /// At the start of the owner's next turn, summon the given card
+    /// (2025–2026 expansions M4-W4 — CATA_528 Sigil of the Seas; the
+    /// pending summon is stored in the player's `next_turn_summon` and
+    /// consumed by the TurnStarted hook, the flock-pending pattern).
+    SetNextTurnSummon {
+        /// Card ID summoned at the owner's next turn start
+        card_id: &'static str,
+    },
+    /// Deal `amount` damage to the opponent's left and right-most enemy
+    /// minions; if the spell was played from the hand edge (Outcast), do
+    /// it again (2025–2026 expansions M4-W4 — CATA_533 Flash Flood).
+    DealDamageLeftRightOutcastAgain {
+        /// Damage dealt to the two edge minions
+        amount: i32,
+    },
+    /// Deal damage equal to the source's Attack to a random character
+    /// (2025–2026 expansions M4-W4 — CATA_552 Ebonscale Scout's
+    /// battlecry; the official text carries no target filter, the
+    /// AnyCharacter Arcane Flow §24 pin).
+    DealDamageEqualSelfAttack,
+    /// The owner's Dragons have Rush this game (2025–2026 expansions
+    /// M4-W4 — CATA_553 Ebyssian's battlecry; the permanent flag is read
+    /// by the summon path).
+    SetDragonsHaveRush,
+    /// Set an enemy minion's Health to 1; if the owner is holding a
+    /// Dragon, set another random enemy minion's Health to 1 too
+    /// (2025–2026 expansions M4-W4 — CATA_554 Earthen Roar; the explicit
+    /// target wins for the first pick).
+    SetEnemyMinionHealthTo1IfHoldingDragon,
+    /// Get a random Dragon that costs (3) or less (2025–2026 expansions
+    /// M4-W4 — CATA_556 Carrier Whelp's battlecry; the D2 pool samples
+    /// the active window).
+    AddRandomDragonCostLE3,
+    /// Deal `amount` damage to a character; if the owner has played
+    /// another copy of this card this game, damage all enemies instead
+    /// (2025–2026 expansions M4-W4 — CATA_557 Sylvanas's Triumph; the
+    /// played-copy flag is set at the card's play).
+    DealDamageOrDamageAllEnemiesIfCopyPlayed {
+        /// Damage dealt
+        amount: i32,
+    },
+    /// Replay each 1-Cost card the owner has played this game, targeting
+    /// enemies if possible (2025–2026 expansions M4-W4 — CATA_560
+    /// Confront the Tol'vir. Registered: spells resolve their spell
+    /// effect against enemy targets, minions are summoned, §26).
+    ReplayOneCostCardsPlayedThisGame,
+    /// Cast the spell the source absorbed (2025–2026 expansions M4-W4 —
+    /// CATA_563 Crackling Cloudstrider's deathrattle; the absorbed spell
+    /// entity is stashed in the player's `absorbed_spell` field).
+    CastAbsorbedSpell,
+    /// Give a friendly minion Mega-Windfury; it can't attack heroes
+    /// (2025–2026 expansions M4-W4 — CATA_564 Air Support's battlecry;
+    /// the MegaWindfury marker grants 4 attacks, the CantAttackHeroes
+    /// marker the restriction).
+    GrantMegaWindfuryCantAttackHeroes,
+    /// Transform all friendly minions into random minions that cost (1)
+    /// more; the transformed minions summon the originals when they die
+    /// (2025–2026 expansions M4-W4 — CATA_567 Ascendance. Registered: the
+    /// transform sampling and the deathrattle grant are the D2
+    /// approximation, §26).
+    TransformFriendlyMinionsCost1MoreSummonOriginals,
+    /// Summon a random 3-, 2-, and 1-Cost minion (2025–2026 expansions
+    /// M4-W4 — CATA_569 Ceremonial Clash).
+    SummonRandomThreeTwoOneCostMinions,
+    /// Draw a card and reduce its Cost by `reduction`; repeat this with
+    /// the excess Cost reduction (2025–2026 expansions M4-W4 — CATA_570
+    /// Morchok's battlecry; the loop continues while the reduction
+    /// remains and the deck has cards).
+    DrawAndReduceCostRepeated {
+        /// Cost reduction carried through the draws
+        reduction: i32,
+    },
+    /// Deal `base` plus one per minion on the battlefield damage to all
+    /// minions (2025–2026 expansions M4-W4 — CATA_581 Decimation's
+    /// "(Improved for each minion on the battlefield)"; registered: the
+    /// improvement counts ALL minions on both sides, §26).
+    DamageAllMinionsScaledByBoard {
+        /// Base damage before the battlefield improvement
+        base: i32,
+    },
+    /// Deal `amount` damage to all minions and give the owner's hero
+    /// `attack` Attack this turn (2025–2026 expansions M4-W4 — CATA_582
+    /// Searing Fissure).
+    DamageAllMinionsAndGainHeroAttack {
+        /// Damage dealt to all minions
+        amount: i32,
+        /// Attack gained by the hero this turn
+        attack: i32,
+    },
+    /// Deal `amount` damage randomly split among enemies; if the owner
+    /// played a Fire spell this turn, deal `amount` more (2025–2026
+    /// expansions M4-W4 — CATA_584 Erupting Volcano; the Fire check reads
+    /// the quest registry's spell-school table).
+    DealDamageSplitAmongEnemiesIfFireSpell {
+        /// Damage randomly split among enemies
+        amount: i32,
+    },
+    /// Deal `amount` damage to a damaged minion; if it dies, return this
+    /// spell to the owner's hand (2025–2026 expansions M4-W4 — CATA_585
+    /// Torch. Registered: the official "return with any excess damage" is
+    /// approximated by the die-check, §26).
+    DamageDamagedMinionReturnIfExcess {
+        /// Damage dealt to the damaged minion
+        amount: i32,
+    },
+    /// Instead of drawing each turn, Discover a card from the owner's
+    /// deck; it costs (3) less and the others are destroyed (2025–2026
+    /// expansions M4-W4 — CATA_591 Commander Geddon's battlecry; the
+    /// game-long flag is read by the DrawStep hook, registered §26).
+    SetGeddonDiscoverDraw,
+    /// Give a minion "Deathrattle: summon a random minion from your hand"
+    /// (2025–2026 expansions M4-W4 — CATA_610 Lo'Gosh's Last Stand.
+    /// Registered: the official side-agnostic target is approximated by
+    /// the friendly scope, §26).
+    GrantDeathrattleSummonRandomHandMinion,
+    /// Summon a random minion from the owner's hand (2025–2026 expansions
+    /// M4-W4 — the deathrattle granted by CATA_610).
+    SummonRandomMinionFromHand,
+    /// Upgrade the owner's starting Hero Power; it costs (1) (2025–2026
+    /// expansions M4-W4 — CATA_615t Genn, Worgen King's battlecry.
+    /// Registered: the official upgrade replaces the hero power with the
+    /// Worgen King version — approximated by the cost (1) flag, §26).
+    UpgradeHeroPowerCost1,
+    /// Get a random Paladin Aura; it lasts an additional turn (2025–2026
+    /// expansions M4-W4 — CATA_621 Gelbin's Triumph. Registered: the
+    /// aura pool is fixed to random Paladin spells and the extra turn is
+    /// unmodeled, §26).
+    AddRandomPaladinAura,
+    /// Steal `amount` Health from the chosen enemy minion, three times
+    /// (2025–2026 expansions M4-W4 — CATA_699 Dread Leviathan's battlecry
+    /// with an explicit enemy-minion target. Registered: each steal is
+    /// dealt as damage to the target and a matching heal on the source,
+    /// §26).
+    StealHealthThreeTimes {
+        /// Health stolen per iteration
+        amount: i32,
+    },
+    /// Destroy all cards that cost (2) or less in both players' decks
+    /// (2025–2026 expansions M4-W4 — CATA_720 Warmaster Blackhorn's
+    /// battlecry).
+    DestroyDeckCardsCostLE2Both,
+    /// Unlock the owner's Overloaded Mana Crystals (2025–2026 expansions
+    /// M4-W4 — CATA_724 Stormbinder's deathrattle; the overload-lock
+    /// field is cleared like the ManaRefill step does).
+    UnlockOverloadedCrystals,
+    /// After the owner casts a spell, cast a random spell of the same
+    /// Cost from another class (2025–2026 expansions M4-W4 — CATA_786
+    /// Chaos Supplicant's trigger effect; the D2 pool samples the active
+    /// window's spells of the cast spell's cost from the other classes).
+    CastRandomSpellSameCostOtherClass,
+    /// Return the card the source discarded to the owner's hand; it costs
+    /// (1) less (2025–2026 expansions M4-W4 — CATA_897 Gemstone Hoarder's
+    /// deathrattle; the hoarded card is stashed in the player's
+    /// `hoarded_card` field by the choose-hand-card discard).
+    ReturnHoardCostLess,
+    /// Deal `amount` damage to a minion; reduce the Cost of a random card
+    /// in the owner's hand by the excess damage (2025–2026 expansions
+    /// M4-W4 — CATA_978 Sindragosa's Triumph. Registered: the excess is
+    /// the damage minus the target's remaining Health, §26).
+    DamageMinionReduceHandCostByExcess {
+        /// Damage dealt to the minion
+        amount: i32,
+    },
+    /// Split the chosen spell into two random spells of the same Cost
+    /// (2025–2026 expansions M4-W4 — CATA_979 Conjuration Specialist's
+    /// choose-hand-card dispatch; the chosen spell leaves the hand and
+    /// two random spells of its Cost are added, §26).
+    AddTwoRandomSpellsSameCost {
+        /// Cost of the two random replacement spells
+        cost: i32,
+    },
+    /// If the total Cost of the minions in the owner's deck is at least
+    /// the threshold, split 100 stats among minions in the deck
+    /// (2025–2026 expansions M4-W4 — CATA_213 Vyranoth's battlecry.
+    /// Registered: the official "starting minions" deck snapshot is
+    /// approximated by the deck at play time, and the 100 stats are split
+    /// as +5/+5 on ten random deck minions, §26).
+    Split100StatsAmongDeckMinionsIfCostGE100 {
+        /// Minimum total deck-minion Cost for the split
+        threshold: i32,
+    },
+    /// Destroy the enemy minion with the highest Health (2025–2026
+    /// expansions M4-W4 — CATA_190t11 Topple, one of Deathwing's four
+    /// Cataclysms: "Destroy the highest-Health enemy minion"). Ties break
+    /// by the leftmost (first-played) minion, like the engine's other
+    /// highest-attribute picks.
+    DestroyHighestHealthEnemyMinion,
+    /// Shuffle five random Legendary Dragons into the deck, each costing
+    /// (1) (2025–2026 expansions M4-W4 — CATA_190t13 Enthrall, one of
+    /// Deathwing's four Cataclysms; the LegendaryDragon pool — §26).
+    ShuffleRandomLegendaryDragonsCost1,
+    /// Destroy a Legendary minion (2025–2026 expansions M4-W4 — CATA_203
+    /// Garona's Last Stand; the Legendary filter follows the
+    /// `LegendaryMinion` pool convention, §26).
+    DestroyLegendaryMinion,
+    /// Give a random friendly minion Attack (2025–2026 expansions M4-W4 —
+    /// CATA_467 Command Claw's weapon trigger).
+    GrantRandomFriendlyMinionAttack {
+        /// Attack granted
+        attack: u8,
+    },
+    /// Discover a spell that costs (1) (2025–2026 expansions M4-W4 —
+    /// CATA_484 Winterspring Whelp; the `OneCostSpell` pool — §26).
+    DiscoverOneCostSpell,
+    /// Discover any spell (2025–2026 expansions M4-W4 — CATA_614
+    /// Shadowed Informant; the `Spell` pool).
+    DiscoverAnySpell,
+    /// Summon two random minions that cost (1) (2025–2026 expansions
+    /// M4-W4 — CATA_499 Disposable Acolytes' play half; the discard half
+    /// lives at the discard chokepoint).
+    SummonTwoRandomOneCostMinions,
+    /// Reopen a friendly location if a Fel spell was just played
+    /// (2025–2026 expansions M4-W4 — CATA_527 Nespirah's trigger; the
+    /// location's deathrattle fires at destruction — §26).
+    ReopenLocationIfFelSpell,
+    /// Summon random minions of the given cost (2025–2026 expansions
+    /// M4-W4 — CATA_723 Drakeadon Mongrel's deathrattle; the `MinionCost`
+    /// pool).
+    SummonRandomMinionsOfCost {
+        /// The minions' cost
+        cost: u8,
+        /// How many to summon
+        count: u8,
+    },
+    /// Get a random non-Colossal Naga; it costs (1) (2025–2026 expansions
+    /// M4-W4 — CATA_527t2 Nespirah, Unshackled's "after you cast a Fel
+    /// spell" trigger effect; the Naga pool samples the active window
+    /// minus the Colossal registry).
+    AddRandomNagaCost1,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -5580,6 +6105,164 @@ enum CardEffectDe {
         health: i32,
     },
     AddRandomShatterCardToHand,
+    ReplaceHero {
+        card_id: String,
+    },
+    ChooseCataclysms,
+    ChooseHandCard,
+    RefreshManaIfHoldingDragon {
+        amount: i32,
+    },
+    GainTempManaOrPermanentIfSpent {
+        threshold: i32,
+    },
+    GetOrSummonTauntWhelpsIfSpent {
+        threshold: i32,
+    },
+    SummonGolemsSpendAllMana,
+    ShuffleRandomMinionsCostGE8DoubleStats,
+    GainStatsPerFriendlyMinionTargeted,
+    FillHandWithRandomDragons {
+        threshold: i32,
+    },
+    SetAttackEqualToSource,
+    NextMurlocCostsHealth,
+    TransformRandomEnemyMinionToSelf,
+    GiveOpponentSabotage,
+    ReturnEnemyMinionCantPlayNextTurn,
+    SetHealingBonus {
+        amount: i32,
+    },
+    SetNextHealDealsDamage,
+    FullHealMinionAndDraw,
+    DamageMinionHealEnemyHeroIfKilled {
+        amount: i32,
+    },
+    LifestealSelfDamage {
+        amount: i32,
+    },
+    GainHealthIfFullHealth {
+        amount: i32,
+    },
+    SetRemainingHealthAndFullHealDamage {
+        health: i32,
+        damage: i32,
+    },
+    BuffSpellDamageHandAndDeck,
+    AddDragonBreathScaledByAttack,
+    DealDamageEqualDragonBreath,
+    SummonFiveHungryDrakesSpendCorpsesRush,
+    RefreshManaEqualSelfAttack,
+    AddNefariansCreation {
+        reduction: i32,
+    },
+    GrantDeathrattleSummonRandomCostMinion {
+        cost: i32,
+    },
+    TriggerRandomFriendlyEndTurnEffect,
+    GrantDivineShieldOrGainStats {
+        attack: i32,
+        health: i32,
+    },
+    AddRandomHolySpellCostReduced {
+        reduction: i32,
+    },
+    SummonDragonWithSelfStats,
+    SetEndTurnEffectsTwice {
+        turns: u32,
+    },
+    DevourTwoEnemyHandCardsAndDormant,
+    ReturnDevouredCards,
+    SummonCopyIfSpellDamageDealtThisTurn,
+    DealDamageAndDamageRandomEnemyMinion {
+        amount: i32,
+        secondary: i32,
+    },
+    GainAttackFirstSpellDamageThisTurn {
+        attack: i32,
+    },
+    DamageAllMinionsRepeatDescending {
+        amount: i32,
+    },
+    SummonCopyOfDiscardedMinion,
+    TakeControlUntilEndOfTurnCantAttack,
+    DealDamageToTwoScaledByHandTurns {
+        base: i32,
+    },
+    DamageAllMinionsDrawPerDeath {
+        amount: i32,
+    },
+    ReopenLocation,
+    SetNextTurnSummon {
+        card_id: String,
+    },
+    DealDamageLeftRightOutcastAgain {
+        amount: i32,
+    },
+    DealDamageEqualSelfAttack,
+    SetDragonsHaveRush,
+    SetEnemyMinionHealthTo1IfHoldingDragon,
+    AddRandomDragonCostLE3,
+    DealDamageOrDamageAllEnemiesIfCopyPlayed {
+        amount: i32,
+    },
+    ReplayOneCostCardsPlayedThisGame,
+    CastAbsorbedSpell,
+    GrantMegaWindfuryCantAttackHeroes,
+    TransformFriendlyMinionsCost1MoreSummonOriginals,
+    SummonRandomThreeTwoOneCostMinions,
+    DrawAndReduceCostRepeated {
+        reduction: i32,
+    },
+    DamageAllMinionsScaledByBoard {
+        base: i32,
+    },
+    DamageAllMinionsAndGainHeroAttack {
+        amount: i32,
+        attack: i32,
+    },
+    DealDamageSplitAmongEnemiesIfFireSpell {
+        amount: i32,
+    },
+    DamageDamagedMinionReturnIfExcess {
+        amount: i32,
+    },
+    SetGeddonDiscoverDraw,
+    GrantDeathrattleSummonRandomHandMinion,
+    SummonRandomMinionFromHand,
+    UpgradeHeroPowerCost1,
+    AddRandomPaladinAura,
+    StealHealthThreeTimes {
+        amount: i32,
+    },
+    DestroyDeckCardsCostLE2Both,
+    UnlockOverloadedCrystals,
+    CastRandomSpellSameCostOtherClass,
+    ReturnHoardCostLess,
+    DamageMinionReduceHandCostByExcess {
+        amount: i32,
+    },
+    AddTwoRandomSpellsSameCost {
+        cost: i32,
+    },
+    Split100StatsAmongDeckMinionsIfCostGE100 {
+        threshold: i32,
+    },
+    DestroyHighestHealthEnemyMinion,
+    ShuffleRandomLegendaryDragonsCost1,
+    DestroyLegendaryMinion,
+    GrantRandomFriendlyMinionAttack {
+        attack: u8,
+    },
+    DiscoverOneCostSpell,
+    DiscoverAnySpell,
+    SummonTwoRandomOneCostMinions,
+    ReopenLocationIfFelSpell,
+    SummonRandomMinionsOfCost {
+        cost: u8,
+        count: u8,
+    },
+    AddRandomNagaCost1,
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -7436,6 +8119,197 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
                 health,
             },
             CardEffectDe::AddRandomShatterCardToHand => CardEffect::AddRandomShatterCardToHand,
+            CardEffectDe::ReplaceHero { card_id } => CardEffect::ReplaceHero {
+                card_id: intern(card_id)?,
+            },
+            CardEffectDe::ChooseCataclysms => CardEffect::ChooseCataclysms,
+            CardEffectDe::ChooseHandCard => CardEffect::ChooseHandCard,
+            CardEffectDe::RefreshManaIfHoldingDragon { amount } => {
+                CardEffect::RefreshManaIfHoldingDragon { amount }
+            }
+            CardEffectDe::GainTempManaOrPermanentIfSpent { threshold } => {
+                CardEffect::GainTempManaOrPermanentIfSpent { threshold }
+            }
+            CardEffectDe::GetOrSummonTauntWhelpsIfSpent { threshold } => {
+                CardEffect::GetOrSummonTauntWhelpsIfSpent { threshold }
+            }
+            CardEffectDe::SummonGolemsSpendAllMana => CardEffect::SummonGolemsSpendAllMana,
+            CardEffectDe::ShuffleRandomMinionsCostGE8DoubleStats => {
+                CardEffect::ShuffleRandomMinionsCostGE8DoubleStats
+            }
+            CardEffectDe::GainStatsPerFriendlyMinionTargeted => {
+                CardEffect::GainStatsPerFriendlyMinionTargeted
+            }
+            CardEffectDe::FillHandWithRandomDragons { threshold } => {
+                CardEffect::FillHandWithRandomDragons { threshold }
+            }
+            CardEffectDe::SetAttackEqualToSource => CardEffect::SetAttackEqualToSource,
+            CardEffectDe::NextMurlocCostsHealth => CardEffect::NextMurlocCostsHealth,
+            CardEffectDe::TransformRandomEnemyMinionToSelf => {
+                CardEffect::TransformRandomEnemyMinionToSelf
+            }
+            CardEffectDe::GiveOpponentSabotage => CardEffect::GiveOpponentSabotage,
+            CardEffectDe::ReturnEnemyMinionCantPlayNextTurn => {
+                CardEffect::ReturnEnemyMinionCantPlayNextTurn
+            }
+            CardEffectDe::SetHealingBonus { amount } => CardEffect::SetHealingBonus { amount },
+            CardEffectDe::SetNextHealDealsDamage => CardEffect::SetNextHealDealsDamage,
+            CardEffectDe::FullHealMinionAndDraw => CardEffect::FullHealMinionAndDraw,
+            CardEffectDe::DamageMinionHealEnemyHeroIfKilled { amount } => {
+                CardEffect::DamageMinionHealEnemyHeroIfKilled { amount }
+            }
+            CardEffectDe::LifestealSelfDamage { amount } => {
+                CardEffect::LifestealSelfDamage { amount }
+            }
+            CardEffectDe::GainHealthIfFullHealth { amount } => {
+                CardEffect::GainHealthIfFullHealth { amount }
+            }
+            CardEffectDe::SetRemainingHealthAndFullHealDamage { health, damage } => {
+                CardEffect::SetRemainingHealthAndFullHealDamage { health, damage }
+            }
+            CardEffectDe::BuffSpellDamageHandAndDeck => CardEffect::BuffSpellDamageHandAndDeck,
+            CardEffectDe::AddDragonBreathScaledByAttack => {
+                CardEffect::AddDragonBreathScaledByAttack
+            }
+            CardEffectDe::DealDamageEqualDragonBreath => CardEffect::DealDamageEqualDragonBreath,
+            CardEffectDe::SummonFiveHungryDrakesSpendCorpsesRush => {
+                CardEffect::SummonFiveHungryDrakesSpendCorpsesRush
+            }
+            CardEffectDe::RefreshManaEqualSelfAttack => CardEffect::RefreshManaEqualSelfAttack,
+            CardEffectDe::AddNefariansCreation { reduction } => {
+                CardEffect::AddNefariansCreation { reduction }
+            }
+            CardEffectDe::GrantDeathrattleSummonRandomCostMinion { cost } => {
+                CardEffect::GrantDeathrattleSummonRandomCostMinion { cost }
+            }
+            CardEffectDe::TriggerRandomFriendlyEndTurnEffect => {
+                CardEffect::TriggerRandomFriendlyEndTurnEffect
+            }
+            CardEffectDe::GrantDivineShieldOrGainStats { attack, health } => {
+                CardEffect::GrantDivineShieldOrGainStats { attack, health }
+            }
+            CardEffectDe::AddRandomHolySpellCostReduced { reduction } => {
+                CardEffect::AddRandomHolySpellCostReduced { reduction }
+            }
+            CardEffectDe::SummonDragonWithSelfStats => CardEffect::SummonDragonWithSelfStats,
+            CardEffectDe::SetEndTurnEffectsTwice { turns } => {
+                CardEffect::SetEndTurnEffectsTwice { turns }
+            }
+            CardEffectDe::DevourTwoEnemyHandCardsAndDormant => {
+                CardEffect::DevourTwoEnemyHandCardsAndDormant
+            }
+            CardEffectDe::ReturnDevouredCards => CardEffect::ReturnDevouredCards,
+            CardEffectDe::SummonCopyIfSpellDamageDealtThisTurn => {
+                CardEffect::SummonCopyIfSpellDamageDealtThisTurn
+            }
+            CardEffectDe::DealDamageAndDamageRandomEnemyMinion { amount, secondary } => {
+                CardEffect::DealDamageAndDamageRandomEnemyMinion { amount, secondary }
+            }
+            CardEffectDe::GainAttackFirstSpellDamageThisTurn { attack } => {
+                CardEffect::GainAttackFirstSpellDamageThisTurn { attack }
+            }
+            CardEffectDe::DamageAllMinionsRepeatDescending { amount } => {
+                CardEffect::DamageAllMinionsRepeatDescending { amount }
+            }
+            CardEffectDe::SummonCopyOfDiscardedMinion => CardEffect::SummonCopyOfDiscardedMinion,
+            CardEffectDe::TakeControlUntilEndOfTurnCantAttack => {
+                CardEffect::TakeControlUntilEndOfTurnCantAttack
+            }
+            CardEffectDe::DealDamageToTwoScaledByHandTurns { base } => {
+                CardEffect::DealDamageToTwoScaledByHandTurns { base }
+            }
+            CardEffectDe::DamageAllMinionsDrawPerDeath { amount } => {
+                CardEffect::DamageAllMinionsDrawPerDeath { amount }
+            }
+            CardEffectDe::ReopenLocation => CardEffect::ReopenLocation,
+            CardEffectDe::SetNextTurnSummon { card_id } => CardEffect::SetNextTurnSummon {
+                card_id: intern(card_id)?,
+            },
+            CardEffectDe::DealDamageLeftRightOutcastAgain { amount } => {
+                CardEffect::DealDamageLeftRightOutcastAgain { amount }
+            }
+            CardEffectDe::DealDamageEqualSelfAttack => CardEffect::DealDamageEqualSelfAttack,
+            CardEffectDe::SetDragonsHaveRush => CardEffect::SetDragonsHaveRush,
+            CardEffectDe::SetEnemyMinionHealthTo1IfHoldingDragon => {
+                CardEffect::SetEnemyMinionHealthTo1IfHoldingDragon
+            }
+            CardEffectDe::AddRandomDragonCostLE3 => CardEffect::AddRandomDragonCostLE3,
+            CardEffectDe::DealDamageOrDamageAllEnemiesIfCopyPlayed { amount } => {
+                CardEffect::DealDamageOrDamageAllEnemiesIfCopyPlayed { amount }
+            }
+            CardEffectDe::ReplayOneCostCardsPlayedThisGame => {
+                CardEffect::ReplayOneCostCardsPlayedThisGame
+            }
+            CardEffectDe::CastAbsorbedSpell => CardEffect::CastAbsorbedSpell,
+            CardEffectDe::GrantMegaWindfuryCantAttackHeroes => {
+                CardEffect::GrantMegaWindfuryCantAttackHeroes
+            }
+            CardEffectDe::TransformFriendlyMinionsCost1MoreSummonOriginals => {
+                CardEffect::TransformFriendlyMinionsCost1MoreSummonOriginals
+            }
+            CardEffectDe::SummonRandomThreeTwoOneCostMinions => {
+                CardEffect::SummonRandomThreeTwoOneCostMinions
+            }
+            CardEffectDe::DrawAndReduceCostRepeated { reduction } => {
+                CardEffect::DrawAndReduceCostRepeated { reduction }
+            }
+            CardEffectDe::DamageAllMinionsScaledByBoard { base } => {
+                CardEffect::DamageAllMinionsScaledByBoard { base }
+            }
+            CardEffectDe::DamageAllMinionsAndGainHeroAttack { amount, attack } => {
+                CardEffect::DamageAllMinionsAndGainHeroAttack { amount, attack }
+            }
+            CardEffectDe::DealDamageSplitAmongEnemiesIfFireSpell { amount } => {
+                CardEffect::DealDamageSplitAmongEnemiesIfFireSpell { amount }
+            }
+            CardEffectDe::DamageDamagedMinionReturnIfExcess { amount } => {
+                CardEffect::DamageDamagedMinionReturnIfExcess { amount }
+            }
+            CardEffectDe::SetGeddonDiscoverDraw => CardEffect::SetGeddonDiscoverDraw,
+            CardEffectDe::GrantDeathrattleSummonRandomHandMinion => {
+                CardEffect::GrantDeathrattleSummonRandomHandMinion
+            }
+            CardEffectDe::SummonRandomMinionFromHand => CardEffect::SummonRandomMinionFromHand,
+            CardEffectDe::UpgradeHeroPowerCost1 => CardEffect::UpgradeHeroPowerCost1,
+            CardEffectDe::AddRandomPaladinAura => CardEffect::AddRandomPaladinAura,
+            CardEffectDe::StealHealthThreeTimes { amount } => {
+                CardEffect::StealHealthThreeTimes { amount }
+            }
+            CardEffectDe::DestroyDeckCardsCostLE2Both => CardEffect::DestroyDeckCardsCostLE2Both,
+            CardEffectDe::UnlockOverloadedCrystals => CardEffect::UnlockOverloadedCrystals,
+            CardEffectDe::CastRandomSpellSameCostOtherClass => {
+                CardEffect::CastRandomSpellSameCostOtherClass
+            }
+            CardEffectDe::ReturnHoardCostLess => CardEffect::ReturnHoardCostLess,
+            CardEffectDe::DamageMinionReduceHandCostByExcess { amount } => {
+                CardEffect::DamageMinionReduceHandCostByExcess { amount }
+            }
+            CardEffectDe::AddTwoRandomSpellsSameCost { cost } => {
+                CardEffect::AddTwoRandomSpellsSameCost { cost }
+            }
+            CardEffectDe::Split100StatsAmongDeckMinionsIfCostGE100 { threshold } => {
+                CardEffect::Split100StatsAmongDeckMinionsIfCostGE100 { threshold }
+            }
+            CardEffectDe::DestroyHighestHealthEnemyMinion => {
+                CardEffect::DestroyHighestHealthEnemyMinion
+            }
+            CardEffectDe::ShuffleRandomLegendaryDragonsCost1 => {
+                CardEffect::ShuffleRandomLegendaryDragonsCost1
+            }
+            CardEffectDe::DestroyLegendaryMinion => CardEffect::DestroyLegendaryMinion,
+            CardEffectDe::GrantRandomFriendlyMinionAttack { attack } => {
+                CardEffect::GrantRandomFriendlyMinionAttack { attack }
+            }
+            CardEffectDe::DiscoverOneCostSpell => CardEffect::DiscoverOneCostSpell,
+            CardEffectDe::DiscoverAnySpell => CardEffect::DiscoverAnySpell,
+            CardEffectDe::SummonTwoRandomOneCostMinions => {
+                CardEffect::SummonTwoRandomOneCostMinions
+            }
+            CardEffectDe::ReopenLocationIfFelSpell => CardEffect::ReopenLocationIfFelSpell,
+            CardEffectDe::SummonRandomMinionsOfCost { cost, count } => {
+                CardEffect::SummonRandomMinionsOfCost { cost, count }
+            }
+            CardEffectDe::AddRandomNagaCost1 => CardEffect::AddRandomNagaCost1,
         })
     }
 }
@@ -8294,6 +9168,108 @@ mod tests {
                 health: 2,
             },
             CardEffect::AddRandomShatterCardToHand,
+            // 2025–2026 expansions M4-W4 (Deathwing + remaining cards) variants.
+            CardEffect::ReplaceHero {
+                card_id: "CATA_190h",
+            },
+            CardEffect::ChooseCataclysms,
+            CardEffect::ChooseHandCard,
+            CardEffect::RefreshManaIfHoldingDragon { amount: 2 },
+            CardEffect::GainTempManaOrPermanentIfSpent { threshold: 2 },
+            CardEffect::GetOrSummonTauntWhelpsIfSpent { threshold: 2 },
+            CardEffect::SummonGolemsSpendAllMana,
+            CardEffect::ShuffleRandomMinionsCostGE8DoubleStats,
+            CardEffect::GainStatsPerFriendlyMinionTargeted,
+            CardEffect::FillHandWithRandomDragons { threshold: 2 },
+            CardEffect::SetAttackEqualToSource,
+            CardEffect::NextMurlocCostsHealth,
+            CardEffect::TransformRandomEnemyMinionToSelf,
+            CardEffect::GiveOpponentSabotage,
+            CardEffect::ReturnEnemyMinionCantPlayNextTurn,
+            CardEffect::SetHealingBonus { amount: 2 },
+            CardEffect::SetNextHealDealsDamage,
+            CardEffect::FullHealMinionAndDraw,
+            CardEffect::DamageMinionHealEnemyHeroIfKilled { amount: 2 },
+            CardEffect::LifestealSelfDamage { amount: 2 },
+            CardEffect::GainHealthIfFullHealth { amount: 2 },
+            CardEffect::SetRemainingHealthAndFullHealDamage {
+                health: 4,
+                damage: 3,
+            },
+            CardEffect::BuffSpellDamageHandAndDeck,
+            CardEffect::AddDragonBreathScaledByAttack,
+            CardEffect::DealDamageEqualDragonBreath,
+            CardEffect::SummonFiveHungryDrakesSpendCorpsesRush,
+            CardEffect::RefreshManaEqualSelfAttack,
+            CardEffect::AddNefariansCreation { reduction: 1 },
+            CardEffect::GrantDeathrattleSummonRandomCostMinion { cost: 3 },
+            CardEffect::TriggerRandomFriendlyEndTurnEffect,
+            CardEffect::GrantDivineShieldOrGainStats {
+                attack: 2,
+                health: 2,
+            },
+            CardEffect::AddRandomHolySpellCostReduced { reduction: 2 },
+            CardEffect::SummonDragonWithSelfStats,
+            CardEffect::SetEndTurnEffectsTwice { turns: 2 },
+            CardEffect::DevourTwoEnemyHandCardsAndDormant,
+            CardEffect::ReturnDevouredCards,
+            CardEffect::SummonCopyIfSpellDamageDealtThisTurn,
+            CardEffect::DealDamageAndDamageRandomEnemyMinion {
+                amount: 3,
+                secondary: 1,
+            },
+            CardEffect::GainAttackFirstSpellDamageThisTurn { attack: 2 },
+            CardEffect::DamageAllMinionsRepeatDescending { amount: 3 },
+            CardEffect::SummonCopyOfDiscardedMinion,
+            CardEffect::TakeControlUntilEndOfTurnCantAttack,
+            CardEffect::DealDamageToTwoScaledByHandTurns { base: 2 },
+            CardEffect::DamageAllMinionsDrawPerDeath { amount: 2 },
+            CardEffect::ReopenLocation,
+            CardEffect::SetNextTurnSummon {
+                card_id: "CATA_528t",
+            },
+            CardEffect::DealDamageLeftRightOutcastAgain { amount: 2 },
+            CardEffect::DealDamageEqualSelfAttack,
+            CardEffect::SetDragonsHaveRush,
+            CardEffect::SetEnemyMinionHealthTo1IfHoldingDragon,
+            CardEffect::AddRandomDragonCostLE3,
+            CardEffect::DealDamageOrDamageAllEnemiesIfCopyPlayed { amount: 3 },
+            CardEffect::ReplayOneCostCardsPlayedThisGame,
+            CardEffect::CastAbsorbedSpell,
+            CardEffect::GrantMegaWindfuryCantAttackHeroes,
+            CardEffect::TransformFriendlyMinionsCost1MoreSummonOriginals,
+            CardEffect::SummonRandomThreeTwoOneCostMinions,
+            CardEffect::DrawAndReduceCostRepeated { reduction: 1 },
+            CardEffect::DamageAllMinionsScaledByBoard { base: 2 },
+            CardEffect::DamageAllMinionsAndGainHeroAttack {
+                amount: 2,
+                attack: 3,
+            },
+            CardEffect::DealDamageSplitAmongEnemiesIfFireSpell { amount: 6 },
+            CardEffect::DamageDamagedMinionReturnIfExcess { amount: 4 },
+            CardEffect::SetGeddonDiscoverDraw,
+            CardEffect::GrantDeathrattleSummonRandomHandMinion,
+            CardEffect::SummonRandomMinionFromHand,
+            CardEffect::UpgradeHeroPowerCost1,
+            CardEffect::AddRandomPaladinAura,
+            CardEffect::StealHealthThreeTimes { amount: 2 },
+            CardEffect::DestroyDeckCardsCostLE2Both,
+            CardEffect::UnlockOverloadedCrystals,
+            CardEffect::CastRandomSpellSameCostOtherClass,
+            CardEffect::ReturnHoardCostLess,
+            CardEffect::DamageMinionReduceHandCostByExcess { amount: 3 },
+            CardEffect::AddTwoRandomSpellsSameCost { cost: 3 },
+            CardEffect::Split100StatsAmongDeckMinionsIfCostGE100 { threshold: 100 },
+            CardEffect::DestroyHighestHealthEnemyMinion,
+            CardEffect::ShuffleRandomLegendaryDragonsCost1,
+            CardEffect::DestroyLegendaryMinion,
+            CardEffect::GrantRandomFriendlyMinionAttack { attack: 2 },
+            CardEffect::DiscoverOneCostSpell,
+            CardEffect::DiscoverAnySpell,
+            CardEffect::SummonTwoRandomOneCostMinions,
+            CardEffect::ReopenLocationIfFelSpell,
+            CardEffect::SummonRandomMinionsOfCost { cost: 4, count: 2 },
+            CardEffect::AddRandomNagaCost1,
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
@@ -8396,4 +9372,20 @@ pub enum RandomPool {
     /// END_000p Blessing of the Bronze; the class filter is the
     /// `OtherClass` precedent, restricted to minions)
     OtherClassMinion,
+    /// A random Dragon costing (3) or less (2025–2026 expansions M4-W4 —
+    /// CATA_556 Carrier Whelp "Get a random Dragon that costs (3) or
+    /// less"; the active-window cost filter, §26)
+    DragonCost3OrLess,
+    /// A random Legendary Dragon (2025–2026 expansions M4-W4 — CATA_190t13
+    /// Enthrall "Shuffle five random Legendary Dragons into your deck";
+    /// the LEGENDARY_CLASSIC pool restricted to the Dragon race, §26)
+    LegendaryDragon,
+    /// A random minion costing (8) or more (2025–2026 expansions M4-W4 —
+    /// CATA_136 Azshara's Triumph "Shuffle 5 random minions into your deck
+    /// that cost (8) or more"; the Cost5Minion filter shape, §26)
+    MinionCost8OrMore,
+    /// A random Paladin spell (2025–2026 expansions M4-W4 — CATA_621
+    /// Gelbin's Triumph "Get a random Paladin Aura"; the class-spell pool
+    /// restricted to Paladin, §26)
+    PaladinSpell,
 }

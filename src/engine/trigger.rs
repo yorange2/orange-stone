@@ -13,17 +13,24 @@
 //! - `Self_` → the effect source entity itself
 //! - `AllEnemyMinions` → all enemy minions
 
+use crate::cards::choose_hand_card::ChooseHandCardKind;
 use crate::core::component::{
-    ALL_DARK_GIFTS, Attack, AttacksUsed, CardId, CardType, Charge, Cost, CostHealth, Damage,
+    ALL_DARK_GIFTS, Attack, AttacksUsed, Aura, CardId, CardType, Charge, Cost, CostHealth, Damage,
     DarkGiftKind, Deathrattle, DivineShield, Durability, Elusive, Enchantment, EnchantmentExpiry,
     Freeze, Health, HeroPowerDef, ImbueClass, Immune, Lifesteal, Poison, Race, Reborn, Rush,
-    Stealth, Taunt, Temporary, Trigger, TriggerEvent, TriggerTiming, Windfury,
+    SpellDamage, Stealth, Taunt, Temporary, Trigger, TriggerEvent, TriggerTiming, TurnCostReducer,
+    Windfury,
 };
 use crate::core::effect::{CardEffect, EffectTarget, KeywordKind, RandomPool};
 use crate::core::entity::Entity;
 
 /// Prophet Velen's card ID — his doubling is looked up by ID on the owner's board.
 const VELEN_ID: &str = "PRIEST_012";
+
+/// The four data-defined Cataclysms offered by Deathwing's battlecry
+/// (2025–2026 expansions M4-W4 — CATA_190h "Choose a Cataclysm to
+/// unleash!"). Order is the card-data order and doubles as the pick order.
+const CATACLYSM_POOL: [&str; 4] = ["CATA_190t10", "CATA_190t11", "CATA_190t12", "CATA_190t13"];
 
 /// Hand-size cap (official rule, F-A11): a hand holds at most 10 cards.
 /// Drawn cards past the cap are burned (destroyed, but the draw still counts
@@ -101,12 +108,22 @@ fn apply_spell_power(
     }
     // ImmuneToSpellpower (Core Set W2): Devouring Plague, Explosive Runes,
     // Healing Rain are explicitly exempt from the Spell Damage pipeline
-    // (the official data marks them ImmuneToSpellpower).
-    if state
-        .world()
-        .card_id(source)
-        .is_some_and(|c| matches!(c.0, "CORE_BAR_311" | "CORE_LOOT_101" | "CORE_LOOT_373"))
-    {
+    // (the official data marks them ImmuneToSpellpower). M4-W4 adds the
+    // four Cataclysm ImmuneToSpellpower spells (CATA_190t12 Raze,
+    // CATA_491 Eldritch Tentacles, CATA_585 Torch, CATA_978 Sindragosa's
+    // Triumph — §26).
+    if state.world().card_id(source).is_some_and(|c| {
+        matches!(
+            c.0,
+            "CORE_BAR_311"
+                | "CORE_LOOT_101"
+                | "CORE_LOOT_373"
+                | "CATA_190t12"
+                | "CATA_491"
+                | "CATA_585"
+                | "CATA_978"
+        )
+    }) {
         return effect;
     }
     let bonus = state.world().total_spell_damage(owner);
@@ -427,10 +444,10 @@ pub fn resolve_effect(
             resolve_buff_weapon(state, owner, attack, durability);
         }
         CardEffect::DiscardRandomCard => {
-            resolve_discard_random(state, owner);
+            resolve_discard_random(state, queue, owner);
         }
         CardEffect::DiscardHand => {
-            resolve_discard_hand(state, owner);
+            resolve_discard_hand(state, queue, owner);
         }
         CardEffect::NextSpellDiscount { amount } => {
             state.make_mut().players[owner.index()].next_spell_discount = amount;
@@ -8473,8 +8490,8 @@ pub fn resolve_effect(
         CardEffect::BothPlayersDiscardRandomCard => {
             // TIME_008 Bygone Doomspeaker (M3-W2a) — both players discard
             // a random card.
-            resolve_discard_random(state, owner);
-            resolve_discard_random(state, owner.opponent());
+            resolve_discard_random(state, queue, owner);
+            resolve_discard_random(state, queue, owner.opponent());
         }
         CardEffect::SummonManaWorthRandomMinions { total } => {
             // TIME_014 Instant Multiverse (M3-W2a) — summon random minions
@@ -10566,7 +10583,7 @@ pub fn resolve_effect(
             // Infinite Banana (TIME_042t). The "Infinite" keyword (the card
             // stays in hand when played) is not implemented — the Banana is
             // a plain 1-Cost spell (§21).
-            resolve_discard_hand(state, owner);
+            resolve_discard_hand(state, queue, owner);
             if let Some(def) = crate::cards::def::card_by_id("TIME_042t") {
                 let _ = add_card_to_hand(state, owner, def);
             }
@@ -11372,7 +11389,7 @@ pub fn resolve_effect(
             // opponent's hand": every enemy hand card goes to the
             // graveyard (Deathwing's discard-hand shape).
             let enemy = owner.opponent();
-            resolve_discard_hand(state, enemy);
+            resolve_discard_hand(state, queue, enemy);
         }
         CardEffect::SetRandomHandCardCostInfinity => {
             // END_018 Acolyte of Infinity battlecry — "Set the Cost of a
@@ -12142,6 +12159,1724 @@ pub fn resolve_effect(
             };
             let _ = add_card_to_hand(state, owner, def);
         }
+        // ============================================================
+        // 2025–2026 expansions M4-W4 — Deathwing hero + Cataclysm
+        // closing wave (§26). Arms in CardEffect enum order.
+        // ============================================================
+        CardEffect::ReplaceHero { card_id } => {
+            // The hero-replacement primitive (2025–2026 expansions M4-W4 —
+            // CATA_190h Deathwing, Worldbreaker; CORE_EX1_323 Lord
+            // Jaraxxus — pays the M2 §15 Master Dusk "when real" note).
+            // Official replacement rules: the old hero entity moves to the
+            // graveyard (its enchantments go with it — the move strips
+            // them), the new hero's health is the def's, accumulated
+            // damage and attack are cleared, the hero power swaps (the
+            // def's or the cards-side table), and the equipped weapon is
+            // destroyed.
+            let Some(def) = crate::cards::def::card_by_id(card_id) else {
+                return;
+            };
+            let old_hero = state.player(owner).hero;
+            // The played hero card IS the new hero (the Jaraxxus flow —
+            // the effect source carrying the def's id); any other source
+            // (a future hero-replace spell) spawns a fresh copy from the
+            // def.
+            let new_hero = if state
+                .world()
+                .card_id(source)
+                .is_some_and(|c| c.0 == card_id)
+            {
+                source
+            } else {
+                let spawned = crate::cards::spawn_card_from_def(state.world_mut(), owner, def);
+                state.make_mut().players[owner.index()].hero = spawned;
+                spawned
+            };
+            // Destroy the equipped weapon (official replacement rule).
+            if let Some(w) = state.player(owner).weapon {
+                let inner = state.make_mut();
+                inner.players[owner.index()].weapon = None;
+                queue.push(Event::WeaponDestroyed {
+                    player: owner,
+                    weapon: w,
+                });
+            }
+            state
+                .world_mut()
+                .move_to_zone(old_hero, Zone::Graveyard)
+                .ok();
+            {
+                let world = state.world_mut();
+                world.set_health(new_hero, Health(def.health));
+                world.remove_damage(new_hero);
+                world.set_attack(new_hero, Attack(0));
+                world.set_attacks_used(new_hero, AttacksUsed(0));
+                world.set_hero_power_used(new_hero, crate::core::component::HeroPowerUsed(false));
+                world.set_hero_power(
+                    new_hero,
+                    match card_id {
+                        // Deathwing's Ruthless (CATA_190p): +5 Attack
+                        // this turn.
+                        "CATA_190h" => HeroPowerDef {
+                            cost: 2,
+                            effect: crate::core::effect::CardEffect::GainHeroAttack {
+                                attack: 5,
+                                armor: 0,
+                            },
+                        },
+                        // Jaraxxus's INFERNO! (the historical home of the
+                        // primitive).
+                        _ => HeroPowerDef {
+                            cost: 2,
+                            effect: crate::core::effect::CardEffect::SummonMinion {
+                                card_id: "CORE_EX1_323t",
+                            },
+                        },
+                    },
+                );
+            }
+            // The played card leaves the hand into play; a spawned copy
+            // (no zone yet) enters play directly.
+            if state.world().zone(new_hero).is_some() {
+                state.world_mut().move_to_zone(new_hero, Zone::Play).ok();
+            } else {
+                let world = state.world_mut();
+                world.set_zone(new_hero, Zone::Play);
+                world.zones_mut().insert(Zone::Play, owner, new_hero);
+            }
+            let inner = state.make_mut();
+            inner.players[owner.index()].hero = new_hero;
+            // Deathwing's armor (data: CATA_190h armor 12); replacement
+            // heroes without armor wipe the old hero's.
+            inner.players[owner.index()].armor = if card_id == "CATA_190h" { 12 } else { 0 };
+            // Equip the hero card's weapon — the Jaraxxus flow equips
+            // Blood Fury 3/8 (the historical W8 behavior, carried into
+            // the primitive). Heroes without a weapon keep their state.
+            if card_id == "CORE_EX1_323" {
+                resolve_effect(
+                    state,
+                    queue,
+                    new_hero,
+                    owner,
+                    crate::core::effect::CardEffect::EquipWeapon {
+                        card_id: "WARLOCK_010t",
+                    },
+                    None,
+                    None,
+                );
+            }
+        }
+        CardEffect::ChooseCataclysms => {
+            // CATA_190h Deathwing's battlecry — "Choose a Cataclysm to
+            // unleash!" The pick count is the herald tier
+            // (`herald_number(1, herald_count)`: 1 at counter 0–1, 2 at
+            // 2–3, 4 at 4+ — "Herald twice to upgrade"); picks are
+            // distinct — each ChoiceResolved re-surfaces the choice with
+            // the picked Cataclysm removed from the pool.
+            let count = crate::cards::herald::herald_number(1, state.player(owner).herald_count);
+            let pool: Vec<String> = CATACLYSM_POOL.iter().map(|s| (*s).to_string()).collect();
+            state.make_mut().players[owner.index()].pending_cataclysms =
+                Some((count as u32, Vec::new()));
+            state.set_pending_choice_repeat(
+                crate::core::state::ChoiceKind::Cataclysm,
+                source,
+                pool.clone(),
+                pool,
+                false,
+                count as u8,
+            );
+        }
+        CardEffect::ChooseHandCard => {
+            // The shared "choose a card in your hand" machinery (M4-W4 —
+            // CATA_200/209/477/490/563/566/697/721/897/979): the kind is
+            // keyed by the source card id; the options are the eligible
+            // hand cards (the cards-side `choose_hand_card::options`
+            // filters).
+            let Some(kind) = choose_hand_card_kind(state, source) else {
+                return;
+            };
+            let options = crate::cards::choose_hand_card::options(state, owner, kind);
+            if options.is_empty() {
+                return;
+            }
+            state.make_mut().players[owner.index()].pending_choose_hand = Some(kind);
+            state.set_pending_choice(
+                crate::core::state::ChoiceKind::ChooseHandCard,
+                source,
+                options.clone(),
+                options,
+            );
+        }
+        CardEffect::RefreshManaIfHoldingDragon { amount } => {
+            // CATA_111 Darkscale Broodmother — "If you're holding a
+            // Dragon, refresh 2 Mana Crystals."
+            if !holding_dragon(state, owner) {
+                return;
+            }
+            let inner = state.make_mut();
+            inner.players[owner.index()].current_mana =
+                (inner.players[owner.index()].current_mana + amount).min(10);
+        }
+        CardEffect::GainTempManaOrPermanentIfSpent { threshold } => {
+            // CATA_131 Felwood Treant — "Gain a temporary Mana Crystal.
+            // If you spent 4 Mana while holding this, it's permanent"
+            // (the spent-while-holding approximation of §26 rides the
+            // per-turn spent counter).
+            if state.player(owner).mana_spent_this_turn >= threshold {
+                let p = &mut state.make_mut().players[owner.index()];
+                p.mana_crystals = (p.mana_crystals + 1).min(10);
+                p.current_mana = (p.current_mana + 1).min(10);
+            } else {
+                let cur = state.player(owner).current_mana;
+                state.make_mut().players[owner.index()].current_mana = (cur + 1).min(10);
+            }
+        }
+        CardEffect::GetOrSummonTauntWhelpsIfSpent { threshold } => {
+            // CATA_132 Broodwatcher — "Get two 3/3 Whelps with Taunt. If
+            // you spent 8 Mana while holding this, summon them."
+            let summon = state.player(owner).mana_spent_this_turn >= threshold;
+            for _ in 0..2 {
+                if summon {
+                    let _ = resolve_summon(state, queue, source, owner, "CATA_132t");
+                } else {
+                    let Some(def) = crate::cards::def::card_by_id("CATA_132t") else {
+                        return;
+                    };
+                    let _ = add_card_to_hand(state, owner, def);
+                }
+            }
+        }
+        CardEffect::SummonGolemsSpendAllMana => {
+            // CATA_135 Mossbinding — "Summon two 1/2 Golems. Spend all
+            // your Mana to give them +1/+1 for each Mana spent."
+            let mut golems: SmallList<Entity> = SmallList::new();
+            for _ in 0..2 {
+                if let Some(g) = resolve_summon(state, queue, source, owner, "CATA_135t") {
+                    golems.push(g);
+                }
+            }
+            let spent = state.player(owner).current_mana;
+            state.make_mut().players[owner.index()].current_mana = 0;
+            for g in golems {
+                state.world_mut().add_enchantment(
+                    g,
+                    Enchantment {
+                        attack: spent,
+                        health: spent,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::ShuffleRandomMinionsCostGE8DoubleStats => {
+            // CATA_136 Azshara's Triumph — "Shuffle 5 random minions
+            // into your deck that cost (8) or more. Double their stats"
+            // (the shuffled copies carry a doubled-stats enchantment).
+            for _ in 0..5 {
+                let Some(def) = crate::cards::pool::random_card(
+                    state.rng_mut(),
+                    crate::core::effect::RandomPool::MinionCost8OrMore,
+                ) else {
+                    continue;
+                };
+                let e = crate::cards::spawn_card_from_def(state.world_mut(), owner, def);
+                state.world_mut().add_enchantment(
+                    e,
+                    Enchantment {
+                        attack: def.attack,
+                        health: def.health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+                let deck_len = state.world().zones().len(Zone::Deck, owner) + 1;
+                let pos = state.rng_mut().next_usize(deck_len);
+                let world = state.world_mut();
+                world.set_zone(e, Zone::Deck);
+                world.zones_mut().insert_at(Zone::Deck, owner, e, pos);
+            }
+        }
+        CardEffect::GainStatsPerFriendlyMinionTargeted => {
+            // CATA_138 Forest's Gift — "Give a friendly minion +1/+1 for
+            // each minion you control" (the count includes the target).
+            let candidates: SmallList<Entity> =
+                state.world().zones().iter(Zone::Play, owner).collect();
+            let Some(target) = select_target(explicit_target, &candidates, state.rng_mut()) else {
+                return;
+            };
+            let count = state.world().zones().iter(Zone::Play, owner).count() as i32;
+            state.world_mut().add_enchantment(
+                target,
+                Enchantment {
+                    attack: count,
+                    health: count,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::FillHandWithRandomDragons { threshold } => {
+            // CATA_140 Merithra of the Dream — "Fill your hand with
+            // random Dragons. If you spent 25 Mana while holding this,
+            // they cost (1)" (the §26 spent-while-holding
+            // approximation).
+            let cost_one = state.player(owner).mana_spent_this_turn >= threshold;
+            while state.world().zones().len(Zone::Hand, owner) < MAX_HAND_SIZE {
+                let Some(def) = crate::cards::pool::random_card(
+                    state.rng_mut(),
+                    crate::core::effect::RandomPool::Dragon,
+                ) else {
+                    break;
+                };
+                if let Some(e) = add_card_to_hand(state, owner, def) {
+                    if cost_one {
+                        state.world_mut().set_cost(e, Cost(1));
+                    }
+                }
+            }
+        }
+        CardEffect::SetAttackEqualToSource => {
+            // CATA_161 Gruesome Nightmare — "Give a minion in your hand
+            // or battlefield Attack equal to this minion's Attack" (the
+            // §26 battlefield-side approximation).
+            let Some(atk) = state.world().effective_attack(source) else {
+                return;
+            };
+            let candidates: SmallList<Entity> =
+                state.world().zones().iter(Zone::Play, owner).collect();
+            let Some(target) = select_target(explicit_target, &candidates, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().set_attack(target, atk);
+        }
+        CardEffect::NextMurlocCostsHealth => {
+            // CATA_180 War'loc — "Your next Murloc that costs (3) or
+            // less costs Health instead of Mana" (the one-time flag is
+            // consumed by the next eligible Murloc play, §26).
+            state.make_mut().players[owner.index()].next_murloc_costs_health = true;
+        }
+        CardEffect::TransformRandomEnemyMinionToSelf => {
+            // CATA_185 Faceless Replicator's deathrattle — "Transform
+            // the minion that killed this into a Faceless Replicator"
+            // (the §26 killer-identification approximation: a random
+            // enemy minion).
+            let Some(id) = state.world().card_id(source).map(|c| c.0) else {
+                return;
+            };
+            resolve_transform(state, owner, id, id);
+        }
+        CardEffect::GiveOpponentSabotage => {
+            // CATA_186 Stickybomb Saboteur — "Give your opponent a
+            // 2-Cost Sabotage. Cards next to it cost (1) more" (the §26
+            // hand-adjacency approximation: the gotten Sabotage is a
+            // blank 2-cost spell).
+            let Some(def) = crate::cards::def::card_by_id("CATA_186t") else {
+                return;
+            };
+            let _ = add_card_to_hand(state, owner.opponent(), def);
+        }
+        CardEffect::ReturnEnemyMinionCantPlayNextTurn => {
+            // CATA_215 Daze — "Return an enemy minion to its owner's
+            // hand. They can't play it next turn" (the returned entity
+            // carries the CantPlayNextTurn marker, cleared at the
+            // owner's turn end).
+            let candidates: SmallList<Entity> = collect_enemy_minions(state, owner, None);
+            let Some(target) = select_target(explicit_target, &candidates, state.rng_mut()) else {
+                return;
+            };
+            resolve_return_to_hand(
+                state,
+                queue,
+                owner,
+                source,
+                EffectTarget::AnyEnemyMinion,
+                Some(target),
+            );
+            state
+                .world_mut()
+                .set_cant_play_next_turn(target, crate::core::component::CantPlayNextTurn);
+        }
+        CardEffect::SetHealingBonus { amount } => {
+            // CATA_216 Cleansing Cleric — "Your healing effects restore
+            // 2 more Health this game" (the permanent bonus is added by
+            // the heal pipeline).
+            let p = &mut state.make_mut().players[owner.index()];
+            p.healing_bonus += amount;
+        }
+        CardEffect::SetNextHealDealsDamage => {
+            // CATA_301 Ruby Sanctum (location) — "Your next Healing
+            // effect this turn deals damage instead" (the flag is
+            // consumed by the next friendly heal, cleared at turn end).
+            state.make_mut().players[owner.index()].next_heal_deals_damage = true;
+        }
+        CardEffect::FullHealMinionAndDraw => {
+            // CATA_302 Mend — "Restore a minion to full Health. Draw a
+            // card."
+            let candidates: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .chain(state.world().zones().iter(Zone::Play, owner.opponent()))
+                .collect();
+            let Some(target) = select_target(explicit_target, &candidates, state.rng_mut()) else {
+                return;
+            };
+            resolve_full_heal(state, queue, owner, EffectTarget::AnyMinion, Some(target));
+            draw_card(state, queue, owner);
+        }
+        CardEffect::DamageMinionHealEnemyHeroIfKilled { amount } => {
+            // CATA_303 Purifying Breath — "Deal 5 damage to a minion.
+            // If it dies, restore 5 Health to the enemy hero." (the
+            // kill check runs after the damage resolves — the
+            // damage-prediction convention).
+            let candidates: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .chain(state.world().zones().iter(Zone::Play, owner.opponent()))
+                .collect();
+            let Some(target) = select_target(explicit_target, &candidates, state.rng_mut()) else {
+                return;
+            };
+            let dies = state.world().divine_shield(target).is_none()
+                && state
+                    .world()
+                    .effective_health(target)
+                    .is_some_and(|h| h.0 - amount <= 0);
+            let _ = resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                amount,
+                EffectTarget::AnyMinion,
+                Some(target),
+            );
+            if dies {
+                resolve_restore_health(
+                    state,
+                    queue,
+                    owner.opponent(),
+                    amount,
+                    EffectTarget::FriendlyHero,
+                    None,
+                );
+            }
+        }
+        CardEffect::LifestealSelfDamage { amount } => {
+            // CATA_304 Injured Attendant — "Lifesteal. Battlecry: Deal
+            // 4 damage to this minion." (the §26 lifesteal-heals-for-
+            // the-exact-amount simplification).
+            let _ = resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                amount,
+                EffectTarget::Self_,
+                None,
+            );
+            resolve_restore_health(
+                state,
+                queue,
+                owner,
+                amount,
+                EffectTarget::FriendlyHero,
+                None,
+            );
+        }
+        CardEffect::GainHealthIfFullHealth { amount } => {
+            // CATA_305 Incensed Matriarch's end-of-turn effect — "At
+            // the end of your turn, if this is at full Health, gain +3
+            // Health."
+            if state.world().damage(source).is_some_and(|d| d.0 > 0) {
+                return;
+            }
+            state.world_mut().add_enchantment(
+                source,
+                Enchantment {
+                    attack: 0,
+                    health: amount,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::SetRemainingHealthAndFullHealDamage { health, damage } => {
+            // CATA_307 Alexstrasza, Guardian of Life — "Set your
+            // remaining Health to 15. When you reach full Health, deal
+            // 15 damage to your opponent." The set is direct (not a
+            // heal/damage — no heal triggers fire, official rules); the
+            // full-Health watcher rides the player flag consumed by the
+            // heal pipeline's FriendlyHeroHealedToFull check.
+            let hero = state.player(owner).hero;
+            let Some(max) = state.world().effective_health(hero) else {
+                return;
+            };
+            let new_damage = (max.0 - health.min(max.0)).max(0);
+            state.world_mut().set_damage(hero, Damage(new_damage));
+            state.make_mut().players[owner.index()].alexstrasza_full_health_pending = Some(damage);
+        }
+        CardEffect::BuffSpellDamageHandAndDeck => {
+            // CATA_458 Archmage Kalec — "Give all spells in your hand
+            // and deck Spell Damage +1."
+            for zone in [Zone::Hand, Zone::Deck] {
+                let spells: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(zone, owner)
+                    .filter(|&e| state.world().card_type(e) == Some(CardType::Spell))
+                    .collect();
+                for e in spells {
+                    let cur = state.world().spell_damage(e).map(|s| s.0).unwrap_or(0);
+                    state
+                        .world_mut()
+                        .set_spell_damage(e, crate::core::component::SpellDamage(cur + 1));
+                }
+            }
+        }
+        CardEffect::AddDragonBreathScaledByAttack => {
+            // CATA_464 Blackwing Experiment's deathrattle — "Get a
+            // 2-Cost spell that deals this minion's Attack damage" (the
+            // source's Attack is stashed in `dragon_breath_damage` —
+            // the §26 baked-value convention).
+            let Some(atk) = state.world().effective_attack(source) else {
+                return;
+            };
+            state.make_mut().players[owner.index()].dragon_breath_damage = atk.0;
+            let Some(def) = crate::cards::def::card_by_id("CATA_464t") else {
+                return;
+            };
+            let _ = add_card_to_hand(state, owner, def);
+        }
+        CardEffect::DealDamageEqualDragonBreath => {
+            // CATA_464t Dragon Breath — "Deal 1 damage" fixed to the
+            // stashed `dragon_breath_damage` by the §26 baked-value
+            // convention.
+            let amount = state.player(owner).dragon_breath_damage;
+            let _ = resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                amount,
+                EffectTarget::AnyCharacter,
+                explicit_target,
+            );
+        }
+        CardEffect::SummonFiveHungryDrakesSpendCorpsesRush => {
+            // CATA_465 Chow Down — "Summon five 5/4 Undead Drakes.
+            // Spend 8 Corpses to give them Rush."
+            let mut drakes: SmallList<Entity> = SmallList::new();
+            for _ in 0..5 {
+                if let Some(d) = resolve_summon(state, queue, source, owner, "CATA_465t") {
+                    drakes.push(d);
+                }
+            }
+            if state.player(owner).corpses >= 8 {
+                state.make_mut().players[owner.index()].corpses -= 8;
+                for d in drakes {
+                    state.world_mut().set_rush(d, crate::core::component::Rush);
+                }
+            }
+        }
+        CardEffect::RefreshManaEqualSelfAttack => {
+            // CATA_469 Chromatic Broodmother's "whenever this attacks"
+            // trigger — "refresh Mana Crystals equal to this minion's
+            // Attack."
+            let Some(atk) = state.world().effective_attack(source) else {
+                return;
+            };
+            let inner = state.make_mut();
+            inner.players[owner.index()].current_mana =
+                (inner.players[owner.index()].current_mana + atk.0).min(10);
+        }
+        CardEffect::AddNefariansCreation { reduction } => {
+            // CATA_470 Victor Nefarius — "Craft a custom Undead Dragon.
+            // If you're holding a Dragon, reduce the Creation's Cost by
+            // (3)" (the §26 fixed-token approximation).
+            let Some(def) = crate::cards::def::card_by_id("CATA_470t1") else {
+                return;
+            };
+            if let Some(e) = add_card_to_hand(state, owner, def) {
+                if holding_dragon(state, owner) {
+                    state
+                        .world_mut()
+                        .set_cost(e, Cost((def.cost - reduction).max(0)));
+                }
+            }
+        }
+        CardEffect::GrantDeathrattleSummonRandomCostMinion { cost } => {
+            // CATA_471 Talanji's Last Stand — "Give your minions
+            // 'Deathrattle: Summon a random 4-Cost minion.'" (the
+            // Soul-of-the-Forest grant convention).
+            let minions: SmallList<Entity> =
+                state.world().zones().iter(Zone::Play, owner).collect();
+            for m in minions {
+                state.world_mut().set_deathrattle(
+                    m,
+                    Deathrattle(crate::core::effect::CardEffect::SummonRandomMinionOfCost { cost }),
+                );
+            }
+        }
+        CardEffect::TriggerRandomFriendlyEndTurnEffect => {
+            // CATA_472 Inspiring Maul's deathrattle — "Trigger a random
+            // friendly minion's end of turn effect." (the triggered
+            // effect is the target's TurnEnd trigger effect, resolved
+            // with the target as the source).
+            let triggers: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .filter(|&e| {
+                    state.world().trigger(e).is_some_and(|t| {
+                        t.event == TriggerEvent::TurnEnd && t.timing == TriggerTiming::Whenever
+                    })
+                })
+                .collect();
+            if triggers.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(triggers.len());
+            let target = triggers[idx];
+            let Some(t) = state.world().trigger(target) else {
+                return;
+            };
+            let effect = t.effect;
+            resolve_effect(state, queue, target, owner, effect, None, None);
+        }
+        CardEffect::GrantDivineShieldOrGainStats { attack, health } => {
+            // CATA_473 Nozdormu, Bronze Aspect's end-of-turn effect —
+            // "Give your minions Divine Shield. Any that already had
+            // one gain +3/+3 instead."
+            let minions: SmallList<Entity> =
+                state.world().zones().iter(Zone::Play, owner).collect();
+            for m in minions {
+                if state.world().divine_shield(m).is_some() {
+                    state.world_mut().add_enchantment(
+                        m,
+                        Enchantment {
+                            attack,
+                            health,
+                            cost: 0,
+                            expiry: EnchantmentExpiry::Permanent,
+                        },
+                    );
+                } else {
+                    state
+                        .world_mut()
+                        .set_divine_shield(m, crate::core::component::DivineShield);
+                }
+            }
+        }
+        CardEffect::AddRandomHolySpellCostReduced { reduction } => {
+            // CATA_474 Spearheart Sentry's end-of-turn effect — "Get a
+            // random Holy spell. Reduce its Cost by (3)."
+            let Some(def) = crate::cards::pool::random_card(
+                state.rng_mut(),
+                crate::core::effect::RandomPool::HolySpell,
+            ) else {
+                return;
+            };
+            if let Some(e) = add_card_to_hand(state, owner, def) {
+                state
+                    .world_mut()
+                    .set_cost(e, Cost((def.cost - reduction).max(0)));
+            }
+        }
+        CardEffect::SummonDragonWithSelfStats => {
+            // CATA_478 Bronze Redeemer's end-of-turn effect — "Summon
+            // a Dragon with stats equal to this minion's." (the token
+            // carries the source's exact stats, copied directly).
+            let Some(atk) = state.world().effective_attack(source) else {
+                return;
+            };
+            let Some(hp) = state.world().effective_health(source) else {
+                return;
+            };
+            if let Some(e) = resolve_summon(state, queue, source, owner, "CATA_478t") {
+                let world = state.world_mut();
+                world.set_attack(e, atk);
+                world.set_health(e, hp);
+            }
+        }
+        CardEffect::SetEndTurnEffectsTwice { turns } => {
+            // CATA_480 Sandfury Aura — "Your minions' end of turn
+            // effects trigger twice. Lasts 3 turns." (the tick counter
+            // is consumed by the owner's turn ends).
+            state.make_mut().players[owner.index()].end_turn_effects_twice_turns = turns as i32;
+        }
+        CardEffect::DevourTwoEnemyHandCardsAndDormant => {
+            // CATA_481 Iso'rath — "Devour 2 random cards from the
+            // opponent's hand, then go Dormant for 2 turns." (the
+            // devoured entities are stashed in `devoured_cards`,
+            // returned by ReturnDevouredCards).
+            let hand: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner.opponent())
+                .collect();
+            let mut indices: Vec<usize> = (0..hand.len()).collect();
+            let mut picks: SmallList<Entity> = SmallList::new();
+            for _ in 0..2 {
+                if indices.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(indices.len());
+                let i = indices.remove(idx);
+                picks.push(hand[i]);
+            }
+            state.make_mut().players[owner.index()]
+                .devoured_cards
+                .extend(picks.iter().copied());
+            for e in picks {
+                let _ = state.world_mut().move_to_zone(e, Zone::SetAside);
+            }
+            state
+                .world_mut()
+                .set_dormant(source, crate::core::component::Dormant { turns: 2 });
+        }
+        CardEffect::ReturnDevouredCards => {
+            // CATA_481 Iso'rath's deathrattle — "Return them." (the
+            // devoured cards move back to their owner's hand — the
+            // move keeps the entity's own player).
+            let devoured =
+                std::mem::take(&mut state.make_mut().players[owner.index()].devoured_cards);
+            for e in devoured {
+                let _ = state.world_mut().move_to_zone(e, Zone::Hand);
+            }
+        }
+        CardEffect::SummonCopyIfSpellDamageDealtThisTurn => {
+            // CATA_483 Unstable Spellcaster — "If you dealt damage
+            // with a spell this turn, summon a copy of this."
+            if state.player(owner).spell_damage_dealt_this_turn <= 0 {
+                return;
+            }
+            let Some(id) = state.world().card_id(source).map(|c| c.0) else {
+                return;
+            };
+            let _ = resolve_summon(state, queue, source, owner, id);
+        }
+        CardEffect::DealDamageAndDamageRandomEnemyMinion { amount, secondary } => {
+            // CATA_485 Sleet Storm — "Deal 2 damage. Deal 1 damage to
+            // a random enemy minion."
+            let _ = resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                amount,
+                EffectTarget::AnyCharacter,
+                explicit_target,
+            );
+            let _ = resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                secondary,
+                EffectTarget::AnyEnemyMinion,
+                None,
+            );
+        }
+        CardEffect::GainAttackFirstSpellDamageThisTurn { attack } => {
+            // CATA_487 Raincaller's trigger — "The first time you deal
+            // damage with a spell each turn, gain +2 Attack." (the
+            // once-per-turn guard rides the player's per-turn flag).
+            if state.player(owner).first_spell_damage_gain_used {
+                return;
+            }
+            let hero = state.player(owner).hero;
+            state.make_mut().players[owner.index()].first_spell_damage_gain_used = true;
+            state.world_mut().add_enchantment(
+                hero,
+                Enchantment {
+                    attack,
+                    health: 0,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::DamageAllMinionsRepeatDescending { amount } => {
+            // CATA_491 Eldritch Tentacles — "Deal 3 damage to all
+            // minions. Repeat this with 1 less damage."
+            for d in (1..=amount).rev() {
+                let _ = resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    d,
+                    EffectTarget::AllMinions,
+                    None,
+                );
+            }
+        }
+        CardEffect::SummonCopyOfDiscardedMinion => {
+            // CATA_494 Maloriak's "after you discard a minion" trigger
+            // — the event subject is the discarded card; the minion
+            // gate keeps the trigger quiet for discards of other types.
+            let Some(subject) = event_subject else {
+                return;
+            };
+            if state.world().card_type(subject) != Some(CardType::Minion) {
+                return;
+            }
+            let Some(id) = state.world().card_id(subject).map(|c| c.0) else {
+                return;
+            };
+            let _ = resolve_summon(state, queue, source, owner, id);
+        }
+        CardEffect::TakeControlUntilEndOfTurnCantAttack => {
+            // CATA_496 Cursed Chains — "Take control of an enemy
+            // minion until the end of their turn. It can't attack this
+            // turn." (the §26 approximation of the official
+            // until-their-turn timing: the standard until-end-of-turn
+            // convention; the CantAttackThisTurn marker is cleared at
+            // the wrap-up step).
+            let minions: SmallList<Entity> = collect_enemy_minions(state, owner, None);
+            if minions.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(minions.len());
+            let target = minions[idx];
+            let original_owner = state.world().player(target).unwrap_or(owner.opponent());
+            transfer_minion(state, target, owner);
+            state.make_mut().players[owner.index()]
+                .controlled_this_turn
+                .push((target, original_owner));
+            state
+                .world_mut()
+                .set_cant_attack_this_turn(target, crate::core::component::CantAttackThisTurn);
+        }
+        CardEffect::DealDamageToTwoScaledByHandTurns { base } => {
+            // CATA_498 Rafaams' Last Stand — "Deal 2 damage to two
+            // random enemy minions. (Upgrades each turn!)" — the
+            // hand-turn counter of the spell (bumped at the owner's
+            // turn starts) adds to the damage.
+            let extra = state
+                .world()
+                .hand_turn_counter(source)
+                .map(|c| c.0 as i32)
+                .unwrap_or(0);
+            let amount = base + extra;
+            let minions: SmallList<Entity> = collect_enemy_minions(state, owner, None);
+            if minions.is_empty() {
+                return;
+            }
+            let first_idx = state.rng_mut().next_usize(minions.len());
+            let first = minions[first_idx];
+            let second = if minions.len() > 1 {
+                let mut idx2 = state.rng_mut().next_usize(minions.len() - 1);
+                if idx2 >= first_idx {
+                    idx2 += 1;
+                }
+                Some(minions[idx2])
+            } else {
+                None
+            };
+            let _ = resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                amount,
+                EffectTarget::AnyEnemyMinion,
+                Some(first),
+            );
+            if let Some(s) = second {
+                let _ = resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    amount,
+                    EffectTarget::AnyEnemyMinion,
+                    Some(s),
+                );
+            }
+        }
+        CardEffect::DamageAllMinionsDrawPerDeath { amount } => {
+            // CATA_526 Broxigar's Last Stand — "Deal 1 damage to all
+            // minions. Draw a card for each that died."
+            let minions: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .chain(state.world().zones().iter(Zone::Play, owner.opponent()))
+                .collect();
+            let deaths = minions
+                .iter()
+                .filter(|&&e| {
+                    state.world().divine_shield(e).is_none()
+                        && state
+                            .world()
+                            .effective_health(e)
+                            .is_some_and(|h| h.0 - amount <= 0)
+                })
+                .count();
+            for e in minions {
+                let _ = resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    amount,
+                    EffectTarget::AnyMinion,
+                    Some(e),
+                );
+            }
+            for _ in 0..deaths {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::ReopenLocation => {
+            // CATA_527 Nespirah, Enthralled's "after you cast a Fel
+            // spell, reopen" trigger — the location becomes ready
+            // again this turn (the play cooldown clears).
+            state.make_mut().players[owner.index()].location_played_turn = 0;
+        }
+        CardEffect::SetNextTurnSummon { card_id } => {
+            // CATA_528 Sigil of the Seas — "At the start of your next
+            // turn, summon a 3/3 Naga with Taunt." (the pending summon
+            // is consumed by the TurnStarted hook).
+            state.make_mut().players[owner.index()].next_turn_summon = Some(card_id.to_string());
+        }
+        CardEffect::DealDamageLeftRightOutcastAgain { amount } => {
+            // CATA_533 Flash Flood — "Deal 5 damage to your opponent's
+            // left and right-most minions. Outcast: Do it again." (the
+            // Outcast marker was set at play time; the second wave
+            // re-computes the edges after the first wave's deaths).
+            let times = if state.world().outcast_played(source).is_some() {
+                2
+            } else {
+                1
+            };
+            for _ in 0..times {
+                let minions: Vec<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, owner.opponent())
+                    .collect();
+                let mut targets: SmallList<Entity> = SmallList::new();
+                if let Some(&e) = minions.first() {
+                    targets.push(e);
+                }
+                if minions.len() > 1 {
+                    targets.push(*minions.last().unwrap());
+                }
+                for t in targets {
+                    let _ = resolve_deal_damage(
+                        state,
+                        queue,
+                        source,
+                        owner,
+                        amount,
+                        EffectTarget::AnyEnemyMinion,
+                        Some(t),
+                    );
+                }
+            }
+        }
+        CardEffect::DealDamageEqualSelfAttack => {
+            // CATA_552 Ebonscale Scout's battlecry — "Deal damage
+            // equal to this minion's Attack."
+            let Some(atk) = state.world().effective_attack(source) else {
+                return;
+            };
+            let _ = resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                atk.0,
+                EffectTarget::AnyCharacter,
+                explicit_target,
+            );
+        }
+        CardEffect::SetDragonsHaveRush => {
+            // CATA_553 Ebyssian's battlecry — "Your Dragons have Rush
+            // this game." (the permanent flag is read by the summon
+            // path).
+            state.make_mut().players[owner.index()].dragons_have_rush = true;
+        }
+        CardEffect::SetEnemyMinionHealthTo1IfHoldingDragon => {
+            // CATA_554 Earthen Roar — "Set an enemy minion's Health to
+            // 1. If you're holding a Dragon, pick another." (the
+            // explicit target wins for the first pick).
+            let candidates: SmallList<Entity> = collect_enemy_minions(state, owner, None);
+            if let Some(t) = select_target(explicit_target, &candidates, state.rng_mut()) {
+                resolve_set_health(state, owner, 1, EffectTarget::AnyEnemyMinion, Some(t));
+            }
+            if holding_dragon(state, owner) {
+                resolve_set_health(state, owner, 1, EffectTarget::AnyEnemyMinion, None);
+            }
+        }
+        CardEffect::AddRandomDragonCostLE3 => {
+            // CATA_556 Carrier Whelp — "Get a random Dragon that costs
+            // (3) or less" (the D2 pool samples the active window).
+            let Some(def) = crate::cards::pool::random_card(
+                state.rng_mut(),
+                crate::core::effect::RandomPool::DragonCost3OrLess,
+            ) else {
+                return;
+            };
+            let _ = add_card_to_hand(state, owner, def);
+        }
+        CardEffect::DealDamageOrDamageAllEnemiesIfCopyPlayed { amount } => {
+            // CATA_557 Sylvanas's Triumph — "Deal 3 damage. If you've
+            // played another copy of this, hit all enemies instead."
+            if state.player(owner).sylvanas_triumph_played {
+                let _ = resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    amount,
+                    EffectTarget::AllEnemies,
+                    None,
+                );
+            } else {
+                let _ = resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    amount,
+                    EffectTarget::AnyCharacter,
+                    explicit_target,
+                );
+            }
+        }
+        CardEffect::ReplayOneCostCardsPlayedThisGame => {
+            // CATA_560 Confront the Tol'vir — "Replay each 1-Cost card
+            // you've played this game (targeting enemies if possible)"
+            // (§26: spells resolve their spell effect against enemy
+            // targets, minions are summoned).
+            let list: Vec<String> = state.player(owner).played_one_cost_cards.clone();
+            for id in list {
+                let Some(def) = crate::cards::def::card_by_id(&id) else {
+                    continue;
+                };
+                match def.card_type {
+                    CardType::Minion => {
+                        let _ = resolve_summon(state, queue, source, owner, &id);
+                    }
+                    CardType::Spell => {
+                        if let Some(effect) = def.spell_effect {
+                            resolve_effect(state, queue, source, owner, effect, None, None);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        CardEffect::CastAbsorbedSpell => {
+            // CATA_563 Crackling Cloudstrider's deathrattle — "Cast
+            // it." (the absorbed spell entity rides
+            // `Player::absorbed_spell`; its spell effect resolves
+            // without a SpellCast event, §26).
+            let Some(spell) = state.player(owner).absorbed_spell else {
+                return;
+            };
+            let Some(id) = state.world().card_id(spell).map(|c| c.0) else {
+                return;
+            };
+            let Some(def) = crate::cards::def::card_by_id(id) else {
+                return;
+            };
+            if let Some(effect) = def.spell_effect {
+                resolve_effect(state, queue, source, owner, effect, None, None);
+            }
+        }
+        CardEffect::GrantMegaWindfuryCantAttackHeroes => {
+            // CATA_564 Air Support — "Give a friendly minion
+            // Mega-Windfury. It can't attack heroes." (the permanent
+            // restriction rides the this-turn marker, §26).
+            let candidates: SmallList<Entity> =
+                state.world().zones().iter(Zone::Play, owner).collect();
+            let Some(target) = select_target(explicit_target, &candidates, state.rng_mut()) else {
+                return;
+            };
+            state
+                .world_mut()
+                .set_mega_windfury(target, crate::core::component::MegaWindfury);
+            state.world_mut().set_cant_attack_heroes_this_turn(
+                target,
+                crate::core::component::CantAttackHeroesThisTurn,
+            );
+        }
+        CardEffect::TransformFriendlyMinionsCost1MoreSummonOriginals => {
+            // CATA_567 Ascendance — "Transform all friendly minions
+            // into ones that cost (1) more. They summon the originals
+            // when they die." (the §26 D2 transform-sampling
+            // approximation).
+            let minions: SmallList<Entity> =
+                state.world().zones().iter(Zone::Play, owner).collect();
+            for m in minions {
+                let Some(orig_id) = state.world().card_id(m).map(|c| c.0) else {
+                    continue;
+                };
+                let cost = state.world().effective_cost(m).map(|c| c.0).unwrap_or(0);
+                let Some(def) = random_minion_of_cost(state, cost + 1) else {
+                    continue;
+                };
+                resolve_transform_to_def(state, m, def);
+                state.world_mut().set_deathrattle(
+                    m,
+                    Deathrattle(crate::core::effect::CardEffect::SummonMinion { card_id: orig_id }),
+                );
+            }
+        }
+        CardEffect::SummonRandomThreeTwoOneCostMinions => {
+            // CATA_569 Ceremonial Clash — "Summon a random 3, 2, and
+            // 1-Cost minion."
+            for cost in [3, 2, 1] {
+                let Some(def) = random_minion_of_cost(state, cost) else {
+                    continue;
+                };
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+        }
+        CardEffect::DrawAndReduceCostRepeated { reduction } => {
+            // CATA_570 Morchok — "Draw a card and reduce its Cost by
+            // (10). Repeat this with excess Cost reduction." — the
+            // reduction carries through the draws; the loop continues
+            // while the reduction remains and the deck has cards.
+            let mut remaining = reduction;
+            while remaining > 0 && state.world().zones().len(Zone::Deck, owner) > 0 {
+                let Some(drawn) = draw_card_no_queue(state, queue, owner) else {
+                    break;
+                };
+                let cur = state.world().effective_cost(drawn).unwrap_or(Cost(0)).0;
+                let new_cost = (cur - remaining).max(0);
+                let used = cur - new_cost;
+                state.world_mut().set_cost(drawn, Cost(new_cost));
+                remaining -= used;
+                queue.push(Event::CardDrawn {
+                    player: owner,
+                    card: drawn,
+                });
+            }
+        }
+        CardEffect::DamageAllMinionsScaledByBoard { base } => {
+            // CATA_581 Decimation — "Deal 1 damage to all minions.
+            // (Improved for each minion on the battlefield.)" (§26: the
+            // improvement counts ALL minions on both sides).
+            let count = (state.world().zones().iter(Zone::Play, owner).count()
+                + state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, owner.opponent())
+                    .count()) as i32;
+            let _ = resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                base + count,
+                EffectTarget::AllMinions,
+                None,
+            );
+        }
+        CardEffect::DamageAllMinionsAndGainHeroAttack { amount, attack } => {
+            // CATA_582 Searing Fissure — "Deal 1 damage to all
+            // minions. Give your hero +3 Attack this turn."
+            let _ = resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                amount,
+                EffectTarget::AllMinions,
+                None,
+            );
+            resolve_gain_hero_attack(state, queue, owner, attack, 0);
+        }
+        CardEffect::DealDamageSplitAmongEnemiesIfFireSpell { amount } => {
+            // CATA_584 Erupting Volcano — "Deal 3 damage randomly
+            // split among enemies. If you've played a Fire spell this
+            // turn, deal 3 more." (each ping re-picks among the living
+            // enemies).
+            let total = if state.player(owner).fire_spell_played_this_turn {
+                amount * 2
+            } else {
+                amount
+            };
+            for _ in 0..total {
+                let mut enemies: SmallList<Entity> = SmallList::new();
+                enemies.push(state.player(owner.opponent()).hero);
+                enemies.extend(collect_enemy_minions(state, owner, None));
+                if enemies.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(enemies.len());
+                let _ = resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    1,
+                    EffectTarget::AnyEnemy,
+                    Some(enemies[idx]),
+                );
+            }
+        }
+        CardEffect::DamageDamagedMinionReturnIfExcess { amount } => {
+            // CATA_585 Torch — "Deal 8 damage to a damaged minion.
+            // Return this to hand with any excess damage." (§26: the
+            // official excess-damage return is approximated by the
+            // die-check — the play path consumes the pending flag).
+            let candidates: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .chain(state.world().zones().iter(Zone::Play, owner.opponent()))
+                .filter(|&e| state.world().damage(e).is_some_and(|d| d.0 > 0))
+                .collect();
+            let Some(target) = select_target(explicit_target, &candidates, state.rng_mut()) else {
+                return;
+            };
+            let dies = state.world().divine_shield(target).is_none()
+                && state
+                    .world()
+                    .effective_health(target)
+                    .is_some_and(|h| h.0 - amount <= 0);
+            let _ = resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                amount,
+                EffectTarget::AnyMinion,
+                Some(target),
+            );
+            if dies {
+                state.make_mut().players[owner.index()].torch_return_pending = true;
+            }
+        }
+        CardEffect::SetGeddonDiscoverDraw => {
+            // CATA_591 Commander Geddon — "Instead of drawing each
+            // turn, Discover a card from your deck. It costs (3) less.
+            // Destroy the others." (the game-long flag is read by the
+            // DrawStep hook, §26).
+            state.make_mut().players[owner.index()].geddon_discover_draw = true;
+        }
+        CardEffect::GrantDeathrattleSummonRandomHandMinion => {
+            // CATA_610 Lo'Gosh's Last Stand — "Give a minion
+            // 'Deathrattle: Summon a random minion from your hand.'"
+            // (§26: the official side-agnostic target is approximated
+            // by the friendly scope).
+            let candidates: SmallList<Entity> =
+                state.world().zones().iter(Zone::Play, owner).collect();
+            let Some(target) = select_target(explicit_target, &candidates, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().set_deathrattle(
+                target,
+                Deathrattle(crate::core::effect::CardEffect::SummonRandomMinionFromHand),
+            );
+        }
+        CardEffect::SummonRandomMinionFromHand => {
+            // The deathrattle granted by CATA_610 — "Summon a random
+            // minion from your hand" (a fresh copy — the hand card
+            // stays).
+            let minions: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if minions.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(minions.len());
+            let Some(id) = state.world().card_id(minions[idx]).map(|c| c.0) else {
+                return;
+            };
+            let _ = resolve_summon(state, queue, source, owner, id);
+        }
+        CardEffect::UpgradeHeroPowerCost1 => {
+            // CATA_615t Genn, Worgen King — "Upgrade your starting
+            // Hero Power. It costs (1)." (the §26 cost-flag
+            // approximation, read by the hero-power cost pipeline).
+            state.make_mut().players[owner.index()].hero_power_cost_1 = true;
+        }
+        CardEffect::AddRandomPaladinAura => {
+            // CATA_621 Gelbin's Triumph — "Get a random Paladin Aura.
+            // It lasts an additional turn." The Paladin Aura pool is
+            // the set's Aura spell CATA_480 Sandfury Aura ("Your
+            // minions' end of turn effects trigger twice. Lasts 3
+            // turns."); the extra turn rides the source check — a
+            // Gelbin-gotten Aura lasts 4 turns — §26.
+            const PALADIN_AURA_POOL: [&str; 1] = ["CATA_480"];
+            let Some(def) =
+                crate::cards::pool::random_from_pool(&PALADIN_AURA_POOL, state.rng_mut())
+            else {
+                return;
+            };
+            let Some(e) = add_card_to_hand(state, owner, def) else {
+                return;
+            };
+            // The spell's effect lives in the battlecry slot (the spell
+            // convention); the Gelbin-gotten copy lasts 4 turns instead
+            // of the printed 3.
+            if state
+                .world()
+                .card_id(source)
+                .is_some_and(|c| c.0 == "CATA_621")
+            {
+                state.world_mut().set_battlecry(
+                    e,
+                    crate::core::component::Battlecry(CardEffect::SetEndTurnEffectsTwice {
+                        turns: 4,
+                    }),
+                );
+            }
+        }
+        CardEffect::StealHealthThreeTimes { amount } => {
+            // CATA_699 Dread Leviathan — "Choose an enemy minion to
+            // steal 3 Health from, three times." (§26: each steal is
+            // dealt as damage to the target and a matching heal on the
+            // source).
+            let candidates: SmallList<Entity> = collect_enemy_minions(state, owner, None);
+            let Some(target) = select_target(explicit_target, &candidates, state.rng_mut()) else {
+                return;
+            };
+            for _ in 0..3 {
+                let _ = resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    amount,
+                    EffectTarget::AnyEnemyMinion,
+                    Some(target),
+                );
+                let dmg = state.world().damage(source).unwrap_or(Damage(0)).0;
+                if dmg > 0 {
+                    state
+                        .world_mut()
+                        .set_damage(source, Damage((dmg - amount).max(0)));
+                    fire_healed_trigger(state, queue, source);
+                }
+            }
+        }
+        CardEffect::DestroyDeckCardsCostLE2Both => {
+            // CATA_720 Warmaster Blackhorn — "Destroy all cards that
+            // cost (2) or less in both players' decks."
+            for player in [owner, owner.opponent()] {
+                let cards: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Deck, player)
+                    .filter(|&e| state.world().effective_cost(e).is_some_and(|c| c.0 <= 2))
+                    .collect();
+                for c in cards {
+                    let _ = state.world_mut().move_to_zone(c, Zone::Graveyard);
+                }
+            }
+        }
+        CardEffect::UnlockOverloadedCrystals => {
+            // CATA_724 Stormbinder's deathrattle — "Unlock your
+            // Overloaded Mana Crystals" (the overload lock clears like
+            // the ManaRefill step does).
+            state.make_mut().players[owner.index()].overload_locked = 0;
+        }
+        CardEffect::CastRandomSpellSameCostOtherClass => {
+            // CATA_786 Chaos Supplicant — "After you cast a spell,
+            // cast a random spell of the same Cost from another class"
+            // (the D2 pool samples the active window's spells of the
+            // cast spell's cost from the other classes; the cast
+            // resolves the spell effect without a SpellCast event,
+            // §26).
+            let Some(subject) = event_subject else {
+                return;
+            };
+            let Some(cost) = state.world().cost(subject) else {
+                return;
+            };
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Spell
+                            && c.cost == cost.0
+                            && !c.id.ends_with('t')
+                            && crate::cards::pool::in_active_window(c)
+                            && crate::cards::pool::is_other_class_card(c)
+                    })
+                    .collect();
+            if pool.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(pool.len());
+            if let Some(effect) = pool[idx].spell_effect {
+                resolve_effect(state, queue, source, owner, effect, None, None);
+            }
+        }
+        CardEffect::ReturnHoardCostLess => {
+            // CATA_897 Gemstone Hoarder's deathrattle — "Get it back.
+            // It costs (1) less." (the hoarded card is stashed by the
+            // choose-hand-card discard).
+            let Some(card) = state.player(owner).hoarded_card else {
+                return;
+            };
+            state.make_mut().players[owner.index()].hoarded_card = None;
+            let _ = state.world_mut().move_to_zone(card, Zone::Hand);
+            let cur = state.world().cost(card).unwrap_or(Cost(0)).0;
+            state.world_mut().set_cost(card, Cost((cur - 1).max(0)));
+        }
+        CardEffect::DamageMinionReduceHandCostByExcess { amount } => {
+            // CATA_978 Sindragosa's Triumph — "Deal 8 damage to a
+            // minion. Reduce the Cost of a random card in your hand by
+            // the excess damage." (§26: the excess is the damage minus
+            // the target's remaining Health).
+            let candidates: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .chain(state.world().zones().iter(Zone::Play, owner.opponent()))
+                .collect();
+            let Some(target) = select_target(explicit_target, &candidates, state.rng_mut()) else {
+                return;
+            };
+            let remaining = state
+                .world()
+                .effective_health(target)
+                .map(|h| h.0)
+                .unwrap_or(0);
+            let _ = resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                amount,
+                EffectTarget::AnyMinion,
+                Some(target),
+            );
+            let excess = (amount - remaining).max(0);
+            if excess > 0 {
+                let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, owner).collect();
+                if !hand.is_empty() {
+                    let idx = state.rng_mut().next_usize(hand.len());
+                    let c = hand[idx];
+                    let cur = state.world().effective_cost(c).unwrap_or(Cost(0)).0;
+                    state.world_mut().set_cost(c, Cost((cur - excess).max(0)));
+                }
+            }
+        }
+        CardEffect::AddTwoRandomSpellsSameCost { cost } => {
+            // CATA_979 Conjuration Specialist's split dispatch — two
+            // random spells of the chosen cost enter the hand (§26).
+            for _ in 0..2 {
+                add_random_cost_card(state, owner, cost, CardType::Spell);
+            }
+        }
+        CardEffect::Split100StatsAmongDeckMinionsIfCostGE100 { threshold } => {
+            // CATA_213 Vyranoth — "If the total Cost of your starting
+            // minions was 100, split 100 stats among minions in your
+            // deck." (§26: the official starting-minions snapshot is
+            // approximated by the deck at play time, and the 100 stats
+            // are split as +5/+5 on ten random deck minions).
+            let deck_minions: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            let total: i32 = deck_minions
+                .iter()
+                .filter_map(|&e| state.world().cost(e))
+                .map(|c| c.0)
+                .sum();
+            if total < threshold || deck_minions.is_empty() {
+                return;
+            }
+            for _ in 0..10 {
+                let idx = state.rng_mut().next_usize(deck_minions.len());
+                state.world_mut().add_enchantment(
+                    deck_minions[idx],
+                    Enchantment {
+                        attack: 5,
+                        health: 5,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::DestroyHighestHealthEnemyMinion => {
+            // CATA_190t11 Topple (Deathwing's Cataclysm) — "Destroy
+            // the highest-Health enemy minion" (ties break leftmost,
+            // like the engine's other highest-attribute picks).
+            let minions: SmallList<Entity> = collect_enemy_minions(state, owner, None);
+            let mut best: Option<Entity> = None;
+            let mut best_hp = -1;
+            for &e in minions.iter() {
+                let hp = state.world().effective_health(e).unwrap_or(Health(0)).0;
+                if hp > best_hp {
+                    best_hp = hp;
+                    best = Some(e);
+                }
+            }
+            let Some(target) = best else {
+                return;
+            };
+            resolve_destroy_minion(
+                state,
+                queue,
+                owner,
+                source,
+                EffectTarget::AnyEnemyMinion,
+                Some(target),
+            );
+        }
+        CardEffect::ShuffleRandomLegendaryDragonsCost1 => {
+            // CATA_190t13 Enthrall (Deathwing's Cataclysm) — "Shuffle
+            // five random Legendary Dragons into your deck. They cost
+            // (1)." (the LegendaryDragon pool — §26).
+            for _ in 0..5 {
+                let Some(def) = crate::cards::pool::random_card(
+                    state.rng_mut(),
+                    crate::core::effect::RandomPool::LegendaryDragon,
+                ) else {
+                    continue;
+                };
+                let e = crate::cards::spawn_card_from_def(state.world_mut(), owner, def);
+                state.world_mut().set_cost(e, Cost(1));
+                let deck_len = state.world().zones().len(Zone::Deck, owner) + 1;
+                let pos = state.rng_mut().next_usize(deck_len);
+                let world = state.world_mut();
+                world.set_zone(e, Zone::Deck);
+                world.zones_mut().insert_at(Zone::Deck, owner, e, pos);
+            }
+        }
+        CardEffect::DestroyLegendaryMinion => {
+            // CATA_203 Garona's Last Stand — "Destroy a Legendary
+            // minion." The Legendary filter follows the LegendaryMinion
+            // pool convention (fidelity-debt §26 — the engine has no
+            // rarity tracking, so the filter is the pooled Legendary
+            // list).
+            let candidates: SmallList<Entity> = collect_enemy_minions(state, owner, None)
+                .iter()
+                .copied()
+                .filter(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .is_some_and(|c| crate::cards::pool::is_legendary(c.0))
+                })
+                .collect();
+            let Some(target) = select_target(explicit_target, &candidates, state.rng_mut()) else {
+                return;
+            };
+            resolve_destroy_minion(
+                state,
+                queue,
+                owner,
+                source,
+                EffectTarget::AnyEnemyMinion,
+                Some(target),
+            );
+        }
+        CardEffect::GrantRandomFriendlyMinionAttack { attack } => {
+            // CATA_467 Command Claw's weapon trigger — "After your hero
+            // attacks, give a random friendly minion +Attack" (the
+            // weapon-attack event pins the equipped weapon, which rides
+            // the weapon entity).
+            let minions: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Minion)
+                        && state.world().is_alive(e)
+                        && state.world().dormant(e).is_none()
+                })
+                .collect();
+            if minions.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(minions.len());
+            state.world_mut().add_enchantment(
+                minions[idx],
+                Enchantment {
+                    attack: attack as i32,
+                    health: 0,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        CardEffect::DiscoverOneCostSpell => {
+            // CATA_484 Winter's Answer — "Discover a spell that costs
+            // (1)." (the OneCostSpell pool — §26).
+            let cards = crate::cards::pool::discover_pool_cards(
+                crate::core::effect::DiscoverPool::OneCostSpell,
+                state,
+                owner,
+            );
+            if cards.is_empty() {
+                return;
+            }
+            let options: Vec<String> = cards
+                .iter()
+                .map(|c| format!("{} ({})", c.name, c.id))
+                .collect();
+            let pool_ids: Vec<String> = cards.iter().map(|c| c.id.to_string()).collect();
+            state.set_pending_choice_w4a(
+                crate::core::state::ChoiceKind::Discover,
+                source,
+                options,
+                pool_ids,
+                false,
+                1,
+                false,
+                Vec::new(),
+            );
+        }
+        CardEffect::DiscoverAnySpell => {
+            // CATA_614 Nefarian's Fury — "Discover a spell." (the plain
+            // Spell pool — any active-window spell, §26).
+            let cards = crate::cards::pool::discover_pool_cards(
+                crate::core::effect::DiscoverPool::Spell,
+                state,
+                owner,
+            );
+            if cards.is_empty() {
+                return;
+            }
+            let options: Vec<String> = cards
+                .iter()
+                .map(|c| format!("{} ({})", c.name, c.id))
+                .collect();
+            let pool_ids: Vec<String> = cards.iter().map(|c| c.id.to_string()).collect();
+            state.set_pending_choice_w4a(
+                crate::core::state::ChoiceKind::Discover,
+                source,
+                options,
+                pool_ids,
+                false,
+                1,
+                false,
+                Vec::new(),
+            );
+        }
+        CardEffect::SummonTwoRandomOneCostMinions => {
+            // CATA_499 Voidcrawler's play half — "When you play or
+            // discard this, summon two random minions that cost (1)."
+            // (the discard half lives at the discard chokepoint —
+            // resolve_discard_entity). The board-fill convention of the
+            // §26 register: at most 2 summons, the board cap still
+            // applies per summon.
+            for _ in 0..2 {
+                let Some(def) = random_minion_of_cost(state, 1) else {
+                    continue;
+                };
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+        }
+        CardEffect::ReopenLocationIfFelSpell => {
+            // CATA_527 Nespirah's trigger — "After you play a Fel spell,
+            // reopen a friendly Location." The school gate: only a Fel
+            // spell subject triggers it. Reopen = the destroyed friendly
+            // Location (graveyard) returns to the board at full
+            // durability; with none destroyed, a random active friendly
+            // Location's play-cooldown resets instead — §26.
+            let is_fel = event_subject.is_some_and(|s| {
+                state.world().card_id(s).is_some_and(|c| {
+                    crate::cards::quest::spell_school(c.0)
+                        == Some(crate::cards::quest::SpellSchool::Fel)
+                })
+            });
+            if !is_fel {
+                return;
+            }
+            let destroyed: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Graveyard, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Location))
+                .collect();
+            if let Some(&loc) = destroyed.get(state.rng_mut().next_usize(destroyed.len())) {
+                let full = state
+                    .world()
+                    .card_id(loc)
+                    .and_then(|c| crate::cards::def::card_by_id(c.0))
+                    .map(|d| d.durability.max(0))
+                    .unwrap_or(0);
+                state.world_mut().set_durability(loc, Durability(full));
+                let _ = state.world_mut().move_to_zone(loc, Zone::Play);
+                let inner = state.make_mut();
+                inner.players[owner.index()].location = Some(loc);
+                // Clear the play cooldown: the reopened Location can be
+                // activated immediately (the validate guard compares the
+                // recorded turn against the current turn).
+                inner.players[owner.index()].location_played_turn = 0;
+                return;
+            }
+            let locations: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Location))
+                .collect();
+            if locations.is_empty() {
+                return;
+            }
+            let idx = state.rng_mut().next_usize(locations.len());
+            let loc = locations[idx];
+            state.make_mut().players[owner.index()].location_played_turn = 0;
+            // One activation per turn resets at the owner's turn start
+            // (attacks_used); the re-opened Location keeps its charges.
+            state
+                .world_mut()
+                .set_attacks_used(loc, crate::core::component::AttacksUsed(0));
+        }
+        CardEffect::SummonRandomMinionsOfCost { cost, count } => {
+            // CATA_723 Drakeadon Mongrel deathrattle — "Summon two random
+            // minions that cost (4)." (the MinionCost pool — §26; the
+            // board cap still applies per summon).
+            for _ in 0..count {
+                let Some(def) = random_minion_of_cost(state, cost as i32) else {
+                    continue;
+                };
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+        }
+        CardEffect::AddRandomNagaCost1 => {
+            // CATA_527t2 Nespirah, Unshackled — "After you cast a Fel
+            // spell, get a random non-Colossal Naga. It costs (1)." The
+            // pool is the implemented Naga set (the handwritten
+            // expansion registry — the Naga minions live there, not in
+            // ALL_CARDS, whose sampling pools stay closed until the
+            // decision-D3 cut-over) minus the Colossal registry: the
+            // active window (Classic-era + Core) holds NO Naga minions,
+            // so the §26 pin samples the expansion Nagas directly (the
+            // closest the pool convention allows — the effect would be
+            // a dead trigger under the window filter).
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::HANDWRITTEN_EXPANSION_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.race == Some(crate::core::component::Race::Naga)
+                            && crate::cards::colossal::colossal_parts(c.id).is_none()
+                    })
+                    .collect();
+            let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() else {
+                return;
+            };
+            let e = add_card_to_hand(state, owner, def);
+            if let Some(e) = e {
+                state
+                    .world_mut()
+                    .set_cost(e, crate::core::component::Cost(1));
+            }
+        }
     }
 }
 
@@ -12698,6 +14433,15 @@ fn resolve_deal_damage(
             });
             return None;
         }
+        EffectTarget::AllOtherFriendlyMinions => {
+            // M4-W4 — the scope is a buff scope; damage to "all other
+            // friendly minions" has no official user and falls back to
+            // the friendly list.
+            collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&m| m != source)
+                .collect()
+        }
         // Battlecry-target kinds (battlecry-target-debt roadmap W13): a single
         // character (hero + minion) on either side, or either hero. Friendly
         // characters keep the friendly convention (stealth does not filter
@@ -13035,6 +14779,19 @@ fn resolve_summon_doubled(
         e
     };
 
+    // M4-W4 — CATA_553 Ebyssian: "Your Dragons have Rush this game" — the
+    // game-long flag grants Rush to every summoned Dragon (consulted here
+    // so played, effect-summoned and resurrected Dragons all honor it).
+    if state.player(owner).dragons_have_rush && state.world().has_race(e, Race::Dragon) {
+        state.world_mut().set_rush(e, Rush);
+    }
+    // M4-W4 — CATA_493 Duke of Below: the discard-scaled self-aura bakes
+    // at summon with the current count (the discard chokepoint re-bakes
+    // it on every later discard).
+    if state.world().card_id(e).is_some_and(|c| c.0 == "CATA_493") {
+        crate::cards::bake_duke_of_below(state, e, owner);
+    }
+
     // Enqueue the MinionSummoned event (triggers battlecry and similar effects).
     // Effect-summoned minions carry no explicit battlecry target (M1).
     queue.push(Event::MinionSummoned {
@@ -13201,7 +14958,7 @@ fn resolve_destroy_all_other_minions_and_discard_hand(
     source: Entity,
     owner: PlayerId,
 ) {
-    resolve_discard_hand(state, owner);
+    resolve_discard_hand(state, queue, owner);
     let mut all = collect_friendly_minions(state, owner);
     all.extend(collect_all_enemy_minions(state, owner));
     for &m in &all {
@@ -13494,6 +15251,19 @@ fn resolve_gain_stats(
         }
         EffectTarget::AllFriendlyMinions => {
             let minions: SmallList<Entity> = collect_friendly_minions(state, owner);
+            let world = state.world_mut();
+            for minion in &minions {
+                world.add_enchantment(*minion, buff);
+            }
+        }
+        // M4-W4 — CATA_133 Iridescent Flitterwing's end-of-turn "give
+        // your OTHER minions +1/+1": every friendly minion but the
+        // source.
+        EffectTarget::AllOtherFriendlyMinions => {
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| e != source)
+                .collect();
             let world = state.world_mut();
             for minion in &minions {
                 world.add_enchantment(*minion, buff);
@@ -13888,7 +15658,10 @@ fn resolve_equip_weapon(
 /// The transform worker shared by Hex and Tribute Dance (M2-W4c): a real
 /// transform — the target's effects are cleared (deathrattles do not fire)
 /// and its base card, stats, cost and static keywords are rewritten.
-fn resolve_transform_to_def(
+/// `pub(crate)` — the TurnStarted hand-transform hooks (M4-W4 — CATA_615
+/// Genn's Worgen King, CATA_551/552/553's Dragon forms) call it from
+/// `rules.rs`.
+pub(crate) fn resolve_transform_to_def(
     state: &mut GameState,
     target: Entity,
     def: &crate::cards::def::CardDef,
@@ -13915,6 +15688,59 @@ fn resolve_transform_to_def(
     }
     if def.charge {
         world.set_charge(target, Charge);
+    }
+    // The def's full component set re-applies (M4-W4 — the in-hand
+    // transforms of CATA_551/552/553's Dragon forms and CATA_615 Genn's
+    // Worgen King keep their new battlecry/race/effects when played, the
+    // board transforms keep the new def's deathrattle): the transform
+    // resets to the new base, and the base includes its effects.
+    if def.elusive {
+        world.set_elusive(target, crate::core::component::Elusive);
+    }
+    if def.spell_damage != 0 {
+        world.set_spell_damage(
+            target,
+            crate::core::component::SpellDamage(def.spell_damage),
+        );
+    }
+    if def.cant_attack {
+        world.set_cant_attack(target, crate::core::component::CantAttack);
+    }
+    if def.attack_equals_health {
+        world.set_attack_equals_health(target, crate::core::component::AttackEqualsHealth);
+    }
+    if let Some(race) = def.race {
+        world.set_race(target, race);
+    }
+    if let Some(bc) = def.battlecry {
+        world.set_battlecry(target, crate::core::component::Battlecry(bc));
+    }
+    if let Some(dr) = def.deathrattle {
+        world.set_deathrattle(target, crate::core::component::Deathrattle(dr));
+    }
+    if let Some((effect, aura_target)) = def.aura {
+        world.set_aura(
+            target,
+            Aura {
+                effect,
+                target: aura_target,
+            },
+        );
+    }
+    if let Some(trigger) = def.secret {
+        world.set_secret(
+            target,
+            crate::core::component::Secret {
+                trigger,
+                effect: def.battlecry,
+            },
+        );
+    }
+    if let Some(ce) = def.choose_one_effect {
+        world.set_choose_one_effect(target, crate::core::component::ChooseOneEffect(ce));
+    }
+    if let Some(cb) = def.combo_effect {
+        world.set_combo_effect(target, crate::core::component::ComboEffect(cb));
     }
 }
 
@@ -14001,10 +15827,21 @@ fn resolve_return_to_hand(
         // Brewmasters (W15): return a FRIENDLY minion (the source included,
         // when chosen) to its owner's hand.
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        // M4-W4 — CATA_201 Deep Impact: return ALL enemy minions to their
+        // hands (no selection — every one goes back; the enemy hero stays).
+        EffectTarget::AllEnemyMinions => collect_enemy_minions(state, owner, None),
         _ => return,
     };
 
     if minions.is_empty() {
+        return;
+    }
+
+    // AllEnemyMinions (M4-W4 — CATA_201) returns every minion, not one.
+    if target == EffectTarget::AllEnemyMinions {
+        for &m in &minions {
+            let _ = state.world_mut().move_to_zone(m, Zone::Hand);
+        }
         return;
     }
 
@@ -14276,7 +16113,10 @@ fn resolve_set_attack(
 }
 
 /// Sets a character's health to a fixed value (Alexstrasza — a hero's Health
-/// to 15; W14).
+/// to 15; W14). M4-W4 adds the FriendlyHero target (CATA_307 Alexstrasza,
+/// Guardian of Life's "Set your remaining Health to 15" — resolved through
+/// the heal path by its own combined arm) and the EnemyMinion target
+/// (CATA_554 Earthen Roar "Set an enemy minion's Health to 1").
 fn resolve_set_health(
     state: &mut GameState,
     owner: PlayerId,
@@ -14284,21 +16124,24 @@ fn resolve_set_health(
     target: EffectTarget,
     explicit: Option<Entity>,
 ) {
-    let heroes: SmallList<Entity> = match target {
+    let candidates: SmallList<Entity> = match target {
         EffectTarget::AnyHero => {
             let hero = state.player(owner).hero;
             let enemy_hero = state.player(owner.opponent()).hero;
             [hero, enemy_hero].into_iter().collect()
         }
+        EffectTarget::FriendlyHero => [state.player(owner).hero].into_iter().collect(),
+        EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner, None),
         _ => return,
     };
-    let Some(h) = select_target(explicit, &heroes, state.rng_mut()) else {
+    let Some(h) = select_target(explicit, &candidates, state.rng_mut()) else {
         return;
     };
-    // Set the hero's health: the damage component moves to base − target
+    // Set the character's health: the damage component moves to base − target
     // (roadmap G4 — damage, not base health). A 30-HP hero set to 15 takes
     // 15 accumulated damage; a target already below 15 is untouched only if
-    // its base is below 15 (defensive).
+    // its base is below 15 (defensive). Minions use the same convention
+    // (CATA_554 — a 3/8 minion set to 1 takes 7 accumulated damage).
     let base = state.world().health(h).unwrap_or(Health(30)).0;
     let dmg = (base - health).max(0);
     if dmg > 0 {
@@ -14319,6 +16162,64 @@ fn resolve_restore_health(
     target: EffectTarget,
     explicit: Option<Entity>,
 ) {
+    // CATA_216 Cleansing Cleric (M4-W4): "Your healing effects restore 2
+    // more Health this game" — the game-long bonus (SetHealingBonus) adds
+    // to every friendly heal funneled here (§26: the funnel is the
+    // restore-health path; direct-heal combos bypass it).
+    let amount = amount + state.player(owner).healing_bonus;
+    // CATA_301 Ruby Sanctum (M4-W4): "Your next Healing effect this turn
+    // deals damage instead" — the first friendly heal is converted to
+    // damage on the same targets and the flag clears (the turn-end wrap-up
+    // clears a leftover as a backstop).
+    if state.player(owner).next_heal_deals_damage {
+        state.make_mut().players[owner.index()].next_heal_deals_damage = false;
+        let source = state.player(owner).hero;
+        match target {
+            EffectTarget::AnyCharacter => {
+                let mut chars = collect_friendly_characters(state, owner, None);
+                chars.extend(collect_enemy_characters(state, owner, None));
+                if let Some(c) = select_target(explicit, &chars, state.rng_mut()) {
+                    queue.push(Event::DamageDealt {
+                        source,
+                        target: c,
+                        amount,
+                    });
+                }
+            }
+            EffectTarget::FriendlyHero | EffectTarget::Self_ => {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: state.player(owner).hero,
+                    amount,
+                });
+            }
+            EffectTarget::AllFriendlyMinions => {
+                for m in collect_friendly_minions(state, owner) {
+                    queue.push(Event::DamageDealt {
+                        source,
+                        target: m,
+                        amount,
+                    });
+                }
+            }
+            EffectTarget::AllFriendlyCharacters => {
+                queue.push(Event::DamageDealt {
+                    source,
+                    target: state.player(owner).hero,
+                    amount,
+                });
+                for m in collect_friendly_minions(state, owner) {
+                    queue.push(Event::DamageDealt {
+                        source,
+                        target: m,
+                        amount,
+                    });
+                }
+            }
+            _ => {}
+        }
+        return;
+    }
     // Prophet Velen's doubling is applied by `apply_spell_power` before the
     // effect reaches here, so that it covers only spell and hero-power healing
     // — a minion battlecry heal (Voodoo Doctor) is not doubled in HS.
@@ -14412,6 +16313,33 @@ fn resolve_restore_health(
         .collect();
     for entity in healed {
         fire_healed_trigger(state, queue, entity);
+        // M4-W4 — the full-health hooks: a friendly hero healed to full
+        // fires the `FriendlyHeroHealedToFull` trigger (the §26 hook) and
+        // pays off CATA_307 Alexstrasza, Guardian of Life's pending
+        // "When you reach full Health, deal 15 damage to your opponent".
+        if state.world().player(entity) == Some(owner)
+            && state.world().card_type(entity) == Some(CardType::Hero)
+            && state.world().damage(entity).is_none_or(|d| d.0 == 0)
+        {
+            crate::engine::rules::fire_triggers(
+                state,
+                queue,
+                crate::core::component::TriggerEvent::FriendlyHeroHealedToFull,
+                owner,
+                Some(entity),
+                None,
+            );
+            if let Some(damage) = state.player(owner).alexstrasza_full_health_pending {
+                let inner = state.make_mut();
+                inner.players[owner.index()].alexstrasza_full_health_pending = None;
+                let enemy_hero = inner.players[owner.opponent().index()].hero;
+                queue.push(Event::DamageDealt {
+                    source: entity,
+                    target: enemy_hero,
+                    amount: damage,
+                });
+            }
+        }
         if state.world().player(entity) != Some(owner.opponent()) {
             continue;
         }
@@ -14727,22 +16655,79 @@ fn resolve_buff_weapon(state: &mut GameState, owner: PlayerId, attack: i32, dura
 
 /// Discards a random card from hand (Story of Lakkari's end-of-turn discard
 /// — M2-W4a — fires it from the rules handler).
-pub(crate) fn resolve_discard_random(state: &mut GameState, owner: PlayerId) {
+/// Discards a specific hand card (the single discard chokepoint, M4-W4 —
+/// the FriendlyDiscarded trigger and the CATA_499 "or discard this" hook
+/// fire here, and the game-long discard counter bumps for CATA_493 Duke of
+/// Below's scaling).
+pub(crate) fn resolve_discard_entity(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    owner: PlayerId,
+    card: Entity,
+) {
+    if state.world().zone(card) != Some(Zone::Hand) {
+        return;
+    }
+    let _ = state.world_mut().move_to_zone(card, Zone::Graveyard);
+    state.make_mut().players[owner.index()].discarded_this_game += 1;
+    // M4-W4 — CATA_493 Duke of Below: "Has +2/+2 for each card you've
+    // discarded this game." The self-scoped GainStats aura re-bakes here
+    // at every discard with the new count.
+    let dukes: SmallList<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, owner)
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "CATA_493"))
+        .collect();
+    for e in dukes {
+        crate::cards::bake_duke_of_below(state, e, owner);
+    }
+    // CATA_499 Disposable Acolytes — "When you play or discard this,
+    // summon two random 1-Cost minions" (the InvisibleDeathrattle shape,
+    // §26: the discard half fires here, the play half is the spell's own
+    // effect).
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "CATA_499")
+    {
+        for _ in 0..2 {
+            let Some(def) = random_minion_of_cost(state, 1) else {
+                break;
+            };
+            let _ = resolve_summon(state, queue, card, owner, def.id);
+        }
+    }
+    crate::engine::rules::fire_triggers(
+        state,
+        queue,
+        crate::core::component::TriggerEvent::FriendlyDiscarded,
+        owner,
+        Some(card),
+        None,
+    );
+}
+
+pub(crate) fn resolve_discard_random(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    owner: PlayerId,
+) {
     let hand: SmallList<Entity> = state.world().zones().iter(Zone::Hand, owner).collect();
     if hand.is_empty() {
         return;
     }
     let idx = state.rng_mut().next_usize(hand.len());
     let card = hand[idx];
-    let _ = state.world_mut().move_to_zone(card, Zone::Graveyard);
+    resolve_discard_entity(state, queue, owner, card);
 }
 
 /// Discards the whole hand (Deathwing — every card in hand goes to the
 /// graveyard).
-fn resolve_discard_hand(state: &mut GameState, owner: PlayerId) {
+pub(crate) fn resolve_discard_hand(state: &mut GameState, queue: &mut EventQueue, owner: PlayerId) {
     let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, owner).collect();
     for card in hand {
-        let _ = state.world_mut().move_to_zone(card, Zone::Graveyard);
+        resolve_discard_entity(state, queue, owner, card);
     }
 }
 
@@ -15602,4 +17587,137 @@ fn collect_friendly_characters(
     }
     chars.sort_by_key(|e| (e.index, e.generation));
     chars
+}
+
+/// True when the owner's hand holds a Dragon minion (2025–2026 expansions
+/// M4-W4 — the "If you're holding a Dragon" condition shared by CATA_210,
+/// CATA_470 and CATA_478).
+fn holding_dragon(state: &GameState, owner: PlayerId) -> bool {
+    state.world().zones().iter(Zone::Hand, owner).any(|e| {
+        state.world().card_type(e) == Some(CardType::Minion)
+            && state
+                .world()
+                .race(e)
+                .is_some_and(|r| r.contains(&Race::Dragon))
+    })
+}
+
+/// Maps the effect source to the choose-a-hand-card kind (2025–2026
+/// expansions M4-W4 — the `ChoiceKind::ChooseHandCard` cards; the
+/// id→kind table is shared by the ChoiceResolved handler).
+fn choose_hand_card_kind(state: &GameState, source: Entity) -> Option<ChooseHandCardKind> {
+    let id = state.world().card_id(source)?.0;
+    Some(match id {
+        "CATA_200" => ChooseHandCardKind::TransformToCoin,
+        "CATA_209" => ChooseHandCardKind::GrantSpellDamage1,
+        "CATA_477" => ChooseHandCardKind::GrantStats {
+            attack: 2,
+            health: 2,
+        },
+        "CATA_490" | "CATA_897" => ChooseHandCardKind::Discard,
+        "CATA_563" => ChooseHandCardKind::AbsorbSpell,
+        "CATA_566" => ChooseHandCardKind::ReduceCostEachTurn,
+        "CATA_697" => ChooseHandCardKind::GetCopy,
+        "CATA_721" => ChooseHandCardKind::ShuffleIntoDeckDraw,
+        "CATA_979" => ChooseHandCardKind::SplitIntoTwoSameCost,
+        _ => return None,
+    })
+}
+
+/// Resolves a `ChoiceKind::ChooseHandCard` pick — the picked hand card
+/// (already validated by `choose_hand_card::options`) against the kind
+/// (2025–2026 expansions M4-W4).
+pub(crate) fn resolve_choose_hand_card(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+    kind: ChooseHandCardKind,
+    picked: Entity,
+) {
+    match kind {
+        ChooseHandCardKind::TransformToCoin => {
+            // the picked card transforms into a Coin (GAME_005)
+            if let Some(coin) = crate::cards::def::card_by_id("GAME_005") {
+                state.world_mut().set_card_id(picked, CardId(coin.id));
+                state.world_mut().set_cost(picked, Cost(coin.cost));
+            }
+        }
+        ChooseHandCardKind::GrantSpellDamage1 => {
+            let cur = state
+                .world()
+                .spell_damage(picked)
+                .unwrap_or(SpellDamage(0))
+                .0;
+            state
+                .world_mut()
+                .set_spell_damage(picked, SpellDamage(cur + 1));
+        }
+        ChooseHandCardKind::GrantStats { attack, health } => {
+            state.world_mut().add_enchantment(
+                picked,
+                Enchantment {
+                    attack,
+                    health,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
+        ChooseHandCardKind::Discard => {
+            // CATA_897 Gemstone Hoarder stashes the discard to return it
+            // (ReturnHoardCostLess); CATA_490 Ocular Occultist is a plain
+            // discard. The discard funnel (FriendlyDiscarded, CATA_499)
+            // runs inside resolve_discard_entity.
+            if state
+                .world()
+                .card_id(source)
+                .is_some_and(|c| c.0 == "CATA_897")
+            {
+                state.make_mut().players[owner.index()].hoarded_card = Some(picked);
+            }
+            resolve_discard_entity(state, queue, owner, picked);
+        }
+        ChooseHandCardKind::AbsorbSpell => {
+            state.make_mut().players[owner.index()].absorbed_spell = Some(picked);
+        }
+        ChooseHandCardKind::ReduceCostEachTurn => {
+            state
+                .world_mut()
+                .set_turn_cost_reducer(picked, TurnCostReducer(1));
+        }
+        ChooseHandCardKind::GetCopy => {
+            copy_card_to_hand(state, picked, owner);
+        }
+        ChooseHandCardKind::ShuffleIntoDeckDraw => {
+            // the picked card is removed; a fresh copy is shuffled into
+            // the deck at a random position; then a card is drawn.
+            let Some(id) = state.world().card_id(picked).map(|c| c.0) else {
+                return;
+            };
+            let _ = state.world_mut().move_to_zone(picked, Zone::Graveyard);
+            if let Some(def) = crate::cards::def::card_by_id(id) {
+                let e = crate::cards::spawn_card_from_def(state.world_mut(), owner, def);
+                let deck_len = state.world().zones().len(Zone::Deck, owner) + 1;
+                let pos = state.rng_mut().next_usize(deck_len);
+                let world = state.world_mut();
+                world.set_zone(e, Zone::Deck);
+                world.zones_mut().insert_at(Zone::Deck, owner, e, pos);
+            }
+            draw_card(state, queue, owner);
+        }
+        ChooseHandCardKind::SplitIntoTwoSameCost => {
+            let cost = state.world().effective_cost(picked).unwrap_or(Cost(0)).0;
+            let _ = state.world_mut().move_to_zone(picked, Zone::Graveyard);
+            resolve_effect(
+                state,
+                queue,
+                source,
+                owner,
+                CardEffect::AddTwoRandomSpellsSameCost { cost },
+                None,
+                None,
+            );
+        }
+    }
 }

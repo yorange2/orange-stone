@@ -88,7 +88,11 @@ pub(crate) fn is_other_class_card_for(card: &CardDef, _owner: PlayerId) -> bool 
     is_other_class_card(card)
 }
 
-fn is_other_class_card(card: &CardDef) -> bool {
+/// Whether the card belongs to a class other than the owner's class (the
+/// pilfer-style check of `is_other_class_card_for`, exposed for the
+/// same-cost-other-class pools of the 2025–2026 expansions M4-W4
+/// CastRandomSpellSameCostOtherClass arm).
+pub(crate) fn is_other_class_card(card: &CardDef) -> bool {
     [
         crate::cards::sets::DRUID_CLASSIC,
         crate::cards::sets::HUNTER_CLASSIC,
@@ -117,6 +121,51 @@ fn is_class_card(card: &CardDef) -> bool {
         || crate::cards::sets::ROGUE_CLASSIC
             .iter()
             .any(|c| c.id == card.id)
+}
+
+/// The implemented Cataclysm (2025–2026 expansions) Legendary cards —
+/// the static extraction of the official dump (2026-08-09).
+pub const CATA_LEGENDARY: &[&str] = &[
+    "CATA_139",
+    "CATA_140",
+    "CATA_150",
+    "CATA_151",
+    "CATA_153",
+    "CATA_154",
+    "CATA_155",
+    "CATA_190h",
+    "CATA_213",
+    "CATA_300",
+    "CATA_307",
+    "CATA_432",
+    "CATA_458",
+    "CATA_470",
+    "CATA_473",
+    "CATA_481",
+    "CATA_488",
+    "CATA_494",
+    "CATA_497",
+    "CATA_527",
+    "CATA_550",
+    "CATA_553",
+    "CATA_570",
+    "CATA_591",
+    "CATA_615",
+    "CATA_720",
+    "CATA_726",
+];
+
+/// Whether the card is a Legendary (2025–2026 expansions M4-W4 —
+/// CATA_203 Garona's Last Stand's destroy filter; the engine has no
+/// rarity tracking, so the filter is the explicit tables — the
+/// `LEGENDARY_CLASSIC` list, TIME_063, and `CATA_LEGENDARY` — §26).
+#[must_use]
+pub fn is_legendary(card_id: &str) -> bool {
+    crate::cards::sets::LEGENDARY_CLASSIC
+        .iter()
+        .any(|l| l.id == card_id)
+        || card_id == "TIME_063"
+        || CATA_LEGENDARY.contains(&card_id)
 }
 
 /// Dream card pool — Classic built-in tokens (Ysera).
@@ -1667,6 +1716,59 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
+        // M4-W4 pools (2025–2026 expansions — Deathwing & Cataclysm §26).
+        RandomPool::DragonCost3OrLess => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Minion
+                    && c.race == Some(Race::Dragon)
+                    && c.cost <= 3
+                    && in_active_window(c)
+            })
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
+        RandomPool::LegendaryDragon => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Minion
+                    // The classic legendary defs are race-less (they
+                    // predate the Race component), so the pool is pinned
+                    // by ID — see LEGENDARY_DRAGON_CLASSIC (§26).
+                    && crate::cards::sets::LEGENDARY_DRAGON_CLASSIC
+                        .iter()
+                        .any(|l| l.id == c.id)
+                    && in_active_window(c)
+            })
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
+        RandomPool::MinionCost8OrMore => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| c.card_type == CardType::Minion && c.cost >= 8 && in_active_window(c))
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
+        RandomPool::PaladinSpell => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Spell
+                    && crate::cards::sets::PALADIN_CLASSIC
+                        .iter()
+                        .any(|p| p.id == c.id)
+                    && in_active_window(c)
+            })
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
     }
 }
 
@@ -1791,6 +1893,28 @@ pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'stati
         }
         RandomPool::OtherClassMinion => random_filtered(rng, |c| {
             c.card_type == CardType::Minion && is_other_class_card(c)
+        }),
+        // M4-W4 pools (2025–2026 expansions — Deathwing & Cataclysm §26).
+        RandomPool::DragonCost3OrLess => random_filtered(rng, |c| {
+            c.card_type == CardType::Minion && c.race == Some(Race::Dragon) && c.cost <= 3
+        }),
+        RandomPool::LegendaryDragon => random_filtered(rng, |c| {
+            c.card_type == CardType::Minion
+                // The classic legendary defs are race-less (they predate
+                // the Race component), so the pool is pinned by ID — see
+                // LEGENDARY_DRAGON_CLASSIC (§26).
+                && crate::cards::sets::LEGENDARY_DRAGON_CLASSIC
+                    .iter()
+                    .any(|l| l.id == c.id)
+        }),
+        RandomPool::MinionCost8OrMore => {
+            random_filtered(rng, |c| c.card_type == CardType::Minion && c.cost >= 8)
+        }
+        RandomPool::PaladinSpell => random_filtered(rng, |c| {
+            c.card_type == CardType::Spell
+                && crate::cards::sets::PALADIN_CLASSIC
+                    .iter()
+                    .any(|p| p.id == c.id)
         }),
     }
 }
@@ -1989,6 +2113,12 @@ pub(crate) fn discover_pool_cards(
             .filter(|c| {
                 c.card_type == CardType::Minion && c.race == Some(Race::Demon) && c.cost >= 5
             })
+            .collect(),
+        // M4-W4 — CATA_484 Winter's Answer — "a spell that costs (1)":
+        // the active-window pool like the plain Spell arm.
+        DiscoverPool::OneCostSpell => all
+            .iter()
+            .filter(|c| c.card_type == CardType::Spell && c.cost == 1 && in_active_window(c))
             .collect(),
     }
 }

@@ -404,6 +404,16 @@ pub enum AuraEffect {
     /// hero carries no Windfury component; `World::max_attacks` consults
     /// the aura index and returns 2 while the aura applies.
     GrantWindfury,
+    /// Taunt aura (2025–2026 expansions M4-W4 — CATA_556 Carrier Whelp:
+    /// "Your other Dragons have Taunt"). Consulted via the effective-Taunt
+    /// helper used by the attack-target rules and the Taunt-enemy filter,
+    /// mirroring the `GrantCharge` consultation pattern.
+    GrantTaunt,
+    /// Immune-while-alone aura (2025–2026 expansions M4-W4 — CATA_613
+    /// Survivalist: "While you control no other minions, this has
+    /// Immune"). Consulted by the damage pipeline; silenced or removed by
+    /// its own death like every aura.
+    ImmuneWhileAlone,
 }
 
 /// Aura target scope.
@@ -426,6 +436,10 @@ pub enum AuraTarget {
     /// Lord's "Your hero has Windfury"). The only hero-scoped aura; the
     /// applicability helpers decide it before their minion gates.
     FriendlyHero,
+    /// The aura source itself (2025–2026 expansions M4-W4 — CATA_493
+    /// Duke of Below's "Has +2/+2 for each card you've discarded this
+    /// game", CATA_613 Survivalist's ImmuneWhileAlone).
+    Self_,
 }
 
 /// Secret — a face-down, passively triggered spell.
@@ -636,6 +650,26 @@ pub enum TriggerEvent {
     /// refresh 2 Mana Crystals after you use your hero power; fired by the
     /// HeroPowerActivated handler after the power's effect resolves)
     HeroPowerUsed,
+    /// A friendly spell dealt damage to an enemy (2025–2026 expansions
+    /// M4-W4 — CATA_487 Raincaller: "After your first spell deals damage
+    /// each turn, gain +2 Attack"; the subject is the damaging spell's
+    /// source, fired by the damage pipeline).
+    FriendlySpellDealtDamage,
+    /// A friendly hero was healed to full health (2025–2026 expansions
+    /// M4-W4 — CATA_307 Alexstrasza, Guardian of Life: "After your hero is
+    /// healed to full Health, draw 3 cards"; the subject is the healed
+    /// hero, fired by the heal pipeline).
+    FriendlyHeroHealedToFull,
+    /// A friendly card was discarded (2025–2026 expansions M4-W4 —
+    /// CATA_494 Maloriak: "After a friendly card is discarded, summon a
+    /// copy of it"; the subject is the discarded card entity, fired by the
+    /// discard sites).
+    FriendlyDiscarded,
+    /// The OWNER spent their last mana crystal this turn (2025–2026
+    /// expansions M4-W4 — CATA_130 Crystalspine Cub: "After you spend
+    /// your last Mana Crystal, gain +2/+2"; fired by the mana-deduction
+    /// site when the current mana hits zero).
+    LastManaCrystalSpent,
 }
 
 /// Trigger timing — Hearthstone's "whenever" / "after" classification.
@@ -877,6 +911,14 @@ pub struct Dormant {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct CantAttackHeroesThisTurn;
 
+/// CantAttackThisTurn (2025–2026 expansions M4-W4) — a temporary
+/// restriction: the minion cannot attack at all until the end of the
+/// current turn (CATA_496 Cursed Chains' "It can't attack this turn").
+/// Distinct from `CantAttack` (permanent, silence-removable) and
+/// `CantAttackHeroesThisTurn` (hero-only); cleared in the wrap-up step.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct CantAttackThisTurn;
+
 /// TurnCostReducer (2025–2026 expansions M3-W2a) — a hand-card marker
 /// that is reduced by (1) at the start of the owner's turn
 /// (Circadiamancer TIME_102's "it costs (1) less each turn"). Read by
@@ -889,6 +931,38 @@ pub struct TurnCostReducer(pub u32);
 /// Construct's "takes double damage").
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct DoubleDamageTaken;
+
+/// BonusDamageTaken (2025–2026 expansions M4-W4) — a marker making the
+/// marked minion take +1 damage from all sources (CATA_208 Selfless
+/// Protector's "takes one extra damage from all sources"; cleared when
+/// the minion leaves play or dies — the zone move strips components).
+/// Consulted by the damage pipeline alongside `DoubleDamageTaken`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct BonusDamageTaken;
+
+/// CantPlayNextTurn (2025–2026 expansions M4-W4) — a hand-card marker:
+/// the card cannot be played until the start of its owner's next turn
+/// (CATA_186t Sabotage!'s "It can't be played until your next turn",
+/// applied to a minion returned to the enemy hand). Consulted by
+/// `validate_play_card`; cleared at the owner's turn start.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct CantPlayNextTurn;
+
+/// HandTurnCounter (2025–2026 expansions M4-W4) — a hand-card marker
+/// counting the number of turns the card has been in its owner's hand
+/// (CATA_498 Rafaam's Last Stand: "Deal damage equal to the number of
+/// turns this has been in your hand"). Incremented at the owner's turn
+/// start for every card still in hand; removed when the card leaves the
+/// hand.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct HandTurnCounter(pub u32);
+
+/// MegaWindfury (2025–2026 expansions M4-W4) — the Mega-Windfury
+/// keyword: the minion may attack four times per turn (CATA_558
+/// Reinforcement Rallier's "Gain Mega-Windfury"). Consulted by
+/// `World::max_attacks` before the base Windfury check.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct MegaWindfury;
 
 /// CostHealth — a hand card that costs Health instead of Mana
 /// (2025–2026 expansions M2-W4a — Whispering Stone's gotten Fel spells:

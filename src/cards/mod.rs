@@ -4,6 +4,7 @@
 //! All card constants are re-exported through the `def` module,
 //! accessible to external code via `crate::cards::def::*`.
 
+pub mod choose_hand_card;
 pub mod classic_druid;
 pub mod classic_hunter;
 pub mod classic_legendary;
@@ -32,6 +33,7 @@ pub mod def;
 pub mod exp_cata_w1;
 pub mod exp_cata_w2;
 pub mod exp_cata_w3;
+pub mod exp_cata_w4;
 pub mod exp_edr_w1;
 pub mod exp_edr_w2;
 pub mod exp_edr_w3;
@@ -62,8 +64,28 @@ use crate::core::component::{
 use crate::core::effect::{CardEffect, EffectTarget};
 use crate::core::entity::Entity;
 use crate::core::player::PlayerId;
+use crate::core::state::GameState;
 use crate::core::world::World;
 use def::CardDef;
+
+/// M4-W4 — CATA_493 Duke of Below: "Has +2/+2 for each card you've
+/// discarded this game." The self-scoped GainStats aura bakes at
+/// summon/play with the CURRENT discarded count; the discard chokepoint
+/// (resolve_discard_entity) re-bakes it on every later discard (§26).
+pub(crate) fn bake_duke_of_below(state: &mut GameState, entity: Entity, owner: PlayerId) {
+    let n = state.player(owner).discarded_this_game;
+    let bonus = (2 * n) as i32;
+    state.world_mut().set_aura(
+        entity,
+        crate::core::component::Aura {
+            effect: crate::core::component::AuraEffect::GainStats {
+                attack: bonus,
+                health: bonus,
+            },
+            target: crate::core::component::AuraTarget::Self_,
+        },
+    );
+}
 
 /// Looks up a card by its ID (first match in `ALL_CARDS`, which deduplicates
 /// IDs; then the handwritten expansion cards `HANDWRITTEN_EXPANSION_CARDS`
@@ -187,6 +209,9 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // M4-W2 — the Cataclysm Herald wave
         | "CATA_525" // Armored Bloodletter
         | "CATA_561t" // Breezling (Ritual of Power token)
+        // M4-W4 — the Cataclysm closing wave
+        | "CATA_469" // Chromatic Broodmother
+        | "CATA_493" // Duke of Below
     ) {
         world.set_rush(entity, Rush);
     }
@@ -222,6 +247,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "CATA_432t2" // Red Head of Chromatus
         // M4-W2 — the Cataclysm Herald wave
         | "CATA_780" // Obsessive Technician
+        // M4-W4 — the Cataclysm closing wave
+        | "CATA_304" // Injured Attendant
     ) {
         world.set_lifesteal(entity, Lifesteal);
     }
@@ -403,6 +430,7 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "CORE_SW_072"  // Rustrot Viper
         | "CORE_SW_429" // Best in Shell
         | "TLC_255" // Crystal Tender (M2-W4a — the main-set wave)
+        | "CATA_203" // Garona's Last Stand (M4-W4 — the Cataclysm closing wave)
     ) {
         world.set_tradeable(entity, Tradeable);
     }
@@ -724,6 +752,9 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         "TIME_014" => Some(3), // Instant Multiverse
         // M3-W3 — The End of Time miniset
         "END_028" => Some(2), // For All Time
+        // M4-W4 — the Cataclysm closing wave
+        "CATA_569" => Some(1), // Ceremonial Clash
+        "CATA_724" => Some(3), // Stormbinder
         _ => None,
     };
     if let Some(amount) = overload_amount {
@@ -741,6 +772,12 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
     // pay-health branch, the M2-W4a CostHealth machinery).
     if card_def.id == "TIME_612" {
         world.set_cost_health(entity, crate::core::component::CostHealth);
+    }
+    // M4-W4 — CATA_208 Selfless Protector: "Takes one extra damage
+    // from all sources" (the BonusDamageTaken marker, consulted by the
+    // damage pipeline).
+    if card_def.id == "CATA_208" {
+        world.set_bonus_damage_taken(entity, crate::core::component::BonusDamageTaken);
     }
     // M3-W2a — minions that permanently take double damage (TIME_060
     // Quantum Destabilizer — the marker is exempt from the wrap-up clear).
@@ -1134,6 +1171,59 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
             TriggerEvent::CharacterHealed,
             CardEffect::AttackRandomEnemyMinionExcess,
         )),
+        // M4-W4 — the Cataclysm closing wave.
+        // CATA_130 Wickerstone Elemental — "After you spend all your
+        // Mana Crystals, gain +1/+1" (the LastManaCrystalSpent event,
+        // fired by the CardPlayed handler).
+        "CATA_130" => Some((
+            TriggerEvent::LastManaCrystalSpent,
+            CardEffect::GainStats {
+                attack: 1,
+                health: 1,
+                target: EffectTarget::Self_,
+            },
+        )),
+        // CATA_469 Chromatic Broodmother — "Whenever this attacks,
+        // refresh your Mana Crystals equal to its Attack" (Rush rides the
+        // keyword table; the attack value is read at fire time).
+        "CATA_469" => Some((
+            TriggerEvent::Attacked,
+            CardEffect::RefreshManaEqualSelfAttack,
+        )),
+        // CATA_487 Raincaller — "After you deal damage with a spell,
+        // gain +2 Attack" (the once-per-turn flag rides the player).
+        "CATA_487" => Some((
+            TriggerEvent::FriendlySpellDealtDamage,
+            CardEffect::GainAttackFirstSpellDamageThisTurn { attack: 2 },
+        )),
+        // CATA_494 Maloriak — "After you discard a minion, summon a
+        // copy of it" (the minion gate lives in the effect arm).
+        "CATA_494" => Some((
+            TriggerEvent::FriendlyDiscarded,
+            CardEffect::SummonCopyOfDiscardedMinion,
+        )),
+        // CATA_586 Conflagration — "After this survives damage, summon
+        // a copy of this" (SurvivedDamage — the M3-W2a survivor event).
+        "CATA_586" => Some((TriggerEvent::SurvivedDamage, CardEffect::SummonCopyOfSelf)),
+        // CATA_786 Madder Bomber — "After you cast a spell, cast a
+        // random spell of the same Cost from another class" (the
+        // same-cost re-cast arm, §26).
+        "CATA_786" => Some((
+            TriggerEvent::FriendlySpellCast,
+            CardEffect::CastRandomSpellSameCostOtherClass,
+        )),
+        // CATA_527 Nespirah — "After you play a Fel spell, reopen a
+        // friendly Location" (the Fel gate lives in the effect arm).
+        "CATA_527" => Some((
+            TriggerEvent::FriendlySpellCast,
+            CardEffect::ReopenLocationIfFelSpell,
+        )),
+        // CATA_527t2 Nespirah, Unshackled — "After you cast a Fel spell,
+        // get a random non-Colossal Naga. It costs (1)."
+        "CATA_527t2" => Some((
+            TriggerEvent::FriendlySpellCast,
+            CardEffect::AddRandomNagaCost1,
+        )),
         _ => None,
     };
     if let Some((event, effect)) = w2_trigger {
@@ -1202,6 +1292,12 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
             CardEffect::SummonMinion {
                 card_id: "TLC_903t",
             },
+        )),
+        // M4-W4 — CATA_467 Command Claw: "Whenever your hero attacks,
+        // give a random friendly minion +2 Attack."
+        "CATA_467" => Some((
+            TriggerEvent::Attacked,
+            CardEffect::GrantRandomFriendlyMinionAttack { attack: 2 },
         )),
         _ => None,
     };
@@ -2149,6 +2245,17 @@ mod generated_tests {
         // handwritten card is the faithful Location 4-mana / 2-durability
         // representation, activation in the battlecry slot).
         if id == "CATA_492" {
+            return matches!(field, "card_type" | "health" | "durability");
+        }
+        // M4-W4 — the four Cataclysm Locations (CATA_301 Ruby Sanctum,
+        // CATA_477 Chamber of Aspects, CATA_527 Nespirah, Enthralled,
+        // CATA_584 Erupting Volcano): the same generator-predates-Location
+        // divergence as the CATA_492 pair above (the generated baselines
+        // are vanilla Minions 0/3 resp. 0/2, 0/5, 0/3; the handwritten
+        // cards are the faithful Location representations — health 0,
+        // durability from the official data, activation in the battlecry
+        // slot).
+        if id == "CATA_301" || id == "CATA_477" || id == "CATA_527" || id == "CATA_584" {
             return matches!(field, "card_type" | "health" | "durability");
         }
         false

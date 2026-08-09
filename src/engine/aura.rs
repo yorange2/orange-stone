@@ -116,6 +116,9 @@ fn aura_applies_to_entity(
         }
         AuraTarget::AllEnemyMinions => target_player != aura_player,
         AuraTarget::FriendlyHero => false,
+        // M4-W4 — CATA_493 Duke of Below / CATA_613 Survivalist: the aura
+        // only reaches its own source.
+        AuraTarget::Self_ => target == aura_source && target_player == aura_player,
     }
 }
 
@@ -161,6 +164,9 @@ const fn aura_attack_value(effect: AuraEffect) -> i32 {
         AuraEffect::DoubleTriggers => 0,
         AuraEffect::RewindKeepsBothOutcomes => 0,
         AuraEffect::GrantWindfury => 0,
+        // M4-W4 — unit markers (GrantTaunt, ImmuneWhileAlone) grant no stats.
+        AuraEffect::GrantTaunt => 0,
+        AuraEffect::ImmuneWhileAlone => 0,
     }
 }
 
@@ -180,5 +186,8 @@ const fn aura_health_value(effect: AuraEffect) -> i32 {
         AuraEffect::DoubleTriggers => 0,
         AuraEffect::RewindKeepsBothOutcomes => 0,
         AuraEffect::GrantWindfury => 0,
+        // M4-W4 — unit markers (GrantTaunt, ImmuneWhileAlone) grant no stats.
+        AuraEffect::GrantTaunt => 0,
+        AuraEffect::ImmuneWhileAlone => 0,
     }
 }

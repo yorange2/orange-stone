@@ -15,7 +15,7 @@ use orange_stone::core::action::Action;
 use orange_stone::core::component::{Attack, CardType, Cost, Health};
 use orange_stone::core::entity::Entity;
 use orange_stone::core::event::Event;
-use orange_stone::core::state::{ChoiceKind, GameState, Step};
+use orange_stone::core::state::{ChoiceKind, GameState, PendingChoice, Step};
 use orange_stone::core::zone::Zone;
 use orange_stone::engine::game::{GameEngine, Resolution};
 use orange_stone::sim::game::GameBuilder;
@@ -14374,6 +14374,62 @@ fn play_front_card(
             },
         )
         .unwrap();
+}
+
+/// Plays the front card of `player`'s hand through the choice-aware path
+/// and returns the choice the play surfaced (`Resolution::NeedsChoice`);
+/// panics when the play resolves without a choice. The plain `apply`
+/// helper auto-resolves choices with the default policy, so choice-bearing
+/// plays (Deathwing's Cataclysm, Ocular Occultist's choose-hand-card) must
+/// go through this.
+fn play_front_card_choice(
+    state: &mut GameState,
+    engine: &GameEngine,
+    player: orange_stone::core::player::PlayerId,
+) -> PendingChoice {
+    let card = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, player)
+        .next()
+        .expect("a card in hand");
+    let resolution = engine
+        .apply_choices(
+            state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = resolution else {
+        panic!("the play must surface a choice");
+    };
+    choice
+}
+
+/// Activates `location` through the choice-aware path and returns the
+/// choice the activation surfaced (`Resolution::NeedsChoice`); panics
+/// when the activation resolves without a choice.
+fn play_location_choice(
+    state: &mut GameState,
+    engine: &GameEngine,
+    location: Entity,
+) -> PendingChoice {
+    let resolution = engine
+        .apply_choices(
+            state,
+            Action::ActivateLocation {
+                location,
+                target: None,
+            },
+        )
+        .unwrap();
+    let Resolution::NeedsChoice { choice } = resolution else {
+        panic!("the activation must surface a choice");
+    };
+    choice
 }
 
 /// F5-EDR1 — the imbue threshold sequence: the first imbue replaces the
@@ -31236,6 +31292,22 @@ const CATAW1_AOE5: CardDef = tmw1_def!(
     })
 );
 
+/// CATAW4-HEAL3 — 3-point heal on any character (the Ruby Sanctum
+/// conversion fixture).
+const CATAW4_HEAL3: CardDef = tmw1_def!(
+    "CATAW4_HEAL3",
+    "CataW4 Fixture Heal 3",
+    CardType::Spell,
+    0,
+    0,
+    None,
+    None,
+    Some(CardEffect::RestoreHealth {
+        amount: 3,
+        target: EffectTarget::AnyCharacter,
+    })
+);
+
 /// CATAW1-1 — a +2 Colossal (Azshara) played from hand summons its two
 /// appendages: both parts sit on the board immediately right of the main,
 /// carry the `ColossalPart` link to it, and the main's `ColossalMain`
@@ -32440,5 +32512,898 @@ fn cata_w3_stolen_power_pool() {
             "CATA_134" | "CATA_306" | "CATA_479" | "CATA_489" | "CATA_820"
         ),
         "the gained card is a Shatter card from the pool, got {got}"
+    );
+}
+
+// ============================================================
+// 2025–2026 expansions M4-W4 — Cataclysm closing wave F5
+// scenarios (Deathwing hero replacement + the ~100 remaining
+// CATA cards; fidelity-debt §26).
+// ============================================================
+
+/// CATAW4-1 — the C4 primitive: playing CATA_190h Deathwing,
+/// Worldbreaker replaces the hero. The old hero entity moves to the
+/// graveyard, the played entity becomes the new hero (30 Health, 0
+/// Attack, 12 Armor), the equipped weapon is destroyed, the hero power
+/// becomes Ruthless (2 Mana — +5 Attack this turn), and the battlecry
+/// surfaces the four-Cataclysm choice (base tier: ONE pick).
+#[test]
+fn cata_w4_deathwing_replaces_hero() {
+    use orange_stone::cards::exp_cata_w4::DEATHWING_WORLDBREAKER;
+    use orange_stone::core::effect::CardEffect;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &DEATHWING_WORLDBREAKER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let old_hero = state.player(p1).hero;
+    play_front_card_choice(&mut state, &engine, p1);
+    let hero = state.player(p1).hero;
+    assert_ne!(hero, old_hero, "a new hero entity took over");
+    assert_eq!(
+        state.world().zone(old_hero),
+        Some(Zone::Graveyard),
+        "the old hero moved to the graveyard"
+    );
+    assert_eq!(
+        state.world().card_id(hero).map(|c| c.0),
+        Some("CATA_190h"),
+        "the played card IS the new hero"
+    );
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(30)),
+        "Deathwing's 30 Health"
+    );
+    assert_eq!(
+        state.world().effective_attack(hero),
+        Some(Attack(0)),
+        "no base attack"
+    );
+    assert_eq!(state.player(p1).armor, 12, "Deathwing's 12 Armor");
+    let hp = state
+        .world()
+        .hero_power(hero)
+        .expect("the new hero power was equipped");
+    assert_eq!(hp.cost, 2, "Ruthless costs 2");
+    assert!(
+        matches!(
+            hp.effect,
+            CardEffect::GainHeroAttack {
+                attack: 5,
+                armor: 0
+            }
+        ),
+        "Ruthless gives +5 Attack this turn"
+    );
+    // The battlecry: the four-Cataclysm choice, one pick at base tier.
+    let choice = state
+        .pending_choice()
+        .cloned()
+        .expect("the Cataclysm choice");
+    assert_eq!(choice.kind, ChoiceKind::Cataclysm);
+    assert_eq!(choice.pool.len(), 4, "the four data-defined Cataclysms");
+    assert_eq!(choice.repeat, 1, "base tier: a single pick");
+    // Pick option 0 — Dragon's Reign: summon a 12/12 Dragon.
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    assert!(state.pending_choice().is_none(), "the choice completed");
+    let progeny = find_entity(&state, p1, "CATA_190t14");
+    assert_eq!(
+        state.world().effective_attack(progeny),
+        Some(Attack(12)),
+        "Progeny of Deathwing is 12/12"
+    );
+    assert_eq!(
+        state.world().effective_health(progeny),
+        Some(Health(12)),
+        "Progeny of Deathwing is 12/12"
+    );
+}
+
+/// CATAW4-2 — Topple: the pick destroys the highest-Health enemy
+/// minion (Deathwing's Cataclysm choice resolved through the token's
+/// data-defined spell effect).
+#[test]
+fn cata_w4_deathwing_topple_destroys_highest_health() {
+    use orange_stone::cards::exp_cata_w4::DEATHWING_WORLDBREAKER;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &DEATHWING_WORLDBREAKER);
+    let big = builder.add_custom_minion_to_board(p2, 4, 7, 1);
+    let small = builder.add_custom_minion_to_board(p2, 3, 3, 1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card_choice(&mut state, &engine, p1);
+    let choice = state
+        .pending_choice()
+        .cloned()
+        .expect("the Cataclysm choice");
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1, // Topple
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(big),
+        Some(Zone::Graveyard),
+        "the 4/7 (highest Health) was destroyed"
+    );
+    assert_eq!(
+        state.world().zone(small),
+        Some(Zone::Play),
+        "the 3/3 survives"
+    );
+}
+
+/// CATAW4-3 — "Herald twice to upgrade": with herald_count 2 the
+/// battlecry asks for TWO DISTINCT picks; after the first (Raze) the
+/// choice re-surfaces with the picked Cataclysm removed and one pick
+/// left. Raze deals 4 to all enemy minions; Topple then destroys the
+/// survivor.
+#[test]
+fn cata_w4_deathwing_herald_upgrade_two_distinct_picks() {
+    use orange_stone::cards::exp_cata_w2::ARMORED_BLOODLETTER;
+    use orange_stone::cards::exp_cata_w4::DEATHWING_WORLDBREAKER;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 20, 20);
+    builder.add_minion_to_hand(p1, &ARMORED_BLOODLETTER);
+    builder.add_minion_to_hand(p1, &ARMORED_BLOODLETTER);
+    builder.add_minion_to_hand(p1, &DEATHWING_WORLDBREAKER);
+    let tough = builder.add_custom_minion_to_board(p2, 1, 6, 1);
+    let frail = builder.add_custom_minion_to_board(p2, 1, 4, 1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Herald 1
+    play_front_card(&mut state, &engine, p1); // Herald 2
+    assert_eq!(state.player(p1).herald_count, 2, "the counter upgraded");
+    play_front_card_choice(&mut state, &engine, p1); // Deathwing
+    let choice = state
+        .pending_choice()
+        .cloned()
+        .expect("the Cataclysm choice");
+    assert_eq!(choice.repeat, 2, "the ×2 tier picks twice");
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 2, // Raze — 4 damage to all enemy minions
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(frail),
+        Some(Health(0)),
+        "the 1/4 took 4 — the death is pending behind the re-surfaced pick"
+    );
+    assert_eq!(
+        state.world().effective_health(tough),
+        Some(Health(2)),
+        "the 1/6 took 4"
+    );
+    let second = state
+        .pending_choice()
+        .cloned()
+        .expect("the second distinct pick re-surfaced");
+    assert_eq!(second.kind, ChoiceKind::Cataclysm);
+    assert_eq!(second.repeat, 1, "one pick left");
+    assert_eq!(second.pool.len(), 3, "the picked Cataclysm was removed");
+    assert!(
+        !second.pool.iter().any(|id| id == "CATA_190t12"),
+        "Raze is no longer offered"
+    );
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: second.id,
+                option: 1, // Topple (the highest-Health survivor)
+            },
+        )
+        .unwrap();
+    assert!(
+        state.pending_choice().is_none(),
+        "both picks resolved — the choice completed"
+    );
+    // Both kills resolve with the death batch drained by the final pick.
+    assert_eq!(
+        state.world().zone(tough),
+        Some(Zone::Graveyard),
+        "Topple destroyed the survivor"
+    );
+    assert_eq!(
+        state.world().zone(frail),
+        Some(Zone::Graveyard),
+        "Raze's kill resolved with the death batch"
+    );
+    assert_eq!(
+        board_minions(&state, p2).len(),
+        0,
+        "the enemy board was cleared"
+    );
+}
+
+/// CATAW4-4 — Enthrall (herald tier 4: FOUR distinct picks): choosing
+/// Enthrall shuffles five random Legendary Dragons into the deck and
+/// each costs (1); the remaining three picks still resolve.
+#[test]
+fn cata_w4_deathwing_herald_tier4_enthrall() {
+    use orange_stone::cards::exp_cata_w2::ARMORED_BLOODLETTER;
+    use orange_stone::cards::exp_cata_w4::DEATHWING_WORLDBREAKER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 30, 30);
+    for _ in 0..4 {
+        builder.add_minion_to_hand(p1, &ARMORED_BLOODLETTER);
+    }
+    builder.add_minion_to_hand(p1, &DEATHWING_WORLDBREAKER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    for _ in 0..4 {
+        play_front_card(&mut state, &engine, p1); // the four Heralds
+    }
+    assert_eq!(state.player(p1).herald_count, 4, "the ×4 tier");
+    play_front_card_choice(&mut state, &engine, p1); // Deathwing
+    let choice = state
+        .pending_choice()
+        .cloned()
+        .expect("the Cataclysm choice");
+    assert_eq!(choice.repeat, 4, "the ×4 tier picks four times");
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 3, // Enthrall
+            },
+        )
+        .unwrap();
+    // Enthrall: five random Legendary Dragons in the deck, each (1).
+    let deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, p1).collect();
+    assert_eq!(deck.len(), 10, "5 pad + 5 Enthrall shuffles");
+    let dragons: Vec<Entity> = deck
+        .iter()
+        .filter(|&&e| {
+            // The pool is pinned by card ID — the classic legendary defs
+            // are race-less by convention (§26), so membership in
+            // LEGENDARY_DRAGON_CLASSIC is the definition of "Legendary
+            // Dragon" here.
+            state.world().card_id(e).is_some_and(|c| {
+                orange_stone::cards::sets::LEGENDARY_DRAGON_CLASSIC
+                    .iter()
+                    .any(|l| l.id == c.0)
+            })
+        })
+        .copied()
+        .collect();
+    assert_eq!(dragons.len(), 5, "exactly five Dragons shuffled in");
+    for &d in &dragons {
+        assert_eq!(
+            state.world().effective_cost(d),
+            Some(Cost(1)),
+            "the shuffled Dragons cost (1)"
+        );
+    }
+    // The choice re-surfaced with three picks left and Enthrall removed.
+    let second = state.pending_choice().cloned().expect("the second pick");
+    assert_eq!(second.repeat, 3, "three picks remain");
+    assert_eq!(second.pool.len(), 3, "Enthrall was removed");
+    // Resolve the remaining picks to completion (Dragon's Reign, Topple,
+    // Raze) — just assert the choice drains.
+    let mut choice = second;
+    for _ in 0..3 {
+        engine
+            .apply_choices(
+                &mut state,
+                Action::Choose {
+                    choice_id: choice.id,
+                    option: 0,
+                },
+            )
+            .unwrap();
+        choice = match state.pending_choice() {
+            Some(c) => c.clone(),
+            None => break,
+        };
+    }
+    assert!(state.pending_choice().is_none(), "all four picks resolved");
+    assert_eq!(
+        state.player(p1).pending_cataclysms,
+        None,
+        "the pick bookkeeping cleared"
+    );
+}
+
+/// CATAW4-5 — Ultraxion: playing CATA_497 Herald + reduces Deathwing's
+/// Cost by (1) — the 10-cost Deathwing drops to 9.
+#[test]
+fn cata_w4_ultraxion_heralds_and_reduces_deathwing_cost() {
+    use orange_stone::cards::exp_cata_w4::{DEATHWING_WORLDBREAKER, ULTRAXION};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 20, 20);
+    builder.add_minion_to_hand(p1, &ULTRAXION);
+    builder.add_minion_to_hand(p1, &DEATHWING_WORLDBREAKER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Ultraxion
+    assert_eq!(state.player(p1).herald_count, 1, "Ultraxion herald");
+    assert_eq!(
+        state.player(p1).deathwing_cost_reduction,
+        1,
+        "Deathwing's Cost reduced by (1)"
+    );
+    let dw = find_in_hand(&state, p1, "CATA_190h");
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, dw, p1),
+        Cost(9),
+        "Deathwing costs 9 after Ultraxion"
+    );
+    play_front_card_choice(&mut state, &engine, p1); // Deathwing at 9
+    let choice = state
+        .pending_choice()
+        .cloned()
+        .expect("the Cataclysm choice");
+    assert_eq!(choice.repeat, 1, "herald_count 1: the base tier");
+    assert_eq!(
+        state.world().card_id(state.player(p1).hero).map(|c| c.0),
+        Some("CATA_190h"),
+        "Deathwing became the hero"
+    );
+}
+
+/// CATAW4-6 — Duke of Below: the discard-scaled self-aura bakes at play
+/// (2/2 base) and re-bakes at every friendly discard (Ocular Occultist's
+/// chosen card) — 2/2 → 4/4 after one discard.
+#[test]
+fn cata_w4_duke_of_below_scales_on_discards() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_cata_w4::{DUKE_OF_BELOW, OCULAR_OCCULTIST};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &DUKE_OF_BELOW);
+    builder.add_minion_to_hand(p1, &OCULAR_OCCULTIST);
+    builder.add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // the Duke
+    let duke = find_entity(&state, p1, "CATA_493");
+    assert_eq!(
+        state.world().effective_attack(duke),
+        Some(Attack(2)),
+        "no discards yet: 2/2"
+    );
+    play_front_card_choice(&mut state, &engine, p1); // the Occultist
+    let choice = state
+        .pending_choice()
+        .cloned()
+        .expect("the choose-hand-card");
+    assert_eq!(choice.kind, ChoiceKind::ChooseHandCard);
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0, // the Raptor
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(p1).discarded_this_game, 1, "one discard");
+    assert_eq!(
+        state.world().effective_attack(duke),
+        Some(Attack(4)),
+        "the Duke re-baked to 4/4"
+    );
+    assert_eq!(
+        state.world().effective_health(duke),
+        Some(Health(4)),
+        "the Duke re-baked to 4/4"
+    );
+}
+
+/// CATAW4-7 — Maloriak: "After you discard a minion, summon a copy of
+/// it" — the FriendlyDiscarded trigger (the Occultist's discard summons
+/// a fresh 3/2 Raptor).
+#[test]
+fn cata_w4_maloriak_summons_discarded_minion() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_cata_w4::{MALORIAK, OCULAR_OCCULTIST};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &MALORIAK);
+    builder.add_minion_to_hand(p1, &OCULAR_OCCULTIST);
+    builder.add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card_choice(&mut state, &engine, p1); // the Occultist
+    let choice = state
+        .pending_choice()
+        .cloned()
+        .expect("the choose-hand-card");
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0, // discard the Raptor
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_count(&state, p1, "CLASSIC_001"),
+        1,
+        "the discarded minion was re-summoned by Maloriak"
+    );
+    let copy = find_entity(&state, p1, "CLASSIC_001");
+    assert_eq!(
+        state.world().effective_attack(copy),
+        Some(Attack(3)),
+        "the copy keeps the base stats"
+    );
+}
+
+/// CATAW4-8 — Sandfury Aura: "Your minions' end of turn effects trigger
+/// twice" — Iridescent Flitterwing's +1/+1 to other friendly minions
+/// applies twice (the 1/1 fillers end the turn at 3/3).
+#[test]
+fn cata_w4_sandfury_aura_doubles_end_turn_effects() {
+    use orange_stone::cards::exp_cata_w4::{IRIDESCENT_FLITTERWING, SANDFURY_AURA};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &SANDFURY_AURA);
+    builder.add_minion_to_hand(p1, &IRIDESCENT_FLITTERWING);
+    let filler_a = builder.add_custom_minion_to_board(p1, 1, 1, 1);
+    let filler_b = builder.add_custom_minion_to_board(p1, 1, 1, 1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // the Aura
+    play_front_card(&mut state, &engine, p1); // the Flitterwing
+    assert_eq!(
+        state.player(p1).end_turn_effects_twice_turns,
+        3,
+        "the Aura lasts 3 turns"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_attack(filler_a),
+        Some(Attack(3)),
+        "the end-of-turn effect triggered TWICE: 1/1 -> 3/3"
+    );
+    assert_eq!(
+        state.world().effective_health(filler_a),
+        Some(Health(3)),
+        "the end-of-turn effect triggered TWICE: 1/1 -> 3/3"
+    );
+    assert_eq!(
+        state.world().effective_attack(filler_b),
+        Some(Attack(3)),
+        "both fillers were buffed twice"
+    );
+    assert_eq!(
+        state
+            .world()
+            .effective_attack(find_entity(&state, p1, "CATA_133")),
+        Some(Attack(4)),
+        "the Flitterwing never buffs itself"
+    );
+}
+
+/// CATAW4-9 — Chamber of Aspects (location): the play occupies the slot
+/// with no effect; the first activation (next turn) chooses a hand
+/// minion and gives it +2/+2, spending one of the two charges.
+#[test]
+fn cata_w4_chamber_of_aspects_location_activate() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_cata_w4::CHAMBER_OF_ASPECTS;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &CHAMBER_OF_ASPECTS)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // the location
+    let loc = state.player(p1).location.expect("the location was played");
+    assert_eq!(
+        state.world().durability(loc),
+        Some(orange_stone::core::component::Durability(2)),
+        "two charges"
+    );
+    assert!(
+        state.pending_choice().is_none(),
+        "a location play resolves nothing"
+    );
+    // Cooldown: cannot activate the turn it was played.
+    assert!(
+        engine
+            .apply(
+                &mut state,
+                Action::ActivateLocation {
+                    location: loc,
+                    target: None
+                }
+            )
+            .is_err(),
+        "the play cooldown blocks the same-turn activation"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let choice = play_location_choice(&mut state, &engine, loc);
+    assert_eq!(choice.kind, ChoiceKind::ChooseHandCard);
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0, // the Raptor
+            },
+        )
+        .unwrap();
+    let raptor = find_in_hand(&state, p1, "CLASSIC_001");
+    assert_eq!(
+        state.world().effective_attack(raptor),
+        Some(Attack(5)),
+        "+2/+2: 3/2 -> 5/4"
+    );
+    assert_eq!(
+        state.world().effective_health(raptor),
+        Some(Health(4)),
+        "+2/+2: 3/2 -> 5/4"
+    );
+    assert_eq!(
+        state.world().durability(loc),
+        Some(orange_stone::core::component::Durability(1)),
+        "one charge spent"
+    );
+}
+
+/// CATAW4-10 — Ruby Sanctum (location): "Your next Healing effect this
+/// turn deals damage instead" — the first friendly 3-point heal on a
+/// damaged enemy minion is converted into 3 damage (the flag clears).
+#[test]
+fn cata_w4_ruby_sanctum_next_heal_deals_damage() {
+    use orange_stone::cards::exp_cata_w4::RUBY_SANCTUM;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &RUBY_SANCTUM);
+    builder.add_minion_to_hand(p1, &CATAW1_DMG3);
+    builder.add_minion_to_hand(p1, &CATAW4_HEAL3);
+    let victim = builder.add_custom_minion_to_board(p2, 3, 7, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // the location
+    let loc = state.player(p1).location.expect("the location");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::ActivateLocation {
+                location: loc,
+                target: None,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.player(p1).next_heal_deals_damage,
+        "the next heal converts"
+    );
+    // Damage the victim 7 -> 4 (3 missing Health)...
+    let dmg3 = find_in_hand(&state, p1, "CATAW1_DMG3");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: dmg3,
+                target: Some(victim),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(victim),
+        Some(Health(4)),
+        "the victim took 3"
+    );
+    // ...then heal it: the 3-point heal becomes 3 damage (4 -> 1).
+    let heal3 = find_in_hand(&state, p1, "CATAW4_HEAL3");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: heal3,
+                target: Some(victim),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(victim),
+        Some(Health(1)),
+        "the heal dealt damage instead"
+    );
+    assert!(
+        !state.player(p1).next_heal_deals_damage,
+        "the conversion flag was consumed"
+    );
+}
+
+/// CATAW4-11 — Stonetalon Striker: "While in hand, play a Dragon to
+/// become a 6/6 Dragon!" — the hand entity's id swaps to CATA_551t at
+/// the Dragon's play; the transformed card then plays as a 6/6 Taunt.
+#[test]
+fn cata_w4_stonetalon_striker_transforms_on_dragon() {
+    use orange_stone::cards::exp_cata_w4::{DARKSCALE_BROODMOTHER, STONETALON_STRIKER};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &DARKSCALE_BROODMOTHER)
+        .add_minion_to_hand(p1, &STONETALON_STRIKER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // the Dragon
+    assert_eq!(
+        state
+            .world()
+            .card_id(find_in_hand(&state, p1, "CATA_551t"))
+            .map(|c| c.0),
+        Some("CATA_551t"),
+        "the held Striker transformed in hand"
+    );
+    play_front_card(&mut state, &engine, p1); // the transformed Striker
+    let striker = find_entity(&state, p1, "CATA_551t");
+    assert_eq!(
+        state.world().effective_attack(striker),
+        Some(Attack(6)),
+        "the Dragon form is 6/6"
+    );
+    assert_eq!(
+        state.world().effective_health(striker),
+        Some(Health(6)),
+        "the Dragon form is 6/6"
+    );
+    assert!(
+        state.world().taunt(striker).is_some(),
+        "the Dragon form keeps Taunt"
+    );
+}
+
+/// CATAW4-12 — Genn, Cursed King: with the rest of the hand all even,
+/// the held Genn transforms into the Worgen King at the owner's turn
+/// start; playing the Worgen King upgrades the hero power to cost (1).
+#[test]
+fn cata_w4_genn_transforms_and_upgrades_hero_power() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_cata_w4::GENN_CURSED_KING;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &GENN_CURSED_KING);
+    builder.add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    builder.add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    assert!(
+        state
+            .world()
+            .card_id(find_in_hand(&state, p1, "CATA_615"))
+            .is_some(),
+        "Genn still holds at the first turn"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state
+            .world()
+            .card_id(find_in_hand(&state, p1, "CATA_615t"))
+            .map(|c| c.0),
+        Some("CATA_615t"),
+        "the all-even hand transformed Genn at the turn start"
+    );
+    play_front_card(&mut state, &engine, p1); // the Worgen King
+    assert!(
+        state.player(p1).hero_power_cost_1,
+        "the upgraded hero power costs (1) (the §26 cost-flag)"
+    );
+    let genn = find_entity(&state, p1, "CATA_615t");
+    assert_eq!(
+        state.world().effective_attack(genn),
+        Some(Attack(6)),
+        "the Worgen King is 6/5"
+    );
+}
+
+/// CATAW4-13 — Destructive Blaze: "After this survives damage, summon
+/// a copy of this" (a Searing Fissure ping) and the deathrattle deals 2
+/// to a random enemy (the enemy hero with an empty board).
+#[test]
+fn cata_w4_destructive_blaze_survive_summons_and_deathrattle() {
+    use orange_stone::cards::exp_cata_w4::{DESTRUCTIVE_BLAZE, SEARING_FISSURE};
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &DESTRUCTIVE_BLAZE);
+    builder.add_minion_to_hand(p1, &SEARING_FISSURE);
+    builder.add_minion_to_hand(p1, &CATAW1_DMG5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // the Blaze 3/3
+    play_front_card(&mut state, &engine, p1); // Searing Fissure — 1 to all
+    assert_eq!(
+        board_count(&state, p1, "CATA_586"),
+        2,
+        "the surviving Blaze summoned a copy"
+    );
+    let damaged = board_minions(&state, p1)
+        .into_iter()
+        .find(|&m| state.world().damage(m).is_some())
+        .expect("the original took the ping");
+    let dmg5 = find_in_hand(&state, p1, "CATAW1_DMG5");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: dmg5,
+                target: Some(damaged),
+                position: None,
+            },
+        )
+        .unwrap();
+    let hero2 = state.player(p2).hero;
+    assert_eq!(
+        state.world().effective_health(hero2),
+        Some(Health(28)),
+        "the deathrattle dealt 2 to the enemy hero"
+    );
+    assert_eq!(
+        board_count(&state, p1, "CATA_586"),
+        1,
+        "one Blaze remained after the kill"
+    );
+}
+
+/// CATAW4-14 — Nespirah, Unshackled: "After you cast a Fel spell, get
+/// a random non-Colossal Naga. It costs (1)" — the Caustic Fumes cast
+/// (Fel) triggers the hand gain. The Naga pool samples the expansion
+/// Nagas (§26 — the active window holds none).
+#[test]
+fn cata_w4_nespirah_fel_spell_adds_naga_cost_one() {
+    use orange_stone::cards::exp_cata_w4::NESPIRAH_UNSHACKLED;
+    use orange_stone::cards::exp_tlc_w3::CAUSTIC_FUMES;
+    use orange_stone::core::component::Race;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &NESPIRAH_UNSHACKLED)
+        .add_minion_to_hand(p1, &CAUSTIC_FUMES);
+    let victim = builder.add_custom_minion_to_board(p2, 2, 2, 1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let caustic = find_in_hand(&state, p1, "TLC_447");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: caustic,
+                target: Some(victim),
+                position: None,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1, "exactly one Naga was added");
+    let naga = hand[0];
+    assert!(
+        state
+            .world()
+            .race(naga)
+            .is_some_and(|r| r.contains(&Race::Naga)),
+        "the gained card is a Naga"
+    );
+    assert_eq!(
+        state.world().effective_cost(naga),
+        Some(Cost(1)),
+        "the Naga costs (1)"
+    );
+}
+
+/// CATAW4-15 — Mossbinding: "Summon two 1/2 Golems. Spend all your Mana
+/// to give them +1/+1 for each Mana spent" — 4 Mana spent: 5/6 Golems,
+/// the pool drained.
+#[test]
+fn cata_w4_mossbinding_golems_scale_with_mana() {
+    use orange_stone::cards::exp_cata_w4::MOSSBINDING;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 4)
+        .add_minion_to_hand(p1, &MOSSBINDING);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let golems = board_minions(&state, p1);
+    assert_eq!(golems.len(), 2, "two Golems");
+    // The spell's own 2-cost is paid first — the "spend all your Mana"
+    // reads the 2 left over, so the Golems bake +2/+2 (3/4), not +4/+4.
+    for g in golems {
+        assert_eq!(
+            state.world().effective_attack(g),
+            Some(Attack(3)),
+            "1/2 + 2/2 for the 2 Mana left after the 2-cost"
+        );
+        assert_eq!(
+            state.world().effective_health(g),
+            Some(Health(4)),
+            "1/2 + 2/2 for the 2 Mana left after the 2-cost"
+        );
+    }
+    assert_eq!(state.player(p1).current_mana, 0, "all Mana was spent");
+}
+
+/// CATAW4-16 — Earthen Drake: "At the end of your turn, deal 4 damage
+/// to the enemy hero."
+#[test]
+fn cata_w4_earthen_drake_end_turn_damage() {
+    use orange_stone::cards::exp_cata_w4::EARTHEN_DRAKE;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &EARTHEN_DRAKE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_health(state.player(p2).hero),
+        Some(Health(26)),
+        "the end-of-turn effect dealt 4 to the enemy hero"
     );
 }
