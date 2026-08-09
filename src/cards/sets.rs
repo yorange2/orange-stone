@@ -2289,6 +2289,47 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_tmw_w2a::HIGHBORNE_PUPIL,
     super::exp_tmw_w2a::COLISEUM_TIGER,
     super::exp_tmw_w2a::COLISEUM_CROCOLISK,
+    // M3-W2b — the Across the Timeways legendary wave
+    // (src/cards/exp_tmw_w2b.rs): the 25 legendaries plus the tokens they
+    // produce (§21).
+    super::exp_tmw_w2b::RAFAM_THE_UNBOUNDED,
+    super::exp_tmw_w2b::GELBIN_OF_TOMORROW,
+    super::exp_tmw_w2b::FARSEER_WO,
+    super::exp_tmw_w2b::BROXIGAR_THE_UNBROKEN,
+    super::exp_tmw_w2b::MUROZOND_UNBOUNDED,
+    super::exp_tmw_w2b::CHRONOGOR,
+    super::exp_tmw_w2b::KING_MALUK,
+    super::exp_tmw_w2b::DEIOS_THE_UNSTOPPABLE,
+    super::exp_tmw_w2b::CHROMIE,
+    super::exp_tmw_w2b::MURADIN_HIGH_KING,
+    super::exp_tmw_w2b::LADY_AZSHARA,
+    super::exp_tmw_w2b::ETERNUS,
+    super::exp_tmw_w2b::THE_ETERNAL_HOLD,
+    super::exp_tmw_w2b::RANGER_GENERAL_SYLVANAS,
+    super::exp_tmw_w2b::HUSK_ETERNAL_REAPER,
+    super::exp_tmw_w2b::TALANJI_OF_THE_GRAVES,
+    super::exp_tmw_w2b::KRONA_KEEPER_OF_EONS,
+    super::exp_tmw_w2b::THE_FINS_BEYOND_TIME,
+    super::exp_tmw_w2b::TIME_ADMIRAL_HOOKTAIL,
+    super::exp_tmw_w2b::CHRONO_LORD_EPOCH,
+    super::exp_tmw_w2b::LO_GOSH_BLOOD_FIGHTER,
+    super::exp_tmw_w2b::SINDRAGOSA,
+    super::exp_tmw_w2b::TIMELOOPER_TOKI,
+    super::exp_tmw_w2b::GARONA_HALFORCEN,
+    super::exp_tmw_w2b::MEDIVH_THE_HALLOWED,
+    // M3-W2b tokens.
+    super::exp_tmw_w2b::MURADINS_HAMMER,
+    super::exp_tmw_w2b::THE_WELL_OF_ETERNITY,
+    super::exp_tmw_w2b::ZIN_AZSHARI,
+    super::exp_tmw_w2b::BWONSAMDI,
+    super::exp_tmw_w2b::INFINITE_BANANA,
+    super::exp_tmw_w2b::TIMELESS_CHEST,
+    super::exp_tmw_w2b::KING_LLANE,
+    super::exp_tmw_w2b::KARAZHAN_THE_SANCTUM,
+    super::exp_tmw_w2b::RANGER_CAPTAIN_ALLERIA,
+    super::exp_tmw_w2b::RANGER_INITIATE_VEREESA,
+    super::exp_tmw_w2b::BROLL_BLOOD_FIGHTER,
+    super::exp_tmw_w2b::VALEERA_BLOOD_FIGHTER,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated
@@ -2354,6 +2395,10 @@ pub const POOL_OPEN_CARDS: &[&str] = &[
     "TIME_041", // Futuristic Forefather — guesses an enemy hand card
     "TIME_432", // Intertwined Fate — discovers a copy of a deck AND enemy hand card
     "TIME_876", // Shapeshifter — transforms into a random enemy hand minion
+    // M3-W2b — the Across the Timeways legendary wave
+    // (src/cards/exp_tmw_w2b.rs): Garona destroys King Llane from the
+    // opponent's hand.
+    "TIME_875", // Garona Halforcen — destroys a held enemy King Llane
 ];
 
 #[cfg(test)]
@@ -2416,6 +2461,10 @@ mod tests {
                     | CardEffect::DiscoverDeckAndEnemyHandCardCopy
                     | CardEffect::GuessEnemyHandGainHealth { .. }
                     | CardEffect::TransformHandSelfToRandomEnemyHandMinion
+                    // M3-W2b — the Across the Timeways legendary wave
+                    // (src/cards/exp_tmw_w2b.rs): Garona reads the opponent's
+                    // hand for King Llane.
+                    | CardEffect::DestroyHeldKingLlaneAndHalveEnemyHealth
             )
         };
         for card in ALL_CARDS {

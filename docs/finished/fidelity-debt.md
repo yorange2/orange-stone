@@ -1544,3 +1544,132 @@ the declaration order. Full `cargo test` fully green (all suites, incl.
 every `tlc_w1_*`/`tlc_w2_*`/`tlc_w3_*`/`tlc_w4a_*`/`tlc_w4b_*`/`tmw1_*`
 scenario and the 16 `tmw2a_*` — 888 passed, 1 ignored), `cargo fmt` clean,
 `cargo clippy --all-targets` zero warnings.
+
+### 21. 2025–2026 expansions M3-W2b — Across the Timeways sub-roadmap W2, second split (25 legendary cards + 12 tokens) 🔓 registered
+
+The registered simplifications of the M3-W2b wave (`src/cards/exp_tmw_w2b.rs`):
+the 25 Across-the-Timeways legendaries (TIME_038 Mister Clocksworth and
+TIME_063 Timelord Nozdormu shipped in W2a, PR #152 — they are NOT here) plus
+the 12 tokens they produce (TIME_042t Infinite Banana, TIME_209t High King's
+Hammer, TIME_211t1 The Well of Eternity, TIME_211t2 Zin-Azshari, TIME_609t1
+Ranger Captain Alleria, TIME_609t2 Ranger Initiate Vereesa, TIME_619t
+Bwonsamdi, TIME_713t Timeless Chest, TIME_850t Broll Blood Fighter, TIME_850t1
+Valeera Blood Fighter, TIME_875t King Llane, TIME_890t2 Karazhan the Sanctum —
+TIME_890t Atiesh the Greatstaff is skipped, see the TIME_890 row). As with
+§14–§20, these handwritten expansion cards are not in the RL pool (classic +
+core 668/659), so the rows are informational: they keep the code's
+simplifications traceable to the ledger. Each row stays open until its
+mechanism lands.
+
+The wave's headline mechanics are FULL primitives: **the played-log reads**
+(`Player::played_minion_ids` — the all-time minion play log — and
+`last_played`, the rewind history): TIME_609 Ranger General Sylvanas deals 2
+damage to all enemies once per played sister (Alleria/Vereesa), TIME_103
+Chromie's deathrattle adds a copy of each of the last `count` distinct played
+cards (bounded by MAX_REWIND_HISTORY, count 10); **the DoubleTriggers aura**
+(TIME_064 Chrono-Lord Deios — `AuraEffect::DoubleTriggers`, silenceable):
+six rules sites re-resolve the pre-captured effect exactly once per site —
+minion battlecry, weapon battlecry, deathrattle, hero power, choose-one
+branch, end-of-turn triggers (a stacked BattlecryTwice dark gift resolves 3
+times, never 4); **Locations** (CardType::Location, the Core Set W8
+representation: TIME_446 The Eternal Hold, TIME_211t1 The Well of Eternity,
+TIME_211t2 Zin-Azshari, TIME_890t2 Karazhan — activation effects in the
+battlecry slot, the play-turn cooldown enforced; TIME_446 is
+`expansion_differential_rebalanced` because the generator predates the
+Location CardType); **the per-turn play snapshot** (TIME_714 Chrono-Lord
+Epoch destroys exactly the minions the opponent played last turn — the
+CardPlayed hook maintains `minions_played_this_turn_ids`, the TurnEnded
+handler snapshots it into `last_turn_minion_play_ids`); **INFINITY**
+(TIME_024 Murozond — a 32-bit engine has no unbounded value; the play effect
+arms `Player::murozond_infinite_pending`, the start-of-turn hook sets the
+Attack to the shared `INFINITY_ATTACK_CAP` (100, W3 reuse)); **the hand
+swap-back** (TIME_706 The Fins — `Player::hand_swap_snapshot`); **the
+Corpses spend** (TIME_618 Husk — `Player::corpses`); **the Toki tracker**
+(TIME_861 — `Player::toki_pending_spells`); and **the Eternal Hold discount
+flag** (`Player::next_demon_cost_one`).
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| TIME_005 | Timethief Rafaam | Fabled+ — "Your deck size is 40, but has 10 Rafaams! Battlecry: If you played the rest, destroy the enemy hero" — a plain 10/10 (no Fabled deck construction, no played-all check) | the Fabled+ deck + played-all check |
+| TIME_009 | Gelbin of Tomorrow | "Put one of each Aura from your deck into the battlefield" is ONE random deck minion — battlecry-free (the TIME_870 precedent removes the Battlecry component after the summon), the deck entity consumed | the official aura copy-chain |
+| TIME_013 | Farseer Wo | Full: the FriendlySpellCast trigger surfaces the three-option Discover over the in-window Nature-spell pool (the engine auto-resolves the Discover — the established convention) | — |
+| TIME_020 | Broxigar | Fabled — "Start of Game: Disappear. Kill all 4 Demons from Argus to reappear" — a plain 12/12 with Charge | the official disappear/reappear |
+| TIME_024 | Murozond, Unbounded | "Set this minion's Attack to INFINITY" — a 32-bit engine has no unbounded value; the Attack is set to `INFINITY_ATTACK_CAP` (100) | an unbounded value |
+| TIME_032 | Chronogor | Full: the owner draws the 2 highest-Cost deck cards, the opponent draws the 2 lowest of the remaining deck (the actual deck entities; the opponent-drawn cards are re-owned into the opponent's hand) | — |
+| TIME_042 | King Maluk | Full discard + get an Infinite Banana; the Banana's "Infinite" keyword ("this stays in your hand") is unmodeled — a plain 1-Cost spell | the Infinite keyword |
+| TIME_064 | Chrono-Lord Deios | Full: the DoubleTriggers aura doubles Battlecries / Deathrattles / Hero Power / end-of-turn effects, one re-resolve per site; a stacked BattlecryTwice dark gift resolves 3 times, never 4 | — |
+| TIME_103 | Chromie | "Draw another copy of cards you've played this game" is bounded by the rewind-history cap (the last `count` = 10 distinct played cards) | an unbounded game history |
+| TIME_209 | Muradin, High King | The Hammer's deathrattle "Shuffle this into your deck with +2 Attack permanently" is a plain add-to-hand (no +2 buff, no deck shuffle); the equipped Hammer itself is full (3/4 Windfury) | the official shuffle + empower |
+| TIME_211 | Lady Azshara | Full Choose One (option 0 empowers Zin-Azshari, option 1 The Well of Eternity; the other location is replaced — the official "the other gets destroyed"); the copied friendly minion is a D2 random pick | the official player choice |
+| TIME_435 | Eternus | Full threshold (the source's effective Health at resolution); the target pick is a D2 random | the official player choice |
+| TIME_446 | The Eternal Hold | Location (card_type|health|durability rebalanced — the generator predates the Location CardType); the Demon Discover is engine-auto-resolved (D2); the "if your deck has no minions, your next one costs (1)" flag is real | the official Discover |
+| TIME_609 | Ranger General Sylvanas | "If you've played Alleria or Vereesa, repeat for each" — the all-time played-minion log counts effect-summoned copies too (the best available approximation) | the official play-count |
+| TIME_618 | Husk, Eternal Reaper | "Give your hero 'Deathrattle: Spend up to 20 Corpses to resurrect with that much Health'" — the hero-deathrattle resurrection is unmodeled; the battlecry spends up to 20 Corpses immediately to restore the hero | the official resurrection |
+| TIME_619 | Talanji of the Graves | Full draw-or-resurrect Bwonsamdi; the Boon choose-one grants Taunt / Lifesteal / Rush directly — the official "+2/+2 and deathrattle-minions cost more" riders are simplified away | the official boon riders |
+| TIME_705 | Krona, Keeper of Eons | Full: the Costs of the bottom 5 deck cards are set to (1) (Set(1) cost modifiers), the top card untouched | — |
+| TIME_706 | The Fins Beyond Time | "Replace your hand with your starting hand" — the engine has no opening-hand record; the fresh cards are the top of the deck (the snapshot + swap-back at end of turn are real) | an opening-hand record |
+| TIME_713 | Time Adm'ral Hooktail | Full: a 0/8 Chest for the opponent; the Chest's deathrattle fills the CONTROLLER's opponent's hand with Coins (the official text — the coins land with the Hooktail player) | — |
+| TIME_714 | Chrono-Lord Epoch | Full: the per-turn play snapshot destroys exactly the minions the opponent played last turn (deathrattles fire) | — |
+| TIME_850 | Lo'Gosh, Blood Fighter | Full deathrattle: the hand Blood Fighter is summoned with +5/+5 and attacks a D2-random enemy; the Broll/Valeera token deathrattles are NOT implemented (the chain stops at Lo'Gosh — avoids recursion) | the official token chain |
+| TIME_852 | Azure Queen Sindragosa | Full: Arcane spells cost (2) less while another Dragon is on the board (the cost pipeline) | — |
+| TIME_861 | Timelooper Toki | Full: 3 random spells are tracked; playing ALL 3 adds a fresh Toki to the hand (the pool is RandomPool::Spell) | — |
+| TIME_875 | Garona Halforcen | Pool-open 🔓 (registered in POOL_OPEN_CARDS — reads the opponent's hand): destroys a held King Llane and halves the enemy's max Health (rounded up; current damage preserved) | the official start-of-game hide (TIME_875t is a plain 3/3/3) |
+| TIME_890 | Medivh the Hallowed | Full battlecry (Silence + destroy every other minion on BOTH boards); "Costs (0) if you control Karazhan" is real (play_cost); TIME_890t Atiesh is SKIPPED — Karazhan's "Costs (0) if you're wielding Atiesh" rider has no left side | Atiesh the Greatstaff |
+| TIME_609t1 | Ranger Captain Alleria | The Discover is a D2 random spell (no options); the "repeat for each sister" rider is folded into Sylvanas' played-log | the official Discover + repeats |
+| TIME_609t2 | Ranger Initiate Vereesa | "Give minions in your deck +1/+1" is unmodeled — a plain 2/4 (still counts in Sylvanas' played-log) | the official deck buff |
+| TIME_619t | Bwonsamdi | The boon keywords (Taunt / Lifesteal / Rush) are granted directly; the official deathrattle "Summon a random 4-Cost minion" is unmodeled | the official deathrattle |
+| TIME_042t | Infinite Banana | "Give a minion +1/+1 (this stays in your hand)" — the Infinite keyword is unmodeled; a plain 1-Cost spell (the targetable pick is a D2 random) | the Infinite keyword |
+| TIME_209t | High King's Hammer | See TIME_209 — the deathrattle is a plain add-to-hand | the official shuffle + empower |
+| TIME_875t | King Llane | "Start of Game: Hide from Garona in the enemy's deck. Battlecry: Draw a card. Shuffle this back" — a plain 3/3/3 that Garona's check can destroy | the official hide |
+| TIME_850t / TIME_850t1 | Broll / Valeera Blood Fighter | The token deathrattles are not implemented (the chain stops at Lo'Gosh); the Taunt / Elusive keywords are real | the official token chain |
+| TIME_890t2 | Karazhan the Sanctum | The activation (two random 8-Cost minions) is real; the Atiesh cost rider is skipped (TIME_890t is not implemented) | Atiesh the Greatstaff |
+
+中文小结（同上）：M3-W2b 波（"穿越时光"子路线 W2 第二拆，25 张传说卡 +
+12 张衍生物；TIME_038 克洛克先生与 TIME_063 时间领主诺兹多姆已在 W2a
+落地、PR #152，不在此列）的本波核心机制均为完整原语：**打出牌日志读取**
+（`Player::played_minion_ids` 全场随从打出日志 + 重放历史 `last_played`）：
+游侠将军希尔瓦娜斯按已打出的姐姐（奥蕾莉亚 TIME_609t1 / 温蕾萨
+TIME_609t2）数量向所有敌人重复 2 点伤害；克罗米亡语把最近 `count`（10，
+重放历史上限）张不同的已打出牌各复制一张入手；**双重触发光环**
+（时间领主迪奥斯——`AuraEffect::DoubleTriggers`，可沉默）：六个规则钩子
+各自把预捕获效果再解析恰好一次（随从战吼、武器战吼、亡语、英雄技能、
+抉择分支、回合结束触发；与"战吼两次"暗黑天赋叠加时共 3 次而非 4 次）；
+**地点**（CardType::Location，Core Set W8 表示法：永恒堡垒 TIME_446、
+永恒之井 TIME_211t1、辛艾萨莉 TIME_211t2、卡拉赞圣所 TIME_890t2——激活
+效果放战吼槽、打出回合冷却生效；TIME_446 的 card_type|health|durability
+走 expansion_differential_rebalanced，因为生成器早于地点类型）；
+**每回合打出快照**（时间纪元领主 TIME_714 只摧毁对手上一回合打出的
+随从——CardPlayed 钩子维护 minions_played_this_turn_ids，TurnEnded 处理
+快照进 last_turn_minion_play_ids）；**INFINITY**（穆罗佐德 TIME_024——
+32 位引擎没有无限值；打出效果在玩家记录上武装 murozond_infinite_pending，
+己方下回合开始钩子把攻击力设为共享常量 INFINITY_ATTACK_CAP（100，
+W3 复用））；**手牌换回**（鳍人 TIME_706——Player::hand_swap_snapshot）；
+**尸体花费**（胡斯克 TIME_618——Player::corpses）；**托奇追踪**
+（TIME_861——Player::toki_pending_spells）；**永恒堡垒恶魔减费标记**
+（Player::next_demon_cost_one）。
+
+F5 coverage: `tmw2b_sylvanas_repeats_per_alleria`,
+`tmw2b_sindragosa_arcane_discount`, `tmw2b_garona_halves_enemy_health`,
+`tmw2b_chronogor_highest_lowest_draws`, `tmw2b_krona_bottom_costs_one`,
+`tmw2b_epoch_destroys_last_turn_minions`, `tmw2b_toki_pool_and_reget`,
+`tmw2b_hooktail_chest_for_opponent`, `tmw2b_muradin_hammer`,
+`tmw2b_azshara_choose_one`, `tmw2b_deios_doubling`,
+`tmw2b_medivh_silence_destroy_all`, `tmw2b_murozond_infinite_attack`,
+`tmw2b_eternus_control`, `tmw2b_chromie_copies_played_cards`,
+`tmw2b_simplified_legendary_smoke_pins` (16 scenarios in
+`tests/differential.rs` — the per-sister repeat, the Arcane discount with
+and without a second Dragon, the King-Llane destroy with the halved max
+Health and the preserved damage, the highest/lowest draws with the mid deck
+untouched, the bottom-5 cost set with the top card kept, the per-turn
+snapshot destroy with the rest of the board surviving, the three tracked
+spells and the fresh Toki, the opponent-controlled Chest filling the
+Hooktail player's hand, the Windfury Hammer and its deathrattle return,
+both Azshara branches with the location cooldown and the Temporary fills,
+the Deios doubling and its death with the aura, the both-boards silence
+with no deathrattle draws, the INFINITY cap across two turn cycles, the
+health-threshold steal, the played-cards copies, and the smoke pins for the
+simplified legendaries — Rafaam / Broxigar / Gelbin (battlecry-free
+summon) / Husk (Corpses spend) / Fins (swap-back)). Full `cargo test` fully
+green (all suites, incl. every `tlc_w*_*`/`tmw1_*`/`tmw2a_*` scenario and
+the 16 `tmw2b_*` — 908 passed, 1 ignored), `cargo fmt` clean,
+`cargo clippy --all-targets` zero warnings.

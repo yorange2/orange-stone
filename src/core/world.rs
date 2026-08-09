@@ -272,9 +272,10 @@ impl AuraIndex {
                     self.health[oi].push((entity, aura));
                 }
             }
-            AuraEffect::GainAttack(_) | AuraEffect::GrantCharge | AuraEffect::ChargeWithWeapon => {
-                self.attack[oi].push((entity, aura))
-            }
+            AuraEffect::GainAttack(_)
+            | AuraEffect::GrantCharge
+            | AuraEffect::ChargeWithWeapon
+            | AuraEffect::DoubleTriggers => self.attack[oi].push((entity, aura)),
             AuraEffect::GainHealth(_) => self.health[oi].push((entity, aura)),
             AuraEffect::ReduceSpellCost(_)
             | AuraEffect::ReduceMinionCost { .. }
@@ -1412,6 +1413,7 @@ const fn aura_attack_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::IncreaseMinionCost { .. } => 0,
         AuraEffect::IncreaseMinionCostFriendly { .. } => 0,
         AuraEffect::ChargeWithWeapon => 0,
+        AuraEffect::DoubleTriggers => 0,
     }
 }
 
@@ -1429,6 +1431,7 @@ const fn aura_health_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::IncreaseMinionCost { .. } => 0,
         AuraEffect::IncreaseMinionCostFriendly { .. } => 0,
         AuraEffect::ChargeWithWeapon => 0,
+        AuraEffect::DoubleTriggers => 0,
     }
 }
 
@@ -1489,7 +1492,8 @@ mod tests {
                 }
                 AuraEffect::GainAttack(_)
                 | AuraEffect::GrantCharge
-                | AuraEffect::ChargeWithWeapon => idx.attack[oi].push((source, *aura)),
+                | AuraEffect::ChargeWithWeapon
+                | AuraEffect::DoubleTriggers => idx.attack[oi].push((source, *aura)),
                 AuraEffect::GainHealth(_) => idx.health[oi].push((source, *aura)),
                 AuraEffect::ReduceSpellCost(_)
                 | AuraEffect::ReduceMinionCost { .. }

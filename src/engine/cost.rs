@@ -371,5 +371,59 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
     {
         cost = Cost(0);
     }
+    // M3-W2b — Across the Timeways legendary wave
+    // (src/cards/exp_tmw_w2b.rs).
+    // Azure Queen Sindragosa (TIME_852): "If you control another Dragon,
+    // your Arcane spells cost (2) less" — a board-presence aura read like
+    // Naralex: the discount applies while the owner controls a Dragon on
+    // the battlefield that is not TIME_852 herself ("another" — the second
+    // copy of herself does not count, §21).
+    if state.world().card_type(card) == Some(crate::core::component::CardType::Spell)
+        && state
+            .world()
+            .card_id(card)
+            .and_then(|c| crate::cards::quest::spell_school(c.0))
+            .is_some_and(|s| s == crate::cards::quest::SpellSchool::Arcane)
+        && state
+            .world()
+            .zones()
+            .iter(crate::core::zone::Zone::Play, player)
+            .any(|e| {
+                state.world().card_id(e).is_some_and(|c| {
+                    c.0 != "TIME_852"
+                        && crate::cards::def::card_by_id(c.0)
+                            .is_some_and(|d| d.race == Some(crate::core::component::Race::Dragon))
+                })
+            })
+    {
+        cost = Cost((cost.0 - 2).max(0));
+    }
+    // Medivh the Hallowed (TIME_890): "Costs (0) if you control Karazhan" —
+    // the Karazhan check reads the owner's Location slot (TIME_890t2).
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "TIME_890")
+        && state.player(player).location.is_some_and(|l| {
+            state
+                .world()
+                .card_id(l)
+                .is_some_and(|c| c.0 == "TIME_890t2")
+        })
+    {
+        cost = Cost(0);
+    }
+    // The Eternal Hold (TIME_446) fallback: "If your deck has no minions,
+    // your next Demon costs (1)" — the one-time flag is consumed by the
+    // next Demon play at the CardPlayed path.
+    if state
+        .world()
+        .card_id(card)
+        .and_then(|cid| crate::cards::def::card_by_id(cid.0))
+        .is_some_and(|def| def.race == Some(crate::core::component::Race::Demon))
+        && state.player(player).next_demon_cost_one
+    {
+        cost = Cost(1);
+    }
     cost
 }

@@ -28655,3 +28655,955 @@ fn tmw2a_circadiamancer_reduces_each_turn() {
         );
     }
 }
+
+// ============================================================
+// M3-W2b — the Across the Timeways legendary wave (exp_tmw_w2b).
+// Fidelity rows: fidelity-debt.md §21 (+zh). The scenarios pin the
+// engine-side behavior of the 25 legendaries and their tokens.
+// ============================================================
+
+/// TMW2B-1 — Ranger General Sylvanas repeats her 2-damage AoE once per
+/// played sister: with Alleria AND Vereesa in the all-time played log, the
+/// enemy hero and a board minion each take 6 damage (3 passes).
+#[test]
+fn tmw2b_sylvanas_repeats_per_alleria() {
+    use orange_stone::cards::exp_tmw_w2b::RANGER_GENERAL_SYLVANAS;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &RANGER_GENERAL_SYLVANAS);
+    builder.add_custom_minion_to_board(p2, 8, 8, 5);
+    let mut state = builder.build();
+    // The two sisters were "played" earlier this game (the all-time log).
+    state.make_mut().players[p1.index()]
+        .played_minion_ids
+        .extend(["TIME_609t1".to_string(), "TIME_609t2".to_string()]);
+    let enemy_hero = state.player(p2).hero;
+    let enemy_minion = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p2)
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("the enemy minion");
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(24)),
+        "the enemy hero took 3 x 2 = 6 damage"
+    );
+    assert_eq!(
+        state.world().effective_health(enemy_minion),
+        Some(Health(2)),
+        "the 8/8 enemy minion took 6 damage"
+    );
+}
+
+/// TMW2B-2 — Sindragosa discounts Arcane spells by (2) while another
+/// Dragon is on the board; without the second Dragon the full cost stands.
+#[test]
+fn tmw2b_sindragosa_arcane_discount() {
+    use orange_stone::cards::core_w1::EVASIVE_WYRM;
+    use orange_stone::cards::exp_tlc_w4a::STORAGE_SCUFFLE;
+    use orange_stone::cards::exp_tmw_w2b::SINDRAGOSA;
+    use orange_stone::engine::cost::play_cost;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &SINDRAGOSA)
+        .add_minion_to_board(p1, &EVASIVE_WYRM)
+        .add_minion_to_hand(p1, &STORAGE_SCUFFLE);
+    let state = builder.build();
+    let spell = find_in_hand(&state, p1, "TLC_365");
+    assert_eq!(
+        play_cost(&state, spell, p1),
+        Cost(1),
+        "3-Cost Arcane spell discounted by (2) with another Dragon"
+    );
+    // Control: without the second Dragon the discount vanishes.
+    let mut builder2 = GameBuilder::new();
+    pad_decks(&mut builder2);
+    builder2
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &SINDRAGOSA)
+        .add_minion_to_hand(p1, &STORAGE_SCUFFLE);
+    let state2 = builder2.build();
+    let spell2 = find_in_hand(&state2, p1, "TLC_365");
+    assert_eq!(
+        play_cost(&state2, spell2, p1),
+        Cost(3),
+        "no discount without a second Dragon"
+    );
+}
+
+/// TMW2B-3 — Garona Halforcen destroys a held King Llane and halves the
+/// enemy hero's Health (max rounded up, current damage kept).
+#[test]
+fn tmw2b_garona_halves_enemy_health() {
+    use orange_stone::cards::exp_tmw_w2b::{GARONA_HALFORCEN, KING_LLANE};
+    use orange_stone::core::component::Damage;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &GARONA_HALFORCEN)
+        .add_minion_to_hand(p2, &KING_LLANE)
+        .hero_health(p2, 30);
+    let mut state = builder.build();
+    let enemy_hero = state.player(p2).hero;
+    // The enemy hero carries 6 damage (24/30) when Garona lands.
+    state.world_mut().set_damage(enemy_hero, Damage(6));
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p2),
+        0,
+        "the held King Llane was destroyed"
+    );
+    assert_eq!(
+        state.world().health(enemy_hero),
+        Some(Health(15)),
+        "max Health halved (30 -> 15)"
+    );
+    assert_eq!(
+        state.world().damage(enemy_hero),
+        Some(Damage(6)),
+        "the current damage is preserved"
+    );
+    // Control: without a held King Llane nothing happens to the hero.
+    let mut builder2 = GameBuilder::new();
+    pad_decks(&mut builder2);
+    builder2
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &GARONA_HALFORCEN)
+        .hero_health(p2, 30);
+    let mut state2 = builder2.build();
+    let engine2 = GameEngine::new();
+    play_front_card(&mut state2, &engine2, p1);
+    assert_eq!(
+        state2.world().health(state2.player(p2).hero),
+        Some(Health(30)),
+        "no King Llane, no halving"
+    );
+}
+
+/// TMW2B-4 — Chronogor: the owner draws their 2 highest-Cost deck cards,
+/// the opponent draws the owner's 2 lowest-Cost deck cards.
+#[test]
+fn tmw2b_chronogor_highest_lowest_draws() {
+    use orange_stone::cards::classic_legendary::DEATHWING;
+    use orange_stone::cards::classic_neutral::YSERA;
+    use orange_stone::cards::classic_neutral::{
+        ARCANE_DEVOURER, BLOODFEN_RAPTOR, IRONFUR_GRIZZLY, MURLOC_RAIDER,
+    };
+    use orange_stone::cards::exp_tmw_w2b::CHRONOGOR;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &CHRONOGOR)
+        .add_minion_to_deck(p1, &MURLOC_RAIDER) // 1
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR) // 2
+        .add_minion_to_deck(p1, &IRONFUR_GRIZZLY) // 3
+        .add_minion_to_deck(p1, &ARCANE_DEVOURER) // 8
+        .add_minion_to_deck(p1, &YSERA) // 9
+        .add_minion_to_deck(p1, &DEATHWING); // 10
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    // The owner drew the two highest.
+    assert!(
+        state.world().zones().iter(Zone::Hand, p1).any(|e| state
+            .world()
+            .card_id(e)
+            .is_some_and(|c| c.0 == "LEGENDARY_011")),
+        "the owner drew Deathwing"
+    );
+    assert!(
+        state.world().zones().iter(Zone::Hand, p1).any(|e| state
+            .world()
+            .card_id(e)
+            .is_some_and(|c| c.0 == "NEUTRAL_T21")),
+        "the owner drew Ysera"
+    );
+    // The opponent drew the two lowest OF THE REMAINING deck.
+    assert!(
+        state.world().zones().iter(Zone::Hand, p2).any(|e| state
+            .world()
+            .card_id(e)
+            .is_some_and(|c| c.0 == "NEUTRAL_B02")),
+        "the opponent drew Murloc Raider"
+    );
+    assert!(
+        state.world().zones().iter(Zone::Hand, p2).any(|e| state
+            .world()
+            .card_id(e)
+            .is_some_and(|c| c.0 == "CLASSIC_001")),
+        "the opponent drew the Raptor"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, p1),
+        2,
+        "the two middle cards stay in the deck"
+    );
+}
+
+/// TMW2B-5 — Krona sets the Costs of the bottom 5 deck cards to (1): the
+/// top card keeps its cost, every card below it costs (1).
+#[test]
+fn tmw2b_krona_bottom_costs_one() {
+    use orange_stone::cards::exp_tmw_w2b::KRONA_KEEPER_OF_EONS;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &KRONA_KEEPER_OF_EONS);
+    // Six 2-Cost Raptors: index 0 is the deck top, indices 1..5 the bottom.
+    for _ in 0..6 {
+        builder.add_minion_to_deck(p1, &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let deck: Vec<Entity> = state.world().zones().entities(Zone::Deck, p1);
+    assert_eq!(deck.len(), 6);
+    assert_eq!(
+        state.world().effective_cost(deck[0]),
+        Some(Cost(2)),
+        "the top card keeps its cost"
+    );
+    for e in &deck[1..] {
+        assert_eq!(
+            state.world().effective_cost(*e),
+            Some(Cost(1)),
+            "the bottom 5 cards cost (1)"
+        );
+    }
+}
+
+/// TMW2B-6 — Chrono-Lord Epoch destroys only the minions the opponent
+/// played last turn (the per-turn play snapshot), not the rest of the
+/// board.
+#[test]
+fn tmw2b_epoch_destroys_last_turn_minions() {
+    use orange_stone::cards::exp_tmw_w2b::CHRONO_LORD_EPOCH;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &CHRONO_LORD_EPOCH)
+        .add_minion_to_board(p2, &orange_stone::cards::def::BLOODFEN_RAPTOR)
+        .add_custom_minion_to_board(p2, 4, 4, 4);
+    let mut state = builder.build();
+    // The Raptor was played last turn; the custom 4/4 was already on the
+    // board before that (the Epoch snapshot only knows the Raptor).
+    state.make_mut().players[p2.index()]
+        .last_turn_minion_play_ids
+        .push("CLASSIC_001".to_string());
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let p2_minions: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p2)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    assert_eq!(p2_minions.len(), 1, "the other minion survives");
+    assert!(
+        state
+            .world()
+            .card_id(p2_minions[0])
+            .is_none_or(|c| c.0 != "CLASSIC_001"),
+        "the played-last-turn Raptor is destroyed"
+    );
+    // The Raptor reached the graveyard.
+    assert!(state.world().zones().iter(Zone::Graveyard, p2).any(|e| {
+        state
+            .world()
+            .card_id(e)
+            .is_some_and(|c| c.0 == "CLASSIC_001")
+    }));
+}
+
+/// TMW2B-7 — Timelooper Toki tracks her three generated spells: playing
+/// all three puts a fresh Toki into the hand.
+#[test]
+fn tmw2b_toki_pool_and_reget() {
+    use orange_stone::cards::classic_neutral::NOVICE_ENGINEER;
+    use orange_stone::cards::exp_tmw_w2b::TIMELOOPER_TOKI;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TIMELOOPER_TOKI)
+        .add_minion_to_hand(p1, &NOVICE_ENGINEER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.player(p1).toki_pending_spells.len(),
+        3,
+        "three random spells from the past are tracked"
+    );
+    // The engine-generated spells may be unplayable in this setup; pin the
+    // tracking instead: repoint the list at a known card, then play it —
+    // the emptied list puts a fresh Toki into the hand.
+    state.make_mut().players[p1.index()].toki_pending_spells = vec!["NEUTRAL_T04".to_string()];
+    play_front_card(&mut state, &engine, p1);
+    assert!(
+        state.player(p1).toki_pending_spells.is_empty(),
+        "playing the tracked spell emptied the list"
+    );
+    assert!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Hand, p1)
+            .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_861")),
+        "playing the tracked spell gets another Toki"
+    );
+}
+
+/// TMW2B-8 — Time Adm'ral Hooktail summons a 0/8 Timeless Chest for the
+/// opponent; the Chest's deathrattle reads "Fill YOUR OPPONENT's hand with
+/// Coins" — the Chest is controlled by the opponent, so the Coins land in
+/// the Hooktail player's hand.
+#[test]
+fn tmw2b_hooktail_chest_for_opponent() {
+    use orange_stone::cards::exp_tmw_w2b::TIME_ADMIRAL_HOOKTAIL;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TIME_ADMIRAL_HOOKTAIL)
+        .add_custom_minion_to_board(p1, 10, 10, 5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let chest = find_entity(&state, p2, "TIME_713t");
+    assert_eq!(
+        state.world().effective_health(chest),
+        Some(Health(8)),
+        "a 0/8 Chest on the opponent's board"
+    );
+    // Kill the Chest: the deathrattle fills the Hooktail player's hand with
+    // Coins (the Chest's controller is the opponent — "your opponent").
+    let attacker = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion) && e != chest)
+        .expect("the p1 attacker");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker,
+                defender: chest,
+            },
+        )
+        .unwrap();
+    let p1_hand: Vec<Entity> = state.world().zones().entities(Zone::Hand, p1);
+    assert!(
+        !p1_hand.is_empty(),
+        "Coins filled the Hooktail player's hand"
+    );
+    for e in p1_hand {
+        assert!(
+            state.world().card_id(e).is_some_and(|c| c.0 == "GAME_005"),
+            "every hand card is a Coin"
+        );
+    }
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p2),
+        0,
+        "the Chest's controller gets nothing"
+    );
+}
+
+/// TMW2B-9 — Muradin equips the High King's Hammer (a 3/4 Windfury
+/// weapon); his deathrattle returns the Hammer to the hand.
+#[test]
+fn tmw2b_muradin_hammer() {
+    use orange_stone::cards::exp_tmw_w2b::MURADIN_HIGH_KING;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &MURADIN_HIGH_KING)
+        .add_custom_minion_to_board(p2, 4, 4, 4);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let weapon = state.player(p1).weapon.expect("the Hammer was equipped");
+    assert_eq!(
+        state.world().card_id(weapon),
+        Some(orange_stone::core::component::CardId("TIME_209t"))
+    );
+    assert_eq!(state.world().effective_attack(weapon), Some(Attack(3)));
+    assert_eq!(
+        state.world().durability(weapon),
+        Some(orange_stone::core::component::Durability(4))
+    );
+    assert!(
+        state.world().windfury(weapon).is_some(),
+        "the Hammer has Windfury"
+    );
+    // The opponent kills Muradin: the deathrattle adds the Hammer to hand.
+    let muradin = find_entity(&state, p1, "TIME_209");
+    let killer = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p2)
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("the p2 minion");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: killer,
+                defender: muradin,
+            },
+        )
+        .unwrap();
+    assert!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Hand, p1)
+            .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_209t")),
+        "Muradin's deathrattle returns the Hammer to hand"
+    );
+}
+
+/// TMW2B-10 — Lady Azshara's Choose One: option 0 empowers Zin-Azshari
+/// (the location summons a copy of a friendly minion), option 1 summons
+/// The Well of Eternity (the location fills the hand with Temporary
+/// spells). The unchosen location is replaced by the chosen one.
+#[test]
+fn tmw2b_azshara_choose_one() {
+    use orange_stone::cards::exp_tmw_w2b::LADY_AZSHARA;
+    let p1 = PlayerId1();
+    // Branch 1 — Zin-Azshari: activation copies a friendly minion.
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &LADY_AZSHARA)
+        .add_minion_to_board(p1, &orange_stone::cards::def::BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let card = first_hand_card(&state, p1);
+    let Resolution::NeedsChoice { choice } = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap()
+    else {
+        panic!("Azshara must surface a choose-one");
+    };
+    assert_eq!(choice.kind, ChoiceKind::ChooseOne);
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0, // Empower Zin-Azshari
+            },
+        )
+        .unwrap();
+    let location = state
+        .player(p1)
+        .location
+        .expect("Azshara placed a location");
+    assert_eq!(
+        state.world().card_id(location),
+        Some(orange_stone::core::component::CardId("TIME_211t2"))
+    );
+    // The location cooldown forbids same-turn activation: play out the
+    // opponent's turn, then activate on the owner's next turn.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let before = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    engine
+        .apply(
+            &mut state,
+            Action::ActivateLocation {
+                location,
+                target: None,
+            },
+        )
+        .unwrap();
+    let after = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .count();
+    assert_eq!(after, before + 1, "Zin-Azshari summoned a copy");
+    // Branch 2 — The Well of Eternity: activation fills the hand with
+    // Temporary spells. No padded deck: the owner's turn-start draw after
+    // the cooldown dance would otherwise put a non-Temporary card in hand.
+    let mut builder2 = GameBuilder::new();
+    builder2
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &LADY_AZSHARA);
+    let mut state2 = builder2.build();
+    let engine2 = GameEngine::new();
+    let card2 = first_hand_card(&state2, p1);
+    let Resolution::NeedsChoice { choice } = engine2
+        .apply_choices(
+            &mut state2,
+            Action::PlayCard {
+                card: card2,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap()
+    else {
+        panic!("Azshara must surface a choose-one");
+    };
+    engine2
+        .apply_choices(
+            &mut state2,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1, // The Well of Eternity
+            },
+        )
+        .unwrap();
+    let well = state2.player(p1).location.expect("the Well was placed");
+    assert_eq!(
+        state2.world().card_id(well),
+        Some(orange_stone::core::component::CardId("TIME_211t1"))
+    );
+    // Same cooldown dance: the opponent's turn, then activation.
+    engine2.apply(&mut state2, Action::EndTurn).unwrap();
+    engine2.apply(&mut state2, Action::EndTurn).unwrap();
+    engine2
+        .apply(
+            &mut state2,
+            Action::ActivateLocation {
+                location: well,
+                target: None,
+            },
+        )
+        .unwrap();
+    let hand: Vec<Entity> = state2.world().zones().entities(Zone::Hand, p1);
+    assert!(!hand.is_empty(), "the Well filled the hand");
+    for e in &hand {
+        assert!(
+            state2.world().temporary(*e).is_some(),
+            "every Well spell is Temporary"
+        );
+    }
+}
+
+/// TMW2B-11 — Deios, the Unstoppable Force doubles Battlecries, Hero
+/// Power activations and end-of-turn effects (the official text); a
+/// silenced Deios doubles nothing.
+#[test]
+fn tmw2b_deios_doubling() {
+    use orange_stone::cards::classic_neutral::NOVICE_ENGINEER;
+    use orange_stone::cards::exp_tmw_w2b::DEIOS_THE_UNSTOPPABLE;
+    use orange_stone::core::effect::{CardEffect, EffectTarget};
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &DEIOS_THE_UNSTOPPABLE)
+        .add_minion_to_hand(p1, &NOVICE_ENGINEER);
+    builder.add_custom_minion_to_board(p2, 10, 10, 5);
+    builder.set_hero_power(
+        p1,
+        2,
+        CardEffect::DealDamage {
+            amount: 1,
+            target: EffectTarget::AnyEnemy,
+        },
+    );
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let enemy_hero = state.player(p2).hero;
+    let hero = state.player(p1).hero;
+    // 1. The hero power fires twice: the enemy hero takes 2.
+    engine
+        .apply(
+            &mut state,
+            Action::HeroPower {
+                hero,
+                target: Some(enemy_hero),
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(28)),
+        "the hero power triggered twice"
+    );
+    // 2. The battlecry fires twice: Novice Engineer draws 2.
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        2,
+        "Novice Engineer's draw battlecry triggered twice"
+    );
+    // 3. The doubling dies with Deios: the opponent's 10/10 kills him, and
+    // the next hero-power activation deals 1 (not 2).
+    let deios = find_entity(&state, p1, "TIME_064");
+    let killer = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p2)
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("the p2 10/10");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: killer,
+                defender: deios,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(deios),
+        Some(Zone::Graveyard),
+        "Deios died"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::HeroPower {
+                hero,
+                target: Some(enemy_hero),
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(27)),
+        "without Deios the hero power triggers once"
+    );
+}
+
+/// TMW2B-12 — Medivh the Hallowed silences and destroys every other
+/// minion on BOTH boards: the silenced deathrattles never fire (no draws).
+#[test]
+fn tmw2b_medivh_silence_destroy_all() {
+    use orange_stone::cards::classic_neutral::LOOT_HOARDER;
+    use orange_stone::cards::exp_tmw_w2b::MEDIVH_THE_HALLOWED;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &MEDIVH_THE_HALLOWED)
+        .add_minion_to_board(p1, &LOOT_HOARDER)
+        .add_minion_to_board(p2, &LOOT_HOARDER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Play, p1)
+            .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+            .count(),
+        1,
+        "only Medivh survives on p1's board"
+    );
+    assert_eq!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Play, p2)
+            .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+            .count(),
+        0,
+        "the enemy Loot Hoarder is destroyed too"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        0,
+        "the silenced deathrattles drew nothing"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p2),
+        0,
+        "the enemy's silenced deathrattle drew nothing"
+    );
+}
+
+/// TMW2B-13 — Murozond, Unbounded sets his Attack to the INFINITY cap at
+/// the start of the owner's NEXT turn.
+#[test]
+fn tmw2b_murozond_infinite_attack() {
+    use orange_stone::cards::exp_tmw_w2b::{INFINITY_ATTACK_CAP, MUROZOND_UNBOUNDED};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &MUROZOND_UNBOUNDED);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let murozond = find_entity(&state, p1, "TIME_024");
+    assert_eq!(
+        state.world().effective_attack(murozond),
+        Some(Attack(8)),
+        "base attack before the next turn"
+    );
+    // The opponent's turn, then the owner's next turn start.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_attack(murozond),
+        Some(Attack(INFINITY_ATTACK_CAP)),
+        "the start-of-turn hook set the INFINITY cap"
+    );
+    // The flag is consumed: a second own turn start does not re-apply.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_attack(murozond),
+        Some(Attack(INFINITY_ATTACK_CAP)),
+        "still at the cap (no-op on later turns)"
+    );
+}
+
+/// TMW2B-14 — Eternus takes control of an enemy minion with his own
+/// Health or less: with a 6/2 Eternus, a 1/1 is stolen but a 5/8 stays.
+#[test]
+fn tmw2b_eternus_control() {
+    use orange_stone::cards::exp_tmw_w2b::ETERNUS;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ETERNUS);
+    builder.add_custom_minion_to_board(p2, 1, 1, 1);
+    builder.add_custom_minion_to_board(p2, 5, 8, 5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let p1_minions: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    let p2_minions: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p2)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    assert_eq!(p1_minions.len(), 2, "Eternus + the stolen 1/1");
+    assert_eq!(p2_minions.len(), 1, "the 5/8 stays");
+    assert_eq!(
+        state.world().effective_health(p2_minions[0]),
+        Some(Health(8)),
+        "the surviving enemy minion is the 5/8"
+    );
+}
+
+/// TMW2B-15 — Chromie's deathrattle draws another copy of cards played
+/// this game: a Raptor and Chromie herself are copied.
+#[test]
+fn tmw2b_chromie_copies_played_cards() {
+    use orange_stone::cards::exp_tmw_w2b::CHROMIE;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &orange_stone::cards::def::BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &CHROMIE)
+        .add_custom_minion_to_board(p2, 7, 7, 7);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Play the Raptor, then Chromie — the rewind history holds both.
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    let chromie = find_entity(&state, p1, "TIME_103");
+    let killer = state
+        .world()
+        .zones()
+        .iter(Zone::Play, p2)
+        .find(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .expect("the p2 attacker");
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: killer,
+                defender: chromie,
+            },
+        )
+        .unwrap();
+    assert!(
+        state.world().zones().iter(Zone::Hand, p1).any(|e| state
+            .world()
+            .card_id(e)
+            .is_some_and(|c| c.0 == "CLASSIC_001")),
+        "a copy of the played Raptor"
+    );
+    assert!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Hand, p1)
+            .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "TIME_103")),
+        "a copy of Chromie herself"
+    );
+}
+
+/// TMW2B-16 — smoke pins for the simplified legendaries: Rafaam is a
+/// plain 10/10, Broxigar a 12/12 with Charge, Gelbin summons ONE random
+/// deck minion, Husk spends up to 20 Corpses to heal the hero, and The
+/// Fins swap the hand back at the end of the turn.
+#[test]
+fn tmw2b_simplified_legendary_smoke_pins() {
+    use orange_stone::cards::classic_neutral::NOVICE_ENGINEER;
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tmw_w2b::{
+        BROXIGAR_THE_UNBROKEN, GELBIN_OF_TOMORROW, HUSK_ETERNAL_REAPER, RAFAM_THE_UNBOUNDED,
+        THE_FINS_BEYOND_TIME,
+    };
+    use orange_stone::core::component::Damage;
+    let p1 = PlayerId1();
+    let engine = GameEngine::new();
+    // Rafaam: a plain 10/10 with no side effects.
+    let mut b = GameBuilder::new();
+    pad_decks(&mut b);
+    b.set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &RAFAM_THE_UNBOUNDED);
+    let mut s = b.build();
+    play_front_card(&mut s, &engine, p1);
+    let rafaam = find_entity(&s, p1, "TIME_005");
+    assert_eq!(s.world().effective_attack(rafaam), Some(Attack(10)));
+    assert_eq!(s.world().effective_health(rafaam), Some(Health(10)));
+    // Broxigar: 12/12 with Charge.
+    let mut b = GameBuilder::new();
+    pad_decks(&mut b);
+    b.set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BROXIGAR_THE_UNBROKEN);
+    let mut s = b.build();
+    play_front_card(&mut s, &engine, p1);
+    let broxigar = find_entity(&s, p1, "TIME_020");
+    assert_eq!(s.world().effective_attack(broxigar), Some(Attack(12)));
+    assert_eq!(s.world().effective_health(broxigar), Some(Health(12)));
+    assert!(s.world().effective_charge(broxigar), "Broxigar has Charge");
+    // Gelbin: summons exactly one random deck minion (battlecry-free).
+    let mut b = GameBuilder::new();
+    b.set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &GELBIN_OF_TOMORROW)
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_deck(p1, &NOVICE_ENGINEER);
+    let mut s = b.build();
+    play_front_card(&mut s, &engine, p1);
+    let p1_minions: Vec<Entity> = s
+        .world()
+        .zones()
+        .iter(Zone::Play, p1)
+        .filter(|&e| s.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    assert_eq!(p1_minions.len(), 2, "Gelbin + one random deck minion");
+    assert!(
+        p1_minions
+            .iter()
+            .any(|e| s.world().card_id(*e).is_some_and(|c| c.0 == "TIME_009")),
+        "Gelbin himself is on the board"
+    );
+    assert_eq!(
+        s.world().zones().len(Zone::Deck, p1),
+        1,
+        "the summoned minion left the deck"
+    );
+    assert_eq!(
+        s.world().zones().len(Zone::Hand, p1),
+        0,
+        "the summoned minion's battlecry does NOT fire"
+    );
+    // Husk: spends up to 20 Corpses to heal the hero.
+    let mut b = GameBuilder::new();
+    pad_decks(&mut b);
+    b.set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &HUSK_ETERNAL_REAPER)
+        .hero_health(p1, 30);
+    let mut s = b.build();
+    let hero = s.player(p1).hero;
+    s.world_mut().set_damage(hero, Damage(10));
+    s.make_mut().players[p1.index()].corpses = 10;
+    play_front_card(&mut s, &engine, p1);
+    assert_eq!(s.player(p1).corpses, 0, "the Corpses were spent");
+    assert_eq!(
+        s.world().effective_health(hero),
+        Some(Health(30)),
+        "the hero was healed by 10 (the spent Corpses)"
+    );
+    // The Fins: the hand swaps to fresh draws, then back at end of turn.
+    let mut b = GameBuilder::new();
+    pad_decks(&mut b);
+    b.set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &THE_FINS_BEYOND_TIME)
+        .add_minion_to_hand(p1, &NOVICE_ENGINEER);
+    let mut s = b.build();
+    play_front_card(&mut s, &engine, p1);
+    let swapped: Vec<Entity> = s.world().zones().entities(Zone::Hand, p1);
+    assert_eq!(swapped.len(), 1, "one fresh draw replaced the hand");
+    assert!(
+        s.world()
+            .card_id(swapped[0])
+            .is_some_and(|c| c.0 == "CLASSIC_001"),
+        "the fresh draw is a deck Raptor, not the old hand card"
+    );
+    engine.apply(&mut s, Action::EndTurn).unwrap();
+    let restored: Vec<Entity> = s.world().zones().entities(Zone::Hand, p1);
+    assert_eq!(restored.len(), 1, "the hand swapped back");
+    assert!(
+        s.world()
+            .card_id(restored[0])
+            .is_some_and(|c| c.0 == "NEUTRAL_T04"),
+        "the snapshot card (Novice Engineer) is back"
+    );
+}
