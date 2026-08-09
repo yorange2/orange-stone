@@ -1673,3 +1673,68 @@ summon) / Husk (Corpses spend) / Fins (swap-back)). Full `cargo test` fully
 green (all suites, incl. every `tlc_w*_*`/`tmw1_*`/`tmw2a_*` scenario and
 the 16 `tmw2b_*` — 908 passed, 1 ignored), `cargo fmt` clean,
 `cargo clippy --all-targets` zero warnings.
+
+### 22. 2025–2026 expansions M3-W3 — The End of Time miniset, the closing wave (38 cards + 3 tokens) 🔓 registered
+
+The registered simplifications of the M3-W3 wave (`src/cards/exp_tmw_w3.rs`):
+the 38 END_ cards of the closing miniset plus the 3 tokens they produce
+(END_002t Dagger, END_009t Treant, END_017t Tick and Tock — END_029t /
+END_026t have no effects in this wave's shapes and are skipped). As with
+§14–§21, these handwritten expansion cards are not in the RL pool (classic +
+core 668/659), so the rows are informational: they keep the code's
+simplifications traceable to the ledger. Each row stays open until its
+mechanism lands.
+
+The wave reuses the established primitives — the imbue machinery (END_000 /
+END_001 / END_003, incl. the Death-Knight passive), the kindred table
+(END_015), the dark-gift application (END_013 / END_027), the real
+choose-one (END_010), the corpse resource (END_005), the quest registry
+(END_017), the rewind history (END_036), the secret machine (END_024) and
+the D2 random picks for every player choice (END_013's discover, END_014's
+buff target, END_018's hand card, END_020's summon, END_027's dragon,
+END_034's three destroys, END_037's dragons) — and adds one new trigger
+shape: **the enemy-turn-end secret** (`SecretTrigger::WhenEnemyTurnEnds`,
+wired into the TurnEnded handler, END_024).
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| END_002 | Wicked Blightspawn | Full deathrattle: equips the engine-local END_002t Dagger token (1/2 — the engine defines no Rogue dagger card) when no weapon is equipped, +2 Attack to the equipped weapon otherwise | a Rogue dagger card |
+| END_003 | Finality | Full: draw an Undead + Imbue twice. The imbued Death-Knight hero power's passive ("your first Undead played each turn has +X Attack") is a hero-pinned CardPlayed-Undead trigger re-attached on EVERY imbue (`BuffFirstUndeadPlayedEachTurn` with the grown count) | — |
+| END_004 | Remnant of Rage | Full: "Costs (1) less for each minion that died this turn" — the per-turn death lists of BOTH players are summed (friendly deaths live in the owner's list, enemy deaths in the opponent's, both cleared at their turn end) | — |
+| END_006 | Chronikar | "This turn, next turn, and the turn after" is approximated as THREE until-end-of-turn +3-Attack buffs — the battlecry applies the current one and arms `chronikar_ticks = 2`; each of the next two turn starts consumes one tick and re-applies | one 3-turn enchantment |
+| END_011 | Acceleration Aura | "For the next 3 turns" is approximated as one temporary mana crystal per own turn start for 3 turns (`acceleration_aura_ticks` countdown) | the official multi-turn temp crystal |
+| END_012 | Hand of Infinity | "Set this weapon's Attack to INFINITY" uses the shared `INFINITY_ATTACK_CAP` (100, the W2b precedent); "Can't attack heroes" is an ID-keyed validation check on hero swings (NOT the `cant_attack` component — the hero may still attack minions) | an unbounded value |
+| END_017 | Battle at the End Time | Full: the fill-then-empty SEQUENCE (`QuestCondition::FillThenEmptyHand`, markers 0 filled / 1 emptied — the emptied half at the CardPlayed end, the filled half at a new draws/gets hook once the hand hits MAX_HAND_SIZE). NOTE: the `add_card_to_hand` generated-card path resolves the hook on a scratch EventQueue, so quest-completion events are dropped there (a rare generated-card path) | — |
+| END_018 | Acolyte of Infinity | "Set a random hand card's Cost to INFINITY" uses a Cost(100) enchantment (`INFINITY_ATTACK_CAP`); the deathrattle restores the recorded card via the linked-entity convention | an unbounded value |
+| END_022 | Time-Twisted Seer | "Spell Damage +2 while this is damaged": the CardDef carries `spell_damage: 2`; `world::total_spell_damage` skips the bonus while the minion is undamaged (id-keyed; the baseline compare row excludes `spell_damage`) | — |
+| END_024 | Flames of Infinity | Full: the new enemy-turn-end secret; "deal INFINITE damage" is a single `INFINITY_ATTACK_CAP` (100) hit — a cap-sized hit kills any realistic minion (ties pick the first minion in play order) | an unbounded value |
+| END_025 | Eternal Firebolt | Full: Lifesteal (keyword) + the return-to-hand is the `eternal_flame_target` player record — the owner's turn end adds a fresh END_025 copy when the target died | — |
+| END_030 | Haywire Hornswog | Full: "Costs (1) less for each Mana Crystal you've Overloaded this game" — a game-long `overload_total` player counter bumped at the overload lock site; the cost layer reads it | — |
+| END_036 | Morchie | The "Rewinds keep BOTH outcomes" aura is a unit-marker aura (`AuraEffect::RewindKeepsBothOutcomes`, `AuraTarget::AllFriendlyMinions`) that makes `engine::rewind` resolve each replayed random-outcome effect twice (a closed list of the random-outcome variants); the battlecry discover is the D2 random pick over `REWIND_CARD_IDS` | the official outcome tracking |
+| END_037 | Endtime Murozond | Full: fills the board with D2-random Dragons and fully heals the hero; the turn skip is the `skip_next_turn` player flag — the next TurnStarted clears it and immediately runs the normal turn-end sequence (the skipped player never refills mana, draws or enters Main; the player is set active during the end sequence so the wrap-up hands the turn to the opponent) | — |
+| END_008 | Enduring Roach | Full: the "after you use your Hero Power" trigger fires on the HeroPowerUsed event; the refresh is a current-mana top-up capped at 10 | — |
+| END_009t | Treant | Full: 2/2 tokens scaling with the game-long friendly-Treant death counter (`treants_died_total`, bumped at MinionDied) | — |
+| END_017t | Tick and Tock | Full: the 8/8 reward — battlecry draws until the hand is full, deathrattle empties the opponent's hand | — |
+| END_002t | Dagger | The 1/2 weapon token is engine-local (see END_002) | a Rogue dagger card |
+| END_029t / END_026t | Shade / Fragment tokens | NOT implemented — they have no effects in this wave's shapes (verified 2026-08-09) | the official tokens |
+
+F5 scenarios (`tmw3_*`, 22 in `tests/differential.rs`): the imbue trio
+(rogue + Death-Knight passive across two imbues), the quest fill-then-empty
+with the Tick and Tock reward and the empty-deck no-draw, the kindred grant
+with the (2) discount and both dark-gift discovers, Hand of Infinity's
+INFINITY attack and hero-lock, Acolyte's INFINITY cost set + restore, the
+enemy-turn-end secret's INFINITY hit, the choose-one stat sets (with the
+damaged-minion death), Chronikar's three-turn buffs, the roach refresh +
+Acceleration Aura countdown, the Treant scaling, Eternal Toil's
+draw-or-summon branches, Bitter End's freeze + destroy, For All Time's
+overload + Hornswog discount, Omen of the End's empty-deck destroy, the
+Murozond skip across three EndTurns, Morchie's both-outcomes replay, the
+combo/overload keywords of Winged Aberration, the Dagger equip + weapon
+buff + Chronoclaws discard, the survivor's hero-damaged battlecry + the
+hand weapon/minion buffs + the holding-Dragon discount, the Seer's
+conditional spell damage + Fragment's spell-on-minion draw + the Voodoo
+Totem end-of-turn grant, and the Remnant / Bygone Echoes / Eternal Firebolt
+/ Crumblecrusher batch. Full `cargo test` fully green (all suites, incl.
+every `tlc_w*_*`/`tmw1_*`/`tmw2a_*`/`tmw2b_*` scenario and the 22
+`tmw3_*` — 930 passed, 1 ignored), `cargo fmt` clean,
+`cargo clippy --all-targets` zero warnings.

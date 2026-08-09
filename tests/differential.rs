@@ -29607,3 +29607,1564 @@ fn tmw2b_simplified_legendary_smoke_pins() {
         "the snapshot card (Novice Engineer) is back"
     );
 }
+
+// ============================================================
+// TMW3 — the closing wave: the full The End of Time miniset
+// (2025–2026 expansions M3-W3, 38 END_ cards + the END_009t /
+// END_017t / END_002t tokens). F5 scenarios per the M3-W3 spec —
+// they pin the imbue trio (Rogue / Death Knight), the
+// fill-then-empty quest sequence, the kindred activation, the
+// dark gifts, the INFINITY treatment (attack cap, cost cap,
+// secret), the choose-one split, the overload counter, the
+// three-turn buffs, the mana refresh, the skip-next-turn flag,
+// and the rewind doubling aura. Fidelity rows: fidelity-debt.md
+// §22 (en + zh).
+// ============================================================
+
+/// TMW3-1 — Eventuality (END_000) deals 2 and imbues; the Rogue's
+/// Blessing of the Bronze (END_000p) replaces the hero power at cost 1,
+/// gets a random other-class minion, and its Rewind replays the previous
+/// play (the Jagged Edge battlecry — the imbue itself, so the count
+/// grows through the hero power use).
+#[test]
+fn tmw3_imbue_rogue_eventuality_and_bronze_power() {
+    use orange_stone::cards::exp_tmw_w3::{EVENTUALITY, JAGGED_EDGE_OF_TIME};
+    use orange_stone::core::component::ImbueClass;
+    use orange_stone::core::effect::CardEffect;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    set_hero_class(&mut builder, p1, "HERO_03");
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &EVENTUALITY)
+        .add_minion_to_hand(p1, &JAGGED_EDGE_OF_TIME);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero = state.player(p1).hero;
+    let enemy_hero = state.player(p2).hero;
+    // Eventuality: deal 2 to the enemy hero, imbue to 1.
+    let eventual = find_in_hand(&state, p1, "END_000");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: eventual,
+                target: Some(enemy_hero),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(28)),
+        "Eventuality dealt 2"
+    );
+    assert_eq!(state.player(p1).imbue_count, 1, "Eventuality imbues");
+    let hp = state.world().hero_power(hero).expect("hero power");
+    assert_eq!(hp.cost, 1, "the Rogue's Blessing of the Bronze costs 1");
+    assert!(
+        matches!(
+            hp.effect,
+            CardEffect::ImbuedHeroPower {
+                class: ImbueClass::Rogue
+            }
+        ),
+        "Rogue's imbued form"
+    );
+    // Jagged Edge of Time: a 3/2 weapon, imbue to 2.
+    play_front_card(&mut state, &engine, p1);
+    let weapon = state.player(p1).weapon.expect("the weapon equipped");
+    assert_eq!(
+        state.world().effective_attack(weapon),
+        Some(Attack(3)),
+        "Jagged Edge 3/2"
+    );
+    assert_eq!(state.player(p1).imbue_count, 2, "second imbue");
+    // Use the hero power: a random other-class minion lands in hand at
+    // the level discount, and the Rewind replays the previous play — the
+    // Jagged Edge battlecry — so the imbue count grows to 3.
+    engine
+        .apply(&mut state, Action::HeroPower { hero, target: None })
+        .unwrap();
+    assert_eq!(state.player(p1).imbue_count, 3, "the Rewind re-imbued");
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "one random other-class minion was added"
+    );
+    let added = first_hand_card(&state, p1);
+    assert_eq!(
+        state.world().card_type(added),
+        Some(CardType::Minion),
+        "the hero power's get is a minion"
+    );
+}
+
+/// TMW3-2 — Finality (END_003) draws an Undead and imbues twice; the
+/// Death Knight's Blessing of the Infinite (END_003p) is a 0-cost
+/// passive whose hero-pinned trigger buffs the FIRST Undead played each
+/// turn by the imbue level (level 2 here), and the counter resets at the
+/// turn start.
+#[test]
+fn tmw3_imbue_death_knight_blessing_of_the_infinite() {
+    use orange_stone::cards::exp_tmw_w3::{FINALITY, WICKED_BLIGHTSPAWN};
+    use orange_stone::core::component::ImbueClass;
+    use orange_stone::core::effect::CardEffect;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    set_hero_class(&mut builder, p1, "HERO_10");
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &FINALITY)
+        .add_minion_to_hand(p1, &WICKED_BLIGHTSPAWN)
+        .add_minion_to_hand(p1, &WICKED_BLIGHTSPAWN);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero = state.player(p1).hero;
+    play_front_card(&mut state, &engine, p1); // Finality
+    assert_eq!(state.player(p1).imbue_count, 2, "imbued twice");
+    let hp = state.world().hero_power(hero).expect("hero power");
+    assert_eq!(hp.cost, 0, "the Death Knight's passive costs 0");
+    assert!(
+        matches!(
+            hp.effect,
+            CardEffect::ImbuedHeroPower {
+                class: ImbueClass::DeathKnight
+            }
+        ),
+        "Death Knight's imbued form"
+    );
+    // The drawn pool Undead rides third in hand order (behind the two
+    // Blightspawns); the buff keys on plays, so the pool's identity does not
+    // matter — only that it is an Undead (the Finality pool is Undead-only).
+    let pool = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .nth(2)
+        .expect("the pool Undead");
+    let pool_base = state.world().effective_attack(pool).unwrap_or(Attack(0));
+    // First Undead this turn: +2 Attack (the imbue level).
+    let first = first_hand_card(&state, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().effective_attack(first),
+        Some(Attack(6)),
+        "the first Undead gained +2"
+    );
+    assert_eq!(
+        state.world().effective_health(first),
+        Some(Health(3)),
+        "health untouched"
+    );
+    // Second Undead this turn: no buff (its base Attack of 4 stays).
+    let second = find_in_hand(&state, p1, "END_002");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: second,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(second),
+        Some(Attack(4)),
+        "the second Undead gets no buff"
+    );
+    // Next turn: the counter reset, so the remaining pool Undead (the first
+    // play of the turn) is buffed again — +2 over its own base.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let fresh = first_hand_card(&state, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().effective_attack(fresh),
+        Some(Attack(pool_base.0 + 2)),
+        "the first Undead of the next turn gains +2 again"
+    );
+}
+
+/// TMW3-3 — Hand of Infinity (END_012): the battlecry sets the weapon's
+/// attack to the INFINITY cap for the turn, the "Can't attack heroes"
+/// restriction rejects a hero swing at the enemy hero (minion attacks
+/// still work), and the buff expires at the turn end.
+#[test]
+fn tmw3_hand_of_infinity_infinite_attack_and_hero_lock() {
+    use orange_stone::cards::exp_tmw_w2b::INFINITY_ATTACK_CAP;
+    use orange_stone::cards::exp_tmw_w3::HAND_OF_INFINITY;
+    use orange_stone::engine::rules::EngineError;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &HAND_OF_INFINITY)
+        .add_custom_minion_to_board(p2, 1, 1, 1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero = state.player(p1).hero;
+    let enemy_hero = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1);
+    let weapon = state.player(p1).weapon.expect("the weapon equipped");
+    assert_eq!(
+        state.world().effective_attack(weapon),
+        Some(Attack(INFINITY_ATTACK_CAP)),
+        "the INFINITY cap for this turn"
+    );
+    // The hero cannot attack the enemy hero while END_012 is equipped.
+    let err = engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: enemy_hero,
+            },
+        )
+        .unwrap_err();
+    assert_eq!(err, EngineError::InvalidTarget, "can't attack heroes");
+    // Minion attacks are fine: the enemy 1/1 dies to the 100-attack swing.
+    let victim = board_minions(&state, p2)[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: victim,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(victim),
+        Some(Zone::Graveyard),
+        "the hero killed the minion"
+    );
+    // Next turn: the until-end-of-turn buff expired — back to 4.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_attack(weapon),
+        Some(Attack(4)),
+        "the INFINITY buff was this-turn only"
+    );
+}
+
+/// TMW3-4 — Acolyte of Infinity (END_018): the battlecry sets a random
+/// hand card's cost to the INFINITY cap; the deathrattle restores it.
+#[test]
+fn tmw3_acolyte_of_infinity_cost_set_and_restore() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tmw_w2b::INFINITY_ATTACK_CAP;
+    use orange_stone::cards::exp_tmw_w3::ACOLYTE_OF_INFINITY;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ACOLYTE_OF_INFINITY)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    builder.add_custom_minion_to_board(p2, 7, 7, 7);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let raptor = find_in_hand(&state, p1, "CLASSIC_001");
+    assert_eq!(
+        state.world().effective_cost(raptor),
+        Some(Cost(INFINITY_ATTACK_CAP)),
+        "the only remaining hand card became INFINITY"
+    );
+    // The 7/7 kills the 5/5 Acolyte — the deathrattle restores the cost.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let killer = board_minions(&state, p2)[0];
+    let acolyte = find_entity(&state, p1, "END_018");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: killer,
+                defender: acolyte,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(acolyte),
+        Some(Zone::Graveyard),
+        "the Acolyte died"
+    );
+    assert_eq!(
+        state.world().effective_cost(raptor),
+        Some(Cost(2)),
+        "the deathrattle changed the cost back"
+    );
+    assert!(
+        state.player(p1).hand_card_infinity.is_none(),
+        "the record was consumed"
+    );
+}
+
+/// TMW3-5 — Flames of Infinity (END_024): the new enemy-turn-end secret
+/// deals INFINITE damage (the cap) to the enemy's highest-Health minion
+/// when the opponent's turn ends.
+#[test]
+fn tmw3_flames_of_infinity_enemy_turn_end_secret() {
+    use orange_stone::cards::exp_tmw_w3::FLAMES_OF_INFINITY;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &FLAMES_OF_INFINITY);
+    builder.add_custom_minion_to_board(p2, 3, 3, 3);
+    builder.add_custom_minion_to_board(p2, 8, 8, 8);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let secret = find_in_hand(&state, p1, "END_024");
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zone(secret),
+        Some(Zone::SetAside),
+        "the secret sits in the set-aside zone"
+    );
+    let [small, big] = [0, 1].map(|i| board_minions(&state, p2)[i]);
+    // The enemy's turn ends: the secret reveals and kills the 8/8.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().zone(big),
+        Some(Zone::Graveyard),
+        "the highest-Health minion ate the INFINITY damage"
+    );
+    assert_eq!(
+        state.world().zone(small),
+        Some(Zone::Play),
+        "the 3/3 survives"
+    );
+    assert_eq!(
+        state.world().zone(secret),
+        Some(Zone::Graveyard),
+        "the secret revealed itself"
+    );
+}
+
+/// TMW3-6 — Battle at the End Time (END_017): the fill-then-empty
+/// SEQUENCE — the hand must reach 10 once, then be emptied by plays —
+/// completes and the reward summons Tick and Tock (END_017t, an 8/8
+/// Dragon whose battlecry draws until the hand is full and whose
+/// deathrattle empties the opponent's hand).
+///
+/// The fill comes from the Arcane Intellect draws AFTER the quest sits in
+/// the quest zone (the "filled" half is a draw/get funnel hook; the
+/// dedicated branch in quest.rs dedups the markers, §22). The emptied half
+/// fires when the tenth play leaves the hand empty; the eight-bolt deck
+/// fuels the ten drawn plays, all aimed at a 40/40 sink so no bolt kills
+/// the enemy hero before the quest completes.
+#[test]
+fn tmw3_fill_then_empty_quest_rewards_tick_and_tock() {
+    use orange_stone::cards::classic_mage::ARCANE_INTELLECT;
+    use orange_stone::cards::core_w1::SWAMP_LEECH;
+    use orange_stone::cards::def::LIGHTNING_BOLT;
+    use orange_stone::cards::exp_tmw_w3::BATTLE_AT_THE_END_TIME;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &BATTLE_AT_THE_END_TIME)
+        .add_minion_to_hand(p2, &SWAMP_LEECH)
+        .add_minion_to_hand(p2, &SWAMP_LEECH);
+    builder.add_custom_minion_to_board(p2, 9, 9, 9);
+    builder.add_custom_minion_to_board(p2, 40, 40, 40);
+    builder.add_minion_to_hand(p1, &ARCANE_INTELLECT);
+    builder.add_minion_to_hand(p1, &ARCANE_INTELLECT);
+    builder.add_minion_to_hand(p1, &ARCANE_INTELLECT);
+    builder.add_minion_to_hand(p1, &ARCANE_INTELLECT);
+    builder.add_minion_to_hand(p1, &LIGHTNING_BOLT);
+    builder.add_minion_to_hand(p1, &LIGHTNING_BOLT);
+    for _ in 0..8 {
+        builder.add_minion_to_deck(p1, &LIGHTNING_BOLT);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let quest = find_in_hand(&state, p1, "END_017");
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().zone(quest), Some(Zone::Quest));
+    // The four Arcane Intellects draw the hand to 10 (marker 0).
+    for _ in 0..4 {
+        play_front_card(&mut state, &engine, p1);
+    }
+    assert_eq!(state.world().zones().len(Zone::Hand, p1), 10);
+    assert!(
+        state.world().quest(quest).unwrap().markers.contains(&0),
+        "the hand was filled once"
+    );
+    // Empty the hand by playing the ten bolts at the 40/40 sink.
+    let sink = board_minions(&state, p2)[1];
+    for _ in 0..10 {
+        let card = first_hand_card(&state, p1);
+        engine
+            .apply(
+                &mut state,
+                Action::PlayCard {
+                    card,
+                    target: Some(sink),
+                    position: None,
+                },
+            )
+            .unwrap();
+    }
+    assert_eq!(state.world().zone(quest), Some(Zone::Graveyard));
+    let tick = find_entity(&state, p1, "END_017t");
+    assert_eq!(state.world().effective_attack(tick), Some(Attack(8)));
+    assert_eq!(state.world().effective_health(tick), Some(Health(8)));
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        0,
+        "the eight-bolt deck was emptied by the draws — Tick and Tock had nothing to draw"
+    );
+    assert_eq!(state.world().zones().len(Zone::Deck, p1), 0);
+    // The deathrattle empties the opponent's hand.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let killer = board_minions(&state, p2)[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: killer,
+                defender: tick,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(tick), Some(Zone::Graveyard));
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p2),
+        0,
+        "Tick and Tock's deathrattle emptied the enemy hand"
+    );
+}
+
+/// TMW3-7 — Triennium Rex (END_015) fires its kindred OnPlay when a
+/// second Beast is played and grants a random Deathrattle minion costing
+/// (2) less; Brutish Endmaw (END_013) and Wings of Eternity (END_027)
+/// discover with a dark gift (the D2 pick; the gift is logged).
+#[test]
+fn tmw3_kindred_and_dark_gifts() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tmw_w3::{BRUTISH_ENDMAW, TRIENNIUM_REX, WINGS_OF_ETERNITY};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &TRIENNIUM_REX)
+        .add_minion_to_hand(p1, &BRUTISH_ENDMAW)
+        .add_minion_to_hand(p1, &WINGS_OF_ETERNITY);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Raptor (Beast)
+    play_front_card(&mut state, &engine, p1); // Triennium Rex — kindred
+    let gained: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 != "END_013" && c.0 != "END_027")
+        })
+        .collect();
+    assert_eq!(gained.len(), 1, "the kindred grant landed");
+    assert!(
+        state.world().deathrattle(gained[0]).is_some(),
+        "the pool is Deathrattle minions"
+    );
+    assert!(
+        state
+            .world()
+            .effective_cost(gained[0])
+            .unwrap_or(Cost(99))
+            .0
+            <= 8,
+        "the (2) discount is applied"
+    );
+    play_front_card(&mut state, &engine, p1); // Brutish Endmaw
+    assert_eq!(
+        state.player(p1).dark_gifts_given.len(),
+        1,
+        "Endmaw discovered a dark gift"
+    );
+    play_front_card(&mut state, &engine, p1); // Wings of Eternity (a spell)
+    assert_eq!(
+        state.player(p1).dark_gifts_given.len(),
+        2,
+        "Wings discovered a dark gift"
+    );
+    assert_eq!(
+        board_minions(&state, p1).len(),
+        3,
+        "the three minions played (Wings is a spell)"
+    );
+}
+
+/// TMW3-8 — Twilight Timereaver (END_010) chooses: option 0 sets every
+/// other minion's Attack to 1; option 1 sets their Health to 1 (a
+/// damaged minion dies from the stat-set).
+#[test]
+fn tmw3_twilight_timereaver_choose_one() {
+    use orange_stone::cards::exp_tmw_w3::TWILIGHT_TIMEREAVER;
+    use orange_stone::core::component::Damage;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    // Branch 0 — Set Attack to 1.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TWILIGHT_TIMEREAVER);
+    builder.add_custom_minion_to_board(p1, 6, 6, 6);
+    builder.add_custom_minion_to_board(p2, 4, 4, 4);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let card = first_hand_card(&state, p1);
+    let Resolution::NeedsChoice { choice } = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap()
+    else {
+        panic!("Timereaver must surface a choose-one");
+    };
+    assert_eq!(choice.kind, ChoiceKind::ChooseOne);
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    let own = board_minions(&state, p1);
+    let enemy = board_minions(&state, p2);
+    let timereaver = find_entity(&state, p1, "END_010");
+    for m in own.iter().chain(enemy.iter()) {
+        if *m == timereaver {
+            continue;
+        }
+        assert_eq!(
+            state.world().effective_attack(*m),
+            Some(Attack(1)),
+            "every OTHER minion's Attack is set to 1"
+        );
+    }
+    assert_eq!(
+        state.world().effective_attack(timereaver),
+        Some(Attack(5)),
+        "the Timereaver keeps its own Attack"
+    );
+    // Branch 1 — Set Health to 1; the damaged 3/3 dies, the 5/5 lives.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TWILIGHT_TIMEREAVER);
+    builder.add_custom_minion_to_board(p2, 3, 3, 3);
+    builder.add_custom_minion_to_board(p2, 5, 5, 5);
+    let mut state = builder.build();
+    let damaged = board_minions(&state, p2)[0];
+    state.world_mut().set_damage(damaged, Damage(2));
+    let engine = GameEngine::new();
+    let card = first_hand_card(&state, p1);
+    let Resolution::NeedsChoice { choice } = engine
+        .apply_choices(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap()
+    else {
+        panic!("Timereaver must surface a choose-one");
+    };
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 1,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(damaged),
+        Some(Zone::Graveyard),
+        "the damaged minion dies at Health 1"
+    );
+    let survivor = board_minions(&state, p2)[0];
+    assert_eq!(
+        state.world().effective_health(survivor),
+        Some(Health(1)),
+        "the 5/5 survives at 1"
+    );
+}
+
+/// TMW3-9 — Chronikar (END_006): the hero gains +3 Attack this turn,
+/// next turn, and the turn after (three until-end-of-turn buffs; §22).
+#[test]
+fn tmw3_chronikar_hero_attack_buff_three_turns() {
+    use orange_stone::cards::exp_tmw_w3::CHRONIKAR;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &CHRONIKAR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero = state.player(p1).hero;
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().effective_attack(hero),
+        Some(Attack(3)),
+        "the current turn's buff"
+    );
+    assert_eq!(state.player(p1).chronikar_ticks, 2);
+    // The buff expires at the owner's turn end.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_attack(hero),
+        Some(Attack(0)),
+        "expired with the turn"
+    );
+    // Two more own turn starts re-apply it.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.world().effective_attack(hero), Some(Attack(3)));
+    assert_eq!(state.player(p1).chronikar_ticks, 1);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.world().effective_attack(hero), Some(Attack(3)));
+    assert_eq!(state.player(p1).chronikar_ticks, 0);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().effective_attack(hero),
+        Some(Attack(0)),
+        "the third buff was the last"
+    );
+}
+
+/// TMW3-10 — Enduring Roach (END_008) refreshes 2 mana after the hero
+/// power; Acceleration Aura (END_011) grants one temporary Mana Crystal
+/// at each of the next three turn starts.
+#[test]
+fn tmw3_roach_refresh_and_acceleration_aura() {
+    use orange_stone::cards::exp_tmw_w3::{ACCELERATION_AURA, ENDURING_ROACH};
+    use orange_stone::core::effect::{CardEffect, EffectTarget};
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    // Enduring Roach: use a 2-cost hero power from 3 mana — the refill
+    // tops it back to 3. The roach starts on the board (its own play cost
+    // is irrelevant to the refresh interaction).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 3, 3)
+        .add_minion_to_board(p1, &ENDURING_ROACH)
+        .set_hero_power(
+            p1,
+            2,
+            CardEffect::DealDamage {
+                amount: 1,
+                target: EffectTarget::EnemyHero,
+            },
+        );
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero = state.player(p1).hero;
+    let enemy_hero = state.player(p2).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::HeroPower {
+                hero,
+                target: Some(enemy_hero),
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(p1).current_mana, 3, "the roach refreshed 2");
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(29)),
+        "the hero power dealt 1"
+    );
+    // Acceleration Aura: three temporary mana crystals, one per own turn
+    // start (5 crystals → 6/7/8/9 with the +1 while the ticks last).
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 5, 5)
+        .add_minion_to_hand(p1, &ACCELERATION_AURA);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).acceleration_aura_ticks, 3);
+    assert_eq!(state.player(p1).current_mana, 3, "the aura cost 2");
+    for (expected_mana, expected_ticks) in [(7, 2), (8, 1), (9, 0)] {
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        engine.apply(&mut state, Action::EndTurn).unwrap();
+        assert_eq!(state.player(p1).current_mana, expected_mana);
+        assert_eq!(state.player(p1).acceleration_aura_ticks, expected_ticks);
+    }
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.player(p1).current_mana,
+        9,
+        "the aura stopped granting after three turns"
+    );
+}
+
+/// TMW3-11 — Splintered Reality (END_009) summons two 2/2 Treants that
+/// gain +1/+1 for each friendly Treant that died this game (END_009t).
+#[test]
+fn tmw3_splintered_reality_treant_scaling() {
+    use orange_stone::cards::exp_tmw_w3::SPLINTERED_REALITY;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SPLINTERED_REALITY)
+        .add_minion_to_hand(p1, &SPLINTERED_REALITY)
+        .add_custom_minion_to_board(p2, 3, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(board_count(&state, p1, "END_009t"), 2, "two 2/2 Treants");
+    for t in board_minions(&state, p1) {
+        assert_eq!(state.world().effective_attack(t), Some(Attack(2)));
+        assert_eq!(state.world().effective_health(t), Some(Health(2)));
+    }
+    // The enemy 3/3 kills one Treant — the counter bumps.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let killer = board_minions(&state, p2)[0];
+    let treant = board_minions(&state, p1)[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: killer,
+                defender: treant,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.player(p1).treants_died_total, 1);
+    // The second cast summons 3/3 Treants.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    play_front_card(&mut state, &engine, p1);
+    let mut scaled = 0;
+    for t in board_minions(&state, p1) {
+        if state.world().effective_attack(t) == Some(Attack(3)) {
+            scaled += 1;
+        }
+    }
+    assert_eq!(scaled, 2, "both new Treants gained +1/+1");
+}
+
+/// TMW3-12 — Eternal Toil (END_020): a surviving target draws a card; a
+/// dying target summons a random 1-Cost minion instead.
+#[test]
+fn tmw3_eternal_toil_draw_or_summon() {
+    use orange_stone::cards::exp_tmw_w3::ETERNAL_TOIL;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    // Survives: the 1/2 takes 1 and the caster draws.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ETERNAL_TOIL)
+        .add_minion_to_deck(p1, &ETERNAL_TOIL)
+        .add_custom_minion_to_board(p2, 1, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let target = board_minions(&state, p2)[0];
+    let card = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(target), Some(Health(1)));
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "the survive branch drew"
+    );
+    // Dies: the 1/1 dies and a random 1-Cost minion is summoned.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ETERNAL_TOIL)
+        .add_custom_minion_to_board(p2, 1, 1, 1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let target = board_minions(&state, p2)[0];
+    let card = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(target), Some(Zone::Graveyard));
+    assert_eq!(
+        board_minions(&state, p1).len(),
+        1,
+        "the die branch summoned a 1-Cost minion"
+    );
+    assert_eq!(
+        state.world().effective_cost(board_minions(&state, p1)[0]),
+        Some(Cost(1)),
+        "the summoned minion is 1-Cost"
+    );
+}
+
+/// TMW3-13 — Bitter End (END_023): the target and its neighbors freeze;
+/// the damaged members are destroyed.
+#[test]
+fn tmw3_bitter_end_freezes_and_destroys_damaged() {
+    use orange_stone::cards::exp_tmw_w3::BITTER_END;
+    use orange_stone::core::component::Damage;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BITTER_END);
+    builder.add_custom_minion_to_board(p2, 3, 3, 3);
+    builder.add_custom_minion_to_board(p2, 3, 3, 3);
+    builder.add_custom_minion_to_board(p2, 3, 3, 3);
+    let mut state = builder.build();
+    let damaged = board_minions(&state, p2)[2];
+    state.world_mut().set_damage(damaged, Damage(2));
+    let engine = GameEngine::new();
+    let middle = board_minions(&state, p2)[1];
+    let card = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card,
+                target: Some(middle),
+                position: None,
+            },
+        )
+        .unwrap();
+    let board: Vec<Entity> = board_minions(&state, p2);
+    assert_eq!(board.len(), 2, "the damaged neighbor was destroyed");
+    for m in &board {
+        assert!(
+            state.world().freeze(*m).is_some(),
+            "the trio members are frozen"
+        );
+        assert_eq!(state.world().effective_health(*m), Some(Health(3)));
+    }
+}
+
+/// TMW3-14 — For All Time (END_028) destroys every minion with 4 or
+/// less Attack and Overloads (2) — the game-long overload counter then
+/// discounts Haywire Hornswog (END_030) by (1) per Overloaded crystal.
+#[test]
+fn tmw3_for_all_time_overload_and_hornswog_discount() {
+    use orange_stone::cards::exp_tmw_w3::{FOR_ALL_TIME, HAYWIRE_HORNSWOG};
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &FOR_ALL_TIME)
+        .add_minion_to_hand(p1, &HAYWIRE_HORNSWOG);
+    builder.add_custom_minion_to_board(p1, 5, 5, 5);
+    builder.add_custom_minion_to_board(p2, 3, 3, 3);
+    builder.add_custom_minion_to_board(p2, 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(board_minions(&state, p1).len(), 1, "the 5/5 survives");
+    assert_eq!(board_minions(&state, p2).len(), 0, "the low-attack die");
+    assert_eq!(state.player(p1).current_mana, 6, "the spell cost 4");
+    assert_eq!(state.player(p1).overload_locked, 2);
+    assert_eq!(state.player(p1).overload_total, 2);
+    let hornswog = find_in_hand(&state, p1, "END_030");
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, hornswog, p1),
+        Cost(4),
+        "the Hornswog discounts the Overloaded crystals"
+    );
+}
+
+/// TMW3-15 — Omen of the End (END_035): with an empty own deck the
+/// battlecry destroys the top 5 enemy deck cards; with cards in the own
+/// deck it does nothing.
+#[test]
+fn tmw3_omen_of_the_end_empty_deck() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tmw_w3::OMEN_OF_THE_END;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    // Empty own deck: the top 5 of the enemy deck are destroyed.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &OMEN_OF_THE_END);
+    for _ in 0..5 {
+        builder.add_minion_to_deck(p2, &BLOODFEN_RAPTOR);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().zones().len(Zone::Deck, p2), 0);
+    assert_eq!(state.world().zones().len(Zone::Graveyard, p2), 5);
+    // Non-empty own deck: nothing happens.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &OMEN_OF_THE_END);
+    pad_decks(&mut builder);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.world().zones().len(Zone::Deck, p2), 5);
+}
+
+/// TMW3-16 — Endtime Murozond (END_037): fills the board with random
+/// Dragons, fully heals the hero, and skips the owner's next turn.
+#[test]
+fn tmw3_endtime_murozond_dragons_heal_skip() {
+    use orange_stone::cards::exp_tmw_w3::ENDTIME_MUROZOND;
+    use orange_stone::core::component::Damage;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ENDTIME_MUROZOND);
+    let mut state = builder.build();
+    let hero = state.player(p1).hero;
+    state.world_mut().set_damage(hero, Damage(10));
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert!(
+        state.world().damage(hero).is_none(),
+        "the hero was fully healed"
+    );
+    assert_eq!(
+        board_minions(&state, p1).len(),
+        7,
+        "the board filled with Dragons"
+    );
+    assert!(state.player(p1).skip_next_turn);
+    // The owner's turn ends; the opponent's turn ends; the owner's next
+    // turn start consumes the flag — the turn ends immediately and the
+    // opponent is active again.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.active_player(), p2);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.active_player(),
+        p2,
+        "the skipped turn handed the initiative straight back"
+    );
+    assert!(!state.player(p1).skip_next_turn);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(state.active_player(), p1, "the next turn is normal");
+}
+
+/// TMW3-17 — Morchie (END_036): the aura makes Rewinds keep BOTH
+/// outcomes — the replay of the previous play resolves twice; her own
+/// battlecry discovers a Rewind card.
+#[test]
+fn tmw3_morchie_keeps_both_rewind_outcomes() {
+    use orange_stone::cards::exp_tmw_w3::MORCHIE;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &MORCHIE)
+        .add_minion_to_hand(p1, &TMW1_REWIND1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Morchie: +1 Rewind card
+    play_front_card(&mut state, &engine, p1); // the ×1 Rewind fixture
+    let rewind_ids = orange_stone::cards::rewind::REWIND_CARD_IDS;
+    let rewinds: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| rewind_ids.contains(&c.0))
+        })
+        .collect();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        4,
+        "Morchie's battlecry (1) + the fixture's draw (1) + the doubled replay (2)"
+    );
+    assert_eq!(rewinds.len(), 3, "the replayed discovery resolved twice");
+    let morchie = find_entity(&state, p1, "END_036");
+    assert!(
+        state.world().aura(morchie).is_some(),
+        "the both-outcomes aura sits on Morchie"
+    );
+}
+
+/// TMW3-18 — Winged Aberration (END_032): with a combo the hero
+/// Overloads for (2) and gains Immune this turn and Windfury; without a
+/// combo nothing happens.
+#[test]
+fn tmw3_winged_aberration_combo_overload_keywords() {
+    use orange_stone::cards::core_w1::SWAMP_LEECH;
+    use orange_stone::cards::exp_tmw_w3::WINGED_ABERRATION;
+    let p1 = PlayerId1();
+    // With combo.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SWAMP_LEECH)
+        .add_minion_to_hand(p1, &WINGED_ABERRATION);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero = state.player(p1).hero;
+    play_front_card(&mut state, &engine, p1); // the combo activator
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).overload_locked, 2);
+    assert_eq!(state.player(p1).overload_total, 2);
+    assert!(
+        state.world().immune(hero).is_some(),
+        "the hero gained Immune"
+    );
+    assert!(
+        state.world().windfury(hero).is_some(),
+        "the hero gained Windfury"
+    );
+    // Without combo: the first play of the turn carries no combo.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &WINGED_ABERRATION);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).overload_total, 0, "no combo, no overload");
+    assert!(
+        state.world().immune(state.player(p1).hero).is_none(),
+        "no Immune without the combo"
+    );
+}
+
+/// TMW3-19 — Wicked Blightspawn (END_002): the deathrattle equips a 1/2
+/// Dagger (END_002t), or gives an equipped weapon +2 Attack instead;
+/// Chronoclaws (END_016) discards the highest-Cost hand card after the
+/// hero attacks.
+#[test]
+fn tmw3_blightspawn_dagger_and_chronoclaws_discard() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tmw_w3::{CHRONOCLAWS, JAGGED_EDGE_OF_TIME, WICKED_BLIGHTSPAWN};
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    // No weapon: the deathrattle equips the 1/2 Dagger.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &WICKED_BLIGHTSPAWN)
+        .add_custom_minion_to_board(p2, 5, 5, 5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let killer = board_minions(&state, p2)[0];
+    let blightspawn = find_entity(&state, p1, "END_002");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: killer,
+                defender: blightspawn,
+            },
+        )
+        .unwrap();
+    let dagger = state.player(p1).weapon.expect("the dagger equipped");
+    assert!(
+        state
+            .world()
+            .card_id(dagger)
+            .is_some_and(|c| c.0 == "END_002t"),
+        "the dagger token"
+    );
+    assert_eq!(state.world().effective_attack(dagger), Some(Attack(1)));
+    // Weapon already equipped: +2 Attack instead.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &JAGGED_EDGE_OF_TIME)
+        .add_minion_to_hand(p1, &WICKED_BLIGHTSPAWN)
+        .add_custom_minion_to_board(p2, 5, 5, 5);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Jagged Edge (3/2)
+    play_front_card(&mut state, &engine, p1); // Blightspawn
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let killer = board_minions(&state, p2)[0];
+    let blightspawn = find_entity(&state, p1, "END_002");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: killer,
+                defender: blightspawn,
+            },
+        )
+        .unwrap();
+    let weapon = state.player(p1).weapon.expect("the weapon stays");
+    assert_eq!(
+        state.world().effective_attack(weapon),
+        Some(Attack(5)),
+        "the equipped weapon gained +2"
+    );
+    // Chronoclaws: after the hero attacks, the highest-Cost hand card is
+    // discarded (the 3-cost Jagged Edge over the 2-cost Raptor).
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 24, 24)
+        .add_minion_to_hand(p1, &CHRONOCLAWS)
+        .add_minion_to_hand(p1, &JAGGED_EDGE_OF_TIME)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_custom_minion_to_board(p2, 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero = state.player(p1).hero;
+    play_front_card(&mut state, &engine, p1); // Chronoclaws (4/3)
+    let victim = board_minions(&state, p2)[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: hero,
+                defender: victim,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zone(victim),
+        Some(Zone::Graveyard),
+        "the hero killed the minion"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "one card remains in hand"
+    );
+    assert!(
+        state.world().zones().iter(Zone::Hand, p1).any(|e| state
+            .world()
+            .card_id(e)
+            .is_some_and(|c| c.0 == "CLASSIC_001")),
+        "the Raptor survived the discard"
+    );
+}
+
+/// TMW3-20 — Endtime Survivor (END_019) gains +3/+3 when the hero took
+/// damage this turn; Dimensional Weaponsmith (END_021) gives hand
+/// minions and weapons +2 Attack; Prescient Slitherdrake (END_033)
+/// costs (3) less while another Dragon is held.
+#[test]
+fn tmw3_survivor_weaponsmith_slitherdrake() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tmw_w3::{
+        CHRONIKAR, DIMENSIONAL_WEAPONSMITH, ENDTIME_SURVIVOR, JAGGED_EDGE_OF_TIME,
+        PRESCIENT_SLITHERDRAKE,
+    };
+    use orange_stone::core::effect::{CardEffect, EffectTarget};
+    let p1 = PlayerId1();
+    // Endtime Survivor: the hero self-damages with a temporary
+    // any-character hero power, then the battlecry gains +3/+3. (The Bolt
+    // is a random-enemy effect, so it cannot hit the own hero.)
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ENDTIME_SURVIVOR)
+        .set_hero_power(
+            p1,
+            0,
+            CardEffect::DealDamage {
+                amount: 3,
+                target: EffectTarget::AnyCharacter,
+            },
+        );
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let hero = state.player(p1).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::HeroPower {
+                hero,
+                target: Some(hero),
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(hero), Some(Health(27)));
+    play_front_card(&mut state, &engine, p1);
+    let survivor = find_entity(&state, p1, "END_019");
+    assert_eq!(
+        state.world().effective_attack(survivor),
+        Some(Attack(8)),
+        "+3/+3 from the damaged-hero battlecry"
+    );
+    assert_eq!(state.world().effective_health(survivor), Some(Health(9)));
+    // Without the damage the battlecry no-ops.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ENDTIME_SURVIVOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let survivor = find_entity(&state, p1, "END_019");
+    assert_eq!(state.world().effective_attack(survivor), Some(Attack(5)));
+    assert_eq!(state.world().effective_health(survivor), Some(Health(6)));
+    // Dimensional Weaponsmith: +2 Attack to hand minions and weapons.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &DIMENSIONAL_WEAPONSMITH)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &JAGGED_EDGE_OF_TIME);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let raptor = find_in_hand(&state, p1, "CLASSIC_001");
+    let edge = find_in_hand(&state, p1, "END_001");
+    assert_eq!(
+        state.world().effective_attack(raptor),
+        Some(Attack(5)),
+        "the hand minion gained +2"
+    );
+    assert_eq!(
+        state.world().effective_attack(edge),
+        Some(Attack(5)),
+        "the hand weapon gained +2"
+    );
+    // Prescient Slitherdrake: holding another Dragon → (3) less.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &PRESCIENT_SLITHERDRAKE)
+        .add_minion_to_hand(p1, &CHRONIKAR);
+    let state = builder.build();
+    let drake = find_in_hand(&state, p1, "END_033");
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, drake, p1),
+        Cost(4),
+        "holding a Dragon discounts the Slitherdrake"
+    );
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &PRESCIENT_SLITHERDRAKE);
+    let state = builder.build();
+    let drake = find_in_hand(&state, p1, "END_033");
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, drake, p1),
+        Cost(7),
+        "no Dragon in hand — full cost"
+    );
+}
+
+/// TMW3-21 — Time-Twisted Seer (END_022) grants Spell Damage +2 while
+/// damaged only; Fragment of Nothing (END_026) draws after a friendly
+/// spell is cast on a minion; Voodoo Totem (END_029) gets a random
+/// Shadow spell at the end of the turn.
+#[test]
+fn tmw3_seer_fragment_and_totem() {
+    use orange_stone::cards::def::LIGHTNING_BOLT;
+    use orange_stone::cards::exp_tmw_w3::{
+        FRAGMENT_OF_NOTHING, PRESS_THE_ADVANTAGE, TIME_TWISTED_SEER, VOODOO_TOTEM,
+    };
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    // Undamaged Seer: no bonus. The Bolt hits the enemy hero for 3.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TIME_TWISTED_SEER)
+        .add_minion_to_hand(p1, &LIGHTNING_BOLT);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let enemy_hero = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1);
+    let bolt = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bolt,
+                target: Some(enemy_hero),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(27)),
+        "no spell damage while undamaged"
+    );
+    // Damaged Seer: Press the Advantage pings it (1 damage), then the
+    // Bolt deals 3 + 2.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TIME_TWISTED_SEER)
+        .add_minion_to_hand(p1, &PRESS_THE_ADVANTAGE)
+        .add_minion_to_hand(p1, &LIGHTNING_BOLT);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let enemy_hero = state.player(p2).hero;
+    play_front_card(&mut state, &engine, p1);
+    let seer = find_entity(&state, p1, "END_022");
+    let press = find_in_hand(&state, p1, "END_007");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: press,
+                target: Some(seer),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(seer), Some(Health(2)));
+    let bolt = find_in_hand(&state, p1, "SHAMAN_002");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bolt,
+                target: Some(enemy_hero),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(enemy_hero),
+        Some(Health(25)),
+        "the damaged Seer added +2"
+    );
+    // Fragment of Nothing: a spell cast on a minion draws a card.
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &FRAGMENT_OF_NOTHING)
+        .add_minion_to_hand(p1, &LIGHTNING_BOLT)
+        .add_custom_minion_to_board(p2, 3, 3, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let target = board_minions(&state, p2)[0];
+    let bolt = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bolt,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "the spell-on-minion draw landed"
+    );
+    // Voodoo Totem: a random Shadow spell at the end of the turn.
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &VOODOO_TOTEM);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "the end-of-turn grant landed"
+    );
+}
+
+/// TMW3-22 — Remnant of Rage (END_004) costs (1) less per died-this-turn
+/// minion and draws 2; Bygone Echoes (END_005) summons a random 4-Cost
+/// minion plus another for 4 Corpses and a third when Outcast; Eternal
+/// Firebolt (END_025) Lifesteals and returns to the hand at the turn
+/// end when the target died; Crumblecrusher (END_034) destroys a random
+/// enemy minion, location, and weapon.
+#[test]
+fn tmw3_remnant_bygone_firebolt_crumble() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_tmw_w3::{
+        BYGONE_ECHOES, CRUMBLECRUSHER, ETERNAL_FIREBOLT, JAGGED_EDGE_OF_TIME, REMNANT_OF_RAGE,
+    };
+    use orange_stone::core::component::Damage;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    // Remnant of Rage: the two 1/1s trade, then the Remnant costs 5 and
+    // its battlecry draws 2.
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &REMNANT_OF_RAGE);
+    builder.add_custom_minion_to_board(p1, 1, 1, 1);
+    builder.add_custom_minion_to_board(p2, 1, 1, 1);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let own = board_minions(&state, p1)[0];
+    let enemy = board_minions(&state, p2)[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: own,
+                defender: enemy,
+            },
+        )
+        .unwrap();
+    let remnant = find_in_hand(&state, p1, "END_004");
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, remnant, p1),
+        Cost(5),
+        "two deaths this turn — (2) less"
+    );
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        2,
+        "the battlecry drew 2"
+    );
+    // Bygone Echoes (Outcast — front of hand): base + Corpses + Outcast.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BYGONE_ECHOES)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    state.make_mut().players[p1.index()].corpses = 4;
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    assert!(
+        board_minions(&state, p1).len() >= 3,
+        "one base + one Corpses + one Outcast (a summoned Violet Teacher may add its 1/1 apprentice)"
+    );
+    assert_eq!(state.player(p1).corpses, 0, "the Corpses were spent");
+    for m in board_minions(&state, p1) {
+        if state
+            .world()
+            .card_id(m)
+            .is_some_and(|c| c.0 == "CLASSIC_VT")
+        {
+            continue; // the apprentice of a summoned Violet Teacher
+        }
+        assert_eq!(
+            state.world().effective_cost(m),
+            Some(Cost(4)),
+            "every summoned minion is 4-Cost"
+        );
+    }
+    // Eternal Firebolt: Lifesteal heals 3; the dead target returns the
+    // card at the end of the turn.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ETERNAL_FIREBOLT);
+    builder.add_custom_minion_to_board(p2, 3, 3, 3);
+    let mut state = builder.build();
+    let hero = state.player(p1).hero;
+    state.world_mut().set_damage(hero, Damage(5));
+    let engine = GameEngine::new();
+    let target = board_minions(&state, p2)[0];
+    let bolt = first_hand_card(&state, p1);
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: bolt,
+                target: Some(target),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().zone(target), Some(Zone::Graveyard));
+    assert_eq!(
+        state.world().effective_health(hero),
+        Some(Health(28)),
+        "the Lifesteal healed 3"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        1,
+        "the Firebolt returned at the end of the turn"
+    );
+    assert!(
+        state
+            .world()
+            .zones()
+            .iter(Zone::Hand, p1)
+            .any(|e| state.world().card_id(e).is_some_and(|c| c.0 == "END_025")),
+        "a fresh Firebolt is back in hand"
+    );
+    // Crumblecrusher: a random enemy minion and the enemy weapon die.
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 24, 24)
+        .set_mana(p2, 24, 24)
+        .add_minion_to_hand(p1, &CRUMBLECRUSHER)
+        .add_minion_to_hand(p2, &JAGGED_EDGE_OF_TIME);
+    builder.add_custom_minion_to_board(p2, 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    play_front_card(&mut state, &engine, p2); // the enemy equips a weapon
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    play_front_card(&mut state, &engine, p1); // Crumblecrusher
+    assert_eq!(board_minions(&state, p2).len(), 0, "the enemy minion died");
+    assert!(
+        state.player(p2).weapon.is_none(),
+        "the enemy weapon was destroyed"
+    );
+}

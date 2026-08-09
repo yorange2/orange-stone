@@ -158,6 +158,13 @@ fn matches_trigger(
                 if state.world().player(*minion).is_some_and(|p| p == owner)
                     && state.world().played_this_turn(*minion).is_some())
         }
+        SecretTrigger::WhenEnemyTurnEnds => {
+            // Flames of Infinity (M3-W3 — END_024): "When your enemy's
+            // turn ends, deal INFINITE damage to their highest Health
+            // minion" — the enemy's `Event::TurnEnded` reveals the secret
+            // (§22).
+            matches!(event, Event::TurnEnded { player } if *player == owner.opponent())
+        }
     }
 }
 

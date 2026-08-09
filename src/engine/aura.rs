@@ -150,6 +150,7 @@ const fn aura_attack_value(effect: AuraEffect) -> i32 {
         AuraEffect::IncreaseMinionCostFriendly { .. } => 0,
         AuraEffect::ChargeWithWeapon => 0,
         AuraEffect::DoubleTriggers => 0,
+        AuraEffect::RewindKeepsBothOutcomes => 0,
     }
 }
 
@@ -167,5 +168,6 @@ const fn aura_health_value(effect: AuraEffect) -> i32 {
         AuraEffect::IncreaseMinionCostFriendly { .. } => 0,
         AuraEffect::ChargeWithWeapon => 0,
         AuraEffect::DoubleTriggers => 0,
+        AuraEffect::RewindKeepsBothOutcomes => 0,
     }
 }

@@ -11013,6 +11013,707 @@ pub fn resolve_effect(
                 });
             }
         }
+        // ============================================================
+        // M3-W3 — The End of Time miniset (38 END_ cards, §22)
+        // ============================================================
+        CardEffect::DealDamageAndImbue { amount, target } => {
+            // END_000 Eventuality — "Deal 2 damage. Imbue your Hero
+            // Power." The damage resolves through the normal pipeline
+            // (`apply_spell_power` already scaled the amount for a
+            // spell source), then the imbue counter grows and (at the
+            // first imbue) swaps in the class hero power.
+            resolve_deal_damage(state, queue, source, owner, amount, target, explicit_target);
+            resolve_imbue(state, owner);
+        }
+        CardEffect::DrawUndeadAndImbueTwice => {
+            // END_003 Finality — "Draw an Undead. Imbue your Hero Power
+            // twice." The draw is the random Undead pool (D2); two
+            // imbues advance the counter twice (the first replaces the
+            // hero power, the second only grows the level).
+            if let Some(def) =
+                crate::cards::pool::random_card(state.rng_mut(), RandomPool::UndeadMinion)
+            {
+                add_card_to_hand(state, owner, def);
+            }
+            resolve_imbue(state, owner);
+            resolve_imbue(state, owner);
+        }
+        CardEffect::EquipDaggerOrBuffWeapon => {
+            // END_002 Wicked Blightspawn deathrattle — "Equip a 1/2
+            // Dagger. If you already have a weapon equipped, give it
+            // +2 Attack instead." (The dagger is the END_002t token —
+            // the engine defines no Rogue dagger card.)
+            if state.player(owner).weapon.is_some() {
+                resolve_buff_weapon(state, owner, 2, 0);
+            } else {
+                resolve_equip_weapon(state, queue, owner, "END_002t");
+            }
+        }
+        CardEffect::BygoneEchoesSummon => {
+            // END_005 Bygone Echoes — "Summon a random 4-Cost minion.
+            // Spend 4 Corpses to summon another. Outcast: And another."
+            // The corpse spend only happens when the pool is empty-free
+            // and the owner can pay; the Outcast third summon is read
+            // from the Outcast marker (set when the card left the hand
+            // from an edge).
+            let summon_4_cost =
+                |state: &mut GameState, queue: &mut EventQueue, source: Entity, owner: PlayerId| {
+                    let pool: SmallList<&'static crate::cards::def::CardDef> =
+                        crate::cards::sets::ALL_CARDS
+                            .iter()
+                            .filter(|c| {
+                                c.card_type == CardType::Minion
+                                    && c.cost == 4
+                                    && !c.id.ends_with('t')
+                                    && crate::cards::pool::in_active_window(c)
+                            })
+                            .collect();
+                    if let Some(def) = pool.get(state.rng_mut().next_usize(pool.len())).copied() {
+                        let _ = resolve_summon(state, queue, source, owner, def.id);
+                    }
+                };
+            summon_4_cost(state, queue, source, owner);
+            let have = state.player(owner).corpses;
+            if have >= 4 {
+                let inner = state.make_mut();
+                inner.players[owner.index()].corpses -= 4;
+                crate::engine::quest::progress(
+                    state,
+                    queue,
+                    owner,
+                    crate::cards::quest::QuestCondition::SpendCorpses,
+                    4,
+                    None,
+                );
+                summon_4_cost(state, queue, source, owner);
+            }
+            if state.world().outcast_played(source).is_some() {
+                summon_4_cost(state, queue, source, owner);
+            }
+        }
+        CardEffect::ChronikarHeroAttackBuff => {
+            // END_006 Chronikar battlecry — "Give your hero +3 Attack
+            // this turn, next turn, and the turn after." The current
+            // turn's buff lands as an until-end-of-turn enchantment; the
+            // two remaining turns are counted by `chronikar_ticks` and
+            // re-applied by the start-of-turn ChronikarRebuff effect.
+            let hero = state.player(owner).hero;
+            state.world_mut().add_enchantment(
+                hero,
+                Enchantment {
+                    attack: 3,
+                    health: 0,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::UntilEndOfTurn,
+                },
+            );
+            state.make_mut().players[owner.index()].chronikar_ticks = 2;
+        }
+        CardEffect::ChronikarRebuff => {
+            // END_006 Chronikar's start-of-turn effect — each of the two
+            // following turn starts consumes one tick and re-applies the
+            // +3 Attack for the turn (§22: the official "3 turns" is
+            // approximated as three separate until-end-of-turn buffs).
+            let ticks = state.player(owner).chronikar_ticks;
+            if ticks > 0 {
+                state.make_mut().players[owner.index()].chronikar_ticks = ticks - 1;
+                let hero = state.player(owner).hero;
+                state.world_mut().add_enchantment(
+                    hero,
+                    Enchantment {
+                        attack: 3,
+                        health: 0,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::UntilEndOfTurn,
+                    },
+                );
+            }
+        }
+        CardEffect::PressTheAdvantage => {
+            // END_007 Press the Advantage — "Deal 1 damage. Give your
+            // hero +1 Attack this turn. Draw 1 card. Gain 1 Armor."
+            resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                1,
+                EffectTarget::AnyCharacter,
+                explicit_target,
+            );
+            let hero = state.player(owner).hero;
+            state.world_mut().add_enchantment(
+                hero,
+                Enchantment {
+                    attack: 1,
+                    health: 0,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::UntilEndOfTurn,
+                },
+            );
+            draw_card(state, queue, owner);
+            grant_armor(state, queue, owner, 1);
+        }
+        CardEffect::RefreshManaCrystals { amount } => {
+            // END_008 Enduring Roach — "After you use your Hero Power,
+            // refresh 2 Mana Crystals." The refill is a current-mana
+            // top-up (no new crystals), capped at 10.
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            p.current_mana = (p.current_mana + amount).min(10);
+        }
+        CardEffect::SummonTwoTreantsScaling => {
+            // END_009 Splintered Reality — "Summon two 2/2 Treants. They
+            // gain +1/+1 for each friendly Treant that died this game."
+            // The game-long friendly-Treant death counter is
+            // `treants_died_total` (bumped at MinionDied for END_009t).
+            let scale = state.player(owner).treants_died_total as i32;
+            for _ in 0..2 {
+                if let Some(treant) = resolve_summon(state, queue, source, owner, "END_009t") {
+                    if scale > 0 {
+                        state.world_mut().add_enchantment(
+                            treant,
+                            Enchantment {
+                                attack: scale,
+                                health: scale,
+                                cost: 0,
+                                expiry: EnchantmentExpiry::Permanent,
+                            },
+                        );
+                    }
+                }
+            }
+        }
+        CardEffect::SetAllOtherMinionsAttack { attack } => {
+            // END_010 Twilight Timereaver (Choose One branch 1) — "Set
+            // the Attack of all other minions to 1": every minion on
+            // both boards except the source has its base Attack
+            // rewritten (the stat-set writes the base components, the
+            // Humility convention).
+            let others: SmallList<Entity> = [owner, owner.opponent()]
+                .iter()
+                .flat_map(|&p| state.world().zones().iter(Zone::Play, p))
+                .filter(|&e| e != source && state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            for e in others {
+                state.world_mut().set_attack(e, Attack(attack));
+            }
+        }
+        CardEffect::SetAllOtherMinionsHealth { health } => {
+            // END_010 Twilight Timereaver (Choose One branch 2) — "Set
+            // the Health of all other minions to 1": the base Health is
+            // rewritten; a minion whose accumulated damage now exceeds
+            // the new maximum dies (the death check normally runs in the
+            // damage pipeline — a stat-set death is queued explicitly,
+            // the Equality shape).
+            let others: SmallList<Entity> = [owner, owner.opponent()]
+                .iter()
+                .flat_map(|&p| state.world().zones().iter(Zone::Play, p))
+                .filter(|&e| e != source && state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            for e in &others {
+                state.world_mut().set_health(*e, Health(health));
+            }
+            for e in others {
+                if state
+                    .world()
+                    .effective_health(e)
+                    .is_some_and(|h| h.is_dead())
+                {
+                    let inner = state.make_mut();
+                    inner.pending_deaths.push(e);
+                }
+            }
+        }
+        CardEffect::ArmAccelerationAura => {
+            // END_011 Acceleration Aura — "At the start of your turn,
+            // gain a temporary Mana Crystal. Lasts 3 turns." The
+            // three-tick counter is consumed by the ManaRefill step
+            // (rules.rs), which grants the +1 temporary mana.
+            state.make_mut().players[owner.index()].acceleration_aura_ticks = 3;
+        }
+        CardEffect::SetWeaponAttackInfinityThisTurn => {
+            // END_012 Hand of Infinity battlecry — "Set this weapon's
+            // Attack to INFINITY this turn." The delta is an
+            // until-end-of-turn enchantment ON the weapon entity (so
+            // `effective_attack` composes it); the finite stand-in is
+            // INFINITY_ATTACK_CAP, shared with W2b's Murozond.
+            let Some(weapon) = state.player(owner).weapon else {
+                return;
+            };
+            let cur = state
+                .world()
+                .effective_attack(weapon)
+                .unwrap_or(Attack(0))
+                .0;
+            let delta = crate::cards::exp_tmw_w2b::INFINITY_ATTACK_CAP - cur;
+            if delta > 0 {
+                state.world_mut().add_enchantment(
+                    weapon,
+                    Enchantment {
+                        attack: delta,
+                        health: 0,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::UntilEndOfTurn,
+                    },
+                );
+            }
+        }
+        CardEffect::DamageAndBuffFriendlyIfKilled {
+            amount,
+            attack,
+            health,
+        } => {
+            // END_014 Synchronized Spark — "Deal 3 damage to an enemy.
+            // If it dies, give a random friendly minion +3/+3." The
+            // branch is decided by prediction at resolution (the Slam
+            // convention): a divine shield absorbs the damage, so the
+            // buff does not fire.
+            let Some(target) = resolve_deal_damage(
+                state,
+                queue,
+                source,
+                owner,
+                amount,
+                EffectTarget::AnyEnemy,
+                explicit_target,
+            ) else {
+                return;
+            };
+            let dies = state.world().divine_shield(target).is_none()
+                && state
+                    .world()
+                    .effective_health(target)
+                    .is_some_and(|h| h.0 - amount <= 0);
+            if dies {
+                let friendly = collect_friendly_minions(state, owner);
+                if let Some(&m) = friendly.get(state.rng_mut().next_usize(friendly.len())) {
+                    state.world_mut().add_enchantment(
+                        m,
+                        Enchantment {
+                            attack,
+                            health,
+                            cost: 0,
+                            expiry: EnchantmentExpiry::Permanent,
+                        },
+                    );
+                }
+            }
+        }
+        CardEffect::AddRandomDeathrattleMinionCostsLess => {
+            // END_015 Triennium Rex — "Kindred and Deathrattle: Get a
+            // random Deathrattle minion. It costs (2) less." The cost
+            // reduction writes the base component (the Blessing of the
+            // Wolf hand-buff convention).
+            if let Some(def) =
+                crate::cards::pool::random_card(state.rng_mut(), RandomPool::DeathrattleMinion)
+            {
+                if let Some(added) = add_card_to_hand(state, owner, def) {
+                    let cur = state.world().effective_cost(added).unwrap_or(Cost(0));
+                    state.world_mut().set_cost(added, Cost((cur.0 - 2).max(0)));
+                }
+            }
+        }
+        CardEffect::DiscardHighestCostCard => {
+            // END_016 Chronoclaws — "After your hero attacks, discard
+            // your highest Cost card." The highest-EFFECTIVE-cost hand
+            // card goes to the graveyard (ties: first in hand order).
+            let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, owner).collect();
+            if let Some(&worst) = hand
+                .iter()
+                .max_by_key(|&&e| state.world().effective_cost(e).map(|c| c.0).unwrap_or(0))
+            {
+                let _ = state.world_mut().move_to_zone(worst, Zone::Graveyard);
+            }
+        }
+        CardEffect::DrawUntilHandFull => {
+            // END_017t Tick and Tock battlecry — "Draw until your hand
+            // is full." Consecutive draws stop at the 10-card cap; an
+            // empty deck ends the loop (no fatigue is inflicted by the
+            // draw-until loop itself — the draw stops when the deck is
+            // empty, matching the official card).
+            while state.world().zones().len(Zone::Hand, owner) < MAX_HAND_SIZE
+                && !state
+                    .world()
+                    .zones()
+                    .iter(Zone::Deck, owner)
+                    .next()
+                    .is_none()
+            {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::EmptyOpponentHand => {
+            // END_017t Tick and Tock deathrattle — "Empty the
+            // opponent's hand": every enemy hand card goes to the
+            // graveyard (Deathwing's discard-hand shape).
+            let enemy = owner.opponent();
+            resolve_discard_hand(state, enemy);
+        }
+        CardEffect::SetRandomHandCardCostInfinity => {
+            // END_018 Acolyte of Infinity battlecry — "Set the Cost of a
+            // random card in your hand to INFINITY!" The random hand card
+            // receives a Set modifier at the INFINITY cap (unaffordable —
+            // a finite engine cannot store an unbounded cost, §22), and
+            // the entity is recorded so the deathrattle can revert it.
+            let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, owner).collect();
+            if hand.is_empty() {
+                return;
+            }
+            let pick = hand[state.rng_mut().next_usize(hand.len())];
+            state.world_mut().add_cost_modifier(
+                pick,
+                crate::core::component::CostModifier {
+                    kind: crate::core::component::CostModifierKind::Set(
+                        crate::cards::exp_tmw_w2b::INFINITY_ATTACK_CAP,
+                    ),
+                },
+            );
+            state.make_mut().players[owner.index()].hand_card_infinity = Some(pick);
+        }
+        CardEffect::RestoreInfinityHandCardCost => {
+            // END_018 Acolyte of Infinity deathrattle — "Change it
+            // back": the recorded card's cost modifiers are cleared if
+            // the card is still in hand (a played/transformed card has
+            // no cost to restore; the record is consumed either way).
+            let recorded = state.make_mut().players[owner.index()]
+                .hand_card_infinity
+                .take();
+            if let Some(e) = recorded {
+                if state.world().zone(e) == Some(Zone::Hand) {
+                    state.world_mut().remove_cost_modifiers(e);
+                }
+            }
+        }
+        CardEffect::GainStatsIfHeroDamagedThisTurn { attack, health } => {
+            // END_019 Endtime Survivor — "Battlecry: If your hero took
+            // damage this turn, gain +3/+3."
+            if state.player(owner).hero_damaged_this_turn {
+                state.world_mut().add_enchantment(
+                    source,
+                    Enchantment {
+                        attack,
+                        health,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+            }
+        }
+        CardEffect::DamageMinionDrawIfSurvivesSummonIfDies { amount } => {
+            // END_020 Eternal Toil — "Deal 1 damage to a minion. If it
+            // survives, draw a card. If it dies, summon a random 1-Cost
+            // minion." The branch is decided by prediction (the Slam
+            // convention); a divine shield absorbs the damage, so the
+            // "survives" branch applies.
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_enemy_minions(state, owner, None));
+            let Some(t) = select_target(explicit_target, &all, state.rng_mut()) else {
+                return;
+            };
+            let survives = state.world().divine_shield(t).is_some()
+                || state
+                    .world()
+                    .effective_health(t)
+                    .is_some_and(|h| h.0 - amount > 0);
+            queue.push(Event::DamageDealt {
+                source,
+                target: t,
+                amount,
+            });
+            if survives {
+                draw_card(state, queue, owner);
+            } else if let Some(def) = random_minion_of_cost(state, 1) {
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+        }
+        CardEffect::BuffHandMinionsAndWeapons { attack } => {
+            // END_021 Dimensional Weaponsmith — "Give all minions and
+            // weapons in your hand +2 Attack" (hand buffs write the base
+            // components, the FordragonBuff convention).
+            let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, owner).collect();
+            for e in hand {
+                let buffable = matches!(
+                    state.world().card_type(e),
+                    Some(CardType::Minion) | Some(CardType::Weapon)
+                );
+                if buffable {
+                    let cur = state.world().attack(e).unwrap_or(Attack(0));
+                    state.world_mut().set_attack(e, Attack(cur.0 + attack));
+                }
+            }
+        }
+        CardEffect::FreezeMinionAndNeighborsDestroyDamaged => {
+            // END_023 Bitter End — "Freeze a minion and its neighbors.
+            // Destroy any that are damaged." The trio is frozen (the
+            // Freeze timing machinery handles the skip); the damaged
+            // members are destroyed through the normal death path.
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_enemy_minions(state, owner, None));
+            let Some(target) = select_target(explicit_target, &all, state.rng_mut()) else {
+                return;
+            };
+            let Some(t_owner) = state.world().player(target) else {
+                return;
+            };
+            let board: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, t_owner)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            let Some(pos) = board.iter().position(|&e| e == target) else {
+                return;
+            };
+            let mut trio: SmallList<Entity> = SmallList::new();
+            trio.push(target);
+            if let Some(&left) = board.get(pos.wrapping_sub(1)) {
+                trio.push(left);
+            }
+            if let Some(&right) = board.get(pos + 1) {
+                trio.push(right);
+            }
+            for e in &trio {
+                state.world_mut().set_freeze(*e, Freeze);
+            }
+            for e in trio {
+                let dmg = state.world().damage(e).map(|d| d.0).unwrap_or(0);
+                if dmg > 0 {
+                    let hp = state.world().effective_health(e).unwrap_or(Health(1));
+                    queue.push(Event::DamageDealt {
+                        source: e,
+                        target: e,
+                        amount: hp.0.max(1),
+                    });
+                }
+            }
+        }
+        CardEffect::InfiniteDamageToHighestHealthEnemyMinion => {
+            // END_024 Flames of Infinity (the WhenEnemyTurnEnds secret) —
+            // "deal INFINITE damage to their highest Health minion." The
+            // finite stand-in is INFINITY_ATTACK_CAP (shared with W2b); a
+            // cap-sized hit kills any realistic minion. Ties pick the
+            // first minion in play order.
+            let enemy = owner.opponent();
+            let minions: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, enemy)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            let Some(&best) = minions
+                .iter()
+                .max_by_key(|&&e| state.world().effective_health(e).map(|h| h.0).unwrap_or(0))
+            else {
+                return;
+            };
+            queue.push(Event::DamageDealt {
+                source,
+                target: best,
+                amount: crate::cards::exp_tmw_w2b::INFINITY_ATTACK_CAP,
+            });
+        }
+        CardEffect::DamageMinionEternalFirebolt { amount } => {
+            // END_025 Eternal Firebolt — "Deal 3 damage to a minion. If
+            // it dies, return this to your hand at the end of your
+            // turn." (The Lifesteal keyword on the spell heals the
+            // owner.) The target is recorded; the TurnEnded handler
+            // returns a fresh copy when it died.
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_enemy_minions(state, owner, None));
+            let Some(t) = select_target(explicit_target, &all, state.rng_mut()) else {
+                return;
+            };
+            state.make_mut().players[owner.index()].eternal_flame_target = Some(t);
+            queue.push(Event::DamageDealt {
+                source,
+                target: t,
+                amount,
+            });
+        }
+        CardEffect::DestroyAllMinionsWith4OrLessAttack => {
+            // END_028 For All Time — "Destroy all minions with 4 or less
+            // Attack." Effective attack (enchantments and auras count);
+            // the destruction runs through the normal death path so
+            // deathrattles fire.
+            let doomed: SmallList<Entity> = [owner, owner.opponent()]
+                .iter()
+                .flat_map(|&p| state.world().zones().iter(Zone::Play, p))
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Minion)
+                        && state.world().effective_attack(e).is_some_and(|a| a.0 <= 4)
+                })
+                .collect();
+            for e in doomed {
+                let hp = state.world().effective_health(e).unwrap_or(Health(1));
+                queue.push(Event::DamageDealt {
+                    source: e,
+                    target: e,
+                    amount: hp.0.max(1),
+                });
+            }
+        }
+        CardEffect::AddRandomShadowSpell => {
+            // END_029 Voodoo Totem (end of turn) — "Get a random Shadow
+            // spell" (the school pool reads the spell_school table).
+            if let Some(def) =
+                crate::cards::pool::random_card(state.rng_mut(), RandomPool::ShadowSpell)
+            {
+                add_card_to_hand(state, owner, def);
+            }
+        }
+        CardEffect::OverloadForAndGainImmuneWindfury { overload } => {
+            // END_032 Winged Aberration combo — "Overload for (2) to
+            // gain Immune this turn and Windfury." The lock lands now
+            // (ManaRefill subtracts it); Immune is cleared by the turn
+            // wrap-up; Windfury on the hero is permanent (the official
+            // card states no duration). The game-long overload counter
+            // counts this overload too (Haywire Hornswog's discount).
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            p.overload_locked += overload;
+            p.overload_total += overload;
+            let hero = p.hero;
+            inner.world.set_immune(hero, Immune);
+            inner.world.set_windfury(hero, Windfury);
+        }
+        CardEffect::DestroyRandomEnemyMinionLocationWeapon => {
+            // END_034 Crumblecrusher — "Destroy a random enemy minion,
+            // location, and weapon." The minion goes through the normal
+            // death path; the location and the weapon move straight to
+            // the graveyard (the weapon also clears the slot, the
+            // Acidic Swamp Ooze shape).
+            let enemy = owner.opponent();
+            let minions: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, enemy)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                .collect();
+            if !minions.is_empty() {
+                if let Some(&m) = minions.get(state.rng_mut().next_usize(minions.len())) {
+                    let hp = state.world().effective_health(m).unwrap_or(Health(1));
+                    queue.push(Event::DamageDealt {
+                        source: m,
+                        target: m,
+                        amount: hp.0.max(1),
+                    });
+                }
+            }
+            let locations: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, enemy)
+                .filter(|&e| state.world().card_type(e) == Some(CardType::Location))
+                .collect();
+            // The location is optional — a player without a location in
+            // play keeps the rest of the destroy sequence (the random pick
+            // must not run on an empty list).
+            if !locations.is_empty() {
+                if let Some(&l) = locations.get(state.rng_mut().next_usize(locations.len())) {
+                    let _ = state.world_mut().move_to_zone(l, Zone::Graveyard);
+                }
+            }
+            if let Some(w) = state.player(enemy).weapon {
+                let inner = state.make_mut();
+                inner.players[enemy.index()].weapon = None;
+                queue.push(Event::WeaponDestroyed {
+                    player: enemy,
+                    weapon: w,
+                });
+            }
+        }
+        CardEffect::DestroyTopFiveEnemyDeckIfOwnEmpty => {
+            // END_035 Omen of the End — "If your deck is empty, destroy
+            // the top 5 cards of the enemy deck" (the top of the deck is
+            // the first zone entry, the "look at the top" convention).
+            if !state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner)
+                .next()
+                .is_none()
+            {
+                return;
+            }
+            let top: Vec<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Deck, owner.opponent())
+                .take(5)
+                .collect();
+            for e in top {
+                let _ = state.world_mut().move_to_zone(e, Zone::Graveyard);
+            }
+        }
+        CardEffect::FillBoardRandomDragonsHealHeroSkipNextTurn => {
+            // END_037 Endtime Murozond — "Fill your board with random
+            // Dragons. Fully heal your hero. Skip your next turn." The
+            // skip flag is consumed at the owner's next TurnStarted
+            // (rules.rs) — that turn is ended immediately.
+            let hero = state.player(owner).hero;
+            state.world_mut().remove_damage(hero);
+            loop {
+                let board_count = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, owner)
+                    .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+                    .count();
+                if board_count >= crate::engine::rules::MAX_BOARD_SIZE {
+                    break;
+                }
+                let Some(def) =
+                    crate::cards::pool::random_card(state.rng_mut(), RandomPool::Dragon)
+                else {
+                    break;
+                };
+                if resolve_summon(state, queue, source, owner, def.id).is_none() {
+                    break;
+                }
+            }
+            state.make_mut().players[owner.index()].skip_next_turn = true;
+        }
+        CardEffect::GetRandomOtherClassMinionCostsLess { reduction } => {
+            // END_000p Blessing of the Bronze (the Rogue imbued hero
+            // power) — "Get a random minion from another class. It
+            // costs less." The other-class filter is the
+            // `is_other_class_card` pool; the reduction writes the base
+            // cost (the Blessing of the Wolf convention).
+            if let Some(def) =
+                crate::cards::pool::random_card(state.rng_mut(), RandomPool::OtherClassMinion)
+            {
+                if let Some(added) = add_card_to_hand(state, owner, def) {
+                    let cur = state.world().effective_cost(added).unwrap_or(Cost(0));
+                    state
+                        .world_mut()
+                        .set_cost(added, Cost((cur.0 - reduction).max(0)));
+                }
+            }
+        }
+        CardEffect::BuffFirstUndeadPlayedEachTurn { attack } => {
+            // END_003p Blessing of the Infinite (the Death Knight imbued
+            // hero power, a passive hero-pinned trigger) — "The first
+            // Undead you play each turn gains +N Attack." The per-turn
+            // play counter includes the current play (incremented before
+            // the CardPlayed triggers fire), so a counter above 1 means
+            // a later Undead — the buff applies to the first only.
+            if state.player(owner).undead_played_this_turn > 1 {
+                return;
+            }
+            let Some(played) = event_subject else {
+                return;
+            };
+            state.world_mut().add_enchantment(
+                played,
+                Enchantment {
+                    attack,
+                    health: 0,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+        }
     }
 }
 
@@ -11358,7 +12059,32 @@ pub(crate) fn draw_card_no_queue(
     world
         .move_to_zone(card, zone)
         .expect("card should be movable to hand");
+    // M3-W3 — Battle at the End Time (END_017): the "filled" half of the
+    // fill-then-empty SEQUENCE — a draw that leaves the hand full records
+    // the filled marker (the dedicated branch in quest.rs dedups it, so a
+    // second full-hand draw — the burn path included — is harmless).
+    quest_fill_hook(state, queue, player);
     Some(card)
+}
+
+/// M3-W3 — Battle at the End Time (END_017), the "filled" half of the
+/// fill-then-empty SEQUENCE: whenever a draw or a generated card leaves the
+/// player's hand full, the quest bar records the filled marker (marker 0).
+/// The dedicated branch in [`crate::engine::quest::progress`] dedups the
+/// marker, so repeated full-hand events are harmless — the sequence completes
+/// only when the hand is emptied afterwards (the emptied marker is set at the
+/// play path in rules.rs, §22).
+fn quest_fill_hook(state: &mut GameState, queue: &mut EventQueue, player: PlayerId) {
+    if state.world().zones().len(Zone::Hand, player) >= MAX_HAND_SIZE {
+        crate::engine::quest::progress(
+            state,
+            queue,
+            player,
+            crate::cards::quest::QuestCondition::FillThenEmptyHand,
+            1,
+            Some(0),
+        );
+    }
 }
 
 /// Draws the top card of the deck without a queue — used only at
@@ -12466,11 +13192,45 @@ fn resolve_imbue(state: &mut GameState, owner: PlayerId) {
             .card_id(hero)
             .and_then(|c| ImbueClass::from_hero_card_id(c.0));
         if let Some(class) = class {
+            // M3-W3 — the Timeways miniset's two new imbue classes carry
+            // nonstandard hero powers: the Rogue's Blessing of the Bronze
+            // (END_000p) costs 1 and the Death Knight's Blessing of the
+            // Infinite (END_003p) is a 0-cost passive (§22).
+            let cost = match class {
+                ImbueClass::Rogue => 1,
+                ImbueClass::DeathKnight => 0,
+                _ => 2,
+            };
             state.world_mut().set_hero_power(
                 hero,
                 HeroPowerDef {
-                    cost: 2,
+                    cost,
                     effect: CardEffect::ImbuedHeroPower { class },
+                },
+            );
+        }
+    }
+    // M3-W3 — the Death Knight's Blessing of the Infinite: the passive is
+    // a hero-pinned trigger that grows with the imbue count — it is
+    // re-attached on EVERY imbue (set_trigger overwrites), so the buff
+    // "Attack equal to your imbue count" tracks the current level even
+    // when one battlecry imbues several times in a row (§22).
+    {
+        let hero = state.player(owner).hero;
+        if state
+            .world()
+            .card_id(hero)
+            .and_then(|c| ImbueClass::from_hero_card_id(c.0))
+            == Some(ImbueClass::DeathKnight)
+        {
+            state.world_mut().set_trigger(
+                hero,
+                Trigger {
+                    event: TriggerEvent::CardPlayed,
+                    timing: TriggerTiming::Whenever,
+                    race: Some(Race::Undead),
+                    max_attack: None,
+                    effect: CardEffect::BuffFirstUndeadPlayedEachTurn { attack: count },
                 },
             );
         }
@@ -12631,6 +13391,33 @@ fn resolve_imbued_hero_power(
             world.set_cost(target, Cost(pick.cost));
             world.set_card_id(target, CardId(pick.id));
             world.set_attacks_used(target, AttacksUsed(0));
+        }
+        ImbueClass::Rogue => {
+            // Blessing of the Bronze (END_000p) — "Rewind. Get a random
+            // minion from another class. It costs less." The discount
+            // equals the imbue level (the design note in exp_tmw_w3.rs);
+            // the rewind replay resolves INSIDE the power — hero powers
+            // never hook the rewind play path, and the count is read from
+            // the rewind registry (documented there, §22).
+            if let Some(def) =
+                crate::cards::pool::random_card(state.rng_mut(), RandomPool::OtherClassMinion)
+            {
+                if let Some(added) = add_card_to_hand(state, owner, def) {
+                    let cur = state.world().effective_cost(added).unwrap_or(Cost(0));
+                    state
+                        .world_mut()
+                        .set_cost(added, Cost((cur.0 - level).max(0)));
+                }
+            }
+            let count = crate::cards::rewind::rewind_count("END_000p");
+            if count > 0 {
+                crate::engine::rewind::resolve(state, queue, source, owner, count);
+            }
+        }
+        ImbueClass::DeathKnight => {
+            // Blessing of the Infinite (END_003p) — the passive buff rides
+            // the hero-pinned trigger re-attached by resolve_imbue; using
+            // the (0) power is a no-op here.
         }
     }
 }
@@ -14109,6 +14896,16 @@ pub(crate) fn add_card_to_hand(
     let e = crate::cards::spawn_card_from_def(world, player, card_def);
     world.set_zone(e, Zone::Hand);
     world.zones_mut().insert(Zone::Hand, player, e);
+    // M3-W3 — the "filled" half of the fill-then-empty SEQUENCE (see
+    // `quest_fill_hook` above): a generated card that fills the hand
+    // completes the first half of Battle at the End Time. The reward
+    // resolves synchronously here, so a scratch queue is enough; the
+    // completion events it accumulates (MinionSummoned, CardDrawn) are
+    // dropped, so summon/draw TRIGGERS do not fire for the reward in this
+    // rare generated-card path — the draw funnel (`draw_card_no_queue`)
+    // keeps them (fidelity-debt §22).
+    let mut local_queue = crate::core::event::EventQueue::new();
+    quest_fill_hook(state, &mut local_queue, player);
     Some(e)
 }
 

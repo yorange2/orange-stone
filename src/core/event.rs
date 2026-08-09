@@ -123,6 +123,12 @@ pub enum Event {
         player: PlayerId,
         /// The spell entity
         spell: Entity,
+        /// The spell's explicit target, when the spell was cast on a
+        /// character (2025–2026 expansions M3-W3 — END_026 Fragment of
+        /// Nothing's "after you cast a spell on a minion" trigger reads
+        /// this); `None` for untargeted spells, minion-play paths, and
+        /// re-pushed replays that lost their original target
+        target: Option<Entity>,
     },
     /// A location is activated (Core Set W8)
     LocationActivated {

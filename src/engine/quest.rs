@@ -60,6 +60,38 @@ pub(crate) fn progress(
         if qdef.condition != condition && !is_second {
             return;
         }
+        // M3-W3 — Battle at the End Time (END_017): "Fill your hand, then
+        // empty it" is a SEQUENCE, not an accumulating counter: the hand
+        // must reach 10 once (marker 0), then be emptied by plays (marker
+        // 1) — only the emptying completes the quest, and only when the
+        // filled marker is already set. Both markers are deduped, so a
+        // second fill/empty cycle cannot double-count (§22).
+        if qdef.condition == QuestCondition::FillThenEmptyHand && !is_second {
+            let mut quest = state
+                .world()
+                .quest(quest_entity)
+                .expect("quest entity in the quest zone carries the Quest component");
+            if quest.progress >= quest.target {
+                return;
+            }
+            let Some(m) = marker else {
+                return;
+            };
+            if m == 0 {
+                if !quest.markers.contains(&0) {
+                    quest.markers.push(0);
+                }
+            } else if quest.markers.contains(&0) && !quest.markers.contains(&1) {
+                quest.markers.push(1);
+                quest.progress += amount;
+            }
+            if quest.progress >= quest.target {
+                complete_bar(state, queue, quest_entity, player, qdef, quest, false);
+            } else {
+                state.world_mut().set_quest(quest_entity, quest);
+            }
+            return;
+        }
         let mut quest = state
             .world()
             .quest(quest_entity)

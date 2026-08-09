@@ -73,6 +73,8 @@ pub const KINDRED_CARD_IDS: &[&str] = &[
     "TLC_428", "TLC_429", "TLC_432", "TLC_440", "TLC_447", "TLC_454", "TLC_463", "TLC_482",
     "TLC_519", "TLC_600", "TLC_815", "TLC_816", "TLC_825", "TLC_829", "TLC_903", "DINO_138",
     "DINO_404", "DINO_413", "DINO_435",
+    // M3-W3 — The End of Time miniset
+    "END_015", // Triennium Rex
 ];
 
 /// The Kindred type of a card definition — spells count as `Spell`, minions
@@ -130,6 +132,8 @@ pub fn kindred_type(card_id: &str) -> Option<KindredType> {
         "DINO_404" => Some(KindredType::Minion(Race::Elemental)), // Firegill
         "DINO_413" => Some(KindredType::Minion(Race::Elemental)), // Chillspine Stegodon
         "DINO_435" => Some(KindredType::Minion(Race::Beast)), // Crater Experiment
+        // M3-W3 — The End of Time miniset
+        "END_015" => Some(KindredType::Minion(Race::Beast)), // Triennium Rex
         _ => None,
     }
 }
@@ -230,6 +234,12 @@ pub fn kindred_effect(card_id: &str) -> Option<&'static KindredEffect> {
         }),
         "DINO_435" => Some(&KindredEffect::OnPlay {
             effect: CardEffect::SummonCopyOfSelf,
+        }),
+        // M3-W3 — The End of Time miniset: Triennium Rex (END_015) — the
+        // Kindred and the Deathrattle share the same effect (the kindred
+        // OnPlay fires when a second Beast is played).
+        "END_015" => Some(&KindredEffect::OnPlay {
+            effect: CardEffect::AddRandomDeathrattleMinionCostsLess,
         }),
         _ => None,
     }
@@ -368,7 +378,7 @@ mod tests {
         for id in KINDRED_CARD_IDS {
             assert!(kindred_type(id).is_some(), "missing kindred_type for {id}");
         }
-        assert_eq!(KINDRED_CARD_IDS.len(), 27);
+        assert_eq!(KINDRED_CARD_IDS.len(), 28);
     }
 
     /// The registry's type agrees with the CardDef the play path pushes
@@ -397,7 +407,7 @@ mod tests {
             .iter()
             .filter(|id| kindred_effect(id).is_some())
             .count();
-        assert_eq!(registered, 22, "22 of the 27 cards carry a registry effect");
+        assert_eq!(registered, 23, "23 of the 28 cards carry a registry effect");
         for id in ["TLC_102", "TLC_223", "TLC_236", "TLC_251", "TLC_432"] {
             assert!(kindred_effect(id).is_none(), "{id} has a registry entry");
         }

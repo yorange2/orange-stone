@@ -309,6 +309,16 @@ pub fn spell_school(card_id: &str) -> Option<SpellSchool> {
         "TIME_855" => Some(SpellSchool::Arcane),
         "TIME_857" => Some(SpellSchool::Arcane),
         "TIME_859" => Some(SpellSchool::Arcane),
+        // M3-W3 — The End of Time miniset (the school predicates read by
+        // the quest progress and the Shadow-spell pool)
+        "END_000" => Some(SpellSchool::Shadow),
+        "END_005" => Some(SpellSchool::Shadow),
+        "END_009" => Some(SpellSchool::Nature),
+        "END_011" => Some(SpellSchool::Holy),
+        "END_020" => Some(SpellSchool::Shadow),
+        "END_023" => Some(SpellSchool::Frost),
+        "END_024" => Some(SpellSchool::Fire),
+        "END_025" => Some(SpellSchool::Fire),
         _ => None,
     }
 }
@@ -353,6 +363,13 @@ pub enum QuestCondition {
     /// Play 3 Beasts or Undead (TLC_EVENT_400 Storm the Gates — the
     /// sidequest; a played minion of either race counts once per play)
     PlayBeastsOrUndead,
+    /// Fill your hand, then empty it (END_017 Battle at the End Time — the
+    /// M3-W3 miniset quest; a SEQUENCE: the hand must reach 10 once
+    /// ("filled"), then be emptied to 0 by plays. The engine tracks the
+    /// two markers per quest in `engine::quest` (filled / emptied) and
+    /// completes on the second — the exact "fill, then empty" ordering is
+    /// preserved, §22)
+    FillThenEmptyHand,
 }
 
 /// Static definition of a quest card.
@@ -526,6 +543,19 @@ pub fn quest_def(card_id: &str) -> Option<&'static QuestDef> {
             repeatable: false,
             second: None,
         }),
+        // M3-W3 — The End of Time miniset: END_017 Battle at the End Time
+        // — "Fill your hand, then empty it. Reward: Tick and Tock" (the
+        // condition is the FillThenEmptyHand sequence; the reward summons
+        // the 8/8 Dragon token END_017t).
+        "END_017" => Some(&QuestDef {
+            condition: QuestCondition::FillThenEmptyHand,
+            target: 1,
+            reward: CardEffect::SummonMinion {
+                card_id: "END_017t", // Tick and Tock
+            },
+            repeatable: false,
+            second: None,
+        }),
         _ => None,
     }
 }
@@ -637,7 +667,7 @@ mod tests {
         assert_eq!(spell_school("UNKNOWN"), None);
     }
 
-    /// All 11 quest entries resolve, with the expected condition/target.
+    /// All 12 quest entries resolve, with the expected condition/target.
     #[test]
     fn quest_def_table_is_complete() {
         let expected: &[(&str, QuestCondition, u32, bool)] = &[
@@ -680,6 +710,7 @@ mod tests {
                 3,
                 false,
             ),
+            ("END_017", QuestCondition::FillThenEmptyHand, 1, false),
         ];
         for (id, condition, target, repeatable) in expected {
             let def = quest_def(id).unwrap_or_else(|| panic!("{id}"));

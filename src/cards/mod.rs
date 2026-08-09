@@ -41,6 +41,7 @@ pub mod exp_tlc_w4b;
 pub mod exp_tlc_w4c;
 pub mod exp_tmw_w2a;
 pub mod exp_tmw_w2b;
+pub mod exp_tmw_w3;
 pub mod generated;
 pub mod kindred;
 pub mod pool;
@@ -174,6 +175,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // Taunt / Elusive ride the CardDef fields, no Rush)
         | "TIME_209" // Muradin, High King
         | "TIME_850" // Lo'Gosh, Blood Fighter
+        // M3-W3 — The End of Time miniset
+        | "END_032" // Winged Aberration
     ) {
         world.set_rush(entity, Rush);
     }
@@ -201,6 +204,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         | "TIME_028" // Fatebreaker (M3-W2a)
         | "TIME_056" // Whelp of the Bronze (M3-W2a)
         | "TIME_427" // Cleansing Lightspawn (M3-W2a)
+        // M3-W3 — The End of Time miniset
+        | "END_025" // Eternal Firebolt (spell)
     ) {
         world.set_lifesteal(entity, Lifesteal);
     }
@@ -678,6 +683,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         "TLC_227" => Some(1), // Lava Flow
         // M3-W2a — Across the Timeways
         "TIME_014" => Some(3), // Instant Multiverse
+        // M3-W3 — The End of Time miniset
+        "END_028" => Some(2), // For All Time
         _ => None,
     };
     if let Some(amount) = overload_amount {
@@ -812,6 +819,55 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
     if card_def.id == "TIME_045" {
         // Whelp of the Infinite (M3-W2a) — Poisonous
         world.set_poison(entity, Poison);
+    }
+    // M3-W3 — The End of Time miniset per-card triggers. `spell_trigger`
+    // hardcodes FriendlySpellCast, so these ride the registration path.
+    if card_def.id == "END_008" {
+        // Enduring Roach — after you use your Hero Power, refresh 2 Mana
+        // Crystals (the HeroPowerUsed event fires after the hero power's
+        // effect resolved; the trigger is pinned to the Roach, friendly
+        // scope — any hero power use fires it)
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::HeroPowerUsed,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::RefreshManaCrystals { amount: 2 },
+            },
+        );
+    }
+    if card_def.id == "END_016" {
+        // Chronoclaws (weapon) — after your hero attacks, discard your
+        // highest Cost card (the trigger rides the weapon entity, pinned
+        // to the hero's equipped weapon like the Defiled Spear precedent)
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::HeroAttacked,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::DiscardHighestCostCard,
+            },
+        );
+    }
+    if card_def.id == "END_026" {
+        // Fragment of Nothing — after you cast a spell on a minion, draw a
+        // card (the FriendlySpellCastOnMinion event carries the target
+        // minion as the subject; the trigger is pinned to the Fragment, so
+        // ANY friendly minion target fires it)
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::FriendlySpellCastOnMinion,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::DrawCard { count: 1 },
+            },
+        );
     }
     if card_def.id == "WARRIOR_008" {
         // Warsong Commander — whenever you summon a minion with 3 or less
@@ -1341,6 +1397,8 @@ pub(crate) fn choose_one_option_names(def: &CardDef) -> [&'static str; 2] {
         // M3-W2b — the Across the Timeways legendary wave
         "TIME_211" => ["Empower Zin-Azshari", "The Well of Eternity"],
         "TIME_619" => ["Boon of Power (Taunt)", "Boon of Longevity (Lifesteal)"],
+        // M3-W3 — The End of Time miniset
+        "END_010" => ["Set Attack to 1", "Set Health to 1"],
         _ => ["First option", "Second option"],
     }
 }
@@ -2011,6 +2069,15 @@ mod generated_tests {
         // / 3-durability representation, activation in the battlecry slot).
         if id == "TIME_446" {
             return matches!(field, "card_type" | "health" | "durability");
+        }
+        // M3-W3 — END_022 Time-Twisted Seer: "Has Spell Damage +2 while
+        // damaged". The handwritten card carries the full `spell_damage: 2`
+        // (so the stats agree with the baseline and the enrage-style check
+        // in `world::total_spell_damage` skips the bonus while undamaged);
+        // the `spell_damage` field is rebalanced so the tripwire still
+        // compares it — the gate normally excludes spell_damage entirely.
+        if id == "END_022" {
+            return matches!(field, "spell_damage");
         }
         false
     }
