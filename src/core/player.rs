@@ -437,6 +437,50 @@ pub struct Player {
     /// M3-W2b — TIME_446 The Eternal Hold's deck-no-minions fallback;
     /// one-time, consumed by the next Demon play in the CardPlayed path).
     pub next_demon_cost_one: bool,
+    /// The player's own Overload total this game (2025–2026 expansions
+    /// M3-W3 — END_030 Haywire Hornswog "costs (1) less for each Overload
+    /// you've been dealt"): every overloaded card play bumps this (the
+    /// existing overload lock site); never resets — game-long).
+    pub overload_total: i32,
+    /// The player skips their NEXT turn (2025–2026 expansions M3-W3 —
+    /// END_037 Endtime Murozond's battlecry): consumed at the start of the
+    /// player's next turn — the TurnStarted handler clears the flag and
+    /// immediately pushes `Event::TurnEnded` so the normal turn-end
+    /// sequence (triggers, wrap-up, pass to the opponent) runs.
+    pub skip_next_turn: bool,
+    /// A hand card whose cost is set to Infinity (2025–2026 expansions
+    /// M3-W3 — END_034 Crumblecrusher "set a random card in your hand's
+    /// cost to Infinity"): the affected card entity; the cost layer
+    /// reports the INFINITY cap while set. `None` when no card is set.
+    pub hand_card_infinity: Option<crate::core::entity::Entity>,
+    /// Undead minions this player played this turn (2025–2026 expansions
+    /// M3-W3 — END_003 Finality / END_003p imbued Death Knight hero power
+    /// "your first Undead each turn has +N Attack"): incremented at
+    /// CardPlayed for Undead minions, reset at the owner's ManaRefill step.
+    pub undead_played_this_turn: u32,
+    /// The Eternal Firebolt copy pending the player's next turn end
+    /// (2025–2026 expansions M3-W3 — END_025 "if it kills a minion, add
+    /// another Eternal Firebolt to your hand"): set by the predicted-death
+    /// split, checked and cleared at the owner's turn end — if the target
+    /// died the copy is added (a fresh END_025), otherwise the flag just
+    /// clears (the same one-card replay pattern as §22).
+    pub eternal_flame_target: Option<crate::core::entity::Entity>,
+    /// Remaining Chronikar ticks (2025–2026 expansions M3-W3 — END_006
+    /// Chronikar: +3 Attack to your hero this turn and the next two
+    /// turns — 3 total buffs): the battlecry sets 2 (the immediate buff
+    /// is the 1st), each start of turn decrements and re-buffs while > 0.
+    pub chronikar_ticks: i32,
+    /// Remaining Acceleration Aura turns (2025–2026 expansions M3-W3 —
+    /// END_011: your next three turns start with an extra Mana Crystal):
+    /// the ManaRefill hook grants +1 temporary mana per owner turn start
+    /// while this is > 0, then decrements. Set to 3 by the spell.
+    pub acceleration_aura_ticks: i32,
+    /// Splintered Reality Treants that died this game (2025–2026
+    /// expansions M3-W3 — END_009 "each of your Treants that died while
+    /// this is on the board made it cost (1) less"): bumped by the
+    /// MinionDied handler when the END_009t Treant dies, read by the
+    /// END_009 cost layer. Game-long, never resets.
+    pub treants_died_total: u32,
 }
 
 impl Player {
@@ -536,6 +580,14 @@ impl Player {
             last_turn_minion_play_ids: Vec::new(),
             minions_played_this_turn_ids: Vec::new(),
             next_demon_cost_one: false,
+            overload_total: 0,
+            skip_next_turn: false,
+            hand_card_infinity: None,
+            undead_played_this_turn: 0,
+            eternal_flame_target: None,
+            chronikar_ticks: 0,
+            acceleration_aura_ticks: 0,
+            treants_died_total: 0,
         }
     }
 }

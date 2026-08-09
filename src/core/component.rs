@@ -259,6 +259,14 @@ pub enum ImbueClass {
     Priest,
     /// Shaman — Blessing of the Wind (EDR_448p)
     Shaman,
+    /// Rogue — the Timeways miniset hero power (END_000p, from the END_000
+    /// Eventuality battlecry / imbue); costs 1, draws an other-class minion
+    /// and Rewinds (2025–2026 expansions M3-W3)
+    Rogue,
+    /// Death Knight — the Timeways miniset hero power (END_003p, from the
+    /// END_003 Finality battlecry / imbue); costs 0, buffs the first Undead
+    /// played each turn (2025–2026 expansions M3-W3)
+    DeathKnight,
 }
 
 impl ImbueClass {
@@ -275,6 +283,8 @@ impl ImbueClass {
             "HERO_06" => Some(Self::Druid),
             "HERO_08" => Some(Self::Mage),
             "HERO_09" => Some(Self::Priest),
+            "HERO_03" => Some(Self::Rogue),
+            "HERO_10" => Some(Self::DeathKnight),
             _ => None,
         }
     }
@@ -384,6 +394,11 @@ pub enum AuraEffect {
     /// is wired at the battlecry / weapon play / choose-one / deathrattle /
     /// hero-power / turn-end trigger sites. Silenceable like every aura.
     DoubleTriggers,
+    /// Rewind replays are doubled while the source is on the board
+    /// (2025–2026 expansions M3-W3 — END_036 Morchie: while this is on the
+    /// board, Rewind triggers twice; consulted by `engine::rewind` — the
+    /// same unit-marker pattern as `DoubleTriggers`, §22)
+    RewindKeepsBothOutcomes,
 }
 
 /// Aura target scope.
@@ -452,6 +467,12 @@ pub enum SecretTrigger {
     /// PlayedThisTurn marker is set at play and cleared at turn start, so
     /// a same-turn death also fires the secret, §20)
     WhenFriendlyMinionDiedTurnAfterPlayed,
+    /// At the end of the ENEMY's turn (2025–2026 expansions M3-W3 —
+    /// END_024 Flames of Infinity: at the end of your opponent's turn,
+    /// deal infinite damage to their highest-health minion; the enemy
+    /// turn's `Event::TurnEnded` is the event, matching `Event::TurnEnded {
+    /// player }` against the opponent)
+    WhenEnemyTurnEnds,
 }
 
 /// Divine Shield — absorbs one instance of damage, then disappears.
@@ -593,6 +614,19 @@ pub enum TriggerEvent {
     /// before the damage resolves, the Slam convention, so the triggers
     /// are pinned to the damaged minion like ThisMinionDamaged)
     SurvivedDamage,
+    /// A friendly spell was cast ON a friendly MINION, with the target as
+    /// the subject (2025–2026 expansions M3-W3 — END_026 Fragment of
+    /// Nothing: draw a card after you cast a spell on a minion; the
+    /// trigger is pinned to the Fragment itself, so it fires when ANY
+    /// friendly minion is the target of a friendly spell — the subject
+    /// identifies the target). The `Event::SpellCast` site threads the
+    /// target through `target: Option<Entity>`.
+    FriendlySpellCastOnMinion,
+    /// The OWNER activated their hero power, with the hero-power entity as
+    /// the subject (2025–2026 expansions M3-W3 — END_008 Enduring Roach:
+    /// refresh 2 Mana Crystals after you use your hero power; fired by the
+    /// HeroPowerActivated handler after the power's effect resolves)
+    HeroPowerUsed,
 }
 
 /// Trigger timing — Hearthstone's "whenever" / "after" classification.
@@ -935,9 +969,12 @@ mod tests {
         assert!(!AttacksUsed(0).is_exhausted_with(1));
     }
 
-    /// The hero-card-ID → imbue class mapping (2025–2026 expansions M1-W1):
-    /// the six imbuing classes resolve, the other four classes and unknown
-    /// IDs (no card ID — the `GameState::new()` defaults) resolve to `None`.
+    /// The hero-card-ID → imbue class mapping (2025–2026 expansions M1-W1,
+    /// extended M3-W3): the eight imbuing classes resolve — the six of
+    /// M1-W1 plus Rogue and Death Knight (The End of Time miniset: END_000p
+    /// and END_003p), the remaining two classes (Warrior, Warlock) and
+    /// unknown IDs (no card ID — the `GameState::new()` defaults) resolve
+    /// to `None`.
     #[test]
     fn imbue_class_from_hero_card_id_mapping() {
         use super::ImbueClass;
@@ -965,11 +1002,19 @@ mod tests {
             ImbueClass::from_hero_card_id("HERO_02"),
             Some(ImbueClass::Shaman)
         );
-        // Warrior / Rogue / Warlock / Death Knight — no imbued form
+        // M3-W3 — The End of Time: Rogue (END_000p Blessing of the Bronze)
+        // and Death Knight (END_003p Blessing of the Infinite)
+        assert_eq!(
+            ImbueClass::from_hero_card_id("HERO_03"),
+            Some(ImbueClass::Rogue)
+        );
+        assert_eq!(
+            ImbueClass::from_hero_card_id("HERO_10"),
+            Some(ImbueClass::DeathKnight)
+        );
+        // Warrior / Warlock — no imbued form
         assert_eq!(ImbueClass::from_hero_card_id("HERO_01"), None);
-        assert_eq!(ImbueClass::from_hero_card_id("HERO_03"), None);
         assert_eq!(ImbueClass::from_hero_card_id("HERO_07"), None);
-        assert_eq!(ImbueClass::from_hero_card_id("HERO_10"), None);
         assert_eq!(ImbueClass::from_hero_card_id("CORE_EX1_323"), None);
         assert_eq!(ImbueClass::from_hero_card_id(""), None);
     }

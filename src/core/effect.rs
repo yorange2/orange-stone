@@ -3627,6 +3627,177 @@ pub enum CardEffect {
     /// Silence and destroy all other minions (TIME_890 Medivh the
     /// Hallowed)
     SilenceAndDestroyAllOtherMinions,
+    // ----------------------------------------------------------------
+    // M3-W3 — the Across the Timeways closing wave (The End of Time
+    // miniset, 38 END_ cards; fidelity-debt §22, en + zh).
+    /// Deal damage to a target, then imbue the hero power (END_000
+    /// Eventuality — "Deal 2 damage. Imbue your Hero Power"; the
+    /// unqualified damage text follows the Elven Archer AnyCharacter
+    /// convention)
+    DealDamageAndImbue {
+        /// Damage amount
+        amount: i32,
+        /// Damage target
+        target: EffectTarget,
+    },
+    /// Draw an Undead, then imbue the hero power twice (END_003 Finality)
+    DrawUndeadAndImbueTwice,
+    /// Equip a 1/2 Dagger; when the owner already wields a weapon, give it
+    /// +2 Attack instead (END_002 Wicked Blightspawn deathrattle)
+    EquipDaggerOrBuffWeapon,
+    /// Summon a random 4-Cost minion; spend 4 Corpses to summon another;
+    /// when the spell was Outcast, summon a third (END_005 Bygone Echoes —
+    /// the Outcast and corpse branches stack)
+    BygoneEchoesSummon,
+    /// Give the hero +3 Attack this turn, next turn, and the turn after
+    /// (END_006 Chronikar battlecry — the battlecry applies the current
+    /// turn's buff and arms the two-turn `chronikar_ticks` counter)
+    ChronikarHeroAttackBuff,
+    /// The start-of-turn half of END_006 Chronikar: while
+    /// `chronikar_ticks` > 0, decrement it and re-apply the +3 Attack
+    /// until end of turn (the third turn's buff)
+    ChronikarRebuff,
+    /// Deal 1 damage, give the hero +1 Attack this turn, draw a card, and
+    /// gain 1 Armor (END_007 Press the Advantage — the four parts in one
+    /// resolution)
+    PressTheAdvantage,
+    /// Refresh the owner's Mana Crystals by the given amount (END_008
+    /// Enduring Roach — "After you use your Hero Power, refresh 2 Mana
+    /// Crystals")
+    RefreshManaCrystals {
+        /// Mana refreshed
+        amount: i32,
+    },
+    /// Summon two 2/2 Treants that gain +1/+1 for each friendly Treant
+    /// that died this game (END_009 Splintered Reality — the per-player
+    /// `treants_died_total` counter)
+    SummonTwoTreantsScaling,
+    /// Set the Attack of all other minions to the given value (END_010
+    /// Twilight Timereaver choose-one branch 0 — "all other minions" =
+    /// every minion on both boards except the source minion itself)
+    SetAllOtherMinionsAttack {
+        /// Attack value
+        attack: i32,
+    },
+    /// Set the Health of all other minions to the given value (END_010
+    /// Twilight Timereaver choose-one branch 1)
+    SetAllOtherMinionsHealth {
+        /// Health value
+        health: i32,
+    },
+    /// Arm the owner's `acceleration_aura_ticks` counter to 3 (END_011
+    /// Acceleration Aura — the ManaRefill step grants one temporary Mana
+    /// Crystal and decrements at each of the owner's next three turn
+    /// starts)
+    ArmAccelerationAura,
+    /// Set the equipped weapon's Attack to the INFINITY cap for this turn
+    /// (END_012 Hand of Infinity — "Set this weapon's Attack to INFINITY
+    /// this turn"; the cap is `exp_tmw_w2b::INFINITY_ATTACK_CAP`, §22)
+    SetWeaponAttackInfinityThisTurn,
+    /// Deal damage to an enemy; when it dies, give a random friendly
+    /// minion +A/+H (END_014 Synchronized Spark — the predicted-death
+    /// convention of DealDamageGainArmorIfKilled)
+    DamageAndBuffFriendlyIfKilled {
+        /// Damage amount
+        amount: i32,
+        /// Buff attack
+        attack: i32,
+        /// Buff health
+        health: i32,
+    },
+    /// Get a random Deathrattle minion; it costs (2) less (END_015
+    /// Triennium Rex — the shared Kindred OnPlay and Deathrattle effect)
+    AddRandomDeathrattleMinionCostsLess,
+    /// Discard the owner's highest-Cost hand card (END_016 Chronoclaws —
+    /// "After your hero attacks, discard your highest Cost card")
+    DiscardHighestCostCard,
+    /// Draw cards until the hand is full (END_017t Tick and Tock
+    /// battlecry — the 10-card hand cap, F-A11)
+    DrawUntilHandFull,
+    /// Empty the opponent's hand — every card is destroyed (END_017t Tick
+    /// and Tock deathrattle)
+    EmptyOpponentHand,
+    /// Set the Cost of a random card in the owner's hand to the INFINITY
+    /// cap, recorded in `Player::hand_card_infinity` (END_018 Acolyte of
+    /// Infinity battlecry — §22)
+    SetRandomHandCardCostInfinity,
+    /// Restore the recorded `hand_card_infinity` card's Cost to its def
+    /// value when it is still in the hand (END_018 Acolyte of Infinity
+    /// deathrattle)
+    RestoreInfinityHandCardCost,
+    /// Gain +A/+H when the owner's hero took damage this turn (END_019
+    /// Endtime Survivor battlecry — reads `hero_damaged_this_turn`)
+    GainStatsIfHeroDamagedThisTurn {
+        /// Attack gain
+        attack: i32,
+        /// Health gain
+        health: i32,
+    },
+    /// Deal 1 damage to a minion; when it survives, draw a card; when it
+    /// dies, summon a random 1-Cost minion (END_020 Eternal Toil — the
+    /// predicted-death convention)
+    DamageMinionDrawIfSurvivesSummonIfDies {
+        /// Damage amount
+        amount: i32,
+    },
+    /// Give all minions and weapons in the owner's hand +A Attack (END_021
+    /// Dimensional Weaponsmith battlecry)
+    BuffHandMinionsAndWeapons {
+        /// Attack bonus
+        attack: i32,
+    },
+    /// Freeze a minion and its neighbors; destroy any that are damaged
+    /// (END_023 Bitter End — the neighbors are the adjacent board slots)
+    FreezeMinionAndNeighborsDestroyDamaged,
+    /// Deal the INFINITY cap of damage to the enemy minion with the
+    /// highest Health (END_024 Flames of Infinity secret — resolved by
+    /// `secret.rs` with the TurnEnded context; §22)
+    InfiniteDamageToHighestHealthEnemyMinion,
+    /// Deal damage to a minion; when it dies, record it in
+    /// `Player::eternal_flame_target` — the owner's turn end adds a fresh
+    /// END_025 copy to the hand (the return-to-hand shape, §22)
+    DamageMinionEternalFirebolt {
+        /// Damage amount
+        amount: i32,
+    },
+    /// Destroy all minions with 4 or less Attack (END_028 For All Time)
+    DestroyAllMinionsWith4OrLessAttack,
+    /// Add a random Shadow spell to the owner's hand (END_029 Voodoo
+    /// Totem end-of-turn effect)
+    AddRandomShadowSpell,
+    /// Lock the given Overload for the owner's next turn, then gain
+    /// Immune this turn and Windfury (END_032 Winged Aberration combo —
+    /// the lock mirrors the overload play site, §22)
+    OverloadForAndGainImmuneWindfury {
+        /// Overload locked
+        overload: i32,
+    },
+    /// Destroy a random enemy minion, the enemy's location, and the
+    /// enemy's weapon (END_034 Crumblecrusher battlecry)
+    DestroyRandomEnemyMinionLocationWeapon,
+    /// Destroy the top 5 cards of the enemy deck when the owner's deck is
+    /// empty (END_035 Omen of the End battlecry)
+    DestroyTopFiveEnemyDeckIfOwnEmpty,
+    /// Fill the owner's board with random Dragons, fully heal the hero,
+    /// and skip the owner's next turn (END_037 Endtime Murozond battlecry
+    /// — the skip is the `skip_next_turn` player flag, consumed at the
+    /// owner's next TurnStarted)
+    FillBoardRandomDragonsHealHeroSkipNextTurn,
+    /// Get a random minion from another class; it costs the given amount
+    /// less (END_000p Blessing of the Bronze Rogue hero power — the
+    /// reduction scales with the imbue level; the official number is
+    /// truncated in the dump, §22)
+    GetRandomOtherClassMinionCostsLess {
+        /// Cost reduction
+        reduction: i32,
+    },
+    /// Buff the first Undead the owner plays this turn with +A Attack
+    /// (END_003p Blessing of the Infinite Death Knight hero power — the
+    /// hero-pinned trigger reads `undead_played_this_turn`, §22)
+    BuffFirstUndeadPlayedEachTurn {
+        /// Attack granted
+        attack: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -5158,6 +5329,72 @@ enum CardEffectDe {
     GetThreeRandomSpellsFromPastTracked,
     DestroyHeldKingLlaneAndHalveEnemyHealth,
     SilenceAndDestroyAllOtherMinions,
+    // M3-W3 — the Across the Timeways closing wave (The End of Time
+    // miniset, 38 END_ cards; the mirror stays in lockstep with the
+    // CardEffect declarations above, enforced by
+    // `card_effect_de_mirror_order_matches`).
+    DealDamageAndImbue {
+        amount: i32,
+        target: EffectTarget,
+    },
+    DrawUndeadAndImbueTwice,
+    EquipDaggerOrBuffWeapon,
+    BygoneEchoesSummon,
+    ChronikarHeroAttackBuff,
+    ChronikarRebuff,
+    PressTheAdvantage,
+    RefreshManaCrystals {
+        amount: i32,
+    },
+    SummonTwoTreantsScaling,
+    SetAllOtherMinionsAttack {
+        attack: i32,
+    },
+    SetAllOtherMinionsHealth {
+        health: i32,
+    },
+    ArmAccelerationAura,
+    SetWeaponAttackInfinityThisTurn,
+    DamageAndBuffFriendlyIfKilled {
+        amount: i32,
+        attack: i32,
+        health: i32,
+    },
+    AddRandomDeathrattleMinionCostsLess,
+    DiscardHighestCostCard,
+    DrawUntilHandFull,
+    EmptyOpponentHand,
+    SetRandomHandCardCostInfinity,
+    RestoreInfinityHandCardCost,
+    GainStatsIfHeroDamagedThisTurn {
+        attack: i32,
+        health: i32,
+    },
+    DamageMinionDrawIfSurvivesSummonIfDies {
+        amount: i32,
+    },
+    BuffHandMinionsAndWeapons {
+        attack: i32,
+    },
+    FreezeMinionAndNeighborsDestroyDamaged,
+    InfiniteDamageToHighestHealthEnemyMinion,
+    DamageMinionEternalFirebolt {
+        amount: i32,
+    },
+    DestroyAllMinionsWith4OrLessAttack,
+    AddRandomShadowSpell,
+    OverloadForAndGainImmuneWindfury {
+        overload: i32,
+    },
+    DestroyRandomEnemyMinionLocationWeapon,
+    DestroyTopFiveEnemyDeckIfOwnEmpty,
+    FillBoardRandomDragonsHealHeroSkipNextTurn,
+    GetRandomOtherClassMinionCostsLess {
+        reduction: i32,
+    },
+    BuffFirstUndeadPlayedEachTurn {
+        attack: i32,
+    },
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -6876,6 +7113,90 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::SilenceAndDestroyAllOtherMinions => {
                 CardEffect::SilenceAndDestroyAllOtherMinions
             }
+            // M3-W3 — the Across the Timeways closing wave (The End of
+            // Time miniset).
+            CardEffectDe::DealDamageAndImbue { amount, target } => {
+                CardEffect::DealDamageAndImbue { amount, target }
+            }
+            CardEffectDe::DrawUndeadAndImbueTwice => CardEffect::DrawUndeadAndImbueTwice,
+            CardEffectDe::EquipDaggerOrBuffWeapon => CardEffect::EquipDaggerOrBuffWeapon,
+            CardEffectDe::BygoneEchoesSummon => CardEffect::BygoneEchoesSummon,
+            CardEffectDe::ChronikarHeroAttackBuff => CardEffect::ChronikarHeroAttackBuff,
+            CardEffectDe::ChronikarRebuff => CardEffect::ChronikarRebuff,
+            CardEffectDe::PressTheAdvantage => CardEffect::PressTheAdvantage,
+            CardEffectDe::RefreshManaCrystals { amount } => {
+                CardEffect::RefreshManaCrystals { amount }
+            }
+            CardEffectDe::SummonTwoTreantsScaling => CardEffect::SummonTwoTreantsScaling,
+            CardEffectDe::SetAllOtherMinionsAttack { attack } => {
+                CardEffect::SetAllOtherMinionsAttack { attack }
+            }
+            CardEffectDe::SetAllOtherMinionsHealth { health } => {
+                CardEffect::SetAllOtherMinionsHealth { health }
+            }
+            CardEffectDe::ArmAccelerationAura => CardEffect::ArmAccelerationAura,
+            CardEffectDe::SetWeaponAttackInfinityThisTurn => {
+                CardEffect::SetWeaponAttackInfinityThisTurn
+            }
+            CardEffectDe::DamageAndBuffFriendlyIfKilled {
+                amount,
+                attack,
+                health,
+            } => CardEffect::DamageAndBuffFriendlyIfKilled {
+                amount,
+                attack,
+                health,
+            },
+            CardEffectDe::AddRandomDeathrattleMinionCostsLess => {
+                CardEffect::AddRandomDeathrattleMinionCostsLess
+            }
+            CardEffectDe::DiscardHighestCostCard => CardEffect::DiscardHighestCostCard,
+            CardEffectDe::DrawUntilHandFull => CardEffect::DrawUntilHandFull,
+            CardEffectDe::EmptyOpponentHand => CardEffect::EmptyOpponentHand,
+            CardEffectDe::SetRandomHandCardCostInfinity => {
+                CardEffect::SetRandomHandCardCostInfinity
+            }
+            CardEffectDe::RestoreInfinityHandCardCost => CardEffect::RestoreInfinityHandCardCost,
+            CardEffectDe::GainStatsIfHeroDamagedThisTurn { attack, health } => {
+                CardEffect::GainStatsIfHeroDamagedThisTurn { attack, health }
+            }
+            CardEffectDe::DamageMinionDrawIfSurvivesSummonIfDies { amount } => {
+                CardEffect::DamageMinionDrawIfSurvivesSummonIfDies { amount }
+            }
+            CardEffectDe::BuffHandMinionsAndWeapons { attack } => {
+                CardEffect::BuffHandMinionsAndWeapons { attack }
+            }
+            CardEffectDe::FreezeMinionAndNeighborsDestroyDamaged => {
+                CardEffect::FreezeMinionAndNeighborsDestroyDamaged
+            }
+            CardEffectDe::InfiniteDamageToHighestHealthEnemyMinion => {
+                CardEffect::InfiniteDamageToHighestHealthEnemyMinion
+            }
+            CardEffectDe::DamageMinionEternalFirebolt { amount } => {
+                CardEffect::DamageMinionEternalFirebolt { amount }
+            }
+            CardEffectDe::DestroyAllMinionsWith4OrLessAttack => {
+                CardEffect::DestroyAllMinionsWith4OrLessAttack
+            }
+            CardEffectDe::AddRandomShadowSpell => CardEffect::AddRandomShadowSpell,
+            CardEffectDe::OverloadForAndGainImmuneWindfury { overload } => {
+                CardEffect::OverloadForAndGainImmuneWindfury { overload }
+            }
+            CardEffectDe::DestroyRandomEnemyMinionLocationWeapon => {
+                CardEffect::DestroyRandomEnemyMinionLocationWeapon
+            }
+            CardEffectDe::DestroyTopFiveEnemyDeckIfOwnEmpty => {
+                CardEffect::DestroyTopFiveEnemyDeckIfOwnEmpty
+            }
+            CardEffectDe::FillBoardRandomDragonsHealHeroSkipNextTurn => {
+                CardEffect::FillBoardRandomDragonsHealHeroSkipNextTurn
+            }
+            CardEffectDe::GetRandomOtherClassMinionCostsLess { reduction } => {
+                CardEffect::GetRandomOtherClassMinionCostsLess { reduction }
+            }
+            CardEffectDe::BuffFirstUndeadPlayedEachTurn { attack } => {
+                CardEffect::BuffFirstUndeadPlayedEachTurn { attack }
+            }
         })
     }
 }
@@ -7649,6 +7970,52 @@ mod tests {
             CardEffect::GetThreeRandomSpellsFromPastTracked,
             CardEffect::DestroyHeldKingLlaneAndHalveEnemyHealth,
             CardEffect::SilenceAndDestroyAllOtherMinions,
+            // M3-W3 — the Across the Timeways closing wave (The End of
+            // Time miniset; every new variant gets a roundtrip entry).
+            CardEffect::DealDamageAndImbue {
+                amount: 2,
+                target: EffectTarget::AnyCharacter,
+            },
+            CardEffect::DrawUndeadAndImbueTwice,
+            CardEffect::EquipDaggerOrBuffWeapon,
+            CardEffect::BygoneEchoesSummon,
+            CardEffect::ChronikarHeroAttackBuff,
+            CardEffect::ChronikarRebuff,
+            CardEffect::PressTheAdvantage,
+            CardEffect::RefreshManaCrystals { amount: 2 },
+            CardEffect::SummonTwoTreantsScaling,
+            CardEffect::SetAllOtherMinionsAttack { attack: 1 },
+            CardEffect::SetAllOtherMinionsHealth { health: 1 },
+            CardEffect::ArmAccelerationAura,
+            CardEffect::SetWeaponAttackInfinityThisTurn,
+            CardEffect::DamageAndBuffFriendlyIfKilled {
+                amount: 3,
+                attack: 3,
+                health: 3,
+            },
+            CardEffect::AddRandomDeathrattleMinionCostsLess,
+            CardEffect::DiscardHighestCostCard,
+            CardEffect::DrawUntilHandFull,
+            CardEffect::EmptyOpponentHand,
+            CardEffect::SetRandomHandCardCostInfinity,
+            CardEffect::RestoreInfinityHandCardCost,
+            CardEffect::GainStatsIfHeroDamagedThisTurn {
+                attack: 3,
+                health: 3,
+            },
+            CardEffect::DamageMinionDrawIfSurvivesSummonIfDies { amount: 1 },
+            CardEffect::BuffHandMinionsAndWeapons { attack: 2 },
+            CardEffect::FreezeMinionAndNeighborsDestroyDamaged,
+            CardEffect::InfiniteDamageToHighestHealthEnemyMinion,
+            CardEffect::DamageMinionEternalFirebolt { amount: 3 },
+            CardEffect::DestroyAllMinionsWith4OrLessAttack,
+            CardEffect::AddRandomShadowSpell,
+            CardEffect::OverloadForAndGainImmuneWindfury { overload: 2 },
+            CardEffect::DestroyRandomEnemyMinionLocationWeapon,
+            CardEffect::DestroyTopFiveEnemyDeckIfOwnEmpty,
+            CardEffect::FillBoardRandomDragonsHealHeroSkipNextTurn,
+            CardEffect::GetRandomOtherClassMinionCostsLess { reduction: 1 },
+            CardEffect::BuffFirstUndeadPlayedEachTurn { attack: 1 },
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
@@ -7744,4 +8111,11 @@ pub enum RandomPool {
     /// A random weapon (2025–2026 expansions M3-W2a — TIME_034 Stadium
     /// Announcer's "both players equip a random weapon")
     RandomWeapon,
+    /// A random 1-Cost minion (2025–2026 expansions M3-W3 — END_013
+    /// Brutish Endmaw's "Discover a 1-Cost minion")
+    OneCostMinion,
+    /// A random minion from another class (2025–2026 expansions M3-W3 —
+    /// END_000p Blessing of the Bronze; the class filter is the
+    /// `OtherClass` precedent, restricted to minions)
+    OtherClassMinion,
 }

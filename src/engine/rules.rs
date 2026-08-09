@@ -372,6 +372,21 @@ fn validate_attack(
         return Err(EngineError::InvalidTarget);
     }
 
+    // M3-W3 — Hand of Infinity (END_012): "Can't attack heroes" — the
+    // equipped hero wielding the weapon may attack minions only. NOT the
+    // `cant_attack` component (that blocks ALL attacks); the restriction
+    // is an ID-keyed check at validation, the same shape as the
+    // Rush-on-hero check (§22).
+    if defender_type == CardType::Hero
+        && attacker_type == CardType::Hero
+        && state
+            .player(attacker_player)
+            .weapon
+            .is_some_and(|w| world.card_id(w).is_some_and(|c| c.0 == "END_012"))
+    {
+        return Err(EngineError::InvalidTarget);
+    }
+
     // Taunt check: if the enemy board has taunt minions, a taunt must be
     // attacked — unless a friendly Kayn Sunfury is on the board (Core Set
     // W5: friendly attacks ignore Taunt)
@@ -810,6 +825,21 @@ pub fn apply_event(
 ) -> Result<(), EngineError> {
     match event {
         Event::TurnStarted { player } => {
+            // M3-W3 — Endtime Murozond (END_037): "Skip your next turn" —
+            // the flag set by the battlecry is consumed here: the turn is
+            // ended immediately (the TurnEnded handler runs the normal end
+            // sequence and hands the turn to the opponent), so the skipped
+            // player never refills mana, draws, or enters Main (§22).
+            if state.player(player).skip_next_turn {
+                state.make_mut().players[player.index()].skip_next_turn = false;
+                // The skipped turn is treated as this player's "active" turn
+                // while it ends, so the wrap-up boundary (which starts the
+                // turn of `active_player().opponent()`) hands the initiative
+                // straight to the opponent.
+                state.set_active_player(player);
+                queue.push(Event::TurnEnded { player });
+                return Ok(());
+            }
             // Ravenous Flock (M2-W4a): "At the start of your next turn, summon
             // three 2/1 Hatchlings" — the flag set by the play effect fires
             // here, once, at the owner's next turn start.
@@ -1193,6 +1223,25 @@ pub fn apply_event(
                 );
                 state.make_mut().players[player.index()].last_turn_minion_play_ids = played;
             }
+            // M3-W3 — Eternal Firebolt (END_025): "If it dies, return this
+            // to your hand at the end of your turn" — the recorded target's
+            // death returns a fresh copy of the spell to the owner's hand
+            // (the played spell card itself sits in the graveyard; the
+            // returned copy is the base card, F-A11 hand cap applies). The
+            // record is consumed either way.
+            if let Some(flame_target) = state.player(player).eternal_flame_target {
+                state.make_mut().players[player.index()].eternal_flame_target = None;
+                let dead = state.world().zone(flame_target) != Some(Zone::Play)
+                    || state
+                        .world()
+                        .effective_health(flame_target)
+                        .is_some_and(|h| h.is_dead());
+                if dead {
+                    if let Some(def) = crate::cards::def::card_by_id("END_025") {
+                        trigger::add_card_to_hand(state, player, def);
+                    }
+                }
+            }
         }
         Event::CardPlayed {
             player,
@@ -1220,6 +1269,13 @@ pub fn apply_event(
                 && state
                     .world()
                     .has_race(card, crate::core::component::Race::Dragon);
+            // M3-W3 — whether the played card is an Undead (Blessing of the
+            // Infinite's per-turn counter, END_003p) — captured before the
+            // player block below.
+            let is_undead = is_minion
+                && state
+                    .world()
+                    .has_race(card, crate::core::component::Race::Undead);
             // M2-W4a: the CostHealth marker (Whispering Stone's gotten Fel
             // spells) pays Health instead of Mana, like Death Metal Knight's
             // id-keyed pay-health branch.
@@ -1332,6 +1388,15 @@ pub fn apply_event(
                     // "your first Dragon each turn costs (1)"
                     if is_dragon {
                         p.dragons_played_this_turn += 1;
+                    }
+                    // M3-W3 — Blessing of the Infinite (END_003p, the
+                    // Death Knight imbued hero power): the per-turn Undead
+                    // play counter. Incremented BEFORE the CardPlayed
+                    // triggers fire (the passive's trigger reads it — a
+                    // counter above 1 means the first Undead already
+                    // played, §22). Reset at the owner's ManaRefill step.
+                    if is_undead {
+                        p.undead_played_this_turn += 1;
                     }
                 }
                 // Preparation (W11): the discount is one-time — the first
@@ -1506,6 +1571,7 @@ pub fn apply_event(
                         Event::SpellCast {
                             player,
                             spell: card,
+                            target,
                         },
                         Priority::Lowest,
                     );
@@ -1537,6 +1603,7 @@ pub fn apply_event(
                                 Event::SpellCast {
                                     player,
                                     spell: card,
+                                    target,
                                 },
                                 Priority::Lowest,
                             );
@@ -1571,6 +1638,7 @@ pub fn apply_event(
                                 Event::SpellCast {
                                     player,
                                     spell: card,
+                                    target,
                                 },
                                 Priority::Lowest,
                             );
@@ -1666,6 +1734,7 @@ pub fn apply_event(
                                     Event::SpellCast {
                                         player,
                                         spell: card,
+                                        target,
                                     },
                                     Priority::Lowest,
                                 );
@@ -1966,6 +2035,12 @@ pub fn apply_event(
             if let Some(overload) = state.world().overload(card) {
                 let inner = state.make_mut();
                 inner.players[player.index()].overload_locked += overload.0;
+                // M3-W3 — Haywire Hornswog (END_030) counts the Mana
+                // Crystals Overloaded this GAME: the game-long counter
+                // grows alongside the per-turn lock (the effect-based
+                // overload of Winged Aberration END_032 bumps it in its
+                // own resolution arm).
+                inner.players[player.index()].overload_total += overload.0;
                 // Registered FriendlyOverloadPlayed triggers fire (Unbound Elemental)
                 fire_triggers(
                     state,
@@ -2015,6 +2090,20 @@ pub fn apply_event(
                 .has_race(card, crate::core::component::Race::Demon)
             {
                 state.make_mut().players[player.index()].next_demon_cost_one = false;
+            }
+            // M3-W3 — Battle at the End Time (END_017): "Fill your hand,
+            // then empty it" — the emptied half fires when a play empties
+            // the hand (the filled half fires at the draw/get funnels in
+            // trigger.rs; the two markers dedup the sequence, §22).
+            if state.world().zones().len(Zone::Hand, player) == 0 {
+                crate::engine::quest::progress(
+                    state,
+                    queue,
+                    player,
+                    crate::cards::quest::QuestCondition::FillThenEmptyHand,
+                    1,
+                    Some(1),
+                );
             }
             // Card-played triggers (Questing Adventurer — whenever YOU play a
             // card): fire after the card fully resolved (effect included).
@@ -2855,6 +2944,20 @@ pub fn apply_event(
             }
             let owner = state.world().player(minion);
 
+            // M3-W3 — Splintered Reality (END_009): "They gain +1/+1 for
+            // each friendly Treant that died this game" — the game-long
+            // counter grows on every friendly Treant death (the
+            // died-this-game tracking, the Umbra precedent).
+            if let Some(owner) = owner {
+                if state
+                    .world()
+                    .card_id(minion)
+                    .is_some_and(|c| c.0 == "END_009t")
+                {
+                    state.make_mut().players[owner.index()].treants_died_total += 1;
+                }
+            }
+
             // Reborn (Core Set W1): the first death resurrects the minion as
             // a fresh 1/1 instead of dying — all buffs cleared, base stats
             // 1/1, Reborn spent, summoning sickness applied (a Rush/Charge
@@ -3094,6 +3197,18 @@ pub fn apply_event(
                 if deios_doubling(state, player) {
                     trigger::resolve_effect(state, queue, hero, player, effect, target, None);
                 }
+                // M3-W3 — HeroPowerUsed triggers (END_008 Enduring Roach:
+                // "After you use your Hero Power, refresh 2 Mana Crystals")
+                // fire after the power's effect resolved, with the hero as
+                // the subject (§22).
+                fire_triggers(
+                    state,
+                    queue,
+                    TriggerEvent::HeroPowerUsed,
+                    player,
+                    Some(hero),
+                    None,
+                );
             }
         }
         Event::WeaponEquipped { .. } => {
@@ -3118,7 +3233,11 @@ pub fn apply_event(
         Event::SecretRevealed { .. } => {
             // Notification event — the secret effect is resolved through the trigger system
         }
-        Event::SpellCast { player, spell } => {
+        Event::SpellCast {
+            player,
+            spell,
+            target,
+        } => {
             // HS: deaths caused by the spell resolve BEFORE "after you cast"
             // triggers fire (a Wild Pyromancer killed by the spell must not
             // fire). When the spell left pending deaths, defer the trigger
@@ -3126,7 +3245,14 @@ pub fn apply_event(
             // re-push this event at Lowest; the second pass sees an empty
             // pending-death batch and fires the triggers.
             if !state.pending_deaths().is_empty() && process_pending_deaths(state, queue) {
-                queue.push_with_priority(Event::SpellCast { player, spell }, Priority::Lowest);
+                queue.push_with_priority(
+                    Event::SpellCast {
+                        player,
+                        spell,
+                        target,
+                    },
+                    Priority::Lowest,
+                );
                 return Ok(());
             }
             // New Moon upgrade counter (M1-W4a): one per cast spell — AFTER
@@ -3202,6 +3328,25 @@ pub fn apply_event(
                 Some(spell),
                 None,
             );
+            // M3-W3 — END_026 Fragment of Nothing: "after you cast a spell
+            // ON A MINION, draw a card". The spell's explicit target (when
+            // the cast had one — `Event::SpellCast.target`) identifies the
+            // minion; the trigger is pinned to the Fragment, so this fires
+            // whenever ANY friendly minion is the target of a friendly
+            // spell. Fired after the FriendlySpellCast / AnySpellCast
+            // triggers — same position as the after-cast block.
+            if let Some(t) = target {
+                if state.world().card_type(t) == Some(CardType::Minion) {
+                    fire_triggers(
+                        state,
+                        queue,
+                        TriggerEvent::FriendlySpellCastOnMinion,
+                        player,
+                        Some(t),
+                        None,
+                    );
+                }
+            }
         }
         Event::ChoiceResolved { choice_id, option } => {
             // Resolve the pending choice (roadmap G6). The choice was validated
@@ -3271,6 +3416,12 @@ pub fn apply_event(
                             Event::SpellCast {
                                 player,
                                 spell: card,
+                                // The choice deferred the spell's play; the
+                                // original explicit target is lost by the time
+                                // the branch resolves (M3-W3 — END_026's
+                                // FriendlySpellCastOnMinion sees no target for
+                                // choose-one spells, §22).
+                                target: None,
                             },
                             Priority::Lowest,
                         );
@@ -3702,6 +3853,17 @@ pub fn advance_step(state: &mut GameState, queue: &mut EventQueue) -> bool {
             let temp = p.temp_mana_crystal_pending;
             p.temp_mana_crystal_pending = 0;
             p.current_mana = (p.current_mana + temp).min(10);
+            // M3-W3 — Acceleration Aura (END_011): "At the start of your
+            // turn, gain a temporary Mana Crystal. Lasts 3 turns." Each
+            // own turn start consumes one tick and grants the +1 (capped
+            // at 10 like the pending crystal above).
+            if p.acceleration_aura_ticks > 0 {
+                p.acceleration_aura_ticks -= 1;
+                p.current_mana = (p.current_mana + 1).min(10);
+            }
+            // M3-W3 — the Blessing of the Infinite per-turn counter
+            // (END_003p) resets with the turn.
+            p.undead_played_this_turn = 0;
             p.cards_played_this_turn = 0;
             p.minions_played_this_turn = 0;
             // Naralex (M1-W4b): the per-turn Dragon counter resets with the

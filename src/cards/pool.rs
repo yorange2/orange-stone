@@ -1634,6 +1634,24 @@ pub(crate) fn pool_cards(pool: RandomPool) -> Vec<&'static CardDef> {
             .iter()
             .filter_map(card_by_id_ref)
             .collect(),
+        RandomPool::OneCostMinion => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| c.card_type == CardType::Minion && c.cost == 1 && in_active_window(c))
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
+        RandomPool::OtherClassMinion => crate::cards::sets::ALL_CARDS
+            .iter()
+            .filter(|c| {
+                c.card_type == CardType::Minion && is_other_class_card(c) && in_active_window(c)
+            })
+            .copied()
+            .collect::<Vec<CardDef>>()
+            .iter()
+            .filter_map(card_by_id_ref)
+            .collect(),
     }
 }
 
@@ -1753,6 +1771,12 @@ pub(crate) fn random_card(rng: &mut GameRng, pool: RandomPool) -> Option<&'stati
                     == Some(crate::cards::quest::SpellSchool::Nature)
         }),
         RandomPool::RandomWeapon => random_filtered(rng, |c| c.card_type == CardType::Weapon),
+        RandomPool::OneCostMinion => {
+            random_filtered(rng, |c| c.card_type == CardType::Minion && c.cost == 1)
+        }
+        RandomPool::OtherClassMinion => random_filtered(rng, |c| {
+            c.card_type == CardType::Minion && is_other_class_card(c)
+        }),
     }
 }
 

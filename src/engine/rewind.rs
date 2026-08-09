@@ -26,9 +26,29 @@ pub(crate) fn resolve_replay(
     owner: PlayerId,
     entries: &[RewindEntry],
 ) {
+    // M3-W3 — Morchie (END_036): "Your Rewinds keep BOTH potential
+    // outcomes." The registered simplification (§22) resolves each replayed
+    // random-outcome effect twice — a fresh roll per resolution, which is
+    // the engine's stand-in for "both outcomes". The aura is a unit-marker
+    // (`AuraEffect::RewindKeepsBothOutcomes` on a friendly Morchie — the
+    // Deios DoubleTriggers consultation shape); a silenced Morchie drops
+    // the aura and the doubling.
+    let morchie = state
+        .world()
+        .zones()
+        .iter(crate::core::zone::Zone::Play, owner)
+        .any(|e| {
+            state.world().card_id(e).is_some_and(|c| c.0 == "END_036")
+                && state.world().aura(e).is_some_and(|a| {
+                    a.effect == crate::core::component::AuraEffect::RewindKeepsBothOutcomes
+                })
+        });
     for entry in entries {
         if let Some(effect) = entry.effect {
             trigger::resolve_effect(state, queue, source, owner, effect, None, None);
+            if morchie {
+                trigger::resolve_effect(state, queue, source, owner, effect, None, None);
+            }
         }
     }
 }

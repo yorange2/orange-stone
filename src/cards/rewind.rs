@@ -91,6 +91,12 @@ pub fn rewind_count(card_id: &str) -> u32 {
         // without carrying an instance of their own — their interplay is
         // W2's concern.
         "TIME_035" | "END_036" => 0,
+        // M3-W3 — END_000p Blessing of the Bronze (the imbued Rogue hero
+        // power, The End of Time miniset): "Rewind. Get a random minion
+        // from another class. It costs less." Hero powers never hook the
+        // rewind play path — the replay resolves INSIDE the Rogue imbued
+        // arm (trigger.rs), which reads this count; documented §22.
+        "END_000p" => 1,
         _ => 0,
     }
 }

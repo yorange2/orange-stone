@@ -962,3 +962,60 @@ F5 覆盖：`tmw2b_sylvanas_repeats_per_alleria`、
 花费）/鳍人（换回））。全部 `cargo test` 全绿（所有套件，含全部
 `tlc_w*_*`/`tmw1_*`/`tmw2a_*` 场景与 16 个 `tmw2b_*`——908 通过、
 1 忽略），`cargo fmt` 干净，`cargo clippy --all-targets` 零警告。
+
+### 22. 2025–2026 扩展 M3-W3 — "时间的终结"迷你系列，收尾波（38 张卡 + 3 张衍生物）🔓 已登记
+
+M3-W3 收尾波的已登记简化（`src/cards/exp_tmw_w3.rs`）：本迷你系列的 38 张
+END_ 卡及其产生的 3 张衍生物（END_002t 匕首、END_009t 树人、END_017t 滴答
+与嗒啦——END_029t / END_026t 在本波效果形状中无效果，跳过）。与
+§14–§21 相同，这些手写扩展卡不在 RL 池（经典 + 核心 668/659）中，各行为
+信息性登记：让代码里的简化对账本可追溯；每一行在其机制落地前保持未清偿。
+
+本波复用既有原语——灌注机制（END_000 / END_001 / END_003，含死亡骑士被动）、
+同类表（END_015）、黑暗馈赠施加（END_013 / END_027）、真实抉择（END_010）、
+尸体资源（END_005）、任务注册表（END_017）、重放历史（END_036）、奥秘机
+器（END_024）以及 D2 随机选取（END_013 的发现、END_014 的增益目标、
+END_018 的手牌牌、END_020 的召唤、END_027 的龙、END_034 的三次摧毁、
+END_037 的龙）——并新增一种触发形状：**敌方回合结束奥秘**
+（`SecretTrigger::WhenEnemyTurnEnds`，接入 TurnEnded 处理器，END_024）。
+
+| ID | 卡名 | 简化 | 落地时 |
+| --- | --- | --- | --- |
+| END_002 | Wicked Blightspawn | 完整亡语：无武器时装备引擎本地的 END_002t 匕首衍生物（1/2——引擎未定义潜行者匕首牌），否则已装备武器 +2 攻击 | 潜行者匕首牌 |
+| END_003 | Finality | 完整：抽一张亡灵 + 灌注两次。灌注后的死亡骑士英雄技能被动（"你每回合打出的第一张亡灵 +X 攻击"）为英雄钉扎的 CardPlayed-亡灵触发器，每次灌注重新挂载（`BuffFirstUndeadPlayedEachTurn` 携带增长后的计数） | — |
+| END_004 | Remnant of Rage | 完整："本回合每死亡一个随从便减 1 费"——双方玩家的本回合死亡列表相加（友方死亡在己方列表、敌方死亡在对方列表，双方均于各自回合结束清空） | — |
+| END_006 | Chronikar | "本回合、下回合、下下回合"近似为三个直到回合结束的 +3 攻击增益——战吼施加当前一个并挂 `chronikar_ticks = 2`；接下来两个回合开始各消耗一个 tick 重新施加 | 官方三回合附魔 |
+| END_011 | Acceleration Aura | "接下来 3 个回合"近似为：己方回合开始各获得一个临时法力水晶，持续 3 回合（`acceleration_aura_ticks` 倒计时） | 官方多回合临时水晶 |
+| END_012 | Hand of Infinity | "将此武器的攻击力设为 INFINITY"使用共享 `INFINITY_ATTACK_CAP`（100，W2b 先例）；"无法攻击英雄"为按键 ID 的挥击校验（不是 `cant_attack` 组件——英雄仍可攻击随从） | 无界数值 |
+| END_017 | Battle at the End Time | 完整：填满再清空的任务序列（`QuestCondition::FillThenEmptyHand`，标记 0 已填满 / 1 已清空——清空半在 CardPlayed 结束时、填满半在新的抽牌/入手钩子于手牌达 MAX_HAND_SIZE 时触发）。注：`add_card_to_hand` 的生成牌路径在临时 EventQueue 上解析钩子，任务完成事件在该稀有路径被丢弃 | — |
+| END_018 | Acolyte of Infinity | "将一张随机手牌的费用设为 INFINITY"使用 Cost(100) 附魔（`INFINITY_ATTACK_CAP`）；亡语经链接实体约定恢复记录的牌 | 无界数值 |
+| END_022 | Time-Twisted Seer | "受伤时法术伤害 +2"：CardDef 携带 `spell_damage: 2`；`world::total_spell_damage` 在随从未受伤时跳过该加成（按键 ID 跳过；基线对比行不含 `spell_damage`） | — |
+| END_024 | Flames of Infinity | 完整：新的敌方回合结束奥秘；"造成 INFINITE 伤害"为单次 `INFINITY_ATTACK_CAP`（100）命中——上限量级的命中足以杀死任何现实随从（平手取场上顺序靠前的随从） | 无界数值 |
+| END_025 | Eternal Firebolt | 完整：吸血（关键词）+ 回手为 `eternal_flame_target` 玩家记录——目标死亡时，所有者回合结束加入一张全新 END_025 复制 | — |
+| END_030 | Haywire Hornswog | 完整："本局每过载一个法力水晶便减 1 费"——游戏全程 `overload_total` 玩家计数器在过载锁定点累加；费用层读取它 | — |
+| END_036 | Morchie | "重放保留 BOTH 结果"光环为单元标记光环（`AuraEffect::RewindKeepsBothOutcomes`，`AuraTarget::AllFriendlyMinions`），使 `engine::rewind` 把每个重放的随机效果解析两次（随机效果变体封闭列表）；战吼发现为对 `REWIND_CARD_IDS` 的 D2 随机选取 | 官方结果追踪 |
+| END_037 | Endtime Murozond | 完整：D2 随机龙填满战场并完全治疗英雄；跳过回合为 `skip_next_turn` 玩家标记——下一个 TurnStarted 清除它并立即执行正常回合结束序列（被跳过的玩家不补法力、不抽牌、不进入主阶段；结束序列期间该玩家被设为活跃，使 wrap-up 把行动权交给对手） | — |
+| END_008 | Enduring Roach | 完整："使用英雄技能后"触发器挂 HeroPowerUsed 事件；刷新为当前法力上限 10 的补足 | — |
+| END_009t | Treant | 完整：2/2 衍生物随游戏全程友方树人死亡计数器缩放（`treants_died_total`，MinionDied 时累加） | — |
+| END_017t | Tick and Tock | 完整：8/8 奖励——战吼抽牌直到手牌满、亡语清空对手手牌 | — |
+| END_002t | Dagger | 1/2 武器衍生物为引擎本地（见 END_002） | 潜行者匕首牌 |
+| END_029t / END_026t | Shade / Fragment 衍生物 | 未实现——在本波效果形状中无效果（2026-08-09 核实） | 官方衍生物 |
+
+中文小结（同上）：见上"本波核心机制均为完整原语"段。与 §14–§21 相同，
+手写扩展卡不在 RL 池（经典 + 核心 668/659），各行为信息性登记，每一行在
+其机制落地前保持未清偿。
+
+F5 覆盖：`tmw3_*`（`tests/differential.rs` 中 22 个场景）——灌注三件套
+（潜行者 + 跨两次灌注的死亡骑士被动）；任务填满再清空与滴答和嗒啦奖励及
+空牌库不抽牌；同类授予与（2）减费和两次黑暗馈赠发现；无限之手的 INFINITY
+攻击与英雄锁定；无限之仆的 INFINITY 费用设定 + 恢复；敌方回合结束奥秘的
+INFINITY 命中；抉择数值两套（含受伤随从死亡）；克罗尼卡三回合增益；
+甲虫刷新 + 加速光环倒计时；树人缩放；永恒苦役抽/召分支；苦涩终局的冻结 +
+摧毁；万世永存牌的过载 + 霍恩斯沃格减费；终焉预兆的空牌库摧毁；穆罗宗德
+跨三次回合结束的跳过；莫尔奇的双结果重放；有翼异变的连击/过载关键词；
+匕首装备 + 武器增益 + 时之爪弃牌；幸存者的本回合受伤战吼 + 手牌武器/随从
+增益 + 持龙减费；占卜师的受伤法术伤害 + 虚无碎片的随从指向抽牌 + 巫毒
+图腾的回合结束授予；以及余烬残渣 / 往昔回声 / 永恒火枪 / 崩碎碾压者批次。
+全部 `cargo test` 全绿（所有套件，含全部 `tlc_w*_*`/`tmw1_*`/`tmw2a_*`/
+`tmw2b_*` 场景与 22 个 `tmw3_*`——930 通过、1 忽略），`cargo fmt` 干净，
+`cargo clippy --all-targets` 零警告。

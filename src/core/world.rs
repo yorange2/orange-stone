@@ -275,7 +275,11 @@ impl AuraIndex {
             AuraEffect::GainAttack(_)
             | AuraEffect::GrantCharge
             | AuraEffect::ChargeWithWeapon
-            | AuraEffect::DoubleTriggers => self.attack[oi].push((entity, aura)),
+            | AuraEffect::DoubleTriggers
+            // M3-W3 — Morchie's rewind-doubling marker grants no stats; it
+            // rides the attack bucket like DoubleTriggers (a unit marker,
+            // §22).
+            | AuraEffect::RewindKeepsBothOutcomes => self.attack[oi].push((entity, aura)),
             AuraEffect::GainHealth(_) => self.health[oi].push((entity, aura)),
             AuraEffect::ReduceSpellCost(_)
             | AuraEffect::ReduceMinionCost { .. }
@@ -1169,6 +1173,16 @@ impl World {
                 && self.zone(e) == Some(Zone::Play)
                 && self.player(e) == Some(player)
             {
+                // M3-W3 — Time-Twisted Seer (END_022): "Has Spell Damage
+                // +2 while damaged" — the component is always present (the
+                // generated baseline is a flat +2; the differential gate
+                // rebalances the field), so the conditional lives here,
+                // id-keyed: an undamaged Seer contributes nothing (§22).
+                if self.card_id(e).is_some_and(|c| c.0 == "END_022")
+                    && self.damage(e).is_none_or(|d| d.0 == 0)
+                {
+                    continue;
+                }
                 total += sd.0;
             }
         }
@@ -1414,6 +1428,7 @@ const fn aura_attack_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::IncreaseMinionCostFriendly { .. } => 0,
         AuraEffect::ChargeWithWeapon => 0,
         AuraEffect::DoubleTriggers => 0,
+        AuraEffect::RewindKeepsBothOutcomes => 0,
     }
 }
 
@@ -1432,6 +1447,7 @@ const fn aura_health_bonus(effect: crate::core::component::AuraEffect) -> i32 {
         AuraEffect::IncreaseMinionCostFriendly { .. } => 0,
         AuraEffect::ChargeWithWeapon => 0,
         AuraEffect::DoubleTriggers => 0,
+        AuraEffect::RewindKeepsBothOutcomes => 0,
     }
 }
 
@@ -1493,7 +1509,9 @@ mod tests {
                 AuraEffect::GainAttack(_)
                 | AuraEffect::GrantCharge
                 | AuraEffect::ChargeWithWeapon
-                | AuraEffect::DoubleTriggers => idx.attack[oi].push((source, *aura)),
+                | AuraEffect::DoubleTriggers
+                // M3-W3 — Morchie's rewind-doubling marker (see above).
+                | AuraEffect::RewindKeepsBothOutcomes => idx.attack[oi].push((source, *aura)),
                 AuraEffect::GainHealth(_) => idx.health[oi].push((source, *aura)),
                 AuraEffect::ReduceSpellCost(_)
                 | AuraEffect::ReduceMinionCost { .. }

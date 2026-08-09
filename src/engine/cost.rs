@@ -425,5 +425,52 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
     {
         cost = Cost(1);
     }
+    // M3-W3 — The End of Time miniset cost arms
+    // (src/cards/exp_tmw_w3.rs, §22).
+    // Remnant of Rage (END_004): "Costs (1) less for each minion that
+    // died this turn" — the per-turn death lists (pushed at MinionDied,
+    // cleared at the owner's turn end). The owner's list holds the
+    // friendly deaths; the opponent's list holds the enemy deaths that
+    // happened on the same turn, so both are summed (§22).
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "END_004")
+    {
+        let died = state.player(player).died_this_turn.len() as i32
+            + state.player(player.opponent()).died_this_turn.len() as i32;
+        cost = Cost((cost.0 - died).max(0));
+    }
+    // Haywire Hornswog (END_030): "Costs (1) less for each Mana Crystal
+    // you've Overloaded this game" — the game-long overload counter
+    // (bumped at the CardPlayed overload site and by Winged Aberration's
+    // END_032 combo arm).
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "END_030")
+    {
+        cost = Cost((cost.0 - state.player(player).overload_total).max(0));
+    }
+    // Prescient Slitherdrake (END_033): "Costs (3) less if you're holding
+    // another Dragon" — a HAND card of the Dragon race other than itself
+    // (the holding-dragon check, TIME_852's filter shape).
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| c.0 == "END_033")
+        && state
+            .world()
+            .zones()
+            .iter(crate::core::zone::Zone::Hand, player)
+            .any(|e| {
+                e != card
+                    && state
+                        .world()
+                        .has_race(e, crate::core::component::Race::Dragon)
+            })
+    {
+        cost = Cost((cost.0 - 3).max(0));
+    }
     cost
 }
