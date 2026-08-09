@@ -79,3 +79,13 @@ fn cataclysm_dump_fidelity() {
         164,
     );
 }
+
+/// Escape from Violet Hold sub-roadmap W0 (M5-W0): JAIL_ prefix.
+#[test]
+fn violet_hold_dump_fidelity() {
+    check_dump_fidelity(
+        include_str!("../cards/data/ESCAPEFROM_VIOLET_HOLD.json"),
+        &["JAIL_"],
+        135,
+    );
+}
