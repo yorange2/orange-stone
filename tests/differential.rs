@@ -28371,6 +28371,77 @@ fn tmw2a_deja_vu_discovers_enemy_hand_copy() {
     );
 }
 
+/// TMW2A-11 — Intertwined Fate with a nearly empty deck: the pool is
+/// `[one deck id, enemy hand ids...]`, so the halves' boundary is 1, not 3.
+/// Assuming 3 panicked ("mid > len") on pools shorter than 3 and picked the
+/// "other" copy from the wrong half whenever the deck ran low.
+#[test]
+fn tmw2a_intertwined_fate_short_deck() {
+    use orange_stone::cards::classic_neutral::{BLOODFEN_RAPTOR, MURLOC_RAIDER};
+    use orange_stone::cards::classic_warlock::VOIDWALKER;
+    use orange_stone::cards::exp_tmw_w2a::INTERTWINED_FATE;
+    // Two enemy-hand sizes: 1 makes the pool shorter than 3 (the "mid > len"
+    // panic), 2 makes it exactly 3 (no panic, but the halves swap).
+    for enemy_hand in [vec![&BLOODFEN_RAPTOR], vec![&BLOODFEN_RAPTOR, &VOIDWALKER]] {
+        let p1 = PlayerId1();
+        let p2 = PlayerId2();
+        let mut builder = GameBuilder::new();
+        // p1's deck holds exactly one card — the deck half of the pool is 1 long
+        builder
+            .add_minion_to_deck(p1, &MURLOC_RAIDER)
+            .set_mana(p1, 10, 10)
+            .add_minion_to_hand(p1, &INTERTWINED_FATE);
+        for card in &enemy_hand {
+            builder.add_minion_to_hand(p2, card);
+        }
+        let mut state = builder.build();
+        let engine = GameEngine::new();
+
+        let choice = play_front_card_choice(&mut state, &engine, p1);
+        assert_eq!(choice.kind, ChoiceKind::DiscoverDeckAndEnemyHandCopy);
+        assert_eq!(
+            choice.pool.len(),
+            1 + enemy_hand.len(),
+            "1 deck id + the enemy-hand ids"
+        );
+        assert_eq!(choice.pool_split, 1, "only one card left in the deck");
+
+        // Pick the deck card (option 0) — the random "other" copy must come
+        // from the enemy-hand half, i.e. never the deck card itself.
+        let resolution = engine
+            .apply_choices(
+                &mut state,
+                Action::Choose {
+                    choice_id: choice.id,
+                    option: 0,
+                },
+            )
+            .unwrap();
+        assert!(matches!(resolution, Resolution::Done(_)));
+
+        let gained: Vec<String> = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, p1)
+            .filter_map(|e| state.world().card_id(e).map(|c| c.0.to_string()))
+            .collect();
+        assert_eq!(
+            gained.len(),
+            2,
+            "the picked deck copy + one enemy-hand copy"
+        );
+        assert!(
+            gained.contains(&MURLOC_RAIDER.id.to_string()),
+            "the picked deck card was copied (got {gained:?})"
+        );
+        let enemy_ids: Vec<&str> = enemy_hand.iter().map(|c| c.id).collect();
+        assert!(
+            gained.iter().any(|id| enemy_ids.contains(&id.as_str())),
+            "the other copy comes from the enemy-hand half (got {gained:?})"
+        );
+    }
+}
+
 /// TMW2A-10 — Wizened Truthseeker resets BOTH hands: a +2 Cost enchantment
 /// on a hand card is stripped (attack/health enchantments stay).
 #[test]

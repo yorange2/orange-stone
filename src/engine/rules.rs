@@ -4504,8 +4504,16 @@ pub fn apply_event(
                     if let Some(card_def) = crate::cards::def::card_by_id(picked_id) {
                         trigger::add_card_to_hand(state, player, card_def);
                     }
-                    let (deck_pool, enemy_pool) = pending.pool.split_at(3);
-                    let other_pool = if option < 3 { enemy_pool } else { deck_pool };
+                    // The boundary is whatever the deck actually contributed
+                    // (0..=3) — a fixed 3 panics on a short pool ("mid > len")
+                    // and mixes up the halves whenever the deck ran low.
+                    let split = usize::from(pending.pool_split).min(pending.pool.len());
+                    let (deck_pool, enemy_pool) = pending.pool.split_at(split);
+                    let other_pool = if usize::from(option) < split {
+                        enemy_pool
+                    } else {
+                        deck_pool
+                    };
                     if let Some(other) = trigger::pick_random(state, other_pool) {
                         if let Some(other_def) = crate::cards::def::card_by_id(other) {
                             trigger::add_card_to_hand(state, player, other_def);
