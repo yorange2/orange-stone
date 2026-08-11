@@ -147,6 +147,13 @@ pub struct PendingChoice {
     /// turn, one random entry is added to the hand. Empty for non-Map
     /// discovers.
     pub map_others: Vec<String>,
+    /// How many LEADING `pool` entries come from the first source, for the
+    /// kinds whose pool concatenates two sources (`DiscoverDeckAndEnemyHandCopy`
+    /// — Intertwined Fate TIME_432: deck ids followed by opponent-hand ids).
+    /// Each side contributes 0..=3 entries, so the boundary is **not** fixed
+    /// at 3 — a deck with one card left puts the hand ids at index 1. 0 for
+    /// kinds that don't split their pool.
+    pub pool_split: u8,
 }
 
 /// Game resolution step — the GameStep state machine (RS/SB analogue, roadmap G1).
@@ -412,8 +419,17 @@ impl GameState {
             repeat,
             temporary,
             map_others,
+            pool_split: 0,
         });
         id
+    }
+
+    /// Records the boundary between the two halves of a concatenated discover
+    /// pool (see `PendingChoice::pool_split`). No-op without a pending choice.
+    pub fn set_pending_choice_pool_split(&mut self, split: u8) {
+        if let Some(pending) = self.make_mut().pending_choice.as_mut() {
+            pending.pool_split = split;
+        }
     }
 
     /// Shuffles both players' decks with the embedded RNG (roadmap G7 —

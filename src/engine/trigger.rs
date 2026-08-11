@@ -9355,6 +9355,9 @@ pub fn resolve_effect(
                     .unwrap_or_else(|| id.clone());
                 options.push(label);
             }
+            // The deck half can be shorter than 3 (fewer cards left), so the
+            // resolve site needs the real boundary instead of assuming 3.
+            let deck_count = u8::try_from(pool_ids.len()).unwrap_or(u8::MAX);
             pool_ids.extend(hand_ids);
             state.set_pending_choice_w4a(
                 crate::core::state::ChoiceKind::DiscoverDeckAndEnemyHandCopy,
@@ -9366,6 +9369,7 @@ pub fn resolve_effect(
                 false,
                 Vec::new(),
             );
+            state.set_pending_choice_pool_split(deck_count);
             crate::engine::quest::progress(
                 state,
                 queue,
