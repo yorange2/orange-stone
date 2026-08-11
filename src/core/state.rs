@@ -220,6 +220,11 @@ pub struct Inner {
     pub mulliganed: [bool; 2],
     /// Monotonic counter for choice ids
     pub next_choice_id: u64,
+    /// How many times a single action's resolution blew past
+    /// `engine::game::MAX_EVENTS_PER_ACTION` and had its cascade abandoned.
+    /// Always 0 in a correct game — a non-zero count means some interaction
+    /// loops (see the constant's docs for the diagnostic switch).
+    pub cascade_aborts: u32,
     /// Random number generator (reproducible)
     pub rng: GameRng,
 }
@@ -290,6 +295,7 @@ impl GameState {
             return_step: Step::Main,
             pending_choice: None,
             next_choice_id: 1,
+            cascade_aborts: 0,
             mulliganed: [false, false],
             rng: GameRng::new(12345),
         };
@@ -321,6 +327,25 @@ impl GameState {
     #[must_use]
     pub fn pending_deaths(&self) -> &[Entity] {
         &self.inner.pending_deaths
+    }
+
+    /// How many runaway cascades this game abandoned (see
+    /// `engine::game::MAX_EVENTS_PER_ACTION`). Non-zero means a bug.
+    #[must_use]
+    pub fn cascade_aborts(&self) -> u32 {
+        self.inner.cascade_aborts
+    }
+
+    /// Drops the pending choice without resolving it — only for abandoning a
+    /// runaway choice chain (see `engine::game::MAX_CHOICES_PER_ACTION`);
+    /// leaving the prompt in place would re-enter the loop on the next action.
+    pub fn clear_pending_choice(&mut self) {
+        self.make_mut().pending_choice = None;
+    }
+
+    /// Records an abandoned cascade.
+    pub fn record_cascade_abort(&mut self) {
+        self.make_mut().cascade_aborts = self.inner.cascade_aborts.saturating_add(1);
     }
 
     /// The choice awaiting resolution (roadmap G6), if any.

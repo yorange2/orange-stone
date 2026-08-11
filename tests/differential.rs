@@ -28371,6 +28371,72 @@ fn tmw2a_deja_vu_discovers_enemy_hand_copy() {
     );
 }
 
+/// The Curator's battlecry must DRAW the three cards, not just copy their Zone
+/// component: the old raw zone insert left them in the deck zone list, so the
+/// deck never shrank and any later "draw until the hand is full" spun forever
+/// (`move_to_zone` reported success while moving Hand → Hand). One RL step hit
+/// this and burned 6 minutes of CPU and 23 GB of memory.
+#[test]
+fn core_curator_draw_leaves_zones_consistent() {
+    use orange_stone::cards::classic_neutral::{BLOODFEN_RAPTOR, MURLOC_RAIDER};
+    use orange_stone::cards::core_w4a::{CORE_PRIMORDIAL_DRAKE, CORE_THE_CURATOR};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &CORE_THE_CURATOR)
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR) // Beast
+        .add_minion_to_deck(p1, &CORE_PRIMORDIAL_DRAKE) // Dragon
+        .add_minion_to_deck(p1, &MURLOC_RAIDER) // Murloc
+        .add_minion_to_deck(p1, &BLOODFEN_RAPTOR); // stays in the deck
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let deck_before = state.world().zones().len(Zone::Deck, p1);
+
+    play_front_card(&mut state, &engine, p1);
+
+    let deck_after = state.world().zones().len(Zone::Deck, p1);
+    let hand: Vec<String> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter_map(|e| state.world().card_id(e).map(|c| c.0.to_string()))
+        .collect();
+    assert_eq!(
+        hand.len(),
+        3,
+        "one Beast, one Dragon, one Murloc (got {hand:?})"
+    );
+    assert_eq!(
+        deck_after,
+        deck_before - 3,
+        "the drawn cards must leave the deck zone list"
+    );
+    // Every remaining deck entry agrees with its Zone component — the desync
+    // that caused the hang
+    for entity in state.world().zones().iter(Zone::Deck, p1) {
+        assert_eq!(
+            state.world().zone(entity),
+            Some(Zone::Deck),
+            "deck entry {entity:?} has a stale Zone component"
+        );
+    }
+    // And a following draw makes progress instead of spinning
+    let hand_before = state.world().zones().len(Zone::Hand, p1);
+    let mut queue = orange_stone::core::event::EventQueue::new();
+    orange_stone::engine::trigger::draw_card(&mut state, &mut queue, p1);
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        hand_before + 1,
+        "the next draw must actually move a card"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Deck, p1),
+        deck_after - 1,
+        "…and shrink the deck"
+    );
+}
+
 /// TMW2A-11 — Intertwined Fate with a nearly empty deck: the pool is
 /// `[one deck id, enemy hand ids...]`, so the halves' boundary is 1, not 3.
 /// Assuming 3 panicked ("mid > len") on pools shorter than 3 and picked the

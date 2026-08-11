@@ -2098,9 +2098,25 @@ pub fn resolve_effect(
                     })
                 });
                 if let Some(card) = found {
-                    let world = state.world_mut();
-                    world.set_zone(card, Zone::Hand);
-                    world.zones_mut().insert(Zone::Hand, owner, card);
+                    // `move_to_zone` (not a raw zone insert): writing the Zone
+                    // component and inserting into Hand while leaving the card
+                    // in the DECK zone list desyncs the two, and every later
+                    // draw that reaches that card spins forever — the move
+                    // "succeeds" (Hand → Hand) without changing either count.
+                    // The hand cap applies as it does to any draw: a card drawn
+                    // into a full hand burns (F-A11).
+                    let hand_full = state.world().zones().len(Zone::Hand, owner) >= MAX_HAND_SIZE;
+                    let target = if hand_full {
+                        Zone::Graveyard
+                    } else {
+                        Zone::Hand
+                    };
+                    if state.world_mut().move_to_zone(card, target).is_ok() && !hand_full {
+                        queue.push(Event::CardDrawn {
+                            player: owner,
+                            card,
+                        });
+                    }
                 }
             }
         }
@@ -16677,6 +16693,30 @@ pub(crate) fn draw_card_no_queue(
     queue: &mut EventQueue,
     player: PlayerId,
 ) -> Option<Entity> {
+    // A card whose Zone component disagrees with the deck zone list would make
+    // this draw a no-op that still reports success, and every caller looping
+    // "while the hand is not full and the deck is not empty" would spin forever
+    // (a single action once burned 6 minutes of CPU and 23 GB this way — the
+    // Curator's raw zone insert left drawn cards in the deck list). Purge such
+    // entries instead: the deck shrinks, so callers always make progress.
+    loop {
+        let stale = state
+            .world()
+            .zones()
+            .iter(Zone::Deck, player)
+            .next()
+            .filter(|&e| state.world().zone(e) != Some(Zone::Deck));
+        let Some(stale) = stale else { break };
+        debug_assert!(
+            false,
+            "deck zone list holds {stale:?} whose Zone component says \
+             otherwise — some effect moved it without move_to_zone"
+        );
+        state
+            .world_mut()
+            .zones_mut()
+            .remove(Zone::Deck, player, stale);
+    }
     let Some(card) = state.world().zones().iter(Zone::Deck, player).next() else {
         // Empty deck: fatigue (official rule) — the counter IS the damage for
         // this attempt, then it increments

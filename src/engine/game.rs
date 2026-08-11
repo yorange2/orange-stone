@@ -38,6 +38,60 @@ pub enum Resolution {
     },
 }
 
+/// Safety valve for a single action's resolution: the maximum number of events
+/// one action may resolve before the engine abandons the cascade.
+///
+/// A normal action resolves well under a thousand events (a full board wipe
+/// with deathrattles is a few hundred). A runaway interaction, however, spins
+/// forever: the RL stress run over the Standard pool hit a single `step` that
+/// burned 6+ minutes of CPU and 23 GB of memory inside one `apply_choices`,
+/// growing the event log to hundreds of millions of entries. There is no way
+/// to interrupt that from outside the engine — a Python-side watchdog cannot
+/// preempt a Rust call — so the budget has to live here.
+///
+/// Hitting the budget is a **bug**, not a game rule; `GameState::cascade_aborts`
+/// counts it so callers (and tests) can notice instead of silently accepting a
+/// truncated resolution. Set `ORANGE_STONE_DEBUG_CASCADE=1` to dump the tail of
+/// the event log when it trips, which is how the offending interaction gets
+/// identified.
+pub const MAX_EVENTS_PER_ACTION: usize = 500_000;
+
+/// Companion budget to `MAX_EVENTS_PER_ACTION` for the *choice* dimension: how
+/// many prompts one action may surface before the engine abandons the chain.
+///
+/// The event budget does not cover this shape — a runaway choice chain resolves
+/// a small, fast `apply_choices` each round, so neither the event log nor any
+/// single effect ever looks abnormal, yet the action never finishes. Choose One
+/// / Discover / Choose Thrice chains are a handful of prompts in a real game.
+pub const MAX_CHOICES_PER_ACTION: usize = 1_000;
+
+/// Event count at which the diagnostic dump fires. `ORANGE_STONE_DEBUG_CASCADE`
+/// lowers it so a cascade can be inspected long before it reaches the hard cap
+/// (`=1` uses a 20 000-event default; `=<n>` sets it explicitly).
+fn cascade_debug_at() -> usize {
+    static CACHE: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
+    *CACHE.get_or_init(|| match std::env::var("ORANGE_STONE_DEBUG_CASCADE") {
+        Ok(v) => match v.trim().parse::<usize>() {
+            Ok(1) => 20_000,
+            Ok(n) if n > 1 => n,
+            _ => MAX_EVENTS_PER_ACTION,
+        },
+        Err(_) => MAX_EVENTS_PER_ACTION,
+    })
+}
+
+/// Dumps the tail of a runaway event log — the diagnostic that names the
+/// looping interaction.
+fn dump_cascade_tail(log: &[Event]) {
+    eprintln!(
+        "orange-stone: cascade reached {} events for one action; tail follows",
+        log.len()
+    );
+    for event in log.iter().rev().take(40).rev() {
+        eprintln!("  {event:?}");
+    }
+}
+
 /// Game engine — stateless, pure logic orchestration.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct GameEngine;
@@ -75,6 +129,11 @@ impl GameEngine {
         // current step; when the queue drains, the step machine advances
         // (turn-start sequence, end-of-turn sequence, wrap-up, death step).
         let mut log = Vec::new();
+        // Budget on resolution ROUNDS, not on logged events: an empty-queue
+        // step-machine spin (advance_step keeps reporting progress while
+        // enqueuing nothing) logs no events at all, so an event-count budget
+        // never notices it.
+        let mut iterations = 0_usize;
         loop {
             // A pending choice pauses resolution — unless the choice's own
             // resolution event is already in flight, or events queued before
@@ -87,6 +146,37 @@ impl GameEngine {
                 if !resolving && queue.is_empty() {
                     return Ok(Resolution::NeedsChoice { choice });
                 }
+            }
+            iterations += 1;
+            if iterations == cascade_debug_at() {
+                eprintln!(
+                    "orange-stone: resolution passed {iterations} rounds \
+                     (turn {}, step {:?}, {} events logged, queue {})",
+                    state.turn(),
+                    state.step(),
+                    log.len(),
+                    if queue.is_empty() {
+                        "empty"
+                    } else {
+                        "non-empty"
+                    }
+                );
+                dump_cascade_tail(&log);
+            }
+            if iterations >= MAX_EVENTS_PER_ACTION {
+                // Runaway cascade — abandon it rather than spin forever (see
+                // MAX_EVENTS_PER_ACTION). The state keeps whatever resolved so
+                // far; the game stays playable and the abort is counted.
+                eprintln!(
+                    "orange-stone: resolution aborted after {iterations} rounds \
+                     ({} events, turn {}, step {:?}); set \
+                     ORANGE_STONE_DEBUG_CASCADE=1 to dump the tail",
+                    log.len(),
+                    state.turn(),
+                    state.step()
+                );
+                state.record_cascade_abort();
+                break;
             }
             if let Some(event) = queue.pop_front() {
                 // Apply the event (mutates state + may enqueue new events)
@@ -115,6 +205,7 @@ impl GameEngine {
     pub fn apply(&self, state: &mut GameState, action: Action) -> Result<Vec<Event>, EngineError> {
         let mut log = Vec::new();
         let mut resolution = self.apply_choices(state, action)?;
+        let mut choices = 0_usize;
         loop {
             match resolution {
                 Resolution::Done(events) => {
@@ -122,6 +213,26 @@ impl GameEngine {
                     return Ok(log);
                 }
                 Resolution::NeedsChoice { choice } => {
+                    choices += 1;
+                    if choices > MAX_CHOICES_PER_ACTION {
+                        // Runaway choice chain: every resolution surfaces
+                        // another prompt, so this action never finishes. Same
+                        // safety valve as MAX_EVENTS_PER_ACTION — abandon it
+                        // instead of spinning (each round is individually fast
+                        // and enqueues few events, so the event budget above
+                        // never trips on this shape).
+                        eprintln!(
+                            "orange-stone: choice chain aborted after {choices} prompts; \
+                             kind={:?} repeat={} options={} pool={:?}",
+                            choice.kind,
+                            choice.repeat,
+                            choice.options.len(),
+                            choice.pool
+                        );
+                        state.record_cascade_abort();
+                        state.clear_pending_choice();
+                        return Ok(log);
+                    }
                     // Default policy: random option (deterministic via the RNG)
                     let option = state.rng_mut().next_usize(choice.options.len()) as u8;
                     resolution = self.apply_choices(
