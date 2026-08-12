@@ -155,6 +155,20 @@ impl PyGameEnv {
             .collect()
     }
 
+    /// Non-collectible card IDs (official JSON flag): tokens, enchantments
+    /// and other generated cards — things a constructed deck can never hold.
+    /// The RL pool filters them (the `t`-suffix rule alone misses enchantments
+    /// like CORE_EX1_506a / CORE_CATA_006e).
+    #[staticmethod]
+    fn non_collectible_card_ids() -> Vec<String> {
+        crate::cards::sets::ALL_CARDS
+            .iter()
+            .chain(crate::cards::sets::HANDWRITTEN_EXPANSION_CARDS)
+            .filter(|c| !crate::cards::generated::is_collectible(c.id))
+            .map(|c| c.id.to_string())
+            .collect()
+    }
+
     /// Resets the environment, returning the initial observation.
     ///
     /// Releases the GIL while the engine works (M4): the engine is pure Rust

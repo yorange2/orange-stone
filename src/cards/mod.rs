@@ -2307,6 +2307,24 @@ mod generated_tests {
         }
     }
 
+    /// D3 follow-up (2026-08-12) — collectible lookup used by the RL pool:
+    /// ENCHANTMENT-type cards and the explicit token list are excluded,
+    /// everything else defaults to collectible. The dumps omit the flag on
+    /// REAL cards too (Vindicator Maraad carries no `collectible` key), so a
+    /// missing flag must never exclude a card.
+    #[test]
+    fn is_collectible_excludes_tokens_not_real_cards() {
+        assert!(!generated::is_collectible("CORE_CATA_006e")); // Thornspeakers' Spirit (enchantment)
+        assert!(!generated::is_collectible("CORE_CS2_039e")); // Windfury (enchantment)
+        assert!(!generated::is_collectible("CORE_EDR_002e")); // Deathly Poison (enchantment)
+        assert!(!generated::is_collectible("CORE_EX1_506a")); // Murloc Scout (token minion)
+
+        assert!(generated::is_collectible("CORE_CATA_003")); // Vindicator Maraad — real, flag absent
+        assert!(generated::is_collectible("EX1_001")); // Lightwarden — explicit collectible
+        assert!(generated::is_collectible("CLASSIC_001")); // custom-ID handwritten card
+        assert!(generated::is_collectible("CORE_UNG_848")); // Primordial Drake (hand-written)
+    }
+
     /// 2025–2026 expansions M0.2 — set membership registry and race backfill:
     /// classic-era set codes map to `CardSet::Classic`, `CORE` to `CardSet::Core`,
     /// unknown/custom IDs default to `Classic` (the custom-ID handwritten pool),
