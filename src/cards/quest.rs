@@ -319,6 +319,11 @@ pub fn spell_school(card_id: &str) -> Option<SpellSchool> {
         "END_023" => Some(SpellSchool::Frost),
         "END_024" => Some(SpellSchool::Fire),
         "END_025" => Some(SpellSchool::Fire),
+        // MEND W2 — the Hunter class-set wave (the school predicates read
+        // by the quest progress and the Nature-spell pool; MEND_305's
+        // spellSchool is NATURE in cards.json; the other MEND_3xx spells
+        // carry no school)
+        "MEND_305" => Some(SpellSchool::Nature),
         _ => None,
     }
 }

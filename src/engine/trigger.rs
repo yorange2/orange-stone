@@ -39,7 +39,7 @@ const CATACLYSM_POOL: [&str; 4] = ["CATA_190t10", "CATA_190t11", "CATA_190t12", 
 pub const MAX_HAND_SIZE: usize = 10;
 
 use crate::core::event::{Event, EventQueue};
-use crate::core::player::PlayerId;
+use crate::core::player::{CompanionReplacement, PlayerId};
 use crate::core::small_list::SmallList;
 use crate::core::state::GameState;
 use crate::core::zone::Zone;
@@ -779,10 +779,17 @@ pub fn resolve_effect(
             );
         }
         CardEffect::SummonRandomMinion { pool } => {
-            let Some(card_def) = crate::cards::pool::random_card(state.rng_mut(), pool) else {
-                return;
-            };
-            let _ = resolve_summon(state, queue, source, owner, card_def.id);
+            // MEND W2 — an Animal Companion summon honours the owner's
+            // replacement flag (random Beast of cost 3 + bump) and Talya
+            // Earthstrider's extra-companion bonus.
+            if pool == RandomPool::Companion {
+                resolve_companion_summons(state, queue, source, owner, 1);
+            } else {
+                let Some(card_def) = crate::cards::pool::random_card(state.rng_mut(), pool) else {
+                    return;
+                };
+                let _ = resolve_summon(state, queue, source, owner, card_def.id);
+            }
         }
         CardEffect::AddCardToHand { card_id } => {
             let Some(card_def) = crate::cards::def::card_by_id(card_id) else {
@@ -1765,10 +1772,9 @@ pub fn resolve_effect(
             draw_card(state, queue, owner);
         }
         CardEffect::SummonAllCompanions => {
-            // Call of the Wild — all three Animal Companions
-            for companion in ["HUNTER_023a", "HUNTER_023b", "HUNTER_023c"] {
-                let _ = resolve_summon(state, queue, source, owner, companion);
-            }
+            // Call of the Wild — all three Animal Companions (MEND W2:
+            // each honouring the replacement flag / Talya's bonus).
+            resolve_companion_summons(state, queue, source, owner, 3);
         }
         CardEffect::DamageFreezeAllAndSummon { damage, card_id } => {
             // Frostwyrm's Fury — damage, freeze all enemy minions, summon
@@ -5192,13 +5198,9 @@ pub fn resolve_effect(
         }
         CardEffect::SummonRandomAnimalCompanion => {
             // Broll Bearmantle (M1-W4b) — after you cast a spell, summon a
-            // random Animal Companion (the HUNTER_023 companion pool).
-            if let Some(def) = crate::cards::pool::random_from_pool(
-                crate::cards::pool::COMPANION_POOL,
-                state.rng_mut(),
-            ) {
-                let _ = resolve_summon(state, queue, source, owner, def.id);
-            }
+            // random Animal Companion (MEND W2: honouring the replacement
+            // flag / Talya's bonus like every other Companion summon).
+            resolve_companion_summons(state, queue, source, owner, 1);
         }
         CardEffect::AddAllDreamCards => {
             // Shaladrassil (M1-W4b) — add all five Dream cards to hand (the
@@ -16435,6 +16437,204 @@ pub fn resolve_effect(
                     resolve_effect(state, queue, source, owner, effect, None, None);
                 }
             }
+        }
+        // ----------------------------------------------------------------
+        // MEND W2 — the Hunter class-set wave (src/cards/exp_cata_w6.rs).
+        // ----------------------------------------------------------------
+        CardEffect::SetCompanionReplacement { bump } => {
+            // MEND_303 Migrating Elekk — "Replace your future Animal
+            // Companions with random Beasts that cost (1) more." Repeated
+            // casts stack the bump (official upgrade behaviour; §30).
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            let next = (p.companion_replacement.map_or(0, |r| r.cost_bump) as i32 + bump).max(0);
+            p.companion_replacement = Some(CompanionReplacement {
+                cost_bump: next as u32,
+            });
+        }
+        CardEffect::SetCompanionReplacementAndDraw { bump, draw } => {
+            // MEND_300 Tame Pet — replace future Animal Companions with
+            // random Beasts that cost (1) more, then draw a card.
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            let next = (p.companion_replacement.map_or(0, |r| r.cost_bump) as i32 + bump).max(0);
+            p.companion_replacement = Some(CompanionReplacement {
+                cost_bump: next as u32,
+            });
+            for _ in 0..draw {
+                draw_card(state, queue, owner);
+            }
+        }
+        CardEffect::SetCompanionBonus { amount } => {
+            // MEND_304 Talya Earthstrider — "Your cards that summon Animal
+            // Companions summon 1 more this game."
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            p.companion_bonus = (p.companion_bonus as i32 + amount).max(0) as u32;
+        }
+        CardEffect::ReplaceCompanionsAndSummonRandomBeast { bump, cost } => {
+            // MEND_307 Roam Free — "Replace your future Animal Companions
+            // with random Beasts that cost (2) more. Choose one to summon."
+            // Every Choose One option sets the shared replacement flag,
+            // then summons a random Beast of its own cost tier (§30: a
+            // random Beast of the exact tier cost instead of the official
+            // fixed trio).
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            let next = (p.companion_replacement.map_or(0, |r| r.cost_bump) as i32 + bump).max(0);
+            p.companion_replacement = Some(CompanionReplacement {
+                cost_bump: next as u32,
+            });
+            if let Some(def) = crate::cards::pool::random_beast_of_cost(state.rng_mut(), cost) {
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+        }
+        CardEffect::SplitDamageAmongAllEnemiesChainOnDeath { amount } => {
+            // MEND_302 Wasteland Vanguard — "Deal 3 damage split among all
+            // enemies. If any die, deal 3 more." Each point re-picks among
+            // the enemies (Erupting Volcano convention); the chain fires at
+            // most once (official ruling — it does not loop even if the
+            // second wave kills; §30). Death is predicted with the Shadow
+            // Rounds convention (damage resolves at the Death step): a
+            // Divine Shield absorbs the first point, and the accumulated
+            // damage must exceed the effective health.
+            let mut hits: Vec<(Entity, i32)> = Vec::new();
+            for _ in 0..amount {
+                let mut enemies: SmallList<Entity> = SmallList::new();
+                enemies.push(state.player(owner.opponent()).hero);
+                enemies.extend(collect_enemy_minions(state, owner, None));
+                if enemies.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(enemies.len());
+                let target = enemies[idx];
+                let _ = resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    1,
+                    EffectTarget::AnyEnemy,
+                    Some(target),
+                );
+                if let Some(entry) = hits.iter_mut().find(|(e, _)| *e == target) {
+                    entry.1 += 1;
+                } else {
+                    hits.push((target, 1));
+                }
+            }
+            let any_died = hits.iter().any(|&(target, dmg)| {
+                let world = state.world();
+                // A Divine Shield absorbs the first point.
+                let real = dmg - i32::from(world.divine_shield(target).is_some());
+                real > 0
+                    && world
+                        .effective_health(target)
+                        .is_some_and(|h| h.0 - real <= 0)
+            });
+            if any_died {
+                for _ in 0..amount {
+                    let mut enemies: SmallList<Entity> = SmallList::new();
+                    enemies.push(state.player(owner.opponent()).hero);
+                    enemies.extend(collect_enemy_minions(state, owner, None));
+                    if enemies.is_empty() {
+                        break;
+                    }
+                    let idx = state.rng_mut().next_usize(enemies.len());
+                    let _ = resolve_deal_damage(
+                        state,
+                        queue,
+                        source,
+                        owner,
+                        1,
+                        EffectTarget::AnyEnemy,
+                        Some(enemies[idx]),
+                    );
+                }
+            }
+        }
+        CardEffect::BuffFriendlyBeastAndRandomHandBeast { attack, health } => {
+            // MEND_305 Nurturing Nature — "Give a friendly Beast +2/+2.
+            // Give a random Beast in your hand +2/+2." The board buff
+            // honours the explicit play target when it is a friendly
+            // Beast, else a random friendly Beast (the spell is only
+            // playable with a valid target in the real game; §30).
+            let friendly: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Play, owner)
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Minion)
+                        && state.world().has_race(e, Race::Beast)
+                })
+                .collect();
+            let board_target = explicit_target
+                .filter(|&t| friendly.contains(&t))
+                .or_else(|| pick_random(state, &friendly).copied());
+            if let Some(target) = board_target {
+                let buff = Enchantment {
+                    attack,
+                    health,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                };
+                state.world_mut().add_enchantment(target, buff);
+            }
+            // Hand buff (FordragonBuff convention — direct stat writes on
+            // the hand entity's base stats).
+            let hand: SmallList<Entity> = state
+                .world()
+                .zones()
+                .iter(Zone::Hand, owner)
+                .filter(|&e| {
+                    state.world().card_type(e) == Some(CardType::Minion)
+                        && state.world().has_race(e, Race::Beast)
+                })
+                .collect();
+            if let Some(target) = pick_random(state, &hand).copied() {
+                let world = state.world_mut();
+                let base = world.attack(target).unwrap_or(Attack(0));
+                world.set_attack(target, Attack(base.0 + attack));
+                let base_hp = world.health(target).unwrap_or(Health(1));
+                world.set_health(target, Health(base_hp.0 + health));
+            }
+        }
+    }
+}
+
+/// Resolves an Animal Companion summon (MEND W2) — the single entry point
+/// for every `RandomPool::Companion` / companion-trio summon. Honours the
+/// owner's `companion_replacement` (each companion becomes a random Beast
+/// of cost `3 + cost_bump`; falls back to the fixed HUNTER_023 trio when
+/// the active window has no Beast of that exact cost) and
+/// `companion_bonus` (Talya Earthstrider summons one extra companion per
+/// summon).
+fn resolve_companion_summons(
+    state: &mut GameState,
+    queue: &mut EventQueue,
+    source: Entity,
+    owner: PlayerId,
+    count: i32,
+) {
+    let (replacement, bonus) = {
+        let p = state.player(owner);
+        (p.companion_replacement, p.companion_bonus)
+    };
+    let total = count + bonus as i32;
+    for _ in 0..total {
+        if let Some(repl) = replacement {
+            if let Some(def) =
+                crate::cards::pool::random_beast_of_cost(state.rng_mut(), 3 + repl.cost_bump as i32)
+            {
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+                continue;
+            }
+        }
+        if let Some(def) = crate::cards::pool::random_from_pool(
+            crate::cards::pool::COMPANION_POOL,
+            state.rng_mut(),
+        ) {
+            let _ = resolve_summon(state, queue, source, owner, def.id);
         }
     }
 }

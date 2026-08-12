@@ -36,6 +36,18 @@ impl PlayerId {
     }
 }
 
+/// Future Animal Companion replacement (MEND W2 — Tame Pet, Migrating
+/// Elekk, Roam Free): while set, every Animal Companion summon is swapped
+/// for a random Beast of cost `3 + cost_bump` instead (§30 simplification:
+/// official picks among three fixed Beasts and upgrades them on repeated
+/// casts; we re-sample per summon). Multiple cards that set the flag
+/// accumulate the bump (official behaviour: each cast upgrades the trio).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CompanionReplacement {
+    /// Extra mana cost added to the replacement Beast's base cost of 3.
+    pub cost_bump: u32,
+}
+
 /// Player state — player data that is not at the entity level.
 ///
 /// The hero itself is an entity (`CardType::Hero`) stored in the World.
@@ -734,6 +746,14 @@ pub struct Player {
     /// the MinionDied handler, so the dying archmage itself is never
     /// counted — the deathrattle resolves before the increment).
     pub jail974_deaths: u32,
+    /// Future Animal Companion replacement (MEND W2): when `Some`, Animal
+    /// Companion summons resolve to a random Beast of cost
+    /// `3 + cost_bump` instead of the fixed Huffer/Leokk/Misha trio.
+    pub companion_replacement: Option<CompanionReplacement>,
+    /// Extra Animal Companions per summon (MEND W2 — Talya Earthstrider):
+    /// `RandomPool::Companion` resolution summons `1 + companion_bonus`
+    /// Beasts, each independently subject to `companion_replacement`.
+    pub companion_bonus: u32,
 }
 
 impl Player {
@@ -896,6 +916,8 @@ impl Player {
             cards_played_cost_2: 0,
             copied_from_opponent_played: false,
             jail974_deaths: 0,
+            companion_replacement: None,
+            companion_bonus: 0,
         }
     }
 }

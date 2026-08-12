@@ -2800,6 +2800,17 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_cata_w5::TREANT,
     super::exp_cata_w5::CULTIVATING_SPRITE,
     super::exp_cata_w5::BLOOMING_BULB,
+    // MEND W2 — the Cataclysm Hunter class-set wave
+    // (src/cards/exp_cata_w6.rs, fidelity-debt §30): handwritten only —
+    // the MEND_ cards have no generated baselines, so the
+    // `expansion_differential_gate` tripwire skips them.
+    super::exp_cata_w6::TAME_PET,
+    super::exp_cata_w6::SPIRITSPEAKER,
+    super::exp_cata_w6::WASTELAND_VANGUARD,
+    super::exp_cata_w6::MIGRATING_ELEKK,
+    super::exp_cata_w6::TALYA_EARTHSTRIDER,
+    super::exp_cata_w6::NURTURING_NATURE,
+    super::exp_cata_w6::ROAM_FREE,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated

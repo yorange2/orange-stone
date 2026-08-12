@@ -1938,6 +1938,16 @@ fn random_filtered(
     Some(pool[idx])
 }
 
+/// Draws a random Beast minion of exactly the given cost from the active
+/// sampling window (MEND W2 — Animal Companion replacement: Tame Pet /
+/// Migrating Elekk / Roam Free swap each Animal Companion summon for a
+/// random Beast of cost `3 + bump`; §30).
+pub(crate) fn random_beast_of_cost(rng: &mut GameRng, cost: i32) -> Option<&'static CardDef> {
+    random_filtered(rng, |c| {
+        c.card_type == CardType::Minion && c.race == Some(Race::Beast) && c.cost == cost
+    })
+}
+
 /// The full card list of a Discover pool (2025–2026 expansions M2-W4a) —
 /// the option list for a `DiscoverPool` discover, in a deterministic order.
 ///

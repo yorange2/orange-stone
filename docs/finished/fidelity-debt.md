@@ -2449,3 +2449,73 @@ pinning the upgrades), `mend_w1_hellfire_damages_all_characters` (the
 re-wired AllCharacters damage arm). Full `cargo test` fully green (all
 suites, incl. every prior scenario), `cargo fmt` clean, `cargo clippy
 --all-targets` zero warnings.
+
+### 30. MEND W2 — the Cataclysm class-set W2 wave, Hunter (7 cards: MEND_300~305 + MEND_307) 🔓 registered
+
+The registered simplifications of the MEND W2 wave (`src/cards/exp_cata_w6.rs`):
+the second MEND_ wave (the 2025–2026 expansions master roadmap M5 follow-up) —
+the Cataclysm Hunter class set, 7 cards (MEND_306 has no card data; the spec's
+"8 cards" is the 7 listed here), registered in `sets.rs` (7 handwritten
+entries). As with §14–§29, these cards are not in the RL pool, so the rows are
+informational: they keep the code's simplifications traceable to the ledger.
+
+The wave's headline mechanic — **"future Animal Companion replacement"** — is
+a FULL primitive: a Player flag (`companion_replacement`, `src/core/player.rs`)
+intercepts every Animal Companion summon at the `RandomPool::Companion`
+resolution site (the HUNTER_023 battlecry, Call of the Wild's
+`SummonAllCompanions`, and Broll Bearmantle's `SummonRandomAnimalCompanion`
+all funnel through `trigger::resolve_companion_summons`) and swaps each
+companion for a random Beast of cost `3 + cost_bump` sampled from the active
+window; repeated casts accumulate the bump (official upgrade behaviour).
+**Talya Earthstrider's** "summon 1 more" rides a second flag
+(`companion_bonus`): each Companion summon resolves `1 + bonus` companions,
+each independently subject to the replacement.
+
+The wave's §30 pins (documented conventions): **the replacement pool** — the
+official Tame Pet / Migrating Elekk / Roam Free replacement picks among THREE
+FIXED Beasts (the locked trio, upgraded +1 per cast; there are live reports of
+the official card costing the fixed trio beyond 10); the simplified form
+re-samples a random Beast of the exact cost `3 + bump` per summon from the
+active window, falling back to the fixed HUNTER_023 trio when the window has
+no Beast of that cost; **Roam Free's Choose One** — the three branches
+correspond to the trio's cost tiers 5/6/7 (§30): each branch sets the shared
+bump-2 flag and summons a random Beast of its tier cost (official: one of the
+three fixed Beasts); **Spiritspeaker** — each branch summons its companion
+directly (Huffer/Leokk/Misha), bypassing the replacement/bonus pipeline;
+**Wasteland Vanguard** — the 3 damage splits one point at a time against a
+random living enemy (the Erupting Volcano ping convention; the enemy hero is
+eligible), and the "if any die" chain fires AT MOST ONCE even when the second
+wave kills (official ruling — a chain never loops); the death check is the
+Shadow Rounds prediction convention with the Divine Shield refinement (the
+first point is absorbed), because deaths resolve at the Death step, after the
+battlecry; **Nurturing Nature** — the board target honours the explicit play
+target when it is a friendly Beast, else a random friendly Beast (the real
+spell is only playable with a valid target); the hand buff writes the hand
+entity's base stats directly (the FordragonBuff convention); the hand Beast
+is picked uniformly among the hand's Beasts.
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| MEND_300 | Tame Pet | Full: sets the replacement flag (bump 1) + draws; each future companion re-samples a random Beast of cost 3 + 1 from the active window | the fixed trio of Beasts, upgraded on repeated casts |
+| MEND_301 | Spiritspeaker | Full: a real Choose One — Huffer / Leokk / Misha, summoned directly | — |
+| MEND_302 | Wasteland Vanguard | Full: one-point random split among all enemies; the chain fires at most once, predicted via the Shadow Rounds convention | — |
+| MEND_303 | Migrating Elekk | Full: Taunt + the replacement flag (bump 1, accumulates with Tame Pet) | the fixed trio |
+| MEND_304 | Talya Earthstrider | Full: `companion_bonus` — each Animal Companion summon summons 1 more | — |
+| MEND_305 | Nurturing Nature | Full: friendly Beast (explicit target honoured) + a random hand Beast +2/+2; the hand buff writes the base stats | — |
+| MEND_307 | Roam Free | The three branches set the shared bump-2 flag and summon a random Beast of the tier cost 5/6/7 | one of the three fixed Beasts |
+
+F5 coverage: `mend_w2_*` (9 scenarios in `tests/differential.rs`) —
+`mend_w2_tame_pet_replaces_companions_and_draws` (the 4-Cost Beast replaces
+the companion trio, the draw nets the hand), `mend_w2_elekk_sets_flag_and_bumps_stack`
+(Taunt + bump accumulation 1 → 2), `mend_w2_talya_summons_extra_companions`
+(two companions per summon, both replacement Beasts under Tame Pet),
+`mend_w2_roam_free_choose_one_sets_flag_and_summons_tier` (the 5-Cost and
+7-Cost branches + the persistent bump-2 flag), `mend_w2_spiritspeaker_choose_one_summons_each_companion`
+(all three branches, and the bypass of the replacement flag),
+`mend_w2_wasteland_vanguard_splits_damage_without_chain` (exactly 3 damage,
+no deaths), `mend_w2_wasteland_vanguard_chains_exactly_once` (a killing split
+fires the second wave exactly once — pinned seed), `mend_w2_nurturing_nature_buffs_board_and_hand_beast`
+(the explicit-target board buff + the hand Beast, non-Beasts untouched),
+`mend_w2_call_of_the_wild_respects_replacement` (the SummonAllCompanions
+interception). Full `cargo test` fully green (all suites, incl. every prior
+scenario), `cargo fmt` clean, `cargo clippy --all-targets` zero warnings.

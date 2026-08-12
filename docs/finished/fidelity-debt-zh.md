@@ -1614,3 +1614,61 @@ F5 覆盖：`mend_w1_*`（`tests/differential.rs` 12 个场景）——
 `mend_w1_hellfire_damages_all_characters`（重新接通的 AllCharacters 伤害
 分支）。全部 `cargo test` 全绿（所有套件，含全部既有场景），`cargo fmt`
 干净，`cargo clippy --all-targets` 零警告。
+
+### 30. MEND W2 —— 大灾变职业套装 W2 波，猎人（7 张卡：MEND_300~305 + MEND_307）🔓 登记
+
+MEND W2 波（`src/cards/exp_cata_w6.rs`）的简化登记：第二个 MEND_ 波
+（2025–2026 扩展总路线图 M5 的跟进）——大灾变猎人职业套装，7 张卡
+（MEND_306 无卡牌数据；spec 所称"8 张"即此处列出的 7 张），注册于
+`sets.rs`（7 条手写条目）。与 §14–§29 相同，这些卡不在 RL 池内，所以
+各行仅为信息性登记：让代码里的简化可追溯到账本。
+
+该波的头条机制——**"未来动物伙伴替换"**——是完整原语：一个 Player 旗标
+（`companion_replacement`，`src/core/player.rs`）在 `RandomPool::Companion`
+解析位置拦截每一次动物伙伴召唤（HUNTER_023 战吼、兽群呼唤的
+`SummonAllCompanions`、布罗尔·熊鬃的 `SummonRandomAnimalCompanion` 全部
+汇入 `trigger::resolve_companion_summons`），把每只伙伴换成从活跃窗口采样的
+费用恰为 `3 + cost_bump` 的随机野兽；重复施法累加 bump（官方升级行为）。
+**塔莉亚·大地行者** 的"召唤时额外召唤 1 个"骑在第二个旗标
+（`companion_bonus`）上：每次伙伴召唤结算 `1 + bonus` 只伙伴，每只独立
+接受替换规则。
+
+该波的 §30 钉（已登记约定）：**替换池**——官方驯宠师 / 迁移象 / 自在驰骋
+的替换在三只锁定野兽中挑选（随每次施法 +1 升级；有反馈称官方卡在费用
+超出 10 后仍用锁定三件套）；简化形态每次召唤从活跃窗口重新采样一只费用
+恰为 `3 + bump` 的随机野兽，窗口内无该费用野兽时回退到 HUNTER_023 固定
+三件套；**自在驰骋的抉择**——三个分支对应三件套的费用档 5/6/7（§30）：
+每个分支都设置共享的 bump-2 旗标并召唤一只该费用档的随机野兽（官方为
+三只固定野兽之一）；**通灵语者**——每个分支直接召唤对应伙伴
+（霍弗/雷欧克/米莎），绕过替换/加成管线；**荒原先锋**——3 点伤害按点
+随机分配到所有存活敌人（活火喷发的 ping 约定；敌方英雄可被命中），
+"若有死亡则再打 3"的连锁至多触发一次（官方裁定——连锁永不循环）；死亡
+判定采用暗影连击预测约定 + 圣盾细化（第一点被圣盾吸收），因为死亡在
+Death 步骤批量结算、晚于战吼；**滋养自然**——场上目标优先采用显式出牌
+目标（须为友方野兽），否则随机友方野兽（真实法术只在有合法目标时可用）；
+手牌 buff 直接改写手牌实体的基础数值（福特拉贡约定）；手牌野兽从手牌中
+的野兽中均匀随机。
+
+| ID | 卡牌 | 简化 | 真实形态 |
+| --- | --- | --- | --- |
+| MEND_300 | 驯宠师 | 完整：设置替换旗标（bump 1）+ 抽牌；此后每只伙伴从活跃窗口重新采样 3 + 1 费随机野兽 | 固定三件套野兽，重复施法升级 |
+| MEND_301 | 通灵语者 | 完整：真实抉择——霍弗 / 雷欧克 / 米莎，直接召唤 | — |
+| MEND_302 | 荒原先锋 | 完整：按点随机分配到所有敌人；连锁至多一次，用暗影连击约定预测死亡 | — |
+| MEND_303 | 迁移象 | 完整：嘲讽 + 替换旗标（bump 1，与驯宠师累加） | 固定三件套 |
+| MEND_304 | 塔莉亚·大地行者 | 完整：`companion_bonus`——每次动物伙伴召唤额外召唤 1 只 | — |
+| MEND_305 | 滋养自然 | 完整：友方野兽（优先显式目标）+ 随机手牌野兽 +2/+2；手牌 buff 写基础数值 | — |
+| MEND_307 | 自在驰骋 | 三个分支设置共享 bump-2 旗标并召唤 5/6/7 费用档的随机野兽 | 三只固定野兽之一 |
+
+F5 覆盖：`mend_w2_*`（`tests/differential.rs` 9 个场景）——
+`mend_w2_tame_pet_replaces_companions_and_draws`（4 费野兽替换伙伴三件套，
+抽牌补平手牌）、`mend_w2_elekk_sets_flag_and_bumps_stack`（嘲讽 + bump
+累加 1 → 2）、`mend_w2_talya_summons_extra_companions`（每次召唤两只伙伴，
+驯宠师下两只均为替换野兽）、`mend_w2_roam_free_choose_one_sets_flag_and_summons_tier`
+（5 费与 7 费分支 + 持久 bump-2 旗标）、`mend_w2_spiritspeaker_choose_one_summons_each_companion`
+（三个分支，以及替换旗标的绕过）、`mend_w2_wasteland_vanguard_splits_damage_without_chain`
+（恰好 3 点伤害、无死亡）、`mend_w2_wasteland_vanguard_chains_exactly_once`
+（致死的分裂触发第二波且仅一次——固定 seed）、
+`mend_w2_nurturing_nature_buffs_board_and_hand_beast`（显式目标场上 buff +
+手牌野兽，非野兽不动）、`mend_w2_call_of_the_wild_respects_replacement`
+（SummonAllCompanions 拦截）。全部 `cargo test` 全绿（所有套件，含全部
+既有场景），`cargo fmt` 干净，`cargo clippy --all-targets` 零警告。
