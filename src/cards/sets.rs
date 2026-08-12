@@ -2785,6 +2785,21 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_jail_w2::ZURAMAT_THE_OBLITERATOR,
     super::exp_jail_w2::WHISPER_OF_THE_VOID,
     super::exp_jail_w2::DARK_EMBRACE,
+    // MEND W1 — the Cataclysm Druid class-set wave
+    // (src/cards/exp_cata_w5.rs, fidelity-debt §29): handwritten only —
+    // the MEND_ cards have no generated baselines, so the
+    // `expansion_differential_gate` tripwire (which counts only cards
+    // WITH baselines) skips them.
+    super::exp_cata_w5::ASH_WORM,
+    super::exp_cata_w5::WIZENED_WILDSPEAKER,
+    super::exp_cata_w5::LIFEBLOOM,
+    super::exp_cata_w5::HEARTROOT_STONES,
+    super::exp_cata_w5::TRANQUIL_CLEARING,
+    super::exp_cata_w5::SEEDING_DRAGON,
+    super::exp_cata_w5::BASHANA_RUNETOTEM,
+    super::exp_cata_w5::TREANT,
+    super::exp_cata_w5::CULTIVATING_SPRITE,
+    super::exp_cata_w5::BLOOMING_BULB,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated

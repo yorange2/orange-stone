@@ -2360,3 +2360,92 @@ no-target guard), `jail_w2_captured_archmage_four_deaths_fireball` (the
 4-other-deaths Fireball). Full `cargo test` fully green (all suites, incl.
 every prior scenario), `cargo fmt` clean, `cargo clippy --all-targets` zero
 warnings.
+
+### 29. MEND W1 — the Cataclysm class-set W1 wave, Druid (8 cards: MEND_040~046 + MEND_100, + 2 tokens: MEND_046t / MEND_100t) 🔓 registered
+
+The registered simplifications of the MEND W1 wave (`src/cards/exp_cata_w5.rs`):
+the first MEND_ wave (the 2025–2026 expansions master roadmap M5 follow-up) —
+the Cataclysm Druid class set, 8 cards + 2 tokens, registered in `sets.rs`
+(10 handwritten entries; every MEND_ card overrides a generated baseline and
+MEND_044's Location divergence is documented in
+`expansion_differential_rebalanced`). As with §14–§28, these cards are not in
+the RL pool (classic + core 668/659), so the rows are informational: they keep
+the code's simplifications traceable to the ledger. Each row stays open until
+its mechanism lands.
+
+The wave's headline mechanics are FULL primitives: **"didn't play a minion
+last turn"** (Wizened Wildspeaker, Heartroot Stones) rides the EXISTING
+`last_turn_minion_play_ids` snapshot — the per-turn play list is pushed at
+CardPlayed and mem::take'd into the last-turn list at the owner's turn end
+(the M3-W2b machinery), so the flag needs no new player state; **Ash Worm**
+enters play Dormant through the `dormant_at_summon` registry's u32::MAX
+sentinel — the turn-start countdown skips the sentinel and the MinionSummoned
+handler (the single funnel for ALL summons) awakens sentinel-dormant minions
+whenever the owner's board reaches 7; the worm played onto a 6-minion board
+fills it itself and awakens immediately (official behavior); **Tranquil
+Clearing** is a Location whose activation effect sits in the battlecry slot
+(the W2 §24 convention), the target minion choice surfacing at the
+ActivateLocation action; **Lifebloom** heals via the AllFriendlyCharacters
+path (Darkscale Healer — Velen doubles it, Spell Damage does not) and summons
+two random 8-Cost minions; **Seeding Dragon** adds a random Dragon reduced by
+(2) to the hand.
+
+The wave also surfaced a pre-existing fidelity gap and fixed it: **"deal X
+damage to ALL characters"** — Hellfire, Abomination, Dread Infernal and Baron
+Geddon — was a silent no-op (`resolve_deal_damage`'s AllCharacters arm fell
+into the no-op group). The arm is now wired: heroes + minions on both sides
+(stealth included — AOE ignores stealth; Elusive does not block AOE), the
+source excluded (the spell is not a character, and the minion cards' official
+texts say "all OTHER characters"). Pinned by
+`mend_w1_hellfire_damages_all_characters` (the MEND W1 research surfaced it —
+the bulb's random cast drew Hellfire).
+
+The wave's §29 pins (documented conventions): **Bashana Runetotem** — the
+official carve casts the spells FROM the Treant tokens (each MEND_046t 2/2
+carries "Battlecry: Cast {0}"); the simplified form adds three plain 2/2
+Treants plus up to three random Nature spells — each costing no more than the
+remaining 12-Mana budget — directly to the hand; **Cultivating Sprite** — the
+Bulb (MEND_100t) keeps its own fixed 3-Cost, and the "upgrades each turn"
+raises the COST OF THE CAST SPELLS by one per owner turn start in hand (the
+HandTurnCounter convention, CATA_498), casting three random spells of that
+cost; **Tranquil Clearing's sleep** — the target falls asleep (Dormant, one
+turn) and awakens at its NEXT TURN START regardless of owner, versus the
+official "until the end of your next turn" (an opponent's turn start in
+between wakes it early); **the random pools** — Seeding Dragon's Dragon,
+Lifebloom's 8-Cost minions, Bashana's carved Nature spells and the Bulb's
+cast spells sample the FULL catalog (the `random_minion_of_cost` convention,
+no window filter) versus the official active-window pools.
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| MEND_040 | Ash Worm | Full: dormant-at-summon sentinel + the board-full awaken (a full board wakes it even when the worm itself fills it) | — |
+| MEND_041 | Wizened Wildspeaker | Full: the last-turn-no-minion flag reads the `last_turn_minion_play_ids` snapshot | — |
+| MEND_042 | Lifebloom | Full: the AllFriendlyCharacters heal + two random 8-Cost minions (the pool samples the full catalog) | the active-window pool |
+| MEND_043 | Heartroot Stones | Full: the draw + Armor repeat rides the last-turn flag | — |
+| MEND_044 | Tranquil Clearing | Full Location + target buff/taunt; the sleep is Dormant 1 — the target wakes at its next turn start regardless of owner | "until the end of your next turn" |
+| MEND_045 | Seeding Dragon | Full: the deathrattle adds a random Dragon costing (2) less (the pool samples the full catalog) | the active-window pool |
+| MEND_046 | Bashana Runetotem | Three plain 2/2 Treants + up to three random Nature spells (each ≤ the remaining 12-Mana budget) added to the hand | the official carve casts the spells FROM the Treant tokens |
+| MEND_046t | Treant | A plain 2/2 (no "Cast {0}" battlecry) | the carved-spell battlecry |
+| MEND_100 | Cultivating Sprite | Full: the 3-Cost Bulb enters the hand and ticks up each owner turn start (HandTurnCounter) | — |
+| MEND_100t | Blooming Bulb | The bulb's own cost stays fixed at 3; the upgrade raises the CAST SPELLS' cost by one per tick; the cast spells sample the full catalog | the official upgrade semantics and the active-window pool |
+
+F5 coverage: `mend_w1_*` (12 scenarios in `tests/differential.rs`) —
+`mend_w1_ash_worm_awakens_on_full_board` (the 7th summon wakes the slumbering
+worm), `mend_w1_ash_worm_played_onto_full_board_awakens_immediately` (the
+worm fills the board itself), `mend_w1_ash_worm_stays_dormant_on_partial_board`
+(partial boards keep it asleep), `mend_w1_wizened_wildspeaker_refreshes_when_no_minion_last_turn`
+/ `mend_w1_wizened_wildspeaker_no_refresh_after_minion_played` (the refresh
+and its absence), `mend_w1_heartroot_stones_repeats_when_no_minion_last_turn`
+/ `mend_w1_heartroot_stones_single_when_minion_played_last_turn` (the double
+draw + 6 Armor and the single pass), `mend_w1_tranquil_clearing_sleeps_target_until_next_turn`
+(the target buff + Taunt, the sleep blocking both sides' attacks, the awaken
+at the owner's next turn start, the second activation destroying the
+Location), `mend_w1_seeding_dragon_deathrattle_gives_dragon_costs_2_less`
+(the random Dragon + the (2) reduction), `mend_w1_bashana_runetotem_treants_and_carved_spells`
+(three 2/2 Treants + up to three Nature spells within the 12-Mana budget),
+`mend_w1_cultivating_sprite_bulb_upgrades_each_turn` (the Bulb's hand-turn
+ticks and the deterministic cast — Savage Roar + Shield Block + Hellfire —
+pinning the upgrades), `mend_w1_hellfire_damages_all_characters` (the
+re-wired AllCharacters damage arm). Full `cargo test` fully green (all
+suites, incl. every prior scenario), `cargo fmt` clean, `cargo clippy
+--all-targets` zero warnings.

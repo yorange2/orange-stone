@@ -4874,6 +4874,58 @@ pub enum CardEffect {
         /// The minion Cost to summon.
         cost: i32,
     },
+    /// MEND W1 — the Druid class-set wave (src/cards/exp_cata_w5.rs,
+    /// fidelity-debt §29). MEND_041 Wizened Wildspeaker — "Battlecry: If
+    /// you didn't play a minion last turn, refresh 3 Mana Crystals." The
+    /// last-turn flag reads the `last_turn_minion_play_ids` snapshot.
+    RefreshManaIfNoMinionPlayedLastTurn {
+        /// Mana Crystals to refresh.
+        amount: i32,
+    },
+    /// MEND W1 — MEND_042 Lifebloom: "Restore 8 Health to all friendly
+    /// characters. Summon two random 8-Cost minions."
+    RestoreAllFriendlyAndSummonTwoRandomCostMinions {
+        /// Health restored to every friendly character.
+        heal: i32,
+        /// Cost of the two random minions to summon.
+        cost: i32,
+    },
+    /// MEND W1 — MEND_043 Heartroot Stones: "Draw a card and gain 3
+    /// Armor. If you didn't play a minion last turn, do it again."
+    DrawAndGainArmorRepeatIfNoMinionPlayedLastTurn {
+        /// Cards drawn per iteration.
+        draw: i32,
+        /// Armor gained per iteration.
+        armor: i32,
+    },
+    /// MEND W1 — MEND_044 Tranquil Clearing: "Give a minion +2 Health
+    /// and Taunt. It falls asleep until the end of your next turn." The
+    /// sleep rides the Dormant component (one turn — §29).
+    BuffHealthTauntAndDormant {
+        /// Health bonus.
+        health: i32,
+    },
+    /// MEND W1 — MEND_045 Seeding Dragon deathrattle: "Get a random
+    /// Dragon. It costs (2) less."
+    AddRandomDragonCostReduced {
+        /// Cost reduction on the added Dragon.
+        reduction: i32,
+    },
+    /// MEND W1 — MEND_046 Bashana Runetotem: "Battlecry: Get three 2/2
+    /// Treants. Carve 12 Mana worth of Nature spells into them." (§29:
+    /// the carve is simplified to up to three random Nature spells —
+    /// each costing no more than the remaining 12-Mana budget — added
+    /// to hand.)
+    GetThreeTreantsAndCarveNatureSpells,
+    /// MEND W1 — MEND_100t Blooming Bulb: "Cast three random spells
+    /// that cost (1). (Upgrades each turn!)" — the hand-turn counter
+    /// (CATA_498 convention) raises the cost of the cast spells.
+    CastRandomSpellsScaledByHandTurns {
+        /// Base cost of the cast spells (before the upgrade ticks).
+        base: i32,
+        /// Number of random spells to cast.
+        count: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -6788,6 +6840,28 @@ enum CardEffectDe {
     Hellraiser,
     SummonTwoRandomMinionsOfCost {
         cost: i32,
+    },
+    RefreshManaIfNoMinionPlayedLastTurn {
+        amount: i32,
+    },
+    RestoreAllFriendlyAndSummonTwoRandomCostMinions {
+        heal: i32,
+        cost: i32,
+    },
+    DrawAndGainArmorRepeatIfNoMinionPlayedLastTurn {
+        draw: i32,
+        armor: i32,
+    },
+    BuffHealthTauntAndDormant {
+        health: i32,
+    },
+    AddRandomDragonCostReduced {
+        reduction: i32,
+    },
+    GetThreeTreantsAndCarveNatureSpells,
+    CastRandomSpellsScaledByHandTurns {
+        base: i32,
+        count: i32,
     },
 }
 
@@ -8950,6 +9024,28 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::SummonTwoRandomMinionsOfCost { cost } => {
                 CardEffect::SummonTwoRandomMinionsOfCost { cost }
             }
+            // MEND W1 — the Druid class-set wave (src/cards/exp_cata_w5.rs)
+            CardEffectDe::RefreshManaIfNoMinionPlayedLastTurn { amount } => {
+                CardEffect::RefreshManaIfNoMinionPlayedLastTurn { amount }
+            }
+            CardEffectDe::RestoreAllFriendlyAndSummonTwoRandomCostMinions { heal, cost } => {
+                CardEffect::RestoreAllFriendlyAndSummonTwoRandomCostMinions { heal, cost }
+            }
+            CardEffectDe::DrawAndGainArmorRepeatIfNoMinionPlayedLastTurn { draw, armor } => {
+                CardEffect::DrawAndGainArmorRepeatIfNoMinionPlayedLastTurn { draw, armor }
+            }
+            CardEffectDe::BuffHealthTauntAndDormant { health } => {
+                CardEffect::BuffHealthTauntAndDormant { health }
+            }
+            CardEffectDe::AddRandomDragonCostReduced { reduction } => {
+                CardEffect::AddRandomDragonCostReduced { reduction }
+            }
+            CardEffectDe::GetThreeTreantsAndCarveNatureSpells => {
+                CardEffect::GetThreeTreantsAndCarveNatureSpells
+            }
+            CardEffectDe::CastRandomSpellsScaledByHandTurns { base, count } => {
+                CardEffect::CastRandomSpellsScaledByHandTurns { base, count }
+            }
         })
     }
 }
@@ -10031,6 +10127,26 @@ mod tests {
             CardEffect::ActivatedGolem,
             CardEffect::Hellraiser,
             CardEffect::SummonTwoRandomMinionsOfCost { cost: 4 },
+        ] {
+            let bytes = bincode::serialize(&effect).expect("serialize");
+            let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
+            assert_eq!(back, effect, "roundtrip failed for {effect:?}");
+        }
+    }
+
+    /// Every new MEND W1 (the Druid class-set wave,
+    /// src/cards/exp_cata_w5.rs) variant survives the bincode roundtrip
+    /// (CardEffectDe → CardEffect via the interned card ids).
+    #[test]
+    fn mend_w1_effects_serialize_roundtrip() {
+        for effect in [
+            CardEffect::RefreshManaIfNoMinionPlayedLastTurn { amount: 3 },
+            CardEffect::RestoreAllFriendlyAndSummonTwoRandomCostMinions { heal: 8, cost: 8 },
+            CardEffect::DrawAndGainArmorRepeatIfNoMinionPlayedLastTurn { draw: 1, armor: 3 },
+            CardEffect::BuffHealthTauntAndDormant { health: 2 },
+            CardEffect::AddRandomDragonCostReduced { reduction: 2 },
+            CardEffect::GetThreeTreantsAndCarveNatureSpells,
+            CardEffect::CastRandomSpellsScaledByHandTurns { base: 1, count: 3 },
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
