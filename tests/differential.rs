@@ -36789,3 +36789,485 @@ fn mend_w3_arcanomicon_gets_all_leylines_and_chooses_upgrade() {
         }
     }
 }
+
+// ============================================================
+// MEND W4 — the Cataclysm Paladin class-set wave (exp_cata_w8.rs,
+// fidelity-debt §32): the Silver Hand Recruit game-long bonus
+// (Brash Battlemaster / Resilient Savior / Emboldening Blade), the
+// Divine-Shield recruit summon (Convalescence), Arator's board-only
+// doubling, Charity's died-this-turn copies and Teamwork's 2+2 split.
+// ============================================================
+
+/// MEND-1 — Brash Battlemaster: "Rush. Deathrattle: Give your Silver
+/// Hand Recruits +1 Attack this game." The deathrattle sets the game-long
+/// Attack flag; a recruit summoned afterwards (Convalescence) carries the
+/// +1 (2/1 with Divine Shield).
+#[test]
+fn mend_w4_brash_battlemaster_deathrattle_gives_recruits_attack() {
+    use orange_stone::cards::exp_cata_w8::{BRASH_BATTLEMASTER, CONVALESCENCE};
+    use orange_stone::core::component::Attack;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.with_rng_seed(0).set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &BRASH_BATTLEMASTER);
+    builder.add_minion_to_hand(p1, &CONVALESCENCE);
+    builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3); // trades Brash in
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Brash Battlemaster
+    // Kill Brash: the enemy 3/3 attacks in (Brash 2/1 dies, the
+    // deathrattle sets the +1 Attack flag).
+    state.set_active_player(PlayerId2());
+    let enemy = board_minions(&state, PlayerId2())[0];
+    let brash = find_entity(&state, p1, "MEND_800");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy,
+                defender: brash,
+            },
+        )
+        .unwrap();
+    state.set_active_player(p1);
+    play_front_card(&mut state, &engine, p1); // Convalescence
+    let recruits = board_minions(&state, p1);
+    assert_eq!(recruits.len(), 2, "two recruits summoned");
+    for r in &recruits {
+        assert_eq!(
+            state.world().effective_attack(*r),
+            Some(Attack(2)),
+            "recruits carry the +1 Attack game bonus"
+        );
+        assert!(
+            state.world().divine_shield(*r).is_some(),
+            "with Divine Shield"
+        );
+    }
+}
+
+/// MEND-2 — Resilient Savior: "After THIS loses Divine Shield, give your
+/// Silver Hand Recruits +1 Health this game." Two Saviors on board; the
+/// enemy breaks each shield once. Only the shield owner's trigger fires —
+/// a missing subject pin would grant 2 per break (1/5 recruits), the
+/// correct pin grants exactly 1 per break (1/3).
+#[test]
+fn mend_w4_resilient_savior_health_pinned_to_own_shield() {
+    use orange_stone::cards::exp_cata_w8::{CONVALESCENCE, RESILIENT_SAVIOR};
+    use orange_stone::core::component::Health;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.with_rng_seed(0).set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &RESILIENT_SAVIOR);
+    builder.add_minion_to_hand(p1, &RESILIENT_SAVIOR);
+    builder.add_minion_to_hand(p1, &CONVALESCENCE);
+    builder.add_custom_minion_to_board(PlayerId2(), 3, 4, 3);
+    builder.add_custom_minion_to_board(PlayerId2(), 3, 4, 3);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Savior #1
+    play_front_card(&mut state, &engine, p1); // Savior #2
+    state.set_active_player(PlayerId2());
+    let enemies = board_minions(&state, PlayerId2());
+    let savior1 = find_entity(&state, p1, "MEND_801");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemies[0],
+                defender: savior1,
+            },
+        )
+        .unwrap();
+    let savior2 = board_minions(&state, p1)
+        .into_iter()
+        .find(|&e| e != savior1)
+        .expect("the second savior is still on the board");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemies[1],
+                defender: savior2,
+            },
+        )
+        .unwrap();
+    state.set_active_player(p1);
+    play_front_card(&mut state, &engine, p1); // Convalescence
+    let recruits: Vec<Entity> = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_GVG_061t")
+        })
+        .collect();
+    assert_eq!(recruits.len(), 2, "two recruits summoned");
+    for r in &recruits {
+        assert_eq!(
+            state.world().effective_health(*r),
+            Some(Health(3)),
+            "exactly one +1 Health per OWN shield break (1 base + 2)"
+        );
+    }
+}
+
+/// MEND-3 — Convalescence: "Summon two 1/1 Silver Hand Recruits with
+/// Divine Shield." The two recruits are plain 1/1s carrying Divine
+/// Shield; the shield absorbs the first hit and the recruit survives.
+#[test]
+fn mend_w4_convalescence_summons_divine_shield_recruits() {
+    use orange_stone::cards::exp_cata_w8::CONVALESCENCE;
+    use orange_stone::core::component::{Attack, Health};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.with_rng_seed(0).set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &CONVALESCENCE);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 2, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let recruits = board_minions(&state, p1);
+    assert_eq!(recruits.len(), 2, "two recruits summoned");
+    for r in &recruits {
+        assert_eq!(state.world().effective_attack(*r), Some(Attack(1)));
+        assert_eq!(state.world().effective_health(*r), Some(Health(1)));
+        assert!(state.world().divine_shield(*r).is_some(), "Divine Shield");
+    }
+    // The enemy 2/2 hits a recruit: the shield absorbs the damage and the
+    // 1/1 recruit survives (this also feeds the Fordragon event, which
+    // nothing on the board reacts to).
+    state.set_active_player(PlayerId2());
+    let enemy = board_minions(&state, PlayerId2())[0];
+    let recruit = recruits[0];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy,
+                defender: recruit,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(recruit),
+        Some(Health(1)),
+        "the shield absorbed the hit"
+    );
+    assert!(
+        state.world().divine_shield(recruit).is_none(),
+        "the shield is gone"
+    );
+}
+
+/// MEND-4 — Emboldening Blade: "Battlecry: Give your Silver Hand
+/// Recruits +1/+1 this game." The 3/2 weapon is equipped (hero attack 3,
+/// durability 2) and the flag grants +1/+1 to every later recruit (2/2).
+#[test]
+fn mend_w4_emboldening_blade_buffs_recruits_and_equips_weapon() {
+    use orange_stone::cards::exp_cata_w8::{CONVALESCENCE, EMBOLDENING_BLADE};
+    use orange_stone::core::component::{Attack, Durability, Health};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.with_rng_seed(0).set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &EMBOLDENING_BLADE);
+    builder.add_minion_to_hand(p1, &CONVALESCENCE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // the 5-cost weapon
+    let weapon = state.player(p1).weapon.expect("the blade is equipped");
+    assert_eq!(state.world().effective_attack(weapon), Some(Attack(3)));
+    assert_eq!(state.world().durability(weapon), Some(Durability(2)));
+    assert_eq!(
+        state.player(p1).silver_hand_attack_bonus,
+        1,
+        "the battlecry set the Attack flag"
+    );
+    assert_eq!(
+        state.player(p1).silver_hand_health_bonus,
+        1,
+        "the battlecry set the Health flag"
+    );
+    play_front_card(&mut state, &engine, p1); // Convalescence
+    let recruits = board_minions(&state, p1);
+    assert_eq!(recruits.len(), 2);
+    for r in &recruits {
+        assert_eq!(
+            state.world().effective_attack(*r),
+            Some(Attack(2)),
+            "+1/+1 game bonus"
+        );
+        assert_eq!(
+            state.world().effective_health(*r),
+            Some(Health(2)),
+            "+1/+1 game bonus"
+        );
+    }
+}
+
+/// MEND-5 — Arator the Redeemer: "Battlecry: Double the stats of all
+/// friendly Silver Hand Recruits and give them Taunt." With the Brash
+/// Battlemaster Attack flag already live, the two 2/1 recruits double to
+/// 4/2 and gain Taunt; a recruit summoned AFTER the battlecry keeps the
+/// 2/1 game-bonus stats and no Taunt (the doubling hit the current board
+/// only — the official ruling, §32).
+#[test]
+fn mend_w4_arator_doubles_board_recruits_with_taunt() {
+    use orange_stone::cards::exp_cata_w8::{
+        ARATOR_THE_REDEEMER, BRASH_BATTLEMASTER, CONVALESCENCE,
+    };
+    use orange_stone::core::component::{Attack, Health};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.with_rng_seed(0).set_mana(p1, 12, 12);
+    builder.add_minion_to_hand(p1, &BRASH_BATTLEMASTER);
+    builder.add_minion_to_hand(p1, &CONVALESCENCE);
+    builder.add_minion_to_hand(p1, &ARATOR_THE_REDEEMER);
+    builder.add_minion_to_hand(p1, &CONVALESCENCE);
+    builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3); // trades Brash in
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Brash Battlemaster
+    state.set_active_player(PlayerId2());
+    let enemy = board_minions(&state, PlayerId2())[0];
+    let brash = find_entity(&state, p1, "MEND_800");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy,
+                defender: brash,
+            },
+        )
+        .unwrap();
+    state.set_active_player(p1);
+    play_front_card(&mut state, &engine, p1); // Convalescence → two 2/1
+    play_front_card(&mut state, &engine, p1); // Arator → double to 4/2 + Taunt
+    let recruits = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_GVG_061t")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(recruits.len(), 2, "two recruits on the board");
+    for r in &recruits {
+        assert_eq!(
+            state.world().effective_attack(*r),
+            Some(Attack(4)),
+            "2/1 doubled to 4/2"
+        );
+        assert_eq!(
+            state.world().effective_health(*r),
+            Some(Health(2)),
+            "2/1 doubled to 4/2"
+        );
+        assert!(state.world().taunt(*r).is_some(), "recruits gain Taunt");
+    }
+    // A later summon keeps the game bonus but is NOT doubled and carries
+    // no Taunt.
+    play_front_card(&mut state, &engine, p1); // Convalescence #2
+    let all: Vec<Entity> = board_minions(&state, p1)
+        .into_iter()
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_GVG_061t")
+        })
+        .collect();
+    assert_eq!(all.len(), 4, "two new recruits join the doubled ones");
+    let fresh: Vec<Entity> = all
+        .iter()
+        .copied()
+        .filter(|&r| state.world().taunt(r).is_none())
+        .collect();
+    assert_eq!(fresh.len(), 2, "later recruits carry no Taunt");
+    for r in fresh {
+        assert_eq!(
+            state.world().effective_attack(r),
+            Some(Attack(2)),
+            "the game bonus only, no doubling"
+        );
+        assert_eq!(state.world().effective_health(r), Some(Health(1)));
+    }
+}
+
+/// MEND-6 — Charity: "Get copies of all friendly minions that died this
+/// turn. Give them +3/+3." The Bloodfen Raptor and the Murloc Raider die
+/// in trades; the Wolfrider survives. The copies land in the hand with
+/// +3/+3 baked into their base stats; the survivor is not copied.
+#[test]
+fn mend_w4_charity_copies_died_this_turn_buffed() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, MURLOC_RAIDER, WOLFRIDER};
+    use orange_stone::cards::exp_cata_w8::CHARITY;
+    use orange_stone::core::component::{Attack, Health};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.with_rng_seed(0).set_mana(p1, 10, 10);
+    builder.add_minion_to_board(p1, &BLOODFEN_RAPTOR); // 3/2
+    builder.add_minion_to_board(p1, &MURLOC_RAIDER); // 2/1
+    builder.add_minion_to_board(p1, &WOLFRIDER); // 3/1, survives
+    builder.add_minion_to_hand(p1, &CHARITY);
+    builder.add_custom_minion_to_board(PlayerId2(), 2, 3, 2); // trades with the Raptor
+    builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3); // kills the Raider, survives
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let raptor = find_entity(&state, p1, "CLASSIC_001");
+    let raider = find_entity(&state, p1, "NEUTRAL_B02");
+    let blocker = board_minions(&state, PlayerId2())[0];
+    let beater = board_minions(&state, PlayerId2())[1];
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: raptor,
+                defender: blocker,
+            },
+        )
+        .unwrap(); // 3/2 into 2/3: both die
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: raider,
+                defender: beater,
+            },
+        )
+        .unwrap(); // 2/1 into 3/3: the Raider dies
+    play_front_card(&mut state, &engine, p1); // Charity
+    let raptor_copy = find_in_hand(&state, p1, "CLASSIC_001");
+    assert_eq!(
+        state.world().attack(raptor_copy),
+        Some(Attack(6)),
+        "3/2 Raptor copy +3/+3"
+    );
+    assert_eq!(
+        state.world().health(raptor_copy),
+        Some(Health(5)),
+        "3/2 Raptor copy +3/+3"
+    );
+    let raider_copy = find_in_hand(&state, p1, "NEUTRAL_B02");
+    assert_eq!(
+        state.world().attack(raider_copy),
+        Some(Attack(5)),
+        "2/1 Raider copy +3/+3"
+    );
+    assert_eq!(
+        state.world().health(raider_copy),
+        Some(Health(4)),
+        "2/1 Raider copy +3/+3"
+    );
+    // The survivor is not copied; the only hand cards are the two copies.
+    let hand_ids: Vec<&str> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .map(|e| state.world().card_id(e).unwrap().0)
+        .collect();
+    assert_eq!(
+        hand_ids,
+        vec!["CLASSIC_001", "NEUTRAL_B02"],
+        "exactly the two copies (Charity is spent)"
+    );
+}
+
+/// MEND-7 — Teamwork: "Summon and get four 1/1 Silver Hand Recruits."
+/// With the Brash Battlemaster Attack flag live: two 2/1 recruits are
+/// summoned, two 2/1 recruits land in the hand (the even 2+2 split is
+/// the D2 decision, §32); a hand copy played from hand keeps the game
+/// bonus.
+#[test]
+fn mend_w4_teamwork_summons_two_and_gets_two() {
+    use orange_stone::cards::exp_cata_w8::{BRASH_BATTLEMASTER, TEAMWORK};
+    use orange_stone::core::component::Attack;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.with_rng_seed(0).set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &BRASH_BATTLEMASTER);
+    builder.add_minion_to_hand(p1, &TEAMWORK);
+    builder.add_custom_minion_to_board(PlayerId2(), 3, 3, 3); // trades Brash in
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Brash Battlemaster
+    state.set_active_player(PlayerId2());
+    let enemy = board_minions(&state, PlayerId2())[0];
+    let brash = find_entity(&state, p1, "MEND_800");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy,
+                defender: brash,
+            },
+        )
+        .unwrap();
+    state.set_active_player(p1);
+    play_front_card(&mut state, &engine, p1); // Teamwork
+    let recruits = board_minions(&state, p1);
+    assert_eq!(recruits.len(), 2, "two recruits summoned");
+    for r in &recruits {
+        assert_eq!(
+            state.world().effective_attack(*r),
+            Some(Attack(2)),
+            "the summoned recruits carry the +1 Attack game bonus"
+        );
+    }
+    let hand_recruits: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CORE_GVG_061t")
+        })
+        .collect();
+    assert_eq!(hand_recruits.len(), 2, "two recruit copies in hand");
+    for r in &hand_recruits {
+        assert_eq!(
+            state.world().attack(*r),
+            Some(Attack(2)),
+            "the hand copies carry the game bonus too"
+        );
+        assert_eq!(
+            orange_stone::engine::cost::play_cost(&state, *r, p1).0,
+            1,
+            "the recruit copy costs (1)"
+        );
+    }
+    // Playing a hand copy summons the buffed recruit (the base stats
+    // carry through the play path).
+    let first = hand_recruits[0];
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: first,
+                target: None,
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_minions(&state, p1).len(),
+        3,
+        "the played recruit joins the board"
+    );
+    assert_eq!(
+        state.world().effective_attack(first),
+        Some(Attack(2)),
+        "the played recruit keeps the +1 Attack"
+    );
+}

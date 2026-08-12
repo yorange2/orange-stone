@@ -37,6 +37,7 @@ pub mod exp_cata_w4;
 pub mod exp_cata_w5;
 pub mod exp_cata_w6;
 pub mod exp_cata_w7;
+pub mod exp_cata_w8;
 pub mod exp_edr_w1;
 pub mod exp_edr_w2;
 pub mod exp_edr_w3;
@@ -234,6 +235,8 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
         // M5-W2 — the Violet Hold closing wave
         | "JAIL_447" // Reckless Detective
         | "JAIL_459" // Arachnathid
+        // MEND W4 — the Paladin class-set wave (exp_cata_w8.rs, §32)
+        | "MEND_800" // Brash Battlemaster
     ) {
         world.set_rush(entity, Rush);
     }
@@ -677,6 +680,23 @@ pub(crate) fn apply_card_keywords(world: &mut World, entity: Entity, card_def: &
                 race: None,
                 max_attack: None,
                 effect: CardEffect::FordragonBuff,
+            },
+        );
+    }
+    if card_def.id == "MEND_801" {
+        // Resilient Savior — "After this loses Divine Shield, give your
+        // Silver Hand Recruits +1 Health this game." The DivineShieldLost
+        // trigger rides the minion (the Fordragon event); the effect's
+        // subject check pins the bonus to this minion's own shield break
+        // (§32).
+        world.set_trigger(
+            entity,
+            Trigger {
+                event: TriggerEvent::DivineShieldLost,
+                timing: TriggerTiming::Whenever,
+                race: None,
+                max_attack: None,
+                effect: CardEffect::ResilientSaviorHealthBonus { amount: 1 },
             },
         );
     }

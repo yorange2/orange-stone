@@ -2310,6 +2310,14 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         }
         CardEffect::GetAllLeylinesAndUpgrade { .. } => 7.5,
         CardEffect::SetLeylineEffectBonus { .. } => 3.0,
+        // MEND W4 — the Paladin class-set wave (src/cards/exp_cata_w8.rs,
+        // fidelity-debt §32)
+        CardEffect::SetSilverHandRecruitStats { attack, health } => (attack + health) as f64 * 1.5,
+        CardEffect::ResilientSaviorHealthBonus { .. } => 2.0,
+        CardEffect::AratorDoubleSilverHandRecruits => 5.0,
+        CardEffect::SummonSilverHandRecruitsWithDivineShield { count } => count as f64 * 2.2,
+        CardEffect::CharityCopiesDiedThisTurn { attack, health } => (attack + health) as f64 * 0.8,
+        CardEffect::TeamworkSummonAndGetRecruits => 5.0,
     }
 }
 
