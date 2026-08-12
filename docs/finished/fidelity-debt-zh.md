@@ -1539,3 +1539,78 @@ SummonTwoRandomMinionsOfCost 亡语——效果召唤的随从战吼会触发，
 `jail_w2_captured_archmage_four_deaths_fireball`（4 个其他死亡 → 火球术）。
 全部 `cargo test` 全绿（所有套件，含全部既有场景），`cargo fmt` 干净，
 `cargo clippy --all-targets` 零警告。
+
+### 29. MEND W1 —— 大灾变职业套装 W1 波，德鲁伊（8 张卡：MEND_040~046 + MEND_100，+ 2 个衍生物：MEND_046t / MEND_100t）🔓 登记
+
+MEND W1 波（`src/cards/exp_cata_w5.rs`）的简化登记：第一个 MEND_ 波
+（2025–2026 扩展总路线图 M5 的跟进）——大灾变德鲁伊职业套装，8 张卡 +
+2 个衍生物，注册于 `sets.rs`（10 条手写条目；每张 MEND_ 卡都覆盖一条
+生成基线，MEND_044 的地点偏差已在 `expansion_differential_rebalanced`
+中登记）。与 §14–§28 相同，这些卡不在 RL 池（经典 + 核心 668/659）内，
+所以各行仅为信息性登记：让代码里的简化可追溯到账本。每一行在其机制
+落地前保持开启。
+
+该波的头条机制均为完整原语：**"上回合没出随从"**（睿智野语者、心根之石）
+直接复用既有的 `last_turn_minion_play_ids` 快照——每回合出牌列表在
+CardPlayed 时压入、回合结束时 mem::take 进"上一回合"列表（M3-W2b 机制），
+因此该旗标不需要任何新的 Player 状态；**灰烬蠕虫** 通过
+`dormant_at_summon` 注册表的 u32::MAX 哨兵进入沉睡——回合开始倒计时跳过
+哨兵，MinionSummoned 处理器（所有召唤的唯一漏斗）在己方战场达到 7 个
+随从时唤醒哨兵沉睡随从；蠕虫在 6 随从战场出场时自己填满战场并立即苏醒
+（与官方一致）；**静谧空地** 是激活效果放在战吼槽的地点（W2 §24 约定），
+目标随从选择在 ActivateLocation 动作上浮出；**生命绽放** 走
+AllFriendlyCharacters 治疗路径（暗鳞治愈者先例——维伦翻倍、法术伤害不
+加成）并召唤两个随机 8 费随从；**播种巨龙** 亡语给手牌加一张随机龙并
+减费 (2)。
+
+该波还发现并修复了一个既有的保真缺口：**"对所有角色造成 X 点伤害"**——
+地狱烈焰、憎恶、恐惧地狱火与加尔顿男爵——此前在 `resolve_deal_damage`
+中是静默 no-op（AllCharacters 分支落进了 no-op 组）。该分支现已接通：
+双方英雄 + 全部随从（含潜行——AOE 无视潜行；恶癖不挡 AOE），排除效果
+来源（法术本身不是角色，且随从卡的官方文本是"所有其他角色"）。由
+`mend_w1_hellfire_damages_all_characters` 钉住（MEND W1 调研中浮出——
+法球随机施法抽到了地狱烈焰）。
+
+该波的 §29 钉（已登记约定）：**巴莎娜·符文图腾**——官方雕刻把法术"刻"
+进树人衍生物（每个 MEND_046t 2/2 带"战吼：施放 {0}"）；简化形态直接往
+手牌加三个白板 2/2 树人 + 最多三张随机自然法术（每张费用 ≤ 剩余 12 费
+预算）；**培养之精**——法球（MEND_100t）自身费用固定为 3，"每回合升级"
+让施放法术的费用每经过一个持于手牌的己方回合开始 +1（HandTurnCounter
+约定，CATA_498），施放该费用的三张随机法术；**静谧空地的沉睡**——目标
+获得沉睡（Dormant 1），在"其下一次回合开始"唤醒、与拥有者无关，对照
+官方"沉睡至你的下个回合结束"（若中间是对手回合开始则提前唤醒）；**随机
+池**——播种巨龙的龙、生命绽放的 8 费随从、巴莎娜雕刻的自然法术与法球
+施放的法术都从全卡池采样（`random_minion_of_cost` 约定，无窗口过滤），
+对照官方为活跃窗口池。
+
+| ID | 卡牌 | 简化 | 真实形态 |
+| --- | --- | --- | --- |
+| MEND_040 | 灰烬蠕虫 | 完整：召唤即沉睡哨兵 + 战场满唤醒（蠕虫自己填满战场也会立即唤醒） | — |
+| MEND_041 | 睿智野语者 | 完整：上回合无随从旗标读取 `last_turn_minion_play_ids` 快照 | — |
+| MEND_042 | 生命绽放 | 完整：全体友方治疗 + 两个随机 8 费随从（池为全卡池） | 活跃窗口池 |
+| MEND_043 | 心根之石 | 完整：抽牌 + 护甲的重复读取上回合旗标 | — |
+| MEND_044 | 静谧空地 | 完整地点 + 目标 +2 血嘲讽；沉睡为 Dormant 1——目标在其下一次回合开始唤醒、与拥有者无关 | "沉睡至你的下个回合结束" |
+| MEND_045 | 播种巨龙 | 完整：亡语加随机龙并减费 (2)（池为全卡池） | 活跃窗口池 |
+| MEND_046 | 巴莎娜·符文图腾 | 三个白板 2/2 树人 + 最多三张随机自然法术（每张 ≤ 剩余 12 费预算）加入手牌 | 官方雕刻把法术刻进树人衍生物 |
+| MEND_046t | 树人 | 白板 2/2（无"施放 {0}"战吼） | 雕刻法术战吼 |
+| MEND_100 | 培养之精 | 完整：3 费法球入手，每经己方回合开始 +1 刻度（HandTurnCounter） | — |
+| MEND_100t | 绽放法球 | 法球自身费用固定为 3；升级提升施放法术的费用（每刻度 +1）；施放池为全卡池 | 官方升级语义与活跃窗口池 |
+
+F5 覆盖：`mend_w1_*`（`tests/differential.rs` 12 个场景）——
+`mend_w1_ash_worm_awakens_on_full_board`（第 7 个召唤唤醒沉睡蠕虫）、
+`mend_w1_ash_worm_played_onto_full_board_awakens_immediately`（蠕虫自己填满
+战场）、`mend_w1_ash_worm_stays_dormant_on_partial_board`（未满战场保持
+沉睡）、`mend_w1_wizened_wildspeaker_refreshes_when_no_minion_last_turn` /
+`mend_w1_wizened_wildspeaker_no_refresh_after_minion_played`（刷新与不刷新）、
+`mend_w1_heartroot_stones_repeats_when_no_minion_last_turn` /
+`mend_w1_heartroot_stones_single_when_minion_played_last_turn`（双抽 + 6 甲
+与单次执行）、`mend_w1_tranquil_clearing_sleeps_target_until_next_turn`
+（目标 +2 血嘲讽、沉睡阻止双方攻击、己方下回合开始唤醒、第二次激活摧毁
+地点）、`mend_w1_seeding_dragon_deathrattle_gives_dragon_costs_2_less`
+（随机龙 + 减费 (2)）、`mend_w1_bashana_runetotem_treants_and_carved_spells`
+（三个 2/2 树人 + ≤ 12 费预算内的自然法术）、
+`mend_w1_cultivating_sprite_bulb_upgrades_each_turn`（法球的手牌回合刻度与
+确定性施法——野性咆哮 + 盾牌格挡 + 地狱烈焰——钉住升级）、
+`mend_w1_hellfire_damages_all_characters`（重新接通的 AllCharacters 伤害
+分支）。全部 `cargo test` 全绿（所有套件，含全部既有场景），`cargo fmt`
+干净，`cargo clippy --all-targets` 零警告。

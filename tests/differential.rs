@@ -35420,3 +35420,577 @@ fn jail_w2_captured_archmage_four_deaths_fireball() {
     assert!((9..=15).contains(&minion_hp), "minion took 0 or 6");
     assert_eq!(hero_hp + minion_hp, 39, "exactly one 6-damage Fireball");
 }
+
+// ============================================================
+// MEND W1 — the Cataclysm Druid class-set wave (src/cards/exp_cata_w5.rs,
+// fidelity-debt §29): 8 cards (MEND_040~046 + MEND_100) + 2 tokens.
+// ============================================================
+
+/// MEND-1 — Ash Worm: "Starts Dormant. When your board is full, awaken."
+/// The worm is the 6th minion on a 5-minion board: the board is not full,
+/// so it stays asleep; the next summon fills the board and it awakens,
+/// ready to attack.
+#[test]
+fn mend_w1_ash_worm_awakens_on_full_board() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_cata_w5::ASH_WORM;
+    use orange_stone::core::component::AttacksUsed;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    for _ in 0..5 {
+        builder.add_minion_to_board(p1, &BLOODFEN_RAPTOR);
+    }
+    builder.add_minion_to_hand(p1, &ASH_WORM);
+    builder.add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // The worm is the 6th minion: the play path applies the dormant via
+    // the dormant_at_summon registry.
+    play_front_card(&mut state, &engine, p1); // Ash Worm
+    let worm = find_entity(&state, p1, "MEND_040");
+    assert!(
+        state.world().dormant(worm).is_some(),
+        "the worm sleeps on a 6-minion board"
+    );
+    // The next minion fills the board (7/7): the worm awakens.
+    play_front_card(&mut state, &engine, p1); // BLOODFEN_RAPTOR
+    assert!(
+        state.world().dormant(worm).is_none(),
+        "a full board awakens the worm"
+    );
+    // The worm was PLAYED this turn, so it still carries summoning
+    // sickness (attacks_used 1, reset at the owner's next turn start) —
+    // a worm that sleeps across turns and awakens later can act the
+    // moment the board fills.
+    assert_eq!(state.world().attacks_used(worm), Some(AttacksUsed(1)));
+}
+
+/// MEND-1b — Ash Worm played onto an already-full board: the worm itself
+/// is the 7th minion, so the board is full the moment it lands and it
+/// awakens immediately.
+#[test]
+fn mend_w1_ash_worm_played_onto_full_board_awakens_immediately() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_cata_w5::ASH_WORM;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    for _ in 0..6 {
+        builder.add_minion_to_board(p1, &BLOODFEN_RAPTOR);
+    }
+    builder.add_minion_to_hand(p1, &ASH_WORM);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // the 7th minion
+    let worm = find_entity(&state, p1, "MEND_040");
+    assert!(
+        state.world().dormant(worm).is_none(),
+        "the worm itself fills the board and awakens at once"
+    );
+}
+
+/// MEND-1c — Ash Worm below the full board stays asleep: partial boards
+/// never wake it.
+#[test]
+fn mend_w1_ash_worm_stays_dormant_on_partial_board() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_cata_w5::ASH_WORM;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &ASH_WORM);
+    for _ in 0..3 {
+        builder.add_minion_to_hand(p1, &BLOODFEN_RAPTOR);
+    }
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // worm
+    let worm = find_entity(&state, p1, "MEND_040");
+    assert!(state.world().dormant(worm).is_some());
+    // Three more summons leave the board 4/7: the worm keeps sleeping.
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert!(
+        state.world().dormant(worm).is_some(),
+        "the worm sleeps until the board is actually full"
+    );
+}
+
+/// MEND-2 — Wizened Wildspeaker: "Battlecry: If you didn't play a minion
+/// last turn, refresh 3 Mana Crystals." A turn without minion plays
+/// refreshes the Mana after the 5-Cost play.
+#[test]
+fn mend_w1_wizened_wildspeaker_refreshes_when_no_minion_last_turn() {
+    use orange_stone::cards::exp_cata_w5::WIZENED_WILDSPEAKER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &WIZENED_WILDSPEAKER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Turn 1: no minion played — the empty play list snapshots at the
+    // turn end (last_turn_minion_play_ids).
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Turn 3 (p1): the play costs 5 of the refilled 10 Mana; the
+    // refresh tops it back up to 8.
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(
+        state.player(p1).current_mana,
+        8,
+        "no minion last turn → 3 Mana refreshed"
+    );
+}
+
+/// MEND-2b — Wizened Wildspeaker does NOT refresh when a minion was
+/// played last turn.
+#[test]
+fn mend_w1_wizened_wildspeaker_no_refresh_after_minion_played() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_cata_w5::WIZENED_WILDSPEAKER;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &WIZENED_WILDSPEAKER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Turn 1: play a minion — the play list records it.
+    play_front_card(&mut state, &engine, p1); // raptor
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Turn 3 (p1): a minion WAS played last turn → no refresh.
+    play_front_card(&mut state, &engine, p1); // wildspeaker
+    assert_eq!(
+        state.player(p1).current_mana,
+        5,
+        "a minion last turn → the 5-Mana play just spends"
+    );
+}
+
+/// MEND-3 — Heartroot Stones: "Draw a card and gain 3 Armor. If you
+/// didn't play a minion last turn, do it again." No minion last turn →
+/// the spell runs twice: 6 Armor and two draws.
+#[test]
+fn mend_w1_heartroot_stones_repeats_when_no_minion_last_turn() {
+    use orange_stone::cards::exp_cata_w5::HEARTROOT_STONES;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &HEARTROOT_STONES);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let hand_before = state.world().zones().len(Zone::Hand, p1);
+    play_front_card(&mut state, &engine, p1);
+    assert_eq!(state.player(p1).armor, 6, "the repeat gains 3 + 3 Armor");
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        hand_before - 1 + 2,
+        "the repeat draws two cards"
+    );
+}
+
+/// MEND-3b — Heartroot Stones runs once after a turn with a minion play:
+/// 3 Armor and one draw.
+#[test]
+fn mend_w1_heartroot_stones_single_when_minion_played_last_turn() {
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    use orange_stone::cards::exp_cata_w5::HEARTROOT_STONES;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &HEARTROOT_STONES);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // raptor on turn 1
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let hand_before = state.world().zones().len(Zone::Hand, p1);
+    play_front_card(&mut state, &engine, p1); // Heartroot Stones
+    assert_eq!(state.player(p1).armor, 3, "no repeat — 3 Armor only");
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        hand_before, // -1 played + 1 drawn
+        "the single pass draws one card"
+    );
+}
+
+/// MEND-4 — Tranquil Clearing: "Give a minion +2 Health and Taunt. It
+/// falls asleep until the end of your next turn." The activation targets
+/// any minion; the sleep is the Dormant component (awakens at the
+/// minion's next turn start); the second activation spends the last
+/// charge and destroys the Location.
+#[test]
+fn mend_w1_tranquil_clearing_sleeps_target_until_next_turn() {
+    use orange_stone::cards::exp_cata_w5::TRANQUIL_CLEARING;
+    use orange_stone::core::component::Durability;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    let target = builder.add_custom_minion_to_board(p1, 4, 3, 3);
+    let enemy = builder.add_custom_minion_to_board(p2, 5, 5, 5);
+    builder.add_minion_to_hand(p1, &TRANQUIL_CLEARING);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Play the Location (cost 2) on turn 1.
+    play_front_card(&mut state, &engine, p1);
+    let loc = find_entity(&state, p1, "MEND_044");
+    assert_eq!(state.world().durability(loc), Some(Durability(2)));
+    // The play cooldown blocks a same-turn activation.
+    assert!(
+        engine
+            .apply(
+                &mut state,
+                Action::ActivateLocation {
+                    location: loc,
+                    target: Some(target),
+                },
+            )
+            .is_err(),
+        "a location cannot activate the turn it was played"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Turn 3: activate on the target — +2 Health, Taunt, asleep.
+    engine
+        .apply(
+            &mut state,
+            Action::ActivateLocation {
+                location: loc,
+                target: Some(target),
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_health(target),
+        Some(Health(5)),
+        "+2 Health"
+    );
+    assert!(state.world().effective_taunt(target), "Taunt granted");
+    assert!(
+        state.world().dormant(target).is_some(),
+        "the target falls asleep"
+    );
+    assert_eq!(
+        state.world().durability(loc),
+        Some(Durability(1)),
+        "one charge spent"
+    );
+    // The sleeping minion cannot attack.
+    let p2_hero = state.player(p2).hero;
+    let err = engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: target,
+                defender: p2_hero,
+            },
+        )
+        .unwrap_err();
+    assert!(
+        matches!(err, orange_stone::engine::rules::EngineError::InvalidTarget),
+        "the sleeping minion cannot attack"
+    );
+    // The opponent cannot attack the sleeping minion either.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let err = engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy,
+                defender: target,
+            },
+        )
+        .unwrap_err();
+    assert!(
+        matches!(err, orange_stone::engine::rules::EngineError::InvalidTarget),
+        "the sleeping minion cannot be attacked"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    // Turn 5 (p1): the minion's owner turn start counts the sleep down —
+    // the target awakens with its buffs intact and attacks.
+    assert!(
+        state.world().dormant(target).is_none(),
+        "the target wakes at its owner's next turn start"
+    );
+    assert_eq!(state.world().effective_health(target), Some(Health(5)));
+    assert!(state.world().effective_taunt(target));
+    let p2_hero = state.player(p2).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: target,
+                defender: p2_hero,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.world().effective_health(p2_hero), Some(Health(26)));
+    // The second activation spends the last charge: the Location leaves.
+    engine
+        .apply(
+            &mut state,
+            Action::ActivateLocation {
+                location: loc,
+                target: Some(target),
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.player(p1).location,
+        None,
+        "the Location is destroyed on the last charge"
+    );
+}
+
+/// MEND-5 — Seeding Dragon: "Deathrattle: Get a random Dragon. It costs
+/// (2) less." The dead dragon's deathrattle adds a random Dragon to the
+/// owner's hand with the (2) reduction.
+#[test]
+fn mend_w1_seeding_dragon_deathrattle_gives_dragon_costs_2_less() {
+    use orange_stone::cards::exp_cata_w5::SEEDING_DRAGON;
+    use orange_stone::core::component::Race;
+    use orange_stone::engine::cost::play_cost;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &SEEDING_DRAGON);
+    let enemy = builder.add_custom_minion_to_board(p2, 10, 10, 10);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    // Turn 2 (p2): the enemy kills the dragon.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    let dragon = find_entity(&state, p1, "MEND_045");
+    let p1_hero = state.player(p1).hero;
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy,
+                defender: dragon,
+            },
+        )
+        .unwrap();
+    // The 10/10 kills the 4/4 (which deals 4 back — the enemy survives
+    // on 6), and the deathrattle adds the Dragon to the empty p1 hand.
+    let hand_dragon = first_hand_card(&state, p1);
+    assert!(
+        state.world().has_race(hand_dragon, Race::Dragon),
+        "a random Dragon was added"
+    );
+    let cid = state.world().card_id(hand_dragon).unwrap().0;
+    let base = orange_stone::cards::def::card_by_id(cid).unwrap().cost;
+    assert_eq!(
+        play_cost(&state, hand_dragon, p1),
+        Cost(base - 2),
+        "the Dragon costs (2) less"
+    );
+    let _ = p1_hero;
+}
+
+/// MEND-6 — Bashana Runetotem: "Battlecry: Get three 2/2 Treants. Carve
+/// 12 Mana worth of Nature spells into them." — the simplified carve
+/// adds the Treants and up to three random Nature spells (total Cost ≤
+/// 12) to the hand (§29).
+#[test]
+fn mend_w1_bashana_runetotem_treants_and_carved_spells() {
+    use orange_stone::cards::exp_cata_w5::BASHANA_RUNETOTEM;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &BASHANA_RUNETOTEM);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Bashana (7 Mana)
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    let treants: Vec<Entity> = hand
+        .iter()
+        .copied()
+        .filter(|e| {
+            state
+                .world()
+                .card_id(*e)
+                .is_some_and(|c| c.0 == "MEND_046t")
+        })
+        .collect();
+    assert_eq!(treants.len(), 3, "three 2/2 Treants");
+    for t in &treants {
+        assert_eq!(state.world().effective_attack(*t), Some(Attack(2)));
+        assert_eq!(state.world().effective_health(*t), Some(Health(2)));
+    }
+    // The carved spells: every other added card is a Nature spell and the
+    // total Cost is at most 12 (at most 3 picks).
+    let spells: Vec<Entity> = hand
+        .into_iter()
+        .filter(|e| {
+            state
+                .world()
+                .card_id(*e)
+                .is_some_and(|c| c.0 != "MEND_046t")
+        })
+        .collect();
+    assert!(
+        !spells.is_empty() && spells.len() <= 3,
+        "up to 3 carved spells"
+    );
+    let total: i32 = spells
+        .iter()
+        .map(|e| {
+            let cid = state.world().card_id(*e).unwrap().0;
+            let def = orange_stone::cards::def::card_by_id(cid).unwrap();
+            assert_eq!(def.card_type, CardType::Spell, "a carved card is a spell");
+            assert_eq!(
+                orange_stone::cards::quest::spell_school(cid),
+                Some(orange_stone::cards::quest::SpellSchool::Nature),
+                "a carved spell is Nature"
+            );
+            def.cost
+        })
+        .sum();
+    assert!(total <= 12, "12 Mana worth of Nature spells");
+}
+
+/// MEND-7 — Cultivating Sprite: "Battlecry: Get a 3-Cost Bulb that casts
+/// three random 1-Cost spells. It upgrades each turn." — the Bulb ticks
+/// up at each owner turn start in hand; the cast spells' cost follows the
+/// ticks.
+#[test]
+fn mend_w1_cultivating_sprite_bulb_upgrades_each_turn() {
+    use orange_stone::cards::exp_cata_w5::CULTIVATING_SPRITE;
+    use orange_stone::core::component::HandTurnCounter;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &CULTIVATING_SPRITE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Sprite (3 Mana)
+    let bulb = find_in_hand(&state, p1, "MEND_100t");
+    assert_eq!(
+        state.world().card_id(bulb).unwrap().0,
+        "MEND_100t",
+        "the battlecry adds the Bulb"
+    );
+    // The fresh Bulb has no upgrade ticks: it casts 1-Cost spells.
+    assert_eq!(state.world().hand_turn_counter(bulb), None);
+    // Two full turns: at each p1 turn start the in-hand Bulb ticks up.
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().hand_turn_counter(bulb),
+        Some(HandTurnCounter(1)),
+        "one tick after the first p1 turn start in hand"
+    );
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    engine.apply(&mut state, Action::EndTurn).unwrap();
+    assert_eq!(
+        state.world().hand_turn_counter(bulb),
+        Some(HandTurnCounter(2)),
+        "the Bulb upgrades each turn"
+    );
+    // The upgraded Bulb casts three random 3-Cost spells (base 1 + 2
+    // ticks) — the deterministic seed (12345) pins the outcome to
+    // Savage Roar (+2 attack to all friendly minions), Shield Block
+    // (5 Armor) and Hellfire (3 damage to ALL characters): the 3/3
+    // sprite dies to the 5/3 + Hellfire, the p1 hero's Armor absorbs
+    // the Hellfire, and the p2 hero takes 3.
+    let p1_hero = state.player(p1).hero;
+    let p2_hero = state.player(PlayerId2()).hero;
+    let sprite = find_entity(&state, p1, "MEND_100");
+    let hand_before = state.world().zones().len(Zone::Hand, p1);
+    play_front_card(&mut state, &engine, p1); // the Bulb
+    assert_eq!(state.player(p1).armor, 2, "5 Armor absorbed 3 Hellfire");
+    assert_eq!(
+        state.world().effective_health(p1_hero),
+        Some(Health(30)),
+        "the p1 hero's health is untouched behind the Armor"
+    );
+    assert_eq!(
+        state.world().effective_health(p2_hero),
+        Some(Health(27)),
+        "Hellfire hits the p2 hero for 3"
+    );
+    // The sprite (3/3, buffed to 5/3 by Savage Roar) took 3 from
+    // Hellfire and died — the graveyard entity has its damage cleared.
+    assert_eq!(
+        state.world().zone(sprite),
+        Some(Zone::Graveyard),
+        "the sprite took Savage Roar + Hellfire and died"
+    );
+    assert_eq!(
+        state.world().zones().len(Zone::Hand, p1),
+        hand_before - 1,
+        "no drawn-cards: the cast consumes only the Bulb itself"
+    );
+}
+
+/// MEND-7b — the bulb research surfaced that "deal X damage to ALL
+/// characters" (Hellfire, Abomination, Dread Infernal, Baron Geddon)
+/// was a silent no-op in `resolve_deal_damage`; the AllCharacters arm
+/// is wired in the MEND W1 wave (heroes + minions on both sides,
+/// stealth included; the source excluded — the minion cards' texts
+/// say "all other characters", §29). Hellfire anchors the fix.
+#[test]
+fn mend_w1_hellfire_damages_all_characters() {
+    use orange_stone::cards::classic_warlock::HELLFIRE;
+    use orange_stone::cards::def::BLOODFEN_RAPTOR;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_board(p1, &BLOODFEN_RAPTOR);
+    let enemy = builder.add_custom_minion_to_board(p2, 5, 5, 5);
+    builder.add_minion_to_hand(p1, &HELLFIRE);
+    let mut state = builder.build();
+    let friend = find_entity(&state, p1, "CLASSIC_001");
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Hellfire (4 Mana)
+    // ALL characters: both heroes, both sides' minions — stealth
+    // included (none here), the spell itself is not a character.
+    assert_eq!(
+        state.world().effective_health(state.player(p1).hero),
+        Some(Health(27)),
+        "the caster's own hero takes 3"
+    );
+    assert_eq!(
+        state.world().effective_health(state.player(p2).hero),
+        Some(Health(27)),
+        "the enemy hero takes 3"
+    );
+    assert_eq!(
+        state.world().zone(friend),
+        Some(Zone::Graveyard),
+        "the friendly 3/2 dies to the 3 damage"
+    );
+    assert_eq!(
+        state.world().effective_health(enemy),
+        Some(Health(2)),
+        "the enemy 5/5 survives with 2"
+    );
+}

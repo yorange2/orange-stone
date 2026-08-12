@@ -34,6 +34,7 @@ pub mod exp_cata_w1;
 pub mod exp_cata_w2;
 pub mod exp_cata_w3;
 pub mod exp_cata_w4;
+pub mod exp_cata_w5;
 pub mod exp_edr_w1;
 pub mod exp_edr_w2;
 pub mod exp_edr_w3;
@@ -149,10 +150,17 @@ pub(crate) const POOL_OPEN_KEYWORD_IDS: &[&str] = &[
 /// Across the Timeways Dormant primitive): TIME_046 Cyborg Patriarch
 /// (Dormant 3), TIME_063 Timelord Nozdormu (Dormant 5). The returned
 /// countdown starts at the owner's next turn start.
+///
+/// MEND W1 — MEND_040 Ash Worm: "Starts Dormant. When your board is
+/// full, awaken." — the u32::MAX sentinel arms the board-full awakening
+/// (the MinionSummoned handler in rules.rs removes the dormant when the
+/// board reaches MAX_BOARD_SIZE; the turn-start countdown skips the
+/// sentinel).
 pub(crate) fn dormant_at_summon(card_id: &str) -> Option<u32> {
     match card_id {
-        "TIME_046" => Some(3), // Cyborg Patriarch
-        "TIME_063" => Some(5), // Timelord Nozdormu
+        "TIME_046" => Some(3),        // Cyborg Patriarch
+        "TIME_063" => Some(5),        // Timelord Nozdormu
+        "MEND_040" => Some(u32::MAX), // Ash Worm (board-full awakening)
         _ => None,
     }
 }
@@ -2550,6 +2558,15 @@ mod generated_tests {
         // health 0, durability from the official data, activation in the
         // battlecry slot).
         if id == "JAIL_511" || id == "JAIL_877" || id == "JAIL_887" || id == "JAIL_987" {
+            return matches!(field, "card_type" | "health" | "durability");
+        }
+        // MEND W1 — MEND_044 Tranquil Clearing: the same
+        // generator-predates-Location divergence as the CATA_492 pair
+        // above (the generated baseline is a vanilla Minion 0/2; the
+        // handwritten card is the faithful Location 2-mana /
+        // 2-durability representation, activation in the battlecry
+        // slot).
+        if id == "MEND_044" {
             return matches!(field, "card_type" | "health" | "durability");
         }
         // M5-W2 — JAIL_890 Captive Nathrezim: the official data dump

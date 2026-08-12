@@ -2273,6 +2273,19 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::ActivatedGolem => 2.0,
         CardEffect::Hellraiser => 3.0,
         CardEffect::SummonTwoRandomMinionsOfCost { .. } => 2.0,
+        // MEND W1 — the Druid class-set wave (src/cards/exp_cata_w5.rs,
+        // fidelity-debt §29)
+        CardEffect::RefreshManaIfNoMinionPlayedLastTurn { amount } => amount as f64 * 1.5,
+        CardEffect::RestoreAllFriendlyAndSummonTwoRandomCostMinions { heal, .. } => {
+            heal as f64 * 0.7 + 4.0
+        }
+        CardEffect::DrawAndGainArmorRepeatIfNoMinionPlayedLastTurn { draw, armor } => {
+            armor as f64 * 0.6 + draw as f64 * 3.0
+        }
+        CardEffect::BuffHealthTauntAndDormant { health } => health as f64 * 0.8 + 2.0,
+        CardEffect::AddRandomDragonCostReduced { .. } => 3.0,
+        CardEffect::GetThreeTreantsAndCarveNatureSpells => 5.0,
+        CardEffect::CastRandomSpellsScaledByHandTurns { count, .. } => count as f64 * 3.0,
     }
 }
 

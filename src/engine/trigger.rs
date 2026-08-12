@@ -257,6 +257,14 @@ fn apply_spell_power(
                 aoe: adjust(aoe),
             }
         }
+        // MEND W1 — MEND_042 Lifebloom: Velen doubles the healing (Spell
+        // Damage does not boost heals — the RestoreHealth convention).
+        CardEffect::RestoreAllFriendlyAndSummonTwoRandomCostMinions { heal, cost } => {
+            CardEffect::RestoreAllFriendlyAndSummonTwoRandomCostMinions {
+                heal: if velen { heal * 2 } else { heal },
+                cost,
+            }
+        }
         other => other,
     }
 }
@@ -16261,6 +16269,173 @@ pub fn resolve_effect(
                 }
             }
         }
+        // MEND W1 — the Druid class-set wave (src/cards/exp_cata_w5.rs,
+        // fidelity-debt §29).
+        CardEffect::RefreshManaIfNoMinionPlayedLastTurn { amount } => {
+            // MEND_041 Wizened Wildspeaker — "Battlecry: If you didn't
+            // play a minion last turn, refresh 3 Mana Crystals." The
+            // last-turn list is snapshotted from the per-turn plays at
+            // the owner's turn end (`last_turn_minion_play_ids`), so it
+            // holds exactly the preceding own-turn plays.
+            if !state.player(owner).last_turn_minion_play_ids.is_empty() {
+                return;
+            }
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            p.current_mana = (p.current_mana + amount).min(10);
+        }
+        CardEffect::RestoreAllFriendlyAndSummonTwoRandomCostMinions { heal, cost } => {
+            // MEND_042 Lifebloom — "Restore 8 Health to all friendly
+            // characters. Summon two random 8-Cost minions." (the
+            // all-friendly heal rides the Darkscale Healer path; the
+            // summon pool is the full catalog at the given cost.)
+            resolve_restore_health(
+                state,
+                queue,
+                owner,
+                heal,
+                EffectTarget::AllFriendlyCharacters,
+                None,
+            );
+            for _ in 0..2 {
+                let Some(def) = random_minion_of_cost(state, cost) else {
+                    continue;
+                };
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+        }
+        CardEffect::DrawAndGainArmorRepeatIfNoMinionPlayedLastTurn { draw, armor } => {
+            // MEND_043 Heartroot Stones — "Draw a card and gain 3 Armor.
+            // If you didn't play a minion last turn, do it again." The
+            // second pass runs when the last-turn list is empty.
+            let repeat = state.player(owner).last_turn_minion_play_ids.is_empty();
+            for _ in 0..2 {
+                for _ in 0..draw {
+                    draw_card(state, queue, owner);
+                }
+                grant_armor(state, queue, owner, armor);
+                if !repeat {
+                    break;
+                }
+            }
+        }
+        CardEffect::BuffHealthTauntAndDormant { health } => {
+            // MEND_044 Tranquil Clearing — "Give a minion +2 Health and
+            // Taunt. It falls asleep until the end of your next turn."
+            // The target is any minion (the choice surfaces at the
+            // ActivateLocation action); the sleep is the existing Dormant
+            // component with one turn — it awakens at the minion's next
+            // turn start regardless of owner (§29).
+            let mut minions = collect_friendly_minions(state, owner);
+            minions.extend(collect_all_enemy_minions(state, owner));
+            let Some(target) = select_target(explicit_target, &minions, state.rng_mut()) else {
+                return;
+            };
+            state.world_mut().add_enchantment(
+                target,
+                Enchantment {
+                    attack: 0,
+                    health,
+                    cost: 0,
+                    expiry: EnchantmentExpiry::Permanent,
+                },
+            );
+            state.world_mut().set_taunt(target, Taunt);
+            state
+                .world_mut()
+                .set_dormant(target, crate::core::component::Dormant { turns: 1 });
+        }
+        CardEffect::AddRandomDragonCostReduced { reduction } => {
+            // MEND_045 Seeding Dragon deathrattle — "Get a random Dragon.
+            // It costs (2) less." (the full catalog is sampled for
+            // Dragons — the `random_minion_of_cost` convention, §29.)
+            let pool: SmallList<&'static crate::cards::def::CardDef> =
+                crate::cards::sets::ALL_CARDS
+                    .iter()
+                    .filter(|c| {
+                        c.card_type == CardType::Minion
+                            && c.race == Some(crate::core::component::Race::Dragon)
+                            && !c.id.ends_with('t')
+                    })
+                    .collect();
+            let Some(def) = pick_random(state, &pool).copied() else {
+                return;
+            };
+            if let Some(e) = add_card_to_hand(state, owner, def) {
+                reduce_hand_card_cost(state, e, reduction);
+            }
+        }
+        CardEffect::GetThreeTreantsAndCarveNatureSpells => {
+            // MEND_046 Bashana Runetotem — "Battlecry: Get three 2/2
+            // Treants. Carve 12 Mana worth of Nature spells into them."
+            // (§29: the official carves the spells INTO the Treant
+            // tokens — each casts its carved spell when played; the
+            // simplified form adds the Treants plus up to three random
+            // Nature spells — each costing no more than the remaining
+            // 12-Mana budget — directly to the hand.)
+            for _ in 0..3 {
+                if let Some(def) = crate::cards::def::card_by_id("MEND_046t") {
+                    let _ = add_card_to_hand(state, owner, def);
+                }
+            }
+            let mut remaining = 12;
+            for _ in 0..3 {
+                let pool: SmallList<&'static crate::cards::def::CardDef> =
+                    crate::cards::sets::ALL_CARDS
+                        .iter()
+                        .filter(|c| {
+                            c.card_type == CardType::Spell
+                                && crate::cards::quest::spell_school(c.id)
+                                    == Some(crate::cards::quest::SpellSchool::Nature)
+                                && c.cost <= remaining
+                                && !c.id.ends_with('t')
+                        })
+                        .collect();
+                let Some(def) = pick_random(state, &pool).copied() else {
+                    break;
+                };
+                remaining -= def.cost;
+                let _ = add_card_to_hand(state, owner, def);
+            }
+        }
+        CardEffect::CastRandomSpellsScaledByHandTurns { base, count } => {
+            // MEND_100t Blooming Bulb — "Cast three random spells that
+            // cost (1). (Upgrades each turn!)" — the hand-turn counter
+            // of the bulb (bumped at the owner's turn starts, the
+            // CATA_498 convention) raises the cost of the cast spells;
+            // each cast resolves the spell's effect against random
+            // targets (the CastRandomNatureSpells shape; the full
+            // catalog at the given cost, §29).
+            let extra = state
+                .world()
+                .hand_turn_counter(source)
+                .map(|c| c.0 as i32)
+                .unwrap_or(0);
+            let wanted = base + extra;
+            for _ in 0..count {
+                let pool: SmallList<&'static crate::cards::def::CardDef> =
+                    crate::cards::sets::ALL_CARDS
+                        .iter()
+                        .filter(|c| {
+                            c.card_type == CardType::Spell
+                                && c.cost == wanted
+                                && !c.id.ends_with('t')
+                        })
+                        .collect();
+                let Some(def) = pick_random(state, &pool).copied() else {
+                    continue;
+                };
+                // The spell-card convention stores the effect in the
+                // battlecry slot (the spell play path resolves
+                // `battlecry`; `spell_effect` covers the few generated
+                // cards that use it) — casting resolves that effect with
+                // random targets, exactly like a played spell.
+                let effect = def.battlecry.or(def.spell_effect);
+                if let Some(effect) = effect {
+                    resolve_effect(state, queue, source, owner, effect, None, None);
+                }
+            }
+        }
     }
 }
 
@@ -17031,8 +17206,31 @@ fn resolve_deal_damage(
             let hero = state.player(owner).hero;
             [hero].into_iter().collect()
         }
-        EffectTarget::AllCharacters
-        | EffectTarget::AllFriendlyCharacters
+        EffectTarget::AllCharacters => {
+            // MEND W1 — "Deal X damage to ALL characters" (Hellfire,
+            // Abomination; also Dread Infernal / Baron Geddon, whose
+            // official texts say "all OTHER characters"). Heroes and all
+            // minions on both sides — stealth is included (AOE ignores
+            // stealth) and Elusive does not block AOE. The source is
+            // excluded: the spell card is not a character, and the
+            // minion-sourced cards' "other" semantics never self-hit.
+            // (This arm was a silent no-op before the MEND W1 wave — the
+            // `resolve_deal_damage_randomly` AllCharacters arm kept the
+            // same source-exclusion convention, §29.)
+            let mut all = collect_friendly_characters(state, owner, None);
+            all.extend(collect_all_enemy_characters(state, owner));
+            for t in all {
+                if t != source {
+                    queue.push(Event::DamageDealt {
+                        source,
+                        target: t,
+                        amount,
+                    });
+                }
+            }
+            return None;
+        }
+        EffectTarget::AllFriendlyCharacters
         | EffectTarget::DamagedEnemyMinion
         | EffectTarget::OtherFriendlyMinion
         | EffectTarget::TauntEnemyMinion

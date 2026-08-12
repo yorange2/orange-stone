@@ -1180,6 +1180,14 @@ pub fn apply_event(
                     .filter_map(|e| state.world().dormant(e).map(|d| (e, d.turns)))
                     .collect();
                 for (entity, turns) in slumbering {
+                    // MEND W1 — MEND_040 Ash Worm: "Starts Dormant. When
+                    // your board is full, awaken." — the u32::MAX sentinel
+                    // (cards::dormant_at_summon) never counts down; the
+                    // board-full check in the MinionSummoned handler
+                    // awakens it instead.
+                    if turns == u32::MAX {
+                        continue;
+                    }
                     if turns <= 1 {
                         state.world_mut().remove_dormant(entity);
                     } else {
@@ -1256,15 +1264,21 @@ pub fn apply_event(
                 let hero = state.player(player).hero;
                 trigger::resolve_summon(state, queue, hero, player, &id);
             }
-            // M4-W4 — CATA_498 Rafaam's Last Stand: "(Upgrades each turn!)"
-            // — the hand card's in-hand turn counter ticks at each owner
-            // turn start (the effect arm reads it as bonus damage).
+            // M4-W4 — CATA_498 Rafaam's Last Stand and MEND W1 —
+            // MEND_100t Blooming Bulb: "(Upgrades each turn!)" — the hand
+            // cards' in-hand turn counter ticks at each owner turn start
+            // (the effect arms read it as bonus damage / spell cost).
             {
                 let marked: SmallList<Entity> = state
                     .world()
                     .zones()
                     .iter(Zone::Hand, player)
-                    .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "CATA_498"))
+                    .filter(|&e| {
+                        state
+                            .world()
+                            .card_id(e)
+                            .is_some_and(|c| c.0 == "CATA_498" || c.0 == "MEND_100t")
+                    })
                     .collect();
                 for e in marked {
                     let cur = state
@@ -2679,6 +2693,30 @@ pub fn apply_event(
                     1,
                     None,
                 );
+            }
+            // MEND W1 — MEND_040 Ash Worm: "Starts Dormant. When your
+            // board is full, awaken." — every friendly summon checks
+            // whether the board just became full (the dormant-at-summon
+            // registry arms the u32::MAX sentinel); a full board wakes
+            // every sentinel-dormant minion. The worm played onto a
+            // 6-minion board fills it itself and awakens immediately
+            // (the dormant lands in the CardPlayed path, this event
+            // processes after, §29).
+            if count_board_minions(state.world(), player) == MAX_BOARD_SIZE {
+                let slumbering: SmallList<Entity> = state
+                    .world()
+                    .zones()
+                    .iter(Zone::Play, player)
+                    .filter(|&e| {
+                        state
+                            .world()
+                            .dormant(e)
+                            .is_some_and(|d| d.turns == u32::MAX)
+                    })
+                    .collect();
+                for e in slumbering {
+                    state.world_mut().remove_dormant(e);
+                }
             }
             // M2-W2 (TLC_426 — Dive the Golakka Depths): the repeatable
             // quest's permanent "Murlocs you summon gain +1/+1". The flag
