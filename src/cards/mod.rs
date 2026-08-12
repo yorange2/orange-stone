@@ -36,6 +36,7 @@ pub mod exp_cata_w3;
 pub mod exp_cata_w4;
 pub mod exp_cata_w5;
 pub mod exp_cata_w6;
+pub mod exp_cata_w7;
 pub mod exp_edr_w1;
 pub mod exp_edr_w2;
 pub mod exp_edr_w3;
@@ -55,6 +56,7 @@ pub mod exp_tmw_w3;
 pub mod generated;
 pub mod herald;
 pub mod kindred;
+pub mod leyline;
 pub mod pool;
 pub mod prepare;
 pub mod quest;
@@ -1822,6 +1824,13 @@ pub(crate) fn choose_one_option_names(def: &CardDef) -> [&'static str; 2] {
             "Summon a random 5-Cost Beast",
             "Summon a random 6-Cost Beast",
         ],
+        // MEND W3 — the Mage class-set wave (exp_cata_w7.rs, §31): The
+        // Arcanomicon's first two upgrades (the third lives in the
+        // three-branch table below).
+        "MEND_505" => [
+            "Your Leylines cost (1) less",
+            "Your Leylines trigger an additional time",
+        ],
         _ => ["First option", "Second option"],
     }
 }
@@ -1874,6 +1883,12 @@ pub(crate) fn choose_one_three_branch(def: &CardDef) -> Option<CardEffect> {
             card_id: "HUNTER_023c",
         }),
         "MEND_307" => Some(CardEffect::ReplaceCompanionsAndSummonRandomBeast { bump: 2, cost: 7 }),
+        // MEND W3 — The Arcanomicon's third upgrade (effect +1). Every
+        // branch adds all 3 Leylines to hand first, so the branch carries
+        // only the upgrade itself (§31).
+        "MEND_505" => Some(CardEffect::GetAllLeylinesAndUpgrade {
+            upgrade: crate::core::component::LeylineUpgrade::EffectBonus,
+        }),
         _ => None,
     }
 }
@@ -1891,6 +1906,7 @@ pub(crate) fn choose_one_three_option_names(def: &CardDef) -> Option<&'static st
         "JAIL_504" => Some("Kabal Coin"),
         "MEND_301" => Some("Summon Misha"),
         "MEND_307" => Some("Summon a random 7-Cost Beast"),
+        "MEND_505" => Some("Increase the effects of your Leylines by 1"),
         _ => None,
     }
 }

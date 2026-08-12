@@ -2296,6 +2296,20 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::BuffFriendlyBeastAndRandomHandBeast { attack, health } => {
             (attack + health) as f64 * 1.2
         }
+        // MEND W3 — the Mage class-set wave (src/cards/exp_cata_w7.rs,
+        // fidelity-debt §31)
+        CardEffect::DealDamageToRandomEnemyMinionExcessToHero { amount, times } => {
+            amount as f64 * times as f64 * 1.1
+        }
+        CardEffect::SetLeylineDiscount { .. } => 2.0,
+        CardEffect::AddRandomLeylineToHand => 2.5,
+        CardEffect::SummonRandomCostMinionTimes { cost, times } => cost as f64 * times as f64 * 0.7,
+        CardEffect::SetLeylineExtraTrigger { .. } => 3.0,
+        CardEffect::DrawCardsCostsLess { reduction, count } => {
+            count as f64 * 3.0 + reduction as f64 * 0.8
+        }
+        CardEffect::GetAllLeylinesAndUpgrade { .. } => 7.5,
+        CardEffect::SetLeylineEffectBonus { .. } => 3.0,
     }
 }
 

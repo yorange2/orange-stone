@@ -2811,6 +2811,17 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_cata_w6::TALYA_EARTHSTRIDER,
     super::exp_cata_w6::NURTURING_NATURE,
     super::exp_cata_w6::ROAM_FREE,
+    // MEND W3 — the Cataclysm Mage class-set wave
+    // (src/cards/exp_cata_w7.rs, fidelity-debt §31): handwritten only —
+    // the MEND_ cards have no generated baselines, so the
+    // `expansion_differential_gate` tripwire skips them.
+    super::exp_cata_w7::BURSTING_LEYLINE,
+    super::exp_cata_w7::LEY_WALKER,
+    super::exp_cata_w7::CRYSTALLIZED_LEYLINE,
+    super::exp_cata_w7::SURGE_NEEDLE,
+    super::exp_cata_w7::LEYLINE_NEXUS,
+    super::exp_cata_w7::THE_ARCANOMICON,
+    super::exp_cata_w7::MYSTIC_RUNESABER,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated

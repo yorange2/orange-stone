@@ -2256,11 +2256,12 @@ fn barrens_stablehand_summons_random_beast() {
 
     let engine = GameEngine::new();
     let mut builder = GameBuilder::new();
-    // Seed 7 pins the Beast-pool draw to CORE_GIL_558 (a plain Beast).
-    // The default seed 12345 draws TIME_605, which summons a minion of
-    // its own and trips the "exactly one Beast" expectation (the pool
-    // membership changed when MEND_303, an in-window Beast, joined the
-    // handwritten pool).
+    // Seed 7 pins the Beast-pool draw to TLC_825 (Ravasaur Matriarch — a
+    // plain Beast whose Kindred OnPlay fires only when played from hand,
+    // never when summoned). The default seed 12345 draws TIME_605, which
+    // summons a minion of its own and trips the "exactly one Beast"
+    // expectation (the pool membership changed when MEND_303 and MEND_506,
+    // in-window Beasts, joined the handwritten pool — §31).
     builder.with_rng_seed(7);
     builder.add_minion_to_hand(PlayerId::Player1, &BARRENS_STABLEHAND);
     builder.set_mana(PlayerId::Player1, 10, 10);

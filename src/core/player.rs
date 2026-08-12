@@ -754,6 +754,21 @@ pub struct Player {
     /// `RandomPool::Companion` resolution summons `1 + companion_bonus`
     /// Beasts, each independently subject to `companion_replacement`.
     pub companion_bonus: u32,
+    /// The Leyline play-cost discount (MEND W3 — Ley Walker / The
+    /// Arcanomicon): "Your Leylines cost (1) less this game." The cost
+    /// pipeline (`engine/cost.rs`) subtracts the accumulated discount
+    /// from every card in the `cards::leyline` registry.
+    pub leyline_discount: u32,
+    /// Extra Leyline activations (MEND W3 — Surge Needle / The
+    /// Arcanomicon): "Your Leylines trigger an additional time this
+    /// game." The three Leyline cards' {1} scalars (hit / summon / draw
+    /// counts) read this at resolution time.
+    pub leyline_extra_trigger: u32,
+    /// The Leyline effect-magnitude bonus (MEND W3 — Mystic Runesaber /
+    /// The Arcanomicon): "Increase the effects of your Leylines by 1
+    /// this game." The three Leyline cards' {0} scalars (damage,
+    /// summoned-minion cost, cost reduction) read this at resolution.
+    pub leyline_effect_bonus: u32,
 }
 
 impl Player {
@@ -918,6 +933,9 @@ impl Player {
             jail974_deaths: 0,
             companion_replacement: None,
             companion_bonus: 0,
+            leyline_discount: 0,
+            leyline_extra_trigger: 0,
+            leyline_effect_bonus: 0,
         }
     }
 }

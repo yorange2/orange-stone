@@ -610,5 +610,17 @@ pub fn play_cost(state: &GameState, card: Entity, player: PlayerId) -> Cost {
             .len(crate::core::zone::Zone::Hand, player) as i32;
         cost = Cost((cost.0 - hand_size).max(0));
     }
+    // MEND W3 — Ley Walker / The Arcanomicon: "Your Leylines cost (1)
+    // less this game" (the `leyline_discount` flag; the registry keys the
+    // membership, §31). The game-long flag never expires; the discount
+    // stacks with multiple setters and floors at 0.
+    if state
+        .world()
+        .card_id(card)
+        .is_some_and(|c| crate::cards::leyline::is_leyline(c.0))
+        && state.player(player).leyline_discount > 0
+    {
+        cost = Cost((cost.0 - state.player(player).leyline_discount as i32).max(0));
+    }
     cost
 }

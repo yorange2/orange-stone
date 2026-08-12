@@ -36453,3 +36453,339 @@ fn mend_w2_call_of_the_wild_respects_replacement() {
         assert_eq!(state.world().cost(beast), Some(Cost(4)));
     }
 }
+
+// ============================================================
+// MEND W3 — the Cataclysm Mage class-set wave (src/cards/exp_cata_w7.rs,
+// fidelity-debt §31): 7 cards (MEND_500~506). The "Leyline" trio
+// (MEND_500/502/504) is upgraded by the wave's other cards via three
+// per-player flags (cost discount / extra trigger / effect +1).
+// ============================================================
+
+/// MEND-1 — Bursting Leyline: "Deal 3 damage to a random enemy minion.
+/// Excess damage hits the enemy hero." Seed 0 pins the random pick to the
+/// 1/1 — it dies to the hit and the 2 excess points hit the enemy hero
+/// (the Briarspawn Drake excess convention, §31).
+#[test]
+fn mend_w3_bursting_leyline_excess_hits_hero() {
+    use orange_stone::cards::exp_cata_w7::BURSTING_LEYLINE;
+    use orange_stone::core::component::Health;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.with_rng_seed(0).set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &BURSTING_LEYLINE);
+    builder.add_custom_minion_to_board(PlayerId2(), 1, 1, 2); // dies to the hit
+    builder.add_custom_minion_to_board(PlayerId2(), 5, 5, 2); // untouched
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let p2 = PlayerId2();
+    let minions = board_minions(&state, p2);
+    assert_eq!(minions.len(), 1, "the 1/1 died to the hit");
+    assert_eq!(
+        state.world().effective_health(minions[0]),
+        Some(Health(5)),
+        "the 5/5 was untouched"
+    );
+    assert_eq!(
+        state.world().effective_health(state.player(p2).hero),
+        Some(Health(28)),
+        "2 excess damage hits the enemy hero"
+    );
+}
+
+/// MEND-1 — Bursting Leyline is ImmuneToSpellpower: a friendly Ogre Magi
+/// (+1 Spell Damage) does not boost the 3 — the 4/4 survives on 1 health
+/// (the official data marks the card ImmuneToSpellpower, §31).
+#[test]
+fn mend_w3_bursting_leyline_not_boosted_by_spell_power() {
+    use orange_stone::cards::def::OGRE_MAGI;
+    use orange_stone::cards::exp_cata_w7::BURSTING_LEYLINE;
+    use orange_stone::core::component::Health;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_board(p1, &OGRE_MAGI);
+    builder.add_minion_to_hand(p1, &BURSTING_LEYLINE);
+    builder.add_custom_minion_to_board(PlayerId2(), 4, 4, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let minions = board_minions(&state, PlayerId2());
+    assert_eq!(minions.len(), 1, "4 damage would have killed the 4/4");
+    assert_eq!(
+        state.world().effective_health(minions[0]),
+        Some(Health(1)),
+        "exactly 3 damage, no Spell Damage bonus"
+    );
+}
+
+/// MEND-2 — Ley Walker: "Battlecry: Your Leylines cost (1) less this
+/// game. Deathrattle: Get a random Leyline." The discount is live through
+/// `play_cost` for the registry members; the deathrattle adds one random
+/// Leyline (seed 0 pins the draw to Leyline Nexus).
+#[test]
+fn mend_w3_ley_walker_discounts_leylines_and_deathrattle_gets_one() {
+    use orange_stone::cards::exp_cata_w7::{BURSTING_LEYLINE, LEY_WALKER};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.with_rng_seed(0).set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &LEY_WALKER);
+    builder.add_minion_to_hand(p1, &BURSTING_LEYLINE);
+    builder.add_custom_minion_to_board(PlayerId2(), 9, 9, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Ley Walker
+    let burst = find_in_hand(&state, p1, "MEND_500");
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, burst, p1).0,
+        3,
+        "Leylines cost (1) less after the battlecry"
+    );
+    // Kill it: the deathrattle adds a random Leyline (seed 0 pins the
+    // draw to Leyline Nexus, MEND_504).
+    state.set_active_player(PlayerId2());
+    let enemy = board_minions(&state, PlayerId2())[0];
+    let walker = find_entity(&state, p1, "MEND_501");
+    engine
+        .apply(
+            &mut state,
+            Action::Attack {
+                attacker: enemy,
+                defender: walker,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().zones().iter(Zone::Hand, p1).count(),
+        2,
+        "Bursting Leyline + the drawn Leyline"
+    );
+    let nexus = find_in_hand(&state, p1, "MEND_504");
+    assert_eq!(
+        orange_stone::engine::cost::play_cost(&state, nexus, p1).0,
+        1,
+        "the drawn Leyline is discounted too"
+    );
+}
+
+/// MEND-3 — Crystallized Leyline: "Summon a random 5-Cost minion." Seed 0
+/// pins the summon to Stranglethorn Tiger (NEUTRAL_T14 — a benign 5/5
+/// Beast with no on-summon effect), so the board holds exactly the one
+/// summon.
+#[test]
+fn mend_w3_crystallized_leyline_summons_five_cost() {
+    use orange_stone::cards::exp_cata_w7::CRYSTALLIZED_LEYLINE;
+    use orange_stone::core::component::Cost;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .with_rng_seed(0)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &CRYSTALLIZED_LEYLINE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 1, "exactly one summoned minion");
+    let beast = minions[0];
+    assert_eq!(
+        state.world().card_id(beast).map(|c| c.0),
+        Some("NEUTRAL_T14"),
+        "seed 0 pins the summon"
+    );
+    assert_eq!(state.world().cost(beast), Some(Cost(5)), "a 5-Cost minion");
+}
+
+/// MEND-4 — Surge Needle: "Your Leylines trigger an additional time this
+/// game." The extra trigger repeats Crystallized Leyline's summon — seed 0
+/// pins the two draws to Stranglethorn Tiger and Booty Bay Bodyguard
+/// (both benign 5-Cost minions, §31).
+#[test]
+fn mend_w3_surge_needle_extra_trigger_repeats_crystallized() {
+    use orange_stone::cards::exp_cata_w7::{CRYSTALLIZED_LEYLINE, SURGE_NEEDLE};
+    use orange_stone::core::component::Cost;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .with_rng_seed(0)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &SURGE_NEEDLE)
+        .add_minion_to_hand(p1, &CRYSTALLIZED_LEYLINE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Surge Needle
+    play_front_card(&mut state, &engine, p1); // Crystallized Leyline
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 3, "Surge Needle + two summons");
+    let summons: Vec<Entity> = minions
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 != "MEND_503"))
+        .collect();
+    assert_eq!(summons.len(), 2, "one extra summon from the extra trigger");
+    for m in summons {
+        assert_eq!(state.world().cost(m), Some(Cost(5)), "both are 5-Cost");
+    }
+}
+
+/// MEND-5 — Leyline Nexus: "Draw a card. It costs (1) less." The padded
+/// deck top is always Bloodfen Raptor (cost 2) — after the draw it costs
+/// 1, and no other card is drawn.
+#[test]
+fn mend_w3_nexus_draws_one_and_reduces_cost() {
+    use orange_stone::cards::exp_cata_w7::LEYLINE_NEXUS;
+    use orange_stone::core::component::Cost;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &LEYLINE_NEXUS);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 1, "exactly one card drawn");
+    let drawn = hand[0];
+    assert_eq!(
+        state.world().card_id(drawn).map(|c| c.0),
+        Some("CLASSIC_001"),
+        "the deck top is Bloodfen Raptor"
+    );
+    assert_eq!(
+        state.world().effective_cost(drawn),
+        Some(Cost(1)),
+        "the drawn card costs (1) less"
+    );
+}
+
+/// MEND-6 — Mystic Runesaber: "Elusive. Battlecry: Increase the effects of
+/// your Leylines by 1 this game." The effect bonus raises Crystallized
+/// Leyline's summoned Cost to 6 (seed 0 pins Windfury Harpy — benign) and
+/// Bursting Leyline's damage to 4 (the 6/6 survives on 2). The minion
+/// itself is Elusive and a Beast.
+#[test]
+fn mend_w3_runesaber_boosts_effects_and_is_elusive() {
+    use orange_stone::cards::exp_cata_w7::{
+        BURSTING_LEYLINE, CRYSTALLIZED_LEYLINE, MYSTIC_RUNESABER,
+    };
+    use orange_stone::core::component::{Cost, Health, Race};
+    let p1 = PlayerId1();
+    // Effect bonus on the summon: a 6-Cost minion instead of 5-Cost.
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .with_rng_seed(0)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &MYSTIC_RUNESABER)
+        .add_minion_to_hand(p1, &CRYSTALLIZED_LEYLINE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Mystic Runesaber
+    let runesaber = find_entity(&state, p1, "MEND_506");
+    assert!(state.world().elusive(runesaber).is_some(), "Elusive");
+    assert!(state.world().has_race(runesaber, Race::Beast), "a Beast");
+    play_front_card(&mut state, &engine, p1); // Crystallized Leyline
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 2, "Runesaber + one summon");
+    let summon = minions
+        .into_iter()
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 != "MEND_506"))
+        .expect("the summoned minion");
+    assert_eq!(
+        state.world().card_id(summon).map(|c| c.0),
+        Some("CLASSIC_016"),
+        "seed 0 pins the 6-Cost summon (Windfury Harpy)"
+    );
+    assert_eq!(state.world().cost(summon), Some(Cost(6)), "cost 5 + 1");
+    // Effect bonus on the damage: 4 damage to a 6/6 leaves 2 health
+    // (no excess — 4 < 6).
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10);
+    builder.add_minion_to_hand(p1, &MYSTIC_RUNESABER);
+    builder.add_minion_to_hand(p1, &BURSTING_LEYLINE);
+    builder.add_custom_minion_to_board(PlayerId2(), 6, 6, 2);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Mystic Runesaber
+    play_front_card(&mut state, &engine, p1); // Bursting Leyline
+    let minions = board_minions(&state, PlayerId2());
+    assert_eq!(minions.len(), 1);
+    assert_eq!(
+        state.world().effective_health(minions[0]),
+        Some(Health(2)),
+        "4 damage instead of 3 (effect +1)"
+    );
+}
+
+/// MEND-7 — The Arcanomicon: "Get all 3 Leylines. Choose an upgrade for
+/// your Leylines." Every branch adds the three Leylines to hand; option 0
+/// applies the cost discount (live through `play_cost`), option 1 the
+/// extra trigger, option 2 the effect bonus — and only the chosen one
+/// (the Blizzard discover bug that granted all three is not replicated).
+#[test]
+fn mend_w3_arcanomicon_gets_all_leylines_and_chooses_upgrade() {
+    use orange_stone::cards::exp_cata_w7::THE_ARCANOMICON;
+    use orange_stone::core::state::ChoiceKind;
+    let p1 = PlayerId1();
+    for (option, expected_flags) in [(0u8, (1u32, 0u32, 0u32)), (1, (0, 1, 0)), (2, (0, 0, 1))] {
+        let mut builder = GameBuilder::new();
+        pad_decks(&mut builder);
+        builder
+            .set_mana(p1, 10, 10)
+            .add_minion_to_hand(p1, &THE_ARCANOMICON);
+        let mut state = builder.build();
+        let engine = GameEngine::new();
+        let choice = play_front_card_choice(&mut state, &engine, p1);
+        assert_eq!(choice.kind, ChoiceKind::ChooseOne);
+        assert_eq!(choice.options.len(), 3, "three upgrades");
+        engine
+            .apply_choices(
+                &mut state,
+                Action::Choose {
+                    choice_id: choice.id,
+                    option,
+                },
+            )
+            .unwrap();
+        let hand: Vec<String> = state
+            .world()
+            .zones()
+            .iter(Zone::Hand, p1)
+            .map(|c| state.world().card_id(c).unwrap().0.to_string())
+            .collect();
+        assert_eq!(
+            hand,
+            vec![
+                "MEND_500".to_string(),
+                "MEND_502".to_string(),
+                "MEND_504".to_string()
+            ],
+            "all 3 Leylines added"
+        );
+        let p = state.player(p1);
+        assert_eq!(
+            (
+                p.leyline_discount,
+                p.leyline_extra_trigger,
+                p.leyline_effect_bonus
+            ),
+            expected_flags,
+            "only the chosen upgrade applies"
+        );
+        // The chosen discount is live for the added Leylines.
+        if option == 0 {
+            let burst = find_in_hand(&state, p1, "MEND_500");
+            assert_eq!(
+                orange_stone::engine::cost::play_cost(&state, burst, p1).0,
+                3,
+                "the Discount upgrade costs Leylines (1) less"
+            );
+        }
+    }
+}
