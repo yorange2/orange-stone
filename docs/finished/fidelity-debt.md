@@ -2519,3 +2519,78 @@ fires the second wave exactly once — pinned seed), `mend_w2_nurturing_nature_b
 `mend_w2_call_of_the_wild_respects_replacement` (the SummonAllCompanions
 interception). Full `cargo test` fully green (all suites, incl. every prior
 scenario), `cargo fmt` clean, `cargo clippy --all-targets` zero warnings.
+
+### 31. MEND W3 — the Cataclysm class-set W3 wave, Mage (7 cards: MEND_500~506) 🔓 registered
+
+The registered simplifications of the MEND W3 wave (`src/cards/exp_cata_w7.rs`):
+the third MEND_ wave (the 2025–2026 expansions master roadmap M5 follow-up) —
+the Cataclysm Mage class set, 7 cards (MEND_500~506), registered in `sets.rs`
+(7 handwritten entries). As with §14–§30, these cards are not in the RL pool,
+so the rows are informational: they keep the code's simplifications traceable
+to the ledger.
+
+The wave's headline mechanic — **the "Leyline" system** — is a FULL primitive:
+a card-group keyword on three Mage cards (MEND_500 Bursting Leyline, MEND_502
+Crystallized Leyline, MEND_504 Leyline Nexus), registered in `cards::leyline`
+(the rewind/herald id-registry pattern). The wave's other cards upgrade the
+trio for the rest of the game through three per-player flags
+(`leyline_discount` / `leyline_extra_trigger` / `leyline_effect_bonus`,
+`src/core/player.rs`), read at the Leylines' resolve arms and at
+`engine/cost.rs::play_cost` (the discount, keyed by the registry). MEND_505
+The Arcanomicon is a real three-option Choose One: every branch adds all 3
+Leylines to hand (the Talanji shared-half convention — it resolves exactly
+once regardless of the chosen option) and applies one of the three upgrades.
+
+The two upgrade semantics were verified 2026-08-12 against the official card
+texts and the patch-35.4.2 notes: **"trigger an additional time"** (Surge
+Needle) is one extra REPETITION of the Leyline's effect — an extra hit, an
+extra summoned minion, an extra drawn card — i.e. the {1} "times" scalar;
+**"increase the effects by 1"** (Mystic Runesaber) is one extra unit of the
+{0} scalar — +1 damage, the summoned minion's Cost +1, the cost reduction
++1. Both flags stack and never expire (the official texts carry no
+refresh/cap constraint).
+
+The wave's §31 pins (documented conventions): **the summon pool** —
+Crystallized Leyline samples the FULL catalog via `random_minion_of_cost`
+(the §29 convention — no window filter, tokens excluded) versus the official
+active-window pool; **the extra trigger re-picks** — each repetition
+re-picks its own random target / minion / draw (each "additional time" is an
+independent resolution); **the discount display** — the leyline discount is
+a player-level modifier composed in `play_cost` (the engine's single cost
+composition point), so the hand's effective-cost view does not show it (the
+same model as Kirin Tor Mage's free-secret flag); **Bursting Leyline** —
+ImmuneToSpellpower per the official data (the exemption list plus the
+variant's catch-all keep it unboosted — defense in depth); the excess
+follows the Briarspawn Drake convention (Divine Shield absorbs the first
+point and leaks nothing), and deaths process at the Death step, so each hit
+re-picks among the live board; **The Arcanomicon's Blizzard discover bug** —
+the pre-fix version granted ALL THREE upgrades at once; the engine resolves
+exactly the chosen one (the fixed behaviour); **the deathrattle Leyline** —
+the random Leyline samples the three-card registry ("Get a random Leyline").
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| MEND_500 | Bursting Leyline | Full: 3 damage to a random enemy minion with the excess piped to the enemy hero; ImmuneToSpellpower; "effect +1" raises the damage, "extra trigger" adds a hit | — |
+| MEND_501 | Ley Walker | Full: the discount flag (1) for the registry's Leylines + the deathrattle draws a random Leyline | — |
+| MEND_502 | Crystallized Leyline | Full: a random minion of the exact Cost from the full catalog (the §29 convention, no window filter) | the active-window pool |
+| MEND_503 | Surge Needle | Full: the extra-trigger flag — each Leyline repeats its effect once per flag point | — |
+| MEND_504 | Leyline Nexus | Full: draw + a per-card cost enchantment; "effect +1" deepens the reduction | — |
+| MEND_505 | The Arcanomicon | Full: a real 3-option Choose One (all 3 Leylines + one upgrade); only the chosen upgrade applies | the pre-fix discover bug granted all three |
+| MEND_506 | Mystic Runesaber | Full: an Elusive Beast + the effect-bonus flag | — |
+
+F5 coverage: `mend_w3_*` (8 scenarios in `tests/differential.rs`) —
+`mend_w3_bursting_leyline_excess_hits_hero` (the pinned 1/1 dies, 2 excess
+hits the enemy hero), `mend_w3_bursting_leyline_not_boosted_by_spell_power`
+(a friendly Ogre Magi leaves the 4/4 at 1 health — no bonus),
+`mend_w3_ley_walker_discounts_leylines_and_deathrattle_gets_one` (play cost
+4 → 3, the deathrattle draws a random Leyline, discounted too),
+`mend_w3_crystallized_leyline_summons_five_cost` (seed 0 pins Stranglethorn
+Tiger), `mend_w3_surge_needle_extra_trigger_repeats_crystallized` (two
+summons — seed 0 pins Tiger + Booty Bay Bodyguard),
+`mend_w3_nexus_draws_one_and_reduces_cost` (Bloodfen Raptor at cost 1),
+`mend_w3_runesaber_boosts_effects_and_is_elusive` (Elusive Beast; the
+summon's Cost rises to 6, the damage to 4), `mend_w3_arcanomicon_gets_all_leylines_and_chooses_upgrade`
+(all three branches: 3 Leylines + exactly the chosen flag, the discount
+live through play cost). Full `cargo test` fully green (all suites, incl.
+every prior scenario), `cargo fmt` clean, `cargo clippy --all-targets` zero
+warnings.

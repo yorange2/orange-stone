@@ -17,9 +17,9 @@ use crate::cards::choose_hand_card::ChooseHandCardKind;
 use crate::core::component::{
     ALL_DARK_GIFTS, Attack, AttacksUsed, Aura, CardId, CardType, Charge, Cost, CostHealth, Damage,
     DarkGiftKind, Deathrattle, DivineShield, Durability, Elusive, Enchantment, EnchantmentExpiry,
-    Freeze, Health, HeroPowerDef, ImbueClass, Immune, Lifesteal, Poison, Race, Reborn, Rush,
-    SpellDamage, Stealth, Taunt, Temporary, Trigger, TriggerEvent, TriggerTiming, TurnCostReducer,
-    Windfury,
+    Freeze, Health, HeroPowerDef, ImbueClass, Immune, LeylineUpgrade, Lifesteal, Poison, Race,
+    Reborn, Rush, SpellDamage, Stealth, Taunt, Temporary, Trigger, TriggerEvent, TriggerTiming,
+    TurnCostReducer, Windfury,
 };
 use crate::core::effect::{CardEffect, EffectTarget, KeywordKind, RandomPool};
 use crate::core::entity::Entity;
@@ -128,6 +128,11 @@ fn apply_spell_power(
                 | "JAIL_445"
                 | "JAIL_881"
                 | "JAIL_881t"
+                // MEND W3 — MEND_500 Bursting Leyline is ImmuneToSpellpower
+                // (the official data marks it; §31). Defense in depth —
+                // the excess-damage variant never picks up the bonus
+                // anyway.
+                | "MEND_500"
         )
     }) {
         return effect;
@@ -16598,6 +16603,162 @@ pub fn resolve_effect(
                 let base_hp = world.health(target).unwrap_or(Health(1));
                 world.set_health(target, Health(base_hp.0 + health));
             }
+        }
+        CardEffect::DealDamageToRandomEnemyMinionExcessToHero { amount, times } => {
+            // MEND_500 Bursting Leyline — "Deal 3 damage to a random enemy
+            // minion. Excess damage hits the enemy hero." The leyline
+            // flags scale it: "effect +1" adds one damage (the {0}
+            // scalar), "trigger an additional time" adds one hit (the {1}
+            // "times" scalar; §31). The excess follows the Briarspawn
+            // Drake convention: a target that would die passes the
+            // remainder to the enemy hero (Divine Shield absorbs the
+            // first point and leaks nothing); deaths process at the
+            // Death step, so each hit re-picks among the live board.
+            let (extra, bonus) = {
+                let p = state.player(owner);
+                (p.leyline_extra_trigger, p.leyline_effect_bonus)
+            };
+            let amount = amount + bonus as i32;
+            let times = times + extra as i32;
+            for _ in 0..times {
+                let enemies = collect_enemy_minions(state, owner, Some(source));
+                if enemies.is_empty() {
+                    break;
+                }
+                let idx = state.rng_mut().next_usize(enemies.len());
+                let target = enemies[idx];
+                let _ = resolve_deal_damage(
+                    state,
+                    queue,
+                    source,
+                    owner,
+                    amount,
+                    EffectTarget::AnyEnemyMinion,
+                    Some(target),
+                );
+                let dies = state.world().divine_shield(target).is_none()
+                    && state
+                        .world()
+                        .effective_health(target)
+                        .is_some_and(|h| h.0 - amount <= 0);
+                if dies {
+                    let hp = state.world().effective_health(target).map_or(0, |h| h.0);
+                    let excess = (amount - hp).max(0);
+                    if excess > 0 {
+                        let hero = state.player(owner.opponent()).hero;
+                        let _ = resolve_deal_damage(
+                            state,
+                            queue,
+                            source,
+                            owner,
+                            excess,
+                            EffectTarget::EnemyHero,
+                            Some(hero),
+                        );
+                    }
+                }
+            }
+        }
+        CardEffect::SetLeylineDiscount { amount } => {
+            // MEND_501 Ley Walker — "Your Leylines cost (1) less this
+            // game." Stacks and lasts for the rest of the game; the
+            // discount itself is applied in `engine/cost.rs::play_cost`
+            // keyed by the `cards::leyline` registry (§31).
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            p.leyline_discount = (p.leyline_discount as i32 + amount).max(0) as u32;
+        }
+        CardEffect::AddRandomLeylineToHand => {
+            // MEND_501 Ley Walker deathrattle — "Deathrattle: Get a
+            // random Leyline." Samples the three-card registry
+            // (cards::leyline); a full hand burns the add (F-A11).
+            let Some(def) = crate::cards::pool::random_from_pool(
+                crate::cards::leyline::LEYLINE_CARD_IDS,
+                state.rng_mut(),
+            ) else {
+                return;
+            };
+            add_card_to_hand(state, owner, def);
+        }
+        CardEffect::SummonRandomCostMinionTimes { cost, times } => {
+            // MEND_502 Crystallized Leyline — "Summon a random 5-Cost
+            // minion." "Effect +1" raises the summoned minion's Cost by
+            // 1 (the {0} scalar), "trigger an additional time" summons
+            // one more (the {1} scalar; §31). The summon samples the
+            // full catalog (the `random_minion_of_cost` convention, §29 —
+            // no window filter, tokens excluded); a full board burns the
+            // summon.
+            let (extra, bonus) = {
+                let p = state.player(owner);
+                (p.leyline_extra_trigger, p.leyline_effect_bonus)
+            };
+            let cost = cost + bonus as i32;
+            let times = times + extra as i32;
+            for _ in 0..times {
+                let Some(def) = random_minion_of_cost(state, cost) else {
+                    continue;
+                };
+                let _ = resolve_summon(state, queue, source, owner, def.id);
+            }
+        }
+        CardEffect::SetLeylineExtraTrigger { amount } => {
+            // MEND_503 Surge Needle — "Your Leylines trigger an
+            // additional time this game." Stacks and lasts for the rest
+            // of the game (§31).
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            p.leyline_extra_trigger = (p.leyline_extra_trigger as i32 + amount).max(0) as u32;
+        }
+        CardEffect::DrawCardsCostsLess { reduction, count } => {
+            // MEND_504 Leyline Nexus — "Draw a card. It costs (1) less."
+            // "Effect +1" deepens the reduction (the {0} scalar),
+            // "trigger an additional time" draws one more card (the {1}
+            // scalar; §31). Each drawn card carries its own cost
+            // enchantment (the `draw_card_with_reduction` pipeline).
+            let (extra, bonus) = {
+                let p = state.player(owner);
+                (p.leyline_extra_trigger, p.leyline_effect_bonus)
+            };
+            let reduction = reduction + bonus as i32;
+            let count = count + extra as i32;
+            for _ in 0..count {
+                draw_card_with_reduction(state, queue, owner, reduction);
+            }
+        }
+        CardEffect::GetAllLeylinesAndUpgrade { upgrade } => {
+            // MEND_505 The Arcanomicon — "Get all 3 Leylines. Choose an
+            // upgrade for your Leylines." The get-all half lives inside
+            // every Choose One branch (the Talanji convention), so it
+            // resolves exactly once regardless of the chosen option; the
+            // branch then applies one of the three upgrades. Upgrades
+            // stack across casts (§31).
+            for id in crate::cards::leyline::LEYLINE_CARD_IDS {
+                let Some(def) = crate::cards::def::card_by_id(id) else {
+                    continue;
+                };
+                add_card_to_hand(state, owner, def);
+            }
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            match upgrade {
+                LeylineUpgrade::Discount => {
+                    p.leyline_discount = (p.leyline_discount as i32 + 1).max(0) as u32;
+                }
+                LeylineUpgrade::ExtraTrigger => {
+                    p.leyline_extra_trigger = (p.leyline_extra_trigger as i32 + 1).max(0) as u32;
+                }
+                LeylineUpgrade::EffectBonus => {
+                    p.leyline_effect_bonus = (p.leyline_effect_bonus as i32 + 1).max(0) as u32;
+                }
+            }
+        }
+        CardEffect::SetLeylineEffectBonus { amount } => {
+            // MEND_506 Mystic Runesaber — "Increase the effects of your
+            // Leylines by 1 this game." Stacks and lasts for the rest of
+            // the game (§31).
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            p.leyline_effect_bonus = (p.leyline_effect_bonus as i32 + amount).max(0) as u32;
         }
     }
 }

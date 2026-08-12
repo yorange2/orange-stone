@@ -290,6 +290,22 @@ impl ImbueClass {
     }
 }
 
+/// The three Leyline upgrade axes (MEND W3 — The Arcanomicon's "Choose
+/// an upgrade for your Leylines": the three support cards' battlecries,
+/// each as a persistent Player flag). The field of the shared
+/// `CardEffect::GetAllLeylinesAndUpgrade` branch variant.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum LeylineUpgrade {
+    /// Your Leylines cost (1) less this game (Ley Walker).
+    Discount,
+    /// Your Leylines trigger an additional time this game (Surge
+    /// Needle).
+    ExtraTrigger,
+    /// Increase the effects of your Leylines by 1 this game (Mystic
+    /// Runesaber).
+    EffectBonus,
+}
+
 /// Dark gifts (2025–2026 expansions M1-W2 — the Emerald Dream dark-gift
 /// mechanic): the ten card-level upgrades applied by the EDR dark-gift
 /// Discover cards. A gift is attached to a minion card and persists across

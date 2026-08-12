@@ -1672,3 +1672,65 @@ F5 覆盖：`mend_w2_*`（`tests/differential.rs` 9 个场景）——
 手牌野兽，非野兽不动）、`mend_w2_call_of_the_wild_respects_replacement`
 （SummonAllCompanions 拦截）。全部 `cargo test` 全绿（所有套件，含全部
 既有场景），`cargo fmt` 干净，`cargo clippy --all-targets` 零警告。
+
+### 31. MEND W3 —— 大灾变职业套装 W3 波，法师（7 张卡：MEND_500~506）🔓 登记
+
+MEND W3 波（`src/cards/exp_cata_w7.rs`）的简化登记：第三个 MEND_ 波
+（2025–2026 扩展总路线图 M5 的跟进）——大灾变法师职业套装，7 张卡
+（MEND_500~506），注册于 `sets.rs`（7 条手写条目）。与 §14–§30 相同，
+这些卡不在 RL 池内，所以各行仅为信息性登记：让代码里的简化可追溯到
+账本。
+
+该波的头条机制——**"Leyline"（法力之线）体系**——是完整原语：一张卡牌
+分组关键字，落在三张法师卡上（MEND_500 迸发法力之线、MEND_502 结晶法力
+之线、MEND_504 法力之线枢纽），注册于 `cards::leyline`（rewind/herald 的
+ID 注册表模式）。本波其余卡通过三个 Player 旗标（`leyline_discount` /
+`leyline_extra_trigger` / `leyline_effect_bonus`，`src/core/player.rs`）
+在本局剩余时间内升级这三张卡，旗标在三张 Leyline 卡的 resolve 臂与
+`engine/cost.rs::play_cost`（减费，按注册表命中）处被读取。MEND_505
+阿卡诺米方典是真实三选一抉择：每个分支都把全部 3 张 Leyline 加入手牌
+（塔兰吉共享半段约定——无论选哪支，恰好结算一次）并应用三项升级之一。
+
+两个升级语义于 2026-08-12 对照官方卡文本与 35.4.2 补丁说明核实：
+**"额外触发一次"**（Surge Needle 针涌）是 Leyline 效果的一次额外重复——
+多打一次、多召唤一只、多抽一张——即 {1}"times"标量；**"效果 +1"**
+（Mystic Runesaber 秘法符文剑）是 {0} 标量加一——伤害 +1、召唤随从费用
++1、减费 +1。两个旗标可叠加且永不过期（官方文本没有刷新/上限约束）。
+
+该波的 §31 钉（已登记约定）：**召唤池**——结晶法力之线用
+`random_minion_of_cost` 采样全目录（§29 约定——无窗口过滤、排除衍生物），
+而非官方活跃窗口池；**额外触发重新随机**——每次重复都重新随机自己的
+目标/随从/抽牌（每次"额外一次"都是独立结算）；**减费显示**——Leyline
+减费是 `play_cost`（引擎唯一的费用合成点）里的玩家级修正，手牌
+effective-cost 视图不显示它（与基尔托尔法师免费奥秘旗标同一模型）；
+**迸发法力之线**——按官方数据标记 ImmuneToSpellpower（豁免名单加上该
+变体自身的兜底保证不被加成——纵深防御）；溢出伤害沿用荒原幼龙约定
+（圣盾吸收第一点且不泄漏），死亡在 Death 步骤批量结算，所以每次命中
+都在存活场面上重新随机；**阿卡诺米方典的暴雪发现 bug**——修复前版本
+会一次性授予全部三项升级；引擎只结算所选的一项（修复后的行为）；
+**亡语 Leyline**——随机 Leyline 从三卡注册表中采样（"获得一张随机
+Leyline"）。
+
+| ID | 卡牌 | 简化 | 真实形态 |
+| --- | --- | --- | --- |
+| MEND_500 | 迸发法力之线 | 完整：对随机敌方随从造成 3 点伤害，溢出打敌方英雄；ImmuneToSpellpower；"效果 +1"提高伤害、"额外触发"加一次命中 | — |
+| MEND_501 | 法力行者 | 完整：注册表 Leyline 的减费旗标（1）+ 亡语获得随机 Leyline | — |
+| MEND_502 | 结晶法力之线 | 完整：从全目录（§29 约定，无窗口过滤）召唤恰为该费用的随机随从 | 活跃窗口池 |
+| MEND_503 | 针涌 | 完整：额外触发旗标——每点旗标让每张 Leyline 重复一次效果 | — |
+| MEND_504 | 法力之线枢纽 | 完整：抽牌 + 单卡减费附魔；"效果 +1"加深减费 | — |
+| MEND_505 | 阿卡诺米方典 | 完整：真实三选一抉择（全部 3 张 Leyline + 一项升级）；只应用所选升级 | 修复前的发现 bug 会同时授予三项 |
+| MEND_506 | 秘法符文剑 | 完整：扰咒野兽 + 效果加成旗标 | — |
+
+F5 覆盖：`mend_w3_*`（`tests/differential.rs` 8 个场景）——
+`mend_w3_bursting_leyline_excess_hits_hero`（固定 seed 打中 1/1，2 点溢出
+打敌方英雄）、`mend_w3_bursting_leyline_not_boosted_by_spell_power`（友方
+食人魔法师在场时 4/4 只剩 1 血——无加成）、`mend_w3_ley_walker_discounts_leylines_and_deathrattle_gets_one`
+（出牌费用 4 → 3，亡语抽随机 Leyline 且同样享受减费）、
+`mend_w3_crystallized_leyline_summons_five_cost`（seed 0 钉住荆棘谷猛虎）、
+`mend_w3_surge_needle_extra_trigger_repeats_crystallized`（召唤两只——seed
+0 钉住猛虎 + 藏宝海湾保镖）、`mend_w3_nexus_draws_one_and_reduces_cost`
+（血帆猛禽 1 费）、`mend_w3_runesaber_boosts_effects_and_is_elusive`
+（扰咒野兽；召唤费用升到 6、伤害升到 4）、`mend_w3_arcanomicon_gets_all_leylines_and_chooses_upgrade`
+（三个分支：3 张 Leyline + 恰好所选旗标，减费经出牌费用生效）。全部
+`cargo test` 全绿（所有套件，含全部既有场景），`cargo fmt` 干净，
+`cargo clippy --all-targets` 零警告。

@@ -4,7 +4,7 @@
 //! Effects are stored as `Copy` enum constants in `CardDef` and the `Battlecry`/`Deathrattle` components.
 use serde::{Deserialize, Serialize};
 
-use crate::core::component::{CardType, DarkGiftKind, ImbueClass};
+use crate::core::component::{CardType, DarkGiftKind, ImbueClass, LeylineUpgrade};
 
 /// Effect target selector.
 ///
@@ -4979,6 +4979,81 @@ pub enum CardEffect {
         /// Health buff.
         health: i32,
     },
+    // ----------------------------------------------------------------
+    // MEND W3 — the Cataclysm Mage class-set wave
+    // (src/cards/exp_cata_w7.rs, fidelity-debt §31). The "Leyline"
+    // package: the three Leyline cards (MEND_500 / MEND_502 / MEND_504)
+    // carry the {0}/{1} scalar pairs the support cards upgrade — the
+    // resolve arms read the owner's three Player flags
+    // (`leyline_discount` / `leyline_extra_trigger` / `leyline_effect_bonus`)
+    // at resolution time.
+    // ----------------------------------------------------------------
+    /// Deal {amount} damage to a random enemy minion, {times} times.
+    /// Excess damage hits the enemy hero (MEND_500 Bursting Leyline —
+    /// the {0}/{1} bases; the ImmuneToSpellpower exemption in
+    /// `apply_spell_power` keeps the amount unbuffed). The resolution
+    /// adds the owner's `leyline_effect_bonus` to {amount} and
+    /// `leyline_extra_trigger` to {times}.
+    DealDamageToRandomEnemyMinionExcessToHero {
+        /// Damage per hit (the {0} base — 3).
+        amount: i32,
+        /// Number of hits (the {1} base — 1).
+        times: i32,
+    },
+    /// Your Leylines cost (1) less this game (MEND_501 Ley Walker
+    /// battlecry). Increments the owner's `leyline_discount`; the
+    /// play-cost pipeline subtracts it for every `cards::leyline` id.
+    SetLeylineDiscount {
+        /// Discount per Leyline play.
+        amount: i32,
+    },
+    /// Get a random Leyline (MEND_501 Ley Walker deathrattle — the
+    /// `cards::leyline::LEYLINE_CARD_IDS` pool).
+    AddRandomLeylineToHand,
+    /// Summon a random {cost}-Cost minion, {times} times (MEND_502
+    /// Crystallized Leyline — the {0}/{1} bases). The resolution adds
+    /// the owner's `leyline_effect_bonus` to {cost} and
+    /// `leyline_extra_trigger` to {times}.
+    SummonRandomCostMinionTimes {
+        /// Cost of the summoned minion (the {0} base — 5).
+        cost: i32,
+        /// Number of summons (the {1} base — 1).
+        times: i32,
+    },
+    /// Your Leylines trigger an additional time this game (MEND_503
+    /// Surge Needle battlecry). Increments the owner's
+    /// `leyline_extra_trigger`.
+    SetLeylineExtraTrigger {
+        /// Extra triggers per Leyline play.
+        amount: i32,
+    },
+    /// Draw {count} cards. They cost ({reduction}) less (MEND_504
+    /// Leyline Nexus — the {0}/{1} bases). The resolution adds the
+    /// owner's `leyline_effect_bonus` to {reduction} and
+    /// `leyline_extra_trigger` to {count}; each drawn card's cost is
+    /// reduced via the `draw_card_with_reduction` enchantment.
+    DrawCardsCostsLess {
+        /// Cost reduction on each drawn card (the {0} base — 1).
+        reduction: i32,
+        /// Number of cards drawn (the {1} base — 1).
+        count: i32,
+    },
+    /// Get all 3 Leylines, then apply the chosen upgrade (MEND_505 The
+    /// Arcanomicon — the three Choose One branches share this variant;
+    /// `upgrade` picks the axis). The cards are added to the hand and
+    /// the matching Player flag increments by 1.
+    GetAllLeylinesAndUpgrade {
+        /// The chosen upgrade axis.
+        upgrade: LeylineUpgrade,
+    },
+    /// Increase the effects of your Leylines by 1 this game (MEND_506
+    /// Mystic Runesaber battlecry). Increments the owner's
+    /// `leyline_effect_bonus` — the {0} scalars: +1 damage / +1
+    /// summoned-minion cost / +1 cost reduction.
+    SetLeylineEffectBonus {
+        /// Effect-magnitude bonus for the Leyline cards.
+        amount: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -6936,6 +7011,31 @@ enum CardEffectDe {
     BuffFriendlyBeastAndRandomHandBeast {
         attack: i32,
         health: i32,
+    },
+    DealDamageToRandomEnemyMinionExcessToHero {
+        amount: i32,
+        times: i32,
+    },
+    SetLeylineDiscount {
+        amount: i32,
+    },
+    AddRandomLeylineToHand,
+    SummonRandomCostMinionTimes {
+        cost: i32,
+        times: i32,
+    },
+    SetLeylineExtraTrigger {
+        amount: i32,
+    },
+    DrawCardsCostsLess {
+        reduction: i32,
+        count: i32,
+    },
+    GetAllLeylinesAndUpgrade {
+        upgrade: LeylineUpgrade,
+    },
+    SetLeylineEffectBonus {
+        amount: i32,
     },
 }
 
@@ -9136,6 +9236,28 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::BuffFriendlyBeastAndRandomHandBeast { attack, health } => {
                 CardEffect::BuffFriendlyBeastAndRandomHandBeast { attack, health }
             }
+            CardEffectDe::DealDamageToRandomEnemyMinionExcessToHero { amount, times } => {
+                CardEffect::DealDamageToRandomEnemyMinionExcessToHero { amount, times }
+            }
+            CardEffectDe::SetLeylineDiscount { amount } => {
+                CardEffect::SetLeylineDiscount { amount }
+            }
+            CardEffectDe::AddRandomLeylineToHand => CardEffect::AddRandomLeylineToHand,
+            CardEffectDe::SummonRandomCostMinionTimes { cost, times } => {
+                CardEffect::SummonRandomCostMinionTimes { cost, times }
+            }
+            CardEffectDe::SetLeylineExtraTrigger { amount } => {
+                CardEffect::SetLeylineExtraTrigger { amount }
+            }
+            CardEffectDe::DrawCardsCostsLess { reduction, count } => {
+                CardEffect::DrawCardsCostsLess { reduction, count }
+            }
+            CardEffectDe::GetAllLeylinesAndUpgrade { upgrade } => {
+                CardEffect::GetAllLeylinesAndUpgrade { upgrade }
+            }
+            CardEffectDe::SetLeylineEffectBonus { amount } => {
+                CardEffect::SetLeylineEffectBonus { amount }
+            }
         })
     }
 }
@@ -10259,6 +10381,35 @@ mod tests {
                 attack: 2,
                 health: 2,
             },
+        ] {
+            let bytes = bincode::serialize(&effect).expect("serialize");
+            let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
+            assert_eq!(back, effect, "roundtrip failed for {effect:?}");
+        }
+    }
+
+    /// Every new MEND W3 (the Mage class-set wave,
+    /// src/cards/exp_cata_w7.rs) variant survives the bincode roundtrip
+    /// (CardEffectDe → CardEffect via the interned card ids).
+    #[test]
+    fn mend_w3_effects_serialize_roundtrip() {
+        for effect in [
+            CardEffect::DealDamageToRandomEnemyMinionExcessToHero {
+                amount: 3,
+                times: 1,
+            },
+            CardEffect::SetLeylineDiscount { amount: 1 },
+            CardEffect::AddRandomLeylineToHand,
+            CardEffect::SummonRandomCostMinionTimes { cost: 5, times: 1 },
+            CardEffect::SetLeylineExtraTrigger { amount: 1 },
+            CardEffect::DrawCardsCostsLess {
+                reduction: 1,
+                count: 1,
+            },
+            CardEffect::GetAllLeylinesAndUpgrade {
+                upgrade: LeylineUpgrade::Discount,
+            },
+            CardEffect::SetLeylineEffectBonus { amount: 1 },
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
