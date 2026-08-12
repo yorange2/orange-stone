@@ -35,6 +35,7 @@ pub mod exp_cata_w2;
 pub mod exp_cata_w3;
 pub mod exp_cata_w4;
 pub mod exp_cata_w5;
+pub mod exp_cata_w6;
 pub mod exp_edr_w1;
 pub mod exp_edr_w2;
 pub mod exp_edr_w3;
@@ -1814,6 +1815,13 @@ pub(crate) fn choose_one_option_names(def: &CardDef) -> [&'static str; 2] {
         "JAIL_504" => ["Jade Coin", "Grimy Coin"],
         // M5-W2 — Secret Ingredient (the Violet Hold closing wave)
         "JAIL_201" => ["A Little of This", "A Dash of That"],
+        // MEND W2 — the Hunter class-set wave (exp_cata_w6.rs, §30):
+        // Spiritspeaker's companion trio and Roam Free's beast-cost tiers.
+        "MEND_301" => ["Summon Huffer", "Summon Leokk"],
+        "MEND_307" => [
+            "Summon a random 5-Cost Beast",
+            "Summon a random 6-Cost Beast",
+        ],
         _ => ["First option", "Second option"],
     }
 }
@@ -1859,6 +1867,13 @@ pub(crate) fn choose_one_three_branch(def: &CardDef) -> Option<CardEffect> {
         "JAIL_504" => Some(CardEffect::AyaUpgradeCoins {
             card_id: "JAIL_504t3",
         }),
+        // MEND W2 — Spiritspeaker's third companion (Misha) and Roam
+        // Free's third beast tier (7-Cost; each branch sets the shared
+        // bump-2 replacement flag, §30).
+        "MEND_301" => Some(CardEffect::SummonMinion {
+            card_id: "HUNTER_023c",
+        }),
+        "MEND_307" => Some(CardEffect::ReplaceCompanionsAndSummonRandomBeast { bump: 2, cost: 7 }),
         _ => None,
     }
 }
@@ -1874,6 +1889,8 @@ pub(crate) fn choose_one_three_option_names(def: &CardDef) -> Option<&'static st
         "TLC_246" => Some("Gain Windfury"),
         "TIME_619" => Some("Boon of Speed (Rush)"),
         "JAIL_504" => Some("Kabal Coin"),
+        "MEND_301" => Some("Summon Misha"),
+        "MEND_307" => Some("Summon a random 7-Cost Beast"),
         _ => None,
     }
 }
@@ -2574,6 +2591,13 @@ mod generated_tests {
         // alone), so the generated baseline drops the keyword; the
         // handwritten card follows the text and carries Taunt.
         if id == "JAIL_890" {
+            return field == "taunt";
+        }
+        // MEND W2 — MEND_303 Migrating Elekk: the same
+        // generator-drops-the-keyword divergence as JAIL_890 (Taunt is
+        // in the card text but the generated baseline carries no
+        // keyword); the handwritten card follows the text.
+        if id == "MEND_303" {
             return field == "taunt";
         }
         false

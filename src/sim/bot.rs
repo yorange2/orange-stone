@@ -2286,6 +2286,16 @@ fn evaluate_effect_value(effect: crate::core::effect::CardEffect) -> f64 {
         CardEffect::AddRandomDragonCostReduced { .. } => 3.0,
         CardEffect::GetThreeTreantsAndCarveNatureSpells => 5.0,
         CardEffect::CastRandomSpellsScaledByHandTurns { count, .. } => count as f64 * 3.0,
+        // MEND W2 — the Hunter class-set wave (src/cards/exp_cata_w6.rs,
+        // fidelity-debt §30)
+        CardEffect::SetCompanionReplacement { .. } => 2.0,
+        CardEffect::SetCompanionReplacementAndDraw { draw, .. } => draw as f64 * 3.0 + 2.0,
+        CardEffect::SetCompanionBonus { .. } => 3.0,
+        CardEffect::ReplaceCompanionsAndSummonRandomBeast { cost, .. } => cost as f64 * 1.2,
+        CardEffect::SplitDamageAmongAllEnemiesChainOnDeath { amount } => amount as f64 * 1.5,
+        CardEffect::BuffFriendlyBeastAndRandomHandBeast { attack, health } => {
+            (attack + health) as f64 * 1.2
+        }
     }
 }
 

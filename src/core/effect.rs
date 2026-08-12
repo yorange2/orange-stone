@@ -4926,6 +4926,59 @@ pub enum CardEffect {
         /// Number of random spells to cast.
         count: i32,
     },
+    /// Replace this game's future Animal Companions with random Beasts
+    /// that cost (1) more (MEND W2 — Tame Pet). The bump is added to the
+    /// existing `companion_replacement` (repeated casts stack, official
+    /// upgrade behaviour; §30 simplification).
+    SetCompanionReplacement {
+        /// Cost bump over the base Beast cost of 3.
+        bump: i32,
+    },
+    /// Replace this game's future Animal Companions with random Beasts
+    /// that cost (1) more, then draw a card (MEND W2 — Tame Pet).
+    SetCompanionReplacementAndDraw {
+        /// Cost bump over the base Beast cost of 3.
+        bump: i32,
+        /// Number of cards to draw.
+        draw: i32,
+    },
+    /// Your cards that summon Animal Companions summon 1 more this game
+    /// (MEND W2 — Talya Earthstrider). Increments `companion_bonus`;
+    /// each summoned companion is independently subject to
+    /// `companion_replacement`.
+    SetCompanionBonus {
+        /// Extra companions per Animal Companion summon.
+        amount: i32,
+    },
+    /// Replace this game's future Animal Companions with random Beasts
+    /// that cost (2) more, then summon a random one of them (MEND W2 —
+    /// Roam Free; the Choose One resolution passes the chosen cost tier).
+    ReplaceCompanionsAndSummonRandomBeast {
+        /// Cost bump over the base Beast cost of 3 (2 for Roam Free).
+        bump: i32,
+        /// Cost tier of the chosen Beast to summon (5/6/7 for Roam Free's
+        /// three options — §30 simplification: a random Beast of exactly
+        /// this cost rather than one of the fixed trio).
+        cost: i32,
+    },
+    /// Deal damage split among all enemies (random enemy per point);
+    /// if any of them dies, deal that many more (MEND W2 — Wasteland
+    /// Vanguard). The chain fires at most once (official ruling; §30).
+    SplitDamageAmongAllEnemiesChainOnDeath {
+        /// Total damage to split among all enemies (3 for Wasteland
+        /// Vanguard), one point at a time against a random surviving
+        /// enemy; repeated once if any died.
+        amount: i32,
+    },
+    /// Give a friendly Beast +N/+N and a random Beast in your hand +N/+N
+    /// (MEND W2 — Nurturing Nature). Buffs apply directly on the board /
+    /// hand entities.
+    BuffFriendlyBeastAndRandomHandBeast {
+        /// Attack buff.
+        attack: i32,
+        /// Health buff.
+        health: i32,
+    },
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -6862,6 +6915,27 @@ enum CardEffectDe {
     CastRandomSpellsScaledByHandTurns {
         base: i32,
         count: i32,
+    },
+    SetCompanionReplacement {
+        bump: i32,
+    },
+    SetCompanionReplacementAndDraw {
+        bump: i32,
+        draw: i32,
+    },
+    SetCompanionBonus {
+        amount: i32,
+    },
+    ReplaceCompanionsAndSummonRandomBeast {
+        bump: i32,
+        cost: i32,
+    },
+    SplitDamageAmongAllEnemiesChainOnDeath {
+        amount: i32,
+    },
+    BuffFriendlyBeastAndRandomHandBeast {
+        attack: i32,
+        health: i32,
     },
 }
 
@@ -9046,6 +9120,22 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::CastRandomSpellsScaledByHandTurns { base, count } => {
                 CardEffect::CastRandomSpellsScaledByHandTurns { base, count }
             }
+            CardEffectDe::SetCompanionReplacement { bump } => {
+                CardEffect::SetCompanionReplacement { bump }
+            }
+            CardEffectDe::SetCompanionReplacementAndDraw { bump, draw } => {
+                CardEffect::SetCompanionReplacementAndDraw { bump, draw }
+            }
+            CardEffectDe::SetCompanionBonus { amount } => CardEffect::SetCompanionBonus { amount },
+            CardEffectDe::ReplaceCompanionsAndSummonRandomBeast { bump, cost } => {
+                CardEffect::ReplaceCompanionsAndSummonRandomBeast { bump, cost }
+            }
+            CardEffectDe::SplitDamageAmongAllEnemiesChainOnDeath { amount } => {
+                CardEffect::SplitDamageAmongAllEnemiesChainOnDeath { amount }
+            }
+            CardEffectDe::BuffFriendlyBeastAndRandomHandBeast { attack, health } => {
+                CardEffect::BuffFriendlyBeastAndRandomHandBeast { attack, health }
+            }
         })
     }
 }
@@ -10147,6 +10237,28 @@ mod tests {
             CardEffect::AddRandomDragonCostReduced { reduction: 2 },
             CardEffect::GetThreeTreantsAndCarveNatureSpells,
             CardEffect::CastRandomSpellsScaledByHandTurns { base: 1, count: 3 },
+        ] {
+            let bytes = bincode::serialize(&effect).expect("serialize");
+            let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
+            assert_eq!(back, effect, "roundtrip failed for {effect:?}");
+        }
+    }
+
+    /// Every new MEND W2 (the Hunter class-set wave,
+    /// src/cards/exp_cata_w6.rs) variant survives the bincode roundtrip
+    /// (CardEffectDe → CardEffect via the interned card ids).
+    #[test]
+    fn mend_w2_effects_serialize_roundtrip() {
+        for effect in [
+            CardEffect::SetCompanionReplacement { bump: 1 },
+            CardEffect::SetCompanionReplacementAndDraw { bump: 1, draw: 1 },
+            CardEffect::SetCompanionBonus { amount: 1 },
+            CardEffect::ReplaceCompanionsAndSummonRandomBeast { bump: 2, cost: 7 },
+            CardEffect::SplitDamageAmongAllEnemiesChainOnDeath { amount: 3 },
+            CardEffect::BuffFriendlyBeastAndRandomHandBeast {
+                attack: 2,
+                health: 2,
+            },
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");

@@ -35994,3 +35994,462 @@ fn mend_w1_hellfire_damages_all_characters() {
         "the enemy 5/5 survives with 2"
     );
 }
+
+// ============================================================
+// MEND W2 — the Cataclysm Hunter class-set wave (src/cards/exp_cata_w6.rs,
+// fidelity-debt §30): 7 cards (MEND_300~305 + MEND_307).
+// ============================================================
+
+/// MEND-1 — Tame Pet: "Replace your future Animal Companions with random
+/// Beasts that cost (1) more. Draw a card." The flag makes the next Animal
+/// Companion summon a random 4-Cost Beast (3 + 1) instead of the fixed
+/// Huffer/Leokk/Misha trio, and the spell draws a card.
+#[test]
+fn mend_w2_tame_pet_replaces_companions_and_draws() {
+    use orange_stone::cards::classic_hunter::ANIMAL_COMPANION;
+    use orange_stone::cards::exp_cata_w6::TAME_PET;
+    use orange_stone::core::component::{Cost, Race};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TAME_PET)
+        .add_minion_to_hand(p1, &ANIMAL_COMPANION);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    assert_eq!(state.world().zones().iter(Zone::Hand, p1).count(), 2);
+    play_front_card(&mut state, &engine, p1); // Tame Pet
+    // The spell drew a card: the hand is back to 2 (played 1, drew 1).
+    assert_eq!(
+        state.world().zones().iter(Zone::Hand, p1).count(),
+        2,
+        "Tame Pet draws a card"
+    );
+    play_front_card(&mut state, &engine, p1); // Animal Companion
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 1, "exactly one replacement Beast");
+    let beast = minions[0];
+    assert!(state.world().has_race(beast, Race::Beast), "a Beast");
+    assert_eq!(state.world().cost(beast), Some(Cost(4)), "cost 3 + 1");
+    assert_eq!(board_count(&state, p1, "HUNTER_023a"), 0);
+    assert_eq!(board_count(&state, p1, "HUNTER_023b"), 0);
+    assert_eq!(board_count(&state, p1, "HUNTER_023c"), 0);
+}
+
+/// MEND-2 — Migrating Elekk: "Taunt. Battlecry: Replace your future Animal
+/// Companions with random Beasts that cost (1) more." Casting Tame Pet on
+/// top accumulates the bump (official upgrade behaviour, §30): the next
+/// companion becomes a random 5-Cost Beast (3 + 2).
+#[test]
+fn mend_w2_elekk_sets_flag_and_bumps_stack() {
+    use orange_stone::cards::classic_hunter::ANIMAL_COMPANION;
+    use orange_stone::cards::exp_cata_w6::{MIGRATING_ELEKK, TAME_PET};
+    use orange_stone::core::component::Cost;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &MIGRATING_ELEKK)
+        .add_minion_to_hand(p1, &TAME_PET)
+        .add_minion_to_hand(p1, &ANIMAL_COMPANION);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Migrating Elekk
+    assert!(
+        state
+            .world()
+            .taunt(find_entity(&state, p1, "MEND_303"))
+            .is_some()
+    );
+    play_front_card(&mut state, &engine, p1); // Tame Pet — bump 1 + 1 = 2
+    play_front_card(&mut state, &engine, p1); // Animal Companion
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 2, "Elekk + the replacement Beast");
+    let beast = minions
+        .into_iter()
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 != "MEND_303"))
+        .expect("the summoned Beast");
+    assert_eq!(state.world().cost(beast), Some(Cost(5)), "cost 3 + 2");
+}
+
+/// MEND-3 — Talya Earthstrider: "Your cards that summon Animal Companions
+/// summon 1 more this game." A plain Animal Companion becomes two; combined
+/// with the replacement flag both extras are random 4-Cost Beasts.
+#[test]
+fn mend_w2_talya_summons_extra_companions() {
+    use orange_stone::cards::classic_hunter::ANIMAL_COMPANION;
+    use orange_stone::cards::exp_cata_w6::{TALYA_EARTHSTRIDER, TAME_PET};
+    use orange_stone::core::component::{Cost, Race};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TALYA_EARTHSTRIDER)
+        .add_minion_to_hand(p1, &ANIMAL_COMPANION);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Talya
+    play_front_card(&mut state, &engine, p1); // Animal Companion
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 3, "Talya + two companions");
+    let companions = minions
+        .into_iter()
+        .filter(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| matches!(c.0, "HUNTER_023a" | "HUNTER_023b" | "HUNTER_023c"))
+        })
+        .count();
+    assert_eq!(companions, 2, "one extra companion per summon");
+    // With the replacement flag, both extras are random 4-Cost Beasts.
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TAME_PET)
+        .add_minion_to_hand(p1, &TALYA_EARTHSTRIDER)
+        .add_minion_to_hand(p1, &ANIMAL_COMPANION);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Tame Pet
+    play_front_card(&mut state, &engine, p1); // Talya
+    play_front_card(&mut state, &engine, p1); // Animal Companion
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 3, "Talya + two replacement Beasts");
+    let beasts = minions
+        .into_iter()
+        .filter(|&e| state.world().card_id(e).is_some_and(|c| c.0 != "MEND_304"))
+        .collect::<Vec<_>>();
+    assert_eq!(beasts.len(), 2);
+    for b in beasts {
+        assert!(state.world().has_race(b, Race::Beast), "a Beast");
+        assert_eq!(state.world().cost(b), Some(Cost(4)), "cost 3 + 1");
+    }
+}
+
+/// MEND-4 — Roam Free: "Replace your future Animal Companions with random
+/// Beasts that cost (2) more. Choose one to summon." Each branch summons a
+/// random Beast of its cost tier (5/6/7, §30) and every branch sets the
+/// shared bump-2 flag: the next plain Animal Companion is a 5-Cost Beast.
+#[test]
+fn mend_w2_roam_free_choose_one_sets_flag_and_summons_tier() {
+    use orange_stone::cards::classic_hunter::ANIMAL_COMPANION;
+    use orange_stone::cards::exp_cata_w6::ROAM_FREE;
+    use orange_stone::core::component::{Cost, Race};
+    use orange_stone::core::state::ChoiceKind;
+    let p1 = PlayerId1();
+    // Option 0 — the 5-Cost tier.
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ROAM_FREE)
+        .add_minion_to_hand(p1, &ANIMAL_COMPANION);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let choice = play_front_card_choice(&mut state, &engine, p1);
+    assert_eq!(choice.kind, ChoiceKind::ChooseOne);
+    assert_eq!(choice.options.len(), 3, "three beast tiers");
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 1);
+    let beast = minions[0];
+    assert!(state.world().has_race(beast, Race::Beast));
+    assert_eq!(state.world().cost(beast), Some(Cost(5)), "the 5-Cost tier");
+    // The flag is set for the rest of the game: the plain Animal
+    // Companion becomes a 5-Cost Beast (3 + 2).
+    play_front_card(&mut state, &engine, p1); // Animal Companion
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 2);
+    let beast = minions
+        .into_iter()
+        .find(|&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 != "HUNTER_023")
+        })
+        .expect("the replacement Beast");
+    assert_eq!(state.world().cost(beast), Some(Cost(5)), "flag bump 2");
+    // Option 2 — the third branch summons the 7-Cost tier. Seed 0 draws
+    // Magmaw (CATA_550 — a benign 7-Cost Beast; some 7-Cost Beasts in the
+    // window deal damage to themselves on summon and would die here).
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .with_rng_seed(0)
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &ROAM_FREE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let choice = play_front_card_choice(&mut state, &engine, p1);
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 2,
+            },
+        )
+        .unwrap();
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 1);
+    assert!(state.world().has_race(minions[0], Race::Beast));
+    assert_eq!(
+        state.world().cost(minions[0]),
+        Some(Cost(7)),
+        "the 7-Cost tier"
+    );
+}
+
+/// MEND-5 — Spiritspeaker: "Battlecry: Choose an Animal Companion to
+/// summon." The three branches summon Huffer / Leokk / Misha directly —
+/// they bypass the replacement flag (a Tame Pet active does not change the
+/// chosen companion, §30).
+#[test]
+fn mend_w2_spiritspeaker_choose_one_summons_each_companion() {
+    use orange_stone::cards::exp_cata_w6::{SPIRITSPEAKER, TAME_PET};
+    use orange_stone::core::state::ChoiceKind;
+    let p1 = PlayerId1();
+    for (option, expected_id) in [(0u8, "HUNTER_023a"), (1, "HUNTER_023b"), (2, "HUNTER_023c")] {
+        let mut builder = GameBuilder::new();
+        pad_decks(&mut builder);
+        builder
+            .set_mana(p1, 10, 10)
+            .add_minion_to_hand(p1, &SPIRITSPEAKER);
+        let mut state = builder.build();
+        let engine = GameEngine::new();
+        let choice = play_front_card_choice(&mut state, &engine, p1);
+        assert_eq!(choice.kind, ChoiceKind::ChooseOne);
+        assert_eq!(choice.options.len(), 3, "Huffer / Leokk / Misha");
+        engine
+            .apply_choices(
+                &mut state,
+                Action::Choose {
+                    choice_id: choice.id,
+                    option,
+                },
+            )
+            .unwrap();
+        assert_eq!(board_count(&state, p1, expected_id), 1, "branch {option}");
+        assert_eq!(
+            board_minions(&state, p1).len(),
+            2,
+            "Spiritspeaker + companion"
+        );
+    }
+    // The replacement flag does not reach the chosen companion.
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TAME_PET)
+        .add_minion_to_hand(p1, &SPIRITSPEAKER);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Tame Pet
+    let choice = play_front_card_choice(&mut state, &engine, p1);
+    engine
+        .apply_choices(
+            &mut state,
+            Action::Choose {
+                choice_id: choice.id,
+                option: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        board_count(&state, p1, "HUNTER_023a"),
+        1,
+        "Huffer, as chosen"
+    );
+}
+
+/// MEND-6 — Wasteland Vanguard: "Deal 3 damage split among all enemies.
+/// If any die, deal 3 more." With nothing dying, exactly 3 total damage
+/// reaches the enemy (hero + minions), one point at a time.
+#[test]
+fn mend_w2_wasteland_vanguard_splits_damage_without_chain() {
+    use orange_stone::cards::exp_cata_w6::WASTELAND_VANGUARD;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder.set_mana(p1, 10, 10).hero_health(p2, 30);
+    builder.add_custom_minion_to_board(p2, 1, 5, 5);
+    builder.add_custom_minion_to_board(p2, 1, 5, 5);
+    builder.add_minion_to_hand(p1, &WASTELAND_VANGUARD);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1);
+    let hero = state.player(p2).hero;
+    let damaged: i32 = (30 + 5 + 5)
+        - (state
+            .world()
+            .effective_health(hero)
+            .map(|h| h.0)
+            .unwrap_or(0)
+            + board_minions(&state, p2)
+                .iter()
+                .map(|&e| state.world().effective_health(e).map(|h| h.0).unwrap_or(0))
+                .sum::<i32>());
+    assert_eq!(damaged, 3, "3 damage split, no deaths, no chain");
+}
+
+/// MEND-6b — Wasteland Vanguard's chain: when the split kills, the second
+/// wave of 3 resolves exactly once — the chain does not loop (official
+/// ruling; a looping implementation would deal 9+). Fixed seed pins the
+/// random split.
+#[test]
+fn mend_w2_wasteland_vanguard_chains_exactly_once() {
+    use orange_stone::cards::exp_cata_w6::WASTELAND_VANGUARD;
+    let p1 = PlayerId1();
+    let p2 = PlayerId2();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .with_rng_seed(7)
+        .set_mana(p1, 10, 10)
+        .hero_health(p2, 30);
+    builder.add_custom_minion_to_board(p2, 1, 1, 1);
+    builder.add_custom_minion_to_board(p2, 1, 3, 3);
+    builder.add_minion_to_hand(p1, &WASTELAND_VANGUARD);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let squire = board_minions(&state, p2)[0];
+    play_front_card(&mut state, &engine, p1);
+    let hero = state.player(p2).hero;
+    let damaged: i32 = (30 + 1 + 3)
+        - (state
+            .world()
+            .effective_health(hero)
+            .map(|h| h.0)
+            .unwrap_or(0)
+            + board_minions(&state, p2)
+                .iter()
+                .map(|&e| state.world().effective_health(e).map(|h| h.0).unwrap_or(0))
+                .sum::<i32>());
+    assert_eq!(damaged, 6, "the first wave killed, the chain fired once");
+    assert_eq!(
+        state.world().zone(squire),
+        Some(Zone::Graveyard),
+        "the 1/1 died to the split"
+    );
+}
+
+/// MEND-7 — Nurturing Nature: "Give a friendly Beast +2/+2. Give a random
+/// Beast in your hand +2/+2." The explicit play target receives the board
+/// buff; a Beast in hand is buffed; non-Beasts are untouched.
+#[test]
+fn mend_w2_nurturing_nature_buffs_board_and_hand_beast() {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, WORGEN_INFILTRATOR};
+    use orange_stone::cards::exp_cata_w6::NURTURING_NATURE;
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_board(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &BLOODFEN_RAPTOR)
+        .add_minion_to_hand(p1, &WORGEN_INFILTRATOR)
+        .add_minion_to_hand(p1, &NURTURING_NATURE);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    let board_raptor = find_entity(&state, p1, "CLASSIC_001");
+    let nature = state
+        .world()
+        .zones()
+        .iter(Zone::Hand, p1)
+        .find(|&e| state.world().card_id(e).is_some_and(|c| c.0 == "MEND_305"))
+        .expect("Nurturing Nature in hand");
+    engine
+        .apply(
+            &mut state,
+            Action::PlayCard {
+                card: nature,
+                target: Some(board_raptor),
+                position: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        state.world().effective_attack(board_raptor),
+        Some(Attack(5)),
+        "3/2 Beast + 2/+2"
+    );
+    assert_eq!(
+        state.world().effective_health(board_raptor),
+        Some(Health(4))
+    );
+    let hand: Vec<Entity> = state.world().zones().iter(Zone::Hand, p1).collect();
+    assert_eq!(hand.len(), 2, "one hand Beast buffed, one card played");
+    let hand_raptor = *hand
+        .iter()
+        .find(|&&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "CLASSIC_001")
+        })
+        .expect("the hand Beast");
+    assert_eq!(
+        state.world().attack(hand_raptor),
+        Some(Attack(5)),
+        "hand +2/+2"
+    );
+    assert_eq!(state.world().health(hand_raptor), Some(Health(4)));
+    let worgen = *hand
+        .iter()
+        .find(|&&e| {
+            state
+                .world()
+                .card_id(e)
+                .is_some_and(|c| c.0 == "NEUTRAL_C08")
+        })
+        .expect("the non-Beast");
+    assert_eq!(
+        state.world().attack(worgen),
+        Some(Attack(2)),
+        "non-Beast untouched"
+    );
+    assert_eq!(state.world().health(worgen), Some(Health(1)));
+}
+
+/// MEND-8 — Call of the Wild honours the replacement flag too: after Tame
+/// Pet, its three Animal Companions become three random 4-Cost Beasts
+/// (the SummonAllCompanions interception; with Talya it would summon four).
+#[test]
+fn mend_w2_call_of_the_wild_respects_replacement() {
+    use orange_stone::cards::core_w3d::CORE_CALL_OF_THE_WILD;
+    use orange_stone::cards::exp_cata_w6::TAME_PET;
+    use orange_stone::core::component::{Cost, Race};
+    let p1 = PlayerId1();
+    let mut builder = GameBuilder::new();
+    pad_decks(&mut builder);
+    builder
+        .set_mana(p1, 10, 10)
+        .add_minion_to_hand(p1, &TAME_PET)
+        .add_minion_to_hand(p1, &CORE_CALL_OF_THE_WILD);
+    let mut state = builder.build();
+    let engine = GameEngine::new();
+    play_front_card(&mut state, &engine, p1); // Tame Pet
+    play_front_card(&mut state, &engine, p1); // Call of the Wild
+    let minions = board_minions(&state, p1);
+    assert_eq!(minions.len(), 3, "three replacement Beasts");
+    for beast in minions {
+        assert!(state.world().has_race(beast, Race::Beast));
+        assert_eq!(state.world().cost(beast), Some(Cost(4)));
+    }
+}
