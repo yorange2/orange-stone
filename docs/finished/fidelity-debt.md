@@ -2594,3 +2594,91 @@ summon's Cost rises to 6, the damage to 4), `mend_w3_arcanomicon_gets_all_leylin
 live through play cost). Full `cargo test` fully green (all suites, incl.
 every prior scenario), `cargo fmt` clean, `cargo clippy --all-targets` zero
 warnings.
+
+### 32. MEND W4 — the Cataclysm class-set W4 wave, Paladin (7 cards: MEND_800~805 + MEND_900) 🔓 registered
+
+The registered simplifications of the MEND W4 wave (`src/cards/exp_cata_w8.rs`):
+the fourth MEND_ wave (the 2025–2026 expansions master roadmap M5 follow-up) —
+the Cataclysm Paladin class set, 7 cards (MEND_800 Brash Battlemaster, MEND_801
+Resilient Savior, MEND_802 Convalescence, MEND_803 Emboldening Blade, MEND_804
+Arator the Redeemer, MEND_805 Charity, MEND_900 Teamwork), registered in
+`sets.rs` (7 handwritten entries). As with §14–§31, these cards are not in the
+RL pool, so the rows are informational: they keep the code's simplifications
+traceable to the ledger.
+
+The wave's headline mechanic — **the Silver Hand Recruit game-long permanent
+buff** — is a FULL primitive: Brash Battlemaster's deathrattle (+1 Attack),
+Resilient Savior's trigger (+1 Health) and Emboldening Blade's battlecry
+(+1/+1) "give your Silver Hand Recruits" a permanent stat bonus for the rest
+of the game. Two per-player flags (`silver_hand_attack_bonus` /
+`silver_hand_health_bonus`, `src/core/player.rs`) accumulate the bonuses; they
+are applied at **every CORE_GVG_061t creation point** — the summon resolution
+(`resolve_summon_doubled`) and the hand-add path (`add_card_to_hand`) — so
+board, hand and played-from-hand Recruits all honor them for the rest of the
+game. The official texts are zone-agnostic aura-style buffs; the two hooks are
+the engine's only token creation points (the engine has no Paladin hero
+power), which makes the flag model complete.
+
+The wave's §32 pins (documented conventions): **Resilient Savior's subject
+pin** — the trigger rides the minion on `TriggerEvent::DivineShieldLost` (the
+Fordragon event, fired by the damage pipeline with the shield-losing minion as
+subject); the resolution arm checks the event subject, so only the minion's
+own shield break grants the bonus (a global-scope trigger without the pin
+would double-count every friendly shield break); **Arator's board-only
+doubling** — the official ruling reads "all friendly Silver Hand Recruits" as
+the current board: the battlecry doubles the stats of the Recruits in play at
+that moment (a permanent enchantment equal to their current stats — already
+game-buffed Recruits double their full effective stats, 2/1 → 4/2) and grants
+them Taunt; Recruits summoned afterwards keep the game bonus but are not
+doubled and carry no Taunt; **Convalescence's fixed {0}** — the summoned
+Recruit is a 1/1 (the Paladin class set carries no upgrade mechanic for it);
+the Divine Shield lands on the summon the effect got back, so a Khadgar-
+doubled twin misses the shield (D2); **Charity's died-this-turn snapshot** —
+the copies are drawn from `Player::died_this_turn` (pushed at the death step,
+cleared at the owner's turn end), a pure friendly-minion snapshot; the +3/+3
+is baked into the copies' base stats (the Grimestreet hand-buff convention),
+and a full hand burns the add (F-A11); **Teamwork's even split** — "Summon and
+get four 1/1 Silver Hand Recruits" resolves as the 2+2 split: two summoned,
+two added to hand (D2).
+
+The wave's D2 decisions (registered 2026-08-12, verified against the official
+card texts and the 35.4.2 patch data):
+1. **Teamwork splits evenly (2+2)** — two Recruits summoned, two added to
+   hand; the official text does not specify the split.
+2. **Arator doubles the current board only** — future summons are unaffected
+   (the official ruling).
+3. **Convalescence's base is 1/1, fixed** — the Paladin class set carries no
+   upgrade mechanic for the {0}.
+4. **The Khadgar-doubled twin misses the Divine Shield** — the shield is
+   granted to the summon the effect resolved (the doubled twin is an engine
+   follow-up summon outside the effect's reach).
+5. **The game-long bonus applies at the hand-add too** — official "this game"
+   buffs are zone-agnostic; hand copies and played-from-hand Recruits honor
+   the flags, which is why the hook lives in `add_card_to_hand` as well.
+
+| ID | Card | Simplified | When real |
+| --- | --- | --- | --- |
+| MEND_800 | Brash Battlemaster | Full: Rush (keyword list) + the deathrattle sets the +1 Attack flag for the rest of the game | — |
+| MEND_801 | Resilient Savior | Full: a 3/1 Draenei with Divine Shield; the DivineShieldLost trigger (subject-pinned) sets the +1 Health flag | — |
+| MEND_802 | Convalescence | Full: two 1/1 Recruits with Divine Shield (the fixed {0} base) | the class set's {0} upgrade mechanic, if any |
+| MEND_803 | Emboldening Blade | Full: a 3/2 weapon + the battlecry sets the +1/+1 flags | — |
+| MEND_804 | Arator the Redeemer | Full: the battlecry doubles the CURRENT board's Recruits (enchantment = current stats) and grants Taunt | — |
+| MEND_805 | Charity | Full: copies of the friendly minions that died this turn, +3/+3 baked into the copies' base stats; full hand burns the add (F-A11) | — |
+| MEND_900 | Teamwork | Full: the 2+2 split — two Recruits summoned, two added to hand (D2) | an official split definition, if any |
+
+F5 coverage: `mend_w4_*` (7 scenarios in `tests/differential.rs`) —
+`mend_w4_brash_battlemaster_deathrattle_gives_recruits_attack` (Brash dies in
+a trade, a later Convalescence summons 2/1 Recruits with Divine Shield),
+`mend_w4_resilient_savior_health_pinned_to_own_shield` (two Saviors, two
+shield breaks — the subject pin yields 1/3 Recruits; a missing pin would give
+1/5), `mend_w4_convalescence_summons_divine_shield_recruits` (two plain 1/1s
+with shields; a 2/2 hit is absorbed and the Recruit survives),
+`mend_w4_emboldening_blade_buffs_recruits_and_equips_weapon` (a 3/2 weapon on
+the hero, both flags set, later Recruits are 2/2),
+`mend_w4_arator_doubles_board_recruits_with_taunt` (2/1 → 4/2 with Taunt;
+later summons keep 2/1 without Taunt), `mend_w4_charity_copies_died_this_turn_buffed`
+(a traded Raptor and Raider are copied as 6/5 and 5/4, the survivor is not
+copied), `mend_w4_teamwork_summons_two_and_gets_two` (two 2/1 Recruits
+summoned, two 2/1 Recruits in hand at (1), a played hand copy joins the
+board). Full `cargo test` fully green (all suites, incl. every prior
+scenario), `cargo fmt` clean, `cargo clippy --all-targets` zero warnings.

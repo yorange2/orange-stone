@@ -16760,6 +16760,122 @@ pub fn resolve_effect(
             let p = &mut inner.players[owner.index()];
             p.leyline_effect_bonus = (p.leyline_effect_bonus as i32 + amount).max(0) as u32;
         }
+        CardEffect::SetSilverHandRecruitStats { attack, health } => {
+            // MEND W4 — Brash Battlemaster (MEND_800, deathrattle +1
+            // Attack), Resilient Savior (MEND_801, trigger +1 Health) and
+            // Emboldening Blade (MEND_803, battlecry +1/+1): "Give your
+            // Silver Hand Recruits +A/+H this game." Stacks and lasts for
+            // the rest of the game; the bonuses are applied at every
+            // CORE_GVG_061t creation point (summon + hand-add, §32).
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            p.silver_hand_attack_bonus = (p.silver_hand_attack_bonus as i32 + attack).max(0) as u32;
+            p.silver_hand_health_bonus = (p.silver_hand_health_bonus as i32 + health).max(0) as u32;
+        }
+        CardEffect::ResilientSaviorHealthBonus { amount } => {
+            // MEND_801 Resilient Savior — "After this loses Divine Shield,
+            // give your Silver Hand Recruits +1 Health this game." The
+            // DivineShieldLost trigger fires for any friendly shield break
+            // (the Fordragon scope); the subject check pins the bonus to
+            // this minion's OWN shield breaking (§32).
+            if event_subject != Some(source) {
+                return;
+            }
+            let inner = state.make_mut();
+            let p = &mut inner.players[owner.index()];
+            p.silver_hand_health_bonus = (p.silver_hand_health_bonus as i32 + amount).max(0) as u32;
+        }
+        CardEffect::AratorDoubleSilverHandRecruits => {
+            // MEND_804 Arator the Redeemer — "Battlecry: Double the stats
+            // of all friendly Silver Hand Recruits and give them Taunt."
+            // The doubling hits the CURRENT board only (the official
+            // ruling — future summons are unaffected, §32): each Recruit
+            // gains a permanent enchantment equal to its current
+            // attack/health (so buffed Recruits double their full
+            // effective stats) and Taunt.
+            let minions: SmallList<Entity> = collect_friendly_minions(state, owner)
+                .into_iter()
+                .filter(|&e| {
+                    state
+                        .world()
+                        .card_id(e)
+                        .is_some_and(|c| c.0 == "CORE_GVG_061t")
+                })
+                .collect();
+            for m in minions {
+                let (atk, hp) = {
+                    let world = state.world();
+                    let atk = world.effective_attack(m).unwrap_or(Attack(0)).0;
+                    let hp = world.effective_health(m).unwrap_or(Health(1)).0;
+                    (atk, hp)
+                };
+                let world = state.world_mut();
+                world.add_enchantment(
+                    m,
+                    Enchantment {
+                        attack: atk,
+                        health: hp,
+                        cost: 0,
+                        expiry: EnchantmentExpiry::Permanent,
+                    },
+                );
+                world.set_taunt(m, Taunt);
+            }
+        }
+        CardEffect::SummonSilverHandRecruitsWithDivineShield { count } => {
+            // MEND_802 Convalescence — "Summon two 1/1 Silver Hand
+            // Recruits with Divine Shield." The {0} base is 1/1, fixed
+            // (§32 — the Paladin class set carries no upgrade mechanic).
+            // The game-long SHR bonuses ride the token's summon
+            // resolution; a full board burns the summon, and the Divine
+            // Shield lands on the summon the effect got back (a
+            // Khadgar-doubled twin misses the shield — the D2 edge,
+            // §32).
+            for _ in 0..count {
+                if let Some(e) = resolve_summon(state, queue, source, owner, "CORE_GVG_061t") {
+                    state.world_mut().set_divine_shield(e, DivineShield);
+                }
+            }
+        }
+        CardEffect::CharityCopiesDiedThisTurn { attack, health } => {
+            // MEND_805 Charity — "Get copies of all friendly minions that
+            // died this turn. Give them +3/+3." The copies land in the
+            // hand with the buff baked into their base stats (the
+            // Grimestreet hand-buff convention, §32); a full hand burns
+            // the add (F-A11). The `died_this_turn` snapshot is
+            // maintained by the death step and cleared at the owner's
+            // turn end.
+            let dead: Vec<Entity> = state.player(owner).died_this_turn.clone();
+            for e in dead {
+                let Some(cid) = state.world().card_id(e).map(|c| c.0) else {
+                    continue;
+                };
+                let Some(def) = crate::cards::def::card_by_id(cid) else {
+                    continue;
+                };
+                if let Some(copy) = add_card_to_hand(state, owner, def) {
+                    let world = state.world_mut();
+                    let base = world.attack(copy).unwrap_or(Attack(0));
+                    world.set_attack(copy, Attack(base.0 + attack));
+                    let base_hp = world.health(copy).unwrap_or(Health(1));
+                    world.set_health(copy, Health(base_hp.0 + health));
+                }
+            }
+        }
+        CardEffect::TeamworkSummonAndGetRecruits => {
+            // MEND_900 Teamwork — "Summon and get four 1/1 Silver Hand
+            // Recruits." The even split — two summoned, two added to hand
+            // — is the D2 decision (§32). A full board burns the summons,
+            // a full hand burns the adds (F-A11).
+            for _ in 0..2 {
+                let _ = resolve_summon(state, queue, source, owner, "CORE_GVG_061t");
+            }
+            if let Some(def) = crate::cards::def::card_by_id("CORE_GVG_061t") {
+                for _ in 0..2 {
+                    add_card_to_hand(state, owner, def);
+                }
+            }
+        }
     }
 }
 
@@ -17906,6 +18022,23 @@ fn resolve_summon_doubled(
     // it on every later discard).
     if state.world().card_id(e).is_some_and(|c| c.0 == "CATA_493") {
         crate::cards::bake_duke_of_below(state, e, owner);
+    }
+    // MEND W4 — the Silver Hand Recruit game-long bonuses (Brash
+    // Battlemaster / Resilient Savior / Emboldening Blade): every
+    // CORE_GVG_061t token the owner summons for the rest of the game
+    // carries the accumulated +Attack/+Health (the Player flags, §32).
+    if card_id == "CORE_GVG_061t" {
+        let (atk_bonus, hp_bonus) = {
+            let p = state.player(owner);
+            (p.silver_hand_attack_bonus, p.silver_hand_health_bonus)
+        };
+        if atk_bonus > 0 || hp_bonus > 0 {
+            let world = state.world_mut();
+            let base = world.attack(e).unwrap_or(Attack(0));
+            world.set_attack(e, Attack(base.0 + atk_bonus as i32));
+            let base_hp = world.health(e).unwrap_or(Health(1));
+            world.set_health(e, Health(base_hp.0 + hp_bonus as i32));
+        }
     }
 
     // Enqueue the MinionSummoned event (triggers battlecry and similar effects).
@@ -20441,6 +20574,21 @@ pub(crate) fn add_card_to_hand(
     let e = crate::cards::spawn_card_from_def(world, player, card_def);
     world.set_zone(e, Zone::Hand);
     world.zones_mut().insert(Zone::Hand, player, e);
+    // MEND W4 — the Silver Hand Recruit game-long bonuses apply to hand
+    // copies too ("your Silver Hand Recruits" covers every zone, §32): a
+    // CORE_GVG_061t added to hand carries the accumulated +Attack/+Health
+    // in its base stats, so playing the copy later keeps them.
+    if card_def.id == "CORE_GVG_061t" {
+        let (atk_bonus, hp_bonus) = {
+            let p = state.player(player);
+            (p.silver_hand_attack_bonus, p.silver_hand_health_bonus)
+        };
+        let world = state.world_mut();
+        let base = world.attack(e).unwrap_or(Attack(0));
+        world.set_attack(e, Attack(base.0 + atk_bonus as i32));
+        let base_hp = world.health(e).unwrap_or(Health(1));
+        world.set_health(e, Health(base_hp.0 + hp_bonus as i32));
+    }
     // M3-W3 — the "filled" half of the fill-then-empty SEQUENCE (see
     // `quest_fill_hook` above): a generated card that fills the hand
     // completes the first half of Battle at the End Time. The reward

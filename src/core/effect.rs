@@ -5054,6 +5054,65 @@ pub enum CardEffect {
         /// Effect-magnitude bonus for the Leyline cards.
         amount: i32,
     },
+    // ----------------------------------------------------------------
+    // MEND W4 (the Paladin class-set wave — src/cards/exp_cata_w8.rs,
+    // fidelity-debt §32). New CardEffect variants keep the bincode
+    // CardEffectDe mirror, the Deserialize conversion and the bot
+    // scoring arms in lockstep.
+    // ----------------------------------------------------------------
+    /// Give your Silver Hand Recruits +{attack}/+{health} this game
+    /// (MEND W4 — the Paladin class-set wave): Brash Battlemaster
+    /// (MEND_800, +1 Attack via deathrattle), Resilient Savior (MEND_801,
+    /// +1 Health via trigger) and Emboldening Blade (MEND_803, +1/+1 via
+    /// battlecry). Increments the owner's `silver_hand_attack_bonus` /
+    /// `silver_hand_health_bonus`; every CORE_GVG_061t token created for
+    /// the rest of the game — summoned (resolve_summon_doubled) or added
+    /// to hand (add_card_to_hand) — carries the accumulated bonus (§32).
+    SetSilverHandRecruitStats {
+        /// Attack bonus per Silver Hand Recruit.
+        attack: i32,
+        /// Health bonus per Silver Hand Recruit.
+        health: i32,
+    },
+    /// After THIS minion loses Divine Shield, give your Silver Hand
+    /// Recruits +{amount} Health this game (MEND_801 Resilient Savior —
+    /// the DivineShieldLost trigger rides the minion; the resolution
+    /// checks the event subject so only the minion's OWN shield break
+    /// counts, §32).
+    ResilientSaviorHealthBonus {
+        /// Health bonus per Silver Hand Recruit.
+        amount: i32,
+    },
+    /// Double the stats of all friendly Silver Hand Recruits and give
+    /// them Taunt (MEND_804 Arator the Redeemer battlecry). The doubling
+    /// hits the CURRENT board only — the official ruling reads "all
+    /// friendly Silver Hand Recruits" as the minions in play at the
+    /// battlecry, future summons are unaffected (§32) — each Recruit
+    /// gains a permanent enchantment equal to its current stats plus
+    /// Taunt.
+    AratorDoubleSilverHandRecruits,
+    /// Summon {count} 1/1 Silver Hand Recruits with Divine Shield
+    /// (MEND_802 Convalescence — the {0} base is 1/1, fixed; the Paladin
+    /// class set carries no upgrade mechanic for it, §32).
+    SummonSilverHandRecruitsWithDivineShield {
+        /// Number of Recruits to summon.
+        count: i32,
+    },
+    /// Get copies of all friendly minions that died this turn and give
+    /// them +{attack}/+{health} (MEND_805 Charity — the copies land in
+    /// the hand with the buff baked into their base stats, the
+    /// Grimestreet hand-buff convention, §32; a full hand burns the add,
+    /// F-A11).
+    CharityCopiesDiedThisTurn {
+        /// Attack bonus on each copy.
+        attack: i32,
+        /// Health bonus on each copy.
+        health: i32,
+    },
+    /// Summon two 1/1 Silver Hand Recruits and get two more in hand
+    /// (MEND_900 Teamwork — "Summon and get four": the even 2+2 split
+    /// is the D2 decision, §32).
+    TeamworkSummonAndGetRecruits,
 }
 
 /// Deserialization mirror of CardEffect (owns all fields, no &'static str references).
@@ -7037,6 +7096,22 @@ enum CardEffectDe {
     SetLeylineEffectBonus {
         amount: i32,
     },
+    SetSilverHandRecruitStats {
+        attack: i32,
+        health: i32,
+    },
+    ResilientSaviorHealthBonus {
+        amount: i32,
+    },
+    AratorDoubleSilverHandRecruits,
+    SummonSilverHandRecruitsWithDivineShield {
+        count: i32,
+    },
+    CharityCopiesDiedThisTurn {
+        attack: i32,
+        health: i32,
+    },
+    TeamworkSummonAndGetRecruits,
 }
 
 impl<'de> serde::Deserialize<'de> for CardEffect {
@@ -9258,6 +9333,22 @@ impl<'de> serde::Deserialize<'de> for CardEffect {
             CardEffectDe::SetLeylineEffectBonus { amount } => {
                 CardEffect::SetLeylineEffectBonus { amount }
             }
+            CardEffectDe::SetSilverHandRecruitStats { attack, health } => {
+                CardEffect::SetSilverHandRecruitStats { attack, health }
+            }
+            CardEffectDe::ResilientSaviorHealthBonus { amount } => {
+                CardEffect::ResilientSaviorHealthBonus { amount }
+            }
+            CardEffectDe::AratorDoubleSilverHandRecruits => {
+                CardEffect::AratorDoubleSilverHandRecruits
+            }
+            CardEffectDe::SummonSilverHandRecruitsWithDivineShield { count } => {
+                CardEffect::SummonSilverHandRecruitsWithDivineShield { count }
+            }
+            CardEffectDe::CharityCopiesDiedThisTurn { attack, health } => {
+                CardEffect::CharityCopiesDiedThisTurn { attack, health }
+            }
+            CardEffectDe::TeamworkSummonAndGetRecruits => CardEffect::TeamworkSummonAndGetRecruits,
         })
     }
 }
@@ -10410,6 +10501,35 @@ mod tests {
                 upgrade: LeylineUpgrade::Discount,
             },
             CardEffect::SetLeylineEffectBonus { amount: 1 },
+        ] {
+            let bytes = bincode::serialize(&effect).expect("serialize");
+            let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");
+            assert_eq!(back, effect, "roundtrip failed for {effect:?}");
+        }
+    }
+
+    /// Every new MEND W4 (the Paladin class-set wave,
+    /// src/cards/exp_cata_w8.rs) variant survives the bincode roundtrip
+    /// (CardEffectDe → CardEffect via the interned card ids).
+    #[test]
+    fn mend_w4_effects_serialize_roundtrip() {
+        for effect in [
+            CardEffect::SetSilverHandRecruitStats {
+                attack: 1,
+                health: 0,
+            },
+            CardEffect::SetSilverHandRecruitStats {
+                attack: 1,
+                health: 1,
+            },
+            CardEffect::ResilientSaviorHealthBonus { amount: 1 },
+            CardEffect::AratorDoubleSilverHandRecruits,
+            CardEffect::SummonSilverHandRecruitsWithDivineShield { count: 2 },
+            CardEffect::CharityCopiesDiedThisTurn {
+                attack: 3,
+                health: 3,
+            },
+            CardEffect::TeamworkSummonAndGetRecruits,
         ] {
             let bytes = bincode::serialize(&effect).expect("serialize");
             let back: CardEffect = bincode::deserialize(&bytes).expect("deserialize");

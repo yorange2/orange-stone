@@ -769,6 +769,20 @@ pub struct Player {
     /// this game." The three Leyline cards' {0} scalars (damage,
     /// summoned-minion cost, cost reduction) read this at resolution.
     pub leyline_effect_bonus: u32,
+    /// The Silver Hand Recruit game-long Attack bonus (MEND W4 — the
+    /// Paladin class-set wave: Brash Battlemaster MEND_800 / Emboldening
+    /// Blade MEND_803): "Give your Silver Hand Recruits +1 Attack this
+    /// game." Applied at every CORE_GVG_061t creation point — the summon
+    /// resolution (`resolve_summon_doubled`) and the hand-add path
+    /// (`add_card_to_hand`) — so board, hand and played-from-hand
+    /// Recruits all honor it for the rest of the game (§32).
+    pub silver_hand_attack_bonus: u32,
+    /// The Silver Hand Recruit game-long Health bonus (MEND W4 — the
+    /// Paladin class-set wave: Resilient Savior MEND_801 / Emboldening
+    /// Blade MEND_803): "Give your Silver Hand Recruits +1 Health this
+    /// game." Applied alongside `silver_hand_attack_bonus` at every
+    /// CORE_GVG_061t creation point (§32).
+    pub silver_hand_health_bonus: u32,
 }
 
 impl Player {
@@ -936,6 +950,8 @@ impl Player {
             leyline_discount: 0,
             leyline_extra_trigger: 0,
             leyline_effect_bonus: 0,
+            silver_hand_attack_bonus: 0,
+            silver_hand_health_bonus: 0,
         }
     }
 }

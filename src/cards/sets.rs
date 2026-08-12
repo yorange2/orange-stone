@@ -2822,6 +2822,17 @@ pub const HANDWRITTEN_EXPANSION_CARDS: &[CardDef] = &[
     super::exp_cata_w7::LEYLINE_NEXUS,
     super::exp_cata_w7::THE_ARCANOMICON,
     super::exp_cata_w7::MYSTIC_RUNESABER,
+    // MEND W4 — the Cataclysm Paladin class-set wave
+    // (src/cards/exp_cata_w8.rs, fidelity-debt §32): handwritten only —
+    // the MEND_ cards have no generated baselines, so the
+    // `expansion_differential_gate` tripwire skips them.
+    super::exp_cata_w8::BRASH_BATTLEMASTER,
+    super::exp_cata_w8::RESILIENT_SAVIOR,
+    super::exp_cata_w8::CONVALESCENCE,
+    super::exp_cata_w8::EMBOLDENING_BLADE,
+    super::exp_cata_w8::ARATOR_THE_REDEEMER,
+    super::exp_cata_w8::CHARITY,
+    super::exp_cata_w8::TEAMWORK,
 ];
 
 /// 2025–2026 expansion cards (2025-2026-expansions-roadmap M0.3) — generated
