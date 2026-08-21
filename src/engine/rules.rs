@@ -802,6 +802,41 @@ fn resolve_lifesteal_heal(
 
 /// Death check — the last step of the damage pipeline (`DamageDealt`).
 ///
+/// Destroys a minion outright (ledger F-A13).
+///
+/// **Destroy is not damage.** Hearthstone's destroy effects — Assassinate,
+/// Siphon Soul, a sacrifice, a board clear, Corruption's delayed kill — ignore
+/// Divine Shield, do not fire damage triggers, and cannot be undone by healing.
+/// The engine used to enact them as "the victim deals its own Health to
+/// itself", which routed them through the damage pipeline: a Divine Shield
+/// absorbed the destroy and left the minion alive (Assassinate on an Argent
+/// Squire), Enrage and damage-taken triggers fired, and a heal landing before
+/// the death step could rescue the victim.
+///
+/// Instead the minion is marked [`Destroyed`] and queued into the same death
+/// batch damage uses, so deathrattles, death order and the Colossal cascade
+/// are unchanged — only the "how it died" part differs. The death step honours
+/// the marker regardless of the minion's health.
+///
+/// Non-minions and entities already out of play are ignored.
+pub(crate) fn destroy_minion(state: &mut GameState, minion: Entity) {
+    if !state.world().is_alive(minion)
+        || state.world().card_type(minion) != Some(CardType::Minion)
+    {
+        return;
+    }
+    state
+        .world_mut()
+        .set_destroyed(minion, crate::core::component::Destroyed);
+    let inner = state.make_mut();
+    if !inner.pending_deaths.contains(&minion) {
+        inner.pending_deaths.push(minion);
+    }
+    // A destroyed Colossal main takes its parts with it, exactly as a lethally
+    // damaged one does (M4-W1).
+    crate::cards::colossal::cascade_part_deaths(state, minion);
+}
+
 /// When the target's effective health is ≤ 0: heroes enqueue a game-over
 /// (highest priority); minions are marked pending death (roadmap G3) — they
 /// stay on the battlefield until the death step processes them, so healing can
@@ -1051,12 +1086,7 @@ pub fn apply_event(
                 {
                     continue;
                 }
-                let hp = state.world().health(entity).unwrap_or(Health(1));
-                queue.push(Event::DamageDealt {
-                    source: entity,
-                    target: entity,
-                    amount: hp.0.max(1),
-                });
+                crate::engine::rules::destroy_minion(state, entity);
             }
 
             // First collect entities whose attack counts need resetting (requires a read-only
@@ -1508,12 +1538,7 @@ pub fn apply_event(
                     {
                         continue;
                     }
-                    let hp = state.world().health(entity).unwrap_or(Health(1));
-                    queue.push(Event::DamageDealt {
-                        source: entity,
-                        target: entity,
-                        amount: hp.0.max(1),
-                    });
+                    crate::engine::rules::destroy_minion(state, entity);
                 }
             }
             // End-of-turn effects fire in the EndTriggers step — before the
@@ -3656,8 +3681,11 @@ pub fn apply_event(
         Event::MinionDied { minion } => {
             // Death batching (roadmap G3): re-check the health — a minion healed
             // above 0 before its death was processed survives (the event is a no-op).
+            // A minion marked by a destroy effect dies regardless: destroy is not
+            // damage, so there is nothing for a heal to undo (F-A13).
             let effective_hp = state.world().effective_health(minion);
-            if !effective_hp.is_some_and(|h| h.is_dead()) {
+            let destroyed = state.world().destroyed(minion).is_some();
+            if !destroyed && !effective_hp.is_some_and(|h| h.is_dead()) {
                 return Ok(());
             }
             let owner = state.world().player(minion);

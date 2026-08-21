@@ -358,7 +358,9 @@ pub fn resolve_effect(
             resolve_return_to_hand_and_increase_cost(state, queue, owner, source, amount);
         }
         CardEffect::DestroyMinion { target } => {
-            resolve_destroy_minion(state, queue, owner, source, target, explicit_target);
+            resolve_destroy_minion(
+                state,
+                owner, source, target, explicit_target);
         }
         CardEffect::SilenceMinion { target } => {
             resolve_silence(state, owner, target, explicit_target);
@@ -490,10 +492,12 @@ pub fn resolve_effect(
             resolve_set_attack_to_health(state, owner, target, explicit_target);
         }
         CardEffect::DestroyAllExceptOne => {
-            resolve_destroy_all_except_one(state, queue, owner);
+            resolve_destroy_all_except_one(state, owner);
         }
         CardEffect::DestroyAndHeal { target, heal } => {
-            resolve_destroy_and_heal(state, queue, owner, target, heal, explicit_target);
+            resolve_destroy_and_heal(
+                state,
+                owner, target, heal, explicit_target);
         }
         CardEffect::DestroyAndAOE { target } => {
             resolve_destroy_and_aoe(state, queue, owner, source, target);
@@ -550,11 +554,7 @@ pub fn resolve_effect(
                 .effective_health(sacrifice)
                 .unwrap_or(Health(0));
             // Destroy the sacrifice
-            queue.push(Event::DamageDealt {
-                source,
-                target: sacrifice,
-                amount: hp.0.max(1),
-            });
+            crate::engine::rules::destroy_minion(state, sacrifice);
             // Add the stats to the source minion as an enchantment (roadmap G4)
             state.world_mut().add_enchantment(
                 source,
@@ -847,7 +847,6 @@ pub fn resolve_effect(
         } => {
             resolve_destroy_and_gain_stats(
                 state,
-                queue,
                 source,
                 owner,
                 attack,
@@ -4312,7 +4311,6 @@ pub fn resolve_effect(
             };
             resolve_destroy_minion(
                 state,
-                queue,
                 owner,
                 source,
                 EffectTarget::FriendlyMinion,
@@ -4403,7 +4401,6 @@ pub fn resolve_effect(
             let t = select_target(explicit_target, &wisps, state.rng_mut()).unwrap_or(wisps[0]);
             resolve_destroy_minion(
                 state,
-                queue,
                 owner,
                 source,
                 EffectTarget::FriendlyMinion,
@@ -5332,12 +5329,7 @@ pub fn resolve_effect(
             // any friendly spell triggers it, §14.5). The self-destroy
             // follows the destroy convention: damage equal to its health
             // routed through the death pipeline.
-            let hp = state.world().effective_health(source).unwrap_or(Health(1));
-            queue.push(Event::DamageDealt {
-                source,
-                target: source,
-                amount: hp.0.max(1),
-            });
+            crate::engine::rules::destroy_minion(state, source);
             for enemy in collect_all_enemy_characters(state, owner) {
                 queue.push(Event::DamageDealt {
                     source,
@@ -6113,7 +6105,9 @@ pub fn resolve_effect(
                 .effective_health(selected)
                 .unwrap_or(Health(0))
                 .0;
-            resolve_destroy_minion(state, queue, owner, source, target, Some(selected));
+            resolve_destroy_minion(
+                state,
+                owner, source, target, Some(selected));
             state.world_mut().add_enchantment(
                 source,
                 Enchantment {
@@ -7630,7 +7624,9 @@ pub fn resolve_effect(
                 return;
             };
             let cost = state.world().effective_cost(picked).unwrap_or(Cost(0)).0;
-            resolve_destroy_minion(state, queue, owner, source, target, Some(picked));
+            resolve_destroy_minion(
+                state,
+                owner, source, target, Some(picked));
             if let Some(pick) = random_minion_of_cost(state, cost) {
                 let _ = resolve_summon(state, queue, source, owner, pick.id);
             }
@@ -8003,7 +7999,9 @@ pub fn resolve_effect(
                 .effective_attack(picked)
                 .unwrap_or(Attack(0))
                 .0;
-            resolve_destroy_minion(state, queue, owner, source, target, Some(picked));
+            resolve_destroy_minion(
+                state,
+                owner, source, target, Some(picked));
             let Some(bone) = crate::cards::def::card_by_id("TLC_252t") else {
                 return;
             };
@@ -9279,7 +9277,9 @@ pub fn resolve_effect(
             // TIME_712 Dethrone (M3-W2a) — destroy a random minion
             // (either side); the Combo branch (the same variant with the
             // summon Cost set) then summons a random minion of that Cost.
-            resolve_destroy_minion(state, queue, owner, source, EffectTarget::AnyMinion, None);
+            resolve_destroy_minion(
+                state,
+                owner, source, EffectTarget::AnyMinion, None);
             if cost > 0 {
                 let pool: SmallList<&'static crate::cards::def::CardDef> =
                     crate::cards::sets::ALL_CARDS
@@ -10142,7 +10142,6 @@ pub fn resolve_effect(
             silence_entity(state.world_mut(), t);
             resolve_destroy_minion(
                 state,
-                queue,
                 owner,
                 source,
                 EffectTarget::AnyEnemyMinion,
@@ -10965,12 +10964,7 @@ pub fn resolve_effect(
                 })
                 .collect();
             for target in targets {
-                let hp = state.world().effective_health(target).unwrap_or(Health(1));
-                queue.push(Event::DamageDealt {
-                    source: target,
-                    target,
-                    amount: hp.0.max(1),
-                });
+                crate::engine::rules::destroy_minion(state, target);
             }
         }
         CardEffect::SummonBloodFighterFromHandBuffAndAttack => {
@@ -11087,12 +11081,7 @@ pub fn resolve_effect(
                 silence_entity(state.world_mut(), *target);
             }
             for target in others {
-                let hp = state.world().effective_health(target).unwrap_or(Health(1));
-                queue.push(Event::DamageDealt {
-                    source: target,
-                    target,
-                    amount: hp.0.max(1),
-                });
+                crate::engine::rules::destroy_minion(state, target);
             }
         }
         // ============================================================
@@ -11562,12 +11551,7 @@ pub fn resolve_effect(
             for e in trio {
                 let dmg = state.world().damage(e).map(|d| d.0).unwrap_or(0);
                 if dmg > 0 {
-                    let hp = state.world().effective_health(e).unwrap_or(Health(1));
-                    queue.push(Event::DamageDealt {
-                        source: e,
-                        target: e,
-                        amount: hp.0.max(1),
-                    });
+                    crate::engine::rules::destroy_minion(state, e);
                 }
             }
         }
@@ -11628,12 +11612,7 @@ pub fn resolve_effect(
                 })
                 .collect();
             for e in doomed {
-                let hp = state.world().effective_health(e).unwrap_or(Health(1));
-                queue.push(Event::DamageDealt {
-                    source: e,
-                    target: e,
-                    amount: hp.0.max(1),
-                });
+                crate::engine::rules::destroy_minion(state, e);
             }
         }
         CardEffect::AddRandomShadowSpell => {
@@ -11675,12 +11654,7 @@ pub fn resolve_effect(
                 .collect();
             if !minions.is_empty() {
                 if let Some(&m) = pick_random(state, &minions) {
-                    let hp = state.world().effective_health(m).unwrap_or(Health(1));
-                    queue.push(Event::DamageDealt {
-                        source: m,
-                        target: m,
-                        amount: hp.0.max(1),
-                    });
+                    crate::engine::rules::destroy_minion(state, m);
                 }
             }
             let locations: Vec<Entity> = state
@@ -11930,12 +11904,7 @@ pub fn resolve_effect(
                 // The engine's destroy convention — the victim deals its
                 // own full health as damage to itself (flows through the
                 // damage pipeline and the death check).
-                let hp = state.world().effective_health(victim).unwrap_or(Health(1));
-                queue.push(Event::DamageDealt {
-                    source: victim,
-                    target: victim,
-                    amount: hp.0.max(1),
-                });
+                crate::engine::rules::destroy_minion(state, victim);
                 true
             };
             if destroyed {
@@ -13669,7 +13638,6 @@ pub fn resolve_effect(
             };
             resolve_destroy_minion(
                 state,
-                queue,
                 owner,
                 source,
                 EffectTarget::AnyEnemyMinion,
@@ -13717,7 +13685,6 @@ pub fn resolve_effect(
             };
             resolve_destroy_minion(
                 state,
-                queue,
                 owner,
                 source,
                 EffectTarget::AnyEnemyMinion,
@@ -15018,12 +14985,7 @@ pub fn resolve_effect(
                 .collect();
             let count = others.len();
             for e in others {
-                let hp = state.world().effective_health(e).unwrap_or(Health(1));
-                queue.push(Event::DamageDealt {
-                    source,
-                    target: e,
-                    amount: hp.0.max(1),
-                });
+                crate::engine::rules::destroy_minion(state, e);
             }
             for _ in 0..count {
                 draw_card(state, queue, owner);
@@ -15322,12 +15284,7 @@ pub fn resolve_effect(
             let mut all: SmallList<Entity> = collect_friendly_minions(state, owner);
             all.extend(collect_all_enemy_minions(state, owner));
             for e in all {
-                let hp = state.world().effective_health(e).unwrap_or(Health(1));
-                queue.push(Event::DamageDealt {
-                    source,
-                    target: e,
-                    amount: hp.0.max(1),
-                });
+                crate::engine::rules::destroy_minion(state, e);
             }
             let deck: Vec<Entity> = state.world().zones().iter(Zone::Deck, owner).collect();
             let demons: Vec<Entity> = deck
@@ -16139,12 +16096,7 @@ pub fn resolve_effect(
                 neighbours.push(board[pos + 1]);
             }
             if let Some(&target) = pick_random(state, &neighbours) {
-                let hp = state.world().effective_health(target).unwrap_or(Health(1));
-                queue.push(Event::DamageDealt {
-                    source,
-                    target,
-                    amount: hp.0.max(1),
-                });
+                crate::engine::rules::destroy_minion(state, target);
             }
         }
         CardEffect::GetawayHogdriver => {
@@ -18214,12 +18166,7 @@ fn resolve_destroy_all_other_minions_and_discard_hand(
         if m == source {
             continue;
         }
-        let hp = state.world().effective_health(m).unwrap_or(Health(1));
-        queue.push(Event::DamageDealt {
-            source: m,
-            target: m,
-            amount: hp.0.max(1),
-        });
+        crate::engine::rules::destroy_minion(state, m);
     }
 }
 
@@ -18401,11 +18348,10 @@ fn resolve_gain_stats_and_taunt(
 
 /// Destroys a minion of the target scope, then grants the source fixed stats
 /// (Hungry Crab — destroy a Murloc and gain +2/+2).
-// 8 parameters (state, queue, source, owner, attack, health, target, explicit) — resolver convention style.
+// 7 parameters (state, source, owner, attack, health, target, explicit) — resolver convention style.
 #[allow(clippy::too_many_arguments)]
 fn resolve_destroy_and_gain_stats(
     state: &mut GameState,
-    queue: &mut EventQueue,
     source: Entity,
     owner: PlayerId,
     attack: i32,
@@ -18426,12 +18372,7 @@ fn resolve_destroy_and_gain_stats(
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
-    let hp = state.world().effective_health(m).unwrap_or(Health(1));
-    queue.push(Event::DamageDealt {
-        source: m,
-        target: m,
-        amount: hp.0.max(1),
-    });
+    crate::engine::rules::destroy_minion(state, m);
     state.world_mut().add_enchantment(
         source,
         Enchantment {
@@ -19160,10 +19101,10 @@ fn resolve_increase_cost(
     world.set_cost(target_entity, Cost(cur_cost.0 + amount));
 }
 
-/// Destroys a minion — deals damage equal to its current health to guarantee the kill.
+/// Destroys a minion outright through the shared destroy path (F-A13) — no
+/// damage involved, so Divine Shield does not absorb it.
 fn resolve_destroy_minion(
     state: &mut GameState,
-    queue: &mut EventQueue,
     owner: PlayerId,
     source: Entity,
     target: EffectTarget,
@@ -19251,12 +19192,7 @@ fn resolve_destroy_minion(
             let mut all = collect_friendly_minions(state, owner);
             all.extend(collect_all_enemy_minions(state, owner));
             for &m in &all {
-                let hp = state.world().effective_health(m).unwrap_or(Health(1));
-                queue.push(Event::DamageDealt {
-                    source: m,
-                    target: m,
-                    amount: hp.0.max(1),
-                });
+                crate::engine::rules::destroy_minion(state, m);
             }
             return;
         }
@@ -19276,12 +19212,7 @@ fn resolve_destroy_minion(
         }
     };
     if let Some(m) = chosen {
-        let hp = state.world().effective_health(m).unwrap_or(Health(1));
-        queue.push(Event::DamageDealt {
-            source: m,
-            target: m,
-            amount: hp.0.max(1),
-        });
+        crate::engine::rules::destroy_minion(state, m);
     }
 }
 
@@ -20132,7 +20063,7 @@ fn resolve_set_attack_to_health(
 }
 
 /// Destroys all minions except one random survivor.
-fn resolve_destroy_all_except_one(state: &mut GameState, queue: &mut EventQueue, owner: PlayerId) {
+fn resolve_destroy_all_except_one(state: &mut GameState, owner: PlayerId) {
     let enemy = owner.opponent();
     let mut all_minions: SmallList<Entity> = [owner, enemy]
         .iter()
@@ -20150,21 +20081,15 @@ fn resolve_destroy_all_except_one(state: &mut GameState, queue: &mut EventQueue,
     }
     // Pick a random survivor and destroy the rest
     let survivor_idx = state.rng_mut().next_usize(all_minions.len());
-    let survivor = all_minions.remove(survivor_idx);
+    all_minions.remove(survivor_idx); // the survivor stays on the board
     for &m in &all_minions {
-        let hp = state.world().effective_health(m).unwrap_or(Health(1));
-        queue.push(Event::DamageDealt {
-            source: survivor,
-            target: m,
-            amount: hp.0.max(1),
-        });
+        crate::engine::rules::destroy_minion(state, m);
     }
 }
 
 /// Destroys a minion and restores health to the hero.
 fn resolve_destroy_and_heal(
     state: &mut GameState,
-    queue: &mut EventQueue,
     owner: PlayerId,
     target: EffectTarget,
     heal: i32,
@@ -20177,12 +20102,7 @@ fn resolve_destroy_and_heal(
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
-    let hp = state.world().effective_health(m).unwrap_or(Health(1));
-    queue.push(Event::DamageDealt {
-        source: m,
-        target: m,
-        amount: hp.0.max(1),
-    });
+    crate::engine::rules::destroy_minion(state, m);
     // Heal the hero (reduce accumulated damage)
     let hero = state.player(owner).hero;
     let dmg = state.world().damage(hero).unwrap_or(Damage(0)).0;
@@ -20215,12 +20135,7 @@ fn resolve_destroy_and_aoe(
         .unwrap_or(Attack(0))
         .0;
     // Destroy the sacrifice
-    let hp = state.world().health(sacrifice).unwrap_or(Health(1));
-    queue.push(Event::DamageDealt {
-        source,
-        target: sacrifice,
-        amount: hp.0.max(1),
-    });
+    crate::engine::rules::destroy_minion(state, sacrifice);
     // Deal damage equal to its attack to all enemy minions
     let _enemy = owner.opponent();
     let targets: SmallList<Entity> = match target {

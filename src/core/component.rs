@@ -844,6 +844,21 @@ pub struct Enrage {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Stealth;
 
+/// Marks a minion destroyed by a **destroy effect** (Assassinate, Siphon Soul,
+/// a board clear, a sacrifice) rather than by damage.
+///
+/// Destroy is not damage: it ignores Divine Shield and does not fire the
+/// damage triggers (ledger F-A13 — the engine used to enact destroy as lethal
+/// self-damage, so a shield ate it). The marker also makes the destruction
+/// unstoppable: the death step re-checks health so a heal can rescue a minion
+/// that was merely damaged to 0, but a marked minion dies regardless — which
+/// is Hearthstone's rule for destroy.
+///
+/// Set by `engine::rules::destroy_minion`; stripped when the entity leaves
+/// play with the rest of its components.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct Destroyed;
+
 /// Rush (Core Set W1) — can attack enemy MINIONS the turn it is summoned
 /// (no summoning sickness), but cannot attack the enemy hero until the next
 /// turn. The summon-turn restriction is tracked by `SummonedThisTurn`.

@@ -13,7 +13,8 @@ use crate::core::component::{
     Armor, Attack, AttackEqualsHealth, AttacksUsed, Aura, Battlecry, BonusDamageTaken, CantAttack,
     CantAttackHeroesThisTurn, CantAttackThisTurn, CantPlayNextTurn, CardId, CardType, Charge,
     ChooseOneEffect, ColossalMain, ColossalPart, ComboEffect, CopiedFromOpponent, Cost, CostHealth,
-    CostModifier, CostModifierKind, Damage, DarkGiftKind, Deathrattle, DivineShield, Dormant,
+    CostModifier, CostModifierKind, Damage, DarkGiftKind, Deathrattle, Destroyed, DivineShield,
+    Dormant,
     DoubleDamageTaken, Durability, Elusive, Enchantment, Enrage, Freeze, HandTurnCounter, Health,
     HeroPowerDef, HeroPowerUsed, Immune, Lifesteal, LockedUntilCardPlayed, MegaWindfury,
     OutcastPlayed, Overload, PlayedThisTurn, Poison, Quest, Race, Reborn, Rush, Secret,
@@ -172,6 +173,7 @@ pub struct World {
     enrage: SparseSet<Enrage>,
     /// Stealth component storage (stealth)
     stealth: SparseSet<Stealth>,
+    destroyed: SparseSet<Destroyed>,
     /// Elusive component storage (elusive; M5)
     elusive: SparseSet<Elusive>,
     /// Immune component storage (immune)
@@ -382,6 +384,7 @@ impl World {
             outcast_played: SparseSet::new(),
             enrage: SparseSet::new(),
             stealth: SparseSet::new(),
+            destroyed: SparseSet::new(),
             elusive: SparseSet::new(),
             immune: SparseSet::new(),
             overload: SparseSet::new(),
@@ -480,6 +483,7 @@ impl World {
         self.outcast_played.remove(entity);
         self.enrage.remove(entity);
         self.stealth.remove(entity);
+        self.destroyed.remove(entity);
         self.elusive.remove(entity);
         self.immune.remove(entity);
         self.overload.remove(entity);
@@ -1005,6 +1009,14 @@ impl World {
         set_stealth,
         remove_stealth,
         iter_stealth
+    );
+    component_accessors!(
+        destroyed,
+        Destroyed,
+        destroyed,
+        set_destroyed,
+        remove_destroyed,
+        iter_destroyed
     );
     component_accessors!(
         elusive,
