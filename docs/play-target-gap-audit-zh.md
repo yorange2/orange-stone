@@ -1,0 +1,236 @@
+# 出牌目标枚举缺口审计（2026-08-21）
+
+> 起因：网页对局里出 **影焰晕染（FIR_939）** 没有瞄准环节，2 点伤害随机
+> 落到了对方英雄头上。顺藤摸瓜发现这不是单卡问题，而是**出牌目标枚举的
+> 系统性缺口**。本文是逐卡审计的结论清单，供决定修哪些、按什么顺序修。
+
+## 结论摘要
+
+| | 数量 |
+|---|---|
+| 官方要玩家指定目标、引擎却不给目标的卡（**A 类**） | **64** |
+| ├─ A1 **哑火**：效果整个 no-op，卡是废的 | 8 |
+| ├─ A2 **随机结算**：效果生效，但目标由引擎随机挑 | 54 |
+| └─ A3 未实测（高费卡，探针局没打到） | 2 |
+| 文本像要目标、实际不需要（**B 类**，已排除） | 33 |
+
+覆盖范围从**经典卡一直到 2025–2026 全部扩展**：经典 24 张、翡翠梦境 12 张、失落之城/安戈洛 10 张、时光之径 7 张、大灾变 5 张、核心 3 张、紫罗兰监狱 3 张。
+
+## 根因
+
+`src/rl/env.rs` 的 `play_targets()` 用一个 **`match` 白名单**逐个列举
+"这个效果变体要玩家选目标"，列进去的才会展开成多条"出牌 → 打某个目标"
+的合法动作；没列进去的落到 `_ => return Vec::new()`，只生成一条无目标出牌。
+
+```rust
+let target = match battlecry.0 {
+    CardEffect::DealDamage { target, .. } => target,
+    // ……共 44 条
+    _ => return Vec::new(),          // ← 新加的复合效果全落这里
+};
+```
+
+白名单有 44 条，而 `trigger.rs` 里接受 `explicit_target` 的效果变体有 142 个。
+每次加卡都新造一个复合效果变体（`DamageAndDrawIfSurvives`、
+`DealDamageAndDraw`、`DamageAndDiscoverWarriorWithGift`……），**没人回头补白名单**，
+于是新变体默认无目标。到了结算层，`resolve_deal_damage` 等函数拿不到
+`explicit`，走 `select_target(explicit, &candidates, rng)` → **随机挑一个**；
+如果那条分支写的是 `let t = explicit?;` → **直接哑火**。
+
+两条退化路径都是静默的：没有报错，没有日志，玩家只看到"我明明该能选目标"。
+
+## 方法（三重证据）
+
+1. **静态**：解析 `src/cards/*.rs` 全部 1701 条 `CardDef`，取出 `battlecry` /
+   `spell_effect` 的效果变体，与 `play_targets` 白名单求差集 → 564 张卡。
+2. **官方文本**：按 `cards/cards.json`（id 优先、卡名回退，与引擎对拍同口径）
+   取官方英文文本，只看**出牌时的子句**（法术=全文，随从=`Battlecry:` 那句），
+   命中"a/an minion|character|…"或裸的 "Deal $N damage." 且不含 random/all/each
+   → 97 张候选。逐条人工复核，剔除发现/抽牌/条件类 33 张 → **A 类 64 张**。
+3. **实测探针**：每张卡开一局镜像局（该卡 ×8 + 白板随从填充，对手 greedy），
+   推进到双方都有随从时出这张卡，diff 出牌前后的局面。**64 张全部实测确认
+   没有任何目标选项**（`target_id == -1`），其中 8 张出牌后局面零变化。
+   对照组 火球术（在白名单里）正常给出目标。
+
+## A1 —— 哑火：8 张废卡
+
+出牌后局面**零变化**。效果分支是 `let t = explicit?;`，拿不到玩家指定的目标
+就整个返回，等于花费法力打了个空气。
+
+| 卡 ID | 卡名 | 效果变体 | 官方文本（出牌子句） |
+|---|---|---|---|
+| `DRUID_018` | Savagery（野蛮之击） | `DealHeroAttackDamage` | Deal damage equal to your hero's Attack to a minion. |
+| `HUNTER_021` | Bestial Wrath（狂野怒火） | `GrantAttackAndImmune` | Give a friendly Beast +2 Attack and Immune this turn. |
+| `MAGE_016` | Cone of Cold（冰锥术） | `FreezeAdjacent` | Freeze a minion and the minions next to it, and deal $1 damage to them. |
+| `MAGE_022` | Icicle（冰刺） | `FreezeOrDamage` | Deal $2 damage to a minion. If it's Frozen, draw a card. |
+| `WARLOCK_024` | Corruption（腐蚀） | `Corrupt` | Choose an enemy minion. At the start of your turn, destroy it. |
+| `WARRIOR_021` | Mortal Strike（致死打击） | `MortalStrike` | Deal $4 damage. If you have 12 or less Health, deal $6 instead. |
+| `EDR_813` | Morbid Swarm（病变虫群） | `SummonMultipleMinions` | Choose One - Summon two 1/1 Ants; or Spend 2 Corpses to deal $4 damage to a mi |
+| `EDR_252` | Mark of Ursol（乌索尔印记） | `SetStatsByFriendlyTarget` | Choose a minion. If it's an enemy, set its stats to 1/1. If it's friendly, set |
+
+## A2 —— 随机结算：54 张
+
+效果生效，但打谁/给谁由引擎随机决定。实测里比较刺眼的几例：
+
+- `WARLOCK_017` **灵魂虹吸**：随机消灭一只敌方随从（本该玩家点）
+- `ROGUE_019` **暗影步**：随机把一只自己的随从收回手牌
+- `EDR_531` **虹吸生长**：随机消灭**自己**的随从换 8 护甲
+- `TIME_043` **PMM 无限机**：随机把一只友方随从设成 8/8
+- `FIR_939` **影焰晕染**：就是这次报的卡，2 点伤害随机落敌方角色
+
+| 卡 ID | 卡名 | 效果变体 | 官方文本（出牌子句） |
+|---|---|---|---|
+| `CLASSIC_009` | Dark Iron Dwarf（黑铁矮人） | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
+| `CLASSIC_FM` | Faceless Manipulator（无面操纵者） | `CopyMinionStats` | Choose a minion and become a copy of it. |
+| `NEUTRAL_001` | Abusive Sergeant（叫嚣的中士） | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
+| `PALADIN_017` | Holy Wrath（神圣愤怒） | `DrawAndDamageByCost` | Draw a card and deal damage equal to its Cost to a minion. |
+| `PRIEST_011` | Cabal Shadow Priest（秘教暗影祭司） | `TakeControlAttackLE` | Take control of an enemy minion that has 2 or less Attack. |
+| `PRIEST_021` | Natalie Seline（娜塔莉·塞林） | `DestroyAndGainHealth` | Destroy a minion and gain its Health. |
+| `PRIEST_022` | Shadow Madness（暗影狂乱） | `TakeControlUntilEndOfTurn` | Gain control of an enemy minion with 3 or less Attack until end of turn. |
+| `ROGUE_014` | Shiv（毒刃） | `DealDamageAndDraw` | Deal $1 damage. Draw a card. |
+| `ROGUE_019` | Shadowstep（暗影步） | `ReturnFriendlyToHandAndReduceCost` | Return a friendly minion to your hand. It costs (2) less. |
+| `ROGUE_020` | Betrayal（背叛） | `AdjacentDamage` | Force an enemy minion to deal its damage to the minions next to it. |
+| `ROGUE_024` | Master of Disguise（伪装大师） | `GrantStealth` | Give a friendly minion Stealth until your next turn. |
+| `SHAMAN_003` | Rockbiter Weapon（石化武器） | `GainHeroAttack` | Give a friendly character +3 Attack this turn. |
+| `WARLOCK_017` | Siphon Soul（灵魂虹吸） | `DestroyAndHeal` | Destroy a minion. Restore #3 Health to your hero. |
+| `WARLOCK_018` | Shadowflame（暗影烈焰） | `DestroyAndAOE` | Destroy a friendly minion and deal its Attack damage to all enemy minions. |
+| `WARLOCK_021` | Demonfire（恶魔之火） | `Demonfire` | Deal $2 damage to a minion. If it’s a friendly Demon, give it +2/+2 instead. |
+| `WARRIOR_011` | Slam（猛击） | `DealDamageAndDraw` | Deal $2 damage to a minion. If it survives, draw a card. |
+| `WARRIOR_016` | Charge（冲锋） | `GrantCharge` | Give a friendly minion +2 Attack and Charge. |
+| `CORE_CS2_188` | Abusive Sergeant（叫嚣的中士） | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
+| `CORE_EX1_198` | Natalie Seline（娜塔莉·塞林） | `DestroyAndGainHealth` | Destroy a minion and gain its Health. |
+| `CORE_TRL_240` | Savage Striker（野蛮先锋） | `DealHeroAttackDamage` | Deal damage to an enemy minion equal to your hero's Attack. |
+| `CATA_161` | Gruesome Nightmare（残恶梦魇） | `SetAttackEqualToSource` | Give a minion in your hand or battlefield Attack equal to this minion's Attack |
+| `CATA_552` | Ebonscale Scout（乌鳞斥候） | `DealDamageEqualSelfAttack` | Deal damage equal to this minion's Attack. (While in hand, play a Dragon to  b |
+| `CATA_552t` | Ebonscale Scout | `DealDamageEqualSelfAttack` | Deal damage equal to this minion's Attack. (While in hand, play a Dragon to  b |
+| `CATA_564` | Air Support（飞行助翼） | `GrantMegaWindfuryCantAttackHeroes` | Give a friendly minion Mega-Windfury. |
+| `EDR_860` | Resplendent Dreamweaver（明耀织梦者） | `DealDamageIfImbuedTwice` | If you've Imbued your Hero Power twice, deal 4 damage to a minion. |
+| `EDR_261` | Amphibian's Spirit（两栖之灵） | `AmphibianSpiritBuff` | Give a minion +2/+2 and "Deathrattle: Give a friendly minion +2/+2 and this De |
+| `EDR_262` | Spirit Bond（灵魂联结） | `DamageAndSummonWolfIfKilled` | Deal $3 damage to a minion. If it dies, summon a 3/2 Wolf with Rush. |
+| `EDR_460` | Wish of the New Moon（新月祈愿） | `DamageMinionWithMoonLifesteal` | Deal $6 damage to a minion. (Cast 3 spells to gain Lifesteal.) |
+| `EDR_523` | Web of Deception（欺诈之网） | `ReturnFriendlyMinionSummonSpider` | Return a friendly minion to your hand to summon a 4/4 Spider with Stealth. |
+| `EDR_531` | Siphoning Growth（虹吸生长） | `DestroyFriendlyMinionGainArmor` | Destroy a friendly minion to gain 8 Armor. |
+| `FIR_908` | Charred Chameleon（火炭变色龙） | `GiveMinionStatsRushIfHeroPowerUsed` | If you've used your Hero Power this turn, give a friendly minion +1/+2 and Rus |
+| `FIR_918` | Light of the New Moon（新月辉光） | `BuffMinionReturnIfSpellsCast` | Give a minion +3/+3. (Cast 3 spells to return this to your hand when played.) |
+| `FIR_939` | Shadowflame Suffusion（影焰晕染） | `DamageAndDiscoverWarriorWithGift` | Deal $2 damage. Discover a Warrior minion with a Dark Gift. |
+| `FIR_954` | Conflagrate（焚烧） | `DamageMinionOwnerDraws` | Deal $5 damage to a minion. Its owner draws a card. |
+| `JAIL_101` | Violet Punisher（紫罗兰惩戒者） | `VioletPunisher` | Choose an enemy minion. |
+| `JAIL_395` | Sewer Swimmer（下水道游水鳄） | `SewerSwimmer` | Trigger a friendly  minion's Deathrattle. |
+| `JAIL_998` | Defias Smuggler（迪菲亚私运者） | `GainStatsAndGrantRush` | Give a friendly minion +2 Attack and Rush. |
+| `TLC_221` | Sizzling Swarm（炽火缠身） | `DealDamageSummonCinders` | Deal $3 damage. Summon that many 2/1 Sizzling Cinders. |
+| `TLC_230` | TREEEES!!!（树群来袭） | `SummonTreantsAttackMinion` | Choose a minion. Summon four 2/2 Treants that attack it. |
+| `TLC_252` | Dissolving Ooze（蚀解软泥怪） | `DestroyFriendlyMinionAddBones` | Destroy a friendly minion. |
+| `TLC_441` | Ready the Fleet（整备团队） | `GiveBuffSameType` | Give +1/+2 to a friendly minion and your other minions that share a type with |
+| `TLC_606` | Latorvian Armorer（拉特维亚护甲师） | `DealDamageGainArmorIfKilled` | Deal 2 damage to an enemy minion. |
+| `TLC_620` | Fortify（强固） | `GainArmorDealDamageEqual` | Gain 3 Armor. Deal damage equal to your Armor to an enemy minion. |
+| `TLC_823` | Cower in Fear（恐惧畏缩） | `DealDamageSetNextBeastDiscount` | Deal $3 damage to a minion. The next Beast you play this turn costs (2) less. |
+| `TLC_901` | Fumigate（烟雾熏蒸） | `DealDamageSameType` | Deal $3 damage to a minion and all others of the same minion type. |
+| `TLC_987` | Questing Assistant（任务助理） | `DealDamageIfQuestPlayed` | If you played a Quest this game, deal 3 damage to an enemy minion. |
+| `DINO_419` | Herbivore Assistant（饲草助手） | `GainStatsAndGrantRush` | Give a friendly Beast +2/+2 and Rush. |
+| `TIME_043` | PMM Infinitizer（无穷永动机） | `SetStatsAndCantAttackHeroesThisTurn` | Set a friendly minion's Attack and Health to 8. |
+| `TIME_427` | Cleansing Lightspawn（净化的光耀之子） | `DealDamageEnemyMinionEqualToSourceHealth` | Deal damage to an enemy minion equal    to this minion's Health. |
+| `TIME_431` | Amber Priestess（琥珀女祭司） | `RestoreHealthEqualToSourceHealth` | Restore Health to a character equal to this minion's Health. |
+| `TIME_442` | Timeway Warden（时间流守望者） | `ImprisonEnemyMinion` | Imprison an enemy minion. |
+| `TIME_614` | Liferender（生命撕裂者） | `DealDamageEnemyMinionIfHeroHealthChanged` | If your hero's Health changed this turn, deal 6 damage to an enemy minion. |
+| `TIME_858` | Temporal Construct（时空构造体） | `DealDamageAndDrawExcess` | Deal 5 damage to an enemy minion. |
+| `TIME_435` | Eternus（伊特努丝） | `TakeControlEnemyMinionHealthLE` | Take control of an enemy minion with this   minion's Health or less. |
+
+## A3 —— 未实测：2 张
+
+高费卡，探针局在能出牌之前就结束了。静态结论仍然确定（变体不在白名单里
+就一定没有目标枚举），只是没有 diff 数据。
+
+| 卡 ID | 卡名 | 效果变体 | 官方文本（出牌子句） |
+|---|---|---|---|
+| `PRIEST_023` | Mind Control（精神控制） | `TakeControl` | Take control of an enemy minion. |
+| `CATA_699` | Dread Leviathan（恐怖海兽） | `StealHealthThreeTimes` | Choose an enemy minion to steal 3  Health from, three times. |
+
+## B 类 —— 已排除的 33 张
+
+文本里有"a minion / a Beast"之类措辞，但那是**发现（Discover）、抽牌、
+条件判定**，出牌时本来就不需要指定目标，引擎当前行为正确。
+
+| 卡 ID | 卡名 | 效果变体 | 官方文本（出牌子句） |
+|---|---|---|---|
+| `CORE_BT_321` | Netherwalker（虚无行者） | `AddRandomCardToHand` | Discover a Demon. |
+| `CORE_EDR_004` | Raptor Herald（迅猛龙先锋） | `AddRandomCardToHand` | Discover a Beast with a Dark Gift. |
+| `CORE_KAR_061` | The Curator（馆长） | `DrawBeastDragonMurloc` | Draw a Beast, Dragon, and Murloc. |
+| `CORE_KAR_062` | Netherspite Historian（虚空幽龙史学家） | `AddRandomCardToHand` | If you're holding a Dragon, Discover a Dragon. |
+| `CORE_LOE_039` | Gorillabot A-3（A3型机械金刚） | `AddRandomCardToHand` | If you control another Mech, Discover a Mech. |
+| `CORE_RLK_116` | Necrotic Mortician（死灵殡葬师） | `AddRandomCardToHand` | If a friendly Undead died after your last turn, Discover an Unholy Rune card. |
+| `CORE_CATA_006` | Ulfar（奥尔法） | `GrantDeathrattleSummonOwnCost` | Give your other minions "Deathrattle: Summon a minion with this minion's Cost. |
+| `CORE_TRL_111` | Headhunter's Hatchet（猎头者之斧） | `BuffWeaponDurabilityIfBeast` | If you control a Beast, gain +1 Durability. |
+| `CATA_111` | Darkscale Broodmother（晦鳞巢母） | `RefreshManaIfHoldingDragon` | If you're holding a Dragon, refresh 2 Mana Crystals. |
+| `CATA_553` | Ebyssian（艾比西安） | `SetDragonsHaveRush` | Your Dragons have Rush this game. (While in hand, play a Dragon to become a 12 |
+| `CATA_553t` | Ebyssian | `SetDragonsHaveRush` | Your Dragons have Rush this game. (While in hand, play a Dragon to become a 12 |
+| `MEND_041` | Wizened Wildspeaker（年迈的荒语者） | `RefreshManaIfNoMinionPlayedLastTurn` | If you didn't play a minion last turn, refresh 3 Mana Crystals. |
+| `EDR_226` | Exotic Houndmaster（奇异训犬师） | `DrawBeastAndImbue` | Draw a Beast. |
+| `EDR_456` | Darkrider（黑暗的龙骑士） | `DiscoverDragonWithDarkGift` | If you're holding a Dragon, Discover a Dragon with a Dark Gift. |
+| `EDR_856` | Nightmare Lord Xavius（梦魇之王萨维斯） | `DiscoverDeckMinionWithDarkGift` | Discover a minion from your deck. |
+| `EDR_490` | Sleep Paralysis（麻痹睡眠） | `SummonMultipleMinions` | Choose One - Summon two 3/6 Demons with Taunt that can't attack; or Destroy an |
+| `EDR_843` | Reforestation（森林再生） | `DrawCardByType` | Choose One - Draw a spell; or Draw a minion. (Hold this for 3 turns to do both |
+| `EDR_455` | Succumb to Madness（屈从疯狂） | `ResurrectRandomFallenDragon` | Discover a friendly Dragon that died this game. Resummon it. |
+| `EDR_457` | Brood Keeper（龙巢守护者） | `EquipSwordIfHoldingDragon` | If you're holding a Dragon, equip a 2/2 Sword. |
+| `FIR_900` | Cremate（火化） | `DiscoverWithDarkGiftCostReduction` | Discover a minion with a Dark Gift. It costs (2) less. |
+| `FIR_901` | Frostburn Matriarch（霜灼巢母） | `SummonBroodlingsIfHoldingGift` | If you're holding a minion with a Dark Gift, summon two 4/4 Dragons with Taunt |
+| `FIR_922` | Cindersword（燃薪之剑） | `GainWeaponAttackIfHoldingGift` | If you're holding a minion with a Dark Gift, gain +3 Attack. |
+| `FIR_924` | Shadowflame Stalker（影焰猎豹） | `DiscoverDemonWithDarkGiftCopy` | Discover a Demon with a Dark Gift. |
+| `FIR_941` | Searing Reflection（烧灼映像） | `DrawMinionSummonDivineShieldCopy` | Draw a minion. Summon an 8/8 copy of it with Divine Shield. |
+| `FIR_956` | Dragon Turtle（龙龟） | `GainHeroAttackArmorIfHoldingGift` | If you're holding a minion with a Dark Gift, give your hero +3 Attack this tur |
+| `TLC_231` | Story of Barnabus（班纳布斯的故事） | `DrawMinionBuffArmorIfAttackGE` | Draw a minion. If it has 5 or more Attack, give it +5 Health and gain 5 Armor. |
+| `TLC_434` | Paleomancy（古生物秘术） | `DiscoverPool` | Discover an Undead. Spend 5 Corpses to keep all 3 instead. |
+| `TLC_442` | Submerged Map（淹没的地图） | `DiscoverPool` | Discover a Murloc. If you play it this turn, also pick one of the others. |
+| `TLC_464` | Mountain Map（登山地图） | `DiscoverPool` | Discover a minion with a type you haven't played. If you play it this turn, al |
+| `TLC_888` | Cloud Serpent（云端翔龙） | `CopyRandomHandElementalOrDragon` | Get a copy of another Elemental or Dragon in your hand. |
+| `TLC_110` | City Chief Esho（城市首脑埃舒） | `EshoDeckCheckBuffEverywhere` | If every minion in your deck shares a minion type, give your other minions +2/ |
+| `TIME_037` | Disciple of the Dove（白鸽学徒） | `DrawMinionAndBuffHandMinionsHealth` | Draw a minion. |
+| `TIME_062` | Chronicle Keeper（史书守护者） | `GainTauntAndDivineShieldIfHoldingDragon` | If you're holding a Dragon, gain Taunt and Divine Shield. |
+
+## 特殊情况（修的时候会撞上）
+
+- **`EDR_813` 蛆虫群**：抉择卡，只有第二个模式（消耗 2 尸体造成 4 点伤害）
+  要目标。`play_targets` 只读 battlecry 组件，抉择/连击是另一条路径，
+  需要单独设计"选模式后再选目标"的两段式动作。
+- **`CATA_161` 恐怖梦魇**：官方文本是"你**手牌或**战场上的一个随从"，
+  目标域包含手牌。现有 `EffectTarget` 全是战场域，需要新目标种类。
+- **`CATA_552` 黑鳞斥候 / `CATA_552t`**：两个形态同一效果，修一处要同步两处。
+- **`FIR_939` 影焰晕染**：官方文本是光秃秃的"造成 2 点伤害"，按炉石惯例
+  （火球术）应可指定**任意角色**；而结算写死 `EffectTarget::AnyEnemy`。
+  修这张要同时改结算的目标域，不只是补白名单。
+- **账本 `docs/finished/fidelity-debt.md:933`** 对 FIR_939 写的是
+  "the damage IS faithful" —— 与事实不符，修卡时一并更正。
+
+## 修复建议
+
+1. **先修 A1 的 8 张废卡**：这是"卡完全没用"，性质最重，且都是
+   经典/核心里玩家高频遇到的（夺魂咒、冰锥术、野性之力、致死打击）。
+2. **再修 A2 的 54 张**：按系列分批（经典 → 核心 → 各扩展），
+   每批一个 PR + F5 场景测试。
+3. ~~**结构性防复发**~~ —— **已完成（2026-08-21）**：目标声明从
+   `play_targets` 的 `match` 搬到了 `CardEffect::play_target()`
+   （`src/core/play_target.rs`，866 个变体**穷尽 match，无 `_` 分支**）。
+   新加效果变体不表态就编译不过（实测：临时加一个变体 →
+   `error[E0004]: non-exhaustive patterns`）。纯结构性改动，行为零变化：
+   1064 项既有测试全绿，批量对局吞吐 2089~2143 局/s（改动前 2089~2138，同噪声带）。
+4. ~~**守卫测试**~~ —— **已完成**：`audit_gap_cards_are_still_untargeted`
+   把本文 A 类 64 张的 id 写成可执行账本，任何一张开始声明目标就断言失败，
+   **强制修卡的同一个提交里同步删掉清单条目**。旧的内联白名单正是因为
+   "代码和清单各走各的"才漂成今天这样。
+
+## 复现
+
+审计脚本与探针留在 `/tmp`（一次性），核心口径是：
+
+```bash
+# 单卡验证：出牌动作有没有 target_id != -1
+python - <<'EOF'
+import orange_stone
+e = orange_stone.GameEnv(seed=1, deck=["MAGE_001"]*30, bot="none"); e.reset(1)
+for _ in range(6):
+    plays = [a for a in e.structured_legal_actions() if a.kind == "play"]
+    if plays: print([p.target_id for p in plays]); break
+    e.step(next(a.index for a in e.structured_legal_actions() if a.kind == "end_turn"))
+EOF
+# 火球术（MAGE_001，在白名单里）→ target_id 有真实实体；
+# 影焰晕染（FIR_939）→ 全是 -1
+```
