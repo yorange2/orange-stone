@@ -254,12 +254,14 @@ condition** — no play-time target is required and the current behaviour is cor
   resolution domain, not just extending the whitelist.
 - **Ledger `docs/finished/fidelity-debt.md:933`** claims FIR_939's "damage IS
   faithful" — untrue; correct it with the fix.
-- **F-A13 (an independent bug found while clearing T1)**: the engine enacts
-  "destroy a minion" as lethal damage, so **Divine Shield eats a destroy**
-  (Assassinate on an Argent Squire pops the shield and leaves it alive).
-  Unrelated to targeting; registered in the ledger for its own wave. The
-  `play_targeting` boards deliberately carry no Divine Shield minions so it
-  cannot mask what those tests assert.
+- ~~**F-A13 (an independent bug found while clearing T1)**~~ — **fixed
+  (2026-08-21)**: the engine enacted "destroy a minion" as lethal damage, so
+  **Divine Shield ate a destroy** (Assassinate on an Argent Squire popped the
+  shield and left it alive). Now a `Destroyed` marker plus one shared
+  `engine::rules::destroy_minion()` covers all 20 destroy sites, off the damage
+  pipeline entirely. The `play_targeting` boards still carry no Divine Shield
+  minions — that keeps the "did it hit the chosen one" signal clean, which is
+  independent of F-A13.
 
 ## Recommended fix order
 

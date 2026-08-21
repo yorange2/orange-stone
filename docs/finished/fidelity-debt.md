@@ -576,7 +576,7 @@ in `core_w6.rs` updated. Pinned by the `classic_defias_bandit_combo` scenario in
 `tests/differential.rs` (no combo on the first card, Bandit summoned on the
 second). No RL pool impact — no card IDs changed.
 
-## F-A13 — "Destroy a minion" is routed through lethal damage, so Divine Shield eats it ⛔ open (found 2026-08-21)
+## F-A13 — "Destroy a minion" was routed through lethal damage, so Divine Shield ate it ✅ resolved (2026-08-21)
 
 `resolve_destroy_minion` enacts a destroy by pushing `Event::DamageDealt` with
 the target's own health as the amount. Damage is absorbed by Divine Shield, so
@@ -597,10 +597,25 @@ Found while writing `tests/play_targeting.rs`: with the targeting fix in place a
 destroy could finally be aimed at a chosen minion, and the chosen Argent Squire
 survived. Unrelated to targeting — pre-existing in `resolve_destroy_minion`.
 
-Not fixed here: changing destroy from "lethal damage" to a real destroy path
-touches death processing, damage triggers and the AoE board clears, and wants
-its own wave with F5 scenarios. The `play_targeting` boards deliberately avoid
-Divine Shield minions so this does not mask what those tests assert.
+Fix applied: a `Destroyed` marker component plus one shared
+`engine::rules::destroy_minion()`. It marks the minion and queues it into the
+same death batch damage uses — deathrattles, death ordering and the Colossal
+cascade are unchanged — but nothing goes through the damage pipeline, so Divine
+Shield does not absorb it and damage triggers do not fire. The death step
+honours the marker regardless of health, which also makes a destroy
+unrescuable: the batch re-check can save a minion damaged to 0 by a heal, but
+not one that was destroyed.
+
+All **20** lethal-damage destroy sites across `trigger.rs` and `rules.rs` route
+through the helper — single-target destroys, sacrifices, the `AllMinions` board
+clears, Corruption's start-of-turn kill and Soulrest Ceremony's end-of-turn
+kill. Four of them no longer need the `EventQueue` parameter at all.
+
+Pinned by `tests/destroy_semantics.rs`: Divine Shield does not absorb a destroy,
+Acolyte of Pain does not draw when destroyed (both fail without the fix),
+Loot Hoarder's Deathrattle still draws, and a full-health minion still dies.
+Full `cargo test` green (1082), `cargo clippy --all-targets` clean; batch
+throughput unchanged (interleaved runs: 2068 vs 2079 games/s).
 
 ## Mechanism inventory (what the engine has vs. what's missing)
 
