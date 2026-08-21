@@ -11,8 +11,8 @@
 | | Count |
 |---|---|
 | Cards the official text targets, but the engine offers no target (**class A**) | **64** |
-| ├─ T1 resolution accepts a target (declaration only) — **all 36 fixed** ✅ | 36 |
-| └─ T2 resolution ignores the target (needs plumbing) | 28 |
+| ├─ T1 resolution accepts a target (declaration only) — **all fixed** ✅ | 39 |
+| └─ T2 resolution ignores the target — **24 fixed, 1 left** (Choose One) | 25 |
 | Text looks targeted but is not (**class B**, excluded) | 33 |
 
 The gap spans **Classic through every 2025–2026 expansion**: Classic 24, Emerald Dream 12, Lost City / Un'Goro 10, Timeways 7, Cataclysm 5, Core 3, Violet Hold 3.
@@ -158,44 +158,88 @@ Two declarations are deliberately narrower than the resolution's candidate set
 Nightmare scan `Zone::Play(owner)`, which **includes the hero**, while the offer
 is the minion subset.
 
-## T2 outstanding (28 cards)
+## T2 cleared ✅ (wave W3, 27 cards, 1 left pending Choose One)
 
-The resolution arm never receives `explicit_target` (its helper picks its own
-scope), so beyond the declaration the target has to be plumbed through — a bigger
-job. **The most visible Classic cards live here**: Mind Control, Shiv, Slam,
-Shadowstep, Betrayal, Shadow Madness.
+T2 = cards whose resolution arm **never received** `explicit_target`: declaring a
+domain would not have helped, because the effect picked its own victim. W3
+threads the chosen target into every one of those resolution paths.
 
-| Card ID | Name | Effect variant | Official text (play clause) |
-|---|---|---|---|
-| `MAGE_016` | Cone of Cold | `FreezeAdjacent` | Freeze a minion and the minions next to it, and deal $1 damage to them. |
-| `MAGE_022` | Icicle | `FreezeOrDamage` | Deal $2 damage to a minion. If it's Frozen, draw a card. |
-| `CLASSIC_FM` | Faceless Manipulator | `CopyMinionStats` | Choose a minion and become a copy of it. |
-| `PALADIN_017` | Holy Wrath | `DrawAndDamageByCost` | Draw a card and deal damage equal to its Cost to a minion. |
-| `PRIEST_011` | Cabal Shadow Priest | `TakeControlAttackLE` | Take control of an enemy minion that has 2 or less Attack. |
-| `PRIEST_021` | Natalie Seline | `DestroyAndGainHealth` | Destroy a minion and gain its Health. |
-| `PRIEST_022` | Shadow Madness | `TakeControlUntilEndOfTurn` | Gain control of an enemy minion with 3 or less Attack until end of turn. |
-| `PRIEST_023` | Mind Control | `TakeControl` | Take control of an enemy minion. |
-| `ROGUE_014` | Shiv | `DealDamageAndDraw` | Deal $1 damage. Draw a card. |
-| `ROGUE_019` | Shadowstep | `ReturnFriendlyToHandAndReduceCost` | Return a friendly minion to your hand. It costs (2) less. |
-| `ROGUE_020` | Betrayal | `AdjacentDamage` | Force an enemy minion to deal its damage to the minions next to it. |
-| `ROGUE_024` | Master of Disguise | `GrantStealth` | Give a friendly minion Stealth until your next turn. |
-| `SHAMAN_003` | Rockbiter Weapon | `GainHeroAttack` | Give a friendly character +3 Attack this turn. |
-| `WARLOCK_018` | Shadowflame | `DestroyAndAOE` | Destroy a friendly minion and deal its Attack damage to all enemy minions. |
-| `WARLOCK_024` | Corruption | `Corrupt` | Choose an enemy minion. At the start of your turn, destroy it. |
-| `WARRIOR_011` | Slam | `DealDamageAndDraw` | Deal $2 damage to a minion. If it survives, draw a card. |
-| `CORE_EX1_198` | Natalie Seline | `DestroyAndGainHealth` | Destroy a minion and gain its Health. |
-| `EDR_813` | Morbid Swarm | `SummonMultipleMinions` | Choose One - Summon two 1/1 Ants; or Spend 2 Corpses to deal $4 damage to a mi |
-| `JAIL_101` | Violet Punisher | `VioletPunisher` | Choose an enemy minion. |
-| `JAIL_395` | Sewer Swimmer | `SewerSwimmer` | Trigger a friendly  minion's Deathrattle. |
-| `TLC_221` | Sizzling Swarm | `DealDamageSummonCinders` | Deal $3 damage. Summon that many 2/1 Sizzling Cinders. |
-| `TIME_043` | PMM Infinitizer | `SetStatsAndCantAttackHeroesThisTurn` | Set a friendly minion's Attack and Health to 8. |
-| `TIME_427` | Cleansing Lightspawn | `DealDamageEnemyMinionEqualToSourceHealth` | Deal damage to an enemy minion equal    to this minion's Health. |
-| `TIME_431` | Amber Priestess | `RestoreHealthEqualToSourceHealth` | Restore Health to a character equal to this minion's Health. |
-| `TIME_442` | Timeway Warden | `ImprisonEnemyMinion` | Imprison an enemy minion. |
-| `TIME_614` | Liferender | `DealDamageEnemyMinionIfHeroHealthChanged` | If your hero's Health changed this turn, deal 6 damage to an enemy minion. |
-| `TIME_858` | Temporal Construct | `DealDamageAndDrawExcess` | Deal 5 damage to an enemy minion. |
-| `TIME_435` | Eternus | `TakeControlEnemyMinionHealthLE` | Take control of an enemy minion with this   minion's Health or less. |
+**One classification correction first**: Icicle, Shiv and Slam landed in T2
+because of a **bug in the classifier** — it matched `CardEffect::X` by
+indentation and hit the Spell Damage adjustment table (`apply_spell_power`)
+instead of the real resolver. Their resolutions always honoured the target;
+they only needed the declaration.
 
+| Card ID | Name | Effect variant |
+|---|---|---|
+| `MAGE_022` | Icicle | `FreezeOrDamage` |
+| `ROGUE_014` | Shiv | `DealDamageAndDraw` |
+| `WARRIOR_011` | Slam | `DealDamageAndDraw` |
+
+The remaining 24 are genuine T2, in three shapes:
+
+- **Shape A (5)**: the arm already calls `resolve_deal_damage` /
+  `resolve_restore_health` but hardcodes `None` — pass `explicit_target`.
+- **Shape B (7)**: the arm collects candidates and rolls its own random pick
+  (`pick_random` / `rng.next_usize`) — replaced with
+  `select_target(explicit_target, ...)`, which keeps the random behaviour when
+  no target is supplied.
+- **Shape C (12)**: the resolution helper had no target parameter at all — added
+  `explicit: Option<Entity>` and threaded it through 11 helpers.
+
+| Card ID | Name | Effect variant |
+|---|---|---|
+| `MAGE_016` | Cone of Cold | `FreezeAdjacent` |
+| `CLASSIC_FM` | Faceless Manipulator | `CopyMinionStats` |
+| `PALADIN_017` | Holy Wrath | `DrawAndDamageByCost` |
+| `PRIEST_011` | Cabal Shadow Priest | `TakeControlAttackLE` |
+| `PRIEST_021` | Natalie Seline | `DestroyAndGainHealth` |
+| `PRIEST_022` | Shadow Madness | `TakeControlUntilEndOfTurn` |
+| `PRIEST_023` | Mind Control | `TakeControl` |
+| `ROGUE_019` | Shadowstep | `ReturnFriendlyToHandAndReduceCost` |
+| `ROGUE_020` | Betrayal | `AdjacentDamage` |
+| `ROGUE_024` | Master of Disguise | `GrantStealth` |
+| `SHAMAN_003` | Rockbiter Weapon | `GainHeroAttack` |
+| `WARLOCK_018` | Shadowflame | `DestroyAndAOE` |
+| `WARLOCK_024` | Corruption | `Corrupt` |
+| `CORE_EX1_198` | Natalie Seline | `DestroyAndGainHealth` |
+| `JAIL_101` | Violet Punisher | `VioletPunisher` |
+| `JAIL_395` | Sewer Swimmer | `SewerSwimmer` |
+| `TLC_221` | Sizzling Swarm | `DealDamageSummonCinders` |
+| `TIME_043` | PMM Infinitizer | `SetStatsAndCantAttackHeroesThisTurn` |
+| `TIME_427` | Cleansing Lightspawn | `DealDamageEnemyMinionEqualToSourceHealth` |
+| `TIME_431` | Amber Priestess | `RestoreHealthEqualToSourceHealth` |
+| `TIME_442` | Timeway Warden | `ImprisonEnemyMinion` |
+| `TIME_614` | Liferender | `DealDamageEnemyMinionIfHeroHealthChanged` |
+| `TIME_858` | Temporal Construct | `DealDamageAndDrawExcess` |
+| `TIME_435` | Eternus | `TakeControlEnemyMinionHealthLE` |
+
+### Two holes closed along the way
+
+**1. The enumeration layer had the same silent catch-all.**
+`rl::env::candidates_for_target` ended in `_ => Vec::new()`: declare a domain it
+does not know and you get **an empty candidate list**, not an error — the card
+quietly reverts to an untargeted play. It enumerated 15 of the 31
+`EffectTarget` variants. It is now an exhaustive match (no `_` arm) with the 7
+missing single-target domains filled in (`EnemyMinionAttackLE`,
+`AnyMinionAttackLE`, `EnemyMinionWithRace`, `OtherFriendlyMinion` and the three
+Damaged\* variants); the AoE scopes are listed explicitly as "returns nothing".
+**This affects the already-merged W1/W2**: cards on filtered domains (Shadow
+Word: Death, Hungry Crab) could never produce candidates even with their
+variant whitelisted.
+
+**2. Two target domains did not exist and were added to `EffectTarget`:**
+- `FriendlyMinionWithDeathrattle` — Sewer Swimmer triggers *a friendly minion's
+  Deathrattle*, so only minions that have one should light up.
+- `EnemyMinionHealthLESource` — Eternus caps on **its own Health**, a dynamic
+  bound, so `candidates_for_target` now takes the `source` entity too.
+
+### One card left
+
+`EDR_813` Morbid Swarm is a **Choose One**: only the second mode (spend 2
+Corpses, deal 4 damage to a minion) takes a target. `play_targets` reads the
+battlecry component, while Choose One and Combo travel a different path, so this
+needs a two-stage "pick the mode, then the target" action design — its own wave.
 
 ## Class B — the 33 excluded cards
 
@@ -269,9 +313,9 @@ condition** — no play-time target is required and the current behaviour is cor
    Instead **clear T1**: resolution already accepts the target, so a declaration
    plus tests is enough. **T1 is now empty** (W1: 10 Classic + Core, W2: 26 across the
    expansions).
-2. **Then chew through T2's 28**, threading the chosen target into each
-   resolution helper — a bigger job, and where the most visible Classic cards sit
-   (Mind Control, Shiv, Slam, Shadowstep).
+2. ~~**Then chew through T2**~~ — **done (W3)**: 24 cards now thread the chosen
+   target through their resolution; only Choose One cards like `EDR_813` remain,
+   pending a two-stage action design.
 3. ~~**Structural fix so it cannot drift again**~~ — **done (2026-08-21)**: the
    declaration moved out of `play_targets`'s `match` and onto
    `CardEffect::play_target()` (`src/core/play_target.rs`, an **exhaustive match over

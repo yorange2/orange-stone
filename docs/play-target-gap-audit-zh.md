@@ -9,8 +9,8 @@
 | | 数量 |
 |---|---|
 | 官方要玩家指定目标、引擎却不给目标的卡（**A 类**） | **64** |
-| ├─ T1 结算已接目标（补声明即可）——**36 张全部修完** ✅ | 36 |
-| └─ T2 结算不接目标（还要把目标接进结算） | 28 |
+| ├─ T1 结算已接目标（补声明即可）——**全部修完** ✅ | 39 |
+| └─ T2 结算不接目标（要把目标接进结算）——**修完 24，余 1**（抉择卡） | 25 |
 | 文本像要目标、实际不需要（**B 类**，已排除） | 33 |
 
 覆盖范围从**经典卡一直到 2025–2026 全部扩展**：经典 24 张、翡翠梦境 12 张、失落之城/安戈洛 10 张、时光之径 7 张、大灾变 5 张、核心 3 张、紫罗兰监狱 3 张。
@@ -139,43 +139,79 @@ W1 修了经典 + 核心 10 张，W2 把各扩展剩下的 26 张一次修完 �
 两处声明比结算的候选集窄，是有意的（窄是安全的，宽了会在结算处哑火）：
 空中支援与恐怖梦魇的结算扫的是 `Zone::Play(owner)`（**含英雄**），声明只给随从。
 
-## T2 待修（28 张）
+## T2 已清空 ✅（W3 波，27 张，余 1 张待抉择机制）
 
-结算分支根本没拿 `explicit_target`（helper 自己挑范围），除了声明还要把目标
-接进结算链路，工作量大一档。**经典里最显眼的几张在这里**：精神控制、
-潜行者（Shiv）、猛击、影袭、心灵之火、暗影狂乱。
+T2 = 结算分支**根本不收** `explicit_target` 的卡：即使声明了目标域，效果也会
+自己随便挑。W3 把 `explicit_target` 接进了每一条结算链路。
 
-| 卡 ID | 卡名 | 效果变体 | 官方文本（出牌子句） |
-|---|---|---|---|
-| `MAGE_016` | Cone of Cold | `FreezeAdjacent` | Freeze a minion and the minions next to it, and deal $1 damage to them. |
-| `MAGE_022` | Icicle | `FreezeOrDamage` | Deal $2 damage to a minion. If it's Frozen, draw a card. |
-| `CLASSIC_FM` | Faceless Manipulator | `CopyMinionStats` | Choose a minion and become a copy of it. |
-| `PALADIN_017` | Holy Wrath | `DrawAndDamageByCost` | Draw a card and deal damage equal to its Cost to a minion. |
-| `PRIEST_011` | Cabal Shadow Priest | `TakeControlAttackLE` | Take control of an enemy minion that has 2 or less Attack. |
-| `PRIEST_021` | Natalie Seline | `DestroyAndGainHealth` | Destroy a minion and gain its Health. |
-| `PRIEST_022` | Shadow Madness | `TakeControlUntilEndOfTurn` | Gain control of an enemy minion with 3 or less Attack until end of turn. |
-| `PRIEST_023` | Mind Control | `TakeControl` | Take control of an enemy minion. |
-| `ROGUE_014` | Shiv | `DealDamageAndDraw` | Deal $1 damage. Draw a card. |
-| `ROGUE_019` | Shadowstep | `ReturnFriendlyToHandAndReduceCost` | Return a friendly minion to your hand. It costs (2) less. |
-| `ROGUE_020` | Betrayal | `AdjacentDamage` | Force an enemy minion to deal its damage to the minions next to it. |
-| `ROGUE_024` | Master of Disguise | `GrantStealth` | Give a friendly minion Stealth until your next turn. |
-| `SHAMAN_003` | Rockbiter Weapon | `GainHeroAttack` | Give a friendly character +3 Attack this turn. |
-| `WARLOCK_018` | Shadowflame | `DestroyAndAOE` | Destroy a friendly minion and deal its Attack damage to all enemy minions. |
-| `WARLOCK_024` | Corruption | `Corrupt` | Choose an enemy minion. At the start of your turn, destroy it. |
-| `WARRIOR_011` | Slam | `DealDamageAndDraw` | Deal $2 damage to a minion. If it survives, draw a card. |
-| `CORE_EX1_198` | Natalie Seline | `DestroyAndGainHealth` | Destroy a minion and gain its Health. |
-| `EDR_813` | Morbid Swarm | `SummonMultipleMinions` | Choose One - Summon two 1/1 Ants; or Spend 2 Corpses to deal $4 damage to a mi |
-| `JAIL_101` | Violet Punisher | `VioletPunisher` | Choose an enemy minion. |
-| `JAIL_395` | Sewer Swimmer | `SewerSwimmer` | Trigger a friendly  minion's Deathrattle. |
-| `TLC_221` | Sizzling Swarm | `DealDamageSummonCinders` | Deal $3 damage. Summon that many 2/1 Sizzling Cinders. |
-| `TIME_043` | PMM Infinitizer | `SetStatsAndCantAttackHeroesThisTurn` | Set a friendly minion's Attack and Health to 8. |
-| `TIME_427` | Cleansing Lightspawn | `DealDamageEnemyMinionEqualToSourceHealth` | Deal damage to an enemy minion equal    to this minion's Health. |
-| `TIME_431` | Amber Priestess | `RestoreHealthEqualToSourceHealth` | Restore Health to a character equal to this minion's Health. |
-| `TIME_442` | Timeway Warden | `ImprisonEnemyMinion` | Imprison an enemy minion. |
-| `TIME_614` | Liferender | `DealDamageEnemyMinionIfHeroHealthChanged` | If your hero's Health changed this turn, deal 6 damage to an enemy minion. |
-| `TIME_858` | Temporal Construct | `DealDamageAndDrawExcess` | Deal 5 damage to an enemy minion. |
-| `TIME_435` | Eternus | `TakeControlEnemyMinionHealthLE` | Take control of an enemy minion with this   minion's Health or less. |
+**先更正一处分类**：冰刺、毒刃、猛击当初被划进 T2 是**分类脚本的 bug** ——
+它按缩进找 `CardEffect::X` 分支，结果匹配到了法术伤害加成表（`apply_spell_power`）
+而不是真正的结算函数。这三张的结算一直是认目标的，只差一条声明。
 
+| 卡 ID | 卡名 | 效果变体 |
+|---|---|---|
+| `MAGE_022` | Icicle | `FreezeOrDamage` |
+| `ROGUE_014` | Shiv | `DealDamageAndDraw` |
+| `WARRIOR_011` | Slam | `DealDamageAndDraw` |
+
+剩下 24 张是真 T2，按结算形态分三类改：
+
+- **A 类（5 张）**：分支已经调用 `resolve_deal_damage`/`resolve_restore_health`，
+  只是硬传了 `None` —— 改成传 `explicit_target`。
+- **B 类（7 张）**：分支自己收集候选再随机挑（`pick_random` / `rng.next_usize`）
+  —— 换成 `select_target(explicit_target, ...)`，没给目标时行为不变（仍是随机）。
+- **C 类（12 张）**：结算 helper 的签名里压根没有目标参数 —— 加一个
+  `explicit: Option<Entity>` 并一路传下去，共改了 11 个 helper。
+
+| 卡 ID | 卡名 | 效果变体 |
+|---|---|---|
+| `MAGE_016` | Cone of Cold | `FreezeAdjacent` |
+| `CLASSIC_FM` | Faceless Manipulator | `CopyMinionStats` |
+| `PALADIN_017` | Holy Wrath | `DrawAndDamageByCost` |
+| `PRIEST_011` | Cabal Shadow Priest | `TakeControlAttackLE` |
+| `PRIEST_021` | Natalie Seline | `DestroyAndGainHealth` |
+| `PRIEST_022` | Shadow Madness | `TakeControlUntilEndOfTurn` |
+| `PRIEST_023` | Mind Control | `TakeControl` |
+| `ROGUE_019` | Shadowstep | `ReturnFriendlyToHandAndReduceCost` |
+| `ROGUE_020` | Betrayal | `AdjacentDamage` |
+| `ROGUE_024` | Master of Disguise | `GrantStealth` |
+| `SHAMAN_003` | Rockbiter Weapon | `GainHeroAttack` |
+| `WARLOCK_018` | Shadowflame | `DestroyAndAOE` |
+| `WARLOCK_024` | Corruption | `Corrupt` |
+| `CORE_EX1_198` | Natalie Seline | `DestroyAndGainHealth` |
+| `JAIL_101` | Violet Punisher | `VioletPunisher` |
+| `JAIL_395` | Sewer Swimmer | `SewerSwimmer` |
+| `TLC_221` | Sizzling Swarm | `DealDamageSummonCinders` |
+| `TIME_043` | PMM Infinitizer | `SetStatsAndCantAttackHeroesThisTurn` |
+| `TIME_427` | Cleansing Lightspawn | `DealDamageEnemyMinionEqualToSourceHealth` |
+| `TIME_431` | Amber Priestess | `RestoreHealthEqualToSourceHealth` |
+| `TIME_442` | Timeway Warden | `ImprisonEnemyMinion` |
+| `TIME_614` | Liferender | `DealDamageEnemyMinionIfHeroHealthChanged` |
+| `TIME_858` | Temporal Construct | `DealDamageAndDrawExcess` |
+| `TIME_435` | Eternus | `TakeControlEnemyMinionHealthLE` |
+
+### 顺带补的两个洞
+
+**1. 枚举层也有同一个静默 catch-all。** `rl::env::candidates_for_target` 的
+`match` 结尾是 `_ => Vec::new()`：声明了一个它不认识的目标域，结果不是报错，
+而是**静默地给出空候选表** —— 卡又变回无目标出牌。31 个 `EffectTarget` 里它
+只枚举了 15 个。现已改成穷尽 match（无 `_` 分支），补齐 7 个单体目标域
+（`EnemyMinionAttackLE`、`AnyMinionAttackLE`、`EnemyMinionWithRace`、
+`OtherFriendlyMinion`、三个 Damaged\* 系列），AoE 类则显式列出返回空表。
+**这直接影响已合并的 W1/W2**：暗影言灵·死、饥饿的螃蟹这类用过滤域的卡，
+即便变体在白名单里也一直枚举不出候选。
+
+**2. 两个目标域是缺的，补进了 `EffectTarget`：**
+- `FriendlyMinionWithDeathrattle` —— 下水道游泳者"触发一个友方随从的亡语"，
+  只有带亡语的随从才该亮起瞄准线。
+- `EnemyMinionHealthLESource` —— 永恒者按**自身生命值**卡上限，域是动态的，
+  于是 `candidates_for_target` 多收了一个 `source` 参数。
+
+### 还剩 1 张
+
+`EDR_813` 病变虫群是**抉择卡**：只有第二个模式（消耗 2 尸体造成 4 点伤害）
+需要目标。`play_targets` 只读 battlecry 组件，抉择/连击是另一条路径，需要
+"先选模式、再选目标"的两段式动作设计 —— 单独一波。
 
 ## B 类 —— 已排除的 33 张
 
@@ -242,8 +278,8 @@ W1 修了经典 + 核心 10 张，W2 把各扩展剩下的 26 张一次修完 �
 
 1. ~~先修废卡~~ —— 分类已作废（见「更正」）。改为**先清 T1**：结算已接目标，
    补一条声明 + 测试即可。**T1 已全部清空**（W1 经典 + 核心 10 张，W2 各扩展 26 张）。
-2. **再啃 T2 的 28 张**：要把玩家选的目标接进结算链路，逐张改 helper 签名，
-   工作量大一档；经典里最显眼的几张（精神控制、Shiv、猛击、影袭）都在这里。
+2. ~~**再啃 T2**~~ —— **已完成（W3）**：24 张接上了结算链路，只剩 `EDR_813`
+   病变虫群等抉择卡的两段式动作设计。
 3. ~~**结构性防复发**~~ —— **已完成（2026-08-21）**：目标声明从
    `play_targets` 的 `match` 搬到了 `CardEffect::play_target()`
    （`src/core/play_target.rs`，866 个变体**穷尽 match，无 `_` 分支**）。

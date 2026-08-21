@@ -358,9 +358,7 @@ pub fn resolve_effect(
             resolve_return_to_hand_and_increase_cost(state, queue, owner, source, amount);
         }
         CardEffect::DestroyMinion { target } => {
-            resolve_destroy_minion(
-                state,
-                owner, source, target, explicit_target);
+            resolve_destroy_minion(state, owner, source, target, explicit_target);
         }
         CardEffect::SilenceMinion { target } => {
             resolve_silence(state, owner, target, explicit_target);
@@ -495,12 +493,10 @@ pub fn resolve_effect(
             resolve_destroy_all_except_one(state, owner);
         }
         CardEffect::DestroyAndHeal { target, heal } => {
-            resolve_destroy_and_heal(
-                state,
-                owner, target, heal, explicit_target);
+            resolve_destroy_and_heal(state, owner, target, heal, explicit_target);
         }
         CardEffect::DestroyAndAOE { target } => {
-            resolve_destroy_and_aoe(state, queue, owner, source, target);
+            resolve_destroy_and_aoe(state, queue, owner, source, target, explicit_target);
         }
         CardEffect::DealDamageToTwo { amount } => {
             resolve_deal_damage_to_two(state, queue, source, owner, amount);
@@ -611,11 +607,9 @@ pub fn resolve_effect(
         }
         CardEffect::CopyMinionStats => {
             let friendly = collect_friendly_minions(state, owner);
-            if friendly.is_empty() {
+            let Some(target) = select_target(explicit_target, &friendly, state.rng_mut()) else {
                 return;
-            }
-            let idx = state.rng_mut().next_usize(friendly.len());
-            let target = friendly[idx];
+            };
             // Copy (Faceless Manipulator-style, roadmap G4): copy the target's
             // current stats as an enchantment on top of the source's own base —
             // silencing the copy reverts to the source's printed stats.
@@ -673,16 +667,16 @@ pub fn resolve_effect(
             resolve_deal_damage(state, queue, source, owner, amount, target, explicit_target);
         }
         CardEffect::ReturnFriendlyToHandAndReduceCost { amount } => {
-            resolve_return_friendly_reduce_cost(state, owner, amount);
+            resolve_return_friendly_reduce_cost(state, owner, amount, explicit_target);
         }
         CardEffect::AdjacentDamage => {
-            resolve_adjacent_damage(state, queue, source, owner);
+            resolve_adjacent_damage(state, queue, source, owner, explicit_target);
         }
         CardEffect::DestroyWeaponAndDealAttackToEnemies => {
             resolve_destroy_weapon_deal_attack(state, queue, source, owner);
         }
         CardEffect::GrantStealth => {
-            resolve_grant_stealth(state, source, owner);
+            resolve_grant_stealth(state, source, owner, explicit_target);
         }
         CardEffect::SummonMultipleMinions { card_id, count } => {
             for _ in 0..count {
@@ -728,22 +722,22 @@ pub fn resolve_effect(
             resolve_freeze_or_damage(state, queue, source, owner, amount, explicit_target);
         }
         CardEffect::DestroyAndGainHealth => {
-            resolve_destroy_and_gain_health(state, queue, source, owner);
+            resolve_destroy_and_gain_health(state, queue, source, owner, explicit_target);
         }
         CardEffect::GrantAttackAndImmune { attack, target } => {
             resolve_grant_attack_and_immune(state, owner, attack, target, explicit_target);
         }
         CardEffect::TakeControlUntilEndOfTurn => {
-            resolve_take_control(state, owner, true);
+            resolve_take_control(state, owner, true, explicit_target);
         }
         CardEffect::TakeControl => {
-            resolve_take_control(state, owner, false);
+            resolve_take_control(state, owner, false, explicit_target);
         }
         CardEffect::TakeControlAttackLE { max_attack } => {
-            resolve_take_control_attack_le(state, owner, max_attack);
+            resolve_take_control_attack_le(state, owner, max_attack, explicit_target);
         }
         CardEffect::Corrupt => {
-            resolve_corrupt(state, owner);
+            resolve_corrupt(state, owner, explicit_target);
         }
         CardEffect::MinHealthUntilEndOfTurn => {
             let inner = state.make_mut();
@@ -921,7 +915,7 @@ pub fn resolve_effect(
             resolve_swap_attack_health(state, owner, target, explicit_target);
         }
         CardEffect::FreezeAdjacent => {
-            resolve_freeze_adjacent(state, owner);
+            resolve_freeze_adjacent(state, owner, explicit_target);
         }
         CardEffect::GrantAdjacentTaunt => {
             resolve_grant_adjacent_taunt(state, source, owner);
@@ -1025,7 +1019,7 @@ pub fn resolve_effect(
                         owner,
                         cost,
                         EffectTarget::AnyEnemy,
-                        None,
+                        explicit_target,
                     );
                 }
             }
@@ -4309,13 +4303,7 @@ pub fn resolve_effect(
             let Some(t) = select_target(explicit_target, &minions, state.rng_mut()) else {
                 return;
             };
-            resolve_destroy_minion(
-                state,
-                owner,
-                source,
-                EffectTarget::FriendlyMinion,
-                Some(t),
-            );
+            resolve_destroy_minion(state, owner, source, EffectTarget::FriendlyMinion, Some(t));
             grant_armor(state, queue, owner, armor);
         }
         CardEffect::DrawSpellCostGE { cost } => {
@@ -4399,13 +4387,7 @@ pub fn resolve_effect(
                 return;
             }
             let t = select_target(explicit_target, &wisps, state.rng_mut()).unwrap_or(wisps[0]);
-            resolve_destroy_minion(
-                state,
-                owner,
-                source,
-                EffectTarget::FriendlyMinion,
-                Some(t),
-            );
+            resolve_destroy_minion(state, owner, source, EffectTarget::FriendlyMinion, Some(t));
             for _ in 0..count {
                 draw_card(state, queue, owner);
             }
@@ -6105,9 +6087,7 @@ pub fn resolve_effect(
                 .effective_health(selected)
                 .unwrap_or(Health(0))
                 .0;
-            resolve_destroy_minion(
-                state,
-                owner, source, target, Some(selected));
+            resolve_destroy_minion(state, owner, source, target, Some(selected));
             state.world_mut().add_enchantment(
                 source,
                 Enchantment {
@@ -7460,7 +7440,8 @@ pub fn resolve_effect(
             }
         }
         CardEffect::DealDamageSummonCinders { amount } => {
-            // Sizzling Swarm — damage a random enemy and summon that many
+            // Sizzling Swarm — damage the chosen enemy (a random one when the
+            // effect resolves without a play target) and summon that many
             // 2/1 Sizzling Cinders.
             resolve_deal_damage(
                 state,
@@ -7469,7 +7450,7 @@ pub fn resolve_effect(
                 owner,
                 amount,
                 EffectTarget::AnyEnemy,
-                None,
+                explicit_target,
             );
             for _ in 0..amount.max(0) {
                 let _ = resolve_summon(state, queue, source, owner, "TLC_249");
@@ -7624,9 +7605,7 @@ pub fn resolve_effect(
                 return;
             };
             let cost = state.world().effective_cost(picked).unwrap_or(Cost(0)).0;
-            resolve_destroy_minion(
-                state,
-                owner, source, target, Some(picked));
+            resolve_destroy_minion(state, owner, source, target, Some(picked));
             if let Some(pick) = random_minion_of_cost(state, cost) {
                 let _ = resolve_summon(state, queue, source, owner, pick.id);
             }
@@ -7999,9 +7978,7 @@ pub fn resolve_effect(
                 .effective_attack(picked)
                 .unwrap_or(Attack(0))
                 .0;
-            resolve_destroy_minion(
-                state,
-                owner, source, target, Some(picked));
+            resolve_destroy_minion(state, owner, source, target, Some(picked));
             let Some(bone) = crate::cards::def::card_by_id("TLC_252t") else {
                 return;
             };
@@ -9130,14 +9107,14 @@ pub fn resolve_effect(
             }
         }
         CardEffect::DealDamageAndDrawExcess { amount } => {
-            // TIME_858 Temporal Construct (M3-W2a) — deal N damage to a
-            // random enemy minion and draw one card per point of EXCESS
+            // TIME_858 Temporal Construct (M3-W2a) — deal N damage to the
+            // chosen enemy minion and draw one card per point of EXCESS
             // damage (excess is the damage that would have killed it,
             // predicted BEFORE the damage resolves, the Slam convention;
             // Divine Shield eats the hit with no excess).
             let candidates =
                 collect_target_candidates(state, owner, EffectTarget::AnyEnemyMinion, source);
-            let Some(t) = select_target(None, &candidates, state.rng_mut()) else {
+            let Some(t) = select_target(explicit_target, &candidates, state.rng_mut()) else {
                 return;
             };
             let excess = if state.world().divine_shield(t).is_some() {
@@ -9156,7 +9133,7 @@ pub fn resolve_effect(
             }
         }
         CardEffect::DealDamageEnemyMinionEqualToSourceHealth => {
-            // TIME_427 Cleansing Lightspawn (M3-W2a) — damage to a random
+            // TIME_427 Cleansing Lightspawn (M3-W2a) — damage to the chosen
             // enemy minion equal to this minion's current Health (the
             // Lifesteal on the card heals back through the damage
             // pipeline).
@@ -9168,7 +9145,7 @@ pub fn resolve_effect(
                 owner,
                 hp,
                 EffectTarget::AnyEnemyMinion,
-                None,
+                explicit_target,
             );
         }
         CardEffect::DealDamageEnemyMinionIfHeroHealthChanged { amount } => {
@@ -9183,7 +9160,7 @@ pub fn resolve_effect(
                     owner,
                     amount,
                     EffectTarget::AnyEnemyMinion,
-                    None,
+                    explicit_target,
                 );
             }
         }
@@ -9277,9 +9254,7 @@ pub fn resolve_effect(
             // TIME_712 Dethrone (M3-W2a) — destroy a random minion
             // (either side); the Combo branch (the same variant with the
             // summon Cost set) then summons a random minion of that Cost.
-            resolve_destroy_minion(
-                state,
-                owner, source, EffectTarget::AnyMinion, None);
+            resolve_destroy_minion(state, owner, source, EffectTarget::AnyMinion, None);
             if cost > 0 {
                 let pool: SmallList<&'static crate::cards::def::CardDef> =
                     crate::cards::sets::ALL_CARDS
@@ -9920,12 +9895,12 @@ pub fn resolve_effect(
             }
         }
         CardEffect::ImprisonEnemyMinion => {
-            // TIME_442 Timeway Warden (M3-W2a) — a random enemy minion
+            // TIME_442 Timeway Warden (M3-W2a) — the chosen enemy minion
             // goes Dormant for 10,000 turns; the (warden, imprisoned)
             // pair is recorded on the player for the deathrattle's
             // awaken link (§20).
             let minions: SmallList<Entity> = collect_enemy_minions(state, owner, Some(source));
-            if let Some(t) = select_target(None, &minions, state.rng_mut()) {
+            if let Some(t) = select_target(explicit_target, &minions, state.rng_mut()) {
                 state
                     .world_mut()
                     .set_dormant(t, crate::core::component::Dormant { turns: 10_000 });
@@ -10065,11 +10040,17 @@ pub fn resolve_effect(
             }
         }
         CardEffect::RestoreHealthEqualToSourceHealth => {
-            // TIME_431 Amber Priestess (M3-W2a) — restore Health to a
-            // random character equal to this minion's current Health (the
-            // targetable pick is a D2 random, §20).
+            // TIME_431 Amber Priestess (M3-W2a) — restore Health to the chosen
+            // character equal to this minion's current Health.
             let hp = state.world().effective_health(source).map_or(0, |h| h.0);
-            resolve_restore_health(state, queue, owner, hp, EffectTarget::AnyCharacter, None);
+            resolve_restore_health(
+                state,
+                queue,
+                owner,
+                hp,
+                EffectTarget::AnyCharacter,
+                explicit_target,
+            );
         }
         CardEffect::ReverseDeckOrder => {
             // TIME_061 Timeless Causality (M3-W2a) — reverse the order of
@@ -10114,13 +10095,12 @@ pub fn resolve_effect(
             }
         }
         CardEffect::SetStatsAndCantAttackHeroesThisTurn { attack, health } => {
-            // TIME_043 PMM Infinitizer (M3-W2a) — set a random friendly
+            // TIME_043 PMM Infinitizer (M3-W2a) — set the chosen friendly
             // minion's Attack and Health to A/H and mark it unable to
-            // attack heroes this turn (the targetable pick is a D2
-            // random, §20; the restriction is cleared by the turn-end
-            // wrap-up).
+            // attack heroes this turn (the restriction is cleared by the
+            // turn-end wrap-up).
             let minions = collect_friendly_minions(state, owner);
-            let t = select_target(None, &minions, state.rng_mut()).unwrap_or(source);
+            let t = select_target(explicit_target, &minions, state.rng_mut()).unwrap_or(source);
             let world = state.world_mut();
             world.set_attack(t, Attack(attack));
             world.set_health(t, Health(health));
@@ -10140,13 +10120,7 @@ pub fn resolve_effect(
                 return;
             };
             silence_entity(state.world_mut(), t);
-            resolve_destroy_minion(
-                state,
-                owner,
-                source,
-                EffectTarget::AnyEnemyMinion,
-                Some(t),
-            );
+            resolve_destroy_minion(state, owner, source, EffectTarget::AnyEnemyMinion, Some(t));
         }
         CardEffect::SummonHighestCostFallenUndead => {
             // TIME_616 Memoriam Manifest (M3-W2a) — summon the highest
@@ -10729,7 +10703,7 @@ pub fn resolve_effect(
                         .is_some_and(|h| h.0 <= threshold)
                 })
                 .collect();
-            let Some(target) = select_target(None, &minions, state.rng_mut()) else {
+            let Some(target) = select_target(explicit_target, &minions, state.rng_mut()) else {
                 return;
             };
             transfer_minion(state, target, owner);
@@ -14897,15 +14871,15 @@ pub fn resolve_effect(
         }
         CardEffect::SewerSwimmer => {
             // M5-W2 — JAIL_395 Sewer Swimmer: "Battlecry: Trigger a
-            // friendly minion's Deathrattle." — a random friendly minion
-            // that HAS a deathrattle; the deathrattle resolves with the
+            // friendly minion's Deathrattle." — the chosen friendly minion,
+            // which must HAVE a deathrattle; the deathrattle resolves with the
             // minion as source (the in-hand/in-deck rider of the official
             // text is dropped, §28).
             let candidates: SmallList<Entity> = collect_friendly_minions(state, owner)
                 .into_iter()
                 .filter(|&e| state.world().deathrattle(e).is_some())
                 .collect();
-            if let Some(&e) = pick_random(state, &candidates) {
+            if let Some(e) = select_target(explicit_target, &candidates, state.rng_mut()) {
                 if let Some(dr) = state.world().deathrattle(e) {
                     resolve_effect(state, queue, e, owner, dr.0, None, None);
                 }
@@ -15145,11 +15119,11 @@ pub fn resolve_effect(
         CardEffect::VioletPunisher => {
             // M5-W2 — JAIL_101 Violet Punisher: "Battlecry: Choose an
             // enemy minion. Steal its Bonus Effects and gain +1/+1 for
-            // each stolen." — the pick is random and the keywords
+            // each stolen." — the keywords
             // themselves are not stolen (§28); only the +1/+1 per
             // keyword the enemy minion has lands on the source.
             let enemies = collect_enemy_minions(state, owner, Some(source));
-            let Some(&target) = pick_random(state, &enemies) else {
+            let Some(target) = select_target(explicit_target, &enemies, state.rng_mut()) else {
                 return;
             };
             let w = state.world();
@@ -17671,6 +17645,10 @@ fn resolve_deal_damage(
         | EffectTarget::AnyMinionAttackGE(_)
         | EffectTarget::EnemyMinionAttackGE(_)
         | EffectTarget::DamagedFriendlyMinion
+        // Deathrattle- and Health-filtered domains belong to their own
+        // effects (Sewer Swimmer, Eternus); nothing deals damage over them.
+        | EffectTarget::FriendlyMinionWithDeathrattle
+        | EffectTarget::EnemyMinionHealthLESource
         | EffectTarget::DamagedMinion => {
             return None;
         }
@@ -18072,13 +18050,11 @@ fn resolve_swap_attack_health(
 }
 
 /// Freezes a random enemy minion and its neighbors (Cone of Cold).
-fn resolve_freeze_adjacent(state: &mut GameState, owner: PlayerId) {
+fn resolve_freeze_adjacent(state: &mut GameState, owner: PlayerId, explicit: Option<Entity>) {
     let minions = collect_enemy_minions(state, owner, None);
-    if minions.is_empty() {
+    let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
-    let target = minions[idx];
+    };
     let enemy = owner.opponent();
     let board: SmallList<Entity> = state
         .world()
@@ -20121,14 +20097,13 @@ fn resolve_destroy_and_aoe(
     owner: PlayerId,
     source: Entity,
     target: EffectTarget,
+    explicit: Option<Entity>,
 ) {
     // Collect friendly minions and pick one at random
     let friendly = collect_friendly_minions(state, owner);
-    if friendly.is_empty() {
+    let Some(sacrifice) = select_target(explicit, &friendly, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(friendly.len());
-    let sacrifice = friendly[idx];
+    };
     let atk = state
         .world()
         .effective_attack(sacrifice)
@@ -20152,13 +20127,16 @@ fn resolve_destroy_and_aoe(
 }
 
 /// Returns a friendly minion to hand and reduces its cost (Shadowstep).
-fn resolve_return_friendly_reduce_cost(state: &mut GameState, owner: PlayerId, amount: i32) {
+fn resolve_return_friendly_reduce_cost(
+    state: &mut GameState,
+    owner: PlayerId,
+    amount: i32,
+    explicit: Option<Entity>,
+) {
     let minions = collect_friendly_minions(state, owner);
-    if minions.is_empty() {
+    let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
-    let target = minions[idx];
+    };
     let _ = state.world_mut().move_to_zone(target, Zone::Hand);
     // Cost reduction as a cost enchantment — survives the bounce (Shadowstep, roadmap G4)
     state.world_mut().add_enchantment(
@@ -20181,13 +20159,12 @@ fn resolve_adjacent_damage(
     queue: &mut EventQueue,
     source: Entity,
     owner: PlayerId,
+    explicit: Option<Entity>,
 ) {
     let minions = collect_enemy_minions(state, owner, Some(source));
-    if minions.is_empty() {
+    let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
-    let target = minions[idx];
+    };
     let atk = state
         .world()
         .effective_attack(target)
@@ -20284,13 +20261,12 @@ fn resolve_destroy_and_gain_health(
     queue: &mut EventQueue,
     source: Entity,
     owner: PlayerId,
+    explicit: Option<Entity>,
 ) {
     let minions = collect_enemy_minions(state, owner, Some(source));
-    if minions.is_empty() {
+    let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
-    let target = minions[idx];
+    };
     let hp = state
         .world()
         .effective_health(target)
@@ -20353,18 +20329,21 @@ fn resolve_grant_attack_and_immune(
 /// turn; Mind Control: permanent).
 ///
 /// Shadow Madness only targets minions with attack ≤ 3.
-fn resolve_take_control(state: &mut GameState, owner: PlayerId, until_end_of_turn: bool) {
+fn resolve_take_control(
+    state: &mut GameState,
+    owner: PlayerId,
+    until_end_of_turn: bool,
+    explicit: Option<Entity>,
+) {
     let minions: SmallList<Entity> = collect_enemy_minions(state, owner, None)
         .into_iter()
         .filter(|&e| {
             !until_end_of_turn || state.world().effective_attack(e).unwrap_or(Attack(0)).0 <= 3
         })
         .collect();
-    if minions.is_empty() {
+    let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
-    let target = minions[idx];
+    };
     let original_owner = state.world().player(target).unwrap_or(owner.opponent());
     transfer_minion(state, target, owner);
     if until_end_of_turn {
@@ -20378,16 +20357,20 @@ fn resolve_take_control(state: &mut GameState, owner: PlayerId, until_end_of_tur
 /// Takes permanent control of a random enemy minion with at most `max_attack`
 /// attack (Cabal Shadow Priest — Battlecry: take control of an enemy minion
 /// with 2 or less Attack).
-fn resolve_take_control_attack_le(state: &mut GameState, owner: PlayerId, max_attack: i32) {
+fn resolve_take_control_attack_le(
+    state: &mut GameState,
+    owner: PlayerId,
+    max_attack: i32,
+    explicit: Option<Entity>,
+) {
     let minions: SmallList<Entity> = collect_enemy_minions(state, owner, None)
         .into_iter()
         .filter(|&e| state.world().effective_attack(e).unwrap_or(Attack(0)).0 <= max_attack)
         .collect();
-    if minions.is_empty() {
+    let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
-    transfer_minion(state, minions[idx], owner);
+    };
+    transfer_minion(state, target, owner);
 }
 
 /// Transfers control of a minion to a new player (changes the player
@@ -20419,13 +20402,11 @@ pub(crate) fn transfer_minion(state: &mut GameState, entity: Entity, to: PlayerI
 }
 
 /// Corrupts an enemy minion — destroyed at the start of your turn (Corruption).
-fn resolve_corrupt(state: &mut GameState, owner: PlayerId) {
+fn resolve_corrupt(state: &mut GameState, owner: PlayerId, explicit: Option<Entity>) {
     let minions = collect_enemy_minions(state, owner, None);
-    if minions.is_empty() {
+    let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
-    let target = minions[idx];
+    };
     let inner = state.make_mut();
     inner.players[owner.index()].corrupted.push(target);
 }
@@ -20649,16 +20630,20 @@ fn resolve_damage_and_summon_if_killed(
 }
 
 /// Grants a friendly minion stealth (Master of Disguise; cannot target itself).
-fn resolve_grant_stealth(state: &mut GameState, source: Entity, owner: PlayerId) {
+fn resolve_grant_stealth(
+    state: &mut GameState,
+    source: Entity,
+    owner: PlayerId,
+    explicit: Option<Entity>,
+) {
     let minions: SmallList<Entity> = collect_friendly_minions(state, owner)
         .into_iter()
         .filter(|&e| e != source)
         .collect();
-    if minions.is_empty() {
+    let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
-    }
-    let idx = state.rng_mut().next_usize(minions.len());
-    state.world_mut().set_stealth(minions[idx], Stealth);
+    };
+    state.world_mut().set_stealth(target, Stealth);
 }
 
 // ============================================================

@@ -82,6 +82,15 @@ pub enum EffectTarget {
     /// A random friendly DAMAGED minion other than the source (Stonecarver
     /// — 2025–2026 expansions M2-W4a, "another friendly damaged minion")
     DamagedOtherFriendlyMinion,
+    /// A friendly minion that has a Deathrattle (Sewer Swimmer — "Trigger a
+    /// friendly minion's Deathrattle"): the targeting arrow only reaches
+    /// minions the effect can actually do something with.
+    FriendlyMinionWithDeathrattle,
+    /// An enemy minion whose Health is at most the source's own Health
+    /// (Eternus). The bound is read from the source when the play is
+    /// enumerated; the resolution re-filters, so an offer that stopped being
+    /// legal fizzles like any other stale target (G9).
+    EnemyMinionHealthLESource,
     /// A random enemy minion with a minion type (Bugsquasher —
     /// 2025–2026 expansions M2-W4a, "an enemy minion with a minion type")
     EnemyMinionWithRace,
