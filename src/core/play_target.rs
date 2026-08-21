@@ -86,6 +86,38 @@ impl CardEffect {
             // "any character"; widening domains is tracked separately.
             CardEffect::MortalStrike { .. } => Some(EffectTarget::AnyEnemy),
 
+            CardEffect::DealDamageGainArmorIfKilled { target, .. } => Some(*target),
+            CardEffect::DealDamageIfQuestPlayed { target, .. } => Some(*target),
+            CardEffect::DealDamageSameType { target, .. } => Some(*target),
+            CardEffect::DealDamageSetNextBeastDiscount { target, .. } => Some(*target),
+            CardEffect::DestroyFriendlyMinionAddBones { target, .. } => Some(*target),
+            CardEffect::GainArmorDealDamageEqual { target, .. } => Some(*target),
+            CardEffect::GainStatsAndGrantRush { target, .. } => Some(*target),
+            CardEffect::GiveBuffSameType { target, .. } => Some(*target),
+            CardEffect::AmphibianSpiritBuff { .. } => Some(EffectTarget::AnyMinion),
+            CardEffect::BuffMinionReturnIfSpellsCast { .. } => Some(EffectTarget::AnyMinion),
+            // Shadowflame Suffusion's bare "Deal 2 damage" officially reaches any
+            // character; the resolution's domain is enemy-only (tracked as
+            // narrowness, not widened here).
+            CardEffect::DamageAndDiscoverWarriorWithGift { .. } => Some(EffectTarget::AnyEnemy),
+            CardEffect::DamageAndSummonWolfIfKilled { .. } => Some(EffectTarget::AnyMinion),
+            CardEffect::DamageMinionOwnerDraws { .. } => Some(EffectTarget::AnyMinion),
+            CardEffect::DamageMinionWithMoonLifesteal { .. } => Some(EffectTarget::AnyMinion),
+            CardEffect::DealDamageEqualSelfAttack => Some(EffectTarget::AnyCharacter),
+            CardEffect::DealDamageIfImbuedTwice { .. } => Some(EffectTarget::AnyMinion),
+            CardEffect::DestroyFriendlyMinionGainArmor { .. } => Some(EffectTarget::FriendlyMinion),
+            CardEffect::GiveMinionStatsRushIfHeroPowerUsed { .. } => Some(EffectTarget::FriendlyMinion),
+            // Air Support's resolution scans the owner's play zone (hero included);
+            // the offer is the minion subset of it.
+            CardEffect::GrantMegaWindfuryCantAttackHeroes => Some(EffectTarget::FriendlyMinion),
+            CardEffect::ReturnFriendlyMinionSummonSpider => Some(EffectTarget::FriendlyMinion),
+            // Gruesome Nightmare's official domain also covers the hand — the
+            // engine keeps the battlefield-side approximation (ledger §26).
+            CardEffect::SetAttackEqualToSource => Some(EffectTarget::FriendlyMinion),
+            CardEffect::SetStatsByFriendlyTarget { .. } => Some(EffectTarget::AnyMinion),
+            CardEffect::StealHealthThreeTimes { .. } => Some(EffectTarget::AnyEnemyMinion),
+            CardEffect::SummonTreantsAttackMinion => Some(EffectTarget::AnyMinion),
+
             // ── Everything else: played without a targeting step ───────────
             // (AoE, summons, draws, Discover, self-buffs, triggered-only
             // effects — plus, for now, the audit's outstanding cards.)
@@ -149,7 +181,6 @@ impl CardEffect {
             | CardEffect::AdjacentDamage
             | CardEffect::AlarmOMatic
             | CardEffect::AmirdrassilActivate
-            | CardEffect::AmphibianSpiritBuff { .. }
             | CardEffect::AncientAugurDeathrattle
             | CardEffect::AncientAugurPick
             | CardEffect::Annihilation
@@ -187,7 +218,6 @@ impl CardEffect {
             | CardEffect::BuffHandMinionsAndWeapons { .. }
             | CardEffect::BuffHandMinionsWithCorpses { .. }
             | CardEffect::BuffHealthTauntAndDormant { .. }
-            | CardEffect::BuffMinionReturnIfSpellsCast { .. }
             | CardEffect::BuffSpellDamageHandAndDeck
             | CardEffect::BuffTauntHandMinions { .. }
             | CardEffect::BuffThreeDifferentRaces { .. }
@@ -242,12 +272,10 @@ impl CardEffect {
             | CardEffect::DamageAllOtherMinions { .. }
             | CardEffect::DamageAndBuffFriendlyIfKilled { .. }
             | CardEffect::DamageAndDiscardSpellMore { .. }
-            | CardEffect::DamageAndDiscoverWarriorWithGift { .. }
             | CardEffect::DamageAndDrawIfHandEmpty { .. }
             | CardEffect::DamageAndDrawMinionIfHoldingCostGE { .. }
             | CardEffect::DamageAndDrawTwoIfSurvives { .. }
             | CardEffect::DamageAndGainArmorIfMinionPlayedWhileHeld { .. }
-            | CardEffect::DamageAndSummonWolfIfKilled { .. }
             | CardEffect::DamageDamagedMinionReturnIfExcess { .. }
             | CardEffect::DamageEnemyHeroAndHealSelf { .. }
             | CardEffect::DamageFreezeAllAndSummon { .. }
@@ -257,10 +285,8 @@ impl CardEffect {
             | CardEffect::DamageMinionEternalFirebolt { .. }
             | CardEffect::DamageMinionGiveHeroAttack { .. }
             | CardEffect::DamageMinionHealEnemyHeroIfKilled { .. }
-            | CardEffect::DamageMinionOwnerDraws { .. }
             | CardEffect::DamageMinionReduceHandCostByExcess { .. }
             | CardEffect::DamageMinionScaledByFallen { .. }
-            | CardEffect::DamageMinionWithMoonLifesteal { .. }
             | CardEffect::DamagePlayedMinion { .. }
             | CardEffect::DamagePlayedMinionAndExcess { .. }
             | CardEffect::DamageRandomEnemyMinionHoldingCostGE { .. }
@@ -283,11 +309,7 @@ impl CardEffect {
             | CardEffect::DealDamageEnemyMinionEqualToSourceHealth
             | CardEffect::DealDamageEnemyMinionIfHeroHealthChanged { .. }
             | CardEffect::DealDamageEqualDragonBreath
-            | CardEffect::DealDamageEqualSelfAttack
             | CardEffect::DealDamageFriendlyMinionToRandomEnemy { .. }
-            | CardEffect::DealDamageGainArmorIfKilled { .. }
-            | CardEffect::DealDamageIfImbuedTwice { .. }
-            | CardEffect::DealDamageIfQuestPlayed { .. }
             | CardEffect::DealDamageImprovedByShuffles { .. }
             | CardEffect::DealDamageLeftRightOutcastAgain { .. }
             | CardEffect::DealDamageLowestHealthEnemyRepeated { .. }
@@ -295,8 +317,6 @@ impl CardEffect {
             | CardEffect::DealDamagePrimaryAndSplash { .. }
             | CardEffect::DealDamageRandomEnemies { .. }
             | CardEffect::DealDamageRandomly { .. }
-            | CardEffect::DealDamageSameType { .. }
-            | CardEffect::DealDamageSetNextBeastDiscount { .. }
             | CardEffect::DealDamageSplitAmongAllEnemies { .. }
             | CardEffect::DealDamageSplitAmongAllEnemiesShuffleShreds { .. }
             | CardEffect::DealDamageSplitAmongEnemiesIfFireSpell { .. }
@@ -326,8 +346,6 @@ impl CardEffect {
             | CardEffect::DestroyDeckCardsCostLE2Both
             | CardEffect::DestroyDeckTop { .. }
             | CardEffect::DestroyEnemyLocation
-            | CardEffect::DestroyFriendlyMinionAddBones { .. }
-            | CardEffect::DestroyFriendlyMinionGainArmor { .. }
             | CardEffect::DestroyFriendlyWispDraw { .. }
             | CardEffect::DestroyHeldKingLlaneAndHalveEnemyHealth
             | CardEffect::DestroyHighestAttackEnemy
@@ -464,7 +482,6 @@ impl CardEffect {
             | CardEffect::GainArmorAndSummonDeckMinion { .. }
             | CardEffect::GainArmorAndSummonRandomCost { .. }
             | CardEffect::GainArmorAndSummonTwoBeastsForOpponent { .. }
-            | CardEffect::GainArmorDealDamageEqual { .. }
             | CardEffect::GainArmorPerWisp { .. }
             | CardEffect::GainArmorSummonCostTaunt { .. }
             | CardEffect::GainAttackEqualSpellCost
@@ -491,7 +508,6 @@ impl CardEffect {
             | CardEffect::GainStatsAndDrawIfNatureSpellCast { .. }
             | CardEffect::GainStatsAndGrantDivineShield { .. }
             | CardEffect::GainStatsAndGrantLifesteal { .. }
-            | CardEffect::GainStatsAndGrantRush { .. }
             | CardEffect::GainStatsAndGrantWindfury { .. }
             | CardEffect::GainStatsAndSummonCopyIfHeroHealthLE { .. }
             | CardEffect::GainStatsAndTauntAllFriendly { .. }
@@ -522,12 +538,10 @@ impl CardEffect {
             | CardEffect::GiveBuffAndSummonDeathrattle { .. }
             | CardEffect::GiveBuffDifferentTypeMinions { .. }
             | CardEffect::GiveBuffOtherMinionsAttackLE { .. }
-            | CardEffect::GiveBuffSameType { .. }
             | CardEffect::GiveCardToOpponent { .. }
             | CardEffect::GiveCardsToOpponent { .. }
             | CardEffect::GiveCoin
             | CardEffect::GiveHeroImmuneThisTurn
-            | CardEffect::GiveMinionStatsRushIfHeroPowerUsed { .. }
             | CardEffect::GiveNextMurlocDivineShield
             | CardEffect::GiveOpponentManaCrystal { .. }
             | CardEffect::GiveOpponentSabotage
@@ -549,7 +563,6 @@ impl CardEffect {
             | CardEffect::GrantHeroDivineShield
             | CardEffect::GrantHeroLifestealThisTurn
             | CardEffect::GrantKeyword { .. }
-            | CardEffect::GrantMegaWindfuryCantAttackHeroes
             | CardEffect::GrantPoisonousThisTurn
             | CardEffect::GrantRandomBonusEffect
             | CardEffect::GrantRandomBonusEffectAndDeathrattle
@@ -685,7 +698,6 @@ impl CardEffect {
             | CardEffect::ReturnAllToHand
             | CardEffect::ReturnDevouredCards
             | CardEffect::ReturnEnemyMinionCantPlayNextTurn
-            | CardEffect::ReturnFriendlyMinionSummonSpider
             | CardEffect::ReturnFriendlyToHandAndReduceCost { .. }
             | CardEffect::ReturnHoardCostLess
             | CardEffect::ReturnLastTurnSpells
@@ -698,7 +710,6 @@ impl CardEffect {
             | CardEffect::ScrambleForGear
             | CardEffect::SetAllOtherMinionsAttack { .. }
             | CardEffect::SetAllOtherMinionsHealth { .. }
-            | CardEffect::SetAttackEqualToSource
             | CardEffect::SetChronologicalAura { .. }
             | CardEffect::SetCompanionBonus { .. }
             | CardEffect::SetCompanionReplacement { .. }
@@ -733,7 +744,6 @@ impl CardEffect {
             | CardEffect::SetStatsAndFillBoardWithCopies { .. }
             | CardEffect::SetStatsAndGrantCharge { .. }
             | CardEffect::SetStatsAttachDamageAllDeathrattle { .. }
-            | CardEffect::SetStatsByFriendlyTarget { .. }
             | CardEffect::SetStatsGrantLifestealForceAttack { .. }
             | CardEffect::SetStatsGrantStealthAndDraw { .. }
             | CardEffect::SetWeaponAttackInfinityThisTurn
@@ -769,7 +779,6 @@ impl CardEffect {
             | CardEffect::SplitDamageAmongAllEnemiesChainOnDeath { .. }
             | CardEffect::SplitDamageAmongAllEnemiesIfFallen { .. }
             | CardEffect::StaffOfTrickery
-            | CardEffect::StealHealthThreeTimes { .. }
             | CardEffect::Stormfury
             | CardEffect::SummonAllCompanions
             | CardEffect::SummonAndRedirectAttack { .. }
@@ -844,7 +853,6 @@ impl CardEffect {
             | CardEffect::SummonStatueTrio
             | CardEffect::SummonTauntAndIfHoldingDragonAgain { .. }
             | CardEffect::SummonTreantCopyingSpell
-            | CardEffect::SummonTreantsAttackMinion
             | CardEffect::SummonTwoCopiesOfSelf
             | CardEffect::SummonTwoDeathrattleMinionsAndFight
             | CardEffect::SummonTwoDemonsAttackLowestHealthIfDeckNoMinions
@@ -957,11 +965,7 @@ mod tests {
         "PALADIN_017", "PRIEST_011", "PRIEST_021", "PRIEST_022",
         "PRIEST_023", "ROGUE_014", "ROGUE_019", "ROGUE_020", "ROGUE_024", "SHAMAN_003",
         "WARLOCK_018", "WARLOCK_024", "WARRIOR_011",
-        "CORE_EX1_198", "CATA_161", "CATA_552", "CATA_552t", "CATA_564", "CATA_699", "EDR_860",
-        "EDR_813", "EDR_252", "EDR_261", "EDR_262", "EDR_460", "EDR_523", "EDR_531",
-        "FIR_908", "FIR_918", "FIR_939", "FIR_954", "JAIL_101", "JAIL_395", "JAIL_998",
-        "TLC_221", "TLC_230", "TLC_252", "TLC_441", "TLC_606", "TLC_620", "TLC_823",
-        "TLC_901", "TLC_987", "DINO_419", "TIME_043", "TIME_427", "TIME_431",
+        "CORE_EX1_198", "EDR_813", "JAIL_101", "JAIL_395", "TLC_221", "TIME_043", "TIME_427", "TIME_431",
         "TIME_442", "TIME_614", "TIME_858", "TIME_435",
         ];
         let fixed: Vec<&str> = OUTSTANDING

@@ -242,3 +242,170 @@ fn bestial_wrath_only_offers_friendly_beasts() {
     assert_eq!(attack_of(&state, other), 1, "the non-Beast is untouched");
 }
 
+
+// ─────────────────────────────────────────────────────────────────────────
+// W2: the rest of T1 — the expansion cards whose resolution already accepts
+// an explicit target. Covered two ways: one sweep asserting every card now
+// offers targets, plus a per-domain "hits the chosen one" test.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Every card fixed in wave W2, with the domain it declares.
+const W2_CARDS: &[(&str, &str)] = &[
+    ("CATA_161", "friendly"),
+    ("CATA_552", "any-character"),
+    ("CATA_552t", "any-character"),
+    ("CATA_564", "friendly"),
+    ("CATA_699", "enemy-minion"),
+    ("EDR_860", "any-minion"),
+    ("EDR_252", "any-minion"),
+    ("EDR_261", "any-minion"),
+    ("EDR_262", "any-minion"),
+    ("EDR_460", "any-minion"),
+    ("EDR_523", "friendly"),
+    ("EDR_531", "friendly"),
+    ("FIR_908", "friendly"),
+    ("FIR_918", "any-minion"),
+    ("FIR_939", "enemy"),
+    ("FIR_954", "any-minion"),
+    ("JAIL_998", "friendly"),
+    ("TLC_230", "any-minion"),
+    ("TLC_252", "friendly"),
+    ("TLC_441", "friendly"),
+    ("TLC_606", "enemy-minion"),
+    ("TLC_620", "enemy-minion"),
+    ("TLC_823", "any-minion"),
+    ("TLC_901", "any-minion"),
+    ("TLC_987", "enemy-minion"),
+    ("DINO_419", "friendly-beast"),
+];
+
+/// A board with minions on both sides — including a friendly Beast, so the
+/// race-scoped cards have a candidate too.
+///
+/// Deliberately **no Divine Shield minions**: the engine currently routes
+/// "destroy" through lethal damage, so a shield eats a destroy (ledger entry
+/// — Assassinate on an Argent Squire leaves it alive). That would mask the
+/// signal these tests are after, which is *which* entity the effect hit.
+fn mixed_board(card: &'static orange_stone::cards::def::CardDef) -> (GameState, Entity) {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, CHILLWIND_YETI};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(P1, &BLOODFEN_RAPTOR); // friendly Beast
+    builder.add_minion_to_board(P1, &CHILLWIND_YETI);
+    builder.add_minion_to_board(P2, &BLOODFEN_RAPTOR);
+    builder.add_minion_to_board(P2, &CHILLWIND_YETI);
+    builder.add_minion_to_hand(P1, card);
+    builder.set_mana(P1, 10, 10);
+    let state = builder.build();
+    let hand = card_in_hand(&state);
+    (state, hand)
+}
+
+/// The sweep: every W2 card offers at least one target, and each offered
+/// target is a legal play (i.e. the enumeration and `rules::validate` agree).
+#[test]
+fn every_w2_card_offers_targets() {
+    use orange_stone::cards::card_by_id;
+    let mut missing = Vec::new();
+    for (id, _domain) in W2_CARDS {
+        let def = card_by_id(id).unwrap_or_else(|| panic!("{id} is in ALL_CARDS"));
+        let (state, card) = mixed_board(def);
+        let targets = offered_targets(&state, card);
+        if targets.is_empty() {
+            missing.push(*id);
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "these cards still play untargeted: {missing:?}"
+    );
+}
+
+/// Conflagrate — "Deal 5 damage to a minion." (`any-minion` domain: the
+/// chosen minion takes it, on either side.)
+#[test]
+fn conflagrate_hits_the_chosen_minion() {
+    use orange_stone::cards::card_by_id;
+    let def = card_by_id("FIR_954").unwrap();
+    let (mut state, card) = mixed_board(def);
+    let enemy: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, P2)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    let chosen = enemy[1];
+
+    assert!(offered_targets(&state, card).contains(&chosen));
+    play_at(&mut state, card, chosen);
+    assert!(
+        state.world().damage(chosen).is_some_and(|d| d.0 > 0)
+            || !state.world().zones().iter(Zone::Play, P2).any(|e| e == chosen),
+        "the chosen minion took the damage (or died from it)"
+    );
+    assert_eq!(damage_of(&state, enemy[0]), 0, "the other enemy is untouched");
+}
+
+/// Siphoning Growth — "Destroy a friendly minion to gain 8 Armor."
+/// (`friendly` domain: destroying the *chosen* one matters a lot here.)
+#[test]
+fn siphoning_growth_destroys_the_chosen_friendly_minion() {
+    use orange_stone::cards::card_by_id;
+    let def = card_by_id("EDR_531").unwrap();
+    let (mut state, card) = mixed_board(def);
+    let mine = friendly_minions(&state);
+    let (keep, sacrifice) = (mine[0], mine[1]);
+
+    let targets = offered_targets(&state, card);
+    assert!(targets.contains(&keep) && targets.contains(&sacrifice));
+    assert!(
+        !targets.iter().any(|t| state.world().player(*t) == Some(P2)),
+        "enemy minions are not candidates"
+    );
+
+    play_at(&mut state, card, sacrifice);
+    let alive: Vec<Entity> = state.world().zones().iter(Zone::Play, P1).collect();
+    assert!(!alive.contains(&sacrifice), "the chosen minion is sacrificed");
+    assert!(alive.contains(&keep), "the other one stays");
+}
+
+/// Shadowflame Suffusion — the card that started the audit. "Deal 2 damage."
+/// over the engine's enemy domain: the chosen enemy takes it.
+#[test]
+fn shadowflame_suffusion_hits_the_chosen_enemy() {
+    use orange_stone::cards::card_by_id;
+    let def = card_by_id("FIR_939").unwrap();
+    let (mut state, card) = mixed_board(def);
+    let enemy_hero = state.player(P2).hero;
+
+    let targets = offered_targets(&state, card);
+    assert!(
+        targets.contains(&enemy_hero),
+        "the enemy hero is a candidate: {targets:?}"
+    );
+    assert!(
+        !targets.iter().any(|t| state.world().player(*t) == Some(P1)),
+        "friendly characters are not candidates (engine domain is enemy-only)"
+    );
+
+    play_at(&mut state, card, enemy_hero);
+    assert_eq!(damage_of(&state, enemy_hero), 2, "the chosen hero takes 2");
+}
+
+/// Herbivore Assistant — "Give a friendly Beast +2/+2 and Rush."
+/// (race-scoped: only the friendly Beast is offered.)
+#[test]
+fn herbivore_assistant_only_offers_friendly_beasts() {
+    use orange_stone::cards::card_by_id;
+    let def = card_by_id("DINO_419").unwrap();
+    let (mut state, card) = mixed_board(def);
+    let mine = friendly_minions(&state);
+    let beast = mine[0]; // Bloodfen Raptor
+
+    let targets = offered_targets(&state, card);
+    assert_eq!(targets, vec![beast], "only the friendly Beast is a candidate");
+
+    let before = attack_of(&state, beast);
+    play_at(&mut state, card, beast);
+    assert!(attack_of(&state, beast) > before, "the chosen Beast is buffed");
+}
+

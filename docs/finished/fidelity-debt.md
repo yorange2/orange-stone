@@ -576,6 +576,32 @@ in `core_w6.rs` updated. Pinned by the `classic_defias_bandit_combo` scenario in
 `tests/differential.rs` (no combo on the first card, Bandit summoned on the
 second). No RL pool impact — no card IDs changed.
 
+## F-A13 — "Destroy a minion" is routed through lethal damage, so Divine Shield eats it ⛔ open (found 2026-08-21)
+
+`resolve_destroy_minion` enacts a destroy by pushing `Event::DamageDealt` with
+the target's own health as the amount. Damage is absorbed by Divine Shield, so
+**a destroy effect pops the shield and leaves the minion alive** — in Hearthstone
+destroy ignores Divine Shield entirely (only damage is absorbed).
+
+Minimal reproduction: Assassinate (`ROGUE_006`) on an Argent Squire
+(`CLASSIC_...` Divine Shield 1/1) — after the play the Squire is still on the
+board with its shield consumed.
+
+Every destroy effect inherits this: Assassinate, Siphon Soul, Siphoning Growth,
+Dissolving Ooze, Natalie Seline, the `AllMinions` board clears (which use the
+same lethal-damage path), and any Deathrattle/"whenever a minion is destroyed"
+timing that hangs off them. It also inverts card evaluation for the bot, which
+scores a destroy as guaranteed removal.
+
+Found while writing `tests/play_targeting.rs`: with the targeting fix in place a
+destroy could finally be aimed at a chosen minion, and the chosen Argent Squire
+survived. Unrelated to targeting — pre-existing in `resolve_destroy_minion`.
+
+Not fixed here: changing destroy from "lethal damage" to a real destroy path
+touches death processing, damage triggers and the AoE board clears, and wants
+its own wave with F5 scenarios. The `play_targeting` boards deliberately avoid
+Divine Shield minions so this does not mask what those tests assert.
+
 ## Mechanism inventory (what the engine has vs. what's missing)
 
 **Exists** (so the corresponding cards are mostly *wiring* work):
