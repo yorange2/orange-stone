@@ -11,7 +11,7 @@
 | | Count |
 |---|---|
 | Cards the official text targets, but the engine offers no target (**class A**) | **64** |
-| ├─ T1 resolution accepts a target (declaration only) — **10 fixed, 26 left** | 36 |
+| ├─ T1 resolution accepts a target (declaration only) — **all 36 fixed** ✅ | 36 |
 | └─ T2 resolution ignores the target (needs plumbing) | 28 |
 | Text looks targeted but is not (**class B**, excluded) | 33 |
 
@@ -115,10 +115,10 @@ character, engine enemy-only). Domain narrowness is its own class of gap — wri
 these tests also turned up **Fireball resolving over `AnyEnemy`** — and deserves a
 separate sweep.
 
-## T1 outstanding (26 cards)
+## T1 cleared ✅ (wave W2, 26 cards)
 
-Resolution already threads `explicit_target`; a declaration plus tests is enough.
-Batch by set.
+W1 landed the 10 Classic + Core cards; W2 finishes the remaining 26 across the
+expansions — **T1 is empty**.
 
 | Card ID | Name | Effect variant | Official text (play clause) |
 |---|---|---|---|
@@ -148,6 +148,15 @@ Batch by set.
 | `TLC_901` | Fumigate | `DealDamageSameType` | Deal $3 damage to a minion and all others of the same minion type. |
 | `TLC_987` | Questing Assistant | `DealDamageIfQuestPlayed` | If you played a Quest this game, deal 3 damage to an enemy minion. |
 | `DINO_419` | Herbivore Assistant | `GainStatsAndGrantRush` | Give a friendly Beast +2/+2 and Rush. |
+
+Coverage: one sweep test asserting **every** one of these offers targets (and that
+the offers agree with `rules::validate`), plus a "hits the chosen one" test per
+domain (Conflagrate, Siphoning Growth, Shadowflame Suffusion, Herbivore Assistant).
+
+Two declarations are deliberately narrower than the resolution's candidate set
+(narrower is safe; wider would fizzle at resolution): Air Support and Gruesome
+Nightmare scan `Zone::Play(owner)`, which **includes the hero**, while the offer
+is the minion subset.
 
 ## T2 outstanding (28 cards)
 
@@ -245,14 +254,19 @@ condition** — no play-time target is required and the current behaviour is cor
   resolution domain, not just extending the whitelist.
 - **Ledger `docs/finished/fidelity-debt.md:933`** claims FIR_939's "damage IS
   faithful" — untrue; correct it with the fix.
+- **F-A13 (an independent bug found while clearing T1)**: the engine enacts
+  "destroy a minion" as lethal damage, so **Divine Shield eats a destroy**
+  (Assassinate on an Argent Squire pops the shield and leaves it alive).
+  Unrelated to targeting; registered in the ledger for its own wave. The
+  `play_targeting` boards deliberately carry no Divine Shield minions so it
+  cannot mask what those tests assert.
 
 ## Recommended fix order
 
 1. ~~Dead cards first~~ — that classification is withdrawn (see Correction).
    Instead **clear T1**: resolution already accepts the target, so a declaration
-   plus tests is enough. **Wave W1 landed the 10 Classic + Core cards**; the
-   remaining 26 batch by set (Emerald Dream → Lost City → Cataclysm → Violet
-   Hold), one PR each.
+   plus tests is enough. **T1 is now empty** (W1: 10 Classic + Core, W2: 26 across the
+   expansions).
 2. **Then chew through T2's 28**, threading the chosen target into each
    resolution helper — a bigger job, and where the most visible Classic cards sit
    (Mind Control, Shiv, Slam, Shadowstep).
