@@ -11,9 +11,8 @@
 | | Count |
 |---|---|
 | Cards the official text targets, but the engine offers no target (**class A**) | **64** |
-| ├─ A1 **fizzle**: the effect no-ops entirely; the card is dead | 8 |
-| ├─ A2 **random resolution**: the effect lands, on an engine-picked target | 54 |
-| └─ A3 not probed (high-cost cards the probe game never reached) | 2 |
+| ├─ T1 resolution accepts a target (declaration only) — **10 fixed, 26 left** | 36 |
+| └─ T2 resolution ignores the target (needs plumbing) | 28 |
 | Text looks targeted but is not (**class B**, excluded) | 33 |
 
 The gap spans **Classic through every 2025–2026 expansion**: Classic 24, Emerald Dream 12, Lost City / Un'Goro 10, Timeways 7, Cataclysm 5, Core 3, Violet Hold 3.
@@ -58,62 +57,78 @@ the targeting arrow they expect.
 3. **Live probe**: for each card, run a mirror game (8 copies + vanilla filler,
    greedy opponent), advance until both sides have minions, play the card and diff
    the board. **All 64 confirmed with zero target options** (`target_id == -1`);
-   8 of them changed nothing at all. Control: Fireball (whitelisted)
-   correctly offers targets.
+   Control: Fireball (whitelisted) correctly offers targets. (**Only that
+   conclusion survives** — the probe's further attempt to classify *how* each
+   effect degrades was wrong; see Correction below.)
 
-## A1 — fizzle: 8 dead cards
+## Correction (2026-08-21, after this document's first revision)
 
-Nothing changes when the card is played. The effect arm reads `let t = explicit?;`,
-finds no player-chosen target and returns — mana spent on nothing.
+The first revision split class A into "8 fizzle / 54 random". **That split was
+wrong** and is withdrawn.
+
+The instrument was at fault: the probe judged "did the effect do anything" by
+diffing the board before and after, and the snapshot recorded only health,
+attack and minion counts — **it could not see a Divine Shield popping, a Freeze,
+an enchantment, a "set a 1/1 to 1/1" no-op rewrite, or 0 damage from a hero with
+0 Attack**. Several perfectly working cards were misread as dead. The clearest
+case is Mortal Strike: the probe reported "nothing changed" while the card was in
+fact dealing 4 damage to a random Argent Squire and popping its Divine Shield —
+the engine already carries a passing `w3_mortal_strike_boosts_at_low_health` test.
+
+Replaced with a **static, checkable** axis: does the resolution arm accept
+`explicit_target`? That is what decides the size of the fix, and it does not
+depend on snapshot fidelity.
+
+| | Count |
+|---|---|
+| **T1 resolution already accepts a target** — one `play_target()` arm | 36 |
+| **T2 resolution ignores the target** — the target must be plumbed through too | 28 |
+
+(The "fizzle vs random" question becomes moot: both degradations take the choice
+away from the player, and the fix is the same either way.)
+
+## Fixed (wave W1, 10 cards)
+
+Every T1 card in Classic and Core, now declaring its target domain, covered by
+`tests/play_targeting.rs` — each test asserts both halves of "targetable": the
+legal-action list expands per candidate, and a targeted play hits **the chosen**
+entity rather than a random one from the same domain.
 
 | Card ID | Name | Effect variant | Official text (play clause) |
 |---|---|---|---|
 | `DRUID_018` | Savagery | `DealHeroAttackDamage` | Deal damage equal to your hero's Attack to a minion. |
 | `HUNTER_021` | Bestial Wrath | `GrantAttackAndImmune` | Give a friendly Beast +2 Attack and Immune this turn. |
-| `MAGE_016` | Cone of Cold | `FreezeAdjacent` | Freeze a minion and the minions next to it, and deal $1 damage to them. |
-| `MAGE_022` | Icicle | `FreezeOrDamage` | Deal $2 damage to a minion. If it's Frozen, draw a card. |
-| `WARLOCK_024` | Corruption | `Corrupt` | Choose an enemy minion. At the start of your turn, destroy it. |
+| `CLASSIC_009` | Dark Iron Dwarf | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
+| `NEUTRAL_001` | Abusive Sergeant | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
+| `WARLOCK_017` | Siphon Soul | `DestroyAndHeal` | Destroy a minion. Restore #3 Health to your hero. |
+| `WARLOCK_021` | Demonfire | `Demonfire` | Deal $2 damage to a minion. If it’s a friendly Demon, give it +2/+2 instead. |
+| `WARRIOR_016` | Charge | `GrantCharge` | Give a friendly minion +2 Attack and Charge. |
 | `WARRIOR_021` | Mortal Strike | `MortalStrike` | Deal $4 damage. If you have 12 or less Health, deal $6 instead. |
-| `EDR_813` | Morbid Swarm | `SummonMultipleMinions` | Choose One - Summon two 1/1 Ants; or Spend 2 Corpses to deal $4 damage to a mi |
-| `EDR_252` | Mark of Ursol | `SetStatsByFriendlyTarget` | Choose a minion. If it's an enemy, set its stats to 1/1. If it's friendly, set |
+| `CORE_CS2_188` | Abusive Sergeant | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
+| `CORE_TRL_240` | Savage Striker | `DealHeroAttackDamage` | Deal damage to an enemy minion equal to your hero's Attack. |
 
-## A2 — random resolution: 54 cards
+Declared domains are **the ones the card/resolution already used — no widening**.
+Four are narrower than the official text and are logged separately: Savagery and
+Siphon Soul (official "a minion", engine enemy-only), Abusive Sergeant / Dark Iron
+Dwarf (official "a minion", engine friendly-only), and Mortal Strike (official any
+character, engine enemy-only). Domain narrowness is its own class of gap — writing
+these tests also turned up **Fireball resolving over `AnyEnemy`** — and deserves a
+separate sweep.
 
-The effect lands, but the engine picks who it hits. The starker measured cases:
+## T1 outstanding (26 cards)
 
-- `WARLOCK_017` **Siphon Soul** — destroys a *random* enemy minion
-- `ROGUE_019` **Shadowstep** — bounces a *random* friendly minion
-- `EDR_531` **Siphoning Growth** — destroys a *random friendly* minion for 8 Armor
-- `TIME_043` **PMM Infinitizer** — sets a *random* friendly minion to 8/8
-- `FIR_939` **Shadowflame Suffusion** — the reported card; 2 damage to a random enemy
+Resolution already threads `explicit_target`; a declaration plus tests is enough.
+Batch by set.
 
 | Card ID | Name | Effect variant | Official text (play clause) |
 |---|---|---|---|
-| `CLASSIC_009` | Dark Iron Dwarf | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
-| `CLASSIC_FM` | Faceless Manipulator | `CopyMinionStats` | Choose a minion and become a copy of it. |
-| `NEUTRAL_001` | Abusive Sergeant | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
-| `PALADIN_017` | Holy Wrath | `DrawAndDamageByCost` | Draw a card and deal damage equal to its Cost to a minion. |
-| `PRIEST_011` | Cabal Shadow Priest | `TakeControlAttackLE` | Take control of an enemy minion that has 2 or less Attack. |
-| `PRIEST_021` | Natalie Seline | `DestroyAndGainHealth` | Destroy a minion and gain its Health. |
-| `PRIEST_022` | Shadow Madness | `TakeControlUntilEndOfTurn` | Gain control of an enemy minion with 3 or less Attack until end of turn. |
-| `ROGUE_014` | Shiv | `DealDamageAndDraw` | Deal $1 damage. Draw a card. |
-| `ROGUE_019` | Shadowstep | `ReturnFriendlyToHandAndReduceCost` | Return a friendly minion to your hand. It costs (2) less. |
-| `ROGUE_020` | Betrayal | `AdjacentDamage` | Force an enemy minion to deal its damage to the minions next to it. |
-| `ROGUE_024` | Master of Disguise | `GrantStealth` | Give a friendly minion Stealth until your next turn. |
-| `SHAMAN_003` | Rockbiter Weapon | `GainHeroAttack` | Give a friendly character +3 Attack this turn. |
-| `WARLOCK_017` | Siphon Soul | `DestroyAndHeal` | Destroy a minion. Restore #3 Health to your hero. |
-| `WARLOCK_018` | Shadowflame | `DestroyAndAOE` | Destroy a friendly minion and deal its Attack damage to all enemy minions. |
-| `WARLOCK_021` | Demonfire | `Demonfire` | Deal $2 damage to a minion. If it’s a friendly Demon, give it +2/+2 instead. |
-| `WARRIOR_011` | Slam | `DealDamageAndDraw` | Deal $2 damage to a minion. If it survives, draw a card. |
-| `WARRIOR_016` | Charge | `GrantCharge` | Give a friendly minion +2 Attack and Charge. |
-| `CORE_CS2_188` | Abusive Sergeant | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
-| `CORE_EX1_198` | Natalie Seline | `DestroyAndGainHealth` | Destroy a minion and gain its Health. |
-| `CORE_TRL_240` | Savage Striker | `DealHeroAttackDamage` | Deal damage to an enemy minion equal to your hero's Attack. |
 | `CATA_161` | Gruesome Nightmare | `SetAttackEqualToSource` | Give a minion in your hand or battlefield Attack equal to this minion's Attack |
 | `CATA_552` | Ebonscale Scout | `DealDamageEqualSelfAttack` | Deal damage equal to this minion's Attack. (While in hand, play a Dragon to  b |
 | `CATA_552t` | Ebonscale Scout | `DealDamageEqualSelfAttack` | Deal damage equal to this minion's Attack. (While in hand, play a Dragon to  b |
 | `CATA_564` | Air Support | `GrantMegaWindfuryCantAttackHeroes` | Give a friendly minion Mega-Windfury. |
+| `CATA_699` | Dread Leviathan | `StealHealthThreeTimes` | Choose an enemy minion to steal 3  Health from, three times. |
 | `EDR_860` | Resplendent Dreamweaver | `DealDamageIfImbuedTwice` | If you've Imbued your Hero Power twice, deal 4 damage to a minion. |
+| `EDR_252` | Mark of Ursol | `SetStatsByFriendlyTarget` | Choose a minion. If it's an enemy, set its stats to 1/1. If it's friendly, set |
 | `EDR_261` | Amphibian's Spirit | `AmphibianSpiritBuff` | Give a minion +2/+2 and "Deathrattle: Give a friendly minion +2/+2 and this De |
 | `EDR_262` | Spirit Bond | `DamageAndSummonWolfIfKilled` | Deal $3 damage to a minion. If it dies, summon a 3/2 Wolf with Rush. |
 | `EDR_460` | Wish of the New Moon | `DamageMinionWithMoonLifesteal` | Deal $6 damage to a minion. (Cast 3 spells to gain Lifesteal.) |
@@ -123,10 +138,7 @@ The effect lands, but the engine picks who it hits. The starker measured cases:
 | `FIR_918` | Light of the New Moon | `BuffMinionReturnIfSpellsCast` | Give a minion +3/+3. (Cast 3 spells to return this to your hand when played.) |
 | `FIR_939` | Shadowflame Suffusion | `DamageAndDiscoverWarriorWithGift` | Deal $2 damage. Discover a Warrior minion with a Dark Gift. |
 | `FIR_954` | Conflagrate | `DamageMinionOwnerDraws` | Deal $5 damage to a minion. Its owner draws a card. |
-| `JAIL_101` | Violet Punisher | `VioletPunisher` | Choose an enemy minion. |
-| `JAIL_395` | Sewer Swimmer | `SewerSwimmer` | Trigger a friendly  minion's Deathrattle. |
 | `JAIL_998` | Defias Smuggler | `GainStatsAndGrantRush` | Give a friendly minion +2 Attack and Rush. |
-| `TLC_221` | Sizzling Swarm | `DealDamageSummonCinders` | Deal $3 damage. Summon that many 2/1 Sizzling Cinders. |
 | `TLC_230` | TREEEES!!! | `SummonTreantsAttackMinion` | Choose a minion. Summon four 2/2 Treants that attack it. |
 | `TLC_252` | Dissolving Ooze | `DestroyFriendlyMinionAddBones` | Destroy a friendly minion. |
 | `TLC_441` | Ready the Fleet | `GiveBuffSameType` | Give +1/+2 to a friendly minion and your other minions that share a type with |
@@ -136,6 +148,37 @@ The effect lands, but the engine picks who it hits. The starker measured cases:
 | `TLC_901` | Fumigate | `DealDamageSameType` | Deal $3 damage to a minion and all others of the same minion type. |
 | `TLC_987` | Questing Assistant | `DealDamageIfQuestPlayed` | If you played a Quest this game, deal 3 damage to an enemy minion. |
 | `DINO_419` | Herbivore Assistant | `GainStatsAndGrantRush` | Give a friendly Beast +2/+2 and Rush. |
+
+## T2 outstanding (28 cards)
+
+The resolution arm never receives `explicit_target` (its helper picks its own
+scope), so beyond the declaration the target has to be plumbed through — a bigger
+job. **The most visible Classic cards live here**: Mind Control, Shiv, Slam,
+Shadowstep, Betrayal, Shadow Madness.
+
+| Card ID | Name | Effect variant | Official text (play clause) |
+|---|---|---|---|
+| `MAGE_016` | Cone of Cold | `FreezeAdjacent` | Freeze a minion and the minions next to it, and deal $1 damage to them. |
+| `MAGE_022` | Icicle | `FreezeOrDamage` | Deal $2 damage to a minion. If it's Frozen, draw a card. |
+| `CLASSIC_FM` | Faceless Manipulator | `CopyMinionStats` | Choose a minion and become a copy of it. |
+| `PALADIN_017` | Holy Wrath | `DrawAndDamageByCost` | Draw a card and deal damage equal to its Cost to a minion. |
+| `PRIEST_011` | Cabal Shadow Priest | `TakeControlAttackLE` | Take control of an enemy minion that has 2 or less Attack. |
+| `PRIEST_021` | Natalie Seline | `DestroyAndGainHealth` | Destroy a minion and gain its Health. |
+| `PRIEST_022` | Shadow Madness | `TakeControlUntilEndOfTurn` | Gain control of an enemy minion with 3 or less Attack until end of turn. |
+| `PRIEST_023` | Mind Control | `TakeControl` | Take control of an enemy minion. |
+| `ROGUE_014` | Shiv | `DealDamageAndDraw` | Deal $1 damage. Draw a card. |
+| `ROGUE_019` | Shadowstep | `ReturnFriendlyToHandAndReduceCost` | Return a friendly minion to your hand. It costs (2) less. |
+| `ROGUE_020` | Betrayal | `AdjacentDamage` | Force an enemy minion to deal its damage to the minions next to it. |
+| `ROGUE_024` | Master of Disguise | `GrantStealth` | Give a friendly minion Stealth until your next turn. |
+| `SHAMAN_003` | Rockbiter Weapon | `GainHeroAttack` | Give a friendly character +3 Attack this turn. |
+| `WARLOCK_018` | Shadowflame | `DestroyAndAOE` | Destroy a friendly minion and deal its Attack damage to all enemy minions. |
+| `WARLOCK_024` | Corruption | `Corrupt` | Choose an enemy minion. At the start of your turn, destroy it. |
+| `WARRIOR_011` | Slam | `DealDamageAndDraw` | Deal $2 damage to a minion. If it survives, draw a card. |
+| `CORE_EX1_198` | Natalie Seline | `DestroyAndGainHealth` | Destroy a minion and gain its Health. |
+| `EDR_813` | Morbid Swarm | `SummonMultipleMinions` | Choose One - Summon two 1/1 Ants; or Spend 2 Corpses to deal $4 damage to a mi |
+| `JAIL_101` | Violet Punisher | `VioletPunisher` | Choose an enemy minion. |
+| `JAIL_395` | Sewer Swimmer | `SewerSwimmer` | Trigger a friendly  minion's Deathrattle. |
+| `TLC_221` | Sizzling Swarm | `DealDamageSummonCinders` | Deal $3 damage. Summon that many 2/1 Sizzling Cinders. |
 | `TIME_043` | PMM Infinitizer | `SetStatsAndCantAttackHeroesThisTurn` | Set a friendly minion's Attack and Health to 8. |
 | `TIME_427` | Cleansing Lightspawn | `DealDamageEnemyMinionEqualToSourceHealth` | Deal damage to an enemy minion equal    to this minion's Health. |
 | `TIME_431` | Amber Priestess | `RestoreHealthEqualToSourceHealth` | Restore Health to a character equal to this minion's Health. |
@@ -144,16 +187,6 @@ The effect lands, but the engine picks who it hits. The starker measured cases:
 | `TIME_858` | Temporal Construct | `DealDamageAndDrawExcess` | Deal 5 damage to an enemy minion. |
 | `TIME_435` | Eternus | `TakeControlEnemyMinionHealthLE` | Take control of an enemy minion with this   minion's Health or less. |
 
-## A3 — not probed: 2 cards
-
-High-cost cards; the probe game ended before they were playable. The static verdict
-still holds (a variant outside the whitelist cannot produce targets), there is just
-no measured diff.
-
-| Card ID | Name | Effect variant | Official text (play clause) |
-|---|---|---|---|
-| `PRIEST_023` | Mind Control | `TakeControl` | Take control of an enemy minion. |
-| `CATA_699` | Dread Leviathan | `StealHealthThreeTimes` | Choose an enemy minion to steal 3  Health from, three times. |
 
 ## Class B — the 33 excluded cards
 
@@ -215,11 +248,14 @@ condition** — no play-time target is required and the current behaviour is cor
 
 ## Recommended fix order
 
-1. **A1's 8 dead cards first** — "the card does nothing" is the worst
-   failure mode, and these are high-traffic Classic/Core cards (Corruption, Cone of
-   Cold, Bestial Wrath, Mortal Strike).
-2. **Then A2's 54**, batched by set (Classic → Core → each expansion), one
-   PR plus F5 scenario tests per batch.
+1. ~~Dead cards first~~ — that classification is withdrawn (see Correction).
+   Instead **clear T1**: resolution already accepts the target, so a declaration
+   plus tests is enough. **Wave W1 landed the 10 Classic + Core cards**; the
+   remaining 26 batch by set (Emerald Dream → Lost City → Cataclysm → Violet
+   Hold), one PR each.
+2. **Then chew through T2's 28**, threading the chosen target into each
+   resolution helper — a bigger job, and where the most visible Classic cards sit
+   (Mind Control, Shiv, Slam, Shadowstep).
 3. ~~**Structural fix so it cannot drift again**~~ — **done (2026-08-21)**: the
    declaration moved out of `play_targets`'s `match` and onto
    `CardEffect::play_target()` (`src/core/play_target.rs`, an **exhaustive match over

@@ -75,6 +75,17 @@ impl CardEffect {
             CardEffect::DamageAndFreeze { target, .. } => Some(*target),
             CardEffect::DamageAndGainAttack { target, .. } => Some(*target),
 
+            CardEffect::DealHeroAttackDamage { target } => Some(*target),
+            CardEffect::GrantAttackAndImmune { target, .. } => Some(*target),
+            CardEffect::GainStatsThisTurn { target, .. } => Some(*target),
+            CardEffect::DestroyAndHeal { target, .. } => Some(*target),
+            CardEffect::GrantCharge { target, .. } => Some(*target),
+            // Demonfire's resolution collects both sides' minions.
+            CardEffect::Demonfire { .. } => Some(EffectTarget::AnyMinion),
+            // Mortal Strike resolves over AnyEnemy — narrower than the official
+            // "any character"; widening domains is tracked separately.
+            CardEffect::MortalStrike { .. } => Some(EffectTarget::AnyEnemy),
+
             // ── Everything else: played without a targeting step ───────────
             // (AoE, summons, draws, Discover, self-buffs, triggered-only
             // effects — plus, for now, the audit's outstanding cards.)
@@ -296,12 +307,10 @@ impl CardEffect {
             | CardEffect::DealDamageToTwo { .. }
             | CardEffect::DealDamageToTwoAndFreeze { .. }
             | CardEffect::DealDamageToTwoScaledByHandTurns { .. }
-            | CardEffect::DealHeroAttackDamage { .. }
             | CardEffect::DealSelfAttackDamage { .. }
             | CardEffect::DeathrattleDamageAllEnemiesTurnScaled { .. }
             | CardEffect::DebuffRandomHandMinionBoth { .. }
             | CardEffect::DefiasWannabe
-            | CardEffect::Demonfire { .. }
             | CardEffect::DemonicConfinement
             | CardEffect::DestroyAdjacent { .. }
             | CardEffect::DestroyAllEnemySecretsAndDraw { .. }
@@ -313,7 +322,6 @@ impl CardEffect {
             | CardEffect::DestroyAllOtherMinionsAndDiscardHand
             | CardEffect::DestroyAndAOE { .. }
             | CardEffect::DestroyAndGainHealth
-            | CardEffect::DestroyAndHeal { .. }
             | CardEffect::DestroyCrystalGainCrystalsLater { .. }
             | CardEffect::DestroyDeckCardsCostLE2Both
             | CardEffect::DestroyDeckTop { .. }
@@ -499,7 +507,6 @@ impl CardEffect {
             | CardEffect::GainStatsPerFriendlyMinionTargeted
             | CardEffect::GainStatsPerHandCard { .. }
             | CardEffect::GainStatsPerTurnTaken { .. }
-            | CardEffect::GainStatsThisTurn { .. }
             | CardEffect::GainTauntAndDivineShieldIfHoldingDragon
             | CardEffect::GainTempManaOrPermanentIfSpent { .. }
             | CardEffect::GainWeaponAttackIfHoldingGift { .. }
@@ -530,9 +537,7 @@ impl CardEffect {
             | CardEffect::GrantAdjacentSpellDamage { .. }
             | CardEffect::GrantAdjacentStatsAndDivineShield { .. }
             | CardEffect::GrantAdjacentTaunt
-            | CardEffect::GrantAttackAndImmune { .. }
             | CardEffect::GrantAttackToRandomFriendly
-            | CardEffect::GrantCharge { .. }
             | CardEffect::GrantDeathrattleAll { .. }
             | CardEffect::GrantDeathrattleSummon { .. }
             | CardEffect::GrantDeathrattleSummonOwnCost
@@ -597,7 +602,6 @@ impl CardEffect {
             | CardEffect::MindSweeper
             | CardEffect::MoltenGold
             | CardEffect::MoraggDeathrattle
-            | CardEffect::MortalStrike { .. }
             | CardEffect::MugzeeStartOfGame
             | CardEffect::MurlocHolmes
             | CardEffect::MurozondPrepareInfiniteAttack
@@ -949,12 +953,11 @@ mod tests {
     #[test]
     fn audit_gap_cards_are_still_untargeted() {
         const OUTSTANDING: &[&str] = &[
-        "DRUID_018", "HUNTER_021", "MAGE_016", "MAGE_022", "CLASSIC_009", "CLASSIC_FM",
-        "NEUTRAL_001", "PALADIN_017", "PRIEST_011", "PRIEST_021", "PRIEST_022",
+        "MAGE_016", "MAGE_022", "CLASSIC_FM",
+        "PALADIN_017", "PRIEST_011", "PRIEST_021", "PRIEST_022",
         "PRIEST_023", "ROGUE_014", "ROGUE_019", "ROGUE_020", "ROGUE_024", "SHAMAN_003",
-        "WARLOCK_017", "WARLOCK_018", "WARLOCK_021", "WARLOCK_024", "WARRIOR_011",
-        "WARRIOR_016", "WARRIOR_021", "CORE_CS2_188", "CORE_EX1_198", "CORE_TRL_240",
-        "CATA_161", "CATA_552", "CATA_552t", "CATA_564", "CATA_699", "EDR_860",
+        "WARLOCK_018", "WARLOCK_024", "WARRIOR_011",
+        "CORE_EX1_198", "CATA_161", "CATA_552", "CATA_552t", "CATA_564", "CATA_699", "EDR_860",
         "EDR_813", "EDR_252", "EDR_261", "EDR_262", "EDR_460", "EDR_523", "EDR_531",
         "FIR_908", "FIR_918", "FIR_939", "FIR_954", "JAIL_101", "JAIL_395", "JAIL_998",
         "TLC_221", "TLC_230", "TLC_252", "TLC_441", "TLC_606", "TLC_620", "TLC_823",

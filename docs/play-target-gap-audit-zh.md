@@ -9,9 +9,8 @@
 | | 数量 |
 |---|---|
 | 官方要玩家指定目标、引擎却不给目标的卡（**A 类**） | **64** |
-| ├─ A1 **哑火**：效果整个 no-op，卡是废的 | 8 |
-| ├─ A2 **随机结算**：效果生效，但目标由引擎随机挑 | 54 |
-| └─ A3 未实测（高费卡，探针局没打到） | 2 |
+| ├─ T1 结算已接目标（补声明即可）——**已修 10 张，余 26 张** | 36 |
+| └─ T2 结算不接目标（还要把目标接进结算） | 28 |
 | 文本像要目标、实际不需要（**B 类**，已排除） | 33 |
 
 覆盖范围从**经典卡一直到 2025–2026 全部扩展**：经典 24 张、翡翠梦境 12 张、失落之城/安戈洛 10 张、时光之径 7 张、大灾变 5 张、核心 3 张、紫罗兰监狱 3 张。
@@ -49,101 +48,127 @@ let target = match battlecry.0 {
    → 97 张候选。逐条人工复核，剔除发现/抽牌/条件类 33 张 → **A 类 64 张**。
 3. **实测探针**：每张卡开一局镜像局（该卡 ×8 + 白板随从填充，对手 greedy），
    推进到双方都有随从时出这张卡，diff 出牌前后的局面。**64 张全部实测确认
-   没有任何目标选项**（`target_id == -1`），其中 8 张出牌后局面零变化。
+   没有任何目标选项**（`target_id == -1`）。（探针**只有这一个结论可信**——
+   它进一步判断"效果退化成什么"的那部分是错的，见下方「更正」。）
    对照组 火球术（在白名单里）正常给出目标。
 
-## A1 —— 哑火：8 张废卡
+## 更正（2026-08-21，本文首版之后）
 
-出牌后局面**零变化**。效果分支是 `let t = explicit?;`，拿不到玩家指定的目标
-就整个返回，等于花费法力打了个空气。
+首版把 A 类按"哑火 8 张 / 随机 54 张"分类，**这个分类是错的**，已作废。
+
+错在测量工具：探针用"出牌前后 diff 局面"判断效果有没有生效，而快照只记了
+血量/攻击力/随从数量——**看不见圣盾被打爆、看不见冻结、看不见附魔、
+看不见"把 1/1 设成 1/1"这类等值改写，也看不见英雄攻击力为 0 时的 0 点伤害**。
+于是一批正常工作的卡被误判成哑火。最典型的是致死打击：探针说它"零变化"，
+实际是 4 点伤害随机打爆了一只白银之手新兵的圣盾——引擎里本来就有一条
+`w3_mortal_strike_boosts_at_low_health` 测试证明它工作正常。
+
+替换成一个**静态且可验证**的分类轴：结算分支到底收不收 `explicit_target`。
+这决定了修复的工作量，也不依赖任何快照精度。
+
+| | 数量 |
+|---|---|
+| **T1 结算已接目标** —— 补一条 `play_target()` 声明即可 | 36 |
+| **T2 结算不接目标** —— 还要把玩家选的目标接进结算 | 28 |
+
+（"哑火还是随机"这个问题本身也就没有意义了：两种退化都让玩家失去选择权，
+修复动作完全一样。）
+
+## 已修复（W1 波，10 张）
+
+经典 + 核心里 T1 的全部卡，已声明目标域并带 `tests/play_targeting.rs` 测试
+（每张都验证两件事：合法动作按候选目标展开；带目标出牌命中的是**被选中的
+那个**，而不是同域里的随机一个）。
 
 | 卡 ID | 卡名 | 效果变体 | 官方文本（出牌子句） |
 |---|---|---|---|
-| `DRUID_018` | Savagery（野蛮之击） | `DealHeroAttackDamage` | Deal damage equal to your hero's Attack to a minion. |
-| `HUNTER_021` | Bestial Wrath（狂野怒火） | `GrantAttackAndImmune` | Give a friendly Beast +2 Attack and Immune this turn. |
-| `MAGE_016` | Cone of Cold（冰锥术） | `FreezeAdjacent` | Freeze a minion and the minions next to it, and deal $1 damage to them. |
-| `MAGE_022` | Icicle（冰刺） | `FreezeOrDamage` | Deal $2 damage to a minion. If it's Frozen, draw a card. |
-| `WARLOCK_024` | Corruption（腐蚀） | `Corrupt` | Choose an enemy minion. At the start of your turn, destroy it. |
-| `WARRIOR_021` | Mortal Strike（致死打击） | `MortalStrike` | Deal $4 damage. If you have 12 or less Health, deal $6 instead. |
-| `EDR_813` | Morbid Swarm（病变虫群） | `SummonMultipleMinions` | Choose One - Summon two 1/1 Ants; or Spend 2 Corpses to deal $4 damage to a mi |
-| `EDR_252` | Mark of Ursol（乌索尔印记） | `SetStatsByFriendlyTarget` | Choose a minion. If it's an enemy, set its stats to 1/1. If it's friendly, set |
+| `DRUID_018` | Savagery | `DealHeroAttackDamage` | Deal damage equal to your hero's Attack to a minion. |
+| `HUNTER_021` | Bestial Wrath | `GrantAttackAndImmune` | Give a friendly Beast +2 Attack and Immune this turn. |
+| `CLASSIC_009` | Dark Iron Dwarf | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
+| `NEUTRAL_001` | Abusive Sergeant | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
+| `WARLOCK_017` | Siphon Soul | `DestroyAndHeal` | Destroy a minion. Restore #3 Health to your hero. |
+| `WARLOCK_021` | Demonfire | `Demonfire` | Deal $2 damage to a minion. If it’s a friendly Demon, give it +2/+2 instead. |
+| `WARRIOR_016` | Charge | `GrantCharge` | Give a friendly minion +2 Attack and Charge. |
+| `WARRIOR_021` | Mortal Strike | `MortalStrike` | Deal $4 damage. If you have 12 or less Health, deal $6 instead. |
+| `CORE_CS2_188` | Abusive Sergeant | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
+| `CORE_TRL_240` | Savage Striker | `DealHeroAttackDamage` | Deal damage to an enemy minion equal to your hero's Attack. |
 
-## A2 —— 随机结算：54 张
+声明的目标域**取卡面/结算已有的域，不顺带放宽**。其中三张比官方窄，单独记账：
+野蛮之击、灵魂虹吸（官方"一个随从"，引擎限敌方随从）、
+凌辱/黑铁矮人（官方"一个随从"，引擎限友方随从）。致死打击同理
+（官方任意角色，引擎限敌方）。这类"域偏窄"是另一类问题——写测试时还发现
+**火球术也是 `AnyEnemy`**——值得单独扫一轮。
 
-效果生效，但打谁/给谁由引擎随机决定。实测里比较刺眼的几例：
+## T1 待修（26 张）
 
-- `WARLOCK_017` **灵魂虹吸**：随机消灭一只敌方随从（本该玩家点）
-- `ROGUE_019` **暗影步**：随机把一只自己的随从收回手牌
-- `EDR_531` **虹吸生长**：随机消灭**自己**的随从换 8 护甲
-- `TIME_043` **PMM 无限机**：随机把一只友方随从设成 8/8
-- `FIR_939` **影焰晕染**：就是这次报的卡，2 点伤害随机落敌方角色
+结算已经接 `explicit_target`，补声明 + 测试即可，按系列分批。
 
 | 卡 ID | 卡名 | 效果变体 | 官方文本（出牌子句） |
 |---|---|---|---|
-| `CLASSIC_009` | Dark Iron Dwarf（黑铁矮人） | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
-| `CLASSIC_FM` | Faceless Manipulator（无面操纵者） | `CopyMinionStats` | Choose a minion and become a copy of it. |
-| `NEUTRAL_001` | Abusive Sergeant（叫嚣的中士） | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
-| `PALADIN_017` | Holy Wrath（神圣愤怒） | `DrawAndDamageByCost` | Draw a card and deal damage equal to its Cost to a minion. |
-| `PRIEST_011` | Cabal Shadow Priest（秘教暗影祭司） | `TakeControlAttackLE` | Take control of an enemy minion that has 2 or less Attack. |
-| `PRIEST_021` | Natalie Seline（娜塔莉·塞林） | `DestroyAndGainHealth` | Destroy a minion and gain its Health. |
-| `PRIEST_022` | Shadow Madness（暗影狂乱） | `TakeControlUntilEndOfTurn` | Gain control of an enemy minion with 3 or less Attack until end of turn. |
-| `ROGUE_014` | Shiv（毒刃） | `DealDamageAndDraw` | Deal $1 damage. Draw a card. |
-| `ROGUE_019` | Shadowstep（暗影步） | `ReturnFriendlyToHandAndReduceCost` | Return a friendly minion to your hand. It costs (2) less. |
-| `ROGUE_020` | Betrayal（背叛） | `AdjacentDamage` | Force an enemy minion to deal its damage to the minions next to it. |
-| `ROGUE_024` | Master of Disguise（伪装大师） | `GrantStealth` | Give a friendly minion Stealth until your next turn. |
-| `SHAMAN_003` | Rockbiter Weapon（石化武器） | `GainHeroAttack` | Give a friendly character +3 Attack this turn. |
-| `WARLOCK_017` | Siphon Soul（灵魂虹吸） | `DestroyAndHeal` | Destroy a minion. Restore #3 Health to your hero. |
-| `WARLOCK_018` | Shadowflame（暗影烈焰） | `DestroyAndAOE` | Destroy a friendly minion and deal its Attack damage to all enemy minions. |
-| `WARLOCK_021` | Demonfire（恶魔之火） | `Demonfire` | Deal $2 damage to a minion. If it’s a friendly Demon, give it +2/+2 instead. |
-| `WARRIOR_011` | Slam（猛击） | `DealDamageAndDraw` | Deal $2 damage to a minion. If it survives, draw a card. |
-| `WARRIOR_016` | Charge（冲锋） | `GrantCharge` | Give a friendly minion +2 Attack and Charge. |
-| `CORE_CS2_188` | Abusive Sergeant（叫嚣的中士） | `GainStatsThisTurn` | Give a minion +2 Attack this turn. |
-| `CORE_EX1_198` | Natalie Seline（娜塔莉·塞林） | `DestroyAndGainHealth` | Destroy a minion and gain its Health. |
-| `CORE_TRL_240` | Savage Striker（野蛮先锋） | `DealHeroAttackDamage` | Deal damage to an enemy minion equal to your hero's Attack. |
-| `CATA_161` | Gruesome Nightmare（残恶梦魇） | `SetAttackEqualToSource` | Give a minion in your hand or battlefield Attack equal to this minion's Attack |
-| `CATA_552` | Ebonscale Scout（乌鳞斥候） | `DealDamageEqualSelfAttack` | Deal damage equal to this minion's Attack. (While in hand, play a Dragon to  b |
+| `CATA_161` | Gruesome Nightmare | `SetAttackEqualToSource` | Give a minion in your hand or battlefield Attack equal to this minion's Attack |
+| `CATA_552` | Ebonscale Scout | `DealDamageEqualSelfAttack` | Deal damage equal to this minion's Attack. (While in hand, play a Dragon to  b |
 | `CATA_552t` | Ebonscale Scout | `DealDamageEqualSelfAttack` | Deal damage equal to this minion's Attack. (While in hand, play a Dragon to  b |
-| `CATA_564` | Air Support（飞行助翼） | `GrantMegaWindfuryCantAttackHeroes` | Give a friendly minion Mega-Windfury. |
-| `EDR_860` | Resplendent Dreamweaver（明耀织梦者） | `DealDamageIfImbuedTwice` | If you've Imbued your Hero Power twice, deal 4 damage to a minion. |
-| `EDR_261` | Amphibian's Spirit（两栖之灵） | `AmphibianSpiritBuff` | Give a minion +2/+2 and "Deathrattle: Give a friendly minion +2/+2 and this De |
-| `EDR_262` | Spirit Bond（灵魂联结） | `DamageAndSummonWolfIfKilled` | Deal $3 damage to a minion. If it dies, summon a 3/2 Wolf with Rush. |
-| `EDR_460` | Wish of the New Moon（新月祈愿） | `DamageMinionWithMoonLifesteal` | Deal $6 damage to a minion. (Cast 3 spells to gain Lifesteal.) |
-| `EDR_523` | Web of Deception（欺诈之网） | `ReturnFriendlyMinionSummonSpider` | Return a friendly minion to your hand to summon a 4/4 Spider with Stealth. |
-| `EDR_531` | Siphoning Growth（虹吸生长） | `DestroyFriendlyMinionGainArmor` | Destroy a friendly minion to gain 8 Armor. |
-| `FIR_908` | Charred Chameleon（火炭变色龙） | `GiveMinionStatsRushIfHeroPowerUsed` | If you've used your Hero Power this turn, give a friendly minion +1/+2 and Rus |
-| `FIR_918` | Light of the New Moon（新月辉光） | `BuffMinionReturnIfSpellsCast` | Give a minion +3/+3. (Cast 3 spells to return this to your hand when played.) |
-| `FIR_939` | Shadowflame Suffusion（影焰晕染） | `DamageAndDiscoverWarriorWithGift` | Deal $2 damage. Discover a Warrior minion with a Dark Gift. |
-| `FIR_954` | Conflagrate（焚烧） | `DamageMinionOwnerDraws` | Deal $5 damage to a minion. Its owner draws a card. |
-| `JAIL_101` | Violet Punisher（紫罗兰惩戒者） | `VioletPunisher` | Choose an enemy minion. |
-| `JAIL_395` | Sewer Swimmer（下水道游水鳄） | `SewerSwimmer` | Trigger a friendly  minion's Deathrattle. |
-| `JAIL_998` | Defias Smuggler（迪菲亚私运者） | `GainStatsAndGrantRush` | Give a friendly minion +2 Attack and Rush. |
-| `TLC_221` | Sizzling Swarm（炽火缠身） | `DealDamageSummonCinders` | Deal $3 damage. Summon that many 2/1 Sizzling Cinders. |
-| `TLC_230` | TREEEES!!!（树群来袭） | `SummonTreantsAttackMinion` | Choose a minion. Summon four 2/2 Treants that attack it. |
-| `TLC_252` | Dissolving Ooze（蚀解软泥怪） | `DestroyFriendlyMinionAddBones` | Destroy a friendly minion. |
-| `TLC_441` | Ready the Fleet（整备团队） | `GiveBuffSameType` | Give +1/+2 to a friendly minion and your other minions that share a type with |
-| `TLC_606` | Latorvian Armorer（拉特维亚护甲师） | `DealDamageGainArmorIfKilled` | Deal 2 damage to an enemy minion. |
-| `TLC_620` | Fortify（强固） | `GainArmorDealDamageEqual` | Gain 3 Armor. Deal damage equal to your Armor to an enemy minion. |
-| `TLC_823` | Cower in Fear（恐惧畏缩） | `DealDamageSetNextBeastDiscount` | Deal $3 damage to a minion. The next Beast you play this turn costs (2) less. |
-| `TLC_901` | Fumigate（烟雾熏蒸） | `DealDamageSameType` | Deal $3 damage to a minion and all others of the same minion type. |
-| `TLC_987` | Questing Assistant（任务助理） | `DealDamageIfQuestPlayed` | If you played a Quest this game, deal 3 damage to an enemy minion. |
-| `DINO_419` | Herbivore Assistant（饲草助手） | `GainStatsAndGrantRush` | Give a friendly Beast +2/+2 and Rush. |
-| `TIME_043` | PMM Infinitizer（无穷永动机） | `SetStatsAndCantAttackHeroesThisTurn` | Set a friendly minion's Attack and Health to 8. |
-| `TIME_427` | Cleansing Lightspawn（净化的光耀之子） | `DealDamageEnemyMinionEqualToSourceHealth` | Deal damage to an enemy minion equal    to this minion's Health. |
-| `TIME_431` | Amber Priestess（琥珀女祭司） | `RestoreHealthEqualToSourceHealth` | Restore Health to a character equal to this minion's Health. |
-| `TIME_442` | Timeway Warden（时间流守望者） | `ImprisonEnemyMinion` | Imprison an enemy minion. |
-| `TIME_614` | Liferender（生命撕裂者） | `DealDamageEnemyMinionIfHeroHealthChanged` | If your hero's Health changed this turn, deal 6 damage to an enemy minion. |
-| `TIME_858` | Temporal Construct（时空构造体） | `DealDamageAndDrawExcess` | Deal 5 damage to an enemy minion. |
-| `TIME_435` | Eternus（伊特努丝） | `TakeControlEnemyMinionHealthLE` | Take control of an enemy minion with this   minion's Health or less. |
+| `CATA_564` | Air Support | `GrantMegaWindfuryCantAttackHeroes` | Give a friendly minion Mega-Windfury. |
+| `CATA_699` | Dread Leviathan | `StealHealthThreeTimes` | Choose an enemy minion to steal 3  Health from, three times. |
+| `EDR_860` | Resplendent Dreamweaver | `DealDamageIfImbuedTwice` | If you've Imbued your Hero Power twice, deal 4 damage to a minion. |
+| `EDR_252` | Mark of Ursol | `SetStatsByFriendlyTarget` | Choose a minion. If it's an enemy, set its stats to 1/1. If it's friendly, set |
+| `EDR_261` | Amphibian's Spirit | `AmphibianSpiritBuff` | Give a minion +2/+2 and "Deathrattle: Give a friendly minion +2/+2 and this De |
+| `EDR_262` | Spirit Bond | `DamageAndSummonWolfIfKilled` | Deal $3 damage to a minion. If it dies, summon a 3/2 Wolf with Rush. |
+| `EDR_460` | Wish of the New Moon | `DamageMinionWithMoonLifesteal` | Deal $6 damage to a minion. (Cast 3 spells to gain Lifesteal.) |
+| `EDR_523` | Web of Deception | `ReturnFriendlyMinionSummonSpider` | Return a friendly minion to your hand to summon a 4/4 Spider with Stealth. |
+| `EDR_531` | Siphoning Growth | `DestroyFriendlyMinionGainArmor` | Destroy a friendly minion to gain 8 Armor. |
+| `FIR_908` | Charred Chameleon | `GiveMinionStatsRushIfHeroPowerUsed` | If you've used your Hero Power this turn, give a friendly minion +1/+2 and Rus |
+| `FIR_918` | Light of the New Moon | `BuffMinionReturnIfSpellsCast` | Give a minion +3/+3. (Cast 3 spells to return this to your hand when played.) |
+| `FIR_939` | Shadowflame Suffusion | `DamageAndDiscoverWarriorWithGift` | Deal $2 damage. Discover a Warrior minion with a Dark Gift. |
+| `FIR_954` | Conflagrate | `DamageMinionOwnerDraws` | Deal $5 damage to a minion. Its owner draws a card. |
+| `JAIL_998` | Defias Smuggler | `GainStatsAndGrantRush` | Give a friendly minion +2 Attack and Rush. |
+| `TLC_230` | TREEEES!!! | `SummonTreantsAttackMinion` | Choose a minion. Summon four 2/2 Treants that attack it. |
+| `TLC_252` | Dissolving Ooze | `DestroyFriendlyMinionAddBones` | Destroy a friendly minion. |
+| `TLC_441` | Ready the Fleet | `GiveBuffSameType` | Give +1/+2 to a friendly minion and your other minions that share a type with |
+| `TLC_606` | Latorvian Armorer | `DealDamageGainArmorIfKilled` | Deal 2 damage to an enemy minion. |
+| `TLC_620` | Fortify | `GainArmorDealDamageEqual` | Gain 3 Armor. Deal damage equal to your Armor to an enemy minion. |
+| `TLC_823` | Cower in Fear | `DealDamageSetNextBeastDiscount` | Deal $3 damage to a minion. The next Beast you play this turn costs (2) less. |
+| `TLC_901` | Fumigate | `DealDamageSameType` | Deal $3 damage to a minion and all others of the same minion type. |
+| `TLC_987` | Questing Assistant | `DealDamageIfQuestPlayed` | If you played a Quest this game, deal 3 damage to an enemy minion. |
+| `DINO_419` | Herbivore Assistant | `GainStatsAndGrantRush` | Give a friendly Beast +2/+2 and Rush. |
 
-## A3 —— 未实测：2 张
+## T2 待修（28 张）
 
-高费卡，探针局在能出牌之前就结束了。静态结论仍然确定（变体不在白名单里
-就一定没有目标枚举），只是没有 diff 数据。
+结算分支根本没拿 `explicit_target`（helper 自己挑范围），除了声明还要把目标
+接进结算链路，工作量大一档。**经典里最显眼的几张在这里**：精神控制、
+潜行者（Shiv）、猛击、影袭、心灵之火、暗影狂乱。
 
 | 卡 ID | 卡名 | 效果变体 | 官方文本（出牌子句） |
 |---|---|---|---|
-| `PRIEST_023` | Mind Control（精神控制） | `TakeControl` | Take control of an enemy minion. |
-| `CATA_699` | Dread Leviathan（恐怖海兽） | `StealHealthThreeTimes` | Choose an enemy minion to steal 3  Health from, three times. |
+| `MAGE_016` | Cone of Cold | `FreezeAdjacent` | Freeze a minion and the minions next to it, and deal $1 damage to them. |
+| `MAGE_022` | Icicle | `FreezeOrDamage` | Deal $2 damage to a minion. If it's Frozen, draw a card. |
+| `CLASSIC_FM` | Faceless Manipulator | `CopyMinionStats` | Choose a minion and become a copy of it. |
+| `PALADIN_017` | Holy Wrath | `DrawAndDamageByCost` | Draw a card and deal damage equal to its Cost to a minion. |
+| `PRIEST_011` | Cabal Shadow Priest | `TakeControlAttackLE` | Take control of an enemy minion that has 2 or less Attack. |
+| `PRIEST_021` | Natalie Seline | `DestroyAndGainHealth` | Destroy a minion and gain its Health. |
+| `PRIEST_022` | Shadow Madness | `TakeControlUntilEndOfTurn` | Gain control of an enemy minion with 3 or less Attack until end of turn. |
+| `PRIEST_023` | Mind Control | `TakeControl` | Take control of an enemy minion. |
+| `ROGUE_014` | Shiv | `DealDamageAndDraw` | Deal $1 damage. Draw a card. |
+| `ROGUE_019` | Shadowstep | `ReturnFriendlyToHandAndReduceCost` | Return a friendly minion to your hand. It costs (2) less. |
+| `ROGUE_020` | Betrayal | `AdjacentDamage` | Force an enemy minion to deal its damage to the minions next to it. |
+| `ROGUE_024` | Master of Disguise | `GrantStealth` | Give a friendly minion Stealth until your next turn. |
+| `SHAMAN_003` | Rockbiter Weapon | `GainHeroAttack` | Give a friendly character +3 Attack this turn. |
+| `WARLOCK_018` | Shadowflame | `DestroyAndAOE` | Destroy a friendly minion and deal its Attack damage to all enemy minions. |
+| `WARLOCK_024` | Corruption | `Corrupt` | Choose an enemy minion. At the start of your turn, destroy it. |
+| `WARRIOR_011` | Slam | `DealDamageAndDraw` | Deal $2 damage to a minion. If it survives, draw a card. |
+| `CORE_EX1_198` | Natalie Seline | `DestroyAndGainHealth` | Destroy a minion and gain its Health. |
+| `EDR_813` | Morbid Swarm | `SummonMultipleMinions` | Choose One - Summon two 1/1 Ants; or Spend 2 Corpses to deal $4 damage to a mi |
+| `JAIL_101` | Violet Punisher | `VioletPunisher` | Choose an enemy minion. |
+| `JAIL_395` | Sewer Swimmer | `SewerSwimmer` | Trigger a friendly  minion's Deathrattle. |
+| `TLC_221` | Sizzling Swarm | `DealDamageSummonCinders` | Deal $3 damage. Summon that many 2/1 Sizzling Cinders. |
+| `TIME_043` | PMM Infinitizer | `SetStatsAndCantAttackHeroesThisTurn` | Set a friendly minion's Attack and Health to 8. |
+| `TIME_427` | Cleansing Lightspawn | `DealDamageEnemyMinionEqualToSourceHealth` | Deal damage to an enemy minion equal    to this minion's Health. |
+| `TIME_431` | Amber Priestess | `RestoreHealthEqualToSourceHealth` | Restore Health to a character equal to this minion's Health. |
+| `TIME_442` | Timeway Warden | `ImprisonEnemyMinion` | Imprison an enemy minion. |
+| `TIME_614` | Liferender | `DealDamageEnemyMinionIfHeroHealthChanged` | If your hero's Health changed this turn, deal 6 damage to an enemy minion. |
+| `TIME_858` | Temporal Construct | `DealDamageAndDrawExcess` | Deal 5 damage to an enemy minion. |
+| `TIME_435` | Eternus | `TakeControlEnemyMinionHealthLE` | Take control of an enemy minion with this   minion's Health or less. |
+
 
 ## B 类 —— 已排除的 33 张
 
@@ -202,10 +227,11 @@ let target = match battlecry.0 {
 
 ## 修复建议
 
-1. **先修 A1 的 8 张废卡**：这是"卡完全没用"，性质最重，且都是
-   经典/核心里玩家高频遇到的（夺魂咒、冰锥术、野性之力、致死打击）。
-2. **再修 A2 的 54 张**：按系列分批（经典 → 核心 → 各扩展），
-   每批一个 PR + F5 场景测试。
+1. ~~先修废卡~~ —— 分类已作废（见「更正」）。改为**先清 T1**：结算已接目标，
+   补一条声明 + 测试即可。**W1 波已完成经典 + 核心 10 张**，余 26 张按系列分批
+   （翡翠梦境 → 失落之城 → 大灾变 → 紫罗兰监狱），每批一个 PR。
+2. **再啃 T2 的 28 张**：要把玩家选的目标接进结算链路，逐张改 helper 签名，
+   工作量大一档；经典里最显眼的几张（精神控制、Shiv、猛击、影袭）都在这里。
 3. ~~**结构性防复发**~~ —— **已完成（2026-08-21）**：目标声明从
    `play_targets` 的 `match` 搬到了 `CardEffect::play_target()`
    （`src/core/play_target.rs`，866 个变体**穷尽 match，无 `_` 分支**）。
