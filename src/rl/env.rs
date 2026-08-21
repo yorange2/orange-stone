@@ -470,58 +470,15 @@ fn play_targets(
     state: &GameState,
     card: crate::core::entity::Entity,
 ) -> Vec<crate::core::entity::Entity> {
-    use crate::core::effect::CardEffect;
-
     let Some(battlecry) = state.world().battlecry(card) else {
         return Vec::new();
     };
-    // Extract EffectTarget from the effect variant (spells and battlecries share the battlecry slot)
-    let target = match battlecry.0 {
-        CardEffect::DealDamage { target, .. } => target,
-        CardEffect::DestroyMinion { target } => target,
-        CardEffect::SilenceMinion { target } => target,
-        CardEffect::SetAttack { target, .. } => target,
-        CardEffect::SetHealth { target, .. } => target,
-        CardEffect::RestoreHealth { target, .. } => target,
-        CardEffect::FreezeCharacter { target } => target,
-        CardEffect::ReturnToHand { target } => target,
-        CardEffect::IncreaseCost { target, .. } => target,
-        CardEffect::GainStats { target, .. } => target,
-        CardEffect::GainArmor { target, .. } => target,
-        CardEffect::FullHeal { target } => target,
-        CardEffect::GrantWindfury { target } => target,
-        CardEffect::DoubleAttack { target } => target,
-        CardEffect::DoubleHealth { target } => target,
-        CardEffect::SetAttackToHealth { target } => target,
-        CardEffect::TempDebuff { target, .. } => target,
-        CardEffect::GainStatsAndTaunt { target, .. } => target,
-        CardEffect::DestroyAndGainStats { target, .. } => target,
-        CardEffect::SwapAttackAndHealth { target } => target,
-        CardEffect::GrantDivineShield { target } => target,
-        CardEffect::OutcastDamage { target, .. } => target,
-        CardEffect::DamageAndDrawIfSurvives { target, .. } => target,
-        CardEffect::DamageAndDrawIfKilled { target, .. } => target,
-        CardEffect::DamageAndGainArmor { target, .. } => target,
-        CardEffect::TransformToMinion { .. } => EffectTarget::AnyMinion,
-        CardEffect::GrantDeathrattleToTarget { .. } => EffectTarget::AnyMinion,
-        CardEffect::GainStatsTauntAndDeathrattle { .. } => EffectTarget::AnyMinion,
-        CardEffect::DamageAndSummon { target, .. } => target,
-        CardEffect::DamageAndSummonVoidwalkers { target, .. } => target,
-        CardEffect::DamageAndAddToHand { .. } => EffectTarget::AnyMinion,
-        CardEffect::DamageAndSummonCopyIfKilled { .. } => EffectTarget::AnyMinion,
-        CardEffect::BuffAndSummonRandomCost2 => EffectTarget::AnyMinion,
-        CardEffect::FreezeAndDiscoverSpell => EffectTarget::AnyCharacter,
-        CardEffect::GainStatsAndDraw { target, .. } => target,
-        CardEffect::DamageUndamaged { .. } => EffectTarget::AnyMinion,
-        CardEffect::DamageMinionAndSelfHero { .. } => EffectTarget::AnyMinion,
-        CardEffect::RestoreHealthAndDraw { target, .. } => target,
-        CardEffect::BattleToTheDeath => EffectTarget::AnyEnemyMinion,
-        CardEffect::DestroyMinionAndSelfDamage => EffectTarget::AnyMinion,
-        CardEffect::DamageAndAddRandomSpell { target, .. } => target,
-        CardEffect::FreezeAndSummonElementals => EffectTarget::AnyEnemy,
-        CardEffect::DamageAndFreeze { target, .. } => target,
-        CardEffect::DamageAndGainAttack { target, .. } => target,
-        _ => return Vec::new(),
+    // Spells and battlecries share the battlecry slot; the effect itself
+    // declares whether playing it makes the player pick a target and over
+    // what domain (`core::play_target` — an exhaustive match, so a new
+    // effect variant cannot silently default to "untargeted").
+    let Some(target) = battlecry.0.play_target() else {
+        return Vec::new();
     };
     let owner = state
         .world()

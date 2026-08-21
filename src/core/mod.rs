@@ -5,6 +5,7 @@ pub mod component;
 pub mod effect;
 pub mod entity;
 pub mod event;
+pub mod play_target;
 pub mod player;
 pub mod small_list;
 pub mod sparse_set;
