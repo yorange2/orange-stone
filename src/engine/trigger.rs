@@ -606,8 +606,10 @@ pub fn resolve_effect(
             }
         }
         CardEffect::CopyMinionStats => {
-            let friendly = collect_friendly_minions(state, owner);
-            let Some(target) = select_target(explicit_target, &friendly, state.rng_mut()) else {
+            // "Choose a minion and become a copy of it" — either side.
+            let mut candidates = collect_friendly_minions(state, owner);
+            candidates.extend(collect_all_enemy_minions(state, owner));
+            let Some(target) = select_target(explicit_target, &candidates, state.rng_mut()) else {
                 return;
             };
             // Copy (Faceless Manipulator-style, roadmap G4): copy the target's
@@ -1149,13 +1151,15 @@ pub fn resolve_effect(
             outcast_amount,
             target,
         } => {
-            // Eye Beam — 3 damage, or 6 when played from the hand edge
+            // Eye Beam — 3 damage, or 6 when played from the hand edge.
+            // The chosen target has to be threaded through: this arm used to
+            // hardcode `None`, which silently ignored the player's pick.
             let damage = if state.world().outcast_played(source).is_some() {
                 outcast_amount
             } else {
                 amount
             };
-            resolve_deal_damage(state, queue, source, owner, damage, target, None);
+            resolve_deal_damage(state, queue, source, owner, damage, target, explicit_target);
         }
         CardEffect::RestoreRandomFriendly { amount } => {
             // Healing Rain — `amount` 1-point heals randomly spread across
@@ -2989,7 +2993,7 @@ pub fn resolve_effect(
                 source,
                 owner,
                 amount,
-                EffectTarget::AnyEnemy,
+                EffectTarget::AnyCharacter,
                 explicit_target,
             );
         }
@@ -6455,8 +6459,13 @@ pub fn resolve_effect(
                 // rides in the graveyard where its battlecry component
                 // persists.
                 Some(CardType::Spell) => {
+                    // The copy hits the same target the player chose for the
+                    // original cast (Hearthstone's double-cast rule); the
+                    // trigger itself only knows the card, so the target rides
+                    // on the player.
+                    let same_target = state.player(owner).last_spell_target;
                     if let Some(effect) = state.world().battlecry(subject).map(|b| b.0) {
-                        resolve_effect(state, queue, subject, owner, effect, None, None);
+                        resolve_effect(state, queue, subject, owner, effect, same_target, None);
                     }
                 }
                 _ => {}
@@ -18051,7 +18060,10 @@ fn resolve_swap_attack_health(
 
 /// Freezes a random enemy minion and its neighbors (Cone of Cold).
 fn resolve_freeze_adjacent(state: &mut GameState, owner: PlayerId, explicit: Option<Entity>) {
-    let minions = collect_enemy_minions(state, owner, None);
+    // The official card reaches minions on either side (the target-domain
+    // narrowness wave); the offer and the resolution have to agree.
+    let mut minions = collect_friendly_minions(state, owner);
+    minions.extend(collect_all_enemy_minions(state, owner));
     let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
@@ -18393,6 +18405,15 @@ fn resolve_gain_stats_this_turn(
             return;
         }
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        // Widened domains (the narrowness wave): the official cards target
+        // "a minion" on either side, so the resolution has to accept the whole
+        // board — a declared domain the resolver drops makes the card inert
+        // (guarded by tests/declared_targets_resolve.rs).
+        EffectTarget::AnyMinion => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all
+        }
         _ => return,
     };
     if let Some(m) = select_target(explicit, &minions, state.rng_mut()) {
@@ -19270,6 +19291,15 @@ fn resolve_set_attack(
 ) {
     let minions: SmallList<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner, None),
+        // Widened domains (the narrowness wave): the official cards target
+        // "a minion" on either side, so the resolution has to accept the whole
+        // board — a declared domain the resolver drops makes the card inert
+        // (guarded by tests/declared_targets_resolve.rs).
+        EffectTarget::AnyMinion => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all
+        }
         _ => return,
     };
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
@@ -19647,6 +19677,15 @@ fn resolve_deal_hero_attack_damage(
     let minions: SmallList<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner, Some(source)),
         EffectTarget::AnyEnemy => collect_enemy_characters(state, owner, Some(source)),
+        // Widened domains (the narrowness wave): the official cards target
+        // "a minion" on either side, so the resolution has to accept the whole
+        // board — a declared domain the resolver drops makes the card inert
+        // (guarded by tests/declared_targets_resolve.rs).
+        EffectTarget::AnyMinion => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all
+        }
         _ => return,
     };
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
@@ -19694,6 +19733,15 @@ fn resolve_grant_windfury(
 ) {
     let minions: SmallList<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        // Widened domains (the narrowness wave): the official cards target
+        // "a minion" on either side, so the resolution has to accept the whole
+        // board — a declared domain the resolver drops makes the card inert
+        // (guarded by tests/declared_targets_resolve.rs).
+        EffectTarget::AnyMinion => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all
+        }
         _ => return,
     };
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
@@ -19756,6 +19804,15 @@ fn resolve_double_attack(
 ) {
     let minions: SmallList<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        // Widened domains (the narrowness wave): the official cards target
+        // "a minion" on either side, so the resolution has to accept the whole
+        // board — a declared domain the resolver drops makes the card inert
+        // (guarded by tests/declared_targets_resolve.rs).
+        EffectTarget::AnyMinion => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all
+        }
         _ => return,
     };
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
@@ -19784,6 +19841,15 @@ fn resolve_double_health(
 ) {
     let minions: SmallList<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        // Widened domains (the narrowness wave): the official cards target
+        // "a minion" on either side, so the resolution has to accept the whole
+        // board — a declared domain the resolver drops makes the card inert
+        // (guarded by tests/declared_targets_resolve.rs).
+        EffectTarget::AnyMinion => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all
+        }
         _ => return,
     };
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
@@ -20037,6 +20103,15 @@ fn resolve_set_attack_to_health(
 ) {
     let minions: SmallList<Entity> = match target {
         EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        // Widened domains (the narrowness wave): the official cards target
+        // "a minion" on either side, so the resolution has to accept the whole
+        // board — a declared domain the resolver drops makes the card inert
+        // (guarded by tests/declared_targets_resolve.rs).
+        EffectTarget::AnyMinion => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all
+        }
         _ => return,
     };
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
@@ -20258,7 +20333,10 @@ fn resolve_freeze_or_damage(
     amount: i32,
     explicit: Option<Entity>,
 ) {
-    let minions = collect_enemy_minions(state, owner, Some(source));
+    // The official card reaches minions on either side (the target-domain
+    // narrowness wave); the offer and the resolution have to agree.
+    let mut minions = collect_friendly_minions(state, owner);
+    minions.extend(collect_all_enemy_minions(state, owner));
     let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };
@@ -20281,7 +20359,10 @@ fn resolve_destroy_and_gain_health(
     owner: PlayerId,
     explicit: Option<Entity>,
 ) {
-    let minions = collect_enemy_minions(state, owner, Some(source));
+    // The official card reaches minions on either side (the target-domain
+    // narrowness wave); the offer and the resolution have to agree.
+    let mut minions = collect_friendly_minions(state, owner);
+    minions.extend(collect_all_enemy_minions(state, owner));
     let Some(target) = select_target(explicit, &minions, state.rng_mut()) else {
         return;
     };

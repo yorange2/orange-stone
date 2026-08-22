@@ -42,7 +42,7 @@ pub const CORE_WOUND_PREY: CardDef = CardDef {
     start_turn_effect: None,
     spell_effect: Some(CardEffect::DamageAndSummon {
         damage: 1,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
         card_id: "CORE_BAR_801t",
     }),
     spell_trigger: None,
@@ -777,7 +777,7 @@ pub const CORE_DEMONIC_ASSAULT: CardDef = CardDef {
     start_turn_effect: None,
     spell_effect: Some(CardEffect::DamageAndSummonVoidwalkers {
         damage: 3,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     spell_trigger: None,
     death_trigger: None,

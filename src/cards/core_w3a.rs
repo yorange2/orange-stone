@@ -113,7 +113,7 @@ pub const CORE_BASH: CardDef = CardDef {
     spell_effect: Some(CardEffect::DamageAndGainArmor {
         damage: 3,
         armor: 3,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     spell_trigger: None,
     death_trigger: None,
@@ -258,7 +258,7 @@ pub const CORE_ARCANE_SHOT: CardDef = CardDef {
     start_turn_effect: None,
     spell_effect: Some(CardEffect::DealDamage {
         amount: 2,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     spell_trigger: None,
     death_trigger: None,
@@ -637,7 +637,7 @@ pub const CORE_SHIV: CardDef = CardDef {
     start_turn_effect: None,
     spell_effect: Some(CardEffect::DealDamageAndDraw {
         damage: 1,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
         draw: 1,
     }),
     spell_trigger: None,
@@ -675,7 +675,7 @@ pub const CORE_MORTAL_COIL: CardDef = CardDef {
     start_turn_effect: None,
     spell_effect: Some(CardEffect::DamageAndDrawIfKilled {
         damage: 1,
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     spell_trigger: None,
     death_trigger: None,
@@ -785,7 +785,7 @@ pub const CORE_SLAM: CardDef = CardDef {
     start_turn_effect: None,
     spell_effect: Some(CardEffect::DamageAndDrawIfSurvives {
         damage: 2,
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     spell_trigger: None,
     death_trigger: None,

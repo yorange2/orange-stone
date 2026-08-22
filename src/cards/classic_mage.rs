@@ -159,7 +159,7 @@ pub const FIREBALL: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 6,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -194,7 +194,7 @@ pub const POLYMORPH: CardDef = CardDef {
     health: 0,
     durability: 0,
     battlecry: Some(CardEffect::DestroyMinion {
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -306,7 +306,7 @@ pub const PYROBLAST: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 10,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,

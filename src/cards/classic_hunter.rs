@@ -19,7 +19,7 @@ pub const ARCANE_SHOT: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 2,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -55,7 +55,7 @@ pub const HUNTERS_MARK: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::SetAttack {
         attack: 0,
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -126,7 +126,7 @@ pub const KILL_COMMAND: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 3,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -334,7 +334,7 @@ pub const EXPLOSIVE_SHOT: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 5,
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,

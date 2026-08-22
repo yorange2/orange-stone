@@ -19,7 +19,7 @@ pub const HOLY_SMITE: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 3,
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -92,7 +92,7 @@ pub const POWER_WORD_SHIELD: CardDef = CardDef {
     battlecry: Some(CardEffect::GainStats {
         attack: 0,
         health: 2,
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -130,7 +130,7 @@ pub const SHADOW_WORD_PAIN: CardDef = CardDef {
     health: 0,
     durability: 0,
     battlecry: Some(CardEffect::DestroyMinion {
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -165,7 +165,7 @@ pub const SHADOW_WORD_DEATH: CardDef = CardDef {
     health: 0,
     durability: 0,
     battlecry: Some(CardEffect::DestroyMinion {
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -237,7 +237,7 @@ pub const HOLY_FIRE: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 5,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -416,7 +416,7 @@ pub const SILENCE: CardDef = CardDef {
     health: 0,
     durability: 0,
     battlecry: Some(CardEffect::SilenceMinion {
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -632,7 +632,7 @@ pub const DIVINE_SPIRIT: CardDef = CardDef {
     health: 0,
     durability: 0,
     battlecry: Some(CardEffect::DoubleHealth {
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -668,7 +668,7 @@ pub const INNER_FIRE: CardDef = CardDef {
     health: 0,
     durability: 0,
     battlecry: Some(CardEffect::SetAttackToHealth {
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,

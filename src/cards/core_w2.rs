@@ -375,7 +375,7 @@ pub const EYE_BEAM: CardDef = CardDef {
     spell_effect: Some(CardEffect::OutcastDamage {
         amount: 3,
         outcast_amount: 6,
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     spell_trigger: None,
     death_trigger: None,

@@ -21,7 +21,7 @@ pub const BLESSING_OF_MIGHT: CardDef = CardDef {
     battlecry: Some(CardEffect::GainStats {
         attack: 3,
         health: 0,
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -57,7 +57,7 @@ pub const HUMILITY: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::SetAttack {
         attack: 1,
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -130,7 +130,7 @@ pub const BLESSING_OF_KINGS: CardDef = CardDef {
     battlecry: Some(CardEffect::GainStats {
         attack: 4,
         health: 4,
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -412,7 +412,7 @@ pub const HAMMER_OF_WRATH: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 3,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -589,7 +589,7 @@ pub const HAND_OF_PROTECTION: CardDef = CardDef {
     battlecry: Some(CardEffect::GainStats {
         attack: 0,
         health: 0,
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -692,7 +692,7 @@ pub const BLESSED_CHAMPION: CardDef = CardDef {
     health: 0,
     durability: 0,
     battlecry: Some(CardEffect::DoubleAttack {
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,

@@ -90,7 +90,7 @@ pub const EVISCERATE: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 2,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -114,7 +114,7 @@ pub const EVISCERATE: CardDef = CardDef {
     choose_one_effect: None,
     combo_effect: Some(CardEffect::DealDamage {
         amount: 4,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     attack_equals_health: false,
 };
@@ -346,7 +346,7 @@ pub const COLD_BLOOD: CardDef = CardDef {
     battlecry: Some(CardEffect::GainStats {
         attack: 2,
         health: 0,
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -371,7 +371,7 @@ pub const COLD_BLOOD: CardDef = CardDef {
     combo_effect: Some(CardEffect::GainStats {
         attack: 4,
         health: 0,
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     attack_equals_health: false,
 };
@@ -495,7 +495,7 @@ pub const SHIV: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamageAndDraw {
         damage: 1,
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyCharacter,
         draw: 1,
     }),
     deathrattle: None,
@@ -814,7 +814,7 @@ pub const PERDITIONS_BLADE: CardDef = CardDef {
     durability: 2,
     battlecry: Some(CardEffect::DealDamage {
         amount: 1,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,

@@ -217,6 +217,12 @@ pub struct Player {
     /// How many of Tyrande's "next 3 spells cast twice" charges remain
     /// (2025–2026 expansions M1-W4b); consumed at the spell play path.
     pub spells_cast_twice_pending: u32,
+    /// The target of the spell currently being played, so a re-cast lands on
+    /// the same character (Hearthstone's rule for "casts twice"). Niri's
+    /// re-cast rides the CardPlayed trigger, which knows the card but not what
+    /// the player pointed at; without this the copy picked randomly, which
+    /// only looked right while every damage domain was enemy-only.
+    pub last_spell_target: Option<crate::core::entity::Entity>,
     /// Dragons played this turn (2025–2026 expansions M1-W4b — Naralex's
     /// "your first Dragon each turn costs (1)"); cleared at the owner's
     /// turn start (ManaRefill).
@@ -838,6 +844,7 @@ impl Player {
             played_minion_ids: Vec::new(),
             omen_attacks: 0,
             spells_cast_twice_pending: 0,
+            last_spell_target: None,
             dragons_played_this_turn: 0,
             ursoc_killed_ids: Vec::new(),
             cards_cost_1: false,
