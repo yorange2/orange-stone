@@ -41,7 +41,9 @@ fn offered_targets(state: &GameState, card: Entity) -> Vec<Entity> {
     orange_stone::rl::env::legal_actions(state)
         .into_iter()
         .filter_map(|a| match a {
-            Action::PlayCard { card: c, target, .. } if c == card => target,
+            Action::PlayCard {
+                card: c, target, ..
+            } if c == card => target,
             _ => None,
         })
         .collect()
@@ -141,7 +143,10 @@ fn siphon_soul_destroys_the_chosen_enemy_minion() {
     play_at(&mut state, card, b);
     let alive: Vec<Entity> = state.world().zones().iter(Zone::Play, P2).collect();
     assert!(!alive.contains(&b), "the chosen minion is destroyed");
-    assert!(alive.contains(&a) && alive.contains(&c), "the others survive");
+    assert!(
+        alive.contains(&a) && alive.contains(&c),
+        "the others survive"
+    );
 }
 
 /// Demonfire — "Deal 2 damage to a minion. If it's a friendly Demon, give it
@@ -165,7 +170,11 @@ fn demonfire_hits_the_chosen_minion() {
     );
 
     play_at(&mut state, card, b);
-    assert_eq!(damage_of(&state, b), 2, "the chosen minion takes the damage");
+    assert_eq!(
+        damage_of(&state, b),
+        2,
+        "the chosen minion takes the damage"
+    );
     assert_eq!(damage_of(&state, a), 0);
     assert_eq!(damage_of(&state, mine), 0);
 }
@@ -214,7 +223,11 @@ fn savagery_hits_the_chosen_enemy_minion() {
     assert_eq!(offered_targets(&state, card).len(), 2);
 
     play_at(&mut state, card, a);
-    assert_eq!(damage_of(&state, a), 3, "hero attack lands on the chosen one");
+    assert_eq!(
+        damage_of(&state, a),
+        3,
+        "hero attack lands on the chosen one"
+    );
     assert_eq!(damage_of(&state, b), 0);
 }
 
@@ -241,7 +254,6 @@ fn bestial_wrath_only_offers_friendly_beasts() {
     assert_eq!(attack_of(&state, beast), 5, "the Beast gains +2 Attack");
     assert_eq!(attack_of(&state, other), 1, "the non-Beast is untouched");
 }
-
 
 // ─────────────────────────────────────────────────────────────────────────
 // W2: the rest of T1 — the expansion cards whose resolution already accepts
@@ -339,10 +351,18 @@ fn conflagrate_hits_the_chosen_minion() {
     play_at(&mut state, card, chosen);
     assert!(
         state.world().damage(chosen).is_some_and(|d| d.0 > 0)
-            || !state.world().zones().iter(Zone::Play, P2).any(|e| e == chosen),
+            || !state
+                .world()
+                .zones()
+                .iter(Zone::Play, P2)
+                .any(|e| e == chosen),
         "the chosen minion took the damage (or died from it)"
     );
-    assert_eq!(damage_of(&state, enemy[0]), 0, "the other enemy is untouched");
+    assert_eq!(
+        damage_of(&state, enemy[0]),
+        0,
+        "the other enemy is untouched"
+    );
 }
 
 /// Siphoning Growth — "Destroy a friendly minion to gain 8 Armor."
@@ -364,7 +384,10 @@ fn siphoning_growth_destroys_the_chosen_friendly_minion() {
 
     play_at(&mut state, card, sacrifice);
     let alive: Vec<Entity> = state.world().zones().iter(Zone::Play, P1).collect();
-    assert!(!alive.contains(&sacrifice), "the chosen minion is sacrificed");
+    assert!(
+        !alive.contains(&sacrifice),
+        "the chosen minion is sacrificed"
+    );
     assert!(alive.contains(&keep), "the other one stays");
 }
 
@@ -402,10 +425,263 @@ fn herbivore_assistant_only_offers_friendly_beasts() {
     let beast = mine[0]; // Bloodfen Raptor
 
     let targets = offered_targets(&state, card);
-    assert_eq!(targets, vec![beast], "only the friendly Beast is a candidate");
+    assert_eq!(
+        targets,
+        vec![beast],
+        "only the friendly Beast is a candidate"
+    );
 
     let before = attack_of(&state, beast);
     play_at(&mut state, card, beast);
-    assert!(attack_of(&state, beast) > before, "the chosen Beast is buffed");
+    assert!(
+        attack_of(&state, beast) > before,
+        "the chosen Beast is buffed"
+    );
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// W3: tier T2 — the cards whose resolution ignored the target entirely.
+// Each one had `explicit_target` threaded into its resolver, so here the
+// assertion that matters is "the effect landed on the entity I picked".
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Every card fixed in wave W3.
+const W3_CARDS: &[&str] = &[
+    "MAGE_022",
+    "ROGUE_014",
+    "WARRIOR_011", // resolution already honoured it
+    "MAGE_016",
+    "CLASSIC_FM",
+    "PALADIN_017",
+    "PRIEST_011",
+    "PRIEST_021",
+    "PRIEST_022",
+    "PRIEST_023",
+    "ROGUE_019",
+    "ROGUE_020",
+    "ROGUE_024",
+    "SHAMAN_003",
+    "WARLOCK_018",
+    "WARLOCK_024",
+    "CORE_EX1_198",
+    "JAIL_101",
+    "TLC_221",
+    "TIME_043",
+    "TIME_427",
+    "TIME_431",
+    "TIME_442",
+    "TIME_614",
+    "TIME_858",
+];
+
+/// A board wide enough for every W3 domain: friendly and enemy minions, one
+/// of each side damaged, and a low-Attack enemy for the Attack-capped picks.
+fn w3_board(card: &'static orange_stone::cards::def::CardDef) -> (GameState, Entity) {
+    use orange_stone::cards::def::{BLOODFEN_RAPTOR, CHILLWIND_YETI, LOOT_HOARDER};
+    let mut builder = GameBuilder::new();
+    builder.add_minion_to_board(P1, &BLOODFEN_RAPTOR);
+    builder.add_minion_to_board(P1, &LOOT_HOARDER); // friendly Deathrattle
+    builder.add_minion_to_board(P2, &CHILLWIND_YETI);
+    builder.add_minion_to_board(P2, &LOOT_HOARDER); // 2/1 — inside Attack ≤ 2/3 caps
+    for _ in 0..5 {
+        builder.add_minion_to_deck(P1, &CHILLWIND_YETI); // draws need a deck
+    }
+    builder.add_minion_to_hand(P1, card);
+    builder.set_mana(P1, 10, 10);
+    let state = builder.build();
+    let hand = card_in_hand(&state);
+    (state, hand)
+}
+
+#[test]
+fn every_w3_card_offers_targets() {
+    use orange_stone::cards::card_by_id;
+    let mut missing = Vec::new();
+    for id in W3_CARDS {
+        let def = card_by_id(id).unwrap_or_else(|| panic!("{id} is in ALL_CARDS"));
+        let (state, card) = w3_board(def);
+        if offered_targets(&state, card).is_empty() {
+            missing.push(*id);
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "these cards still play untargeted: {missing:?}"
+    );
+}
+
+/// Mind Control takes the minion you point at, not a random one.
+#[test]
+fn mind_control_steals_the_chosen_minion() {
+    use orange_stone::cards::card_by_id;
+    let def = card_by_id("PRIEST_023").unwrap();
+    let (mut state, card) = w3_board(def);
+    let enemy: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, P2)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    let (wanted, other) = (enemy[1], enemy[0]);
+
+    assert!(offered_targets(&state, card).contains(&wanted));
+    play_at(&mut state, card, wanted);
+
+    assert_eq!(
+        state.world().player(wanted),
+        Some(P1),
+        "the chosen minion changed sides"
+    );
+    assert_eq!(state.world().player(other), Some(P2), "the other did not");
+}
+
+/// Shadowstep bounces the friendly minion you point at.
+#[test]
+fn shadowstep_bounces_the_chosen_minion() {
+    use orange_stone::cards::card_by_id;
+    let def = card_by_id("ROGUE_019").unwrap();
+    let (mut state, card) = w3_board(def);
+    let mine = friendly_minions(&state);
+    let (bounced, stays) = (mine[1], mine[0]);
+
+    play_at(&mut state, card, bounced);
+
+    assert_eq!(
+        state.world().zone(bounced),
+        Some(Zone::Hand),
+        "back to hand"
+    );
+    assert_eq!(
+        state.world().zone(stays),
+        Some(Zone::Play),
+        "the other stays"
+    );
+}
+
+/// Cabal Shadow Priest only offers enemy minions within its Attack cap, and
+/// steals the one chosen.
+#[test]
+fn cabal_shadow_priest_respects_its_attack_cap() {
+    use orange_stone::cards::card_by_id;
+    let def = card_by_id("PRIEST_011").unwrap();
+    let (mut state, card) = w3_board(def);
+    let enemy: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, P2)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    let (yeti, hoarder) = (enemy[0], enemy[1]); // 4/5 and 2/1
+
+    let targets = offered_targets(&state, card);
+    assert!(
+        targets.contains(&hoarder) && !targets.contains(&yeti),
+        "only the ≤2 Attack minion is offered: {targets:?}"
+    );
+
+    play_at(&mut state, card, hoarder);
+    assert_eq!(state.world().player(hoarder), Some(P1));
+}
+
+/// Master of Disguise cannot cloak itself — the offer excludes the source.
+#[test]
+fn master_of_disguise_excludes_itself() {
+    use orange_stone::cards::card_by_id;
+    let def = card_by_id("ROGUE_024").unwrap();
+    let (mut state, card) = w3_board(def);
+    let mine = friendly_minions(&state);
+    let chosen = mine[0];
+
+    let targets = offered_targets(&state, card);
+    assert!(
+        !targets.contains(&card),
+        "the Master itself is not a candidate"
+    );
+
+    play_at(&mut state, card, chosen);
+    assert!(
+        state.world().stealth(chosen).is_some(),
+        "the chosen minion is stealthed"
+    );
+    assert!(
+        state.world().stealth(mine[1]).is_none(),
+        "the other one is not"
+    );
+}
+
+/// Corruption marks the enemy minion you point at (it dies at the start of
+/// your next turn, so the assertion is on the mark, not the board).
+#[test]
+fn corruption_marks_the_chosen_enemy() {
+    use orange_stone::cards::card_by_id;
+    let def = card_by_id("WARLOCK_024").unwrap();
+    let (mut state, card) = w3_board(def);
+    let enemy: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, P2)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    let chosen = enemy[1];
+
+    play_at(&mut state, card, chosen);
+    assert_eq!(
+        state.player(P1).corrupted,
+        vec![chosen],
+        "the chosen minion is the one corrupted"
+    );
+}
+
+/// Sewer Swimmer triggers the Deathrattle of the minion you point at — and
+/// only minions that have one are offered.
+#[test]
+fn sewer_swimmer_only_offers_deathrattle_minions() {
+    use orange_stone::cards::card_by_id;
+    let def = card_by_id("JAIL_395").unwrap();
+    let (mut state, card) = w3_board(def);
+    let mine = friendly_minions(&state);
+    let (raptor, hoarder) = (mine[0], mine[1]); // Bloodfen has none, Loot Hoarder does
+
+    let targets = offered_targets(&state, card);
+    assert!(
+        targets.contains(&hoarder) && !targets.contains(&raptor),
+        "only the Deathrattle minion is a candidate: {targets:?}"
+    );
+
+    // The Deathrattle fires on the chosen minion: Loot Hoarder draws, so the
+    // deck shrinks by one. (Hand size is not the signal — playing the Swimmer
+    // takes a card out of hand at the same time.)
+    let deck_before = state.world().zones().iter(Zone::Deck, P1).count();
+    play_at(&mut state, card, hoarder);
+    assert_eq!(
+        state.world().zones().iter(Zone::Deck, P1).count(),
+        deck_before.saturating_sub(1),
+        "the chosen minion's Deathrattle drew a card"
+    );
+}
+
+/// Eternus only offers enemy minions no healthier than itself.
+#[test]
+fn eternus_offers_only_minions_within_its_health() {
+    use orange_stone::cards::card_by_id;
+    let def = card_by_id("TIME_435").unwrap();
+    let (mut state, card) = w3_board(def);
+    let enemy: Vec<Entity> = state
+        .world()
+        .zones()
+        .iter(Zone::Play, P2)
+        .filter(|&e| state.world().card_type(e) == Some(CardType::Minion))
+        .collect();
+    let hoarder = enemy[1]; // 2/1 — well within Eternus' Health
+
+    let targets = offered_targets(&state, card);
+    assert!(targets.contains(&hoarder), "the 1-Health minion is offered");
+    for t in &targets {
+        let hp = state.world().effective_health(*t).map_or(0, |h| h.0);
+        let limit = state.world().effective_health(card).map_or(0, |h| h.0);
+        assert!(hp <= limit, "every offer is within Eternus' own Health");
+    }
+
+    play_at(&mut state, card, hoarder);
+    assert_eq!(state.world().player(hoarder), Some(P1), "stolen");
+}

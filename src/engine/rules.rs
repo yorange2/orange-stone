@@ -820,8 +820,7 @@ fn resolve_lifesteal_heal(
 ///
 /// Non-minions and entities already out of play are ignored.
 pub(crate) fn destroy_minion(state: &mut GameState, minion: Entity) {
-    if !state.world().is_alive(minion)
-        || state.world().card_type(minion) != Some(CardType::Minion)
+    if !state.world().is_alive(minion) || state.world().card_type(minion) != Some(CardType::Minion)
     {
         return;
     }

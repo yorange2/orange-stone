@@ -486,7 +486,7 @@ fn play_targets(
         .unwrap_or_else(|| state.active_player());
     // Elusive (M5): spells can't target elusive minions; battlecries can.
     let exclude_elusive = state.world().card_type(card) == Some(CardType::Spell);
-    candidates_for_target(state, owner, target, exclude_elusive)
+    candidates_for_target(state, owner, target, exclude_elusive, card)
 }
 
 /// Enumerates candidate entities by `EffectTarget`.
@@ -495,6 +495,7 @@ fn candidates_for_target(
     owner: PlayerId,
     target: EffectTarget,
     exclude_elusive: bool,
+    source: crate::core::entity::Entity,
 ) -> Vec<crate::core::entity::Entity> {
     let world = state.world();
     let enemy = owner.opponent();
@@ -578,9 +579,73 @@ fn candidates_for_target(
                 .filter(|&e| world.effective_attack(e).is_some_and(|a| a.0 >= min_atk))
                 .collect()
         }
-        EffectTarget::Self_ => Vec::new(),
-        // AOE/no-target effects — no explicit target
-        _ => Vec::new(),
+        // Single-target domains that filter the board (the same shape as the
+        // Attack-GE pair above). Missing arms used to fall into a catch-all
+        // that returned an empty list, which silently turned a card that
+        // declares one of these into an untargeted play — the very drift
+        // `CardEffect::play_target` was introduced to stop, one layer down.
+        EffectTarget::EnemyMinionAttackLE(max_atk) => minions(enemy)
+            .into_iter()
+            .filter(no_elusive)
+            .filter(|&e| world.effective_attack(e).is_some_and(|a| a.0 <= max_atk))
+            .collect(),
+        EffectTarget::AnyMinionAttackLE(max_atk) => {
+            let mut all = minions(owner);
+            all.extend(minions(enemy).into_iter().filter(no_elusive));
+            all.into_iter()
+                .filter(|&e| world.effective_attack(e).is_some_and(|a| a.0 <= max_atk))
+                .collect()
+        }
+        EffectTarget::EnemyMinionWithRace => minions(enemy)
+            .into_iter()
+            .filter(no_elusive)
+            .filter(|&e| world.race(e).is_some_and(|r| !r.is_empty()))
+            .collect(),
+        EffectTarget::OtherFriendlyMinion | EffectTarget::AllOtherFriendlyMinions => minions(owner),
+        EffectTarget::DamagedFriendlyMinion => minions(owner)
+            .into_iter()
+            .filter(|&e| world.damage(e).is_some_and(|d| d.0 > 0))
+            .collect(),
+        EffectTarget::DamagedOtherFriendlyMinion => minions(owner)
+            .into_iter()
+            .filter(|&e| world.damage(e).is_some_and(|d| d.0 > 0))
+            .collect(),
+        EffectTarget::DamagedMinion => {
+            let mut all = minions(owner);
+            all.extend(minions(enemy).into_iter().filter(no_elusive));
+            all.into_iter()
+                .filter(|&e| world.damage(e).is_some_and(|d| d.0 > 0))
+                .collect()
+        }
+        EffectTarget::FriendlyMinionWithDeathrattle => minions(owner)
+            .into_iter()
+            .filter(|&e| world.deathrattle(e).is_some())
+            .collect(),
+        EffectTarget::EnemyMinionHealthLESource => {
+            // The bound is the source's own Health. `source` is still the hand
+            // card here, so this is its printed Health — the same value the
+            // battlecry sees a moment later unless something buffs it in
+            // between, and the resolution re-filters either way.
+            let limit = world.effective_health(source).map_or(0, |h| h.0);
+            minions(enemy)
+                .into_iter()
+                .filter(no_elusive)
+                .filter(|&e| world.effective_health(e).is_some_and(|h| h.0 <= limit))
+                .collect()
+        }
+        // Scopes, not targets: AoE hits everything in range and `Self_` /
+        // `EventSubject` are fixed by the effect, so there is nothing to pick.
+        // Listed explicitly (no `_` arm) so a new `EffectTarget` has to say
+        // which side of this line it falls on.
+        EffectTarget::Self_
+        | EffectTarget::EventSubject
+        | EffectTarget::AllCharacters
+        | EffectTarget::AllEnemies
+        | EffectTarget::AllEnemyMinions
+        | EffectTarget::AllFriendlyCharacters
+        | EffectTarget::AllFriendlyMinions
+        | EffectTarget::AllMinions
+        | EffectTarget::AllOtherFriendlyRace(_) => Vec::new(),
     }
 }
 

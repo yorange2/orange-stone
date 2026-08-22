@@ -106,7 +106,9 @@ impl CardEffect {
             CardEffect::DealDamageEqualSelfAttack => Some(EffectTarget::AnyCharacter),
             CardEffect::DealDamageIfImbuedTwice { .. } => Some(EffectTarget::AnyMinion),
             CardEffect::DestroyFriendlyMinionGainArmor { .. } => Some(EffectTarget::FriendlyMinion),
-            CardEffect::GiveMinionStatsRushIfHeroPowerUsed { .. } => Some(EffectTarget::FriendlyMinion),
+            CardEffect::GiveMinionStatsRushIfHeroPowerUsed { .. } => {
+                Some(EffectTarget::FriendlyMinion)
+            }
             // Air Support's resolution scans the owner's play zone (hero included);
             // the offer is the minion subset of it.
             CardEffect::GrantMegaWindfuryCantAttackHeroes => Some(EffectTarget::FriendlyMinion),
@@ -117,6 +119,62 @@ impl CardEffect {
             CardEffect::SetStatsByFriendlyTarget { .. } => Some(EffectTarget::AnyMinion),
             CardEffect::StealHealthThreeTimes { .. } => Some(EffectTarget::AnyEnemyMinion),
             CardEffect::SummonTreantsAttackMinion => Some(EffectTarget::AnyMinion),
+
+            // Icicle — the engine's domain is enemy minions.
+            CardEffect::FreezeOrDamage { .. } => Some(EffectTarget::AnyEnemyMinion),
+            CardEffect::DealDamageAndDraw { target, .. } => Some(*target),
+            // Cone of Cold freezes the chosen minion and its neighbours;
+            // the engine's domain is enemy minions (official: any minion).
+            CardEffect::FreezeAdjacent => Some(EffectTarget::AnyEnemyMinion),
+            // Faceless Manipulator copies a friendly minion here (official:
+            // any minion).
+            CardEffect::CopyMinionStats => Some(EffectTarget::FriendlyMinion),
+            CardEffect::DrawAndDamageByCost => Some(EffectTarget::AnyEnemy),
+            // Cabal Shadow Priest — an enemy minion within the card's own
+            // Attack limit.
+            CardEffect::TakeControlAttackLE { max_attack } => {
+                Some(EffectTarget::EnemyMinionAttackLE(*max_attack))
+            }
+            CardEffect::DestroyAndGainHealth => Some(EffectTarget::AnyEnemyMinion),
+            // Shadow Madness — "an enemy minion with 3 or less Attack".
+            CardEffect::TakeControlUntilEndOfTurn => Some(EffectTarget::EnemyMinionAttackLE(3)),
+            // Mind Control.
+            CardEffect::TakeControl => Some(EffectTarget::AnyEnemyMinion),
+            CardEffect::ReturnFriendlyToHandAndReduceCost { .. } => {
+                Some(EffectTarget::FriendlyMinion)
+            }
+            CardEffect::AdjacentDamage => Some(EffectTarget::AnyEnemyMinion),
+            // Master of Disguise cannot cloak itself — the resolution
+            // excludes the source, so the offer must too.
+            CardEffect::GrantStealth => Some(EffectTarget::OtherFriendlyMinion),
+            // Rockbiter Weapon buffs the hero only in this engine (official:
+            // any friendly character).
+            CardEffect::GainHeroAttack { .. } => Some(EffectTarget::FriendlyHero),
+            // Shadowflame sacrifices a friendly minion.
+            CardEffect::DestroyAndAOE { .. } => Some(EffectTarget::FriendlyMinion),
+            CardEffect::Corrupt => Some(EffectTarget::AnyEnemyMinion),
+            CardEffect::VioletPunisher => Some(EffectTarget::AnyEnemyMinion),
+            CardEffect::DealDamageSummonCinders { .. } => Some(EffectTarget::AnyEnemy),
+            CardEffect::SetStatsAndCantAttackHeroesThisTurn { .. } => {
+                Some(EffectTarget::FriendlyMinion)
+            }
+            CardEffect::DealDamageEnemyMinionEqualToSourceHealth => {
+                Some(EffectTarget::AnyEnemyMinion)
+            }
+            CardEffect::RestoreHealthEqualToSourceHealth => Some(EffectTarget::AnyCharacter),
+            CardEffect::ImprisonEnemyMinion => Some(EffectTarget::AnyEnemyMinion),
+            CardEffect::DealDamageEnemyMinionIfHeroHealthChanged { .. } => {
+                Some(EffectTarget::AnyEnemyMinion)
+            }
+            CardEffect::DealDamageAndDrawExcess { .. } => Some(EffectTarget::AnyEnemyMinion),
+
+            // Sewer Swimmer triggers a Deathrattle, so only minions that have
+            // one are legal targets.
+            CardEffect::SewerSwimmer => Some(EffectTarget::FriendlyMinionWithDeathrattle),
+            // Eternus steals an enemy minion no healthier than itself.
+            CardEffect::TakeControlEnemyMinionHealthLE => {
+                Some(EffectTarget::EnemyMinionHealthLESource)
+            }
 
             // ── Everything else: played without a targeting step ───────────
             // (AoE, summons, draws, Discover, self-buffs, triggered-only
@@ -178,7 +236,6 @@ impl CardEffect {
             | CardEffect::AddSelfToDeckBottomCost { .. }
             | CardEffect::AddTemporaryRandomMinionsCost { .. }
             | CardEffect::AddTwoRandomSpellsSameCost { .. }
-            | CardEffect::AdjacentDamage
             | CardEffect::AlarmOMatic
             | CardEffect::AmirdrassilActivate
             | CardEffect::AncientAugurDeathrattle
@@ -250,13 +307,11 @@ impl CardEffect {
             | CardEffect::CopyEnemyDeckCardOnSelfAttack
             | CardEffect::CopyLowestCostBeastInHand
             | CardEffect::CopyLowestCostEnemyHandCard
-            | CardEffect::CopyMinionStats
             | CardEffect::CopyRandomEnemyDeckCards { .. }
             | CardEffect::CopyRandomEnemyHandCard { .. }
             | CardEffect::CopyRandomHandElementalOrDragon
             | CardEffect::CopyRandomHandMinion
             | CardEffect::CopyRightmostEnemyHandCardOrIncreaseCost
-            | CardEffect::Corrupt
             | CardEffect::CosmicManifestations
             | CardEffect::CrowdControl
             | CardEffect::DamageAllEnemiesByAttack
@@ -300,14 +355,10 @@ impl CardEffect {
             | CardEffect::DealDamageAndBuffFriendlyElementals { .. }
             | CardEffect::DealDamageAndDamageAllEnemies { .. }
             | CardEffect::DealDamageAndDamageRandomEnemyMinion { .. }
-            | CardEffect::DealDamageAndDraw { .. }
-            | CardEffect::DealDamageAndDrawExcess { .. }
             | CardEffect::DealDamageAndImbue { .. }
             | CardEffect::DealDamageAndReturnToHand { .. }
             | CardEffect::DealDamageAndSummon { .. }
             | CardEffect::DealDamageAndSummonIfKilled { .. }
-            | CardEffect::DealDamageEnemyMinionEqualToSourceHealth
-            | CardEffect::DealDamageEnemyMinionIfHeroHealthChanged { .. }
             | CardEffect::DealDamageEqualDragonBreath
             | CardEffect::DealDamageFriendlyMinionToRandomEnemy { .. }
             | CardEffect::DealDamageImprovedByShuffles { .. }
@@ -320,7 +371,6 @@ impl CardEffect {
             | CardEffect::DealDamageSplitAmongAllEnemies { .. }
             | CardEffect::DealDamageSplitAmongAllEnemiesShuffleShreds { .. }
             | CardEffect::DealDamageSplitAmongEnemiesIfFireSpell { .. }
-            | CardEffect::DealDamageSummonCinders { .. }
             | CardEffect::DealDamageToAllEnemyMinions { .. }
             | CardEffect::DealDamageToLeftRightEnemyMinions { .. }
             | CardEffect::DealDamageToRandomEnemyMinionExcessToHero { .. }
@@ -340,8 +390,6 @@ impl CardEffect {
             | CardEffect::DestroyAllMinionsOpponentPlayedLastTurn
             | CardEffect::DestroyAllMinionsWith4OrLessAttack
             | CardEffect::DestroyAllOtherMinionsAndDiscardHand
-            | CardEffect::DestroyAndAOE { .. }
-            | CardEffect::DestroyAndGainHealth
             | CardEffect::DestroyCrystalGainCrystalsLater { .. }
             | CardEffect::DestroyDeckCardsCostLE2Both
             | CardEffect::DestroyDeckTop { .. }
@@ -404,7 +452,6 @@ impl CardEffect {
             | CardEffect::DisguisedWatchman
             | CardEffect::DracorexSplash
             | CardEffect::Drain { .. }
-            | CardEffect::DrawAndDamageByCost
             | CardEffect::DrawAndGainArmorRepeatIfNoMinionPlayedLastTurn { .. }
             | CardEffect::DrawAndGainStats { .. }
             | CardEffect::DrawAndReduceCostRepeated { .. }
@@ -470,9 +517,7 @@ impl CardEffect {
             | CardEffect::ForceEnemyMinionsAttackThis
             | CardEffect::FordragonBuff
             | CardEffect::FranticForger
-            | CardEffect::FreezeAdjacent
             | CardEffect::FreezeMinionAndNeighborsDestroyDamaged
-            | CardEffect::FreezeOrDamage { .. }
             | CardEffect::Frostshatter
             | CardEffect::FullHealAndTaunt { .. }
             | CardEffect::FullHealMinionAndDraw
@@ -492,7 +537,6 @@ impl CardEffect {
             | CardEffect::GainDivineShieldLifestealIfHoldingSpellGE { .. }
             | CardEffect::GainHealthIfFullHealth { .. }
             | CardEffect::GainHealthIfHeroPowerUsed { .. }
-            | CardEffect::GainHeroAttack { .. }
             | CardEffect::GainHeroAttackAndBuffHandMinionsIfDeckNoMinions { .. }
             | CardEffect::GainHeroAttackAndDraw { .. }
             | CardEffect::GainHeroAttackArmorIfHoldingGift { .. }
@@ -569,7 +613,6 @@ impl CardEffect {
             | CardEffect::GrantRandomBonusEffects { .. }
             | CardEffect::GrantRandomFriendlyDivineShieldTaunt
             | CardEffect::GrantRandomFriendlyMinionAttack { .. }
-            | CardEffect::GrantStealth
             | CardEffect::GrantWeaponDeathrattleAllEnemies { .. }
             | CardEffect::GrimyCoin
             | CardEffect::GuardDog
@@ -589,7 +632,6 @@ impl CardEffect {
             | CardEffect::ImbuedHeroPower { .. }
             | CardEffect::Imfernal
             | CardEffect::ImpGangStooge
-            | CardEffect::ImprisonEnemyMinion
             | CardEffect::IncrementOmenAttack
             | CardEffect::InfernoHeraldTrigger { .. }
             | CardEffect::InfiniteDamageToHighestHealthEnemyMinion
@@ -682,7 +724,6 @@ impl CardEffect {
             | CardEffect::RestoreHandSnapshot
             | CardEffect::RestoreHealthAndGetDruidSpells { .. }
             | CardEffect::RestoreHealthAndPendingSelfDamage { .. }
-            | CardEffect::RestoreHealthEqualToSourceHealth
             | CardEffect::RestoreInfinityHandCardCost
             | CardEffect::RestoreRandomFriendly { .. }
             | CardEffect::ResurrectAllDifferentFriendlyCostGE { .. }
@@ -698,7 +739,6 @@ impl CardEffect {
             | CardEffect::ReturnAllToHand
             | CardEffect::ReturnDevouredCards
             | CardEffect::ReturnEnemyMinionCantPlayNextTurn
-            | CardEffect::ReturnFriendlyToHandAndReduceCost { .. }
             | CardEffect::ReturnHoardCostLess
             | CardEffect::ReturnLastTurnSpells
             | CardEffect::ReturnRandomFriendlyAndReduceCost { .. }
@@ -740,14 +780,12 @@ impl CardEffect {
             | CardEffect::SetRemainingHealthAndFullHealDamage { .. }
             | CardEffect::SetSilverHandRecruitStats { .. }
             | CardEffect::SetStatsAllEnemyMinions { .. }
-            | CardEffect::SetStatsAndCantAttackHeroesThisTurn { .. }
             | CardEffect::SetStatsAndFillBoardWithCopies { .. }
             | CardEffect::SetStatsAndGrantCharge { .. }
             | CardEffect::SetStatsAttachDamageAllDeathrattle { .. }
             | CardEffect::SetStatsGrantLifestealForceAttack { .. }
             | CardEffect::SetStatsGrantStealthAndDraw { .. }
             | CardEffect::SetWeaponAttackInfinityThisTurn
-            | CardEffect::SewerSwimmer
             | CardEffect::ShadowRounds
             | CardEffect::ShuffleAllMinionsIntoDecks
             | CardEffect::ShuffleCardIntoDeck { .. }
@@ -868,10 +906,6 @@ impl CardEffect {
             | CardEffect::SwapStatsIfSurvivesDamage
             | CardEffect::SwapWithHandMinion
             | CardEffect::SylvanasDealToAllEnemiesRepeated { .. }
-            | CardEffect::TakeControl
-            | CardEffect::TakeControlAttackLE { .. }
-            | CardEffect::TakeControlEnemyMinionHealthLE
-            | CardEffect::TakeControlUntilEndOfTurn
             | CardEffect::TakeControlUntilEndOfTurnCantAttack
             | CardEffect::TeamworkSummonAndGetRecruits
             | CardEffect::ThalenaSecondHeroPower
@@ -902,7 +936,6 @@ impl CardEffect {
             | CardEffect::UseHeroPower
             | CardEffect::VanessaGetBattlecryMinionCost2Less
             | CardEffect::VigilantSentry
-            | CardEffect::VioletPunisher
             | CardEffect::VoidBlast
             | CardEffect::VoidSoul
             | CardEffect::VolcorossBattlecry
@@ -960,14 +993,7 @@ mod tests {
     /// whitelist did.
     #[test]
     fn audit_gap_cards_are_still_untargeted() {
-        const OUTSTANDING: &[&str] = &[
-        "MAGE_016", "MAGE_022", "CLASSIC_FM",
-        "PALADIN_017", "PRIEST_011", "PRIEST_021", "PRIEST_022",
-        "PRIEST_023", "ROGUE_014", "ROGUE_019", "ROGUE_020", "ROGUE_024", "SHAMAN_003",
-        "WARLOCK_018", "WARLOCK_024", "WARRIOR_011",
-        "CORE_EX1_198", "EDR_813", "JAIL_101", "JAIL_395", "TLC_221", "TIME_043", "TIME_427", "TIME_431",
-        "TIME_442", "TIME_614", "TIME_858", "TIME_435",
-        ];
+        const OUTSTANDING: &[&str] = &["EDR_813"];
         let fixed: Vec<&str> = OUTSTANDING
             .iter()
             .copied()
