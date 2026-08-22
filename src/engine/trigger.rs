@@ -18312,6 +18312,16 @@ fn resolve_gain_stats_and_taunt(
             list.push(source);
             list
         }
+        // Mark of the Wild (CORE_CS2_009) — "Give a minion Taunt and +2/+3".
+        // Without this arm the card declared a target, offered it, and then
+        // did nothing (the resolver-side catch-all, guarded by
+        // `tests/declared_targets_resolve.rs`).
+        EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
+        EffectTarget::AnyMinion => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all
+        }
         _ => return,
     };
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
@@ -20073,6 +20083,14 @@ fn resolve_destroy_and_heal(
 ) {
     let minions: SmallList<Entity> = match target {
         EffectTarget::AnyEnemyMinion => collect_enemy_minions(state, owner, None),
+        // The Core reprint (CORE_EX1_309) destroys a minion on either side —
+        // without this arm it offered a target and did nothing.
+        EffectTarget::AnyMinion => {
+            let mut all = collect_friendly_minions(state, owner);
+            all.extend(collect_all_enemy_minions(state, owner));
+            all
+        }
+        EffectTarget::FriendlyMinion => collect_friendly_minions(state, owner),
         _ => return,
     };
     let Some(m) = select_target(explicit, &minions, state.rng_mut()) else {
