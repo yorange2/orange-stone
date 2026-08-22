@@ -345,3 +345,136 @@ EOF
 # Fireball (MAGE_001, whitelisted) → real entity ids;
 # Shadowflame Suffusion (FIR_939) → all -1
 ```
+
+## Appendix: target-domain narrowness audit (2026-08-22)
+
+The last class left after T1/T2: the **domain**. These cards do let you pick a
+target, but from a narrower set than the official card — most visibly
+**Fireball can only hit the enemy**, while the real card can burn your own
+minion or your own hero (a real play pattern for Acolyte draws and health
+management).
+
+Comparing all 211 cards that declare a domain against their official text,
+**71 are too narrow**:
+
+| Engine domain | Count |
+|---|---|
+| `AnyEnemy` (official: any character) | 24 |
+| `AnyEnemyMinion` (official: any minion) | 29 |
+| `FriendlyMinion` (official: any minion) | 18 |
+
+By fix shape: 65 carry the domain in a `CardDef` field (offer and
+resolution share it — a one-line change), 6 hardcode it in two places.
+
+### A trial run surfaced three blockers (reverted)
+
+Widening the 60 field-based cards and running the suite failed **6 tests**, which
+showed this is not a 65-line change:
+
+1. **The resolvers have the same silent catch-all.** Every effect's resolution
+   carries its own `match target` that knows only the domains it was written
+   for, with `_ => return` for the rest. `GainStatsThisTurn` handles only
+   `Self_` and `FriendlyMinion`, so widening Dark Iron Dwarf to `AnyMinion`
+   makes it **do nothing at all** — worse than the narrow behaviour. This is the
+   **third** instance of this shape, after `play_targets` and
+   `candidates_for_target`.
+2. **It contradicts an archived decision.** Ironforge Rifleman was narrowed from
+   `AnyEnemy` to `AnyEnemyMinion` **on purpose** in W14 (PR #105), and
+   `w14_legal_actions_expose_corrected_target_sets` asserts "the enemy hero is
+   NOT a target". My reading of the official text says any character — a genuine
+   disagreement with a recorded decision, not something to overturn as a side
+   effect of another PR.
+3. **The random fallback distribution changes.** With a wider domain, a
+   resolution without an explicit target (random-cast effects, and tests that
+   take the `target: None` shortcut) **can hit your own side** — correct per the
+   official rules, but it moves bot behaviour and the RL numbers, and grows the
+   legal-action space. `w12_shiv_damages_and_draws` failed on exactly this.
+
+### Recommendation
+
+Fix (1) first — make the resolvers' domain matches exhaustive, or have each
+effect declare the domains it supports — then widen card by card. (2) needs a
+decision on whether to overturn W14. (3) means accepting an RL benchmark rerun.
+**Do not bulk-widen before those are settled**: it silently turns a batch of
+cards into no-ops.
+
+### The 45 that should be `AnyMinion`
+
+| Card ID | Name | Engine domain | Official | Official text |
+|---|---|---|---|---|
+| `CLASSIC_009` | Dark Iron Dwarf | `FriendlyMinion` | `AnyMinion` | Give a minion +2 Attack this turn. |
+| `NEUTRAL_001` | Abusive Sergeant | `FriendlyMinion` | `AnyMinion` | Give a minion +2 Attack this turn. |
+| `DRUID_003` | Mark of the Wild | `FriendlyMinion` | `AnyMinion` | Give a minion Taunt and +2/+3. (+2 Attack/+3 Health) |
+| `DRUID_004` | Wrath | `AnyEnemyMinion` | `AnyMinion` | Choose One - Deal $3 damage to a minion; or $1 damage and dr |
+| `HUNTER_002` | Hunter's Mark | `AnyEnemyMinion` | `AnyMinion` | Change a minion's Health to 1. |
+| `HUNTER_009` | Explosive Shot | `AnyEnemyMinion` | `AnyMinion` | Deal $5 damage to a minion and $2 damage to adjacent ones. |
+| `MAGE_006` | Polymorph | `AnyEnemyMinion` | `AnyMinion` | Transform a minion into a 1/1 Sheep. |
+| `PALADIN_001` | Blessing of Might | `FriendlyMinion` | `AnyMinion` | Give a minion +3 Attack. |
+| `PALADIN_002` | Humility | `AnyEnemyMinion` | `AnyMinion` | Change a minion's Attack to 1. |
+| `PALADIN_004` | Blessing of Kings | `FriendlyMinion` | `AnyMinion` | Give a minion +4/+4. (+4 Attack/+4 Health) |
+| `PALADIN_014` | Hand of Protection | `FriendlyMinion` | `AnyMinion` | Give a minion Divine Shield. |
+| `CS2_089` | Blessed Champion | `FriendlyMinion` | `AnyMinion` | Double a minion's Attack. |
+| `PRIEST_001` | Holy Smite | `AnyEnemyMinion` | `AnyMinion` | Deal $3 damage to a minion. |
+| `PRIEST_003` | Power Word: Shield | `FriendlyMinion` | `AnyMinion` | Give a minion +2 Health. Draw a card. |
+| `PRIEST_005` | Shadow Word: Pain | `AnyEnemyMinion` | `AnyMinion` | Destroy a minion with 3 or less Attack. |
+| `PRIEST_006` | Shadow Word: Death | `AnyEnemyMinion` | `AnyMinion` | Destroy a minion with 5 or more Attack. |
+| `PRIEST_013` | Silence | `AnyEnemyMinion` | `AnyMinion` | Silence a minion. |
+| `CS2_235` | Divine Spirit | `FriendlyMinion` | `AnyMinion` | Double a minion's Health. |
+| `CS1_129` | Inner Fire | `FriendlyMinion` | `AnyMinion` | Change a minion's Attack to be equal to its Health. |
+| `ROGUE_010` | Cold Blood | `FriendlyMinion` | `AnyMinion` | Give a minion +2 Attack. Combo: +4 Attack instead. |
+| `SHAMAN_001` | Earth Shock | `AnyEnemyMinion` | `AnyMinion` | Silence a minion, then deal $1 damage to it. |
+| `SHAMAN_005` | Hex | `AnyEnemyMinion` | `AnyMinion` | Transform a minion into a 0/1 Frog with Taunt. |
+| `CS2_039` | Windfury | `FriendlyMinion` | `AnyMinion` | Give a minion Windfury. |
+| `WARLOCK_003` | Mortal Coil | `AnyEnemyMinion` | `AnyMinion` | Deal $1 damage to a minion.  If it dies, draw a card. |
+| `WARLOCK_008` | Shadow Bolt | `AnyEnemyMinion` | `AnyMinion` | Deal $4 damage to a minion. |
+| `WARLOCK_017` | Siphon Soul | `AnyEnemyMinion` | `AnyMinion` | Destroy a minion. Restore #3 Health to your hero. |
+| `WARRIOR_004` | Cruel Taskmaster | `FriendlyMinion` | `AnyMinion` | Deal 1 damage to a minion and give it +2 Attack. |
+| `WARRIOR_011` | Slam | `AnyEnemyMinion` | `AnyMinion` | Deal $2 damage to a minion. If it survives, draw a card. |
+| `WARRIOR_014` | Inner Rage | `AnyEnemyMinion` | `AnyMinion` | Deal $1 damage to a minion and give it +2 Attack. |
+| `MAGE_016` | Cone of Cold | `AnyEnemyMinion` | `AnyMinion` | Freeze a minion and the minions next to it, and deal $1 dama |
+| `DRUID_018` | Savagery | `AnyEnemyMinion` | `AnyMinion` | Deal damage equal to your hero's Attack to a minion. |
+| `DRUID_020` | Mark of Nature | `FriendlyMinion` | `AnyMinion` | Choose One - Give a minion +4 Attack; or +4 Health and Taunt |
+| `DRUID_022` | Starfall | `AnyEnemyMinion` | `AnyMinion` | Choose One - Deal $5 damage to a minion; or $2 damage to all |
+| `CLASSIC_FM` | Faceless Manipulator | `FriendlyMinion` | `AnyMinion` | Choose a minion and become a copy of it. |
+| `MAGE_022` | Icicle | `AnyEnemyMinion` | `AnyMinion` | Deal $2 damage to a minion. If it's Frozen, draw a card. |
+| `PRIEST_021` | Natalie Seline | `AnyEnemyMinion` | `AnyMinion` | Destroy a minion and gain its Health. |
+| `CORE_ICC_055` | Drain Soul | `AnyEnemyMinion` | `AnyMinion` | Lifesteal Deal $3 damage to a minion. |
+| `CORE_BT_801` | Eye Beam | `AnyEnemyMinion` | `AnyMinion` | Lifesteal. Deal $3 damage to a minion. Outcast: This costs ( |
+| `CORE_EX1_302` | Mortal Coil | `AnyEnemyMinion` | `AnyMinion` | Deal $1 damage to a minion.  If it dies, draw a card. |
+| `CORE_EX1_391` | Slam | `AnyEnemyMinion` | `AnyMinion` | Deal $2 damage to a minion. If it survives, draw a card. |
+| `CORE_CS2_004` | Power Word: Shield | `FriendlyMinion` | `AnyMinion` | Give a minion +2 Health. Draw a card. |
+| `CORE_CS2_009` | Mark of the Wild | `FriendlyMinion` | `AnyMinion` | Give a minion Taunt and +2/+3. (+2 Attack/+3 Health) |
+| `CORE_CS2_188` | Abusive Sergeant | `FriendlyMinion` | `AnyMinion` | Give a minion +2 Attack this turn. |
+| `CORE_EX1_198` | Natalie Seline | `AnyEnemyMinion` | `AnyMinion` | Destroy a minion and gain its Health. |
+| `CORE_EX1_154` | Wrath | `AnyEnemyMinion` | `AnyMinion` | Choose One - Deal $3 damage to a minion; or $1 damage and dr |
+
+### The 26 that should be `AnyCharacter`
+
+| Card ID | Name | Engine domain | Official | Official text |
+|---|---|---|---|---|
+| `NEUTRAL_B07` | Ironforge Rifleman | `AnyEnemyMinion` | `AnyCharacter` | Deal 1 damage. |
+| `DRUID_006` | Starfire | `AnyEnemy` | `AnyCharacter` | Deal $5 damage. Draw a card. |
+| `DRUID_011` | Moonfire | `AnyEnemy` | `AnyCharacter` | Deal $1 damage. |
+| `HUNTER_001` | Arcane Shot | `AnyEnemy` | `AnyCharacter` | Deal $2 damage. |
+| `HUNTER_004` | Kill Command | `AnyEnemy` | `AnyCharacter` | Deal $3 damage. If you control a Beast, deal $5 damage inste |
+| `MAGE_005` | Fireball | `AnyEnemy` | `AnyCharacter` | Deal $6 damage. |
+| `MAGE_009` | Pyroblast | `AnyEnemy` | `AnyCharacter` | Deal $10 damage. |
+| `PALADIN_011` | Hammer of Wrath | `AnyEnemy` | `AnyCharacter` | Deal $3 damage. Draw a card. |
+| `PRIEST_008` | Holy Fire | `AnyEnemy` | `AnyCharacter` | Deal $5 damage. Restore #5 Health to your hero. |
+| `ROGUE_003` | Eviscerate | `AnyEnemy` | `AnyCharacter` | Deal $2 damage. Combo: Deal $4 damage instead. |
+| `ROGUE_014` | Shiv | `AnyEnemyMinion` | `AnyCharacter` | Deal $1 damage. Draw a card. |
+| `ROGUE_023` | Perdition's Blade | `AnyEnemy` | `AnyCharacter` | Deal 1 damage. |
+| `SHAMAN_002` | Lightning Bolt | `AnyEnemy` | `AnyCharacter` | Deal $3 damage. Overload: (1) |
+| `SHAMAN_017` | Lava Burst | `AnyEnemy` | `AnyCharacter` | Deal $5 damage. Overload: (2) |
+| `WARLOCK_001` | Soulfire | `AnyEnemy` | `AnyCharacter` | Deal $4 damage. Discard a random card. |
+| `WARLOCK_006` | Drain Life | `AnyEnemy` | `AnyCharacter` | Deal $2 damage. Restore #2 Health to your hero. |
+| `WARRIOR_021` | Mortal Strike | `AnyEnemy` | `AnyCharacter` | Deal $4 damage. If you have 12 or less Health, deal $6 inste |
+| `CORE_AT_064` | Bash | `AnyEnemy` | `AnyCharacter` | Deal $3 damage. Gain 3 Armor. |
+| `CORE_DS1_185` | Arcane Shot | `AnyEnemy` | `AnyCharacter` | Deal $2 damage. |
+| `CORE_EX1_278` | Shiv | `AnyEnemy` | `AnyCharacter` | Deal $1 damage. Draw a card. |
+| `CORE_BAR_801` | Wound Prey | `AnyEnemy` | `AnyCharacter` | Deal $1 damage. Summon a 1/1 Hyena with Rush. |
+| `CORE_SW_088` | Demonic Assault | `AnyEnemy` | `AnyCharacter` | Deal $3 damage. Summon two 1/3 Voidwalkers with Taunt. |
+| `CORE_CS2_029` | Fireball | `AnyEnemy` | `AnyCharacter` | Deal $6 damage. |
+| `CORE_CS2_094` | Hammer of Wrath | `AnyEnemy` | `AnyCharacter` | Deal $3 damage. Draw a card. |
+| `CORE_BAR_541` | Runed Orb | `AnyEnemy` | `AnyCharacter` | Deal $2 damage. Discover a spell. |
+| `CORE_EX1_238` | Lightning Bolt | `AnyEnemy` | `AnyCharacter` | Deal $3 damage. Overload: (1) |
