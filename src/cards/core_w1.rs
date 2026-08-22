@@ -331,7 +331,7 @@ pub const DRAIN_SOUL: CardDef = CardDef {
     start_turn_effect: None,
     spell_effect: Some(CardEffect::DealDamage {
         amount: 3,
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     spell_trigger: None,
     death_trigger: None,

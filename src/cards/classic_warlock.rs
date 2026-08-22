@@ -18,7 +18,7 @@ pub const SOULFIRE: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 4,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -90,7 +90,7 @@ pub const MORTAL_COIL: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 1,
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -195,7 +195,7 @@ pub const DRAIN_LIFE: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 2,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -264,7 +264,7 @@ pub const SHADOW_BOLT: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 4,
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -508,7 +508,7 @@ pub const SIPHON_SOUL: CardDef = CardDef {
     health: 0,
     durability: 0,
     battlecry: Some(CardEffect::DestroyAndHeal {
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
         heal: 3,
     }),
     deathrattle: None,

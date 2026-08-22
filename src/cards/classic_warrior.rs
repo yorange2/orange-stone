@@ -128,7 +128,7 @@ pub const CRUEL_TASKMASTER: CardDef = CardDef {
     battlecry: Some(CardEffect::DamageAndGainAttack {
         damage: 1,
         attack_bonus: 2,
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -383,7 +383,7 @@ pub const SLAM: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamageAndDraw {
         damage: 2,
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
         draw: 1,
     }),
     deathrattle: None,
@@ -490,7 +490,7 @@ pub const INNER_RAGE: CardDef = CardDef {
     battlecry: Some(CardEffect::DamageAndGainAttack {
         damage: 1,
         attack_bonus: 2,
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,

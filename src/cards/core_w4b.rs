@@ -61,7 +61,7 @@ pub const CORE_ABUSIVE_SERGEANT: CardDef = CardDef {
     battlecry: Some(CardEffect::GainStatsThisTurn {
         attack: 2,
         health: 0,
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,

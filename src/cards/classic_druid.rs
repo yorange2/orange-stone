@@ -91,7 +91,7 @@ pub const MARK_OF_THE_WILD: CardDef = CardDef {
     battlecry: Some(CardEffect::GainStats {
         attack: 2,
         health: 3,
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -206,7 +206,7 @@ pub const STARFIRE: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 5,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -406,7 +406,7 @@ pub const MOONFIRE: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 1,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -684,7 +684,7 @@ pub const SAVAGERY: CardDef = CardDef {
     health: 0,
     durability: 0,
     battlecry: Some(CardEffect::DealHeroAttackDamage {
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,

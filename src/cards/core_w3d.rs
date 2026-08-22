@@ -39,7 +39,7 @@ pub const CORE_POWER_WORD_SHIELD: CardDef = CardDef {
     spell_effect: Some(CardEffect::GainStatsAndDraw {
         attack: 0,
         health: 2,
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
         draw: 1,
     }),
     spell_trigger: None,
@@ -78,7 +78,7 @@ pub const CORE_MARK_OF_THE_WILD: CardDef = CardDef {
     spell_effect: Some(CardEffect::GainStatsAndTaunt {
         attack: 2,
         health: 2,
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     spell_trigger: None,
     death_trigger: None,
@@ -149,7 +149,7 @@ pub const CORE_FIREBALL: CardDef = CardDef {
     start_turn_effect: None,
     spell_effect: Some(CardEffect::DealDamage {
         amount: 6,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     spell_trigger: None,
     death_trigger: None,
@@ -438,7 +438,7 @@ pub const CORE_HAMMER_OF_WRATH: CardDef = CardDef {
     start_turn_effect: None,
     spell_effect: Some(CardEffect::DealDamageAndDraw {
         damage: 3,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
         draw: 1,
     }),
     spell_trigger: None,

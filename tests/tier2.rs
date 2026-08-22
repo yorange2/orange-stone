@@ -2022,12 +2022,16 @@ fn unbound_elemental_gains_stats_when_overload_played() {
         .iter(Zone::Hand, PlayerId::Player1)
         .collect();
     let card = hand[0];
+    // Lightning Bolt reaches any character now (the narrowness wave), so aim
+    // it at the enemy hero rather than letting the random fallback pick — it
+    // could otherwise land on the Unbound Elemental this test is measuring.
+    let enemy_hero = state.player(PlayerId::Player2).hero;
     engine
         .apply(
             &mut state,
             Action::PlayCard {
                 card,
-                target: None,
+                target: Some(enemy_hero),
                 position: None,
             },
         )

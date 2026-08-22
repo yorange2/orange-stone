@@ -17,7 +17,7 @@ pub const EARTH_SHOCK: CardDef = CardDef {
     health: 0,
     durability: 0,
     battlecry: Some(CardEffect::SilenceMinion {
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -53,7 +53,7 @@ pub const LIGHTNING_BOLT: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 3,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -157,7 +157,7 @@ pub const HEX: CardDef = CardDef {
     health: 0,
     durability: 0,
     battlecry: Some(CardEffect::DestroyMinion {
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -571,7 +571,7 @@ pub const LAVA_BURST: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 5,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,
@@ -671,7 +671,7 @@ pub const WINDFURY: CardDef = CardDef {
     health: 0,
     durability: 0,
     battlecry: Some(CardEffect::GrantWindfury {
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,

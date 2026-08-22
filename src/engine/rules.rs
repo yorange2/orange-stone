@@ -2260,21 +2260,29 @@ pub fn apply_event(
                                     chosen_effect,
                                     Some(crate::core::effect::CardEffect::DealDamageAndReturnToHand { .. })
                                 );
+                                // Remember what the player pointed at: a
+                                // re-cast (Niri) rides the CardPlayed trigger,
+                                // which knows the card but not the target.
+                                state.make_mut().players[player.index()].last_spell_target = target;
                                 if let Some(effect) = chosen_effect {
                                     trigger::resolve_effect(
                                         state, queue, card, player, effect, target, None,
                                     );
                                 }
                                 // Tyrande (M1-W4b): "the next 3 spells you cast
-                                // cast twice" — the second resolution uses no
-                                // explicit target and fires no second SpellCast
-                                // event (registered timing simplification, §14.4).
+                                // cast twice" — the copy hits the SAME target
+                                // (Hearthstone's rule for double-cast), and
+                                // fires no second SpellCast event (registered
+                                // timing simplification, §14.4). It used to
+                                // re-resolve with no target, which only looked
+                                // right while the domains were enemy-only: once
+                                // widened, the copy could land on your own board.
                                 if state.player(player).spells_cast_twice_pending > 0 {
                                     state.make_mut().players[player.index()]
                                         .spells_cast_twice_pending -= 1;
                                     if let Some(effect) = chosen_effect {
                                         trigger::resolve_effect(
-                                            state, queue, card, player, effect, None, None,
+                                            state, queue, card, player, effect, target, None,
                                         );
                                     }
                                 }
@@ -2282,8 +2290,8 @@ pub fn apply_event(
                                 // expansions): "Your spells from other classes
                                 // cast twice." A friendly Sinestra on the board
                                 // makes this spell's effect re-resolve once —
-                                // the Tyrande convention (no explicit target,
-                                // no second SpellCast event). The class filter
+                                // the Tyrande convention (same target, no
+                                // second SpellCast event). The class filter
                                 // is dropped: the engine has no per-player or
                                 // per-card class concept (fidelity-debt §23).
                                 if state.world().zones().iter(Zone::Play, player).any(|e| {
@@ -2291,7 +2299,7 @@ pub fn apply_event(
                                 }) {
                                     if let Some(effect) = chosen_effect {
                                         trigger::resolve_effect(
-                                            state, queue, card, player, effect, None, None,
+                                            state, queue, card, player, effect, target, None,
                                         );
                                     }
                                 }

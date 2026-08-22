@@ -398,6 +398,42 @@ decision on whether to overturn W14. (3) means accepting an RL benchmark rerun.
 **Do not bulk-widen before those are settled**: it silently turns a batch of
 cards into no-ops.
 
+### Widening applied (2026-08-22)
+
+**67 of the 71** are widened (24 `AnyEnemy`→`AnyCharacter`, 43
+`AnyEnemyMinion`/`FriendlyMinion`→`AnyMinion`). The guard
+(`tests/declared_targets_resolve.rs`) immediately caught 11 cards the change
+turned inert, and **7 resolution helpers** needed an `AnyMinion` arm before it
+went green (`GainStatsThisTurn`, `SetAttack`, `DoubleAttack`, `DoubleHealth`,
+`SetAttackToHealth`, `GrantWindfury`, `DealHeroAttackDamage`) — exactly blocker
+(1) from this audit, now with a net under it.
+
+Also fixed on the way: **Eye Beam** (CORE_BT_801) hardcoded `None` in its
+resolution, dropping the player's chosen target — a T2 straggler.
+
+**Four Choose One cards stay narrow** (Wrath ×2, Mark of Nature, Starfall): the
+play-time target **does not survive the choice** — the branch resolves with
+`None`. That is the same two-stage gap as Morbid Swarm, left to the next wave.
+
+**Double-cast now reuses the target**: Tyrande/Sinestra's "casts twice" and
+Niri's re-cast used to re-resolve with no target (the §14.4 simplification).
+That looked fine while every damage domain was enemy-only; widened, the copy
+could land on your own face. Hearthstone re-casts at the same target, so both
+paths now pass it — Niri rides the CardPlayed trigger and cannot see the
+target, so it reads `Player::last_spell_target`.
+
+**One W14 decision overturned**: Ironforge Rifleman (`NEUTRAL_B07`), "Battlecry:
+Deal 1 damage.", was narrowed to enemy minions in W14 (PR #105) as an
+"enemy-scope correction", with a test asserting the enemy hero is not a target.
+That bare-damage wording is the Fireball pattern and reaches any character,
+heroes included; the card is back to `AnyCharacter` and the assertion is flipped
+with the reason recorded next to it.
+
+**Impact**: more legal actions — a sample board (three minions a side, Fireball
+and Polymorph in hand) goes from **20 to 27** (+35%). Batch throughput shows no
+clear change (interleaved runs overlap). **The RL benchmarks need a rerun**: both
+the action space and the random-fallback distribution moved.
+
 ### The 45 that should be `AnyMinion`
 
 | Card ID | Name | Engine domain | Official | Official text |

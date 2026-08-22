@@ -82,9 +82,8 @@ impl CardEffect {
             CardEffect::GrantCharge { target, .. } => Some(*target),
             // Demonfire's resolution collects both sides' minions.
             CardEffect::Demonfire { .. } => Some(EffectTarget::AnyMinion),
-            // Mortal Strike resolves over AnyEnemy — narrower than the official
-            // "any character"; widening domains is tracked separately.
-            CardEffect::MortalStrike { .. } => Some(EffectTarget::AnyEnemy),
+            // "Deal 4 damage." — any character, the Fireball reading.
+            CardEffect::MortalStrike { .. } => Some(EffectTarget::AnyCharacter),
 
             CardEffect::DealDamageGainArmorIfKilled { target, .. } => Some(*target),
             CardEffect::DealDamageIfQuestPlayed { target, .. } => Some(*target),
@@ -120,22 +119,21 @@ impl CardEffect {
             CardEffect::StealHealthThreeTimes { .. } => Some(EffectTarget::AnyEnemyMinion),
             CardEffect::SummonTreantsAttackMinion => Some(EffectTarget::AnyMinion),
 
-            // Icicle — the engine's domain is enemy minions.
-            CardEffect::FreezeOrDamage { .. } => Some(EffectTarget::AnyEnemyMinion),
+            // Icicle — "Deal 2 damage to a minion", either side.
+            CardEffect::FreezeOrDamage { .. } => Some(EffectTarget::AnyMinion),
             CardEffect::DealDamageAndDraw { target, .. } => Some(*target),
-            // Cone of Cold freezes the chosen minion and its neighbours;
-            // the engine's domain is enemy minions (official: any minion).
-            CardEffect::FreezeAdjacent => Some(EffectTarget::AnyEnemyMinion),
-            // Faceless Manipulator copies a friendly minion here (official:
-            // any minion).
-            CardEffect::CopyMinionStats => Some(EffectTarget::FriendlyMinion),
+            // Cone of Cold freezes the chosen minion and its neighbours,
+            // on either side.
+            CardEffect::FreezeAdjacent => Some(EffectTarget::AnyMinion),
+            // Faceless Manipulator becomes a copy of any minion.
+            CardEffect::CopyMinionStats => Some(EffectTarget::AnyMinion),
             CardEffect::DrawAndDamageByCost => Some(EffectTarget::AnyEnemy),
             // Cabal Shadow Priest — an enemy minion within the card's own
             // Attack limit.
             CardEffect::TakeControlAttackLE { max_attack } => {
                 Some(EffectTarget::EnemyMinionAttackLE(*max_attack))
             }
-            CardEffect::DestroyAndGainHealth => Some(EffectTarget::AnyEnemyMinion),
+            CardEffect::DestroyAndGainHealth => Some(EffectTarget::AnyMinion),
             // Shadow Madness — "an enemy minion with 3 or less Attack".
             CardEffect::TakeControlUntilEndOfTurn => Some(EffectTarget::EnemyMinionAttackLE(3)),
             // Mind Control.

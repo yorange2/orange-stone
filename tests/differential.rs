@@ -2447,7 +2447,9 @@ fn w3_mortal_strike_boosts_at_low_health() {
             &mut state,
             Action::PlayCard {
                 card: strike,
-                target: None,
+                // Mortal Strike reaches any character now, so name the victim
+                // rather than relying on the random fallback landing on it.
+                target: Some(enemy2),
                 position: None,
             },
         )
@@ -5973,7 +5975,10 @@ fn w12_shiv_damages_and_draws() {
             &mut state,
             Action::PlayCard {
                 card: shiv,
-                target: None,
+                // Shiv's domain now covers minions on either side (the
+                // narrowness wave), so the test names its victim instead of
+                // leaning on the random fallback picking the only enemy.
+                target: Some(enemy),
                 position: None,
             },
         )
@@ -7181,13 +7186,19 @@ fn w14_legal_actions_expose_corrected_target_sets() {
         }),
         "rifleman: the enemy minion is a target"
     );
+    // Overturns the W14 (PR #105) narrowing: Ironforge Rifleman's official
+    // text is a bare "Battlecry: Deal 1 damage.", which by Hearthstone's
+    // convention reaches any character, heroes included — the same reading
+    // that makes Fireball able to hit your own face. W14 read it as an
+    // enemy-scope correction and stopped at enemy minions; the narrowness
+    // audit (docs/play-target-gap-audit.md) reversed that call.
     assert!(
-        !actions.contains(&Action::PlayCard {
+        actions.contains(&Action::PlayCard {
             card: rifleman,
             target: Some(enemy_hero),
             position: None,
         }),
-        "rifleman: the enemy hero is NOT a target"
+        "rifleman: the enemy hero IS a target (any character)"
     );
     let owl = find_card("CLASSIC_004");
     assert!(

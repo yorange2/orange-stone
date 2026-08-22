@@ -325,7 +325,7 @@ pub const DARK_IRON_DWARF: CardDef = CardDef {
     battlecry: Some(CardEffect::GainStatsThisTurn {
         attack: 2,
         health: 0,
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -674,7 +674,7 @@ pub const ABUSIVE_SERGEANT: CardDef = CardDef {
     battlecry: Some(CardEffect::GainStatsThisTurn {
         attack: 2,
         health: 0,
-        target: EffectTarget::FriendlyMinion,
+        target: EffectTarget::AnyMinion,
     }),
     deathrattle: None,
     taunt: false,
@@ -1716,7 +1716,7 @@ pub const IRONFORGE_RIFLEMAN: CardDef = CardDef {
     durability: 0,
     battlecry: Some(CardEffect::DealDamage {
         amount: 1,
-        target: EffectTarget::AnyEnemyMinion,
+        target: EffectTarget::AnyCharacter,
     }),
     deathrattle: None,
     taunt: false,

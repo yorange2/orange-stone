@@ -151,7 +151,7 @@ pub const CORE_RUNED_ORB: CardDef = CardDef {
     start_turn_effect: None,
     spell_effect: Some(CardEffect::DamageAndAddRandomSpell {
         damage: 2,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     spell_trigger: None,
     death_trigger: None,
@@ -556,7 +556,7 @@ pub const CORE_LIGHTNING_BOLT: CardDef = CardDef {
     start_turn_effect: None,
     spell_effect: Some(CardEffect::DealDamage {
         amount: 3,
-        target: EffectTarget::AnyEnemy,
+        target: EffectTarget::AnyCharacter,
     }),
     spell_trigger: None,
     death_trigger: None,
