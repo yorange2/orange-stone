@@ -473,6 +473,14 @@ fn play_targets(
     let Some(battlecry) = state.world().battlecry(card) else {
         return Vec::new();
     };
+    // Locations keep their ACTIVATE effect in the battlecry slot and resolve
+    // nothing when played (`rules::play_card`), so a play-time target would be
+    // offered and then dropped on the floor — the targeting belongs to
+    // `ActivateLocation`, which enumerates its own. Found by
+    // `tests/declared_targets_resolve.rs` via Sanguine Depths.
+    if state.world().card_type(card) == Some(CardType::Location) {
+        return Vec::new();
+    }
     // Spells and battlecries share the battlecry slot; the effect itself
     // declares whether playing it makes the player pick a target and over
     // what domain (`core::play_target` — an exhaustive match, so a new
